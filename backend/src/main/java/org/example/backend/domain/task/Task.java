@@ -1,4 +1,9 @@
 package org.example.backend.domain.task;
 
-public record Task() {
+import java.time.Instant;
+
+public record Task(String id,
+                   Status status,
+                   Instant dueDate,
+                   Instant completionDate) {
 }
