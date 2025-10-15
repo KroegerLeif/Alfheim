@@ -1,4 +1,8 @@
 package org.example.backend.domain.task;
 
-public record TaskSeries() {
+import java.util.List;
+
+public record TaskSeries(String id,
+                         TaskDefinition definition,
+                         List<Task> taskList) {
 }
