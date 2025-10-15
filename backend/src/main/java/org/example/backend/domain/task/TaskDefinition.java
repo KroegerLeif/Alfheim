@@ -1,4 +1,10 @@
 package org.example.backend.domain.task;
 
-public record TaskDefinition() {
+import java.math.BigDecimal;
+
+public record TaskDefinition(String id,
+                             String name,
+                             BigDecimal price,
+                             Priority priority,
+                             int repetition) {
 }
