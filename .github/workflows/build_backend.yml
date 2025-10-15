@@ -22,7 +22,7 @@ jobs:
 
       - name: Wechsel in das Backend-Verzeichnis
         run: echo "Working Directory set"
-        working-directory: Backend
+        working-directory: backend
 
       - name: Build mit Maven
         run: mvn -B package # oder mvn verify
