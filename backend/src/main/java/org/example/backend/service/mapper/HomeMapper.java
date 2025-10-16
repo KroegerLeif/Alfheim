@@ -7,10 +7,12 @@ import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.domain.user.Role;
 import org.example.backend.domain.user.User;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
+@Service
 public class HomeMapper {
 
     public Home mapToHome(CreateHomeDTO createHomeDTO){
