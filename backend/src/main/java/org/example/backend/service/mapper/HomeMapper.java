@@ -30,7 +30,7 @@ public class HomeMapper {
                                     "admin",
                                     home.taskSeries().size(),
                                     home.items().size(),
-                                    home.members().keySet().stream().map(User -> User.name()).toList());
+                                    home.members().keySet().stream().map(User::name).toList());
     }
 
 }
