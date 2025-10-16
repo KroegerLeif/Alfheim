@@ -7,7 +7,7 @@ import java.util.List;
 public record HomeTableReturnDTO(String name,
                                  Address address,
                                  String admin,
-                                 int numberTAsk,
+                                 int numberTask,
                                  int numberItems,
                                  List<String> members) {
 }
