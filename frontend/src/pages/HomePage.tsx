@@ -8,7 +8,7 @@ function HomePage(){
     const [homeTableData, setHomeTableData] = useState<HomeTableReturnDTO[]>([]);
 
     function loadHomeData(){
-        axios.get("/api/home/")
+        axios.get("/api/home")
             .then((response) =>
                 {setHomeTableData(response.data);})
             .catch((error) => {console.log(error)})
