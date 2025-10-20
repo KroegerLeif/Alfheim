@@ -1,12 +1,10 @@
-import type Address from "@/dto/Address.ts";
+import type {Address} from "@/dto/Address";
 
-type HomeTableReturnDTO = {
+export type HomeTableReturnDTO = {
     name: string;
-    adress: Address;
+    address: Address;
     admin: string;
     numberTask: number;
     numberItems: number;
     members: [string];
 }
-
-export default HomeTableReturnDTO;
