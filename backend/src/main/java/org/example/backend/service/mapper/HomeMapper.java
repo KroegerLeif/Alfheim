@@ -25,7 +25,8 @@ public class HomeMapper {
     }
 
     public HomeTableReturnDTO mapToHomeTableReturn(Home home){
-        return new HomeTableReturnDTO(home.name(),
+        return new HomeTableReturnDTO(home.id(),
+                                    home.name(),
                                     home.address(),
                                     "admin",
                                     home.taskSeries().size(),

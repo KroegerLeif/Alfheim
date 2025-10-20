@@ -4,7 +4,8 @@ import org.example.backend.domain.home.Address;
 
 import java.util.List;
 
-public record HomeTableReturnDTO(String name,
+public record HomeTableReturnDTO(String id,
+                                 String name,
                                  Address address,
                                  String admin,
                                  int numberTask,
