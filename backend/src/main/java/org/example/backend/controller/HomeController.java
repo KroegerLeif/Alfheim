@@ -26,7 +26,7 @@ public class HomeController {
 
     @PostMapping("/create")
     public ResponseEntity<HomeTableReturnDTO> createHome(@RequestBody CreateHomeDTO createHomeDTO) {
-        HomeTableReturnDTO createdHome = homeService.createHome(createHomeDTO);
+        HomeTableReturnDTO createdHome = homeService.createNewHome(createHomeDTO);
 
         if(createdHome != null) {
             return new ResponseEntity<>(createdHome, HttpStatus.CREATED);
