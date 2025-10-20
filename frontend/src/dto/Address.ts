@@ -1,6 +1,6 @@
 export type Address = {
     street: string;
-    postalCode: string;
+    postcode: string;
     city: string;
     country: string;
 }

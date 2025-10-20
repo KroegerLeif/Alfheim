@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table"
 
 import type {HomeTableReturnDTO} from "@/dto/HomeTableReturnDTO.ts";
+import CreateNewHome from "@/components/CreateNewHome.tsx";
 
 function HomePage(){
 
@@ -54,7 +55,7 @@ function HomePage(){
                         }
                 </TableBody>
             </Table>
-
+            <CreateNewHome/>
         </div>
     )
 }
