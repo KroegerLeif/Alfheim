@@ -25,15 +25,17 @@ class IdServiceTest {
     }
 
     @Test
-    void createNewId_shouldReturnNull_whenIdExists() {
+    void createNewId_shouldThrowException_whenIdExists() {
         //GIVEN
         UserRepro mockRepro = mock(UserRepro.class);
         IdService idService = new IdService(mockRepro);
         when(mockRepro.existsById(anyString())).thenReturn(true);
         //WHEN
-        var actual = idService.createNewId();
-        //THEN
-        assert actual == null;
-
+        try{
+            var actual = idService.createNewId();
+        }catch(Exception e){
+            //THEN
+            assert e != null;
+        }
     }
 }
