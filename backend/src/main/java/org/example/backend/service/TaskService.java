@@ -2,6 +2,7 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.CreateTaskDTO;
 import org.example.backend.controller.dto.TaskTableReturnDTO;
+import org.example.backend.domain.task.Status;
 import org.example.backend.domain.task.Task;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -26,6 +27,13 @@ public class TaskService {
     public TaskTableReturnDTO createNewTask(CreateTaskDTO createTaskDTO) {
         TaskSeries task_series = createUniqueIds(taskMapper.mapToTaskSeries(createTaskDTO));
 
+        //added first task to tasklist
+        task_series.taskList()
+                .add(createFirstTask(
+                        task_series.id(),
+                        createTaskDTO)
+                );
+
         taskseriesRepro.save(task_series);
 
         return taskMapper.mapToTaskTableReturn(task_series);
@@ -42,6 +50,14 @@ public class TaskService {
                 task_series.definition().withId(taskDef_id),
                 task_series.taskList()
         );
+    }
+
+    private Task createFirstTask(String uniqueId, CreateTaskDTO createTaskDTO){
+        return new Task(uniqueId + 1,
+                        Status.OPEN,
+                        createTaskDTO.dueDate(),
+                        null
+                        );
     }
 
 }
