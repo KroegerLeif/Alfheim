@@ -1,10 +1,11 @@
 package org.example.backend.controller;
 
+import org.example.backend.controller.dto.CreateHomeDTO;
 import org.example.backend.controller.dto.HomeTableReturnDTO;
 import org.example.backend.service.HomeService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -21,5 +22,13 @@ public class HomeController {
     @GetMapping("")
     public List<HomeTableReturnDTO> getAllHomes() {
         return homeService.getAllHomes();
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<HomeTableReturnDTO> createHome(@RequestBody CreateHomeDTO createHomeDTO) {
+        HomeTableReturnDTO createdHome = homeService.createNewHome(createHomeDTO);
+
+        return new ResponseEntity<>(createdHome, HttpStatus.CREATED);
+
     }
 }
