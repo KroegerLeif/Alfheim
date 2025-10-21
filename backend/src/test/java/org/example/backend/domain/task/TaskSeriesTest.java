@@ -7,7 +7,7 @@ import org.example.backend.domain.user.User;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,8 +30,8 @@ class TaskSeriesTest {
                 7
         );
 
-        Instant dueDate = Instant.now();
-        Instant completionDate = Instant.now().plusSeconds(3600);
+        LocalDate dueDate = LocalDate.now();
+        LocalDate completionDate = LocalDate.now();
         Task task = new Task("1", Status.OPEN, dueDate, completionDate);
 
         TaskSeries taskSeries = new TaskSeries("1", taskDefinition, Collections.singletonList(task));
