@@ -1,7 +1,6 @@
 package org.example.backend.service.mapper.task;
 
 import org.example.backend.controller.dto.CreateTaskDTO;
-import org.example.backend.domain.task.Priority;
 import org.example.backend.domain.task.TaskDefinition;
 import org.springframework.stereotype.Service;
 
