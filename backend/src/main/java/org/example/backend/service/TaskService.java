@@ -25,30 +25,30 @@ public class TaskService {
     }
 
     public TaskTableReturnDTO createNewTask(CreateTaskDTO createTaskDTO) {
-        TaskSeries task_series = createUniqueIds(taskMapper.mapToTaskSeries(createTaskDTO));
+        TaskSeries taskSeries = createUniqueIds(taskMapper.mapToTaskSeries(createTaskDTO));
 
         //added first task to tasklist
-        task_series.taskList()
+        taskSeries.taskList()
                 .add(createFirstTask(
-                        task_series.id(),
+                        taskSeries.id(),
                         createTaskDTO)
                 );
 
-        taskseriesRepro.save(task_series);
+        taskseriesRepro.save(taskSeries);
 
-        return taskMapper.mapToTaskTableReturn(task_series);
+        return taskMapper.mapToTaskTableReturn(taskSeries);
 
     }
 
-    private TaskSeries createUniqueIds(TaskSeries task_series){
+    private TaskSeries createUniqueIds(TaskSeries taskSeries){
         //Creation of new IDs
-        String taskService_id = idService.createNewId();
-        String taskDef_id = taskService_id + "_D";
+        String taskServiceId = idService.createNewId();
+        String taskDefId = taskServiceId + "_D";
 
         return new TaskSeries(
-                taskService_id,
-                task_series.definition().withId(taskDef_id),
-                task_series.taskList()
+                taskServiceId,
+                taskSeries.definition().withId(taskDefId),
+                taskSeries.taskList()
         );
     }
 

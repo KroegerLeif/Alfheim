@@ -2,9 +2,7 @@ package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.CreateTaskDTO;
 import org.example.backend.controller.dto.TaskTableReturnDTO;
-import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
-import org.example.backend.domain.user.User;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

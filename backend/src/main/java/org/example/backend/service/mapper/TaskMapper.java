@@ -28,15 +28,15 @@ public class TaskMapper {
         );
     }
 
-    public TaskTableReturnDTO mapToTaskTableReturn(TaskSeries task_series){
+    public TaskTableReturnDTO mapToTaskTableReturn(TaskSeries taskSeries){
         return new TaskTableReturnDTO(
-                task_series.taskList().getLast().id(),
-                task_series.definition().name(),
-                task_series.definition().connectedItems().stream().map(Item::name).toList(),
-                task_series.definition().responsible().stream().map(User::name).toList(),
-                task_series.definition().priority(),
-                task_series.taskList().getLast().status(),
-                task_series.taskList().getLast().dueDate());
+                taskSeries.taskList().getLast().id(),
+                taskSeries.definition().name(),
+                taskSeries.definition().connectedItems().stream().map(Item::name).toList(),
+                taskSeries.definition().responsible().stream().map(User::name).toList(),
+                taskSeries.definition().priority(),
+                taskSeries.taskList().getLast().status(),
+                taskSeries.taskList().getLast().dueDate());
     }
 
 }

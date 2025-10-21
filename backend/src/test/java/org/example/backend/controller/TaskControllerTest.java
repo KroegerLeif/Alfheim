@@ -1,6 +1,5 @@
 package org.example.backend.controller;
 
-import org.example.backend.repro.HomeRepro;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
