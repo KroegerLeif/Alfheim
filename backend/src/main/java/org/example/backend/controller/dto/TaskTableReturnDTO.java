@@ -6,7 +6,8 @@ import org.example.backend.domain.task.Status;
 import java.time.LocalDate;
 import java.util.List;
 
-public record TaskTableReturnDTO(String name,
+public record TaskTableReturnDTO(String id,
+                                 String name,
                                  List<String> items,
                                  List<String> assignedTo,
                                  Priority priority,
