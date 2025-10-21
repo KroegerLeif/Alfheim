@@ -20,7 +20,7 @@ const items = [
     },
     {
         title: "Task",
-        url: "#",
+        url: "/task",
         icon: Inbox,
     },
     {
@@ -45,7 +45,7 @@ export function AppSidebar() {
         <Sidebar>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Application</SidebarGroupLabel>
+                    <SidebarGroupLabel><a href={"/"}>Alfheim</a></SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {items.map((item) => (
