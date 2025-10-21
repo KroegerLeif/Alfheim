@@ -18,6 +18,6 @@ public class TaskDefinitionMapper {
                 new ArrayList<>(),
                 new BigDecimal(0),
                 createTaskDTO.priority(),
-                0);
+                createTaskDTO.repetition());
     }
 }
