@@ -10,6 +10,6 @@ import java.util.List;
 public record CreateTaskDTO(String name,
                             List<Item> items,
                             Priority priority,
-                            Status status,
-                            LocalDate dueDate) {
+                            LocalDate dueDate,
+                            int repetition) {
 }
