@@ -33,9 +33,6 @@ public class HomeService {
 
     public HomeTableReturnDTO createNewHome(CreateHomeDTO createHomeDTO) {
         Home home = homeMapper.mapToHome(createHomeDTO).withId(idService.createNewId());
-        if(home.id() == null){
-            return null;
-        }
         return homeMapper.mapToHomeTableReturn(homeRepro.save(home));
     }
 }

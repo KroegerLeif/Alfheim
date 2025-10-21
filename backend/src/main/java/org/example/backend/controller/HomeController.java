@@ -28,9 +28,7 @@ public class HomeController {
     public ResponseEntity<HomeTableReturnDTO> createHome(@RequestBody CreateHomeDTO createHomeDTO) {
         HomeTableReturnDTO createdHome = homeService.createNewHome(createHomeDTO);
 
-        if(createdHome != null) {
-            return new ResponseEntity<>(createdHome, HttpStatus.CREATED);
-        }
-        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(createdHome, HttpStatus.CREATED);
+
     }
 }

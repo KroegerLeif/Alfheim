@@ -58,7 +58,7 @@ function CreateNewHome() {
                 city: '',
                 country: ''
             }))
-            .then(() => nav("/api/home"))
+            .then(() => nav("/"))
 
             .catch((error) => {
                 console.log(error)
