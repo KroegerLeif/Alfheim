@@ -1,9 +1,12 @@
 package org.example.backend.domain.task;
 
-import java.time.Instant;
+import lombok.With;
 
+import java.time.LocalDate;
+
+@With
 public record Task(String id,
                    Status status,
-                   Instant dueDate,
-                   Instant completionDate) {
+                   LocalDate dueDate,
+                   LocalDate completionDate) {
 }
