@@ -1,9 +1,9 @@
-import {Button} from "@/components/ui/button.tsx";
+import CreateNewHome from "@/components/CreateNewTask.tsx";
 
 function TaskPage(){
     return(
         <div className={"taskPage"}>
-            <Button>Create New Task</Button>
+            <CreateNewHome/>
         </div>
     )
 }
