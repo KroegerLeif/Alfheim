@@ -1,0 +1,1 @@
+export type EnergyLabel = "A" | "B" | "C" | "D" | "E" | "F" | "G"
