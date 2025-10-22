@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
@@ -34,26 +35,26 @@ class ItemControllerTest {
     }
 
     @Test
-    void getAllItems_shuoldReturnListOfAllItemsAsDTO_whenCalled() throws Exception {
+    void getAllItems_shouldReturnListOfAllItemsAsDTO_whenCalled() throws Exception {
         //GIVEN
         Item item = createItem();
         itemRepro.save(item);
         //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/item"))
+        ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get("/api/item"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(
-                        """
-                        [
-                          {
-                              "id": "10",
-                              "name": "test",
-                              "energyLabel": "A",
-                              "category": "Electronics",
-                          }
-                        ]
-                        """
-                )
-        );
+                                """
+                                        [
+                                          {
+                                            "id":"10",
+                                            "name":"test",
+                                            "energyLabel":"A",
+                                            "category":"Electronics"
+                                          }
+                                        ]
+                                        """
+                        )
+                );
     }
 
     private static Item createItem(){
