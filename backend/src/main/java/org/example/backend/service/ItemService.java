@@ -1,6 +1,5 @@
 package org.example.backend.service;
 
-import org.example.backend.controller.dto.CreateItemDTO;
 import org.example.backend.controller.dto.ItemTableReturnDTO;
 import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;

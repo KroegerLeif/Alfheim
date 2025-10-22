@@ -1,12 +1,8 @@
 package org.example.backend.service;
 
-import org.example.backend.domain.home.Home;
 import org.example.backend.domain.item.Item;
-import org.example.backend.repro.HomeRepro;
 import org.example.backend.repro.ItemRepro;
-import org.example.backend.service.mapper.HomeMapper;
 import org.example.backend.service.mapper.ItemMapper;
-import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
