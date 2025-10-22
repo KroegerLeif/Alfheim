@@ -40,7 +40,7 @@ class ItemControllerTest {
         Item item = createItem();
         itemRepro.save(item);
         //WHEN
-        ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get("/api/item"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/item"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(
                                 """
@@ -55,6 +55,7 @@ class ItemControllerTest {
                                         """
                         )
                 );
+
     }
 
     private static Item createItem(){
