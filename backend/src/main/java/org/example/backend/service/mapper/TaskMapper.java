@@ -10,6 +10,7 @@ import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.springframework.stereotype.Service;
 
 
+import javax.crypto.ExemptionMechanismException;
 import java.util.ArrayList;
 
 @Service

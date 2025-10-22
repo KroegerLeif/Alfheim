@@ -52,7 +52,7 @@ class TaskMapperTest {
     void mapToTaskTableReturn() {
         //GIVEN
         TaskDefinition taskDefinition = createTaskDefinition();
-        
+
         Task task = new Task(
                 "2",
                 Status.OPEN,
@@ -81,7 +81,7 @@ class TaskMapperTest {
         //THEN
         assertEquals(expected,actual);
     }
-    
+
     @Test
     void mapToTaskTableReturn_shouldThrowExeptionByEmptyList(){
         //GIVEN
@@ -95,7 +95,7 @@ class TaskMapperTest {
             assertEquals("TaskSeries with id '1' has an empty task list. Every TaskSeries must contain at least one task.", e.getMessage());
         }
     }
-    
+
     private static TaskDefinition createTaskDefinition(){
         return  new TaskDefinition("",
                 "def",
