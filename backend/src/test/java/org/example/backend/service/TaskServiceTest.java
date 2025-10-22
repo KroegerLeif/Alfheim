@@ -2,10 +2,8 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.CreateTaskDTO;
 import org.example.backend.controller.dto.TaskTableReturnDTO;
-import org.example.backend.domain.task.Priority;
-import org.example.backend.domain.task.Status;
-import org.example.backend.domain.task.TaskDefinition;
-import org.example.backend.domain.task.TaskSeries;
+import org.example.backend.domain.item.Item;
+import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
@@ -16,6 +14,9 @@ import org.mockito.Mockito;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 
 class TaskServiceTest {
@@ -28,6 +29,50 @@ class TaskServiceTest {
     private final IdService idService = Mockito.mock(IdService.class);
 
     TaskService taskService = new TaskService(mockRepo, homeMapper, idService);
+
+    @Test
+    void getAll_shouldReturnEmptyList_whenNoItemsExist() {
+        //WHEN
+        ArrayList<TaskSeries> response = new ArrayList<TaskSeries>();
+        when(mockRepo.findAll()).thenReturn(response);
+        //THEN
+        var actual = taskService.getAll();
+        Mockito.verify(mockRepo).findAll();
+        assertEquals(0, actual.size());
+    }
+
+    @Test
+    void getAll_shouldReturnList_whenItemsExist() {
+        //WHEN
+        ArrayList<TaskSeries> response = new ArrayList<TaskSeries>();
+        response.add(new TaskSeries("1",
+                                        new TaskDefinition("1",
+                                                        "Test",
+                                                                new ArrayList<>(),
+                                                                new ArrayList<>(),
+                                                            null,
+                                                                Priority.HIGH,
+                                                        0),
+                                        new ArrayList<>()
+                                    )
+                    );
+        response.add(new TaskSeries("2",
+                        new TaskDefinition("2",
+                                "Test",
+                                new ArrayList<>(),
+                                new ArrayList<>(),
+                                null,
+                                Priority.HIGH,
+                                0),
+                        new ArrayList<>()
+                )
+        );
+        when(mockRepo.findAll()).thenReturn(response);
+        //THEN
+        var actual = taskService.getAll();
+        Mockito.verify(mockRepo).findAll();
+        assertEquals(2, actual.size());
+    }
 
     @Test
     void createNewTask_shouldReturnTaskTableReturnDTO_whenTaskIsCreated() {
