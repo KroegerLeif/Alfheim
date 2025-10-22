@@ -4,6 +4,7 @@ import org.example.backend.controller.dto.CreateTaskDTO;
 import org.example.backend.controller.dto.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
+import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -33,15 +34,7 @@ class TaskMapperTest {
                 LocalDate.now(),
                 0);
 
-        TaskDefinition taskDefinition = new TaskDefinition("",
-                                                    "def",
-                                                           new ArrayList<>(),
-                                                           new ArrayList<>(),
-                                                           new BigDecimal(0),
-                                                           Priority.HIGH,
-                                                    0
-                                                            );
-
+        TaskDefinition taskDefinition = createTaskDefinition();
 
         when(taskDefinitionMapper.mapToTaskDefinition(createTaskDTO)).thenReturn(taskDefinition);
 
@@ -58,14 +51,8 @@ class TaskMapperTest {
     @Test
     void mapToTaskTableReturn() {
         //GIVEN
-        TaskDefinition taskDefinition = new TaskDefinition("",
-                "def",
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new BigDecimal(0),
-                Priority.HIGH,
-                0
-        );
+        TaskDefinition taskDefinition = createTaskDefinition();
+        
         Task task = new Task(
                 "2",
                 Status.OPEN,
@@ -93,6 +80,30 @@ class TaskMapperTest {
 
         //THEN
         assertEquals(expected,actual);
-
+    }
+    
+    @Test
+    void mapToTaskTableReturn_shouldThrowExeptionByEmptyList(){
+        //GIVEN
+        TaskSeries taskSeries = new TaskSeries("1",
+                                createTaskDefinition(),
+                                new ArrayList<>());
+        //WHEN
+        try{
+            taskMapper.mapToTaskTableReturn(taskSeries);
+        }catch (EmptyTaskListException e){
+            assertEquals("TaskSeries with id '1' has an empty task list. Every TaskSeries must contain at least one task.", e.getMessage());;
+        }
+    }
+    
+    private static TaskDefinition createTaskDefinition(){
+        return  new TaskDefinition("",
+                "def",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new BigDecimal(0),
+                Priority.HIGH,
+                0
+        );
     }
 }
