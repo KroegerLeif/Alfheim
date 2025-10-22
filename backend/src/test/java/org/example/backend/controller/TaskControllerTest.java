@@ -44,7 +44,6 @@ class TaskControllerTest {
         TaskSeries taskSeries = createTaskSeries();
         taskSeriesRepro.save(taskSeries);
         //WHEN
-        //WHEN
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(

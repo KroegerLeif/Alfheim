@@ -5,6 +5,6 @@ export type CreateTask = {
     name: string,
     items: Item[],
     priority: Priority,
-    dueDate: "dd/mm/yyyy",
+    dueDate: string,
     repetition: number
 }
