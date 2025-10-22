@@ -6,9 +6,11 @@ import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.domain.user.User;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
+import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.springframework.stereotype.Service;
 
 
+import javax.crypto.ExemptionMechanismException;
 import java.util.ArrayList;
 
 @Service
@@ -29,6 +31,10 @@ public class TaskMapper {
     }
 
     public TaskTableReturnDTO mapToTaskTableReturn(TaskSeries taskSeries){
+        if (taskSeries.taskList().isEmpty()) {
+            throw new EmptyTaskListException("TaskSeries with id '" + taskSeries.id() + "' has an empty task list. Every TaskSeries must contain at least one task.");
+        }
+        
         return new TaskTableReturnDTO(
                 taskSeries.taskList().getLast().id(),
                 taskSeries.definition().name(),

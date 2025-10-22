@@ -10,6 +10,8 @@ import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 
 @Service
 public class TaskService {
@@ -38,6 +40,10 @@ public class TaskService {
 
         return taskMapper.mapToTaskTableReturn(taskSeries);
 
+    }
+
+    public List<TaskTableReturnDTO> getAll(){
+        return taskseriesRepro.findAll().stream().map(taskMapper::mapToTaskTableReturn).toList();
     }
 
     private TaskSeries createUniqueIds(TaskSeries taskSeries){
