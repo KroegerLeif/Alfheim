@@ -29,6 +29,10 @@ public class TaskMapper {
     }
 
     public TaskTableReturnDTO mapToTaskTableReturn(TaskSeries taskSeries){
+        if (taskSeries.taskList().isEmpty()) {
+            throw new IllegalStateException("TaskSeries with id '" + taskSeries.id() + "' has an empty task list. Every TaskSeries must contain at least one task.");
+        }
+        
         return new TaskTableReturnDTO(
                 taskSeries.taskList().getLast().id(),
                 taskSeries.definition().name(),
