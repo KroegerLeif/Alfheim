@@ -34,7 +34,7 @@ class ItemControllerTest {
     }
 
     @Test
-    void getAllItems_shuold ReturnListOfAllItemsAsDTO_whenCalled() throws Exception {
+    void getAllItems_shuoldReturnListOfAllItemsAsDTO_whenCalled() throws Exception {
         //GIVEN
         Item item = createItem();
         itemRepro.save(item);
