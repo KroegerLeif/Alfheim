@@ -32,4 +32,10 @@ public class TaskController {
         return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
     }
 
+    @PatchMapping("/{id}/edit-task")
+    @ResponseStatus(HttpStatus.OK)
+    public TaskTableReturnDTO editTask(@PathVariable String id, @RequestBody CreateTaskDTO createTaskDTO){
+        return taskService.editTask(id, createTaskDTO);
+    }
+
 }
