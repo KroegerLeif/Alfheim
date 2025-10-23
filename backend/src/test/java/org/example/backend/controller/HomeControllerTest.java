@@ -1,6 +1,8 @@
 package org.example.backend.controller;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
 import org.example.backend.repro.HomeRepro;
@@ -30,6 +32,9 @@ class HomeControllerTest {
 
     @Autowired
     private HomeRepro homeRepro;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockitoBean
     private IdService idService;
@@ -118,5 +123,41 @@ class HomeControllerTest {
                        
                                     """));
 
+    }
+
+    @Test
+    void editHome_shouldReturnUpdatedHome_whenHomeIsEdited()throws Exception{
+        //GIVEN
+        Address originalAddress = new Address("12", "street", "postCode", "city", "country");
+        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        homeRepro.save(home);
+
+        Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
+        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Home", updatedAddress);
+
+
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(editHomeDTO)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                                    {
+                                        "id": "1",
+                                        "name": "Updated Home",
+                                        "address": {
+                                          "id": "12",
+                                          "street": "new street",
+                                          "postCode": "new postCode",
+                                          "city": "new city",
+                                          "country": "new country"
+                                        },
+                                        "admin": "admin",
+                                        "numberTask": 0,
+                                        "numberItems": 0,
+                                        "members" : []
+                                      }
+                       
+                                    """));
     }
 }
