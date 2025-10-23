@@ -1,7 +1,7 @@
 package org.example.backend.controller;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
-import org.example.backend.controller.dto.ItemTableReturnDTO;
+import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.service.ItemService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

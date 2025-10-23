@@ -1,7 +1,7 @@
 package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
-import org.example.backend.controller.dto.HomeTableReturnDTO;
+import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
 import org.example.backend.repro.HomeRepro;
 
