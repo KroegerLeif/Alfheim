@@ -1,12 +1,10 @@
 package org.example.backend.controller;
 
+import org.example.backend.controller.dto.CreateItemDTO;
 import org.example.backend.controller.dto.ItemTableReturnDTO;
 import org.example.backend.service.ItemService;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -25,5 +23,12 @@ public class ItemController {
     public List<ItemTableReturnDTO> getAllItems(){
         return itemService.getAll();
     }
+
+    @PostMapping("/create")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ItemTableReturnDTO createNewItem(@RequestBody CreateItemDTO createItemDTO){
+        return itemService.createNewItem(createItemDTO);
+    }
+
 
 }
