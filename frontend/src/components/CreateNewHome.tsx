@@ -23,7 +23,7 @@ function CreateNewHome() {
     const [formData, setFormData] = useState({
         name: '',
         street: '',
-        postcode: '',
+        postCode: '',
         city: '',
         country: ''
     });
@@ -44,7 +44,7 @@ function CreateNewHome() {
             name: formData.name,
             address: {
                 street: formData.street,
-                postcode: formData.postcode,
+                postCode: formData.postCode,
                 city: formData.city,
                 country: formData.country
             }
@@ -54,7 +54,7 @@ function CreateNewHome() {
             .then(() => setFormData({
                 name: '',
                 street: '',
-                postcode: '',
+                postCode: '',
                 city: '',
                 country: ''
             }))
@@ -102,11 +102,11 @@ function CreateNewHome() {
                         <div className="grid gap-3">
                             <Label htmlFor="postcode">Postcode</Label>
                             <Input
-                                id="postcode"
-                                name="postcode"
-                                placeholder="Postcode"
-                                onChange={handleInputChange('postcode')}
-                                value={formData.postcode}
+                                id="postCode"
+                                name="postCode"
+                                placeholder="postCode"
+                                onChange={handleInputChange('postCode')}
+                                value={formData.postCode}
                             />
                         </div>
                         <div className="grid gap-3">
