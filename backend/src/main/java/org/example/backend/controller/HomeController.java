@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
+import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.service.HomeService;
 import org.springframework.http.HttpStatus;
@@ -30,5 +31,11 @@ public class HomeController {
 
         return new ResponseEntity<>(createdHome, HttpStatus.CREATED);
 
+    }
+
+    @PatchMapping("/{id}/edit")
+    @ResponseStatus(HttpStatus.OK)
+    public HomeTableReturnDTO editHome(@PathVariable String id, @RequestBody EditHomeDTO editHomeDTO) {
+        return homeService.editHome(id, editHomeDTO);
     }
 }
