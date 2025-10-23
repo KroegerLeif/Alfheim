@@ -61,8 +61,7 @@ public class TaskService {
     private Task createFirstTask(String uniqueId, CreateTaskDTO createTaskDTO){
         return new Task(uniqueId + 1,
                         Status.OPEN,
-                        createTaskDTO.dueDate(),
-                        null
+                        createTaskDTO.dueDate()
                         );
     }
 

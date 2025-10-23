@@ -73,7 +73,7 @@ class TaskControllerTest {
                 2);
 
         List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task("1", Status.OPEN, null, null));
+        taskList.add(new Task("1", Status.OPEN, null));
 
         return new TaskSeries("1",
                 taskDefinition,
