@@ -13,6 +13,7 @@ import {
 
 import type {HomeTableReturnDTO} from "@/dto/HomeTableReturnDTO.ts";
 import CreateNewHome from "@/components/CreateNewHome.tsx";
+import EditHome from "@/components/EditHome.tsx";
 
 function HomePage(){
 
@@ -45,11 +46,14 @@ function HomePage(){
                 <TableBody>
                         {
                             homeTableData.map((home_data) => (
-                                <TableRow>
-                                    <TableCell className="font-medium" key={home_data.id}>{home_data.name}</TableCell>
+                                <TableRow key={home_data.id}>
+                                    <TableCell className="font-medium">{home_data.name}</TableCell>
                                     <TableCell>{home_data.numberTask}</TableCell>
                                     <TableCell>{home_data.numberItems}</TableCell>
                                     <TableCell>{home_data.members}</TableCell>
+                                    <TableCell>
+                                        <EditHome id={home_data.id} name={home_data.name} address={home_data.address}/>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         }
