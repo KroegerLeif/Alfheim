@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HomeMapperTest {
 
-    private HomeMapper homeMapper = new HomeMapper();
+    private final HomeMapper homeMapper = new HomeMapper();
 
     @Test
     void mapToHome() {
