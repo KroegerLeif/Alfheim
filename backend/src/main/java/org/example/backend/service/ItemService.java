@@ -44,7 +44,7 @@ public class ItemService {
         //Creation of new IDs
         String item_id = idService.createNewId();
 
-        Category itemCategory = createUniqueIds(item.category());
+        Category itemCategory = getUniqueCategroy(item.category());
 
         return new Item(
                 item_id,
@@ -54,11 +54,13 @@ public class ItemService {
         );
     }
 
-    private Category createUniqueIds(Category category){
+    private Category getUniqueCategroy(Category category){
         //Checks If Category already Exists
-        Optional<Category> categoryOptional = itemRepro.findCategoryByName(category.name());
-        //Create New Item
-        return categoryOptional.orElseGet(() -> category.withId(idService.createNewId()));
+        Optional<Item> itemWithCategory = itemRepro.findFirstByCategory_Name(category.name());
 
+        //Create New Item
+        return itemWithCategory
+                .map(Item::category) // If an item with this category exists, use its category (with ID)
+                .orElseGet(() -> category.withId(idService.createNewId())); // Otherwise, create a new category with a new ID
     }
 }

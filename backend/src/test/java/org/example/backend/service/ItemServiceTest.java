@@ -75,7 +75,7 @@ class ItemServiceTest {
 
         when(idService.createNewId()).thenReturn("1");
         when(itemMapper.mapToItem(createItemDTO)).thenReturn(item_beforeId);
-        when(mockRepo.findCategoryByName("TestCategory")).thenReturn(Optional.empty());
+        when(mockRepo.findFirstByCategory_Name("TestCategory")).thenReturn(Optional.empty());
         when(mockRepo.save(item_afterId)).thenReturn(item_afterId);
         when(itemMapper.mapToItemTableReturn(item_afterId)).thenReturn(expectedTableReturn);
 

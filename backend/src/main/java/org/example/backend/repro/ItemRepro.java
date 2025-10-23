@@ -9,5 +9,5 @@ import java.util.Optional;
 
 @Repository
 public interface ItemRepro extends MongoRepository<Item, String> {
-    Optional<Category> findCategoryByName(String name);
+    Optional<Item> findFirstByCategory_Name(String name);
 }
