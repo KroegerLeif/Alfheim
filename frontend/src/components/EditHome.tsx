@@ -32,7 +32,7 @@ function EditHome(props: Readonly<EditHomeProps>){
     const [formData, setFormData] = useState({
         name: props.name,
         street: props.address.street,
-        postcode: props.address.postcode,
+        postCode: props.address.postCode,
         city: props.address.city,
         country: props.address.country
 
@@ -55,7 +55,7 @@ function EditHome(props: Readonly<EditHomeProps>){
             name: formData.name,
             address: {
                 street: formData.street,
-                postcode: formData.postcode,
+                postCode: formData.postCode,
                 city: formData.city,
                 country: formData.country
             }as Address,
@@ -106,13 +106,14 @@ function EditHome(props: Readonly<EditHomeProps>){
                             />
                         </div>
                         <div className="grid gap-3">
-                            <Label htmlFor="postcode">Postcode</Label>
+                            <Label htmlFor="postCode">Postcode</Label>
                             <Input
-                                id="postcode"
-                                name="postcode"
-                                placeholder={props.address.postcode}
-                                onChange={handleInputChange('postcode')}
-                                value={formData.postcode}
+                                id="postCode"
+                                name="postCode"
+                                type="number"
+                                placeholder={props.address.postCode}
+                                onChange={handleInputChange('postCode')}
+                                value={formData.postCode}
                             />
                         </div>
                         <div className="grid gap-3">
