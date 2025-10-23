@@ -1,6 +1,6 @@
 package org.example.backend.controller;
 
-import org.example.backend.controller.dto.CreateHomeDTO;
+import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.HomeTableReturnDTO;
 import org.example.backend.service.HomeService;
 import org.springframework.http.HttpStatus;

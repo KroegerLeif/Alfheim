@@ -1,6 +1,6 @@
 package org.example.backend.service;
 
-import org.example.backend.controller.dto.CreateTaskDTO;
+import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.TaskTableReturnDTO;
 import org.example.backend.domain.task.Status;
 import org.example.backend.domain.task.Task;

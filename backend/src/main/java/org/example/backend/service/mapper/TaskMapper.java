@@ -1,6 +1,6 @@
 package org.example.backend.service.mapper;
 
-import org.example.backend.controller.dto.CreateTaskDTO;
+import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.TaskTableReturnDTO;
 import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
@@ -10,7 +10,6 @@ import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.springframework.stereotype.Service;
 
 
-import javax.crypto.ExemptionMechanismException;
 import java.util.ArrayList;
 
 @Service

@@ -1,6 +1,6 @@
 package org.example.backend.service.mapper;
 
-import org.example.backend.controller.dto.CreateHomeDTO;
+import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
 import org.example.backend.domain.item.Item;

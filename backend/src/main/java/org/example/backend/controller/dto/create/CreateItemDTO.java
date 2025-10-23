@@ -1,4 +1,4 @@
-package org.example.backend.controller.dto;
+package org.example.backend.controller.dto.create;
 
 import org.example.backend.domain.item.EnergyLabel;
 

@@ -1,6 +1,6 @@
 package org.example.backend.service;
 
-import org.example.backend.controller.dto.CreateItemDTO;
+import org.example.backend.controller.dto.create.CreateItemDTO;
 import org.example.backend.controller.dto.ItemTableReturnDTO;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
