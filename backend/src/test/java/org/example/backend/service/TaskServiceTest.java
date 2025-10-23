@@ -1,7 +1,7 @@
 package org.example.backend.service;
 
-import org.example.backend.controller.dto.CreateTaskDTO;
-import org.example.backend.controller.dto.TaskTableReturnDTO;
+import org.example.backend.controller.dto.create.CreateTaskDTO;
+import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;

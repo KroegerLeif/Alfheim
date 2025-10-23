@@ -1,4 +1,8 @@
-import { Button } from "@/components/ui/button"
+import axios from "axios";
+
+import {Button} from "@/components/ui/button.tsx";
+import {Label} from "@/components/ui/label.tsx";
+import {Input} from "@/components/ui/input.tsx";
 import {
     Dialog,
     DialogClose,
@@ -9,23 +13,29 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import type {Address} from "@/dto/Address.ts";
 import {type FormEvent, useState} from "react";
-import axios from "axios";
-import type {CreateHomeDTO} from "@/dto/CreateHomeDTO.ts";
+import * as React from "react";
 import {useNavigate} from "react-router-dom";
+import type {EditHome} from "@/dto/EditHome.ts";
 
-function CreateNewHome() {
+type EditHomeProps = {
+    id: string;
+    name: string;
+    address: Address;
+}
+
+function EditHome(props: Readonly<EditHomeProps>){
 
     const nav = useNavigate()
 
     const [formData, setFormData] = useState({
-        name: '',
-        street: '',
-        postCode: '',
-        city: '',
-        country: ''
+        name: props.name,
+        street: props.address.street,
+        postCode: props.address.postCode,
+        city: props.address.city,
+        country: props.address.country
+
     });
 
     const handleInputChange = (field: keyof typeof formData) => (
@@ -38,53 +48,49 @@ function CreateNewHome() {
     };
 
     function submitForm(event: FormEvent<HTMLFormElement>) {
+        console.log("Submit function called!");
         event.preventDefault();
 
-        const newHome: CreateHomeDTO = {
+        const editedHome: EditHome = {
             name: formData.name,
             address: {
                 street: formData.street,
                 postCode: formData.postCode,
                 city: formData.city,
                 country: formData.country
-            }
+            }as Address,
         };
 
-        axios.post("/api/home/create", newHome)
-            .then(() => setFormData({
-                name: '',
-                street: '',
-                postCode: '',
-                city: '',
-                country: ''
-            }))
+        axios.patch("/api/home/" + props.id + "/edit", editedHome)
             .then(() => nav("/"))
-
             .catch((error) => {
                 console.log(error)
-            })
+            }
+        );
     }
 
-    return (
+
+
+    return(
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="outline">Create New Home</Button>
+                <Button>Edit Home</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Create new Home</DialogTitle>
+                    <DialogTitle>Edit Home</DialogTitle>
                     <DialogDescription>
-                        Create a new Home here.
+                        Change Values from Home here.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={submitForm}>
+                <form id="edit-home-form" onSubmit={submitForm}>
                     <div className="grid gap-4">
                         <div className="grid gap-3">
                             <Label htmlFor="name">Name</Label>
                             <Input
                                 id="name"
                                 name="name"
-                                placeholder="Unbekannt"
+                                placeholder="Task name"
                                 onChange={handleInputChange('name')}
                                 value={formData.name}
                             />
@@ -94,17 +100,18 @@ function CreateNewHome() {
                             <Input
                                 id="street"
                                 name="street"
-                                placeholder="Street"
+                                placeholder={props.address.street}
                                 onChange={handleInputChange('street')}
                                 value={formData.street}
                             />
                         </div>
                         <div className="grid gap-3">
-                            <Label htmlFor="postcode">Postcode</Label>
+                            <Label htmlFor="postCode">Postcode</Label>
                             <Input
                                 id="postCode"
                                 name="postCode"
-                                placeholder="postCode"
+                                type="number"
+                                placeholder={props.address.postCode}
                                 onChange={handleInputChange('postCode')}
                                 value={formData.postCode}
                             />
@@ -114,7 +121,7 @@ function CreateNewHome() {
                             <Input
                                 id="city"
                                 name="city"
-                                placeholder="City"
+                                placeholder={props.address.city}
                                 onChange={handleInputChange('city')}
                                 value={formData.city}
                             />
@@ -124,21 +131,22 @@ function CreateNewHome() {
                             <Input
                                 id="country"
                                 name="country"
-                                placeholder="Country"
+                                placeholder={props.address.country}
                                 onChange={handleInputChange('country')}
                                 value={formData.country}
                             />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="outline">Cancel</Button>
-                        </DialogClose>
-                        <Button type="submit">Save changes</Button>
-                    </DialogFooter>
                 </form>
+                <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                    <Button type="submit" form="edit-home-form">Save changes</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
-export default CreateNewHome;
+
+export default EditHome;
