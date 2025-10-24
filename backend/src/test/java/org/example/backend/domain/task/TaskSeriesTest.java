@@ -32,7 +32,7 @@ class TaskSeriesTest {
 
         LocalDate dueDate = LocalDate.now();
         LocalDate completionDate = LocalDate.now();
-        Task task = new Task("1", Status.OPEN, dueDate, completionDate);
+        Task task = new Task("1", Status.OPEN, dueDate);
 
         TaskSeries taskSeries = new TaskSeries("1", taskDefinition, Collections.singletonList(task));
 
