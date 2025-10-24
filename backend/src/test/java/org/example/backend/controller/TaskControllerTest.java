@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,23 +64,6 @@ class TaskControllerTest {
                 ));
     }
 
-    private static TaskSeries createTaskSeries() {
-        TaskDefinition taskDefinition = new TaskDefinition("1",
-                "test",
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new BigDecimal(1),
-                Priority.HIGH,
-                2);
-
-        List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task("1", Status.OPEN, null));
-
-        return new TaskSeries("1",
-                taskDefinition,
-                taskList);
-    }
-
     @Test
     void createTask_shouldReturnCreatedTask_whenTaskIsCreated() throws Exception {
         //GIVEN
@@ -112,6 +96,54 @@ class TaskControllerTest {
                                       }
                        
                                     """));
+    }
+
+    @Test
+    void editTask_shouldReturnUpdatedTask_whenTaskIsEditedToINProgress()throws Exception{
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        taskSeriesRepro.save(taskSeries);
+
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/edit-task")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                """
+                                    {
+                                      "status" : "IN_PROGRESS",
+                                      "dueDate": null
+                                    }
+                                """
+                        ))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                                    {
+                                        "id": "1",
+                                        "name": "test",
+                                        "items" : [],
+                                        "assignedTo": [],
+                                        "priority": "HIGH",
+                                        "status": "IN_PROGRESS",
+                                        "dueDate": "%s"
+                                      }
+                                    
+                                    """.formatted(LocalDate.now())));
+    }
+    private static TaskSeries createTaskSeries() {
+        TaskDefinition taskDefinition = new TaskDefinition("1",
+                "test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new BigDecimal(1),
+                Priority.HIGH,
+                2);
+
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task("1", Status.OPEN, null));
+
+        return new TaskSeries("1",
+                taskDefinition,
+                taskList);
     }
     
 }

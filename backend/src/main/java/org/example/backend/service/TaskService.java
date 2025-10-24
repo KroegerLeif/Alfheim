@@ -66,7 +66,7 @@ public class TaskService {
             taskSeries = changeTaskStatus(taskSeries, editTaskDTO.status());
         }
 
-        if(editTaskDTO.dueDate() != taskSeries.taskList().getLast().dueDate()){
+        if(editTaskDTO.dueDate() != null && editTaskDTO.dueDate() != taskSeries.taskList().getLast().dueDate()){
             //Changes the due date of the last task in the tasklist
             taskSeries = updateDueDate(taskSeries, editTaskDTO.dueDate());
         }
