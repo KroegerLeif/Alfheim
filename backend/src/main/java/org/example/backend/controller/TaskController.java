@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import org.example.backend.controller.dto.create.CreateTaskDTO;
+import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.service.TaskService;
 
@@ -34,8 +35,8 @@ public class TaskController {
 
     @PatchMapping("/{id}/edit-task")
     @ResponseStatus(HttpStatus.OK)
-    public TaskTableReturnDTO editTask(@PathVariable String id, @RequestBody CreateTaskDTO createTaskDTO){
-        return taskService.editTask(id, createTaskDTO);
+    public TaskTableReturnDTO editTask(@PathVariable String id, @RequestBody EditTaskDTO editTask){
+        return taskService.editTask(id, editTask);
     }
 
 }
