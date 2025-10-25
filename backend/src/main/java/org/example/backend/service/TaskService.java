@@ -55,7 +55,7 @@ public class TaskService {
 
         if(editTaskDTO.status() == Status.CLOSED){
             //Checks if completion date is in the future
-            if(editTaskDTO.dueDate().isAfter(LocalDate.now())){
+            if(editTaskDTO.dueDate() != null && editTaskDTO.dueDate().isAfter(LocalDate.now())){
                 throw new TaskCompletionException("Completion Date can not be in the future");
             }
             //Replaced last task with closed task
