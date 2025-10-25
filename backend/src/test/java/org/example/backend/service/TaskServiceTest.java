@@ -1,6 +1,7 @@
 package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateTaskDTO;
+import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -11,8 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -23,11 +27,11 @@ class TaskServiceTest {
     @Mock
     private final TaskSeriesRepro mockRepo = Mockito.mock(TaskSeriesRepro.class);
     @Mock
-    private final TaskMapper homeMapper = Mockito.mock(TaskMapper.class);
+    private final TaskMapper taskMapper = Mockito.mock(TaskMapper.class);
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
 
-    TaskService taskService = new TaskService(mockRepo, homeMapper, idService);
+    TaskService taskService = new TaskService(mockRepo, taskMapper, idService);
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
@@ -112,19 +116,19 @@ class TaskServiceTest {
                 LocalDate.of(2025, 12, 31)
         );
         
-        Mockito.when(homeMapper.mapToTaskSeries(createTaskDTO)).thenReturn(taskSeries);
+        Mockito.when(taskMapper.mapToTaskSeries(createTaskDTO)).thenReturn(taskSeries);
         Mockito.when(idService.createNewId()).thenReturn(expectedTaskSeriesId);
         Mockito.when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        Mockito.when(homeMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
+        Mockito.when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
         
         //WHEN
         TaskTableReturnDTO result = taskService.createNewTask(createTaskDTO);
         
         //THEN
-        Mockito.verify(homeMapper).mapToTaskSeries(createTaskDTO);
+        Mockito.verify(taskMapper).mapToTaskSeries(createTaskDTO);
         Mockito.verify(idService, Mockito.times(1)).createNewId();
         Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
-        Mockito.verify(homeMapper).mapToTaskTableReturn(Mockito.any(TaskSeries.class));
+        Mockito.verify(taskMapper).mapToTaskTableReturn(Mockito.any(TaskSeries.class));
         
         assert result != null;
         assert result.id().equals(expectedTaskSeriesId);
@@ -133,4 +137,51 @@ class TaskServiceTest {
         assert result.status().equals(Status.OPEN);
         assert result.dueDate().equals(LocalDate.of(2025, 12, 31));
     }
+
+    @Test
+    void editTAsk_shouldReturnTaskTableReturnDTO_whenTaskIsEdited() {
+        EditTaskDTO editTaskDTO = new EditTaskDTO(Status.IN_PROGRESS,null);
+        String id = "Unique1";
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task(id + "1",Status.OPEN,LocalDate.now()));
+
+        TaskSeries savedTaskSeries = new TaskSeries(
+                id,
+                new TaskDefinition(id + "_D",
+                        "Test",
+                        new ArrayList<>(),
+                        new ArrayList<>(),
+                        new BigDecimal(2),
+                        Priority.HIGH,
+                        3
+                ),
+                taskList
+        );
+
+        TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
+                id,
+                "Test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                Priority.HIGH,
+                Status.IN_PROGRESS,
+                LocalDate.of(2025, 12, 31)
+        );
+
+        when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
+        when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(idService.createNewId()).thenReturn(id);
+        when(taskMapper.mapToTaskTableReturn(savedTaskSeries)).thenReturn(expectedReturn);
+
+
+        //WHEN
+        TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
+
+        //THEN
+        Mockito.verify(mockRepo).findById(id);
+        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
+        assertEquals(expectedReturn,result);
+
+
+        }
 }
