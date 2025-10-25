@@ -10,7 +10,6 @@ import org.example.backend.service.security.IdService;
 
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
