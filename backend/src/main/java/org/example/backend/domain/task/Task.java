@@ -7,6 +7,5 @@ import java.time.LocalDate;
 @With
 public record Task(String id,
                    Status status,
-                   LocalDate dueDate,
-                   LocalDate completionDate) {
+                   LocalDate dueDate){
 }
