@@ -8,6 +8,9 @@ import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
 
+import org.example.backend.service.security.exception.TaskCompletionException;
+import org.example.backend.service.security.exception.TaskDoesNotExistException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -187,7 +190,7 @@ class TaskServiceTest {
     void editTask_shouldThrowException_whenTaskDoesNotExist() {
         try{String id = "Unique1";
             when(mockRepo.findById(id)).thenReturn(Optional.empty());
-        }catch(Exception e){
+        }catch(TaskDoesNotExistException e){
             assertEquals("Task with id: Unique1 does not exist",e.getMessage());
         }
     }
@@ -211,9 +214,38 @@ class TaskServiceTest {
                     taskList
             );
             when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
-        }catch (Exception e){
+        }catch (TaskDoesNotExistException e){
             assertEquals("Task status cannot be null",e.getMessage());
         }
+    }
+
+    @Test
+    void editTask_shouldThrowException_whenTaskDueDateIsInTheFuture() {
+        String id = "Unique1";
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task(id + "1",Status.CLOSED,LocalDate.now()));
+
+        TaskSeries savedTaskSeries = new TaskSeries(
+                id,
+                new TaskDefinition(id + "_D",
+                        "Test",
+                        new ArrayList<>(),
+                        new ArrayList<>(),
+                        new BigDecimal(2),
+                        Priority.HIGH,
+                        3
+                ),
+                taskList
+        );
+        when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
+        try{
+            EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,LocalDate.now().plusDays(5));
+            taskService.editTask(id,editTaskDTO);
+        }catch (TaskCompletionException e){
+            assertEquals("Completion Date can not be in the future",e.getMessage());
+        }
+
+
     }
 
     @Test
@@ -263,4 +295,38 @@ class TaskServiceTest {
         assertEquals(Status.CLOSED, savedTaskSeries.taskList().getFirst().status());
 
     }
+
+    @Test
+    void editTask_shouldReturnTaskWithUpdatedDueDate_whenDueDateIsUpdated() {
+        EditTaskDTO editTaskDTO = new EditTaskDTO(Status.OPEN,LocalDate.now().plusDays(3));
+        String id = "Unique1";
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task(id + "1",Status.OPEN,LocalDate.now()));
+
+        TaskDefinition taskDefinition = new TaskDefinition(
+                id + "_D",
+                "Test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new BigDecimal(2),
+                Priority.HIGH,
+                3);
+
+        TaskSeries savedTaskSeries = new TaskSeries(
+                id,
+                taskDefinition,
+                taskList
+        );
+
+        TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
+                id,
+                "Test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                Priority.HIGH,
+                Status.OPEN,
+                LocalDate.now().plusDays(3)
+        );
+    }
+
 }
