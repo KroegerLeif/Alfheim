@@ -130,4 +130,7 @@ public class TaskService {
         return taskSeries;
     }
 
+    public void deleteTask(String id) {
+        taskseriesRepro.deleteById(id);
+    }
 }
