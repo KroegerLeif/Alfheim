@@ -14,6 +14,7 @@ import {
 import type {HomeTableReturnDTO} from "@/dto/HomeTableReturnDTO.ts";
 import CreateNewHome from "@/components/CreateNewHome.tsx";
 import EditHome from "@/components/EditHome.tsx";
+import {Button} from "@/components/ui/button.tsx";
 
 function HomePage(){
 
@@ -23,6 +24,12 @@ function HomePage(){
         axios.get("/api/home")
             .then((response) =>
                 {setHomeTableData(response.data);})
+            .catch((error) => {console.log(error)})
+    }
+
+    function deleteHome(id:string){
+        axios.delete("/api/home/" + id + "/delete")
+            .then(() => {loadHomeData();})
             .catch((error) => {console.log(error)})
     }
 
@@ -53,6 +60,11 @@ function HomePage(){
                                     <TableCell>{home_data.members}</TableCell>
                                     <TableCell>
                                         <EditHome id={home_data.id} name={home_data.name} address={home_data.address}/>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button onClick={() => deleteHome(home_data.id)} variant="destructive">
+                                            Delete
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))
