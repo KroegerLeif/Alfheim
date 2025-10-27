@@ -37,6 +37,11 @@ function TaskPage(){
         .catch((error) => {console.log(error)})
     }
 
+    function deleteTask(id: string){
+        axios.delete("api/task/" + id + "/delete")
+        .then(() => loadTaskData())
+    }
+
     useEffect(() => {
         loadTaskData();
     }, []);
@@ -68,6 +73,9 @@ function TaskPage(){
                                 <TableCell>{task_data.dueDate}</TableCell>
                                 <TableCell>
                                     <Button onClick={() => taskDone(task_data.taskSeriesId)} > ✔︎</Button>
+                                </TableCell>
+                                <TableCell>
+                                    <Button onClick={() => deleteTask(task_data.taskSeriesId)} variant={"destructive"}>Delete</Button>
                                 </TableCell>
                             </TableRow>
                         ))
