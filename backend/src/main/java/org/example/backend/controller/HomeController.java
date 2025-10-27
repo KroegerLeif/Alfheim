@@ -38,4 +38,11 @@ public class HomeController {
     public HomeTableReturnDTO editHome(@PathVariable String id, @RequestBody EditHomeDTO editHomeDTO) {
         return homeService.editHome(id, editHomeDTO);
     }
+
+    @DeleteMapping("/{id}/delete")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void deleteHome(@PathVariable String id) {
+        homeService.deleteHome(id);
+    }
+
 }
