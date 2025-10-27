@@ -57,4 +57,8 @@ public class HomeService {
 
         return resault;
     }
+
+    public void deleteHome(String id) {
+        homeRepro.deleteById(id);
+    }
 }
