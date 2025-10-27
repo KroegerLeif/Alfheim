@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record TaskTableReturnDTO(String id,
+                                 String taskSeriesId,
                                  String name,
                                  List<String> items,
                                  List<String> assignedTo,

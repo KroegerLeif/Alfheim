@@ -32,8 +32,7 @@ class TaskSeriesReproTest {
         Task task = new Task(
                 "2",
                 Status.OPEN,
-                LocalDate.now(),
-                LocalDate.now().plusDays(1)
+                LocalDate.now()
         );
         ArrayList<Task> taskList = new ArrayList<>();
         taskList.add(task);

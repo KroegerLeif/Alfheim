@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import org.example.backend.controller.dto.create.CreateTaskDTO;
+import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.service.TaskService;
 
@@ -30,6 +31,12 @@ public class TaskController {
     public ResponseEntity<TaskTableReturnDTO> createTask(@RequestBody CreateTaskDTO createTaskDTO) {
         TaskTableReturnDTO createdTask = taskService.createNewTask(createTaskDTO);
         return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/{id}/edit-task")
+    @ResponseStatus(HttpStatus.OK)
+    public TaskTableReturnDTO editTask(@PathVariable String id, @RequestBody EditTaskDTO editTask){
+        return taskService.editTask(id, editTask);
     }
 
 }

@@ -13,6 +13,8 @@ import {
 
 import CreateNewHome from "@/components/CreateNewTask.tsx";
 import type {TaskTableReturn} from "@/dto/TaskTableReturn.ts";
+import {Button} from "@/components/ui/button.tsx";
+import type {EditTask} from "@/dto/EditTask.ts";
 
 function TaskPage(){
 
@@ -23,6 +25,16 @@ function TaskPage(){
             .then((response) =>
             {setTaskTableData(response.data);})
             .catch((error) => {console.log(error)})
+    }
+
+    function taskDone(edited: string ){
+        const editTask: EditTask = {
+            status: "CLOSED",
+            dueDate: ""
+        }
+        axios.patch("api/task/"+ edited + "/edit-task",editTask)
+        .then(() => loadTaskData())
+        .catch((error) => {console.log(error)})
     }
 
     useEffect(() => {
@@ -41,6 +53,7 @@ function TaskPage(){
                         <TableHead>Priority</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Due Date</TableHead>
+                        <TableHead>TaskDone</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -53,6 +66,9 @@ function TaskPage(){
                                 <TableCell>{task_data.priority}</TableCell>
                                 <TableCell>{task_data.status}</TableCell>
                                 <TableCell>{task_data.dueDate}</TableCell>
+                                <TableCell>
+                                    <Button onClick={() => taskDone(task_data.taskSeriesId)} > ✔︎</Button>
+                                </TableCell>
                             </TableRow>
                         ))
                     }
