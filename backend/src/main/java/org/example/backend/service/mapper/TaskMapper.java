@@ -36,6 +36,7 @@ public class TaskMapper {
         
         return new TaskTableReturnDTO(
                 taskSeries.taskList().getLast().id(),
+                taskSeries.id(),
                 taskSeries.definition().name(),
                 taskSeries.definition().connectedItems().stream().map(Item::name).toList(),
                 taskSeries.definition().responsible().stream().map(User::name).toList(),

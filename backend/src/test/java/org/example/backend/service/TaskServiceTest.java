@@ -110,6 +110,7 @@ class TaskServiceTest {
         
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
                 expectedTaskSeriesId,
+                null,
                 "Test Task",
                 new ArrayList<>(),
                 new ArrayList<>(),
@@ -161,6 +162,7 @@ class TaskServiceTest {
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
+                id + "1",
                 id,
                 "Test",
                 new ArrayList<>(),
@@ -246,6 +248,7 @@ class TaskServiceTest {
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
+                id + "1",
                 id,
                 "Test",
                 new ArrayList<>(),
@@ -295,6 +298,7 @@ class TaskServiceTest {
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
+                id + "1",
                 id,
                 "Test",
                 new ArrayList<>(),

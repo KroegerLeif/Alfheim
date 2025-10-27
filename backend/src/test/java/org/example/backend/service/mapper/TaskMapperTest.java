@@ -62,12 +62,13 @@ class TaskMapperTest {
         taskList.add(task);
 
         TaskSeries taskSeries = new TaskSeries(
-                "",
+                "1",
                 taskDefinition,
                 taskList
         );
         var expected = new TaskTableReturnDTO(
                 "2",
+                "1",
                 "def",
                 new ArrayList<>(),
                 new ArrayList<>(),

@@ -52,6 +52,7 @@ class TaskControllerTest {
                         [
                           {
                               "id": "1",
+                              "taskSeriesId": "1",
                               "name": "test",
                               "items": [],
                               "assignedTo": [],
@@ -86,7 +87,8 @@ class TaskControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andExpect(MockMvcResultMatchers.content().json("""
                                     {
-                                        "id": "11",
+                                        "id": "10",
+                                        "taskSeriesId": "1",
                                         "name": "Test",
                                         "items" : [],
                                         "assignedTo": [],
@@ -119,6 +121,7 @@ class TaskControllerTest {
                 .andExpect(MockMvcResultMatchers.content().json("""
                                     {
                                         "id": "1",
+                                        "taskSeriesId": "1",
                                         "name": "test",
                                         "items" : [],
                                         "assignedTo": [],
