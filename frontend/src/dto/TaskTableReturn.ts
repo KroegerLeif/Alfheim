@@ -3,6 +3,7 @@ import type {Status} from "@/dto/Status.ts";
 
 export type TaskTableReturn = {
     id: string,
+    taskSeriesId: string;
     name: string,
     items: string[],
     assignedTo: string[],

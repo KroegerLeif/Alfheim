@@ -115,6 +115,9 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-h-screen flex items-center justify-center;
+  }
+  main {
+    @apply p-8;
   }
 }
