@@ -59,7 +59,7 @@ function SchedulePage(){
                 <p className="text-muted-foreground">Plan and track scheduled maintenance activities</p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+
                 <Card className="md:col-span-2">
                     <CardHeader>
                         <CardTitle>Scheduled Tasks</CardTitle>
@@ -124,7 +124,7 @@ function SchedulePage(){
                     </CardContent>
                 </Card>
             </div>
-        </div>
+
     );
 }
 
