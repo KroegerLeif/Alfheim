@@ -1,7 +1,6 @@
 import { AppSidebar } from "./app-sidebar";
 import { Outlet } from "react-router-dom";
-import { SidebarProvider } from "./ui/sidebar"; // Sie hatten diesen Provider, also nehmen wir ihn wieder
-
+import { SidebarProvider } from "./ui/sidebar";
 export function MainLayout() {
     return (
         <SidebarProvider>
