@@ -67,7 +67,7 @@ function TaskPage(){
                                 <TableCell>{task_data.status}</TableCell>
                                 <TableCell>{task_data.dueDate}</TableCell>
                                 <TableCell>
-                                    <Button onClick={() => taskDone(task_data.id)} > ✔︎</Button>
+                                    <Button onClick={() => taskDone(task_data.taskSeriesId)} > ✔︎</Button>
                                 </TableCell>
                             </TableRow>
                         ))
