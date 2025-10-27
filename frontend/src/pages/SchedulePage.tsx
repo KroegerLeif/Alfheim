@@ -111,7 +111,7 @@ function SchedulePage(){
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
                                                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm">{task.dueDate} at {task.dueDate}</span>
+                                                <span className="text-sm">{task.dueDate}</span>
                                             </div>
                                             <p>{task.items}</p>
                                             <p className="text-sm text-muted-foreground">{task.name}</p>
