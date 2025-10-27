@@ -1,6 +1,6 @@
 import type {Address} from "@/dto/Address.ts";
 
-export type EditHome = {
+export type EditHomeDTO = {
     name: string;
     address: Address;
 }

@@ -17,7 +17,7 @@ import type {Address} from "@/dto/Address.ts";
 import {type FormEvent, useState} from "react";
 import * as React from "react";
 import {useNavigate} from "react-router-dom";
-import type {EditHome} from "@/dto/EditHome.ts";
+import type {EditHomeDTO} from "@/dto/EditHomeDTO.ts";
 
 type EditHomeProps = {
     id: string;
@@ -51,7 +51,7 @@ function EditHome(props: Readonly<EditHomeProps>){
         console.log("Submit function called!");
         event.preventDefault();
 
-        const editedHome: EditHome = {
+        const editedHome: EditHomeDTO = {
             name: formData.name,
             address: {
                 street: formData.street,
