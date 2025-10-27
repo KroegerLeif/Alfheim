@@ -160,4 +160,22 @@ class HomeControllerTest {
                        
                                     """));
     }
+
+    @Test
+    void deleteHome_shouldDeleteHome_whenCalled() throws Exception {
+        //GIVEN
+        Address address = new Address("1", "street", "postCode", "city", "country");
+        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        homeRepro.save(home);
+
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/home/1/delete"))
+                .andExpect(MockMvcResultMatchers.status().isAccepted());
+
+        //THEN
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/home"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("[]"));
+
+    }
 }

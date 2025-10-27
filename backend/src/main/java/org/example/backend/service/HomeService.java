@@ -53,8 +53,11 @@ public class HomeService {
         //Saves Home
         homeRepro.save(home);
 
-        HomeTableReturnDTO resault= homeMapper.mapToHomeTableReturn(home);
+        return homeMapper.mapToHomeTableReturn(home);
 
-        return resault;
+    }
+
+    public void deleteHome(String id) {
+        homeRepro.deleteById(id);
     }
 }

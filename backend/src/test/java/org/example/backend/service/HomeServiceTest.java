@@ -83,7 +83,28 @@ class HomeServiceTest {
         //THEN
         assertEquals(expected,actual);
 
+    }
 
+    @Test
+    void deleteHome_shouldDeleteHome_whenCalled() {
+        //GIVEN
+        String id = "1";
+        mockRepo.save(
+                new Home(id,
+                        "Test",
+                        new Address("1",
+                                "street",
+                                "postCode",
+                                "city",
+                                "country"),
+                        new ArrayList<>(),
+                        new ArrayList<>(),
+                        new HashMap<>()));
+        //WHEN
+        homeService.deleteHome(id);
+        //THEN
+        Mockito.verify(mockRepo).deleteById(id);
 
     }
+
 }
