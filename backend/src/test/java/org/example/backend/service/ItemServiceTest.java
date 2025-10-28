@@ -1,6 +1,7 @@
 package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
+import org.example.backend.controller.dto.edit.EditItemDTO;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
@@ -8,6 +9,7 @@ import org.example.backend.domain.item.Item;
 import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
+import org.example.backend.service.security.exception.ItemDoesNotExistException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -83,6 +85,39 @@ class ItemServiceTest {
         //THEN
         assertEquals(expectedTableReturn, actual);
         Mockito.verify(mockRepo).save(item_afterId);
+
+    }
+
+    @Test
+    void editItem_shouldThrowItemDoesNotExistException_whenItemDoesNotExist(){
+        try{
+            String id = "1";
+            when(mockRepo.findById(id)).thenReturn(Optional.empty());
+            itemService.editItem(id,new EditItemDTO("Test",  "TestCategory",EnergyLabel.E));
+        }catch (ItemDoesNotExistException e){
+            assertEquals("No Item with this ID",e.getMessage());
+        }
+    }
+
+    @Test
+    void editItem_shouldReturnUpdatedItem_whenCalled() {
+        //GIVEN
+        String id = "1";
+        EditItemDTO editItemDTO = new EditItemDTO("Kühlschrank", "Küche", EnergyLabel.E);
+        Item savedItem = new Item(id, "Test", null, null);
+        mockRepo.save(savedItem);
+        ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO(id,
+                                                                    "Kühlschrank",
+                                                                    EnergyLabel.E,
+                                                                    "Küche"
+        );
+        when(mockRepo.findById(id)).thenReturn(Optional.of(savedItem));
+        when(itemMapper.mapToItemTableReturn(Mockito.any(Item.class))).thenReturn(expectedTableReturn);
+        //WHEN
+        var actual = itemService.editItem(id, editItemDTO);
+        //THEN
+        Mockito.verify(mockRepo).findById(id);
+        assertEquals(expectedTableReturn, actual);
 
     }
 

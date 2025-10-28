@@ -17,7 +17,7 @@ import type {Address} from "@/dto/Address.ts";
 import {type FormEvent, useState} from "react";
 import * as React from "react";
 import {useNavigate} from "react-router-dom";
-import type {EditHomeDTO} from "@/dto/EditHomeDTO.ts";
+import type {EditHomeDTO} from "@/dto/edit/EditHomeDTO.ts";
 
 type EditHomeProps = {
     id: string;

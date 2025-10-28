@@ -1,5 +1,5 @@
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button.tsx"
 import {
     Dialog,
     DialogClose,
@@ -9,12 +9,12 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog.tsx"
+import { Input } from "@/components/ui/input.tsx"
+import { Label } from "@/components/ui/label.tsx"
 import {type FormEvent, useState} from "react";
 import axios from "axios";
-import type {CreateTask} from "@/dto/CreateTask.ts";
+import type {CreateTask} from "@/dto/create/CreateTask.ts";
 
 import {useNavigate} from "react-router-dom";
 import * as React from "react";
