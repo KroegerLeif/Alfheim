@@ -12,6 +12,7 @@ import axios from "axios";
 import type {ItemTableReturn} from "@/dto/response/ItemTableReturn.ts";
 import CreateNewItem from "@/components/create/CreateNewItem.tsx";
 import {Button} from "@/components/ui/button.tsx";
+import EditItem from "@/components/EditItem.tsx";
 
 function ItemPage(){
 
@@ -52,6 +53,12 @@ function ItemPage(){
                                 <TableCell className="font-medium" key={item_data.id}>{item_data.name}</TableCell>
                                 <TableCell>{item_data.energyLabel}</TableCell>
                                 <TableCell>{item_data.category}</TableCell>
+                                <TableCell>
+                                    <EditItem id={item_data.id}
+                                              name={item_data.name}
+                                              category={item_data.category}
+                                              energyLabel={item_data.energyLabel}/>
+                                </TableCell>
                                 <TableCell>
                                     <Button onClick={() => deleteItem(item_data.id)}
                                             variant={"destructive"}>
