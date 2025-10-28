@@ -2,7 +2,7 @@ import {Clock, Calendar as CalendarIcon} from "lucide-react";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@radix-ui/react-tabs";
 import {useEffect, useState} from "react";
-import type {TaskTableReturn} from "@/dto/TaskTableReturn.ts";
+import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import axios from "axios";
 
 

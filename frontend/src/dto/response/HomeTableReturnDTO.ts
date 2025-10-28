@@ -1,4 +1,4 @@
-import type {Address} from "@/dto/Address";
+import type {Address} from "@/dto/Address.ts";
 
 export type HomeTableReturnDTO = {
     id: string;

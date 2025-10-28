@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import {type FormEvent, useState} from "react";
 import axios from "axios";
 
-import type {CreateItem} from "@/dto/CreateItem.ts";
+import type {CreateItem} from "@/dto/create/CreateItem.ts";
 
 import {useNavigate} from "react-router-dom";
 import * as React from "react";

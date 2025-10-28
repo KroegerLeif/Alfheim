@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {type FormEvent, useState} from "react";
 import axios from "axios";
-import type {CreateHomeDTO} from "@/dto/CreateHomeDTO.ts";
+import type {CreateHomeDTO} from "@/dto/create/CreateHomeDTO.ts";
 import {useNavigate} from "react-router-dom";
 
 function CreateNewHome() {

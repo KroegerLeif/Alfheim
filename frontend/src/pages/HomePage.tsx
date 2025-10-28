@@ -11,7 +11,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
-import type {HomeTableReturnDTO} from "@/dto/HomeTableReturnDTO.ts";
+import type {HomeTableReturnDTO} from "@/dto/response/HomeTableReturnDTO.ts";
 import CreateNewHome from "@/components/CreateNewHome.tsx";
 import EditHome from "@/components/EditHome.tsx";
 import {Button} from "@/components/ui/button.tsx";

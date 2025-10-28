@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {type FormEvent, useState} from "react";
 import axios from "axios";
-import type {CreateTask} from "@/dto/CreateTask.ts";
+import type {CreateTask} from "@/dto/create/CreateTask.ts";
 
 import {useNavigate} from "react-router-dom";
 import * as React from "react";

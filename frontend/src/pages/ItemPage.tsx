@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table"
 import {useEffect, useState} from "react";
 import axios from "axios";
-import type {ItemTableReturn} from "@/dto/ItemTableReturn.ts";
+import type {ItemTableReturn} from "@/dto/response/ItemTableReturn.ts";
 import CreateNewItem from "@/components/CreateNewItem.tsx";
 import {Button} from "@/components/ui/button.tsx";
 
