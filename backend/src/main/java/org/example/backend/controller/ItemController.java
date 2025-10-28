@@ -30,5 +30,10 @@ public class ItemController {
         return itemService.createNewItem(createItemDTO);
     }
 
+    @DeleteMapping("/{id}/delete")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void deleteAllItems(@PathVariable String id){
+        itemService.deleteItem(id);
+    }
 
 }

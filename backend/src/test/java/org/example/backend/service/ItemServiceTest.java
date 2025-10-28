@@ -29,7 +29,6 @@ class ItemServiceTest {
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
 
-
     private final ItemService itemService = new ItemService(mockRepo, itemMapper, idService);
 
     @AfterEach
@@ -84,6 +83,18 @@ class ItemServiceTest {
         //THEN
         assertEquals(expectedTableReturn, actual);
         Mockito.verify(mockRepo).save(item_afterId);
+
+    }
+
+    @Test
+    void deleteItem_shouldDeleteItem_whenCalled(){
+        //GIVEN
+        String id = "1";
+        mockRepo.save(new Item(id, "Test", null, null));
+        //WHEN
+        itemService.deleteItem(id);
+        //THEN
+        Mockito.verify(mockRepo).deleteById(id);
 
     }
 }

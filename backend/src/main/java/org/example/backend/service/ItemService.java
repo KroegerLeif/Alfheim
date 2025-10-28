@@ -40,6 +40,10 @@ public class ItemService {
         return itemMapper.mapToItemTableReturn(item);
     }
 
+    public void deleteItem(String id) {
+        itemRepro.deleteById(id);
+    }
+
     private Item creatUniqueIds(Item item){
         //Creation of new IDs
         String item_id = idService.createNewId();
@@ -63,4 +67,5 @@ public class ItemService {
                 .map(Item::category) // If an item with this category exists, use its category (with ID)
                 .orElseGet(() -> category.withId(idService.createNewId())); // Otherwise, create a new category with a new ID
     }
+
 }
