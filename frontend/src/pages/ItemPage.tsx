@@ -10,7 +10,7 @@ import {
 import {useEffect, useState} from "react";
 import axios from "axios";
 import type {ItemTableReturn} from "@/dto/response/ItemTableReturn.ts";
-import CreateNewItem from "@/components/CreateNewItem.tsx";
+import CreateNewItem from "@/components/create/CreateNewItem.tsx";
 import {Button} from "@/components/ui/button.tsx";
 
 function ItemPage(){

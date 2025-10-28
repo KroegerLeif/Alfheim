@@ -11,7 +11,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
-import CreateNewHome from "@/components/CreateNewTask.tsx";
+import CreateNewHome from "@/components/create/CreateNewTask.tsx";
 import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import {Button} from "@/components/ui/button.tsx";
 import type {EditTask} from "@/dto/edit/EditTask.ts";
