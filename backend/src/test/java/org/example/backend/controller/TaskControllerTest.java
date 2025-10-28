@@ -148,5 +148,21 @@ class TaskControllerTest {
                 taskDefinition,
                 taskList);
     }
-    
+
+    @Test
+    void deleteTask_shouldDeleteTask_whenCalled() throws Exception {
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        taskSeriesRepro.save(taskSeries);
+
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/1/delete"))
+                .andExpect(MockMvcResultMatchers.status().isAccepted());
+
+        //THEN
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("[]"));
+
+    }
 }

@@ -39,4 +39,10 @@ public class TaskController {
         return taskService.editTask(id, editTask);
     }
 
+    @DeleteMapping("/{id}/delete")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void deleteTask(@PathVariable String id) {
+        taskService.deleteTask(id);
+    }
+
 }

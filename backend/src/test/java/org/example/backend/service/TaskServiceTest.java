@@ -323,4 +323,33 @@ class TaskServiceTest {
         assertEquals(LocalDate.now().plusDays(3), savedTaskSeries.taskList().getFirst().dueDate());
     }
 
+    @Test
+    void deleteTask_shouldDeleteTask_whenCalled(){
+        //GIVEN
+        String id = "Unique1";
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task(id + "1",Status.OPEN,LocalDate.now()));
+
+        TaskDefinition taskDefinition = new TaskDefinition(
+                id + "_D",
+                "Test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new BigDecimal(2),
+                Priority.HIGH,
+                3);
+
+        TaskSeries savedTaskSeries = new TaskSeries(
+                id,
+                taskDefinition,
+                taskList
+        );
+
+        mockRepo.save(savedTaskSeries);
+        //WHEN
+        taskService.deleteTask(id);
+        //THEN
+        Mockito.verify(mockRepo).deleteById(id);
+    }
+
 }

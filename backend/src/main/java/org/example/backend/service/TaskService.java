@@ -59,16 +59,16 @@ public class TaskService {
                 throw new TaskCompletionException("Completion Date can not be in the future");
             }
             //Replaced last task with closed task
-            taskSeries = changeTaskStatus(taskSeries, Status.CLOSED);
+            changeTaskStatus(taskSeries, Status.CLOSED);
             //Creation of new Task
-            taskSeries = createNextTask(taskSeries);
+            createNextTask(taskSeries);
         } else if (editTaskDTO.status() != taskSeries.taskList().getLast().status()) {
-            taskSeries = changeTaskStatus(taskSeries, editTaskDTO.status());
+            changeTaskStatus(taskSeries, editTaskDTO.status());
         }
 
         if(editTaskDTO.dueDate() != null && editTaskDTO.dueDate() != taskSeries.taskList().getLast().dueDate()){
             //Changes the due date of the last task in the tasklist
-            taskSeries = updateDueDate(taskSeries, editTaskDTO.dueDate());
+            updateDueDate(taskSeries, editTaskDTO.dueDate());
         }
 
         taskseriesRepro.save(taskSeries);
@@ -95,18 +95,16 @@ public class TaskService {
                         );
     }
 
-    private TaskSeries changeTaskStatus(TaskSeries taskSeries, Status newStatus){
+    private void changeTaskStatus(TaskSeries taskSeries, Status newStatus){
         Task lastTask = taskSeries.taskList().getLast();
         lastTask = lastTask.withDueDate(LocalDate.now());
         lastTask = lastTask.withStatus(newStatus);
 
         taskSeries.taskList().removeLast();
         taskSeries.taskList().add(lastTask);
-
-        return taskSeries;
     }
 
-    private TaskSeries createNextTask(TaskSeries taskSeries){
+    private void createNextTask(TaskSeries taskSeries){
         String uniqueId = (taskSeries.id()) + (taskSeries.taskList().size());
 
         LocalDate nextDueDate = taskSeries.taskList().getLast().dueDate()
@@ -116,18 +114,17 @@ public class TaskService {
 
         Task newTask = new Task(uniqueId, Status.OPEN, nextDueDate);
         taskSeries.taskList().add(newTask);
-
-        return taskSeries;
     }
 
-    private TaskSeries updateDueDate(TaskSeries taskSeries, LocalDate newDueDate){
+    private void updateDueDate(TaskSeries taskSeries, LocalDate newDueDate){
         Task lastTask = taskSeries.taskList().getLast();
         lastTask = lastTask.withDueDate(newDueDate);
 
         taskSeries.taskList().removeLast();
         taskSeries.taskList().add(lastTask);
-
-        return taskSeries;
     }
 
+    public void deleteTask(String id) {
+        taskseriesRepro.deleteById(id);
+    }
 }
