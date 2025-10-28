@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
+import org.example.backend.controller.dto.edit.EditItemDTO;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.service.ItemService;
 import org.springframework.http.HttpStatus;
@@ -33,8 +34,8 @@ public class ItemController {
     @PatchMapping("/{id}/edit")
     @ResponseStatus(HttpStatus.OK)
     public ItemTableReturnDTO editItem(@PathVariable String id,
-                                       @RequestBody CreateItemDTO createItemDTO){
-        return itemService.editItem(id,createItemDTO);
+                                       @RequestBody EditItemDTO editItemDTO){
+        return itemService.editItem(id,editItemDTO);
     }
 
     @DeleteMapping("/{id}/delete")
