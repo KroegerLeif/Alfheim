@@ -30,6 +30,13 @@ public class ItemController {
         return itemService.createNewItem(createItemDTO);
     }
 
+    @PatchMapping("/{id}/edit")
+    @ResponseStatus(HttpStatus.OK)
+    public ItemTableReturnDTO editItem(@PathVariable String id,
+                                       @RequestBody CreateItemDTO createItemDTO){
+        return itemService.editItem(id,createItemDTO);
+    }
+
     @DeleteMapping("/{id}/delete")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void deleteAllItems(@PathVariable String id){

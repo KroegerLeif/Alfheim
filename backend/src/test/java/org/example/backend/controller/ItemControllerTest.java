@@ -1,5 +1,7 @@
 package org.example.backend.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.backend.controller.dto.edit.EditItemDTO;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
 import org.example.backend.domain.item.Item;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -27,6 +30,8 @@ class ItemControllerTest {
 
     @MockitoBean
     private IdService idService;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @AfterEach
     void tearDown() {
@@ -75,6 +80,30 @@ class ItemControllerTest {
 
     }
 
+    @Test
+    void editItem_shouldReturnUpdatedItem_whenCalled() throws Exception {
+        //GIVEN
+        EditItemDTO editItemDTO = new EditItemDTO("Waschmaschine", null, null);
+        Item item = createItem();
+        itemRepro.save(item);
+
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/item/10/edit")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(editItemDTO)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json(
+                                """
+                                        {
+                                            "id":"10",
+                                            "name":"Waschmaschine",
+                                            "category" : "Electronics",
+                                            "energyLabel" : "A"
+                                        }
+                                """));
+    }
+
+
     private static Item createItem(){
         Category category = new Category("1", "Electronics");
         return new Item("10",
@@ -82,6 +111,7 @@ class ItemControllerTest {
                 category,
                 EnergyLabel.A);
     }
+
 
 
 }
