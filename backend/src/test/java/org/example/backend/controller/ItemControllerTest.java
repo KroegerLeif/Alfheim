@@ -12,7 +12,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
@@ -58,6 +57,24 @@ class ItemControllerTest {
 
     }
 
+    @Test
+    void deleteItem_shouldDeleteItem_whenCalled() throws Exception {
+        //GIVEN
+        Item item = createItem();
+        itemRepro.save(item);
+
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/item/10/delete"))
+                .andExpect(MockMvcResultMatchers.status().isAccepted());
+
+        //THEN
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/item"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("[]"));
+
+
+    }
+
     private static Item createItem(){
         Category category = new Category("1", "Electronics");
         return new Item("10",
@@ -65,4 +82,6 @@ class ItemControllerTest {
                 category,
                 EnergyLabel.A);
     }
+
+
 }

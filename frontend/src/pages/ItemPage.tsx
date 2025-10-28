@@ -11,6 +11,7 @@ import {useEffect, useState} from "react";
 import axios from "axios";
 import type {ItemTableReturn} from "@/dto/ItemTableReturn.ts";
 import CreateNewItem from "@/components/CreateNewItem.tsx";
+import {Button} from "@/components/ui/button.tsx";
 
 function ItemPage(){
 
@@ -26,6 +27,12 @@ function ItemPage(){
     useEffect(() => {
         loadItemData();
     }, []);
+
+    function deleteItem(id: string) {
+        axios.delete("/api/item/" + id + "/delete")
+            .then(() => loadItemData())
+            .catch((error) => {console.log(error)})
+    }
 
     return(
         <div className={"itemPage"}>
@@ -45,6 +52,12 @@ function ItemPage(){
                                 <TableCell className="font-medium" key={item_data.id}>{item_data.name}</TableCell>
                                 <TableCell>{item_data.energyLabel}</TableCell>
                                 <TableCell>{item_data.category}</TableCell>
+                                <TableCell>
+                                    <Button onClick={() => deleteItem(item_data.id)}
+                                            variant={"destructive"}>
+                                        Delete
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         ))
                     }
