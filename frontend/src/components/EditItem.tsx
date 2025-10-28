@@ -53,7 +53,7 @@ function EditItem (prop: Readonly<EditItemProps>){
             energyLabel: formData.energyLabel,
         };
 
-        axios.patch("/api/home/" + prop.id + "/edit", editItemDTO)
+        axios.patch("/api/item/" + prop.id + "/edit", editItemDTO)
             .then(() => nav("/"))
             .catch((error) => {
                     console.log(error)
