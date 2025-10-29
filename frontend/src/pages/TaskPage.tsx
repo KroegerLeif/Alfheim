@@ -11,10 +11,10 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
-import CreateNewHome from "@/components/create/CreateNewTask.tsx";
 import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import {Button} from "@/components/ui/button.tsx";
 import type {EditTask} from "@/dto/edit/EditTask.ts";
+import CreateNewItem from "@/components/create/CreateNewItem.tsx";
 
 function TaskPage(){
 
@@ -47,7 +47,11 @@ function TaskPage(){
     }, []);
 
     return(
-        <div className={"taskPage"}>
+        <>
+            <div className={"flex flex-col justify-center items-center w-full"}>
+                <h1>Task Overview</h1>
+                <CreateNewItem/>
+            </div>
             <Table>
                 <TableCaption>A list of all Tasks</TableCaption>
                 <TableHeader>
@@ -82,8 +86,7 @@ function TaskPage(){
                     }
                 </TableBody>
             </Table>
-            <CreateNewHome/>
-        </div>
+        </>
     )
 }
 
