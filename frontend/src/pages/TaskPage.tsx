@@ -14,7 +14,7 @@ import {
 import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import {Button} from "@/components/ui/button.tsx";
 import type {EditTask} from "@/dto/edit/EditTask.ts";
-import CreateNewItem from "@/components/create/CreateNewItem.tsx";
+import CreateNewTask from "@/components/create/CreateNewTask.tsx";
 
 function TaskPage(){
 
@@ -50,7 +50,7 @@ function TaskPage(){
         <>
             <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Task Overview</h1>
-                <CreateNewItem/>
+                <CreateNewTask/>
             </div>
             <Table>
                 <TableCaption>A list of all Tasks</TableCaption>

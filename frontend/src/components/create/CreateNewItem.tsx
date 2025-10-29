@@ -64,7 +64,7 @@ function CreateNewHome() {
     return (
         <Dialog>
             <DialogTrigger className={"flex flex-row justify-end w-full"}>
-                <Button variant="outline">Create New Item</Button>
+                <Button variant="outline">+ add Item</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
