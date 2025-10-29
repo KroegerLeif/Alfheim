@@ -134,7 +134,6 @@ class HomeServiceTest {
                 ,new ArrayList<Task>())
         );
 
-        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
-        return editHomeDTO;
+        return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
     }
 }
