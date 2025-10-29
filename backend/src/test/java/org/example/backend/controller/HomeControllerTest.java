@@ -5,6 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
+import org.example.backend.domain.item.Item;
+import org.example.backend.domain.task.Priority;
+import org.example.backend.domain.task.Task;
+import org.example.backend.domain.task.TaskDefinition;
+import org.example.backend.domain.task.TaskSeries;
+import org.example.backend.domain.user.User;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
@@ -18,8 +24,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
 
@@ -132,8 +140,7 @@ class HomeControllerTest {
         Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
         homeRepro.save(home);
 
-        Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
-        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Home", updatedAddress);
+        EditHomeDTO editHomeDTO = getEditHomeDTO();
 
 
         //WHEN
@@ -153,8 +160,8 @@ class HomeControllerTest {
                                           "country": "new country"
                                         },
                                         "admin": "admin",
-                                        "numberTask": 0,
-                                        "numberItems": 0,
+                                        "numberItems": 2,
+                                        "numberTask": 1,
                                         "members" : []
                                       }
                        
@@ -177,5 +184,28 @@ class HomeControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json("[]"));
 
+    }
+    private static EditHomeDTO getEditHomeDTO() {
+        Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
+
+        List<Item> newItemList = new ArrayList<>();
+        newItemList.add(new Item("1", "Test", null, null));
+        newItemList.add(new Item("2", "Test", null, null));
+
+        List<TaskSeries> newTaskSerisList = new ArrayList<>();
+        newTaskSerisList.add(new TaskSeries("1",
+                new TaskDefinition("1_D",
+                        "test",
+                        new ArrayList<User>(),
+                        new ArrayList<Item>(),
+                        new BigDecimal(10),
+                        Priority.HIGH,
+                        5
+                )
+                ,new ArrayList<Task>())
+        );
+
+        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
+        return editHomeDTO;
     }
 }

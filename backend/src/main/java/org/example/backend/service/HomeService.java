@@ -50,6 +50,14 @@ public class HomeService {
             home = home.withAddress(editHomeDTO.address());
         }
 
+        if(editHomeDTO.items() != null){
+            home = home.withItems(editHomeDTO.items());
+        }
+
+        if(editHomeDTO.taskSeriesList() != null){
+            home = home.withTaskSeries(editHomeDTO.taskSeriesList());
+        }
+
         //Saves Home
         homeRepro.save(home);
 

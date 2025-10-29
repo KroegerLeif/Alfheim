@@ -5,6 +5,12 @@ import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
+import org.example.backend.domain.item.Item;
+import org.example.backend.domain.task.Priority;
+import org.example.backend.domain.task.Task;
+import org.example.backend.domain.task.TaskDefinition;
+import org.example.backend.domain.task.TaskSeries;
+import org.example.backend.domain.user.User;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.mapper.HomeMapper;
 import org.example.backend.service.security.IdService;
@@ -12,8 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,7 +77,7 @@ class HomeServiceTest {
         Address address2 = new Address("2", "street2", "postCode", "Town", "country");
         Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
         String id = "1";
-        EditHomeDTO editHomeDTO = new EditHomeDTO("Test",address2);
+        EditHomeDTO editHomeDTO = getEditHomeDTO();
         HomeTableReturnDTO expected = new HomeTableReturnDTO("1","Test",address2,"admin",0,0,new ArrayList<>());
 
         //MOCKING
@@ -106,5 +114,27 @@ class HomeServiceTest {
         Mockito.verify(mockRepo).deleteById(id);
 
     }
+    private static EditHomeDTO getEditHomeDTO() {
+        Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
 
+        List<Item> newItemList = new ArrayList<>();
+        newItemList.add(new Item("1", "Test", null, null));
+        newItemList.add(new Item("2", "Test", null, null));
+
+        List<TaskSeries> newTaskSerisList = new ArrayList<>();
+        newTaskSerisList.add(new TaskSeries("1",
+                new TaskDefinition("1_D",
+                        "test",
+                        new ArrayList<User>(),
+                        new ArrayList<Item>(),
+                        new BigDecimal(10),
+                        Priority.HIGH,
+                        5
+                )
+                ,new ArrayList<Task>())
+        );
+
+        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
+        return editHomeDTO;
+    }
 }
