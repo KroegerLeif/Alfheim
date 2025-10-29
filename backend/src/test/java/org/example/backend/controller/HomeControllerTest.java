@@ -134,7 +134,7 @@ class HomeControllerTest {
     }
 
     @Test
-    void editHome_shouldReturnUpdatedHome_whenHomeIsEdited()throws Exception{
+    void editHome_shouldUpdateAllFields_whenAllFieldsAreProvided()throws Exception{
         //GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
@@ -166,6 +166,135 @@ class HomeControllerTest {
                                       }
                        
                                     """));
+    }
+
+    @Test
+    void editHome_shouldUpdateOnlyName_whenOnlyNameIsProvided() throws Exception {
+        // GIVEN
+        Address originalAddress = new Address("12", "street", "postCode", "city", "country");
+        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        homeRepro.save(home);
+
+        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Name", null, null, null);
+
+        // WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(editHomeDTO)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                    {
+                        "id": "1",
+                        "name": "Updated Name",
+                        "address": {
+                          "id": "12",
+                          "street": "street",
+                          "postCode": "postCode",
+                          "city": "city",
+                          "country": "country"
+                        },
+                        "numberItems": 0,
+                        "numberTask": 0
+                    }
+                    """));
+    }
+
+    @Test
+    void editHome_shouldUpdateOnlyAddress_whenOnlyAddressIsProvided() throws Exception {
+        // GIVEN
+        Address originalAddress = new Address("12", "street", "postCode", "city", "country");
+        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        homeRepro.save(home);
+
+        Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
+        EditHomeDTO editHomeDTO = new EditHomeDTO(null, updatedAddress, null, null);
+
+        // WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(editHomeDTO)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                    {
+                        "id": "1",
+                        "name": "home",
+                        "address": {
+                          "id": "12",
+                          "street": "new street",
+                          "postCode": "new postCode",
+                          "city": "new city",
+                          "country": "new country"
+                        },
+                        "numberItems": 0,
+                        "numberTask": 0
+                    }
+                    """));
+    }
+
+    @Test
+    void editHome_shouldUpdateOnlyItems_whenOnlyItemsAreProvided() throws Exception {
+        // GIVEN
+        Address originalAddress = new Address("12", "street", "postCode", "city", "country");
+        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        homeRepro.save(home);
+
+        List<Item> newItemList = new ArrayList<>();
+        newItemList.add(new Item("1", "Test", null, null));
+        EditHomeDTO editHomeDTO = new EditHomeDTO(null, null, newItemList, null);
+
+        // WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(editHomeDTO)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                    {
+                        "id": "1",
+                        "name": "home",
+                        "address": {
+                          "id": "12",
+                          "street": "street",
+                          "postCode": "postCode",
+                          "city": "city",
+                          "country": "country"
+                        },
+                        "numberItems": 1,
+                        "numberTask": 0
+                    }
+                    """));
+    }
+
+    @Test
+    void editHome_shouldUpdateOnlyTaskSeries_whenOnlyTaskSeriesAreProvided() throws Exception {
+        // GIVEN
+        Address originalAddress = new Address("12", "street", "postCode", "city", "country");
+        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        homeRepro.save(home);
+
+        List<TaskSeries> newTaskSeriesList = new ArrayList<>();
+        newTaskSeriesList.add(new TaskSeries("1", new TaskDefinition("1_D", "test", new ArrayList<>(), new ArrayList<>(), new BigDecimal(10), Priority.HIGH, 5), new ArrayList<>()));
+        EditHomeDTO editHomeDTO = new EditHomeDTO(null, null, null, newTaskSeriesList);
+
+        // WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(editHomeDTO)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                    {
+                        "id": "1",
+                        "name": "home",
+                        "address": {
+                          "id": "12",
+                          "street": "street",
+                          "postCode": "postCode",
+                          "city": "city",
+                          "country": "country"
+                        },
+                        "numberItems": 0,
+                        "numberTask": 1
+                    }
+                    """));
     }
 
     @Test
