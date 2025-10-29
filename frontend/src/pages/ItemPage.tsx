@@ -36,7 +36,11 @@ function ItemPage(){
     }
 
     return(
-        <div className={"itemPage"}>
+        <>
+            <div className={"flex flex-col justify-center items-center w-full"}>
+                <h1>Item Overview</h1>
+                <CreateNewItem/>
+            </div>
             <Table>
                 <TableCaption>A list of all Items</TableCaption>
                 <TableHeader>
@@ -70,8 +74,7 @@ function ItemPage(){
                     }
                 </TableBody>
             </Table>
-            <CreateNewItem/>
-        </div>
+        </>
     )
 }
 
