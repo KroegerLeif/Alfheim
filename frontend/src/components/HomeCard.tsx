@@ -35,7 +35,8 @@ function HomeCard({id, name, address, numberTask, numberItems, members, loadHome
                 </Card>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh]">
-                <HomeInfo id={id} name={name} address={address} numberTask={numberTask} numberItems={numberItems} members={members} loadHomeData={loadHomeData} />
+                <HomeInfo id={id} name={name} address={address} numberTask={numberTask} numberItems={numberItems}
+                          members={members} loadHomeData={loadHomeData} admin={""} />
             </DialogContent>
         </Dialog>
     )
