@@ -23,7 +23,7 @@ function HomePage(){
 
     return(
         <div className={"flex flex-col justify-center items-center"}>
-            <div className={"flex flex-row"}>
+            <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Home Overview</h1>
                 <CreateNewHome/>
             </div>
