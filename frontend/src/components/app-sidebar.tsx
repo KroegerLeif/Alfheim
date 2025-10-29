@@ -1,4 +1,4 @@
-import {Calendar, CalendarCheck, Home, Inbox} from "lucide-react"
+import {WashingMachine, CalendarCheck, HousePlus, Inbox} from "lucide-react"
 
 import {
     Sidebar,
@@ -14,9 +14,9 @@ import {
 // Menu items.
 const items = [
     {
-        title: "Home",
+        title: "Home Managment",
         url: "/home",
-        icon: Home,
+        icon: HousePlus,
     },
     {
         title: "Task",
@@ -26,7 +26,7 @@ const items = [
     {
         title: "Items",
         url: "/item",
-        icon: Calendar,
+        icon: WashingMachine,
     },
     {
         title: "Schedule",
