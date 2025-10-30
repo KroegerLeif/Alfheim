@@ -16,6 +16,9 @@ import {Button} from "@/components/ui/button.tsx";
 import type {EditTask} from "@/dto/edit/EditTask.ts";
 import CreateNewTask from "@/components/create/CreateNewTask.tsx";
 
+import TaskInfo from "@/pages/task/TaskInfo.tsx";
+import {Dialog, DialogContent, DialogTrigger} from "@/components/ui/dialog.tsx";
+
 function TaskPage(){
 
     const [taskTableData, setTaskTableData] = useState<TaskTableReturn[]>([]);
@@ -68,20 +71,34 @@ function TaskPage(){
                 <TableBody>
                     {
                         taskTableData.map((task_data) => (
-                            <TableRow>
-                                <TableCell className="font-medium" key={task_data.id}>{task_data.name}</TableCell>
-                                <TableCell>{task_data.items}</TableCell>
-                                <TableCell>{task_data.assignedTo}</TableCell>
-                                <TableCell>{task_data.priority}</TableCell>
-                                <TableCell>{task_data.status}</TableCell>
-                                <TableCell>{task_data.dueDate}</TableCell>
-                                <TableCell>
-                                    <Button onClick={() => taskDone(task_data.taskSeriesId)} > ✔︎</Button>
-                                </TableCell>
-                                <TableCell>
-                                    <Button onClick={() => deleteTask(task_data.taskSeriesId)} variant={"destructive"}>Delete</Button>
-                                </TableCell>
-                            </TableRow>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <TableRow>
+                                        <TableCell className="font-medium" key={task_data.id}>{task_data.name}</TableCell>
+                                        <TableCell>{task_data.items}</TableCell>
+                                        <TableCell>{task_data.assignedTo}</TableCell>
+                                        <TableCell>{task_data.priority}</TableCell>
+                                        <TableCell>{task_data.status}</TableCell>
+                                        <TableCell>{task_data.dueDate}</TableCell>
+                                        <TableCell>
+                                            <Button onClick={() => taskDone(task_data.taskSeriesId)} > ✔︎</Button>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button onClick={() => deleteTask(task_data.taskSeriesId)} variant={"destructive"}>Delete</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl max-h-[90vh]">
+                                    <TaskInfo id={task_data.id}
+                                              taskSeriesId={task_data.taskSeriesId}
+                                              name={task_data.name}
+                                              items={task_data.items}
+                                              assignedTo={task_data.assignedTo}
+                                              priority={task_data.priority}
+                                              status={task_data.status}
+                                              dueDate={task_data.dueDate} />
+                                </DialogContent>
+                            </Dialog>
                         ))
                     }
                 </TableBody>
