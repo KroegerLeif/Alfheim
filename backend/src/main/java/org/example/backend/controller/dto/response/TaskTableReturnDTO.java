@@ -13,5 +13,6 @@ public record TaskTableReturnDTO(String id,
                                  List<String> assignedTo,
                                  Priority priority,
                                  Status status,
-                                 LocalDate dueDate) {
+                                 LocalDate dueDate,
+                                 int repetition) {
 }
