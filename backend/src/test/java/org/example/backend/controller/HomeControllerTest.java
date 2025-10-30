@@ -90,6 +90,25 @@ class HomeControllerTest {
     }
 
     @Test
+    void getHomeNames_shouldReturnListOfHomeNames_whenHomesExist() throws Exception {
+        Address address = new Address("1", "street", "postCode", "city", "country");
+        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        homeRepro.save(home);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/home/getNames"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json(
+                        """
+                                    [
+                                      {
+                                        "id": "1",
+                                        "name": "home"
+                                      }
+                                    ]
+                                    """));
+    }
+
+    @Test
     void createHome_shouldReturnCreatedHome_whenHomeIsCreated() throws Exception {
         //GIVEN
         when(idService.createNewId()).thenReturn("1");
