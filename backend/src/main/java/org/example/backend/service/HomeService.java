@@ -2,6 +2,7 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.edit.EditHomeDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
 import org.example.backend.domain.task.TaskSeries;
@@ -74,5 +75,11 @@ public class HomeService {
         Home home = homeRepro.findById(homeId).orElseThrow(() -> new HomeDoesNotExistException("Home does not Exist"));
         home.taskSeries().add(taskSeries);
         homeRepro.save(home);
+    }
+
+    public List<HomeListReturnDTO> getHomeNames() {
+        return homeRepro.findAll().stream()
+                .map(homeMapper::mapToHomeListReturn)
+                .toList();
     }
 }
