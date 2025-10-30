@@ -23,11 +23,13 @@ public class TaskService {
     private final TaskSeriesRepro taskseriesRepro;
     private final TaskMapper taskMapper;
     private final IdService idService;
+    private final HomeService homeService;
 
-    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService) {
+    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, HomeService homeService) {
         this.taskseriesRepro = taskseriesRepro;
         this.taskMapper = taskMapper;
         this.idService = idService;
+        this.homeService = homeService;
     }
 
     public TaskTableReturnDTO createNewTask(CreateTaskDTO createTaskDTO) {
@@ -76,6 +78,16 @@ public class TaskService {
         return taskMapper.mapToTaskTableReturn(taskSeries);
     }
 
+
+    public void deleteTask(String id) {
+        taskseriesRepro.deleteById(id);
+    }
+
+    public void addTaskToHome(String id, String homeId) {
+        TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
+        homeService.addTaskToHome(homeId, taskSeries);
+    }
+
     private TaskSeries createUniqueIds(TaskSeries taskSeries){
         //Creation of new IDs
         String taskServiceId = idService.createNewId();
@@ -122,9 +134,5 @@ public class TaskService {
 
         taskSeries.taskList().removeLast();
         taskSeries.taskList().add(lastTask);
-    }
-
-    public void deleteTask(String id) {
-        taskseriesRepro.deleteById(id);
     }
 }

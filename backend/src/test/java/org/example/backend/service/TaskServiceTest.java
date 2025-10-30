@@ -32,8 +32,10 @@ class TaskServiceTest {
     private final TaskMapper taskMapper = Mockito.mock(TaskMapper.class);
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
+    @Mock
+    private final HomeService homeService = Mockito.mock(HomeService.class);
 
-    TaskService taskService = new TaskService(mockRepo, taskMapper, idService);
+    TaskService taskService = new TaskService(mockRepo, taskMapper, idService,homeService);
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
@@ -350,6 +352,51 @@ class TaskServiceTest {
         taskService.deleteTask(id);
         //THEN
         Mockito.verify(mockRepo).deleteById(id);
+    }
+
+    @Test
+    void addTaskToHome_shouldAddTaskToHome_whenCalled(){
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        mockRepo.save(taskSeries);
+        String homeId = "1";
+
+        //WHEN
+        taskService.addTaskToHome(taskSeries.id(),homeId);
+
+        //THEN
+        Mockito.verify(mockRepo).findById(taskSeries.id());
+        Mockito.verify(mockRepo).save(taskSeries);
+
+    }
+
+    @Test
+    void addTaskToHOme_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
+        try{
+            String id = "Unique1";
+            when(mockRepo.findById(id)).thenReturn(Optional.empty());
+            taskService.addTaskToHome(id,"1");
+            }catch(TaskDoesNotExistException e){
+            assertEquals("Task does not Exist",e.getMessage());
+        }
+
+    }
+
+    private static TaskSeries createTaskSeries() {
+        TaskDefinition taskDefinition = new TaskDefinition("1",
+                "test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new BigDecimal(1),
+                Priority.HIGH,
+                2);
+
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task("1", Status.OPEN, null));
+
+        return new TaskSeries("1",
+                taskDefinition,
+                taskList);
     }
 
 }
