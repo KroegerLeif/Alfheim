@@ -88,7 +88,7 @@ public class TaskService {
         return taskMapper.mapToTaskTableReturn(taskSeries);
     }
 
-    public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
+        public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
 
         if(editTaskSeriesDto.name() != null &

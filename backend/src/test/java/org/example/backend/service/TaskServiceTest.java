@@ -2,6 +2,7 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskDTO;
+import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -332,6 +333,33 @@ class TaskServiceTest {
     }
 
     @Test
+    void editTaskSeries_shouldUpdateTask_whenCalled() {
+        //GIVEN
+        String id = "Unique1";
+        EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
+        TaskSeries taskSeries = createTaskSeries();
+
+        when(mockRepo.findById(id)).thenReturn(Optional.of(taskSeries));
+        //WHEN
+        taskService.editTaskSeries(id,editTaskSeriesDTO);
+        //THEN
+        Mockito.verify(mockRepo).findById(id);
+        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
+    }
+
+    @Test
+    void editTaskSeries_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
+        try {
+            String id = "Unique1";
+            EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
+            when(mockRepo.findById(id)).thenReturn(Optional.empty());
+            taskService.editTaskSeries(id,editTaskSeriesDTO);
+        }catch (TaskDoesNotExistException e){
+            assertEquals("Task does not Exist",e.getMessage());
+        }
+    }
+
+    @Test
     void deleteTask_shouldDeleteTask_whenCalled(){
         //GIVEN
         String id = "Unique1";
@@ -387,7 +415,7 @@ class TaskServiceTest {
     }
 
     private static TaskSeries createTaskSeries() {
-        TaskDefinition taskDefinition = new TaskDefinition("1",
+        TaskDefinition taskDefinition = new TaskDefinition("1_D",
                 "test",
                 new ArrayList<>(),
                 new ArrayList<>(),
@@ -401,6 +429,26 @@ class TaskServiceTest {
         return new TaskSeries("1",
                 taskDefinition,
                 taskList);
+    }
+
+    private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){
+        List<String> itemIDs = new ArrayList<>();
+        itemIDs.add("1");
+        itemIDs.add("2");
+
+        List<String> assignedUserIDs = new ArrayList<>();
+        assignedUserIDs.add("1");
+        assignedUserIDs.add("2");
+
+        return new EditTaskSeriesDTO("Test",
+                itemIDs,
+                assignedUserIDs,
+                Priority.HIGH,
+                Status.OPEN,
+                LocalDate.now(),
+                4,
+                "UniqueHome"
+        );
     }
 
 }
