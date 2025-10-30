@@ -44,7 +44,8 @@ public class TaskMapper {
                 taskSeries.definition().priority(),
                 taskSeries.taskList().getLast().status(),
                 taskSeries.taskList().getLast().dueDate(),
-                taskSeries.definition().repetition());
+                taskSeries.definition().repetition(),
+                "");
     }
 
 }

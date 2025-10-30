@@ -85,7 +85,7 @@ public class TaskService {
 
         taskseriesRepro.save(taskSeries);
 
-        return taskMapper.mapToTaskTableReturn(taskSeries);
+        return taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(getHomeID(taskSeries));
     }
 
         public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
@@ -206,6 +206,10 @@ public class TaskService {
 
     private TaskSeries changeRepetition(int newRepetition, TaskSeries taskSeries){
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
+    }
+
+    private String getHomeID(TaskSeries taskSeries){
+        return homeService.getHomeWithConnectedTask(taskSeries);
     }
 
 }
