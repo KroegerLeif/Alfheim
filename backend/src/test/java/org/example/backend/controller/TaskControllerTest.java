@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
+import org.example.backend.service.HomeService;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,6 +36,8 @@ class TaskControllerTest {
 
     @MockitoBean
     private IdService idService;
+    @MockitoBean
+    private HomeService homeService;
 
     @AfterEach
     void tearDown() {
@@ -132,21 +137,26 @@ class TaskControllerTest {
                                     
                                     """.formatted(LocalDate.now())));
     }
-    private static TaskSeries createTaskSeries() {
-        TaskDefinition taskDefinition = new TaskDefinition("1",
-                "test",
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new BigDecimal(1),
-                Priority.HIGH,
-                2);
 
-        List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task("1", Status.OPEN, null));
+    @Test
+    void addTaskToHome_shouldReturnStatusOK_whenCalledToBeAddedToHome() throws Exception {
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        taskSeriesRepro.save(taskSeries);
+        doNothing().when(homeService).addTaskToHome(eq("1"), any(TaskSeries.class));
 
-        return new TaskSeries("1",
-                taskDefinition,
-                taskList);
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/addTaskToHome")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                """
+                                    {
+                                      "homeId"  : "1"
+                                    }
+                                    """
+                            )
+                        )
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
@@ -163,6 +173,22 @@ class TaskControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json("[]"));
+    }
 
+    private static TaskSeries createTaskSeries() {
+        TaskDefinition taskDefinition = new TaskDefinition("1",
+                "test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new BigDecimal(1),
+                Priority.HIGH,
+                2);
+
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task("1", Status.OPEN, null));
+
+        return new TaskSeries("1",
+                taskDefinition,
+                taskList);
     }
 }

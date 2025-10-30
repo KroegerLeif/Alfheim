@@ -39,6 +39,12 @@ public class TaskController {
         return taskService.editTask(id, editTask);
     }
 
+    @PatchMapping("/{id}/addTaskToHome")
+    @ResponseStatus(HttpStatus.OK)
+    public void addTaskToHome(@PathVariable String id, @RequestBody String homeId){
+        taskService.addTaskToHome(id, homeId);
+    }
+
     @DeleteMapping("/{id}/delete")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void deleteTask(@PathVariable String id) {
