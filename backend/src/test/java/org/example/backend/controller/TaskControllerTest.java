@@ -1,8 +1,6 @@
 package org.example.backend.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
 import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
@@ -26,7 +24,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
