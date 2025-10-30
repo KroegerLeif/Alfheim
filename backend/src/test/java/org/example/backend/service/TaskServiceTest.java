@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 
@@ -358,28 +359,26 @@ class TaskServiceTest {
     void addTaskToHome_shouldAddTaskToHome_whenCalled(){
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
-        mockRepo.save(taskSeries);
         String homeId = "1";
+        when(mockRepo.findById(taskSeries.id())).thenReturn(Optional.of(taskSeries));
 
         //WHEN
         taskService.addTaskToHome(taskSeries.id(),homeId);
 
         //THEN
         Mockito.verify(mockRepo).findById(taskSeries.id());
-        Mockito.verify(mockRepo).save(taskSeries);
-
+        Mockito.verify(homeService).addTaskToHome(homeId, taskSeries);
     }
 
     @Test
     void addTaskToHOme_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
-        try{
-            String id = "Unique1";
-            when(mockRepo.findById(id)).thenReturn(Optional.empty());
-            taskService.addTaskToHome(id,"1");
-            }catch(TaskDoesNotExistException e){
-            assertEquals("Task does not Exist",e.getMessage());
-        }
+        // GIVEN
+        String taskId = "non-existent-id";
+        String homeId = "1";
+        when(mockRepo.findById(taskId)).thenReturn(Optional.empty());
 
+        // WHEN & THEN
+        assertThrows(TaskDoesNotExistException.class, () -> taskService.addTaskToHome(taskId, homeId));
     }
 
     private static TaskSeries createTaskSeries() {
