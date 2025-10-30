@@ -1,8 +1,16 @@
 package org.example.backend.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.backend.controller.dto.edit.EditTaskDTO;
+import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
+import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
+import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.HomeService;
+import org.example.backend.service.ItemService;
+import org.example.backend.service.UserService;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +26,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -33,10 +42,18 @@ class TaskControllerTest {
     @Autowired
     private TaskSeriesRepro taskSeriesRepro;
 
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @MockitoBean
     private IdService idService;
     @MockitoBean
     private HomeService homeService;
+    @MockitoBean
+    private ItemService itemService;
+    @MockitoBean
+    private UserService userService;
 
     @AfterEach
     void tearDown() {
@@ -138,6 +155,24 @@ class TaskControllerTest {
     }
 
     @Test
+    void editdTaskSeries_shouldRetundStautsOK_whenCalled() throws Exception {
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        taskSeriesRepro.save(taskSeries);
+        EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
+
+        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null));
+        when(userService.getUserById(anyString())).thenReturn(new User("1", "Test User"));
+
+        //WHEN
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/editTaskSeries")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(editTaskSeriesDTO)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        
+    }
+
+    @Test
     void addTaskToHome_shouldReturnStatusOK_whenCalledToBeAddedToHome() throws Exception {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
@@ -189,5 +224,25 @@ class TaskControllerTest {
         return new TaskSeries("1",
                 taskDefinition,
                 taskList);
+    }
+
+    private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){
+        List<String> itemIDs = new ArrayList<>();
+        itemIDs.add("1");
+        itemIDs.add("2");
+
+        List<String> assignedUserIDs = new ArrayList<>();
+        assignedUserIDs.add("1");
+        assignedUserIDs.add("2");
+
+        return new EditTaskSeriesDTO("Test",
+                itemIDs,
+                assignedUserIDs,
+                Priority.HIGH,
+                Status.OPEN,
+                LocalDate.now(),
+                4,
+                "UniqueHome"
+        );
     }
 }
