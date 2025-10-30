@@ -125,7 +125,9 @@ class TaskServiceTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.OPEN,
-                LocalDate.of(2025, 12, 31)
+                LocalDate.of(2025, 12, 31),
+                1,
+                "1"
         );
         
         Mockito.when(taskMapper.mapToTaskSeries(createTaskDTO)).thenReturn(taskSeries);
@@ -178,7 +180,9 @@ class TaskServiceTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.IN_PROGRESS,
-                LocalDate.now()
+                LocalDate.now(),
+                1,
+                "null"
         );
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
@@ -265,6 +269,8 @@ class TaskServiceTest {
                 Priority.HIGH,
                 Status.OPEN,
                 LocalDate.now().plusDays(3)
+                ,1,
+                "1"
         );
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
@@ -315,6 +321,8 @@ class TaskServiceTest {
                 Priority.HIGH,
                 Status.OPEN,
                 LocalDate.now().plusDays(3)
+                ,1,
+                "null"
         );
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));

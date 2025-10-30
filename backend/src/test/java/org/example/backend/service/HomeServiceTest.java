@@ -156,6 +156,56 @@ class HomeServiceTest {
         HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.addTaskToHome(id, taskSeries));
         assertEquals("Home does not Exist", exception.getMessage());
     }
+
+    @Test
+    void getHomeWithConnectedTask_ShouldReturnStringOfHomeID_whenCalled(){
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        List<TaskSeries> taskSeriesList = new ArrayList<>();
+        taskSeriesList.add(taskSeries);
+        Home home = new Home("1",
+                "Test",
+                        new Address("1",
+                                 "street",
+                                "postCode",
+                                "city",
+                                "country"),
+                new ArrayList<>(),
+                taskSeriesList,
+                new HashMap<>());
+        when(mockRepo.findAll()).thenReturn(List.of(home));
+        //WHEN
+        String actual = homeService.getHomeWithConnectedTask(taskSeries); 
+        //THEN
+        assertEquals("1",actual);
+    }
+
+    @Test
+    void getHomeWithConnectedTask_ShouldThrowHomeDoesNotExistException_whenTaskDoesNotExist(){
+        //GIVEN
+        try{
+            TaskSeries taskSeries = createTaskSeries();
+            List<TaskSeries> taskSeriesList = new ArrayList<>();
+            taskSeriesList.add(taskSeries);
+            Home home = new Home("1",
+                    "Test",
+                    new Address("1",
+                            "street",
+                            "postCode",
+                            "city",
+                            "country"),
+                    new ArrayList<>(),
+                    taskSeriesList,
+                    new HashMap<>());
+            mockRepo.save(home);
+            when(mockRepo.findById("1")).thenReturn(java.util.Optional.empty());
+            //WHEN
+            homeService.getHomeWithConnectedTask(taskSeries);
+            //THEN
+        }catch (HomeDoesNotExistException e){
+            assertEquals("No Home with this TaskSeries found",e.getMessage());
+        }
+    }
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
 
