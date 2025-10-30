@@ -5,7 +5,7 @@ import {
     CardFooter,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card.tsx"
 
 import type {HomeTableReturnDTO} from "@/dto/response/HomeTableReturnDTO.ts";
 import HomeInfo from "@/pages/home/HomeInfo.tsx";

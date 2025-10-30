@@ -4,7 +4,7 @@ import axios from "axios";
 import type {HomeTableReturnDTO} from "@/dto/response/HomeTableReturnDTO.ts";
 import CreateNewHome from "@/components/create/CreateNewHome.tsx";
 
-import HomeCard from "@/components/HomeCard.tsx";
+import HomeCard from "@/pages/home/HomeCard.tsx";
 
 function HomePage(){
 
