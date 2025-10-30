@@ -4,6 +4,7 @@ import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
+import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.repro.HomeRepro;
 
 import org.example.backend.service.mapper.HomeMapper;
@@ -67,5 +68,11 @@ public class HomeService {
 
     public void deleteHome(String id) {
         homeRepro.deleteById(id);
+    }
+
+    public void addTaskToHome(String homeId, TaskSeries taskSeries) {
+        Home home = homeRepro.findById(homeId).orElseThrow(() -> new HomeDoesNotExistException("Home does not Exist"));
+        home.taskSeries().add(taskSeries);
+        homeRepro.save(home);
     }
 }

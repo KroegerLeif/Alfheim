@@ -6,14 +6,12 @@ import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
 import org.example.backend.domain.item.Item;
-import org.example.backend.domain.task.Priority;
-import org.example.backend.domain.task.Task;
-import org.example.backend.domain.task.TaskDefinition;
-import org.example.backend.domain.task.TaskSeries;
+import org.example.backend.domain.task.*;
 import org.example.backend.domain.user.User;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.mapper.HomeMapper;
 import org.example.backend.service.security.IdService;
+import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -114,6 +112,29 @@ class HomeServiceTest {
         Mockito.verify(mockRepo).deleteById(id);
 
     }
+
+    @Test
+    void addTaskToHome_shouldAddTaskToHome_whenCalled() {
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        String homeId = "1";
+        Home home = new Home(homeId, "Test", new Address("1", "street", "postCode", "city", "country"), new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        //WHEN
+        homeService.addTaskToHome(homeId, taskSeries);
+        //THEN
+        Mockito.verify(mockRepo).findById(homeId);
+        Mockito.verify(mockRepo).save(home);
+    }
+
+    @Test
+    void voidaddTaskToHOme_shouldThrowHomeDoesNotExistException_whenHomeDoesNotExist(){
+        try{
+            String id = "Unique1";
+            when(mockRepo.findById(id)).thenReturn(java.util.Optional.empty());
+        }catch (HomeDoesNotExistException e){
+            assertEquals("No Home with this ID found",e.getMessage());
+        }
+    }
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
 
@@ -136,4 +157,21 @@ class HomeServiceTest {
 
         return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
     }
+
+        private static TaskSeries createTaskSeries() {
+            TaskDefinition taskDefinition = new TaskDefinition("1",
+                    "test",
+                    new ArrayList<>(),
+                    new ArrayList<>(),
+                    new BigDecimal(1),
+                    Priority.HIGH,
+                    2);
+
+            List<Task> taskList = new ArrayList<>();
+            taskList.add(new Task("1", Status.OPEN, null));
+
+            return new TaskSeries("1",
+                    taskDefinition,
+                    taskList);
+        }
 }
