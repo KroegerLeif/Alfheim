@@ -34,9 +34,14 @@ class TaskServiceTest {
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
     @Mock
+    private final ItemService itemService = Mockito.mock(ItemService.class);
+    @Mock
     private final HomeService homeService = Mockito.mock(HomeService.class);
+    @Mock
+    private final UserService userService = Mockito.mock(UserService.class);
 
-    TaskService taskService = new TaskService(mockRepo, taskMapper, idService,homeService);
+
+    TaskService taskService = new TaskService(mockRepo, taskMapper, idService,itemService,homeService,userService);
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {

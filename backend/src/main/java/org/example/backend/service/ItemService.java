@@ -37,6 +37,10 @@ public class ItemService {
                 .toList();
     }
 
+    public Item getItemById(String id) {
+        return itemRepro.findById(id).orElseThrow(() -> new ItemDoesNotExistException("No Item with this ID"));
+    }
+
     public ItemTableReturnDTO createNewItem(CreateItemDTO createItemDTO){
         Item item = creatUniqueIds(itemMapper.mapToItem(createItemDTO));
         itemRepro.save(item);
