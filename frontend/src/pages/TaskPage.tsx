@@ -81,17 +81,7 @@ function TaskPage(){
                                     </TableRow>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-3xl max-h-[90vh]">
-                                    <TaskInfo id={task_data.id}
-                                              taskSeriesId={task_data.taskSeriesId}
-                                              name={task_data.name}
-                                              items={task_data.items}
-                                              assignedTo={task_data.assignedTo}
-                                              priority={task_data.priority}
-                                              status={task_data.status}
-                                              dueDate={task_data.dueDate}
-                                              loadTaskData={loadTaskData}
-                                              repetition={0}
-                                              homeId={""}/>
+                                    <TaskInfo {...task_data} loadTaskData={loadTaskData}/>
                                 </DialogContent>
                             </Dialog>
                         ))
