@@ -175,6 +175,11 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
                                             {required: true})
                                         } type="date" autoComplete="off" placeholder={dueDate}/>
                             </Field>
+                            <Field>
+                                <FieldLabel htmlFor="repetition">Repetition</FieldLabel>
+                                <Input {...register("repetition")}
+                                    type="number" placeholder={repetition.toString()}/>
+                            </Field>
                         <Button type="submit">
                             Save
                         </Button>

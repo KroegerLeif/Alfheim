@@ -4,7 +4,7 @@ import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import TaskSettings from "@/pages/task/TaskSettings.tsx";
 
 function TaskInfo(props: Readonly<TaskTableReturn & { loadTaskData: () => void }>) {
-    const { name, items, assignedTo, priority, status, dueDate } = props;
+    const { name, items, assignedTo, priority, status, dueDate, repetition, homeId } = props;
 
     return(
         <>
@@ -22,6 +22,8 @@ function TaskInfo(props: Readonly<TaskTableReturn & { loadTaskData: () => void }
                 Priority: {priority} <br/>
                 Status: {status}<br/>
                 Due Date: {dueDate} <br/>
+                Repetition: {repetition} <br/>
+                Home: {homeId}
             </div>
             <DialogFooter>
                 <DialogClose asChild>

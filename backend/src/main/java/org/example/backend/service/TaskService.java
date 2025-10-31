@@ -91,8 +91,7 @@ public class TaskService {
         public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
 
-        if(editTaskSeriesDto.name() != null &
-                taskSeries.definition().name().equals(editTaskSeriesDto.name())){
+        if(editTaskSeriesDto.name() != null){
             taskSeries = changeTaskName(editTaskSeriesDto.name(), taskSeries);
         }
 
@@ -116,7 +115,7 @@ public class TaskService {
             taskSeries = changeRepetition(editTaskSeriesDto.repetition(), taskSeries);
         }
 
-        if (editTaskSeriesDto.homeId() != null){
+        if (editTaskSeriesDto.homeId() != null && !editTaskSeriesDto.homeId().isEmpty()){
             homeService.addTaskToHome(editTaskSeriesDto.homeId(), taskSeries);
         }
 

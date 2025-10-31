@@ -88,7 +88,10 @@ function TaskPage(){
                                               assignedTo={task_data.assignedTo}
                                               priority={task_data.priority}
                                               status={task_data.status}
-                                              dueDate={task_data.dueDate} />
+                                              dueDate={task_data.dueDate}
+                                              loadTaskData={loadTaskData}
+                                              repetition={0}
+                                              homeId={""}/>
                                 </DialogContent>
                             </Dialog>
                         ))
