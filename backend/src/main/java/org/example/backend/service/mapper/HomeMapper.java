@@ -1,6 +1,7 @@
 package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
 import org.example.backend.domain.item.Item;
@@ -34,4 +35,8 @@ public class HomeMapper {
                                     home.members().keySet().stream().map(User::name).toList());
     }
 
+    public HomeListReturnDTO mapToHomeListReturn(Home home) {
+        return new HomeListReturnDTO(home.id(),
+                                    home.name());
+    }
 }

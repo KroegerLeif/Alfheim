@@ -5,6 +5,7 @@ import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.domain.user.User;
+import org.example.backend.service.TaskService;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
 import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,9 @@ public class TaskMapper {
                 taskSeries.definition().responsible().stream().map(User::name).toList(),
                 taskSeries.definition().priority(),
                 taskSeries.taskList().getLast().status(),
-                taskSeries.taskList().getLast().dueDate());
+                taskSeries.taskList().getLast().dueDate(),
+                taskSeries.definition().repetition(),
+                "");
     }
 
 }

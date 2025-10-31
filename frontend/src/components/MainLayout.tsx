@@ -4,10 +4,10 @@ import { SidebarProvider } from "./ui/sidebar";
 export function MainLayout() {
     return (
         <SidebarProvider>
-            <div className="flex">
+            <div className="flex flex-row min-h-screen w-screen p-8">
                 <AppSidebar />
                 <main className="flex-grow p-4">
-                    {/* HIER wird der Inhalt Ihrer Seiten (HomePage, DemoPage) angezeigt */}
+                    {/* HIER wird der Inhalt der Seiten (HomePage, DemoPage) angezeigt */}
                     <Outlet />
                 </main>
             </div>

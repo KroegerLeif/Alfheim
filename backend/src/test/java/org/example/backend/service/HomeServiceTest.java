@@ -5,17 +5,24 @@ import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
+import org.example.backend.domain.item.Item;
+import org.example.backend.domain.task.*;
+import org.example.backend.domain.user.User;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.mapper.HomeMapper;
 import org.example.backend.service.security.IdService;
+import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +49,21 @@ class HomeServiceTest {
     }
 
     @Test
-    void createNewHome_shouldRetrunHomeTableReturnDTO_whenHomeIsCreated() {
+    void getHomeNames_shouldReturnAllHomes_whenCalled(){
+        //GIVEN
+        Home home = new Home("1", "Test", new Address("1", "street", "postCode", "city", "country"), new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        ArrayList<Home> response = new ArrayList<Home>();
+        response.add(home);
+
+        when(mockRepo.findAll()).thenReturn(response);
+        //WHEN
+        homeService.getHomeNames();
+        //THEN
+        Mockito.verify(mockRepo).findAll();
+    }
+
+    @Test
+    void createNewHome_shouldReturnHomeTableReturnDTO_whenHomeIsCreated() {
         //GIVEN
         Address address = new Address("1", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
@@ -69,7 +90,7 @@ class HomeServiceTest {
         Address address2 = new Address("2", "street2", "postCode", "Town", "country");
         Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
         String id = "1";
-        EditHomeDTO editHomeDTO = new EditHomeDTO("Test",address2);
+        EditHomeDTO editHomeDTO = getEditHomeDTO();
         HomeTableReturnDTO expected = new HomeTableReturnDTO("1","Test",address2,"admin",0,0,new ArrayList<>());
 
         //MOCKING
@@ -107,4 +128,121 @@ class HomeServiceTest {
 
     }
 
+    @Test
+    void addTaskToHome_shouldAddTaskToHome_whenCalled() {
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        String homeId = "1";
+        Home home = new Home(homeId, "Test", new Address("1", "street", "postCode", "city", "country"), new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+
+        //MOCKING
+        when(mockRepo.findById(homeId)).thenReturn(java.util.Optional.of(home));
+
+        //WHEN
+        homeService.addTaskToHome(homeId, taskSeries);
+        //THEN
+        Mockito.verify(mockRepo).findById(homeId);
+        Mockito.verify(mockRepo).save(any(Home.class));
+    }
+
+    @Test
+    void addTaskToHOme_shouldThrowHomeDoesNotExistException_whenHomeDoesNotExist(){
+        // GIVEN
+        String id = "Unique1";
+        TaskSeries taskSeries = createTaskSeries();
+        when(mockRepo.findById(id)).thenReturn(java.util.Optional.empty());
+
+        // WHEN & THEN
+        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.addTaskToHome(id, taskSeries));
+        assertEquals("Home does not Exist", exception.getMessage());
+    }
+
+    @Test
+    void getHomeWithConnectedTask_ShouldReturnStringOfHomeID_whenCalled(){
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        List<TaskSeries> taskSeriesList = new ArrayList<>();
+        taskSeriesList.add(taskSeries);
+        Home home = new Home("1",
+                "Test",
+                        new Address("1",
+                                 "street",
+                                "postCode",
+                                "city",
+                                "country"),
+                new ArrayList<>(),
+                taskSeriesList,
+                new HashMap<>());
+        when(mockRepo.findAll()).thenReturn(List.of(home));
+        //WHEN
+        String actual = homeService.getHomeWithConnectedTask(taskSeries); 
+        //THEN
+        assertEquals("1",actual);
+    }
+
+    @Test
+    void getHomeWithConnectedTask_ShouldThrowHomeDoesNotExistException_whenTaskDoesNotExist(){
+        //GIVEN
+        try{
+            TaskSeries taskSeries = createTaskSeries();
+            List<TaskSeries> taskSeriesList = new ArrayList<>();
+            taskSeriesList.add(taskSeries);
+            Home home = new Home("1",
+                    "Test",
+                    new Address("1",
+                            "street",
+                            "postCode",
+                            "city",
+                            "country"),
+                    new ArrayList<>(),
+                    taskSeriesList,
+                    new HashMap<>());
+            mockRepo.save(home);
+            when(mockRepo.findById("1")).thenReturn(java.util.Optional.empty());
+            //WHEN
+            homeService.getHomeWithConnectedTask(taskSeries);
+            //THEN
+        }catch (HomeDoesNotExistException e){
+            assertEquals("No Home with this TaskSeries found",e.getMessage());
+        }
+    }
+    private static EditHomeDTO getEditHomeDTO() {
+        Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
+
+        List<Item> newItemList = new ArrayList<>();
+        newItemList.add(new Item("1", "Test", null, null));
+        newItemList.add(new Item("2", "Test", null, null));
+
+        List<TaskSeries> newTaskSerisList = new ArrayList<>();
+        newTaskSerisList.add(new TaskSeries("1",
+                new TaskDefinition("1_D",
+                        "test",
+                        new ArrayList<User>(),
+                        new ArrayList<Item>(),
+                        new BigDecimal(10),
+                        Priority.HIGH,
+                        5
+                )
+                ,new ArrayList<Task>())
+        );
+
+        return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
+    }
+
+        private static TaskSeries createTaskSeries() {
+            TaskDefinition taskDefinition = new TaskDefinition("1",
+                    "test",
+                    new ArrayList<>(),
+                    new ArrayList<>(),
+                    new BigDecimal(1),
+                    Priority.HIGH,
+                    2);
+
+            List<Task> taskList = new ArrayList<>();
+            taskList.add(new Task("1", Status.OPEN, null));
+
+            return new TaskSeries("1",
+                    taskDefinition,
+                    taskList);
+        }
 }

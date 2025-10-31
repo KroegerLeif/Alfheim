@@ -74,7 +74,10 @@ class TaskMapperTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.OPEN,
-                task.dueDate());
+                task.dueDate(),
+                0
+                ,"");
+
         //WHEN
         var actual = taskMapper.mapToTaskTableReturn(taskSeries);
 

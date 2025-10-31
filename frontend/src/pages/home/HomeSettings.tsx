@@ -12,11 +12,10 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog.tsx"
 import type {Address} from "@/dto/Address.ts";
 import {type FormEvent, useState} from "react";
 import * as React from "react";
-import {useNavigate} from "react-router-dom";
 import type {EditHomeDTO} from "@/dto/edit/EditHomeDTO.ts";
 
 type EditHomeProps = {
@@ -25,16 +24,14 @@ type EditHomeProps = {
     address: Address;
 }
 
-function EditHome(props: Readonly<EditHomeProps>){
-
-    const nav = useNavigate()
+function HomeSettings({id,name,address, loadHomeData}: Readonly<EditHomeProps & { loadHomeData: () => void }>){
 
     const [formData, setFormData] = useState({
-        name: props.name,
-        street: props.address.street,
-        postCode: props.address.postCode,
-        city: props.address.city,
-        country: props.address.country
+        name: name,
+        street: address.street,
+        postCode: address.postCode,
+        city: address.city,
+        country: address.country
 
     });
 
@@ -61,20 +58,25 @@ function EditHome(props: Readonly<EditHomeProps>){
             }as Address,
         };
 
-        axios.patch("/api/home/" + props.id + "/edit", editedHome)
-            .then(() => nav("/"))
+        axios.patch("/api/home/" + id + "/edit", editedHome)
+            .then(() => {loadHomeData()})
             .catch((error) => {
                 console.log(error)
             }
         );
     }
 
+    function deleteHome(id:string){
+        axios.delete("/api/home/" + id + "/delete")
+            .then(() => {loadHomeData()})
+            .catch((error) => {console.log(error)})
+    }
 
 
     return(
         <Dialog>
             <DialogTrigger asChild>
-                <Button>Edit Home</Button>
+                <Button>Settings</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -100,7 +102,7 @@ function EditHome(props: Readonly<EditHomeProps>){
                             <Input
                                 id="street"
                                 name="street"
-                                placeholder={props.address.street}
+                                placeholder={address.street}
                                 onChange={handleInputChange('street')}
                                 value={formData.street}
                             />
@@ -111,7 +113,7 @@ function EditHome(props: Readonly<EditHomeProps>){
                                 id="postCode"
                                 name="postCode"
                                 type="number"
-                                placeholder={props.address.postCode}
+                                placeholder={address.postCode}
                                 onChange={handleInputChange('postCode')}
                                 value={formData.postCode}
                             />
@@ -121,7 +123,7 @@ function EditHome(props: Readonly<EditHomeProps>){
                             <Input
                                 id="city"
                                 name="city"
-                                placeholder={props.address.city}
+                                placeholder={address.city}
                                 onChange={handleInputChange('city')}
                                 value={formData.city}
                             />
@@ -131,7 +133,7 @@ function EditHome(props: Readonly<EditHomeProps>){
                             <Input
                                 id="country"
                                 name="country"
-                                placeholder={props.address.country}
+                                placeholder={address.country}
                                 onChange={handleInputChange('country')}
                                 value={formData.country}
                             />
@@ -142,6 +144,7 @@ function EditHome(props: Readonly<EditHomeProps>){
                 <DialogClose asChild>
                     <Button variant="outline">Cancel</Button>
                 </DialogClose>
+                    <Button onClick={() => deleteHome(id)} variant={"destructive"}>Delete Home</Button>
                     <Button type="submit" form="edit-home-form">Save changes</Button>
                 </DialogFooter>
             </DialogContent>
@@ -149,4 +152,4 @@ function EditHome(props: Readonly<EditHomeProps>){
     )
 }
 
-export default EditHome;
+export default HomeSettings;

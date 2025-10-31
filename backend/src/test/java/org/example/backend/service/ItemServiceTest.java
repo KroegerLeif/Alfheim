@@ -122,6 +122,31 @@ class ItemServiceTest {
     }
 
     @Test
+    void getItemById_shouldRetrunItem_whenItemExist(){
+        //GIVEN
+        String id = "1";
+        Item item = new Item(id, "Test", null, null);
+        mockRepo.save(item);
+        when(mockRepo.findById(id)).thenReturn(Optional.of(item));
+        //WHEN
+        var actual = itemService.getItemById(id);
+        //THEN
+        Mockito.verify(mockRepo).findById(id);
+        assertEquals(item, actual);
+    }
+
+    @Test
+    void getItemById_shouldThrowItemDoesNotExistException_whenItemDoesNotExist(){
+        try{
+            String id = "1";
+            when(mockRepo.findById(id)).thenReturn(Optional.empty());
+            itemService.getItemById(id);
+            }catch (ItemDoesNotExistException e){
+            assertEquals("No Item with this ID",e.getMessage());
+        }
+    }
+
+    @Test
     void deleteItem_shouldDeleteItem_whenCalled(){
         //GIVEN
         String id = "1";

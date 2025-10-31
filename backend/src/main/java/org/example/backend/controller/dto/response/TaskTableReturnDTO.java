@@ -1,11 +1,13 @@
 package org.example.backend.controller.dto.response;
 
+import lombok.With;
 import org.example.backend.domain.task.Priority;
 import org.example.backend.domain.task.Status;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@With
 public record TaskTableReturnDTO(String id,
                                  String taskSeriesId,
                                  String name,
@@ -13,5 +15,7 @@ public record TaskTableReturnDTO(String id,
                                  List<String> assignedTo,
                                  Priority priority,
                                  Status status,
-                                 LocalDate dueDate) {
+                                 LocalDate dueDate,
+                                 int repetition,
+                                 String homeId) {
 }

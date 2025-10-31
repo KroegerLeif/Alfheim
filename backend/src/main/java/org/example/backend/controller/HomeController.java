@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.edit.EditHomeDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.service.HomeService;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,12 @@ public class HomeController {
     @GetMapping("")
     public List<HomeTableReturnDTO> getAllHomes() {
         return homeService.getAllHomes();
+    }
+
+    @GetMapping("/getNames")
+    @ResponseStatus(HttpStatus.OK)
+    public List<HomeListReturnDTO> getHomeNames() {
+        return homeService.getHomeNames();
     }
 
     @PostMapping("/create")
