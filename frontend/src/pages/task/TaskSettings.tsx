@@ -20,9 +20,10 @@ import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import {Input} from "@/components/ui/input.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {useEffect, useState} from "react";
-import {Controller, type SubmitHandler, useForm} from "react-hook-form";
+import {type SubmitHandler, useForm, Controller} from "react-hook-form";
 import type {Priority} from "@/dto/Priority.ts";
 import type {Status} from "@/dto/Status.ts";
+import type {EditTaskSeriesDTO} from "@/dto/edit/EditTaskSeriesDTO.ts";
 
 function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,homeId, loadTaskData}:
                       Readonly<TaskTableReturn &
@@ -38,17 +39,17 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
     type FormFields = {
         name: string;
         priority: Priority;
-        home: string;
+        homeId: string;
         status: Status;
         dueDate: string;
         repetition: number;
     };
 
-    const {register, handleSubmit,control} = useForm({
+    const {register, handleSubmit, control} = useForm<FormFields>({
             defaultValues: {
                 name:name,
                 priority:priority,
-                home:homeId,
+                homeId:homeId,
                 status:status,
                 dueDate:dueDate,
                 repetition:repetition
@@ -57,7 +58,19 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
     );
 
     const onSubmit: SubmitHandler<FormFields> = (data) => {
-        console.log(data);
+        const editDTO: EditTaskSeriesDTO = {
+            name: data.name,
+            items: [],
+            assignedTo: [],
+            priority: data.priority,
+            status: data.status,
+            dueDate: data.dueDate,
+            repetition: data.repetition,
+            homeId: data.homeId,
+        }
+
+        axios.patch("api/task/" + taskSeriesId + "/editTaskSeries", editDTO)
+            .then(() => loadTaskData());
     }
 
 
@@ -101,48 +114,60 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="priority">Priority</FieldLabel>
-                                <Select {...register("priority")}>
-                                    <SelectTrigger>
-                                        <SelectValue  placeholder="Choose Priority" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="{HIGH}">High</SelectItem>
-                                        <SelectItem value="{MEDIUM}">Medium</SelectItem>
-                                        <SelectItem value="{LOW}">Low</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Controller
+                                    control={control}
+                                    name="priority"
+                                    render={({field}) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Choose Priority"/>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="HIGH">High</SelectItem>
+                                                <SelectItem value="MEDIUM">Medium</SelectItem>
+                                                <SelectItem value="LOW">Low</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="home">Home</FieldLabel>
-                                <Select {...register("home")}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Choose Home" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {
-                                            homeList.map(homeName=> (
-                                                <SelectItem value={homeName.id}>{homeName.name}</SelectItem>
-                                            ))
-                                        }
-                                    </SelectContent>
-                                </Select>
+                                <Controller
+                                    control={control}
+                                    name="homeId"
+                                    render={({field}) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Choose Home"/>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {homeList.map(homeName => (
+                                                    <SelectItem key={homeName.id} value={homeName.id}>{homeName.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="status">Status</FieldLabel>
-                                <Controller control={control}
-                                            name="status"
-                                            render={({field}) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Choose Status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={"OPEN"}>Open</SelectItem>
-                                            <SelectItem value={"IN_PROGRESS"}>In Progress</SelectItem>
-                                            <SelectItem value={"DONE"}>Done</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}/>
+                                <Controller
+                                    control={control}
+                                    name="status"
+                                    render={({field}) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Choose Status"/>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="OPEN">Open</SelectItem>
+                                                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                                                <SelectItem value="CLOSED">Closed</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="dueDate">Due Date</FieldLabel>
@@ -150,7 +175,7 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
                                             {required: true})
                                         } type="date" autoComplete="off" placeholder={dueDate}/>
                             </Field>
-                        <Button>
+                        <Button type="submit">
                             Save
                         </Button>
                     </FieldSet>
