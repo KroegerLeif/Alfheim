@@ -13,6 +13,7 @@ import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
+import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,10 @@ public class TaskService {
     }
 
     public List<TaskTableReturnDTO> getAll(){
-        return taskseriesRepro.findAll().stream().map(taskMapper::mapToTaskTableReturn).toList();
+        return taskseriesRepro.findAll().stream().map
+                ((taskSeries -> taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(
+                        getHomeID(taskSeries)))
+                ).toList();
     }
 
     public TaskTableReturnDTO editTask(String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
@@ -88,7 +92,7 @@ public class TaskService {
         return taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(getHomeID(taskSeries));
     }
 
-        public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
+    public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
 
         if(editTaskSeriesDto.name() != null){
@@ -122,7 +126,6 @@ public class TaskService {
         taskseriesRepro.save(taskSeries);
 
     }
-
 
     public void deleteTask(String id) {
         taskseriesRepro.deleteById(id);
@@ -184,6 +187,7 @@ public class TaskService {
     private TaskSeries changeTaskName(String newName, TaskSeries taskSeries) {
         return taskSeries.withDefinition(taskSeries.definition().withName(newName));
     }
+
     private  TaskSeries changeTaskItems(List<String> itemId, TaskSeries taskSeries){
         List<Item> itemList = new ArrayList<>();
         for(String s: itemId){
@@ -191,6 +195,7 @@ public class TaskService {
         }
         return taskSeries.withDefinition(taskSeries.definition().withConnectedItems(itemList));
     }
+
     private  TaskSeries changeAssignedUsers(List<String> assignedUser, TaskSeries taskSeries){
         List<User> assignedUserList = new ArrayList<>();
         for(String s: assignedUser){
@@ -208,7 +213,11 @@ public class TaskService {
     }
 
     private String getHomeID(TaskSeries taskSeries){
-        return homeService.getHomeWithConnectedTask(taskSeries);
+        try {
+            return homeService.getHomeWithConnectedTask(taskSeries);
+        } catch (HomeDoesNotExistException e) {
+            return "";
+        }
     }
 
 }

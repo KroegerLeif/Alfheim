@@ -86,7 +86,7 @@ public class HomeService {
     public String getHomeWithConnectedTask(TaskSeries taskSeries) {
         return homeRepro.findAll().stream()
                 .filter(home -> home.taskSeries().contains(taskSeries))
-                .map(Home::id)
+                .map(Home::name)
                 .findFirst()
                 .orElseThrow(() -> new HomeDoesNotExistException("No Home with this TaskSeries found"));
     }
