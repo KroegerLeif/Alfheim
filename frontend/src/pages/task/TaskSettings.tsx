@@ -76,20 +76,29 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
             .then(() => {
                 loadTaskData()
                 setOpen(false);
+                toast.success("Task has been Updated",{
+                    description: "Changes have been saved",
+                })
             })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             });
-
-        toast.success("Task has been Updated",{
-            description: "Changes have been saved",
-        })
     }
 
 
     function deleteTask(id: string){
         axios.delete("api/task/" + id + "/delete")
-            .then(() => loadTaskData())
+            .then(() => {
+                loadTaskData()
+                toast.success("Task has been Deleted",{
+                    description: "Changes have been saved",
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+                toast.warning("Problem:" + error)
+            })
     }
 
     function getHomeNames(){

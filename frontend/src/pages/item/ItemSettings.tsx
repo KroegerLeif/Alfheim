@@ -64,17 +64,16 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
         axios.patch("/api/item/" + id + "/edit", editDTO)
             .then(() => {
                 loadItemData()
-                setOpen(false);
+                setOpen(false)
+                toast.success("Item has been Updated",{
+                    description: "Changes have been saved",
+                })
             })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             }
         )
-
-        toast.success("Item has been Updated",{
-            description: "Changes have been saved",
-        })
-
     }
 
     function getHomeNames(){
@@ -88,9 +87,15 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
 
     function deleteItem(id: string) {
         axios.delete("/api/item/" + id + "/delete")
-            .then(() => loadItemData())
+            .then(() => {
+                loadItemData()
+                toast.success("Item has been Deleted",{
+                    description: "Changes have been saved",
+                })
+            })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             })
     }
 

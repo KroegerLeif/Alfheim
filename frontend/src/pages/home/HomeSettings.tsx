@@ -60,21 +60,33 @@ function HomeSettings({id,name,address, loadHomeData}: Readonly<EditHomeProps & 
         };
 
         axios.patch("/api/home/" + id + "/edit", editedHome)
-            .then(() => {loadHomeData()})
+            .then(() => {
+                loadHomeData()
+                toast.success("Home has been Updated",{
+                    description: "Changes have been saved",
+                })
+            })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             }
         );
 
-        toast.success("Home has been Updated",{
-            description: "Changes have been saved",
-        })
+
     }
 
     function deleteHome(id:string){
         axios.delete("/api/home/" + id + "/delete")
-            .then(() => {loadHomeData()})
-            .catch((error) => {console.log(error)})
+            .then(() => {
+                loadHomeData()
+                toast.success("Home has been Deleted",{
+                    description: "Changes have been saved",
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+                toast.warning("Problem:" + error)
+            })
     }
 
 
