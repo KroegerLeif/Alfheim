@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
-import org.example.backend.domain.item.Item;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;

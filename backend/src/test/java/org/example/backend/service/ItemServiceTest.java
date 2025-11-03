@@ -45,7 +45,7 @@ class ItemServiceTest {
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
         //WHEN
-        ArrayList<Item> response = new ArrayList<Item>();
+        ArrayList<Item> response = new ArrayList<>();
         when(mockRepo.findAll()).thenReturn(response);
         //THEN
         var actual = itemService.getAll();
@@ -56,7 +56,7 @@ class ItemServiceTest {
     @Test
     void getAll_shouldReturnList_whenItemsExist() {
         //WHEN
-        ArrayList<Item> response = new ArrayList<Item>();
+        ArrayList<Item> response = new ArrayList<>();
         response.add(new Item("1", "Test", null, null));
         response.add(new Item("2", "Test2", null, null));
         when(mockRepo.findAll()).thenReturn(response);
