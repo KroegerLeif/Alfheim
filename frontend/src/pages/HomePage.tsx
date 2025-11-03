@@ -25,7 +25,7 @@ function HomePage(){
         <div className={"flex flex-col justify-center items-center"}>
             <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Home Overview</h1>
-                <CreateNewHome/>
+                <CreateNewHome loadHomeData={loadHomeData}/>
             </div>
             <div className={"flex flex-row flex-wrap"}>
                 {
