@@ -29,6 +29,8 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
                       Readonly<TaskTableReturn &
                       {loadTaskData: () => void} >){
 
+    const [open, setOpen] = useState(false);
+
     const [homeList, setHomeList] = useState([
         {
             id:"",
@@ -70,7 +72,13 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
         }
 
         axios.patch("api/task/" + taskSeriesId + "/editTaskSeries", editDTO)
-            .then(() => loadTaskData());
+            .then(() => {
+                loadTaskData()
+                setOpen(false);
+            })
+            .catch((error) => {
+                console.log(error)
+            });
     }
 
 
@@ -92,7 +100,7 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
     },[])
 
     return(
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button>Settings</Button>
             </DialogTrigger>

@@ -24,6 +24,8 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => void }>) {
     const {id,name,category,energyLabel,homeId, loadItemData} = props;
 
+    const [open, setOpen] = useState(false);
+
     const[homeList, setHomeList] = useState(
         [
             {
@@ -59,7 +61,10 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
         }
 
         axios.patch("/api/item/" + id + "/edit", editDTO)
-            .then(() => loadItemData())
+            .then(() => {
+                loadItemData()
+                setOpen(false);
+            })
             .catch((error) => {
                 console.log(error)
             }
@@ -88,7 +93,7 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
     },[])
 
     return(
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button>Settings</Button>
             </DialogTrigger>
