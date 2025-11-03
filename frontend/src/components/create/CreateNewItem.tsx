@@ -20,8 +20,9 @@ import type {CreateItem} from "@/dto/create/CreateItem.ts";
 import {useNavigate} from "react-router-dom";
 import * as React from "react";
 import type {EnergyLabel} from "@/dto/EnergyLabel.ts";
+import {toast} from "sonner";
 
-function CreateNewHome() {
+function CreateNewItem() {
 
     const nav = useNavigate()
 
@@ -59,6 +60,10 @@ function CreateNewHome() {
             .catch((error) => {
                 console.log(error)
             })
+
+        toast.success("Item has been Created",{
+            description: "Data has been saved",
+        })
     }
 
     return (
@@ -117,4 +122,4 @@ function CreateNewHome() {
     )
 }
 
-export default CreateNewHome;
+export default CreateNewItem;

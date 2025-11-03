@@ -10,6 +10,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog.tsx";
 import {Button} from "@/components/ui/button.tsx";
+import { toast } from "sonner"
 import type {ItemTableReturn} from "@/dto/response/ItemTableReturn.ts";
 import {useEffect, useState} from "react";
 import type {EnergyLabel} from "@/dto/EnergyLabel.ts";
@@ -69,6 +70,11 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
                 console.log(error)
             }
         )
+
+        toast.success("Item has been Updated",{
+            description: "Changes have been saved",
+        })
+
     }
 
     function getHomeNames(){

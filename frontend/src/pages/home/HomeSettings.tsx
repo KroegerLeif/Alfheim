@@ -17,6 +17,7 @@ import type {Address} from "@/dto/Address.ts";
 import {type FormEvent, useState} from "react";
 import * as React from "react";
 import type {EditHomeDTO} from "@/dto/edit/EditHomeDTO.ts";
+import {toast} from "sonner";
 
 type EditHomeProps = {
     id: string;
@@ -64,6 +65,10 @@ function HomeSettings({id,name,address, loadHomeData}: Readonly<EditHomeProps & 
                 console.log(error)
             }
         );
+
+        toast.success("Home has been Updated",{
+            description: "Changes have been saved",
+        })
     }
 
     function deleteHome(id:string){
