@@ -10,4 +10,6 @@ export type TaskTableReturn = {
     priority: Priority,
     status: Status,
     dueDate: string,
+    repetition: number,
+    homeId: string
 }

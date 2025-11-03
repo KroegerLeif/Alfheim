@@ -1,20 +1,10 @@
 import {useEffect, useState} from "react";
 import axios from "axios";
 
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-
 import type {HomeTableReturnDTO} from "@/dto/response/HomeTableReturnDTO.ts";
 import CreateNewHome from "@/components/create/CreateNewHome.tsx";
-import EditHome from "@/components/EditHome.tsx";
-import {Button} from "@/components/ui/button.tsx";
+
+import HomeCard from "@/pages/home/HomeCard.tsx";
 
 function HomePage(){
 
@@ -27,51 +17,25 @@ function HomePage(){
             .catch((error) => {console.log(error)})
     }
 
-    function deleteHome(id:string){
-        axios.delete("/api/home/" + id + "/delete")
-            .then(() => {loadHomeData();})
-            .catch((error) => {console.log(error)})
-    }
-
     useEffect(() => {
         loadHomeData();
     }, []);
 
     return(
-        <div className="homePage">
-            <h1>Home Overview</h1>
-            <Table>
-                <TableCaption>A list of all Homes</TableCaption>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[100px]">Name</TableHead>
-                        <TableHead>Number Task</TableHead>
-                        <TableHead>Number Items</TableHead>
-                        <TableHead>Members</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                        {
-                            homeTableData.map((home_data) => (
-                                <TableRow key={home_data.id}>
-                                    <TableCell className="font-medium">{home_data.name}</TableCell>
-                                    <TableCell>{home_data.numberTask}</TableCell>
-                                    <TableCell>{home_data.numberItems}</TableCell>
-                                    <TableCell>{home_data.members}</TableCell>
-                                    <TableCell>
-                                        <EditHome id={home_data.id} name={home_data.name} address={home_data.address}/>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button onClick={() => deleteHome(home_data.id)} variant="destructive">
-                                            Delete
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        }
-                </TableBody>
-            </Table>
-            <CreateNewHome/>
+        <div className={"flex flex-col justify-center items-center"}>
+            <div className={"flex flex-col justify-center items-center w-full"}>
+                <h1>Home Overview</h1>
+                <CreateNewHome/>
+            </div>
+            <div className={"flex flex-row flex-wrap"}>
+                {
+                    homeTableData.map((home_data) => (
+                        <div>
+                            <HomeCard {...home_data} loadHomeData={loadHomeData} />
+                        </div>
+                    ))
+                }
+            </div>
         </div>
     )
 }

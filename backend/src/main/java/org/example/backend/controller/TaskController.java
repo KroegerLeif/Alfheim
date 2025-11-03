@@ -3,6 +3,7 @@ package org.example.backend.controller;
 import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
+import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
 import org.example.backend.service.TaskService;
 
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,18 @@ public class TaskController {
     @ResponseStatus(HttpStatus.OK)
     public TaskTableReturnDTO editTask(@PathVariable String id, @RequestBody EditTaskDTO editTask){
         return taskService.editTask(id, editTask);
+    }
+
+    @PatchMapping("/{id}/addTaskToHome")
+    @ResponseStatus(HttpStatus.OK)
+    public void addTaskToHome(@PathVariable String id, @RequestBody String homeId){
+        taskService.addTaskToHome(id, homeId);
+    }
+
+    @PatchMapping("/{id}/editTaskSeries")
+    @ResponseStatus(HttpStatus.OK)
+    public void editTaskSeries(@PathVariable String id, @RequestBody EditTaskSeriesDTO editTaskSeriesDto){
+        taskService.editTaskSeries(id, editTaskSeriesDto);
     }
 
     @DeleteMapping("/{id}/delete")

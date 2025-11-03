@@ -2,6 +2,7 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskDTO;
+import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -19,8 +20,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 
@@ -32,13 +35,20 @@ class TaskServiceTest {
     private final TaskMapper taskMapper = Mockito.mock(TaskMapper.class);
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
+    @Mock
+    private final ItemService itemService = Mockito.mock(ItemService.class);
+    @Mock
+    private final HomeService homeService = Mockito.mock(HomeService.class);
+    @Mock
+    private final UserService userService = Mockito.mock(UserService.class);
 
-    TaskService taskService = new TaskService(mockRepo, taskMapper, idService);
+
+    TaskService taskService = new TaskService(mockRepo, taskMapper, idService,itemService,homeService,userService);
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
         //WHEN
-        ArrayList<TaskSeries> response = new ArrayList<TaskSeries>();
+        ArrayList<TaskSeries> response = new ArrayList<>();
         when(mockRepo.findAll()).thenReturn(response);
         //THEN
         var actual = taskService.getAll();
@@ -49,7 +59,7 @@ class TaskServiceTest {
     @Test
     void getAll_shouldReturnList_whenItemsExist() {
         //WHEN
-        ArrayList<TaskSeries> response = new ArrayList<TaskSeries>();
+        ArrayList<TaskSeries> response = new ArrayList<>();
         response.add(new TaskSeries("1",
                                         new TaskDefinition("1",
                                                         "Test",
@@ -73,6 +83,18 @@ class TaskServiceTest {
                 )
         );
         when(mockRepo.findAll()).thenReturn(response);
+        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(new TaskTableReturnDTO(
+                "dummyId",
+                "dummySeriesId",
+                "dummyName",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                Priority.MEDIUM,
+                Status.OPEN,
+                null,
+                0,
+                "dummyHomeId"
+        ));
         //THEN
         var actual = taskService.getAll();
         Mockito.verify(mockRepo).findAll();
@@ -116,7 +138,9 @@ class TaskServiceTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.OPEN,
-                LocalDate.of(2025, 12, 31)
+                LocalDate.of(2025, 12, 31),
+                1,
+                "1"
         );
         
         Mockito.when(taskMapper.mapToTaskSeries(createTaskDTO)).thenReturn(taskSeries);
@@ -145,8 +169,9 @@ class TaskServiceTest {
     void editTAsk_shouldReturnTaskTableReturnDTO_whenTaskIsEdited() {
         EditTaskDTO editTaskDTO = new EditTaskDTO(Status.IN_PROGRESS,null);
         String id = "Unique1";
+        LocalDate testDate = LocalDate.of(2025, 10, 30);
         List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task(id + "1",Status.OPEN,LocalDate.now()));
+        taskList.add(new Task(id + "1",Status.OPEN, testDate));
 
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
@@ -169,13 +194,15 @@ class TaskServiceTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.IN_PROGRESS,
-                LocalDate.now()
+                testDate,
+                1,
+                "home123"
         );
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(idService.createNewId()).thenReturn(id);
-        when(taskMapper.mapToTaskTableReturn(savedTaskSeries)).thenReturn(expectedReturn);
+        when(homeService.getHomeWithConnectedTask(Mockito.any(String.class))).thenReturn("home123");
+        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
 
 
         //WHEN
@@ -187,23 +214,24 @@ class TaskServiceTest {
         assertEquals(expectedReturn,result);
 
     }
+
     @Test
     void editTask_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist() {
-        try{
-            String id = "Unique1";
-            when(mockRepo.findById(id)).thenReturn(Optional.empty());
-            taskService.editTask(id,new EditTaskDTO(Status.IN_PROGRESS,null));
-        }catch(TaskDoesNotExistException e){
-            assertEquals("Task does not Exist",e.getMessage());
+        // GIVEN
+        String id = "non-existent-id";
+        when(mockRepo.findById(id)).thenReturn(Optional.empty());
+        EditTaskDTO editDto = new EditTaskDTO(Status.IN_PROGRESS, null);
 
-        }
+        // WHEN & THEN
+        TaskDoesNotExistException exception = assertThrows(TaskDoesNotExistException.class, () -> taskService.editTask(id, editDto));
+        assertEquals("Task does not Exist", exception.getMessage());
     }
 
     @Test
     void editTask_shouldThrowException_whenTaskDueDateIsInTheFuture() {
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task(id + "1",Status.CLOSED,LocalDate.now()));
+        taskList.add(new Task(id + "1",Status.CLOSED, LocalDate.of(2025, 10, 30)));
 
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
@@ -218,20 +246,20 @@ class TaskServiceTest {
                 taskList
         );
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
-        try{
-            EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,LocalDate.now().plusDays(5));
-            taskService.editTask(id,editTaskDTO);
-        }catch (TaskCompletionException e){
-            assertEquals("Completion Date can not be in the future",e.getMessage());
-        }
+        EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,LocalDate.now().plusDays(5));
+
+        // WHEN & THEN
+        TaskCompletionException exception = assertThrows(TaskCompletionException.class, () -> taskService.editTask(id, editTaskDTO));
+        assertEquals("Completion Date can not be in the future", exception.getMessage());
     }
 
     @Test
     void editTAsk_shouldReturnTaskTableReturnDTOWithNewTask_whenTaskIsCompleted() {
         EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,null);
         String id = "Unique1";
+        LocalDate testDate = LocalDate.of(2025, 10, 30);
         List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task(id + "1",Status.OPEN,LocalDate.now()));
+        taskList.add(new Task(id + "1",Status.OPEN, testDate));
 
         TaskDefinition taskDefinition = new TaskDefinition(id + "_D",
                 "Test",
@@ -240,7 +268,7 @@ class TaskServiceTest {
                 new BigDecimal(2),
                 Priority.HIGH,
                 3);
-
+        
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 taskDefinition,
@@ -248,21 +276,23 @@ class TaskServiceTest {
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
-                id + "1",
+                id + "2", // ID of the new task
                 id,
                 "Test",
                 new ArrayList<>(),
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.OPEN,
-                LocalDate.now().plusDays(3)
+                LocalDate.now().plusDays(3) // The new due date
+                ,1,
+                "home123"
         );
-
+        
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(idService.createNewId()).thenReturn(id);
-        when(taskMapper.mapToTaskTableReturn(savedTaskSeries)).thenReturn(expectedReturn);
-
+        when(idService.createNewId()).thenReturn(id + "2");
+        when(homeService.getHomeWithConnectedTask(Mockito.any(String.class))).thenReturn("home123");
+        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
         TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
@@ -271,16 +301,17 @@ class TaskServiceTest {
         Mockito.verify(mockRepo).findById(id);
         Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
         assertEquals(expectedReturn,result);
+        assertEquals(2, savedTaskSeries.taskList().size());
         assertEquals(Status.CLOSED, savedTaskSeries.taskList().getFirst().status());
-
     }
 
     @Test
     void editTask_shouldReturnTaskWithUpdatedDueDate_whenDueDateIsUpdated() {
-        EditTaskDTO editTaskDTO = new EditTaskDTO(Status.OPEN,LocalDate.now().plusDays(3));
+        LocalDate newDueDate = LocalDate.of(2025, 11, 2);
+        EditTaskDTO editTaskDTO = new EditTaskDTO(Status.OPEN, newDueDate);
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task(id + "1",Status.OPEN,LocalDate.now()));
+        taskList.add(new Task(id + "1",Status.OPEN, LocalDate.of(2025, 10, 30)));
 
         TaskDefinition taskDefinition = new TaskDefinition(
                 id + "_D",
@@ -305,22 +336,52 @@ class TaskServiceTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.OPEN,
-                LocalDate.now().plusDays(3)
+                newDueDate
+                ,1,
+                "home123"
         );
 
+        AtomicReference<TaskSeries> saved = new AtomicReference<>();
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
-        when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(idService.createNewId()).thenReturn(id);
-        when(taskMapper.mapToTaskTableReturn(savedTaskSeries)).thenReturn(expectedReturn);
+        when(mockRepo.save(Mockito.any(TaskSeries.class))).then(invocation -> {
+            saved.set(invocation.getArgument(0));
+            return saved.get();
+        });
+        when(homeService.getHomeWithConnectedTask(Mockito.any(String.class))).thenReturn("home123");
+        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
         TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
-        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
         assertEquals(expectedReturn,result);
-        assertEquals(LocalDate.now().plusDays(3), savedTaskSeries.taskList().getFirst().dueDate());
+        assertEquals(newDueDate, saved.get().taskList().getFirst().dueDate());
+    }
+
+    @Test
+    void editTaskSeries_shouldUpdateTask_whenCalled() {
+        //GIVEN
+        String id = "Unique1";
+        EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
+        TaskSeries taskSeries = createTaskSeries();
+
+        when(mockRepo.findById(id)).thenReturn(Optional.of(taskSeries));
+        //WHEN
+        taskService.editTaskSeries(id,editTaskSeriesDTO);
+        //THEN
+        Mockito.verify(mockRepo).findById(id);
+        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
+    }
+
+    @Test
+    void editTaskSeries_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
+        // GIVEN
+        String id = "Unique1";
+        EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
+        when(mockRepo.findById(id)).thenReturn(Optional.empty());
+        // WHEN & THEN
+        assertThrows(TaskDoesNotExistException.class, () -> taskService.editTaskSeries(id,editTaskSeriesDTO));
     }
 
     @Test
@@ -328,7 +389,7 @@ class TaskServiceTest {
         //GIVEN
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task(id + "1",Status.OPEN,LocalDate.now()));
+        taskList.add(new Task(id + "1",Status.OPEN, LocalDate.of(2025, 10, 30)));
 
         TaskDefinition taskDefinition = new TaskDefinition(
                 id + "_D",
@@ -345,11 +406,76 @@ class TaskServiceTest {
                 taskList
         );
 
+        Mockito.doNothing().when(homeService).deleteTaskFromHome(id);
+
         mockRepo.save(savedTaskSeries);
         //WHEN
         taskService.deleteTask(id);
         //THEN
         Mockito.verify(mockRepo).deleteById(id);
+    }
+
+    @Test
+    void addTaskToHome_shouldAddTaskToHome_whenCalled(){
+        //GIVEN
+        TaskSeries taskSeries = createTaskSeries();
+        String homeId = "1";
+        when(mockRepo.findById(taskSeries.id())).thenReturn(Optional.of(taskSeries));
+
+        //WHEN
+        taskService.addTaskToHome(taskSeries.id(),homeId);
+
+        //THEN
+        Mockito.verify(mockRepo).findById(taskSeries.id());
+        Mockito.verify(homeService).addTaskToHome(homeId, taskSeries);
+    }
+
+    @Test
+    void addTaskToHOme_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
+        // GIVEN
+        String taskId = "non-existent-id";
+        String homeId = "1";
+        when(mockRepo.findById(taskId)).thenReturn(Optional.empty());
+
+        // WHEN & THEN
+        assertThrows(TaskDoesNotExistException.class, () -> taskService.addTaskToHome(taskId, homeId));
+    }
+
+    private static TaskSeries createTaskSeries() {
+        TaskDefinition taskDefinition = new TaskDefinition("1_D",
+                "test",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new BigDecimal(1),
+                Priority.HIGH,
+                2);
+
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task("1", Status.OPEN, null));
+
+        return new TaskSeries("1",
+                taskDefinition,
+                taskList);
+    }
+
+    private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){
+        List<String> itemIDs = new ArrayList<>();
+        itemIDs.add("1");
+        itemIDs.add("2");
+
+        List<String> assignedUserIDs = new ArrayList<>();
+        assignedUserIDs.add("1");
+        assignedUserIDs.add("2");
+
+        return new EditTaskSeriesDTO("Test",
+                itemIDs,
+                assignedUserIDs,
+                Priority.HIGH,
+                Status.OPEN,
+                LocalDate.of(2025, 10, 30),
+                4,
+                "UniqueHome"
+        );
     }
 
 }

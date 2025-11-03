@@ -2,8 +2,10 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.edit.EditHomeDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
+import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.repro.HomeRepro;
 
 import org.example.backend.service.mapper.HomeMapper;
@@ -50,6 +52,14 @@ public class HomeService {
             home = home.withAddress(editHomeDTO.address());
         }
 
+        if(editHomeDTO.items() != null){
+            home = home.withItems(editHomeDTO.items());
+        }
+
+        if(editHomeDTO.taskSeriesList() != null){
+            home = home.withTaskSeries(editHomeDTO.taskSeriesList());
+        }
+
         //Saves Home
         homeRepro.save(home);
 
@@ -59,5 +69,51 @@ public class HomeService {
 
     public void deleteHome(String id) {
         homeRepro.deleteById(id);
+    }
+
+    public void addTaskToHome(String homeId, TaskSeries taskSeries) {
+        Home home = homeRepro.findById(homeId).orElseThrow(() -> new HomeDoesNotExistException("Home does not Exist"));
+        home.taskSeries().add(taskSeries.id());
+        homeRepro.save(home);
+    }
+
+    public List<HomeListReturnDTO> getHomeNames() {
+        return homeRepro.findAll().stream()
+                .map(homeMapper::mapToHomeListReturn)
+                .toList();
+    }
+
+    public String getHomeWithConnectedTask(String taskId) {
+        return homeRepro.findAll().stream()
+                .filter(home -> home.taskSeries().contains(taskId))
+                .map(Home::name)
+                .findFirst()
+                .orElseThrow(() -> new HomeDoesNotExistException("No Home with this TaskSeries found"));
+    }
+
+    public void deleteTaskFromHome(String id) {
+        Home home = homeRepro.findAll().stream()
+                .filter(taskSeries -> taskSeries.taskSeries().contains(id))
+                .findFirst()
+                .orElseThrow(() -> new HomeDoesNotExistException("No Home with this TaskSeries found"));
+
+        home.taskSeries().remove(id);
+        homeRepro.save(home);
+    }
+
+    public void deleteItemFromHome(String id) {
+        Home home = homeRepro.findAll().stream()
+                .filter(homeItem -> homeItem.items().contains(id))
+                .findFirst()
+                .orElseThrow(() -> new HomeDoesNotExistException("No Home with this Item found"));
+
+        home.items().remove(id);
+        homeRepro.save(home);
+    }
+
+    public void addItemToHome(String homeId, String itemId) {
+        Home home = homeRepro.findById(homeId).orElseThrow(() -> new HomeDoesNotExistException("Home does not Exist"));
+        home.items().add(itemId);
+        homeRepro.save(home);
     }
 }

@@ -2,7 +2,10 @@ package org.example.backend.controller.dto.edit;
 
 import org.example.backend.domain.home.Address;
 
-public record EditHomeDTO(String name,
-                          Address address) {
+import java.util.List;
 
+public record EditHomeDTO(String name,
+                          Address address,
+                          List<String> items,
+                          List<String> taskSeriesList) {
 }

@@ -11,32 +11,33 @@ import {useEffect, useState} from "react";
 import axios from "axios";
 import type {ItemTableReturn} from "@/dto/response/ItemTableReturn.ts";
 import CreateNewItem from "@/components/create/CreateNewItem.tsx";
-import {Button} from "@/components/ui/button.tsx";
-import EditItem from "@/components/EditItem.tsx";
+import {Dialog, DialogContent, DialogTrigger} from "@/components/ui/dialog.tsx";
+import ItemInfo from "@/pages/item/ItemInfo.tsx";
 
-function ItemPage(){
+function ItemPage() {
 
     const [itemTableData, setItemTableData] = useState<ItemTableReturn[]>([]);
 
-    function loadItemData(){
+    function loadItemData() {
         axios.get("/api/item")
-            .then((response) =>
-            {setItemTableData(response.data);})
-            .catch((error) => {console.log(error)})
+            .then((response) => {
+                setItemTableData(response.data);
+            })
+            .catch((error) => {
+                console.log(error)
+            })
     }
 
     useEffect(() => {
         loadItemData();
     }, []);
 
-    function deleteItem(id: string) {
-        axios.delete("/api/item/" + id + "/delete")
-            .then(() => loadItemData())
-            .catch((error) => {console.log(error)})
-    }
-
-    return(
-        <div className={"itemPage"}>
+    return (
+        <>
+            <div className={"flex flex-col justify-center items-center w-full"}>
+                <h1>Item Overview</h1>
+                <CreateNewItem/>
+            </div>
             <Table>
                 <TableCaption>A list of all Items</TableCaption>
                 <TableHeader>
@@ -49,29 +50,24 @@ function ItemPage(){
                 <TableBody>
                     {
                         itemTableData.map((item_data) => (
-                            <TableRow>
-                                <TableCell className="font-medium" key={item_data.id}>{item_data.name}</TableCell>
-                                <TableCell>{item_data.energyLabel}</TableCell>
-                                <TableCell>{item_data.category}</TableCell>
-                                <TableCell>
-                                    <EditItem id={item_data.id}
-                                              name={item_data.name}
-                                              category={item_data.category}
-                                              energyLabel={item_data.energyLabel}/>
-                                </TableCell>
-                                <TableCell>
-                                    <Button onClick={() => deleteItem(item_data.id)}
-                                            variant={"destructive"}>
-                                        Delete
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <TableRow>
+                                        <TableCell className="font-medium"
+                                                   key={item_data.id}>{item_data.name}</TableCell>
+                                        <TableCell>{item_data.energyLabel}</TableCell>
+                                        <TableCell>{item_data.category}</TableCell>
+                                    </TableRow>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl max-h-[90vh]">
+                                    <ItemInfo {...item_data} loadItemData={loadItemData}/>
+                                </DialogContent>
+                            </Dialog>
                         ))
                     }
                 </TableBody>
             </Table>
-            <CreateNewItem/>
-        </div>
+        </>
     )
 }
 

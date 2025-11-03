@@ -4,4 +4,5 @@ export type EditItemDTO = {
     name: string,
     category: string,
     energyLabel: EnergyLabel,
+    homeId: string
 }

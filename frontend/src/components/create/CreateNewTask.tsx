@@ -46,7 +46,7 @@ function CreateNewHome() {
 
         const newTask: CreateTask = {
             name: formData.name,
-            items: [], // TODO: Parse items properly
+            items: [],
             priority: formData.priority as Priority,
             dueDate: formData.dueDate,
             repetition: parseInt(formData.repetition) || 0
@@ -68,8 +68,8 @@ function CreateNewHome() {
 
     return (
         <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline">Create New Task</Button>
+            <DialogTrigger className={"flex flex-row justify-end w-full"}>
+                <Button variant="outline">+ add Task</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>

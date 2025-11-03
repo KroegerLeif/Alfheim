@@ -1,11 +1,9 @@
 package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
-import org.example.backend.domain.item.Item;
-import org.example.backend.domain.task.TaskSeries;
-import org.example.backend.domain.user.Role;
 import org.example.backend.domain.user.User;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +17,9 @@ public class HomeMapper {
         return new Home("",
                         createHomeDTO.name(),
                         createHomeDTO.address(),
-                        new ArrayList<Item>(),
-                        new ArrayList<TaskSeries>(),
-                        new HashMap<User, Role>());
+                        new ArrayList<>(),
+                        new ArrayList<>(),
+                        new HashMap<>());
     }
 
     public HomeTableReturnDTO mapToHomeTableReturn(Home home){
@@ -34,4 +32,8 @@ public class HomeMapper {
                                     home.members().keySet().stream().map(User::name).toList());
     }
 
+    public HomeListReturnDTO mapToHomeListReturn(Home home) {
+        return new HomeListReturnDTO(home.id(),
+                                    home.name());
+    }
 }

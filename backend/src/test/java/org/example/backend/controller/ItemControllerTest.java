@@ -83,7 +83,7 @@ class ItemControllerTest {
     @Test
     void editItem_shouldReturnUpdatedItem_whenCalled() throws Exception {
         //GIVEN
-        EditItemDTO editItemDTO = new EditItemDTO("Waschmaschine", null, null);
+        EditItemDTO editItemDTO = new EditItemDTO("Waschmaschine", null, null,"2");
         Item item = createItem();
         itemRepro.save(item);
 

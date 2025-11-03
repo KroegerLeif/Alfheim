@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 class ItemServiceTest {
@@ -31,7 +32,10 @@ class ItemServiceTest {
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
 
-    private final ItemService itemService = new ItemService(mockRepo, itemMapper, idService);
+    @Mock
+    private final HomeService homeService = Mockito.mock(HomeService.class);
+
+    private final ItemService itemService = new ItemService(mockRepo, itemMapper, idService, homeService);
 
     @AfterEach
     void tearDown() {
@@ -41,7 +45,7 @@ class ItemServiceTest {
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
         //WHEN
-        ArrayList<Item> response = new ArrayList<Item>();
+        ArrayList<Item> response = new ArrayList<>();
         when(mockRepo.findAll()).thenReturn(response);
         //THEN
         var actual = itemService.getAll();
@@ -52,7 +56,7 @@ class ItemServiceTest {
     @Test
     void getAll_shouldReturnList_whenItemsExist() {
         //WHEN
-        ArrayList<Item> response = new ArrayList<Item>();
+        ArrayList<Item> response = new ArrayList<>();
         response.add(new Item("1", "Test", null, null));
         response.add(new Item("2", "Test2", null, null));
         when(mockRepo.findAll()).thenReturn(response);
@@ -93,7 +97,7 @@ class ItemServiceTest {
         try{
             String id = "1";
             when(mockRepo.findById(id)).thenReturn(Optional.empty());
-            itemService.editItem(id,new EditItemDTO("Test",  "TestCategory",EnergyLabel.E));
+            itemService.editItem(id,new EditItemDTO("Test",  "TestCategory",EnergyLabel.E,""));
         }catch (ItemDoesNotExistException e){
             assertEquals("No Item with this ID",e.getMessage());
         }
@@ -103,7 +107,7 @@ class ItemServiceTest {
     void editItem_shouldReturnUpdatedItem_whenCalled() {
         //GIVEN
         String id = "1";
-        EditItemDTO editItemDTO = new EditItemDTO("Kühlschrank", "Küche", EnergyLabel.E);
+        EditItemDTO editItemDTO = new EditItemDTO("Kühlschrank", "Küche", EnergyLabel.E,"");
         Item savedItem = new Item(id, "Test", null, null);
         mockRepo.save(savedItem);
         ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO(id,
@@ -122,10 +126,36 @@ class ItemServiceTest {
     }
 
     @Test
+    void getItemByIdShouldReturnItemWhenItemExist(){
+        //GIVEN
+        String id = "1";
+        Item item = new Item(id, "Test", null, null);
+        mockRepo.save(item);
+        when(mockRepo.findById(id)).thenReturn(Optional.of(item));
+        //WHEN
+        var actual = itemService.getItemById(id);
+        //THEN
+        Mockito.verify(mockRepo).findById(id);
+        assertEquals(item, actual);
+    }
+
+    @Test
+    void getItemById_shouldThrowItemDoesNotExistException_whenItemDoesNotExist(){
+        try{
+            String id = "1";
+            when(mockRepo.findById(id)).thenReturn(Optional.empty());
+            itemService.getItemById(id);
+            }catch (ItemDoesNotExistException e){
+            assertEquals("No Item with this ID",e.getMessage());
+        }
+    }
+
+    @Test
     void deleteItem_shouldDeleteItem_whenCalled(){
         //GIVEN
         String id = "1";
         mockRepo.save(new Item(id, "Test", null, null));
+        doNothing().when(mockRepo).deleteById(id);
         //WHEN
         itemService.deleteItem(id);
         //THEN
