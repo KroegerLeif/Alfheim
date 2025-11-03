@@ -10,7 +10,7 @@ import {
 import {useEffect, useState} from "react";
 import axios from "axios";
 import type {ItemTableReturn} from "@/dto/response/ItemTableReturn.ts";
-import CreateNewItem from "@/components/create/CreateNewItem.tsx";
+import CreateNewItem from "@/pages/item/CreateNewItem.tsx";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/ui/dialog.tsx";
 import ItemInfo from "@/pages/item/ItemInfo.tsx";
 
@@ -36,7 +36,7 @@ function ItemPage() {
         <>
             <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Item Overview</h1>
-                <CreateNewItem/>
+                <CreateNewItem loadItemData={loadItemData}/>
             </div>
             <Table>
                 <TableCaption>A list of all Items</TableCaption>
