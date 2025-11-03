@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record CreateTaskDTO(String name,
-                            List<Item> items,
+                            List<String> items,
                             Priority priority,
                             LocalDate dueDate,
                             int repetition) {

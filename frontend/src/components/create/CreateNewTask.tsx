@@ -12,68 +12,66 @@ import {
 } from "@/components/ui/dialog.tsx"
 import { Input } from "@/components/ui/input.tsx"
 import { Label } from "@/components/ui/label.tsx"
-import {type FormEvent, useState} from "react";
 import axios from "axios";
 import type {CreateTask} from "@/dto/create/CreateTask.ts";
 
-import {useNavigate} from "react-router-dom";
-import * as React from "react";
 import type {Priority} from "@/dto/Priority.ts";
 import {toast} from "sonner";
+import {Controller, type SubmitHandler, useForm} from "react-hook-form";
+import {Field, FieldDescription, FieldSet} from "@/components/ui/field.tsx";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
+import {useState} from "react";
 
-function CreateNewHome() {
+function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
+    const loadData: () => void = prop.loadTaskData
+    const [visible, setVisible] = useState(false)
 
-    const nav = useNavigate()
+    type FormFields = {
+        name: string;
+        items: string[];
+        priority: Priority;
+        dueDate: string;
+        repetition: number;
+    }
 
-    const [formData, setFormData] = useState({
-        name: '',
-        items: '',
-        priority: '',
-        dueDate: '',
-        repetition: '0'
-    });
+    const {register, handleSubmit, control} = useForm<FormFields>({
+            defaultValues: {
+                name: "Name",
+                items: [],
+                priority: "LOW",
+                dueDate: "",
+                repetition: 0,
+            }
+        }
+    );
 
-    const handleInputChange = (field: keyof typeof formData) => (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: event.target.value
-        }));
-    };
-
-    function submitForm(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    const onSubmit: SubmitHandler<FormFields> = (data) => {
 
         const newTask: CreateTask = {
-            name: formData.name,
+            name: data.name,
             items: [],
-            priority: formData.priority as Priority,
-            dueDate: formData.dueDate,
-            repetition: parseInt(formData.repetition) || 0
+            priority: data.priority,
+            dueDate: data.dueDate,
+            repetition: data.repetition,
         };
 
         axios.post("/api/task/create", newTask)
-            .then(() => setFormData({
-                name: '',
-                items: '',
-                priority: '',
-                dueDate: '',
-                repetition: '0'
-            }))
-            .then(() => nav("/"))
+            .then(() =>
+                {
+                    loadData()
+                    setVisible(false)
+                    toast.success("Task has been Created",{
+                        description: "Data has been saved",
+                    })
+                })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             })
-
-        toast.success("Task has been Created",{
-            description: "Data has been saved",
-        })
-
     }
 
     return (
-        <Dialog>
+        <Dialog open={visible} onOpenChange={setVisible}>
             <DialogTrigger className={"flex flex-row justify-end w-full"}>
                 <Button variant="outline">+ add Task</Button>
             </DialogTrigger>
@@ -84,50 +82,47 @@ function CreateNewHome() {
                         Create a new Task here.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={submitForm}>
-                    <div className="grid gap-4">
-                        <div className="grid gap-3">
+                <form onSubmit={handleSubmit(onSubmit)} id="create-task-form" className={"grid gap-4"}>
+                    <FieldSet>
+                        <Field>
                             <Label htmlFor="name">Name</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                placeholder="Task name"
-                                onChange={handleInputChange('name')}
-                                value={formData.name}
-                            />
-                        </div>
-                        <div className="grid gap-3">
+                            <Input {...register("name",
+                                {required: true}
+                            )}/>
+                            <FieldDescription>This will apear in the Iterface</FieldDescription>
+                        </Field>
+                        <Field>
                             <Label htmlFor="priority">Priority</Label>
-                            <Input
-                                id="priority"
+                            <Controller
+                                control={control}
                                 name="priority"
-                                placeholder="LOW, MEDIUM, HIGH"
-                                onChange={handleInputChange('priority')}
-                                value={formData.priority}
+                                render={({field}) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose Priority"/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="LOW">Low</SelectItem>
+                                            <SelectItem value="MEDIUM">Medium</SelectItem>
+                                            <SelectItem value="HIGH">High</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             />
-                        </div>
-                        <div className="grid gap-3">
+                        </Field>
+                        <Field>
                             <Label htmlFor="dueDate">Due Date</Label>
-                            <Input
-                                id="dueDate"
-                                name="dueDate"
-                                type="date"
-                                onChange={handleInputChange('dueDate')}
-                                value={formData.dueDate}
-                            />
-                        </div>
-                        <div className="grid gap-3">
+                            <Input {...register("dueDate",
+                                {required: true}
+                            )} type={"date"}/>
+                        </Field>
+                        <Field>
                             <Label htmlFor="repetition">Repetition</Label>
-                            <Input
-                                id="repetition"
-                                name="repetition"
-                                type="number"
-                                placeholder="0"
-                                onChange={handleInputChange('repetition')}
-                                value={formData.repetition}
+                            <Input {...register("repetition")}
+                                type={"number"}
                             />
-                        </div>
-                    </div>
+                        </Field>
+                    </FieldSet>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
@@ -140,4 +135,4 @@ function CreateNewHome() {
     )
 }
 
-export default CreateNewHome;
+export default CreateNewTask;
