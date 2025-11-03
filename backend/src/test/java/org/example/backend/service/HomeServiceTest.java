@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,7 +40,7 @@ class HomeServiceTest {
     @Test
     void getAllHomes() {
         //WHEN
-        ArrayList<Home> response = new ArrayList<Home>();
+        ArrayList<Home> response = new ArrayList<>();
         when(mockRepo.findAll()).thenReturn(response);
         //THEN
         homeService.getAllHomes();
@@ -52,7 +51,7 @@ class HomeServiceTest {
     void getHomeNames_shouldReturnAllHomes_whenCalled(){
         //GIVEN
         Home home = new Home("1", "Test", new Address("1", "street", "postCode", "city", "country"), new ArrayList<>(), new ArrayList<>(), new HashMap<>());
-        ArrayList<Home> response = new ArrayList<Home>();
+        ArrayList<Home> response = new ArrayList<>();
         response.add(home);
 
         when(mockRepo.findAll()).thenReturn(response);

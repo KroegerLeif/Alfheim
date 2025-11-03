@@ -9,7 +9,6 @@ import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
 
-import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,7 @@ class TaskServiceTest {
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
         //WHEN
-        ArrayList<TaskSeries> response = new ArrayList<TaskSeries>();
+        ArrayList<TaskSeries> response = new ArrayList<>();
         when(mockRepo.findAll()).thenReturn(response);
         //THEN
         var actual = taskService.getAll();
@@ -60,7 +59,7 @@ class TaskServiceTest {
     @Test
     void getAll_shouldReturnList_whenItemsExist() {
         //WHEN
-        ArrayList<TaskSeries> response = new ArrayList<TaskSeries>();
+        ArrayList<TaskSeries> response = new ArrayList<>();
         response.add(new TaskSeries("1",
                                         new TaskDefinition("1",
                                                         "Test",
@@ -303,7 +302,7 @@ class TaskServiceTest {
         Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
         assertEquals(expectedReturn,result);
         assertEquals(2, savedTaskSeries.taskList().size());
-        assertEquals(Status.CLOSED, savedTaskSeries.taskList().get(0).status());
+        assertEquals(Status.CLOSED, savedTaskSeries.taskList().getFirst().status());
     }
 
     @Test
