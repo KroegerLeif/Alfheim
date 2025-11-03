@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import axios from "axios";
 
 import type {HomeTableReturnDTO} from "@/dto/response/HomeTableReturnDTO.ts";
-import CreateNewHome from "@/components/create/CreateNewHome.tsx";
+import CreateNewHome from "@/pages/home/CreateNewHome.tsx";
 
 import HomeCard from "@/pages/home/HomeCard.tsx";
 
@@ -25,7 +25,7 @@ function HomePage(){
         <div className={"flex flex-col justify-center items-center"}>
             <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Home Overview</h1>
-                <CreateNewHome/>
+                <CreateNewHome loadHomeData={loadHomeData}/>
             </div>
             <div className={"flex flex-row flex-wrap"}>
                 {

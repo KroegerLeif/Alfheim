@@ -14,7 +14,7 @@ import {
 import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import {Button} from "@/components/ui/button.tsx";
 import type {EditTask} from "@/dto/edit/EditTask.ts";
-import CreateNewTask from "@/components/create/CreateNewTask.tsx";
+import CreateNewTask from "@/pages/task/CreateNewTask.tsx";
 
 import TaskInfo from "@/pages/task/TaskInfo.tsx";
 import {Dialog, DialogContent, DialogTrigger} from "@/components/ui/dialog.tsx";
@@ -48,7 +48,7 @@ function TaskPage(){
         <>
             <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Task Overview</h1>
-                <CreateNewTask/>
+                <CreateNewTask loadTaskData={loadTaskData}/>
             </div>
             <Table>
                 <TableCaption>A list of all Tasks</TableCaption>
