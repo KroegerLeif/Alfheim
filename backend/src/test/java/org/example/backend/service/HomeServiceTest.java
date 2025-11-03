@@ -251,7 +251,7 @@ class HomeServiceTest {
 
         when(mockRepo.findAll()).thenReturn(List.of(home));
         //WHEN
-        homeService.deleteTaskFromHome(id);
+        homeService.deleteItemFromHome(id);
         //THEN
 
     }
@@ -262,7 +262,7 @@ class HomeServiceTest {
         String id = "1";
         when(mockRepo.findAll()).thenReturn(new ArrayList<>()); // Mock an empty list of homes
         //WHEN & THEN
-        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.deleteTaskFromHome(id));
+        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.deleteItemFromHome(id));
         assertEquals("No Home with this Item found", exception.getMessage());
     }
 
