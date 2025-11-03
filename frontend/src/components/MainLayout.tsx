@@ -1,6 +1,8 @@
 import { AppSidebar } from "./app-sidebar";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "./ui/sidebar";
+import {Toaster} from "sonner";
+
 export function MainLayout() {
     return (
         <SidebarProvider>
@@ -9,6 +11,7 @@ export function MainLayout() {
                 <main className="flex-grow p-4">
                     {/* HIER wird der Inhalt der Seiten (HomePage, DemoPage) angezeigt */}
                     <Outlet />
+                    <Toaster />
                 </main>
             </div>
         </SidebarProvider>
