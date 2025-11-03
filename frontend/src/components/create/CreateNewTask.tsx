@@ -15,16 +15,16 @@ import { Label } from "@/components/ui/label.tsx"
 import axios from "axios";
 import type {CreateTask} from "@/dto/create/CreateTask.ts";
 
-import {useNavigate} from "react-router-dom";
 import type {Priority} from "@/dto/Priority.ts";
 import {toast} from "sonner";
 import {Controller, type SubmitHandler, useForm} from "react-hook-form";
 import {Field, FieldDescription, FieldSet} from "@/components/ui/field.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
+import {useState} from "react";
 
-function CreateNewItem() {
-
-    const nav = useNavigate()
+function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
+    const loadData: () => void = prop.loadTaskData
+    const [visible, setVisible] = useState(false)
 
     type FormFields = {
         name: string;
@@ -58,8 +58,8 @@ function CreateNewItem() {
         axios.post("/api/task/create", newTask)
             .then(() =>
                 {
-                    nav("/")
-                    nav("/task")
+                    loadData()
+                    setVisible(false)
                     toast.success("Task has been Created",{
                         description: "Data has been saved",
                     })
@@ -71,7 +71,7 @@ function CreateNewItem() {
     }
 
     return (
-        <Dialog>
+        <Dialog open={visible} onOpenChange={setVisible}>
             <DialogTrigger className={"flex flex-row justify-end w-full"}>
                 <Button variant="outline">+ add Task</Button>
             </DialogTrigger>
@@ -135,4 +135,4 @@ function CreateNewItem() {
     )
 }
 
-export default CreateNewItem;
+export default CreateNewTask;

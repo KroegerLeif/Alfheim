@@ -48,7 +48,7 @@ function TaskPage(){
         <>
             <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Task Overview</h1>
-                <CreateNewTask/>
+                <CreateNewTask loadTaskData={loadTaskData}/>
             </div>
             <Table>
                 <TableCaption>A list of all Tasks</TableCaption>
