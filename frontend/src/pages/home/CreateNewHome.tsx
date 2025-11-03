@@ -10,68 +10,63 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog.tsx"
 import { Input } from "@/components/ui/input.tsx"
-import { Label } from "@/components/ui/label.tsx"
-import {type FormEvent, useState} from "react";
+import {useState} from "react";
 import axios from "axios";
 import type {CreateHomeDTO} from "@/dto/create/CreateHomeDTO.ts";
-import {useNavigate} from "react-router-dom";
 import {toast} from "sonner";
+import {type SubmitHandler, useForm} from "react-hook-form";
+import {Field, FieldLabel, FieldSet} from "@/components/ui/field.tsx";
 
-function CreateNewHome() {
+function CreateNewHome(prop: Readonly<{loadHomeData: () => void  }>) {
+    const loadData: () => void = prop.loadHomeData
+    const [visible, setVisible] = useState(false)
 
-    const nav = useNavigate()
+    type FormFields = {
+        name: string;
+        street: string;
+        postCode: string;
+        city: string;
+        country: string;
+    }
 
-    const [formData, setFormData] = useState({
-        name: '',
-        street: '',
-        postCode: '',
-        city: '',
-        country: ''
-    });
+    const {register,handleSubmit} = useForm<FormFields>({
+        defaultValues: {
+            name: "",
+            street: "",
+            postCode: "",
+            city: "",
+            country: ""
+        }
+    })
 
-    const handleInputChange = (field: keyof typeof formData) => (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: event.target.value
-        }));
-    };
-
-    function submitForm(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    const onSubmit: SubmitHandler<FormFields> = (data) => {
 
         const newHome: CreateHomeDTO = {
-            name: formData.name,
+            name: data.name,
             address: {
-                street: formData.street,
-                postCode: formData.postCode,
-                city: formData.city,
-                country: formData.country
+                street: data.street,
+                postCode: data.postCode,
+                city: data.city,
+                country: data.country
             }
         };
 
         axios.post("/api/home/create", newHome)
-            .then(() => setFormData({
-                name: '',
-                street: '',
-                postCode: '',
-                city: '',
-                country: ''
-            }))
-            .then(() => nav("/"))
-
+            .then(() => {
+                loadData()
+                setVisible(false)
+                toast.success("Home has been Created",{
+                    description: "Data has been saved",
+                })
+            })
             .catch((error) => {
                 console.log(error)
-            })
-
-            toast.success("Home has been Created",{
-                description: "Data has been saved",
+                toast.warning("Problem:" + error)
             })
     }
 
     return (
-        <Dialog>
+        <Dialog open={visible} onOpenChange={setVisible}>
             <DialogTrigger className={"flex flex-row justify-end w-full"}>
                 <Button variant="outline">+ add Home</Button>
             </DialogTrigger>
@@ -82,66 +77,40 @@ function CreateNewHome() {
                         Create a new Home here.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={submitForm}>
-                    <div className="grid gap-4">
-                        <div className="grid gap-3">
-                            <Label htmlFor="name">Name</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                placeholder="Unbekannt"
-                                onChange={handleInputChange('name')}
-                                value={formData.name}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="street">Street</Label>
-                            <Input
-                                id="street"
-                                name="street"
-                                placeholder="Street"
-                                onChange={handleInputChange('street')}
-                                value={formData.street}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="postcode">Postcode</Label>
-                            <Input
-                                id="postCode"
-                                name="postCode"
-                                placeholder="postCode"
-                                onChange={handleInputChange('postCode')}
-                                value={formData.postCode}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="city">City</Label>
-                            <Input
-                                id="city"
-                                name="city"
-                                placeholder="City"
-                                onChange={handleInputChange('city')}
-                                value={formData.city}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="country">Country</Label>
-                            <Input
-                                id="country"
-                                name="country"
-                                placeholder="Country"
-                                onChange={handleInputChange('country')}
-                                value={formData.country}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="outline">Cancel</Button>
-                        </DialogClose>
-                        <Button type="submit">Save changes</Button>
-                    </DialogFooter>
+                <form id={"addHomeForm"} onSubmit={handleSubmit(onSubmit)}>
+                    <FieldSet>
+                        <Field>
+                            <FieldLabel htmlFor={"name"}>Home Name</FieldLabel>
+                            <Input {...register("name",
+                                {required: true}
+                            )}/>
+                        </Field>
+                    </FieldSet>
+                    <FieldSet>
+                        <Field>
+                            <FieldLabel htmlFor={"street"}>Street</FieldLabel>
+                            <Input {...register("street")} autoComplete={"street-address"}/>
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor={"postCode"}>Post Code</FieldLabel>
+                            <Input {...register("postCode")} autoComplete={"postal-code"}/>
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor={"city"}>City</FieldLabel>
+                            <Input {...register("city")} autoComplete={"address-level2"}/>
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor={"country"}>Country</FieldLabel>
+                            <Input {...register("country")} autoComplete={"country"}/>
+                        </Field>
+                    </FieldSet>
                 </form>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button form={"addHomeForm"} type="submit">Save changes</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )
