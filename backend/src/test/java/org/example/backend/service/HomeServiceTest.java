@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -204,6 +205,36 @@ class HomeServiceTest {
         }catch (HomeDoesNotExistException e){
             assertEquals("No Home with this TaskSeries found",e.getMessage());
         }
+    }
+
+    @Test
+    void deleteTaskFromHome_shouldDeleteTaskFromHome_whenCalled() {
+        //GIVEN
+        String id = "1";
+        List<String> taskSeriesList = new ArrayList<>();
+        taskSeriesList.add("1");
+        Home home = new Home("Unique",
+                "Test",
+                new Address("1", "Anders","333123","Hamburg","Germany"),
+                new ArrayList<>(),
+                taskSeriesList,
+                new HashMap<>());
+
+        when(mockRepo.findAll()).thenReturn(List.of(home));
+        //WHEN
+        homeService.deleteTaskFromHome(id);
+        //THEN
+
+    }
+
+    @Test
+    void deleteTaskFromHome_shouldThrowHomeDoesNotExistException_whenTaskDoesNotExistInAnnyHome() {
+        //GIVEN
+        String id = "1";
+        when(mockRepo.findAll()).thenReturn(new ArrayList<>()); // Mock an empty list of homes
+        //WHEN & THEN
+        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.deleteTaskFromHome(id));
+        assertEquals("No Home with this TaskSeries found", exception.getMessage());
     }
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");

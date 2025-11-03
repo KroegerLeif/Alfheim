@@ -129,6 +129,12 @@ public class TaskService {
 
     public void deleteTask(String id) {
         taskseriesRepro.deleteById(id);
+        try{
+            homeService.deleteTaskFromHome(id);
+        }catch (HomeDoesNotExistException e){
+            //Do nothing
+        }
+
     }
 
     public void addTaskToHome(String id, String homeId) {

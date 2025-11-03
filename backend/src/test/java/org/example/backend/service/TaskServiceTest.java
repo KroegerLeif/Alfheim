@@ -9,6 +9,7 @@ import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
 
+import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
 import org.junit.jupiter.api.Test;
@@ -214,6 +215,7 @@ class TaskServiceTest {
         assertEquals(expectedReturn,result);
 
     }
+
     @Test
     void editTask_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist() {
         // GIVEN
@@ -404,6 +406,8 @@ class TaskServiceTest {
                 taskDefinition,
                 taskList
         );
+
+        Mockito.doNothing().when(homeService).deleteTaskFromHome(id);
 
         mockRepo.save(savedTaskSeries);
         //WHEN

@@ -90,4 +90,14 @@ public class HomeService {
                 .findFirst()
                 .orElseThrow(() -> new HomeDoesNotExistException("No Home with this TaskSeries found"));
     }
+
+    public void deleteTaskFromHome(String id) {
+        Home home = homeRepro.findAll().stream()
+                .filter(taskSeries -> taskSeries.taskSeries().contains(id))
+                .findFirst()
+                .orElseThrow(() -> new HomeDoesNotExistException("No Home with this TaskSeries found"));
+
+        home.taskSeries().remove(id);
+        homeRepro.save(home);
+    }
 }
