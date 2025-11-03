@@ -101,4 +101,10 @@ public class HomeService {
         home.taskSeries().remove(id);
         homeRepro.save(home);
     }
+
+    public void addItemToHome(String homeId, String itemId) {
+        Home home = homeRepro.findById(homeId).orElseThrow(() -> new HomeDoesNotExistException("Home does not Exist"));
+        home.items().add(itemId);
+        homeRepro.save(home);
+    }
 }

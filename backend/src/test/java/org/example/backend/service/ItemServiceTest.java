@@ -31,7 +31,10 @@ class ItemServiceTest {
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
 
-    private final ItemService itemService = new ItemService(mockRepo, itemMapper, idService);
+    @Mock
+    private final HomeService homeService = Mockito.mock(HomeService.class);
+
+    private final ItemService itemService = new ItemService(mockRepo, itemMapper, idService, homeService);
 
     @AfterEach
     void tearDown() {
@@ -93,7 +96,7 @@ class ItemServiceTest {
         try{
             String id = "1";
             when(mockRepo.findById(id)).thenReturn(Optional.empty());
-            itemService.editItem(id,new EditItemDTO("Test",  "TestCategory",EnergyLabel.E));
+            itemService.editItem(id,new EditItemDTO("Test",  "TestCategory",EnergyLabel.E,""));
         }catch (ItemDoesNotExistException e){
             assertEquals("No Item with this ID",e.getMessage());
         }
@@ -103,7 +106,7 @@ class ItemServiceTest {
     void editItem_shouldReturnUpdatedItem_whenCalled() {
         //GIVEN
         String id = "1";
-        EditItemDTO editItemDTO = new EditItemDTO("Kühlschrank", "Küche", EnergyLabel.E);
+        EditItemDTO editItemDTO = new EditItemDTO("Kühlschrank", "Küche", EnergyLabel.E,"");
         Item savedItem = new Item(id, "Test", null, null);
         mockRepo.save(savedItem);
         ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO(id,

@@ -248,6 +248,27 @@ class HomeServiceTest {
         return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
     }
 
+    @Test
+    void addItemToHome_shouldAddItemIdToHome_whenCalled(){
+        //GIVEN
+        String homeId = "Unique";
+        String itemId = "ItemID_1";
+
+        Home home = new Home("Unique",
+                "Test",
+                new Address("1", "Anders","333123","Hamburg","Germany"),
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new HashMap<>());
+
+        when(mockRepo.findById(homeId)).thenReturn(java.util.Optional.of(home));
+        //WHEN
+        homeService.addItemToHome(homeId,itemId);
+        //THEN
+        Mockito.verify(mockRepo).findById(homeId);
+        Mockito.verify(mockRepo).save(any(Home.class));
+    }
+
     private static TaskSeries createTaskSeries(){
         return new TaskSeries("1",
                 new TaskDefinition("1_D",

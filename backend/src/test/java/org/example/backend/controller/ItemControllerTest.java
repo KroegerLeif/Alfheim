@@ -6,6 +6,7 @@ import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
 import org.example.backend.domain.item.Item;
 import org.example.backend.repro.ItemRepro;
+import org.example.backend.service.HomeService;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -32,6 +35,8 @@ class ItemControllerTest {
     private IdService idService;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private HomeService homeService;
 
     @AfterEach
     void tearDown() {
@@ -83,7 +88,7 @@ class ItemControllerTest {
     @Test
     void editItem_shouldReturnUpdatedItem_whenCalled() throws Exception {
         //GIVEN
-        EditItemDTO editItemDTO = new EditItemDTO("Waschmaschine", null, null);
+        EditItemDTO editItemDTO = new EditItemDTO("Waschmaschine", null, null,"2");
         Item item = createItem();
         itemRepro.save(item);
 
