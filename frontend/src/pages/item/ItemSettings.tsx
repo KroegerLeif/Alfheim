@@ -99,7 +99,7 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
                         Change Values from Item here.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form id={"editItemForm"} onSubmit={handleSubmit(onSubmit)}>
                     <FieldSet>
                         <Field>
                             <FieldLabel htmlFor="name">Item Name</FieldLabel>
@@ -159,12 +159,12 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
                                 )}
                             />
                         </Field>
-                        <Button type="submit">
-                            Save
-                        </Button>
                     </FieldSet>
                 </form>
                 <DialogFooter>
+                    <Button form={"editItemForm"} type="submit">
+                        Save
+                    </Button>
                     <Button onClick={() => deleteItem(id)}
                             variant={"destructive"}>
                         Delete
