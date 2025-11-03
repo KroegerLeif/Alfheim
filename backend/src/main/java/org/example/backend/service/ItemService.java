@@ -52,6 +52,11 @@ public class ItemService {
 
     public void deleteItem(String id) {
         itemRepro.deleteById(id);
+        try{
+            homeService.deleteItemFromHome(id);
+        }catch (HomeDoesNotExistException e){
+            //Do nothing
+        }
     }
 
     private Item creatUniqueIds(Item item){

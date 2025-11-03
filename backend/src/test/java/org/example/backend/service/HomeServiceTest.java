@@ -235,6 +235,37 @@ class HomeServiceTest {
         HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.deleteTaskFromHome(id));
         assertEquals("No Home with this TaskSeries found", exception.getMessage());
     }
+
+    @Test
+    void deleteItemFromHome_shouldDeleteItemFromHome_whenCalled() {
+        //GIVEN
+        String id = "1";
+        List<String> itemList = new ArrayList<>();
+        itemList.add("1");
+        Home home = new Home("Unique",
+                "Test",
+                new Address("1", "Anders","333123","Hamburg","Germany"),
+                itemList,
+                new ArrayList<>(),
+                new HashMap<>());
+
+        when(mockRepo.findAll()).thenReturn(List.of(home));
+        //WHEN
+        homeService.deleteTaskFromHome(id);
+        //THEN
+
+    }
+
+    @Test
+    void deleteItemFromHome_shouldThrowHomeDoesNotExistException_whenItemDoesNotExistInAnnyHome() {
+        //GIVEN
+        String id = "1";
+        when(mockRepo.findAll()).thenReturn(new ArrayList<>()); // Mock an empty list of homes
+        //WHEN & THEN
+        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.deleteTaskFromHome(id));
+        assertEquals("No Home with this Item found", exception.getMessage());
+    }
+
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
 

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 class ItemServiceTest {
@@ -125,7 +126,7 @@ class ItemServiceTest {
     }
 
     @Test
-    void getItemById_shouldRetrunItem_whenItemExist(){
+    void getItemByIdShouldReturnItemWhenItemExist(){
         //GIVEN
         String id = "1";
         Item item = new Item(id, "Test", null, null);
@@ -154,6 +155,7 @@ class ItemServiceTest {
         //GIVEN
         String id = "1";
         mockRepo.save(new Item(id, "Test", null, null));
+        doNothing().when(mockRepo).deleteById(id);
         //WHEN
         itemService.deleteItem(id);
         //THEN

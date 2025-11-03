@@ -102,6 +102,16 @@ public class HomeService {
         homeRepro.save(home);
     }
 
+    public void deleteItemFromHome(String id) {
+        Home home = homeRepro.findAll().stream()
+                .filter(homeItem -> homeItem.items().contains(id))
+                .findFirst()
+                .orElseThrow(() -> new HomeDoesNotExistException("No Home with this Item found"));
+
+        home.items().remove(id);
+        homeRepro.save(home);
+    }
+
     public void addItemToHome(String homeId, String itemId) {
         Home home = homeRepro.findById(homeId).orElseThrow(() -> new HomeDoesNotExistException("Home does not Exist"));
         home.items().add(itemId);
