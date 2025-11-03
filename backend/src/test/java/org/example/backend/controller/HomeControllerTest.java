@@ -251,8 +251,8 @@ class HomeControllerTest {
         Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
         homeRepro.save(home);
 
-        List<Item> newItemList = new ArrayList<>();
-        newItemList.add(new Item("1", "Test", null, null));
+        List<String> newItemList = new ArrayList<>();
+        newItemList.add("newItem");
         EditHomeDTO editHomeDTO = new EditHomeDTO(null, null, newItemList, null);
 
         // WHEN
@@ -330,9 +330,9 @@ class HomeControllerTest {
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
 
-        List<Item> newItemList = new ArrayList<>();
-        newItemList.add(new Item("1", "Test", null, null));
-        newItemList.add(new Item("2", "Test", null, null));
+        List<String> newItemList = new ArrayList<>();
+        newItemList.add("new Item");
+        newItemList.add("new Item2");
 
         List<String> newTaskSerisList = new ArrayList<>();
         newTaskSerisList.add("1");

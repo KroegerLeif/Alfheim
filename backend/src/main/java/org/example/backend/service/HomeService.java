@@ -54,7 +54,7 @@ public class HomeService {
         }
 
         if(editHomeDTO.items() != null){
-            home = home.withItems(editHomeDTO.items().stream().map(Item::id).toList());
+            home = home.withItems(editHomeDTO.items());
         }
 
         if(editHomeDTO.taskSeriesList() != null){
