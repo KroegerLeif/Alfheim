@@ -11,63 +11,61 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog.tsx"
 import { Input } from "@/components/ui/input.tsx"
-import { Label } from "@/components/ui/label.tsx"
-import {type FormEvent, useState} from "react";
+import {useState} from "react";
 import axios from "axios";
 
 import type {CreateItem} from "@/dto/create/CreateItem.ts";
 
-import {useNavigate} from "react-router-dom";
-import * as React from "react";
 import type {EnergyLabel} from "@/dto/EnergyLabel.ts";
 import {toast} from "sonner";
+import {Controller, type SubmitHandler, useForm} from "react-hook-form";
+import {Field, FieldLabel, FieldSet} from "@/components/ui/field.tsx";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 
-function CreateNewItem() {
+function CreateNewItem(prop: Readonly<{loadItemData: () => void  }> ) {
 
-    const nav = useNavigate()
+    const loadData: () => void = prop.loadItemData
+    const [visible, setVisible] = useState(false)
 
-    const [formData, setFormData] = useState({
-        name: '',
-        energyLabel: '',
-        category: '',
-    });
+    type FormFields = {
+        name: string;
+        energyLabel: EnergyLabel;
+        category: string;
+    }
 
-    const handleInputChange = (field: keyof typeof formData) => (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: event.target.value
-        }));
-    };
+    const {register,handleSubmit,control} = useForm<FormFields>({
+        defaultValues: {
+            name: "",
+            energyLabel: "G",
+            category: ""
+        }
+    })
 
-    function submitForm(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    const onSubmit: SubmitHandler<FormFields> = (data) =>  {
 
         const newItem: CreateItem = {
-            name: formData.name,
-            energyLabel: formData.energyLabel as EnergyLabel,
-            category: formData.category,
+            name: data.name,
+            energyLabel: data.energyLabel,
+            category: data.category,
         };
 
         axios.post("/api/item/create", newItem)
-            .then(() => setFormData({
-                name: '',
-                energyLabel: '',
-                category: ''
-            }))
-            .then(() => nav("/"))
+            .then(() => {
+                loadData()
+                setVisible(false)
+                toast.success("Item has been Created",{
+                    description: "Data has been saved",
+                })
+            })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             })
 
-        toast.success("Item has been Created",{
-            description: "Data has been saved",
-        })
     }
 
     return (
-        <Dialog>
+        <Dialog open={visible} onOpenChange={setVisible}>
             <DialogTrigger className={"flex flex-row justify-end w-full"}>
                 <Button variant="outline">+ add Item</Button>
             </DialogTrigger>
@@ -78,45 +76,50 @@ function CreateNewItem() {
                         Create a new Item here.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={submitForm}>
-                    <div className="grid gap-4">
-                        <div className="grid gap-3">
-                            <Label htmlFor="name">Name</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                placeholder="Task name"
-                                onChange={handleInputChange('name')}
-                                value={formData.name}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="energyLabel">Ernergy Label</Label>
-                            <Input
-                                id="energyLabel"
-                                name="energyLabel"
-                                placeholder="A -> G"
-                                onChange={handleInputChange('energyLabel')}
-                                value={formData.energyLabel}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="category">Category</Label>
-                            <Input
-                                id="category"
-                                name="category"
-                                onChange={handleInputChange('category')}
-                                value={formData.category}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="outline">Cancel</Button>
-                        </DialogClose>
-                        <Button type="submit">Save changes</Button>
-                    </DialogFooter>
+                <form id={"addItemForm"} onSubmit={handleSubmit(onSubmit)}>
+                    <FieldSet>
+                        <Field>
+                            <FieldLabel htmlFor={"name"}>Item Name</FieldLabel>
+                            <Input {...register("name",
+                                {required: true}
+                            )}/>
+                        </Field>
+                        <Field>
+                            <Controller control={control}
+                                  name={"energyLabel"}
+                                  render={({field}) => (
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose Energy Label"/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="A">A</SelectItem>
+                                            <SelectItem value="B">B</SelectItem>
+                                            <SelectItem value="C">C</SelectItem>
+                                            <SelectItem value="D">D</SelectItem>
+                                            <SelectItem value="E">E</SelectItem>
+                                            <SelectItem value="F">F</SelectItem>
+                                            <SelectItem value="G">G</SelectItem>
+                                        </SelectContent>
+                                     </Select>
+                            )}/>
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor={"category"}>Category</FieldLabel>
+                            <Input {...register("category")}
+                                type={"text"}/>
+                        </Field>
+                    </FieldSet>
                 </form>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button form={"addItemForm"}
+                            type="submit">
+                        Save changes
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )

@@ -36,7 +36,7 @@ function ItemPage() {
         <>
             <div className={"flex flex-col justify-center items-center w-full"}>
                 <h1>Item Overview</h1>
-                <CreateNewItem/>
+                <CreateNewItem loadItemData={loadItemData}/>
             </div>
             <Table>
                 <TableCaption>A list of all Items</TableCaption>
