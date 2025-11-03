@@ -83,6 +83,18 @@ class TaskServiceTest {
                 )
         );
         when(mockRepo.findAll()).thenReturn(response);
+        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(new TaskTableReturnDTO(
+                "dummyId",
+                "dummySeriesId",
+                "dummyName",
+                new ArrayList<>(),
+                new ArrayList<>(),
+                Priority.MEDIUM,
+                Status.OPEN,
+                null,
+                0,
+                "dummyHomeId"
+        ));
         //THEN
         var actual = taskService.getAll();
         Mockito.verify(mockRepo).findAll();
@@ -189,7 +201,7 @@ class TaskServiceTest {
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(homeService.getHomeWithConnectedTask(Mockito.any(TaskSeries.class))).thenReturn("home123");
+        when(homeService.getHomeWithConnectedTask(Mockito.any(String.class))).thenReturn("home123");
         when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
 
 
@@ -278,7 +290,7 @@ class TaskServiceTest {
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(idService.createNewId()).thenReturn(id + "2");
-        when(homeService.getHomeWithConnectedTask(Mockito.any(TaskSeries.class))).thenReturn("home123");
+        when(homeService.getHomeWithConnectedTask(Mockito.any(String.class))).thenReturn("home123");
         when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
@@ -334,7 +346,7 @@ class TaskServiceTest {
             saved.set(invocation.getArgument(0));
             return saved.get();
         });
-        when(homeService.getHomeWithConnectedTask(Mockito.any(TaskSeries.class))).thenReturn("home123");
+        when(homeService.getHomeWithConnectedTask(Mockito.any(String.class))).thenReturn("home123");
         when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN

@@ -73,7 +73,7 @@ public class HomeService {
 
     public void addTaskToHome(String homeId, TaskSeries taskSeries) {
         Home home = homeRepro.findById(homeId).orElseThrow(() -> new HomeDoesNotExistException("Home does not Exist"));
-        home.taskSeries().add(taskSeries);
+        home.taskSeries().add(taskSeries.id());
         homeRepro.save(home);
     }
 
@@ -83,9 +83,9 @@ public class HomeService {
                 .toList();
     }
 
-    public String getHomeWithConnectedTask(TaskSeries taskSeries) {
+    public String getHomeWithConnectedTask(String taskId) {
         return homeRepro.findAll().stream()
-                .filter(home -> home.taskSeries().contains(taskSeries))
+                .filter(home -> home.taskSeries().contains(taskId))
                 .map(Home::name)
                 .findFirst()
                 .orElseThrow(() -> new HomeDoesNotExistException("No Home with this TaskSeries found"));

@@ -62,7 +62,7 @@ public class TaskService {
     public List<TaskTableReturnDTO> getAll(){
         return taskseriesRepro.findAll().stream().map
                 ((taskSeries -> taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(
-                        getHomeID(taskSeries)))
+                        getHomeID(taskSeries.id())))
                 ).toList();
     }
 
@@ -89,7 +89,7 @@ public class TaskService {
 
         taskseriesRepro.save(taskSeries);
 
-        return taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(getHomeID(taskSeries));
+        return taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(getHomeID(taskSeries.id()));
     }
 
     public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
@@ -212,9 +212,9 @@ public class TaskService {
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
     }
 
-    private String getHomeID(TaskSeries taskSeries){
+    private String getHomeID(String taskSeriesId){
         try {
-            return homeService.getHomeWithConnectedTask(taskSeries);
+            return homeService.getHomeWithConnectedTask(taskSeriesId);
         } catch (HomeDoesNotExistException e) {
             return "";
         }

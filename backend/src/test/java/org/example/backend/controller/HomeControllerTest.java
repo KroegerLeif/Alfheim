@@ -24,7 +24,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -290,8 +289,8 @@ class HomeControllerTest {
         Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
         homeRepro.save(home);
 
-        List<TaskSeries> newTaskSeriesList = new ArrayList<>();
-        newTaskSeriesList.add(new TaskSeries("1", new TaskDefinition("1_D", "test", new ArrayList<>(), new ArrayList<>(), new BigDecimal(10), Priority.HIGH, 5), new ArrayList<>()));
+        List<String> newTaskSeriesList = new ArrayList<>();
+        newTaskSeriesList.add("1");
         EditHomeDTO editHomeDTO = new EditHomeDTO(null, null, null, newTaskSeriesList);
 
         // WHEN
@@ -340,18 +339,8 @@ class HomeControllerTest {
         newItemList.add(new Item("1", "Test", null, null));
         newItemList.add(new Item("2", "Test", null, null));
 
-        List<TaskSeries> newTaskSerisList = new ArrayList<>();
-        newTaskSerisList.add(new TaskSeries("1",
-                new TaskDefinition("1_D",
-                        "test",
-                        new ArrayList<User>(),
-                        new ArrayList<Item>(),
-                        new BigDecimal(10),
-                        Priority.HIGH,
-                        5
-                )
-                ,new ArrayList<Task>())
-        );
+        List<String> newTaskSerisList = new ArrayList<>();
+        newTaskSerisList.add("1");
 
         return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
     }

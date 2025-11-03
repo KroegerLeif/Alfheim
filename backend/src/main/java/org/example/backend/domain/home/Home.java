@@ -14,6 +14,6 @@ public record Home(String id,
                    String name,
                    Address address,
                    List<Item> items,
-                   List<TaskSeries> taskSeries,
+                   List<String> taskSeries,
                    Map<User, Role> members) {
 }

@@ -9,5 +9,5 @@ import java.util.List;
 public record EditHomeDTO(String name,
                           Address address,
                           List<Item> items,
-                          List<TaskSeries> taskSeriesList) {
+                          List<String> taskSeriesList) {
 }

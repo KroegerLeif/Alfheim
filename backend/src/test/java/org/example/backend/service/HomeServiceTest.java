@@ -7,7 +7,6 @@ import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
 import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
-import org.example.backend.domain.user.User;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.mapper.HomeMapper;
 import org.example.backend.service.security.IdService;
@@ -149,8 +148,8 @@ class HomeServiceTest {
     void addTaskToHOme_shouldThrowHomeDoesNotExistException_whenHomeDoesNotExist(){
         // GIVEN
         String id = "Unique1";
-        TaskSeries taskSeries = createTaskSeries();
         when(mockRepo.findById(id)).thenReturn(java.util.Optional.empty());
+        TaskSeries taskSeries = createTaskSeries();
 
         // WHEN & THEN
         HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.addTaskToHome(id, taskSeries));
@@ -160,9 +159,8 @@ class HomeServiceTest {
     @Test
     void getHomeWithConnectedTask_ShouldReturnStringOfHomeID_whenCalled(){
         //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        List<TaskSeries> taskSeriesList = new ArrayList<>();
-        taskSeriesList.add(taskSeries);
+        List<String> taskSeriesList = new ArrayList<>();
+        taskSeriesList.add("1");
         Home home = new Home("1",
                 "Test",
                         new Address("1",
@@ -175,18 +173,19 @@ class HomeServiceTest {
                 new HashMap<>());
         when(mockRepo.findAll()).thenReturn(List.of(home));
         //WHEN
-        String actual = homeService.getHomeWithConnectedTask(taskSeries); 
+        String actual = homeService.getHomeWithConnectedTask("1");
         //THEN
-        assertEquals("1",actual);
+        assertEquals("Test",actual);
     }
 
     @Test
     void getHomeWithConnectedTask_ShouldThrowHomeDoesNotExistException_whenTaskDoesNotExist(){
         //GIVEN
         try{
-            TaskSeries taskSeries = createTaskSeries();
-            List<TaskSeries> taskSeriesList = new ArrayList<>();
-            taskSeriesList.add(taskSeries);
+
+            List<String> taskSeriesList = new ArrayList<>();
+            taskSeriesList.add("1");
+
             Home home = new Home("1",
                     "Test",
                     new Address("1",
@@ -200,7 +199,7 @@ class HomeServiceTest {
             mockRepo.save(home);
             when(mockRepo.findById("1")).thenReturn(java.util.Optional.empty());
             //WHEN
-            homeService.getHomeWithConnectedTask(taskSeries);
+            homeService.getHomeWithConnectedTask("1");
             //THEN
         }catch (HomeDoesNotExistException e){
             assertEquals("No Home with this TaskSeries found",e.getMessage());
@@ -213,36 +212,22 @@ class HomeServiceTest {
         newItemList.add(new Item("1", "Test", null, null));
         newItemList.add(new Item("2", "Test", null, null));
 
-        List<TaskSeries> newTaskSerisList = new ArrayList<>();
-        newTaskSerisList.add(new TaskSeries("1",
-                new TaskDefinition("1_D",
-                        "test",
-                        new ArrayList<User>(),
-                        new ArrayList<Item>(),
-                        new BigDecimal(10),
-                        Priority.HIGH,
-                        5
-                )
-                ,new ArrayList<Task>())
-        );
+        List<String> newTaskSerisList = new ArrayList<>();
+        newTaskSerisList.add("1");
 
         return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
     }
 
-        private static TaskSeries createTaskSeries() {
-            TaskDefinition taskDefinition = new TaskDefinition("1",
-                    "test",
-                    new ArrayList<>(),
-                    new ArrayList<>(),
-                    new BigDecimal(1),
-                    Priority.HIGH,
-                    2);
+    private static TaskSeries createTaskSeries(){
+        return new TaskSeries("1",
+                new TaskDefinition("1_D",
+                        "newTask",
+                        new ArrayList<>(),
+                        new ArrayList<>(),
+                        new BigDecimal("10"),
+                        Priority.HIGH,
+                        3),
+                new ArrayList<>());
+    }
 
-            List<Task> taskList = new ArrayList<>();
-            taskList.add(new Task("1", Status.OPEN, null));
-
-            return new TaskSeries("1",
-                    taskDefinition,
-                    taskList);
-        }
 }

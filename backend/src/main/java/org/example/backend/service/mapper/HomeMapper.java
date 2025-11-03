@@ -21,7 +21,7 @@ public class HomeMapper {
                         createHomeDTO.name(),
                         createHomeDTO.address(),
                         new ArrayList<Item>(),
-                        new ArrayList<TaskSeries>(),
+                        new ArrayList<String>(),
                         new HashMap<User, Role>());
     }
 
