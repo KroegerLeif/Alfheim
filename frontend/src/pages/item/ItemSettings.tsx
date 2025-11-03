@@ -10,6 +10,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog.tsx";
 import {Button} from "@/components/ui/button.tsx";
+import { toast } from "sonner"
 import type {ItemTableReturn} from "@/dto/response/ItemTableReturn.ts";
 import {useEffect, useState} from "react";
 import type {EnergyLabel} from "@/dto/EnergyLabel.ts";
@@ -63,10 +64,14 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
         axios.patch("/api/item/" + id + "/edit", editDTO)
             .then(() => {
                 loadItemData()
-                setOpen(false);
+                setOpen(false)
+                toast.success("Item has been Updated",{
+                    description: "Changes have been saved",
+                })
             })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             }
         )
     }
@@ -82,9 +87,15 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
 
     function deleteItem(id: string) {
         axios.delete("/api/item/" + id + "/delete")
-            .then(() => loadItemData())
+            .then(() => {
+                loadItemData()
+                toast.success("Item has been Deleted",{
+                    description: "Changes have been saved",
+                })
+            })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             })
     }
 

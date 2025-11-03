@@ -17,6 +17,7 @@ import type {Address} from "@/dto/Address.ts";
 import {type FormEvent, useState} from "react";
 import * as React from "react";
 import type {EditHomeDTO} from "@/dto/edit/EditHomeDTO.ts";
+import {toast} from "sonner";
 
 type EditHomeProps = {
     id: string;
@@ -59,17 +60,33 @@ function HomeSettings({id,name,address, loadHomeData}: Readonly<EditHomeProps & 
         };
 
         axios.patch("/api/home/" + id + "/edit", editedHome)
-            .then(() => {loadHomeData()})
+            .then(() => {
+                loadHomeData()
+                toast.success("Home has been Updated",{
+                    description: "Changes have been saved",
+                })
+            })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             }
         );
+
+
     }
 
     function deleteHome(id:string){
         axios.delete("/api/home/" + id + "/delete")
-            .then(() => {loadHomeData()})
-            .catch((error) => {console.log(error)})
+            .then(() => {
+                loadHomeData()
+                toast.success("Home has been Deleted",{
+                    description: "Changes have been saved",
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+                toast.warning("Problem:" + error)
+            })
     }
 
 

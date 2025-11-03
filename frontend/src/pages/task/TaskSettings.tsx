@@ -24,6 +24,7 @@ import {type SubmitHandler, useForm, Controller} from "react-hook-form";
 import type {Priority} from "@/dto/Priority.ts";
 import type {Status} from "@/dto/Status.ts";
 import type {EditTaskSeriesDTO} from "@/dto/edit/EditTaskSeriesDTO.ts";
+import {toast} from "sonner";
 
 function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,homeId, loadTaskData}:
                       Readonly<TaskTableReturn &
@@ -75,16 +76,29 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
             .then(() => {
                 loadTaskData()
                 setOpen(false);
+                toast.success("Task has been Updated",{
+                    description: "Changes have been saved",
+                })
             })
             .catch((error) => {
                 console.log(error)
+                toast.warning("Problem:" + error)
             });
     }
 
 
     function deleteTask(id: string){
         axios.delete("api/task/" + id + "/delete")
-            .then(() => loadTaskData())
+            .then(() => {
+                loadTaskData()
+                toast.success("Task has been Deleted",{
+                    description: "Changes have been saved",
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+                toast.warning("Problem:" + error)
+            })
     }
 
     function getHomeNames(){

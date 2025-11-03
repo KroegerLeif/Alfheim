@@ -19,6 +19,7 @@ import type {CreateTask} from "@/dto/create/CreateTask.ts";
 import {useNavigate} from "react-router-dom";
 import * as React from "react";
 import type {Priority} from "@/dto/Priority.ts";
+import {toast} from "sonner";
 
 function CreateNewHome() {
 
@@ -64,6 +65,11 @@ function CreateNewHome() {
             .catch((error) => {
                 console.log(error)
             })
+
+        toast.success("Task has been Created",{
+            description: "Data has been saved",
+        })
+
     }
 
     return (

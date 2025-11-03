@@ -15,6 +15,7 @@ import {type FormEvent, useState} from "react";
 import axios from "axios";
 import type {CreateHomeDTO} from "@/dto/create/CreateHomeDTO.ts";
 import {useNavigate} from "react-router-dom";
+import {toast} from "sonner";
 
 function CreateNewHome() {
 
@@ -62,6 +63,10 @@ function CreateNewHome() {
 
             .catch((error) => {
                 console.log(error)
+            })
+
+            toast.success("Home has been Created",{
+                description: "Data has been saved",
             })
     }
 
