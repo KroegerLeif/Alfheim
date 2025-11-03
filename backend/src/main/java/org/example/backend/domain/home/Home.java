@@ -12,7 +12,7 @@ import java.util.Map;
 public record Home(String id,
                    String name,
                    Address address,
-                   List<Item> items,
+                   List<String> items,
                    List<String> taskSeries,
                    Map<User, Role> members) {
 }

@@ -5,6 +5,7 @@ import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
+import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.repro.HomeRepro;
 
@@ -53,7 +54,7 @@ public class HomeService {
         }
 
         if(editHomeDTO.items() != null){
-            home = home.withItems(editHomeDTO.items());
+            home = home.withItems(editHomeDTO.items().stream().map(Item::id).toList());
         }
 
         if(editHomeDTO.taskSeriesList() != null){
