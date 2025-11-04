@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -46,6 +47,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getAllHomes_shouldReturnEmptyList_whenNoHomesExist() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/home"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -53,6 +55,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getAllHomes_shouldReturnListOfHomes_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
@@ -83,6 +86,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getHomeNames_shouldReturnListOfHomeNames_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
@@ -102,6 +106,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void createHome_shouldReturnCreatedHome_whenHomeIsCreated() throws Exception {
         //GIVEN
         when(idService.createNewId()).thenReturn("1");
@@ -146,6 +151,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editHome_shouldUpdateAllFields_whenAllFieldsAreProvided()throws Exception{
         //GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
@@ -181,6 +187,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editHome_shouldUpdateOnlyName_whenOnlyNameIsProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
@@ -212,6 +219,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editHome_shouldUpdateOnlyAddress_whenOnlyAddressIsProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
@@ -244,6 +252,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editHome_shouldUpdateOnlyItems_whenOnlyItemsAreProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
@@ -277,6 +286,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editHome_shouldUpdateOnlyTaskSeries_whenOnlyTaskSeriesAreProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
@@ -310,6 +320,7 @@ class HomeControllerTest {
     }
 
     @Test
+    @WithMockUser
     void deleteHome_shouldDeleteHome_whenCalled() throws Exception {
         //GIVEN
         Address address = new Address("1", "street", "postCode", "city", "country");

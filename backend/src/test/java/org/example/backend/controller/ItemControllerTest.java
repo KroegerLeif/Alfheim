@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -39,6 +40,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getAllItems_shouldReturnListOfAllItemsAsDTO_whenCalled() throws Exception {
         //GIVEN
         Item item = createItem();
@@ -63,6 +65,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser
     void deleteItem_shouldDeleteItem_whenCalled() throws Exception {
         //GIVEN
         Item item = createItem();
@@ -81,6 +84,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editItem_shouldReturnUpdatedItem_whenCalled() throws Exception {
         //GIVEN
         EditItemDTO editItemDTO = new EditItemDTO("Waschmaschine", null, null,"2");
