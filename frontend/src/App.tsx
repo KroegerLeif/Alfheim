@@ -5,6 +5,7 @@ import MainPage from "@/pages/MainPage.tsx";
 import TaskPage from "@/pages/TaskPage.tsx";
 import ItemPage from "@/pages/ItemPage.tsx";
 import SchedulePage from "@/pages/SchedulePage.tsx";
+import LoginPage from "@/pages/LoginPage.tsx";
 
 function App() {
     return (
@@ -18,8 +19,7 @@ function App() {
                 <Route path={"/schedule"} element={<SchedulePage/>} />
             </Route>
 
-            {/* Hier könnten Sie Seiten ohne Sidebar definieren, z.B. eine Login-Seite */}
-            {/* <Route path="/login" element={<LoginPage />} /> */}
+            <Route path="/login" element={<LoginPage/>} />
         </Routes>
     );
 }
