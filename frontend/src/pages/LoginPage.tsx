@@ -1,15 +1,13 @@
-import {Button} from "@/components/ui/button.tsx";
+import {LoginForm} from "@/components/login-form.tsx";
 
 function LoginPage() {
 
-    function login(){
-        const host:string = window.location.host ===
-            "localhost:5173" ? "http://localhost:8080" : window.location.origin;
-        window.open(host + "/oauth2/authorization/github", "_self")
-    }
-
     return(
-        <Button onClick={login} >Login with Github</Button>
+        <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+            <div className="flex w-full max-w-sm flex-col gap-6">
+                <LoginForm />
+            </div>
+        </div>
     )
 }
 export default LoginPage;
