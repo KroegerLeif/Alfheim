@@ -20,7 +20,8 @@ public class ItemMapper {
                 null,
                 createItemDTO.name(),
                 categoryMapper.mapToCategory(createItemDTO.category()),
-                createItemDTO.energyLabel()
+                createItemDTO.energyLabel(),
+                createItemDTO.homeId()
         );
     }
 
@@ -29,7 +30,8 @@ public class ItemMapper {
                 item.id(),
                 item.name(),
                 item.energyLabel(),
-                item.category().name()
+                item.category().name(),
+                ""
         );
     }
 }
