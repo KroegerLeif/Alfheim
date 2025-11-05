@@ -9,6 +9,7 @@ import LoginPage from "@/pages/LoginPage.tsx";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import ProtectedRoute from "@/components/ProtectedRoute.tsx";
+import LandingPage from "@/pages/LandingPage.tsx";
 
 function App() {
 
@@ -43,6 +44,9 @@ function App() {
             </Route>
 
             <Route path="/login" element={<LoginPage/>} />
+
+            <Route path={"/landingPage"} element={<LandingPage/>}/>
+
         </Routes>
     );
 }

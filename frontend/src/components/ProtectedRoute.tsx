@@ -12,7 +12,7 @@ function ProtectedRoute(props: Readonly<ProtectedRouteProps>){
 
 
     return(
-        props.user ? <Outlet/> : <Navigate to="/login"/>
+        props.user ? <Outlet/> : <Navigate to="/landingPage"/>
     )
 
 }
