@@ -6,5 +6,6 @@ import lombok.With;
 public record Item(String id,
                    String name,
                    Category category,
-                   EnergyLabel energyLabel) {
+                   EnergyLabel energyLabel,
+                   String homeId) {
 }
