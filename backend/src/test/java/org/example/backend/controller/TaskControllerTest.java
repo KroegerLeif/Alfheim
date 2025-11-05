@@ -1,73 +1,58 @@
 package org.example.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.backend.controller.dto.create.CreateTaskDTO;
+import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
-import org.example.backend.domain.item.Item;
-import org.example.backend.domain.task.*;
-import org.example.backend.domain.user.User;
-import org.example.backend.repro.TaskSeriesRepro;
-import org.example.backend.service.ItemService;
+import org.example.backend.controller.dto.response.TaskTableReturnDTO;
+import org.example.backend.domain.task.Priority;
+import org.example.backend.domain.task.Status;
 import org.example.backend.service.TaskService;
-import org.example.backend.service.UserService;
-import org.example.backend.service.security.IdService;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(TaskController.class)
 class TaskControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private TaskSeriesRepro taskSeriesRepro;
-
+    @MockBean
+    private TaskService taskService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private IdService idService;
-    @MockitoBean
-    private TaskService taskService;
-    @MockitoBean
-    private ItemService itemService;
-    @MockitoBean
-    private UserService userService;
-
-    @AfterEach
-    void tearDown() {
-        taskSeriesRepro.deleteAll();
-    }
-    
     @Test
     @WithMockUser
     void getAllTasks_shouldReturnAllTasks() throws Exception {
         //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        taskSeriesRepro.save(taskSeries);
+        List<TaskTableReturnDTO> tasks = List.of(
+                new TaskTableReturnDTO("1", "1", "test", new ArrayList<>(), new ArrayList<>(), Priority.HIGH, Status.OPEN, null, 0, "home-1")
+        );
+        when(taskService.getAll()).thenReturn(tasks);
+
         //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json(
+        mockMvc.perform(get("/api/task"))
+                .andExpect(status().isOk())
+                .andExpect(content().json(
                         """
                         [
                           {
@@ -78,7 +63,9 @@ class TaskControllerTest {
                               "assignedTo": [],
                               "priority": "HIGH",
                               "status": "OPEN",
-                              "dueDate": null
+                              "dueDate": null,
+                              "repetition": 0,
+                              "homeId": "home-1"
                           }
                         ]
                         """
@@ -89,24 +76,16 @@ class TaskControllerTest {
     @WithMockUser
     void createTask_shouldReturnCreatedTask_whenTaskIsCreated() throws Exception {
         //GIVEN
-        when(idService.createNewId()).thenReturn("1");
+        CreateTaskDTO createTaskDTO = new CreateTaskDTO("Test", new ArrayList<>(), Priority.HIGH, null, null, 0);
+        TaskTableReturnDTO createdTask = new TaskTableReturnDTO("10", "1", "Test", new ArrayList<>(), new ArrayList<>(), Priority.HIGH, Status.OPEN, null, 0, null);
+        when(taskService.createNewTask(any(CreateTaskDTO.class))).thenReturn(createdTask);
 
         //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/create")
+        mockMvc.perform(post("/api/task/create").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                """
-                                    {
-                                      "name" : "Test",
-                                      "items": [],
-                                      "priority": "HIGH",
-                                      "dueDate" : "",
-                                      "repetition": 0
-                                    }
-                                """
-                        ))
-                .andExpect(MockMvcResultMatchers.status().isCreated())
-                .andExpect(MockMvcResultMatchers.content().json("""
+                        .content(objectMapper.writeValueAsString(createTaskDTO)))
+                .andExpect(status().isCreated())
+                .andExpect(content().json("""
                                     {
                                         "id": "10",
                                         "taskSeriesId": "1",
@@ -115,32 +94,28 @@ class TaskControllerTest {
                                         "assignedTo": [],
                                         "priority": "HIGH",
                                         "status": "OPEN",
-                                        "dueDate" : null
+                                        "dueDate" : null,
+                                        "repetition": 0,
+                                        "homeId": null
                                       }
                        
-                                    """));
+                                    """, true));
     }
 
     @Test
     @WithMockUser
-    void editTask_shouldReturnUpdatedTask_whenTaskIsEditedToINProgress()throws Exception{
+    void editTask_shouldReturnUpdatedTask_whenTaskIsEditedToINProgress() throws Exception {
         //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        taskSeriesRepro.save(taskSeries);
+        EditTaskDTO editTaskDTO = new EditTaskDTO(Status.IN_PROGRESS, null);
+        TaskTableReturnDTO updatedTask = new TaskTableReturnDTO("1", "1", "test", new ArrayList<>(), new ArrayList<>(), Priority.HIGH, Status.IN_PROGRESS, LocalDate.now(), 0, "home-1");
+        when(taskService.editTask(anyString(), any(EditTaskDTO.class))).thenReturn(updatedTask);
 
         //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/edit-task")
+        mockMvc.perform(patch("/api/task/1/edit-task").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                """
-                                    {
-                                      "status" : "IN_PROGRESS",
-                                      "dueDate": null
-                                    }
-                                """
-                        ))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json("""
+                        .content(objectMapper.writeValueAsString(editTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
                                     {
                                         "id": "1",
                                         "taskSeriesId": "1",
@@ -149,41 +124,32 @@ class TaskControllerTest {
                                         "assignedTo": [],
                                         "priority": "HIGH",
                                         "status": "IN_PROGRESS",
-                                        "dueDate": "%s"
+                                        "dueDate": "%s",
+                                        "repetition": 0,
+                                        "homeId": "home-1"
                                       }
                                     
-                                    """.formatted(LocalDate.now())));
+                                    """.formatted(LocalDate.now()), true));
     }
 
     @Test
     @WithMockUser
-    void editdTaskSeries_shouldRetundStautsOK_whenCalled() throws Exception {
+    void editTaskSeries_shouldReturnStatusOk_whenCalled() throws Exception {
         //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        taskSeriesRepro.save(taskSeries);
-        EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
-
-        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null,"home-123"));
-        when(userService.getUserById(anyString())).thenReturn(new User("1", "Test User"));
+        EditTaskSeriesDTO editTaskSeriesDTO = generateEditTaskSeriesDTO();
 
         //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/editTaskSeries")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(editTaskSeriesDTO)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        
+        mockMvc.perform(patch("/api/task/1/editTaskSeries").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(editTaskSeriesDTO)))
+                .andExpect(status().isOk());
     }
 
     @Test
     @WithMockUser
     void addTaskToHome_shouldReturnStatusOK_whenCalledToBeAddedToHome() throws Exception {
-        //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        taskSeriesRepro.save(taskSeries);
-        doNothing().when(taskService).addTaskToHome(eq("1"), any(String.class));
-
         //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/addTaskToHome")
+        mockMvc.perform(patch("/api/task/1/addTaskToHome").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(
                                 """
@@ -191,48 +157,20 @@ class TaskControllerTest {
                                       "homeId"  : "1"
                                     }
                                     """
-                            )
                         )
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                )
+                .andExpect(status().isOk());
     }
 
     @Test
     @WithMockUser
     void deleteTask_shouldDeleteTask_whenCalled() throws Exception {
-        //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        taskSeriesRepro.save(taskSeries);
-
         //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/1/delete"))
-                .andExpect(MockMvcResultMatchers.status().isAccepted());
-
-        //THEN
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json("[]"));
+        mockMvc.perform(delete("/api/task/1/delete").with(csrf()))
+                .andExpect(status().isAccepted());
     }
 
-    private static TaskSeries createTaskSeries() {
-        TaskDefinition taskDefinition = new TaskDefinition("1",
-                "test",
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new BigDecimal(1),
-                Priority.HIGH,
-                2);
-
-        List<Task> taskList = new ArrayList<>();
-        taskList.add(new Task("1", Status.OPEN, null));
-
-        return new TaskSeries("1",
-                taskDefinition,
-                taskList,
-                "home-1",
-                new ArrayList<>());
-    }
-
-    private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){
+    private static EditTaskSeriesDTO generateEditTaskSeriesDTO() {
         List<String> itemIDs = new ArrayList<>();
         itemIDs.add("1");
         itemIDs.add("2");
