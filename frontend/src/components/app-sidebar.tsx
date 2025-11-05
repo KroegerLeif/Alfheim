@@ -10,6 +10,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import Logout from "@/components/Logout.tsx";
 
 // Menu items.
 const items = [
@@ -54,6 +55,7 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
                             ))}
                         </SidebarMenu>
+                        <Logout />
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>

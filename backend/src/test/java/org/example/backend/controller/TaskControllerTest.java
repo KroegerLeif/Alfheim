@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -58,6 +59,7 @@ class TaskControllerTest {
     }
     
     @Test
+    @WithMockUser
     void getAllTasks_shouldReturnAllTasks() throws Exception {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
@@ -84,6 +86,7 @@ class TaskControllerTest {
     }
 
     @Test
+    @WithMockUser
     void createTask_shouldReturnCreatedTask_whenTaskIsCreated() throws Exception {
         //GIVEN
         when(idService.createNewId()).thenReturn("1");
@@ -119,6 +122,7 @@ class TaskControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editTask_shouldReturnUpdatedTask_whenTaskIsEditedToINProgress()throws Exception{
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
@@ -152,6 +156,7 @@ class TaskControllerTest {
     }
 
     @Test
+    @WithMockUser
     void editdTaskSeries_shouldRetundStautsOK_whenCalled() throws Exception {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
@@ -170,6 +175,7 @@ class TaskControllerTest {
     }
 
     @Test
+    @WithMockUser
     void addTaskToHome_shouldReturnStatusOK_whenCalledToBeAddedToHome() throws Exception {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
@@ -191,6 +197,7 @@ class TaskControllerTest {
     }
 
     @Test
+    @WithMockUser
     void deleteTask_shouldDeleteTask_whenCalled() throws Exception {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
