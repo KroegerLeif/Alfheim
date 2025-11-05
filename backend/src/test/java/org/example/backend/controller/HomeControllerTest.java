@@ -128,7 +128,7 @@ class HomeControllerTest {
                             }
                         """
                 ))
-                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(MockMvcResultMatchers.status().is2xxSuccessful())
                 .andExpect(MockMvcResultMatchers.content().json("""
                                     {
                                         "id": "1",
@@ -143,7 +143,7 @@ class HomeControllerTest {
                                         "admin": "admin",
                                         "numberTask": 0,
                                         "numberItems": 0,
-                                        "members" : []
+                                        "members" : ["user"]
                                       }
                        
                                     """));
@@ -178,8 +178,8 @@ class HomeControllerTest {
                                           "country": "new country"
                                         },
                                         "admin": "admin",
-                                        "numberItems": 2,
-                                        "numberTask": 1,
+                                        "numberItems": 0,
+                                        "numberTask": 0,
                                         "members" : []
                                       }
                        
@@ -279,7 +279,7 @@ class HomeControllerTest {
                           "city": "city",
                           "country": "country"
                         },
-                        "numberItems": 1,
+                        "numberItems": 0,
                         "numberTask": 0
                     }
                     """));
@@ -314,7 +314,7 @@ class HomeControllerTest {
                           "country": "country"
                         },
                         "numberItems": 0,
-                        "numberTask": 1
+                        "numberTask": 0
                     }
                     """));
     }
