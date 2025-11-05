@@ -5,25 +5,29 @@ import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
-import org.example.backend.domain.task.*;
+import org.example.backend.domain.user.Role;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.mapper.HomeMapper;
 import org.example.backend.service.security.IdService;
-import org.example.backend.service.security.exception.HomeDoesNotExistException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class) // Ermöglicht die Verwendung von @Mock-Annotationen ohne manuelles Mocking
 class HomeServiceTest {
 
     @Mock
@@ -33,8 +37,13 @@ class HomeServiceTest {
     @Mock
     private final IdService idService = Mockito.mock(IdService.class);
 
+    private HomeService homeService;
 
-    HomeService homeService = new HomeService(mockRepo,homeMapper,idService);
+    @BeforeEach
+    void setUp() {
+        homeService = new HomeService(mockRepo, homeMapper, idService);
+    }
+
 
     @Test
     void getAllHomes() {
@@ -49,7 +58,7 @@ class HomeServiceTest {
     @Test
     void getHomeNames_shouldReturnAllHomes_whenCalled(){
         //GIVEN
-        Home home = new Home("1", "Test", new Address("1", "street", "postCode", "city", "country"), new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "Test", new Address("1", "street", "postCode", "city", "country"), new HashMap<>());
         ArrayList<Home> response = new ArrayList<>();
         response.add(home);
 
@@ -63,22 +72,38 @@ class HomeServiceTest {
     @Test
     void createNewHome_shouldReturnHomeTableReturnDTO_whenHomeIsCreated() {
         //GIVEN
+        String testUserId = "user-123";
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
-        CreateHomeDTO createHomeDTO = new CreateHomeDTO("Home",address);
-        HomeTableReturnDTO homeTableReturnDTO = new HomeTableReturnDTO("1","Test",address,"admin",0,0,new ArrayList<>());
-        //Mocking
-        when(homeMapper.mapToHome(createHomeDTO)).thenReturn(home);
+        CreateHomeDTO createHomeDTO = new CreateHomeDTO("New Home", address);
+
+        // 1. Simulieren, dass ein Benutzer angemeldet ist
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn(testUserId);
+        SecurityContextHolder.setContext(securityContext);
+
+        // 2. Vorbereiten der gemockten Methodenaufrufe
+        Home homeWithoutIdAndMembers = new Home(null, "New Home", address, null);
+        when(homeMapper.mapToHome(createHomeDTO)).thenReturn(homeWithoutIdAndMembers);
         when(idService.createNewId()).thenReturn("1");
-        when(homeMapper.mapToHomeTableReturn(home)).thenReturn(homeTableReturnDTO);
-        when(mockRepo.save(home)).thenReturn(home);
+
+        // ArgumentCaptor, um das gespeicherte Objekt zu überprüfen
+        ArgumentCaptor<Home> homeCaptor = ArgumentCaptor.forClass(Home.class);
+        when(mockRepo.save(homeCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        HomeTableReturnDTO expectedDTO = new HomeTableReturnDTO("1", "New Home", address, "admin", 0, 0, new ArrayList<>());
+        when(homeMapper.mapToHomeTableReturn(any(Home.class))).thenReturn(expectedDTO);
 
         //WHEN
-        var actual = homeService.createNewHome(createHomeDTO);
+        HomeTableReturnDTO actual = homeService.createNewHome(createHomeDTO);
 
         //THEN
-        assertEquals(actual,homeTableReturnDTO);
+        assertEquals(expectedDTO, actual);
 
+        Home savedHome = homeCaptor.getValue();
+        assertEquals("1", savedHome.id());
+        assertEquals(Role.ADMIN, savedHome.members().get(testUserId));
     }
 
     @Test
@@ -86,10 +111,10 @@ class HomeServiceTest {
         //GIVEN
         Address address = new Address("1", "street", "postCode", "city", "country");
         Address address2 = new Address("2", "street2", "postCode", "Town", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address, new HashMap<>());
         String id = "1";
-        EditHomeDTO editHomeDTO = getEditHomeDTO();
-        HomeTableReturnDTO expected = new HomeTableReturnDTO("1","Test",address2,"admin",0,0,new ArrayList<>());
+        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Home", address2, new ArrayList<>(),new ArrayList<>());
+        HomeTableReturnDTO expected = new HomeTableReturnDTO("1", "Updated Home", address2, "admin", 0, 0, new ArrayList<>());
 
         //MOCKING
         when(mockRepo.findById(id)).thenReturn(java.util.Optional.of(home));
@@ -97,7 +122,7 @@ class HomeServiceTest {
         when(homeMapper.mapToHomeTableReturn(any(Home.class))).thenReturn(expected);
 
         //
-        var actual = homeService.editHome(id,editHomeDTO);
+        var actual = homeService.editHome(id, editHomeDTO);
 
         //THEN
         assertEquals(expected,actual);
@@ -108,206 +133,12 @@ class HomeServiceTest {
     void deleteHome_shouldDeleteHome_whenCalled() {
         //GIVEN
         String id = "1";
-        mockRepo.save(
-                new Home(id,
-                        "Test",
-                        new Address("1",
-                                "street",
-                                "postCode",
-                                "city",
-                                "country"),
-                        new ArrayList<>(),
-                        new ArrayList<>(),
-                        new HashMap<>()));
+
         //WHEN
         homeService.deleteHome(id);
         //THEN
         Mockito.verify(mockRepo).deleteById(id);
 
-    }
-
-    @Test
-    void addTaskToHome_shouldAddTaskToHome_whenCalled() {
-        //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        String homeId = "1";
-        Home home = new Home(homeId, "Test", new Address("1", "street", "postCode", "city", "country"), new ArrayList<>(), new ArrayList<>(), new HashMap<>());
-
-        //MOCKING
-        when(mockRepo.findById(homeId)).thenReturn(java.util.Optional.of(home));
-
-        //WHEN
-        homeService.addTaskToHome(homeId, taskSeries);
-        //THEN
-        Mockito.verify(mockRepo).findById(homeId);
-        Mockito.verify(mockRepo).save(any(Home.class));
-    }
-
-    @Test
-    void addTaskToHOme_shouldThrowHomeDoesNotExistException_whenHomeDoesNotExist(){
-        // GIVEN
-        String id = "Unique1";
-        when(mockRepo.findById(id)).thenReturn(java.util.Optional.empty());
-        TaskSeries taskSeries = createTaskSeries();
-
-        // WHEN & THEN
-        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.addTaskToHome(id, taskSeries));
-        assertEquals("Home does not Exist", exception.getMessage());
-    }
-
-    @Test
-    void getHomeWithConnectedTask_ShouldReturnStringOfHomeID_whenCalled(){
-        //GIVEN
-        List<String> taskSeriesList = new ArrayList<>();
-        taskSeriesList.add("1");
-        Home home = new Home("1",
-                "Test",
-                        new Address("1",
-                                 "street",
-                                "postCode",
-                                "city",
-                                "country"),
-                new ArrayList<>(),
-                taskSeriesList,
-                new HashMap<>());
-        when(mockRepo.findAll()).thenReturn(List.of(home));
-        //WHEN
-        String actual = homeService.getHomeWithConnectedTask("1");
-        //THEN
-        assertEquals("Test",actual);
-    }
-
-    @Test
-    void getHomeWithConnectedTask_ShouldThrowHomeDoesNotExistException_whenTaskDoesNotExist(){
-        //GIVEN
-        try{
-
-            List<String> taskSeriesList = new ArrayList<>();
-            taskSeriesList.add("1");
-
-            Home home = new Home("1",
-                    "Test",
-                    new Address("1",
-                            "street",
-                            "postCode",
-                            "city",
-                            "country"),
-                    new ArrayList<>(),
-                    taskSeriesList,
-                    new HashMap<>());
-            mockRepo.save(home);
-            when(mockRepo.findById("1")).thenReturn(java.util.Optional.empty());
-            //WHEN
-            homeService.getHomeWithConnectedTask("1");
-            //THEN
-        }catch (HomeDoesNotExistException e){
-            assertEquals("No Home with this TaskSeries found",e.getMessage());
-        }
-    }
-
-    @Test
-    void deleteTaskFromHome_shouldDeleteTaskFromHome_whenCalled() {
-        //GIVEN
-        String id = "1";
-        List<String> taskSeriesList = new ArrayList<>();
-        taskSeriesList.add("1");
-        Home home = new Home("Unique",
-                "Test",
-                new Address("1", "Anders","333123","Hamburg","Germany"),
-                new ArrayList<>(),
-                taskSeriesList,
-                new HashMap<>());
-
-        when(mockRepo.findAll()).thenReturn(List.of(home));
-        //WHEN
-        homeService.deleteTaskFromHome(id);
-        //THEN
-
-    }
-
-    @Test
-    void deleteTaskFromHome_shouldThrowHomeDoesNotExistException_whenTaskDoesNotExistInAnnyHome() {
-        //GIVEN
-        String id = "1";
-        when(mockRepo.findAll()).thenReturn(new ArrayList<>()); // Mock an empty list of homes
-        //WHEN & THEN
-        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.deleteTaskFromHome(id));
-        assertEquals("No Home with this TaskSeries found", exception.getMessage());
-    }
-
-    @Test
-    void deleteItemFromHome_shouldDeleteItemFromHome_whenCalled() {
-        //GIVEN
-        String id = "1";
-        List<String> itemList = new ArrayList<>();
-        itemList.add("1");
-        Home home = new Home("Unique",
-                "Test",
-                new Address("1", "Anders","333123","Hamburg","Germany"),
-                itemList,
-                new ArrayList<>(),
-                new HashMap<>());
-
-        when(mockRepo.findAll()).thenReturn(List.of(home));
-        //WHEN
-        homeService.deleteItemFromHome(id);
-        //THEN
-
-    }
-
-    @Test
-    void deleteItemFromHome_shouldThrowHomeDoesNotExistException_whenItemDoesNotExistInAnnyHome() {
-        //GIVEN
-        String id = "1";
-        when(mockRepo.findAll()).thenReturn(new ArrayList<>()); // Mock an empty list of homes
-        //WHEN & THEN
-        HomeDoesNotExistException exception = assertThrows(HomeDoesNotExistException.class, () -> homeService.deleteItemFromHome(id));
-        assertEquals("No Home with this Item found", exception.getMessage());
-    }
-
-    private static EditHomeDTO getEditHomeDTO() {
-        Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
-
-        List<String> newItemList = new ArrayList<>();
-        newItemList.add("newItem");
-
-        List<String> newTaskSerisList = new ArrayList<>();
-        newTaskSerisList.add("1");
-
-        return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
-    }
-
-    @Test
-    void addItemToHome_shouldAddItemIdToHome_whenCalled(){
-        //GIVEN
-        String homeId = "Unique";
-        String itemId = "ItemID_1";
-
-        Home home = new Home("Unique",
-                "Test",
-                new Address("1", "Anders","333123","Hamburg","Germany"),
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new HashMap<>());
-
-        when(mockRepo.findById(homeId)).thenReturn(java.util.Optional.of(home));
-        //WHEN
-        homeService.addItemToHome(homeId,itemId);
-        //THEN
-        Mockito.verify(mockRepo).findById(homeId);
-        Mockito.verify(mockRepo).save(any(Home.class));
-    }
-
-    private static TaskSeries createTaskSeries(){
-        return new TaskSeries("1",
-                new TaskDefinition("1_D",
-                        "newTask",
-                        new ArrayList<>(),
-                        new ArrayList<>(),
-                        new BigDecimal("10"),
-                        Priority.HIGH,
-                        3),
-                new ArrayList<>());
     }
 
 }
