@@ -4,10 +4,8 @@ import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Home;
-import org.example.backend.domain.user.User;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 @Service

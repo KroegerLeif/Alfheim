@@ -54,7 +54,7 @@ public class TaskService {
             taskSeries = taskSeries.withOwnerUserIds(List.of(currentUserId));
         } else {
             // TODO: Berechtigungsprüfung: Darf der User in diesem Haus Tasks erstellen?
-            // homeService.isUserMemberOfHome(taskSeries.homeId(), currentUserId);
+            //homeService.isUserMemberOfHome(taskSeries.homeId(), currentUserId);
         }
 
         taskSeries = createUniqueIds(taskSeries);

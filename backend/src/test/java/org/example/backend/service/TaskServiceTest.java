@@ -55,12 +55,8 @@ class TaskServiceTest {
     @BeforeEach
     void setUp() {
         taskService = new TaskService(mockRepo, taskMapper, idService, itemService, userService, homeService);
-
-        // Simulate a logged-in user for all tests
         Authentication authentication = Mockito.mock(Authentication.class);
         SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn(TEST_USER_ID);
         SecurityContextHolder.setContext(securityContext);
     }
 
