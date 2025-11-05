@@ -10,6 +10,7 @@ import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,15 +33,20 @@ class TaskMapperTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 LocalDate.now(),
-                0);
+                "home-123", // homeId hinzugefügt
+                0
+        );
 
         TaskDefinition taskDefinition = createTaskDefinition();
 
         when(taskDefinitionMapper.mapToTaskDefinition(createTaskDTO)).thenReturn(taskDefinition);
 
         var expected = new TaskSeries("",
-                                    taskDefinition,
-                                    new ArrayList<>());
+                taskDefinition,
+                new ArrayList<>(),
+                "home-123", // Erwartete homeId
+                null
+        );
         //WHEN
         var actual = taskMapper.mapToTaskSeries(createTaskDTO);
 
@@ -64,7 +70,9 @@ class TaskMapperTest {
         TaskSeries taskSeries = new TaskSeries(
                 "1",
                 taskDefinition,
-                taskList
+                taskList,
+                "home-xyz", // homeId in der Test-Entität
+                null
         );
         var expected = new TaskTableReturnDTO(
                 "2",
@@ -75,8 +83,8 @@ class TaskMapperTest {
                 Priority.HIGH,
                 Status.OPEN,
                 task.dueDate(),
-                0
-                ,"");
+                0,
+                "home-xyz"); // Erwartete homeId im DTO
 
         //WHEN
         var actual = taskMapper.mapToTaskTableReturn(taskSeries);
@@ -90,7 +98,9 @@ class TaskMapperTest {
         //GIVEN
         TaskSeries taskSeries = new TaskSeries("1",
                                 createTaskDefinition(),
-                                new ArrayList<>());
+                                new ArrayList<>(),
+                                null,
+                                null);
         //WHEN
         try{
             taskMapper.mapToTaskTableReturn(taskSeries);

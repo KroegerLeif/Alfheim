@@ -20,6 +20,7 @@ class TaskDefinitionMapperTest {
                                                         new ArrayList<>(),
                                                         Priority.HIGH,
                                                         LocalDate.now(),
+                                                        null, // homeId hinzugefügt
                                                         0);
         var expected = new TaskDefinition("",
                                           "def",

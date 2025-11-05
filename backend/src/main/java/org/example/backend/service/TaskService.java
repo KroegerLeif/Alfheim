@@ -13,14 +13,15 @@ import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
-import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -30,40 +31,61 @@ public class TaskService {
     private final TaskMapper taskMapper;
     private final IdService idService;
     private final ItemService itemService;
-    private final HomeService homeService;
     private final UserService userService;
+    // HomeService wird nicht mehr für die Kernlogik benötigt, nur noch für Berechtigungsprüfungen
+    private final HomeService homeService;
 
 
-    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, ItemService itemService, HomeService homeService, UserService userService) {
+    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, ItemService itemService, UserService userService, HomeService homeService) {
         this.taskseriesRepro = taskseriesRepro;
         this.taskMapper = taskMapper;
         this.idService = idService;
         this.itemService = itemService;
-        this.homeService = homeService;
         this.userService = userService;
+        this.homeService = homeService;
     }
 
     public TaskTableReturnDTO createNewTask(CreateTaskDTO createTaskDTO) {
-        TaskSeries taskSeries = createUniqueIds(taskMapper.mapToTaskSeries(createTaskDTO));
+        TaskSeries taskSeries = taskMapper.mapToTaskSeries(createTaskDTO);
+
+        // Wenn keine homeId angegeben ist, ist es eine persönliche Task
+        if (taskSeries.homeId() == null || taskSeries.homeId().isEmpty()) {
+            String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+            taskSeries = taskSeries.withOwnerUserIds(List.of(currentUserId));
+        } else {
+            // TODO: Berechtigungsprüfung: Darf der User in diesem Haus Tasks erstellen?
+            // homeService.isUserMemberOfHome(taskSeries.homeId(), currentUserId);
+        }
+
+        taskSeries = createUniqueIds(taskSeries);
 
         //added first task to tasklist
         taskSeries.taskList()
                 .add(createFirstTask(
                         taskSeries.id(),
-                        createTaskDTO)
-                );
+                        createTaskDTO));
 
         taskseriesRepro.save(taskSeries);
 
         return taskMapper.mapToTaskTableReturn(taskSeries);
-
     }
 
     public List<TaskTableReturnDTO> getAll(){
-        return taskseriesRepro.findAll().stream().map
-                ((taskSeries -> taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(
-                        getHomeID(taskSeries.id())))
-                ).toList();
+        String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        // TODO: Hole die Home-IDs, in denen der User Mitglied ist, z.B. über den HomeService
+        // List<String> userHomeIds = homeService.getHomeIdsForUser(currentUserId);
+
+        // Dies ist eine vereinfachte Logik. Eine performantere Lösung würde eine custom Query im Repository verwenden.
+        return taskseriesRepro.findAll().stream()
+                .filter(ts -> {
+                    // Task gehört zu einem Haus, in dem der User Mitglied ist
+                    boolean isHomeTask = ts.homeId() != null; // && userHomeIds.contains(ts.homeId());
+                    // Task gehört direkt dem User
+                    boolean isPersonalTask = ts.ownerUserIds() != null && ts.ownerUserIds().contains(currentUserId);
+                    return isHomeTask || isPersonalTask;
+                })
+                .map(taskMapper::mapToTaskTableReturn)
+                .collect(Collectors.toList());
     }
 
     public TaskTableReturnDTO editTask(String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
@@ -89,7 +111,7 @@ public class TaskService {
 
         taskseriesRepro.save(taskSeries);
 
-        return taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(getHomeID(taskSeries.id()));
+        return taskMapper.mapToTaskTableReturn(taskSeries);
     }
 
     public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
@@ -119,8 +141,10 @@ public class TaskService {
             taskSeries = changeRepetition(editTaskSeriesDto.repetition(), taskSeries);
         }
 
-        if (editTaskSeriesDto.homeId() != null && !editTaskSeriesDto.homeId().isEmpty()){
-            homeService.addTaskToHome(editTaskSeriesDto.homeId(), taskSeries);
+        // Logik zum Ändern der Zugehörigkeit
+        if (editTaskSeriesDto.homeId() != null){
+            // TODO: Berechtigungsprüfung: Darf der User die Task diesem Haus zuordnen?
+            taskSeries = taskSeries.withHomeId(editTaskSeriesDto.homeId()).withOwnerUserIds(null);
         }
 
         taskseriesRepro.save(taskSeries);
@@ -128,18 +152,15 @@ public class TaskService {
     }
 
     public void deleteTask(String id) {
+        // TODO: Berechtigungsprüfung: Darf der aktuelle User diese Task löschen?
         taskseriesRepro.deleteById(id);
-        try{
-            homeService.deleteTaskFromHome(id);
-        }catch (HomeDoesNotExistException e){
-            //Do nothing
-        }
-
     }
 
     public void addTaskToHome(String id, String homeId) {
+        // Diese Methode ist jetzt veraltet und sollte durch die Logik in editTaskSeries ersetzt werden.
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
-        homeService.addTaskToHome(homeId, taskSeries);
+        // TODO: Berechtigungsprüfung
+        taskseriesRepro.save(taskSeries.withHomeId(homeId).withOwnerUserIds(null));
     }
 
     private TaskSeries createUniqueIds(TaskSeries taskSeries){
@@ -150,7 +171,9 @@ public class TaskService {
         return new TaskSeries(
                 taskServiceId,
                 taskSeries.definition().withId(taskDefId),
-                taskSeries.taskList()
+                taskSeries.taskList(),
+                taskSeries.homeId(),
+                taskSeries.ownerUserIds()
         );
     }
 
@@ -216,14 +239,6 @@ public class TaskService {
 
     private TaskSeries changeRepetition(int newRepetition, TaskSeries taskSeries){
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
-    }
-
-    private String getHomeID(String taskSeriesId){
-        try {
-            return homeService.getHomeWithConnectedTask(taskSeriesId);
-        } catch (HomeDoesNotExistException e) {
-            return "";
-        }
     }
 
 }
