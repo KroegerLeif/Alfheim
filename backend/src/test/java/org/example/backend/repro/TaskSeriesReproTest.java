@@ -40,7 +40,10 @@ class TaskSeriesReproTest {
         TaskSeries taskSeries = new TaskSeries(
                 "1",
                 taskDefinition,
-                taskList
+                taskList,
+                "homeID",
+                new ArrayList<>()
+
         );
         taskSeriesRepro.save(taskSeries);
         //WHEN
