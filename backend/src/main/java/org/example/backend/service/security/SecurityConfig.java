@@ -26,7 +26,7 @@ public class SecurityConfig {
                 )
                 .oauth2Login(o -> o.defaultSuccessUrl(appUrl))
                 .logout(logout -> logout
-                        .logoutSuccessUrl(appUrl)
+                        .logoutSuccessUrl(appUrl+"/landingPage")
                 );
         return http.build();
     }
