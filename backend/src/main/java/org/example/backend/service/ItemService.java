@@ -9,12 +9,13 @@ import org.example.backend.domain.item.Item;
 import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
-import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.example.backend.service.security.exception.ItemDoesNotExistException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ItemService {
@@ -35,9 +36,17 @@ public class ItemService {
     }
 
     public List<ItemTableReturnDTO> getAll(){
-        return itemRepro.findAll().stream()
+        String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        // Annahme: homeService hat eine Methode, um alle Home-IDs eines Users zu bekommen
+        // List<String> userHomeIds = homeService.getHomeIdsForUser(currentUserId);
+
+        // Temporäre Lösung, bis homeService.getHomeIdsForUser existiert:
+        // Wir filtern nach dem Speichern. Eine richtige Implementierung würde
+        // itemRepro.findByHomeIdIn(userHomeIds) verwenden.
+        return itemRepro.findAll().stream() // Dies sollte später optimiert werden
+                // .filter(item -> userHomeIds.contains(item.homeId()))
                 .map(itemMapper::mapToItemTableReturn)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public Item getItemById(String id) {
@@ -45,18 +54,21 @@ public class ItemService {
     }
 
     public ItemTableReturnDTO createNewItem(CreateItemDTO createItemDTO){
+        // TODO: Berechtigungsprüfung: Darf der aktuelle User Items in dieser `homeId` erstellen?
+        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        // if (!homeService.isUserMemberOfHome(createItemDTO.homeId(), currentUserId)) { ... }
+
         Item item = creatUniqueIds(itemMapper.mapToItem(createItemDTO));
         itemRepro.save(item);
-        return itemMapper.mapToItemTableReturn(item);
+        ItemTableReturnDTO returnDTO = itemMapper.mapToItemTableReturn(item);
+        return returnDTO;
     }
 
     public void deleteItem(String id) {
+        // TODO: Berechtigungsprüfung: Darf der User dieses Item löschen?
+        // Item item = getItemById(id);
+        // if (!homeService.isUserMemberOfHome(item.homeId(), currentUserId)) { ... }
         itemRepro.deleteById(id);
-        try{
-            homeService.deleteItemFromHome(id);
-        }catch (HomeDoesNotExistException e){
-            //Do nothing
-        }
     }
 
     private Item creatUniqueIds(Item item){
@@ -69,7 +81,8 @@ public class ItemService {
                 item_id,
                 item.name(),
                 itemCategory,
-                item.energyLabel()
+                item.energyLabel(),
+                item.homeId()
         );
     }
 
@@ -84,6 +97,7 @@ public class ItemService {
     }
 
     public ItemTableReturnDTO editItem(String id, EditItemDTO editItemDTO) {
+        // TODO: Berechtigungsprüfung vor dem Laden und Bearbeiten
         Item item = itemRepro.findById(id).orElseThrow(() -> new ItemDoesNotExistException("No Item with this ID"));
 
         //Checks every Value and changes them accordingly
@@ -97,7 +111,8 @@ public class ItemService {
             item = changeItemCategory(item, editItemDTO.category());
         }
         if (editItemDTO.homeId() != null) {
-            addItemToHome(editItemDTO.homeId(), item.id());
+            // TODO: Berechtigungsprüfung für das neue Zuhause
+            item = item.withHomeId(editItemDTO.homeId());
         }
         itemRepro.save(item);
         return itemMapper.mapToItemTableReturn(item);
@@ -114,13 +129,6 @@ public class ItemService {
     private Item changeItemCategory(Item item, String categoryName) {
         Category itemCategory = getUniqueCategroy(new Category(null, categoryName));
         return item.withCategory(itemCategory);
-    }
-    private void addItemToHome(String homeId, String itemId) {
-        try{
-            homeService.addItemToHome(homeId,itemId);
-        }catch (HomeDoesNotExistException e){
-            //Do Nothing
-        }
     }
 
 }
