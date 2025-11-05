@@ -6,8 +6,8 @@ import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
 import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
-import org.example.backend.service.HomeService;
 import org.example.backend.service.ItemService;
+import org.example.backend.service.TaskService;
 import org.example.backend.service.UserService;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
@@ -47,7 +47,7 @@ class TaskControllerTest {
     @MockitoBean
     private IdService idService;
     @MockitoBean
-    private HomeService homeService;
+    private TaskService taskService;
     @MockitoBean
     private ItemService itemService;
     @MockitoBean
@@ -163,7 +163,7 @@ class TaskControllerTest {
         taskSeriesRepro.save(taskSeries);
         EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
 
-        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null));
+        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null,"home-123"));
         when(userService.getUserById(anyString())).thenReturn(new User("1", "Test User"));
 
         //WHEN
@@ -180,7 +180,7 @@ class TaskControllerTest {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
         taskSeriesRepro.save(taskSeries);
-        doNothing().when(homeService).addTaskToHome(eq("1"), any(TaskSeries.class));
+        doNothing().when(taskService).addTaskToHome(eq("1"), any(String.class));
 
         //WHEN
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/addTaskToHome")
@@ -227,7 +227,9 @@ class TaskControllerTest {
 
         return new TaskSeries("1",
                 taskDefinition,
-                taskList);
+                taskList,
+                "home-1",
+                new ArrayList<>());
     }
 
     private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){

@@ -58,7 +58,7 @@ class HomeControllerTest {
     @WithMockUser
     void getAllHomes_shouldReturnListOfHomes_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address, new HashMap<>());
         homeRepro.save(home);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/home"))
@@ -89,7 +89,7 @@ class HomeControllerTest {
     @WithMockUser
     void getHomeNames_shouldReturnListOfHomeNames_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address, new HashMap<>());
         homeRepro.save(home);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/home/getNames"))
@@ -155,7 +155,7 @@ class HomeControllerTest {
     void editHome_shouldUpdateAllFields_whenAllFieldsAreProvided()throws Exception{
         //GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress, new HashMap<>());
         homeRepro.save(home);
 
         EditHomeDTO editHomeDTO = getEditHomeDTO();
@@ -191,7 +191,7 @@ class HomeControllerTest {
     void editHome_shouldUpdateOnlyName_whenOnlyNameIsProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress, new HashMap<>());
         homeRepro.save(home);
 
         EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Name", null, null, null);
@@ -223,7 +223,7 @@ class HomeControllerTest {
     void editHome_shouldUpdateOnlyAddress_whenOnlyAddressIsProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress, new HashMap<>());
         homeRepro.save(home);
 
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
@@ -256,7 +256,7 @@ class HomeControllerTest {
     void editHome_shouldUpdateOnlyItems_whenOnlyItemsAreProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress,  new HashMap<>());
         homeRepro.save(home);
 
         List<String> newItemList = new ArrayList<>();
@@ -290,7 +290,7 @@ class HomeControllerTest {
     void editHome_shouldUpdateOnlyTaskSeries_whenOnlyTaskSeriesAreProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress, new HashMap<>());
         homeRepro.save(home);
 
         List<String> newTaskSeriesList = new ArrayList<>();
@@ -324,7 +324,7 @@ class HomeControllerTest {
     void deleteHome_shouldDeleteHome_whenCalled() throws Exception {
         //GIVEN
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address,new HashMap<>());
         homeRepro.save(home);
 
         //WHEN

@@ -113,7 +113,8 @@ class ItemControllerTest {
         return new Item("10",
                 "test",
                 category,
-                EnergyLabel.A);
+                EnergyLabel.A,
+                "home-123");
     }
 
 
