@@ -17,8 +17,6 @@ public class HomeMapper {
         return new Home("",
                         createHomeDTO.name(),
                         createHomeDTO.address(),
-                        new ArrayList<>(),
-                        new ArrayList<>(),
                         new HashMap<>());
     }
 
@@ -27,9 +25,9 @@ public class HomeMapper {
                                     home.name(),
                                     home.address(),
                                     "admin",
-                                    home.taskSeries().size(),
-                                    home.items().size(),
-                                    home.members().keySet().stream().map(User::name).toList());
+                                    0,//TODO open Task Service ad get all Task assotiadted with this user
+                                    0,//TODO open item Service ad get all Item assotiadted with this user
+                                    home.members().keySet().stream().toList());//TODO May at thier role as well
     }
 
     public HomeListReturnDTO mapToHomeListReturn(Home home) {

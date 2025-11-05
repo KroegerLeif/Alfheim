@@ -23,8 +23,6 @@ class HomeMapperTest {
         var expected = new Home("",
                     "Test",
                     address,
-                    new ArrayList<>(),
-                    new ArrayList<>(),
                     new HashMap<>());
 
         //WHEN
@@ -39,7 +37,7 @@ class HomeMapperTest {
     void mapToHomeTableReturn() {
         //GIVEN
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address, new HashMap<>());
         var expected = new HomeTableReturnDTO("1",
                                             "home",
                                                 address,
