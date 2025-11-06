@@ -32,7 +32,8 @@ class TaskMapperTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 LocalDate.now(),
-                0);
+                0,
+                "home123");
 
         TaskDefinition taskDefinition = createTaskDefinition();
 
@@ -40,6 +41,8 @@ class TaskMapperTest {
 
         var expected = new TaskSeries("",
                                     taskDefinition,
+                                    new ArrayList<>(),
+                                    "home123",
                                     new ArrayList<>());
         //WHEN
         var actual = taskMapper.mapToTaskSeries(createTaskDTO);
@@ -64,7 +67,9 @@ class TaskMapperTest {
         TaskSeries taskSeries = new TaskSeries(
                 "1",
                 taskDefinition,
-                taskList
+                taskList,
+                "home123",
+                new ArrayList<>()
         );
         var expected = new TaskTableReturnDTO(
                 "2",
@@ -76,7 +81,7 @@ class TaskMapperTest {
                 Status.OPEN,
                 task.dueDate(),
                 0
-                ,"");
+                ,"home123");
 
         //WHEN
         var actual = taskMapper.mapToTaskTableReturn(taskSeries);
@@ -90,6 +95,8 @@ class TaskMapperTest {
         //GIVEN
         TaskSeries taskSeries = new TaskSeries("1",
                                 createTaskDefinition(),
+                                new ArrayList<>(),
+                                "home123",
                                 new ArrayList<>());
         //WHEN
         try{

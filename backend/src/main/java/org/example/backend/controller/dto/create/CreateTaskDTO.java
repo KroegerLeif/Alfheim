@@ -1,6 +1,5 @@
 package org.example.backend.controller.dto.create;
 
-import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.Priority;
 
 import java.time.LocalDate;
@@ -10,5 +9,6 @@ public record CreateTaskDTO(String name,
                             List<String> items,
                             Priority priority,
                             LocalDate dueDate,
-                            int repetition) {
+                            int repetition,
+                            String homeId) {
 }

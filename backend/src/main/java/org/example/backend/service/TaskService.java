@@ -9,11 +9,9 @@ import org.example.backend.domain.task.Priority;
 import org.example.backend.domain.task.Status;
 import org.example.backend.domain.task.Task;
 import org.example.backend.domain.task.TaskSeries;
-import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
-import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
 import org.springframework.stereotype.Service;
@@ -31,16 +29,14 @@ public class TaskService {
     private final IdService idService;
     private final ItemService itemService;
     private final HomeService homeService;
-    private final UserService userService;
 
 
-    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, ItemService itemService, HomeService homeService, UserService userService) {
+    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, ItemService itemService, HomeService homeService) {
         this.taskseriesRepro = taskseriesRepro;
         this.taskMapper = taskMapper;
         this.idService = idService;
         this.itemService = itemService;
         this.homeService = homeService;
-        this.userService = userService;
     }
 
     public TaskTableReturnDTO createNewTask(CreateTaskDTO createTaskDTO) {
@@ -59,11 +55,18 @@ public class TaskService {
 
     }
 
-    public List<TaskTableReturnDTO> getAll(){
-        return taskseriesRepro.findAll().stream().map
-                ((taskSeries -> taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(
-                        getHomeID(taskSeries.id())))
-                ).toList();
+    public List<TaskTableReturnDTO> getAll(String userName){
+        List<String> homeId = homeService.findHomeConnectedToUser(userName);
+        //Check User associated with the task
+        List<TaskSeries> connectedTasks = taskseriesRepro.findAllByTaskMembersContaining(userName);
+        //Check for the task with associated with the House
+        for(String connectedHome: homeId){
+            connectedTasks.addAll(taskseriesRepro.findAllByHomeId(connectedHome));
+        }
+
+        return connectedTasks.stream()
+                .map((taskMapper::mapToTaskTableReturn))
+                .toList();
     }
 
     public TaskTableReturnDTO editTask(String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
@@ -89,7 +92,7 @@ public class TaskService {
 
         taskseriesRepro.save(taskSeries);
 
-        return taskMapper.mapToTaskTableReturn(taskSeries).withHomeId(getHomeID(taskSeries.id()));
+        return taskMapper.mapToTaskTableReturn(taskSeries);
     }
 
     public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
@@ -120,7 +123,7 @@ public class TaskService {
         }
 
         if (editTaskSeriesDto.homeId() != null && !editTaskSeriesDto.homeId().isEmpty()){
-            homeService.addTaskToHome(editTaskSeriesDto.homeId(), taskSeries);
+            taskSeries = taskSeries.withHomeId(editTaskSeriesDto.homeId());
         }
 
         taskseriesRepro.save(taskSeries);
@@ -129,17 +132,11 @@ public class TaskService {
 
     public void deleteTask(String id) {
         taskseriesRepro.deleteById(id);
-        try{
-            homeService.deleteTaskFromHome(id);
-        }catch (HomeDoesNotExistException e){
-            //Do nothing
-        }
-
     }
 
     public void addTaskToHome(String id, String homeId) {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
-        homeService.addTaskToHome(homeId, taskSeries);
+        taskseriesRepro.save(taskSeries.withHomeId(homeId));
     }
 
     private TaskSeries createUniqueIds(TaskSeries taskSeries){
@@ -150,7 +147,9 @@ public class TaskService {
         return new TaskSeries(
                 taskServiceId,
                 taskSeries.definition().withId(taskDefId),
-                taskSeries.taskList()
+                taskSeries.taskList(),
+                taskSeries.homeId(),
+                taskSeries.taskMembers()
         );
     }
 
@@ -178,8 +177,11 @@ public class TaskService {
                                                     taskSeries.definition().repetition()
                                                 );
 
-        Task newTask = new Task(uniqueId, Status.OPEN, nextDueDate);
-        taskSeries.taskList().add(newTask);
+        //Adds new Task if the due date is not the same as the last task in the tasklist
+        if(nextDueDate != taskSeries.taskList().getLast().dueDate()){
+            Task newTask = new Task(uniqueId, Status.OPEN, nextDueDate);
+            taskSeries.taskList().add(newTask);
+        }
     }
 
     private void updateDueDate(TaskSeries taskSeries, LocalDate newDueDate){
@@ -203,11 +205,7 @@ public class TaskService {
     }
 
     private  TaskSeries changeAssignedUsers(List<String> assignedUser, TaskSeries taskSeries){
-        List<User> assignedUserList = new ArrayList<>();
-        for(String s: assignedUser){
-            assignedUserList.add(userService.getUserById(s));
-        }
-        return taskSeries.withDefinition(taskSeries.definition().withResponsible(assignedUserList));
+        return taskSeries.withDefinition(taskSeries.definition().withResponsible(assignedUser));
     }
 
     private  TaskSeries changePriority(Priority newPriority, TaskSeries taskSeries){
@@ -218,12 +216,8 @@ public class TaskService {
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
     }
 
-    private String getHomeID(String taskSeriesId){
-        try {
-            return homeService.getHomeWithConnectedTask(taskSeriesId);
-        } catch (HomeDoesNotExistException e) {
-            return "";
-        }
+    private List<String> getHomeIds(String userId){
+        return homeService.findHomeConnectedToUser(userId);
     }
 
 }

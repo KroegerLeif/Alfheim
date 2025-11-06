@@ -57,8 +57,8 @@ class ItemServiceTest {
     void getAll_shouldReturnList_whenItemsExist() {
         //WHEN
         ArrayList<Item> response = new ArrayList<>();
-        response.add(new Item("1", "Test", null, null));
-        response.add(new Item("2", "Test2", null, null));
+        response.add(new Item("1", "Test", null, null,"home123"));
+        response.add(new Item("2", "Test2", null, null, "home123"));
         when(mockRepo.findAll()).thenReturn(response);
         //THEN
         var actual = itemService.getAll();
@@ -69,14 +69,14 @@ class ItemServiceTest {
     @Test
     void createNewItem_shouldReturnANewItem_whenCalled(){
         //GIVEN
-        CreateItemDTO createItemDTO = new CreateItemDTO("Test", EnergyLabel.E, "TestCategory");
+        CreateItemDTO createItemDTO = new CreateItemDTO("Test", EnergyLabel.E, "TestCategory","home123");
         Category category_beforeId = new Category(null, "TestCategory");
-        Item item_beforeId = new Item(null, "Test", category_beforeId, EnergyLabel.E);
+        Item item_beforeId = new Item(null, "Test", category_beforeId, EnergyLabel.E,"home123");
 
         Category category_afterId = new Category("1", "TestCategory");
-        Item item_afterId = new Item("1", "Test", category_afterId, EnergyLabel.E);
+        Item item_afterId = new Item("1", "Test", category_afterId, EnergyLabel.E,"home123");
 
-        ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory");
+        ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory","home123");
 
         when(idService.createNewId()).thenReturn("1");
         when(itemMapper.mapToItem(createItemDTO)).thenReturn(item_beforeId);
@@ -108,12 +108,13 @@ class ItemServiceTest {
         //GIVEN
         String id = "1";
         EditItemDTO editItemDTO = new EditItemDTO("Kühlschrank", "Küche", EnergyLabel.E,"");
-        Item savedItem = new Item(id, "Test", null, null);
+        Item savedItem = new Item(id, "Test", null, null,"home123");
         mockRepo.save(savedItem);
         ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO(id,
                                                                     "Kühlschrank",
                                                                     EnergyLabel.E,
-                                                                    "Küche"
+                                                                    "Küche",
+                                                                    "home123"
         );
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedItem));
         when(itemMapper.mapToItemTableReturn(Mockito.any(Item.class))).thenReturn(expectedTableReturn);
@@ -129,7 +130,7 @@ class ItemServiceTest {
     void getItemByIdShouldReturnItemWhenItemExist(){
         //GIVEN
         String id = "1";
-        Item item = new Item(id, "Test", null, null);
+        Item item = new Item(id, "Test", null, null,"home123");
         mockRepo.save(item);
         when(mockRepo.findById(id)).thenReturn(Optional.of(item));
         //WHEN
@@ -154,7 +155,7 @@ class ItemServiceTest {
     void deleteItem_shouldDeleteItem_whenCalled(){
         //GIVEN
         String id = "1";
-        mockRepo.save(new Item(id, "Test", null, null));
+        mockRepo.save(new Item(id, "Test", null, null,"home123"));
         doNothing().when(mockRepo).deleteById(id);
         //WHEN
         itemService.deleteItem(id);

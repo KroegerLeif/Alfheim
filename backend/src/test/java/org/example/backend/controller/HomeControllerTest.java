@@ -58,7 +58,7 @@ class HomeControllerTest {
     @WithMockUser
     void getAllHomes_shouldReturnListOfHomes_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address, new HashMap<>());
         homeRepro.save(home);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/home"))
@@ -89,7 +89,7 @@ class HomeControllerTest {
     @WithMockUser
     void getHomeNames_shouldReturnListOfHomeNames_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address, new HashMap<>());
         homeRepro.save(home);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/home/getNames"))
@@ -155,7 +155,7 @@ class HomeControllerTest {
     void editHome_shouldUpdateAllFields_whenAllFieldsAreProvided()throws Exception{
         //GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress, new HashMap<>());
         homeRepro.save(home);
 
         EditHomeDTO editHomeDTO = getEditHomeDTO();
@@ -178,9 +178,9 @@ class HomeControllerTest {
                                           "country": "new country"
                                         },
                                         "admin": "admin",
-                                        "numberItems": 2,
-                                        "numberTask": 1,
-                                        "members" : []
+                                        "numberItems": 0,
+                                        "numberTask": 0,
+                                        "members" : ["1"]
                                       }
                        
                                     """));
@@ -191,10 +191,10 @@ class HomeControllerTest {
     void editHome_shouldUpdateOnlyName_whenOnlyNameIsProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress,  new HashMap<>());
         homeRepro.save(home);
 
-        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Name", null, null, null);
+        EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Name", null, new ArrayList<>());
 
         // WHEN
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
@@ -223,11 +223,11 @@ class HomeControllerTest {
     void editHome_shouldUpdateOnlyAddress_whenOnlyAddressIsProvided() throws Exception {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", originalAddress,  new HashMap<>());
         homeRepro.save(home);
 
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
-        EditHomeDTO editHomeDTO = new EditHomeDTO(null, updatedAddress, null, null);
+        EditHomeDTO editHomeDTO = new EditHomeDTO(null, updatedAddress, null);
 
         // WHEN
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
@@ -253,78 +253,10 @@ class HomeControllerTest {
 
     @Test
     @WithMockUser
-    void editHome_shouldUpdateOnlyItems_whenOnlyItemsAreProvided() throws Exception {
-        // GIVEN
-        Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
-        homeRepro.save(home);
-
-        List<String> newItemList = new ArrayList<>();
-        newItemList.add("newItem");
-        EditHomeDTO editHomeDTO = new EditHomeDTO(null, null, newItemList, null);
-
-        // WHEN
-        mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(editHomeDTO)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json("""
-                    {
-                        "id": "1",
-                        "name": "home",
-                        "address": {
-                          "id": "12",
-                          "street": "street",
-                          "postCode": "postCode",
-                          "city": "city",
-                          "country": "country"
-                        },
-                        "numberItems": 1,
-                        "numberTask": 0
-                    }
-                    """));
-    }
-
-    @Test
-    @WithMockUser
-    void editHome_shouldUpdateOnlyTaskSeries_whenOnlyTaskSeriesAreProvided() throws Exception {
-        // GIVEN
-        Address originalAddress = new Address("12", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", originalAddress, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
-        homeRepro.save(home);
-
-        List<String> newTaskSeriesList = new ArrayList<>();
-        newTaskSeriesList.add("1");
-        EditHomeDTO editHomeDTO = new EditHomeDTO(null, null, null, newTaskSeriesList);
-
-        // WHEN
-        mockMvc.perform(MockMvcRequestBuilders.patch("/api/home/1/edit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(editHomeDTO)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().json("""
-                    {
-                        "id": "1",
-                        "name": "home",
-                        "address": {
-                          "id": "12",
-                          "street": "street",
-                          "postCode": "postCode",
-                          "city": "city",
-                          "country": "country"
-                        },
-                        "numberItems": 0,
-                        "numberTask": 1
-                    }
-                    """));
-    }
-
-    @Test
-    @WithMockUser
     void deleteHome_shouldDeleteHome_whenCalled() throws Exception {
         //GIVEN
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "home", address, new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Home home = new Home("1", "home", address, new HashMap<>());
         homeRepro.save(home);
 
         //WHEN
@@ -340,13 +272,9 @@ class HomeControllerTest {
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
 
-        List<String> newItemList = new ArrayList<>();
-        newItemList.add("new Item");
-        newItemList.add("new Item2");
+        List<String> userList = new ArrayList<>();
+        userList.add("1");
 
-        List<String> newTaskSerisList = new ArrayList<>();
-        newTaskSerisList.add("1");
-
-        return new EditHomeDTO("Updated Home", updatedAddress,newItemList,newTaskSerisList);
+        return new EditHomeDTO("Updated Home", updatedAddress, userList);
     }
 }

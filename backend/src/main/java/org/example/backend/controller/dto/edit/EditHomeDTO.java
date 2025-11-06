@@ -6,6 +6,5 @@ import java.util.List;
 
 public record EditHomeDTO(String name,
                           Address address,
-                          List<String> items,
-                          List<String> taskSeriesList) {
+                          List<String> associatedUsers) {
 }

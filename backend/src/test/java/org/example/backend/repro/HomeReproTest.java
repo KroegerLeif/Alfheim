@@ -21,7 +21,7 @@ class HomeReproTest {
     void getHomeById_shouldReturnHome() {
         // Given
         Address address = new Address("1", "street", "postCode", "city", "country");
-        Home home = new Home("1", "My Home", address, Collections.emptyList(), Collections.emptyList(), Collections.emptyMap());
+        Home home = new Home("1", "My Home", address, Collections.emptyMap());
         homeRepro.save(home);
 
         // When
