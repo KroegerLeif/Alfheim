@@ -55,7 +55,6 @@ class TaskServiceTest {
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
         //WHEN
         String testUserId = "test-user";
-        ArrayList<TaskSeries> response = new ArrayList<>();
         when(homeService.findHomeConnectedToUser(testUserId)).thenReturn(List.of("home123"));
         when(mockRepo.findAllByTaskMembersContaining(testUserId)).thenReturn(new ArrayList<>());
         when(mockRepo.findAllByHomeId("home123")).thenReturn(new ArrayList<>());
@@ -451,7 +450,7 @@ class TaskServiceTest {
         taskService.addTaskToHome(taskSeries.id(),homeId);
 
         //THEN
-        Mockito.verify(mockRepo).findById(taskSeries.id());;
+        Mockito.verify(mockRepo).findById(taskSeries.id());
     }
 
     @Test
