@@ -215,4 +215,8 @@ public class TaskService {
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
     }
 
+    private List<String> getHomeIds(String userId){
+        return homeService.findHomeConnectedToUser(userId);
+    }
+
 }
