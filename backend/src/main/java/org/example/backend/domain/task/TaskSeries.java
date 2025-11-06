@@ -9,5 +9,5 @@ public record TaskSeries(String id,
                          TaskDefinition definition,
                          List<Task> taskList,
                          String homeId,
-                         List<String> homeMembers) {
+                         List<String> taskMembers) {
 }
