@@ -81,7 +81,7 @@ class TaskMapperTest {
                 Status.OPEN,
                 task.dueDate(),
                 0
-                ,"");
+                ,"home123");
 
         //WHEN
         var actual = taskMapper.mapToTaskTableReturn(taskSeries);

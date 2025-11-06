@@ -27,7 +27,8 @@ class ItemMapperTest {
         //GIVEN
         CreateItemDTO createItemDTO = new CreateItemDTO("Test",
                                                         EnergyLabel.A,
-                                                        "TestCategory");
+                                                        "TestCategory",
+                                                        "home123");
 
         Category category = new Category(null, "TestCategory");
         when(categoryMapper.mapToCategory(
@@ -37,7 +38,8 @@ class ItemMapperTest {
         Item expected = new Item(null,
                                 "Test",
                                 category,
-                                EnergyLabel.A
+                                EnergyLabel.A,
+                                "home123"
                                 );
         //WHEN
         var actual = itemMapper.mapToItem(createItemDTO);
@@ -51,12 +53,14 @@ class ItemMapperTest {
         Item item = new Item("1",
                 "Test",
                 new Category(null, "TestCategory"),
-                EnergyLabel.A);
+                EnergyLabel.A,
+                "home123");
 
         ItemTableReturnDTO expected = new ItemTableReturnDTO("1",
                 "Test",
                 EnergyLabel.A,
-                "TestCategory");
+                "TestCategory",
+                "home123");
         //WHEN
         var actual = itemMapper.mapToItemTableReturn(item);
         //THEN

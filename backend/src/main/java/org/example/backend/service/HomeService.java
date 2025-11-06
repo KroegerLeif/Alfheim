@@ -78,6 +78,6 @@ public class HomeService {
 
 
     public List<String> findHomeConnectedToUser(String userId) {
-        return homeRepro.findHomeConnectedToUser(userId);
+        return homeRepro.findHomesByMemberId(userId).stream().map(Home::id).toList();
     }
 }

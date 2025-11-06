@@ -11,6 +11,7 @@ import org.example.backend.service.security.IdService;
 
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 
@@ -40,23 +42,33 @@ class TaskServiceTest {
     @Mock
     private final HomeService homeService = Mockito.mock(HomeService.class);
 
+    @AfterEach
+    void tearDown() {
+        mockRepo.deleteAll();
+    }
+
+
 
     TaskService taskService = new TaskService(mockRepo, taskMapper, idService,itemService,homeService);
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
         //WHEN
+        String testUserId = "test-user";
         ArrayList<TaskSeries> response = new ArrayList<>();
-        when(mockRepo.findAll()).thenReturn(response);
+        when(homeService.findHomeConnectedToUser(testUserId)).thenReturn(List.of("home123"));
+        when(mockRepo.findAllByTaskMembersContaining(testUserId)).thenReturn(new ArrayList<>());
+        when(mockRepo.findAllByHomeId("home123")).thenReturn(new ArrayList<>());
+
         //THEN
-        var actual = taskService.getAll();
-        Mockito.verify(mockRepo).findAll();
+        var actual = taskService.getAll(testUserId);
         assertEquals(0, actual.size());
     }
 
     @Test
     void getAll_shouldReturnList_whenItemsExist() {
         //WHEN
+        String testUserId = "test-user";
         ArrayList<TaskSeries> response = new ArrayList<>();
         response.add(new TaskSeries("1",
                                         new TaskDefinition("1",
@@ -84,8 +96,12 @@ class TaskServiceTest {
                         new ArrayList<>()
                 )
         );
-        when(mockRepo.findAll()).thenReturn(response);
-        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(new TaskTableReturnDTO(
+
+        when(homeService.findHomeConnectedToUser(testUserId)).thenReturn(List.of("home123"));
+        when(mockRepo.findAllByTaskMembersContaining(testUserId)).thenReturn(response);
+        when(mockRepo.findAllByHomeId("home123")).thenReturn(new ArrayList<>()); // Nehmen wir an, es kommen keine weiteren hinzu
+
+        when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(new TaskTableReturnDTO(
                 "dummyId",
                 "dummySeriesId",
                 "dummyName",
@@ -98,8 +114,7 @@ class TaskServiceTest {
                 "dummyHomeId"
         ));
         //THEN
-        var actual = taskService.getAll();
-        Mockito.verify(mockRepo).findAll();
+        var actual = taskService.getAll(testUserId);
         assertEquals(2, actual.size());
     }
 
@@ -150,8 +165,8 @@ class TaskServiceTest {
         
         Mockito.when(taskMapper.mapToTaskSeries(createTaskDTO)).thenReturn(taskSeries);
         Mockito.when(idService.createNewId()).thenReturn(expectedTaskSeriesId);
-        Mockito.when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        Mockito.when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
+        Mockito.when(mockRepo.save(any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Mockito.when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
         
         //WHEN
         TaskTableReturnDTO result = taskService.createNewTask(createTaskDTO);
@@ -159,8 +174,8 @@ class TaskServiceTest {
         //THEN
         Mockito.verify(taskMapper).mapToTaskSeries(createTaskDTO);
         Mockito.verify(idService, Mockito.times(1)).createNewId();
-        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
-        Mockito.verify(taskMapper).mapToTaskTableReturn(Mockito.any(TaskSeries.class));
+        Mockito.verify(mockRepo).save(any(TaskSeries.class));
+        Mockito.verify(taskMapper).mapToTaskTableReturn(any(TaskSeries.class));
         
         assert result != null;
         assert result.id().equals(expectedTaskSeriesId);
@@ -207,8 +222,8 @@ class TaskServiceTest {
         );
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
-        when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
+        when(mockRepo.save(any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
 
 
         //WHEN
@@ -216,7 +231,7 @@ class TaskServiceTest {
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
-        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
+        Mockito.verify(mockRepo).save(any(TaskSeries.class));
         assertEquals(expectedReturn,result);
 
     }
@@ -299,16 +314,16 @@ class TaskServiceTest {
         );
         
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
-        when(mockRepo.save(Mockito.any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(mockRepo.save(any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(idService.createNewId()).thenReturn(id + "2");
-        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
+        when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
         TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
-        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
+        Mockito.verify(mockRepo).save(any(TaskSeries.class));
         assertEquals(expectedReturn,result);
         assertEquals(2, savedTaskSeries.taskList().size());
         assertEquals(Status.CLOSED, savedTaskSeries.taskList().getFirst().status());
@@ -354,11 +369,11 @@ class TaskServiceTest {
 
         AtomicReference<TaskSeries> saved = new AtomicReference<>();
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
-        when(mockRepo.save(Mockito.any(TaskSeries.class))).then(invocation -> {
+        when(mockRepo.save(any(TaskSeries.class))).then(invocation -> {
             saved.set(invocation.getArgument(0));
             return saved.get();
         });
-        when(taskMapper.mapToTaskTableReturn(Mockito.any(TaskSeries.class))).thenReturn(expectedReturn);
+        when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
         TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
@@ -381,7 +396,7 @@ class TaskServiceTest {
         taskService.editTaskSeries(id,editTaskSeriesDTO);
         //THEN
         Mockito.verify(mockRepo).findById(id);
-        Mockito.verify(mockRepo).save(Mockito.any(TaskSeries.class));
+        Mockito.verify(mockRepo).save(any(TaskSeries.class));
     }
 
     @Test

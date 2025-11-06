@@ -2,6 +2,7 @@ package org.example.backend.repro;
 
 import org.example.backend.domain.home.Home;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
 public interface HomeRepro extends MongoRepository<Home, String> {
 
     Home getHomeById(String id);
-    List<String> findHomeConnectedToUser(String userId);
+    @Query("{ 'members.?0': { $exists: true } }")
+    List<Home> findHomesByMemberId(String userId);
     
 }

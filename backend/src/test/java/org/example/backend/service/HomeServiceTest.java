@@ -121,6 +121,29 @@ class HomeServiceTest {
 
     }
 
+    @Test
+    void findHomeConnectedToUser_shouldReturnAListOfHomesConnectedToTheUser(){
+        //GIVEN
+        String userId = "1";
+        List<Home> homes = new ArrayList<>();
+        homes.add(new Home("1",
+                "Test",
+                null,
+                new HashMap<>()));
+        homes.add(new Home("2",
+                "Test2",
+                null,
+                new HashMap<>()));
+        when(mockRepo.findHomesByMemberId(userId)).thenReturn(homes);
+        //WHEN
+        var actual = homeService.findHomeConnectedToUser(userId);
+        //THEN
+        assertEquals(2,actual.size());
+        assertEquals("1",actual.get(0));
+        assertEquals("2",actual.get(1));
+
+    }
+
 
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");

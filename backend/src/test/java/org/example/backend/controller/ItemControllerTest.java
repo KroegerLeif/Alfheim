@@ -6,6 +6,7 @@ import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
 import org.example.backend.domain.item.Item;
 import org.example.backend.repro.ItemRepro;
+import org.example.backend.service.HomeService;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import java.util.ArrayList;
+
+import static org.mockito.Mockito.when;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 class ItemControllerTest {
@@ -31,6 +36,10 @@ class ItemControllerTest {
 
     @MockitoBean
     private IdService idService;
+
+    @MockitoBean
+    private HomeService homeService;
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -46,6 +55,8 @@ class ItemControllerTest {
         Item item = createItem();
         itemRepro.save(item);
         //WHEN
+        when(homeService.findHomeConnectedToUser("admin")).thenReturn(new ArrayList<>());
+
         mockMvc.perform(MockMvcRequestBuilders.get("/api/item"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(
@@ -91,7 +102,8 @@ class ItemControllerTest {
         Item item = createItem();
         itemRepro.save(item);
 
-        //WHEN
+
+        //Then
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/item/10/edit")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(editItemDTO)))
@@ -102,7 +114,8 @@ class ItemControllerTest {
                                             "id":"10",
                                             "name":"Waschmaschine",
                                             "category" : "Electronics",
-                                            "energyLabel" : "A"
+                                            "energyLabel" : "A",
+                                            "homeId" : "2"
                                         }
                                 """));
     }
@@ -113,7 +126,8 @@ class ItemControllerTest {
         return new Item("10",
                 "test",
                 category,
-                EnergyLabel.A);
+                EnergyLabel.A,
+                "home123");
     }
 
 

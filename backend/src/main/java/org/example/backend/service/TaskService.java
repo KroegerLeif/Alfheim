@@ -55,13 +55,14 @@ public class TaskService {
 
     }
 
-    public List<TaskTableReturnDTO> getAll(){
-        String userId = "abc"; //TODO Get User ID
-        String homeId = "cba"; //TODO Get Home ID
-        //Check User assotiated with Task
-        List<TaskSeries> connectedTasks = taskseriesRepro.findAllByTaskMembersContaining(userId);
-        //Check for task with assotaitaed House
-        connectedTasks.addAll(taskseriesRepro.findAllByHomeId(homeId));
+    public List<TaskTableReturnDTO> getAll(String userName){
+        List<String> homeId = homeService.findHomeConnectedToUser(userName);
+        //Check User associated with the task
+        List<TaskSeries> connectedTasks = taskseriesRepro.findAllByTaskMembersContaining(userName);
+        //Check for the task with associated with the House
+        for(String connectedHome: homeId){
+            connectedTasks.addAll(taskseriesRepro.findAllByHomeId(connectedHome));
+        }
 
         return connectedTasks.stream()
                 .map((taskMapper::mapToTaskTableReturn))

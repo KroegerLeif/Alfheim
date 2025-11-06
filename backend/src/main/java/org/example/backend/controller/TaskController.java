@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -24,8 +25,8 @@ public class TaskController {
 
     @GetMapping("")
     @ResponseStatus(HttpStatus.OK)
-    public List<TaskTableReturnDTO> getAllTasks() {
-        return taskService.getAll();
+    public List<TaskTableReturnDTO> getAllTasks(Principal principal) {
+        return taskService.getAll(principal.getName());
     }
 
     @PostMapping("/create")

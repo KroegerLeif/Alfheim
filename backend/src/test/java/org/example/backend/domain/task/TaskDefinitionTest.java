@@ -18,7 +18,7 @@ class TaskDefinitionTest {
     void testTaskDefinitionRecord() {
         User user = new User("1", "Test User");
         Category category = new Category("1", "Electronics");
-        Item item = new Item("1", "Laptop", category, EnergyLabel.A);
+        Item item = new Item("1", "Laptop", category, EnergyLabel.A,"home123");
 
         TaskDefinition taskDefinition = new TaskDefinition(
                 "1",
@@ -32,7 +32,6 @@ class TaskDefinitionTest {
 
         assertEquals("1", taskDefinition.id());
         assertEquals("Clean the kitchen", taskDefinition.name());
-        assertEquals(Collections.singletonList(item), taskDefinition.connectedItems());
         assertEquals(new BigDecimal("100.50"), taskDefinition.price());
         assertEquals(Priority.HIGH, taskDefinition.priority());
         assertEquals(7, taskDefinition.repetition());

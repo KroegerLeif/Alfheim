@@ -65,6 +65,7 @@ class TaskControllerTest {
         TaskSeries taskSeries = createTaskSeries();
         taskSeriesRepro.save(taskSeries);
         //WHEN
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(List.of("home123"));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(
@@ -163,7 +164,7 @@ class TaskControllerTest {
         taskSeriesRepro.save(taskSeries);
         EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
 
-        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null));
+        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null,"home123"));
         when(userService.getUserById(anyString())).thenReturn(new User("1", "Test User"));
 
         //WHEN
@@ -180,7 +181,6 @@ class TaskControllerTest {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
         taskSeriesRepro.save(taskSeries);
-        doNothing().when(homeService).addTaskToHome(eq("1"), any(TaskSeries.class));
 
         //WHEN
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/addTaskToHome")

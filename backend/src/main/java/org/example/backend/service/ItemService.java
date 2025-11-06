@@ -9,7 +9,6 @@ import org.example.backend.domain.item.Item;
 import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
-import org.example.backend.service.security.exception.HomeDoesNotExistException;
 import org.example.backend.service.security.exception.ItemDoesNotExistException;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +23,7 @@ public class ItemService {
     private final ItemMapper itemMapper;
 
     private final IdService idService;
+
     private final HomeService homeService;
 
 
@@ -35,6 +35,9 @@ public class ItemService {
     }
 
     public List<ItemTableReturnDTO> getAll(){
+        String userId = "admin";
+        List<String> homeIds = homeService.findHomeConnectedToUser(userId);
+
         return itemRepro.findAll().stream()
                 .map(itemMapper::mapToItemTableReturn)
                 .toList();
@@ -52,28 +55,24 @@ public class ItemService {
 
     public void deleteItem(String id) {
         itemRepro.deleteById(id);
-        try{
-            homeService.deleteItemFromHome(id);
-        }catch (HomeDoesNotExistException e){
-            //Do nothing
-        }
     }
 
     private Item creatUniqueIds(Item item){
         //Creation of new IDs
         String item_id = idService.createNewId();
 
-        Category itemCategory = getUniqueCategroy(item.category());
+        Category itemCategory = getUniqueCategory(item.category());
 
         return new Item(
                 item_id,
                 item.name(),
                 itemCategory,
-                item.energyLabel()
+                item.energyLabel(),
+                item.homeId()
         );
     }
 
-    private Category getUniqueCategroy(Category category){
+    private Category getUniqueCategory(Category category){
         //Checks If Category already Exists
         Optional<Item> itemWithCategory = itemRepro.findFirstByCategory_Name(category.name());
 
@@ -97,7 +96,7 @@ public class ItemService {
             item = changeItemCategory(item, editItemDTO.category());
         }
         if (editItemDTO.homeId() != null) {
-            addItemToHome(editItemDTO.homeId(), item.id());
+            item = changeHome(item, editItemDTO.homeId());
         }
         itemRepro.save(item);
         return itemMapper.mapToItemTableReturn(item);
@@ -112,15 +111,11 @@ public class ItemService {
     }
 
     private Item changeItemCategory(Item item, String categoryName) {
-        Category itemCategory = getUniqueCategroy(new Category(null, categoryName));
+        Category itemCategory = getUniqueCategory(new Category(null, categoryName));
         return item.withCategory(itemCategory);
     }
-    private void addItemToHome(String homeId, String itemId) {
-        try{
-            homeService.addItemToHome(homeId,itemId);
-        }catch (HomeDoesNotExistException e){
-            //Do Nothing
-        }
+    private Item changeHome(Item item, String homeID){
+        return item.withHomeId(homeID);
     }
 
 }

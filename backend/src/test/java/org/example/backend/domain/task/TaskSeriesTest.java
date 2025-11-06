@@ -19,7 +19,7 @@ class TaskSeriesTest {
     void testTaskSeriesRecord() {
         User user = new User("1", "Test User");
         Category category = new Category("1", "Electronics");
-        Item item = new Item("1", "Laptop", category, EnergyLabel.A);
+        Item item = new Item("1", "Laptop", category, EnergyLabel.A, "home123");
 
         TaskDefinition taskDefinition = new TaskDefinition(
                 "1",
