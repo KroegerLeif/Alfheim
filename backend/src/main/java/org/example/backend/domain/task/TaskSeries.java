@@ -7,5 +7,7 @@ import java.util.List;
 @With
 public record TaskSeries(String id,
                          TaskDefinition definition,
-                         List<Task> taskList) {
+                         List<Task> taskList,
+                         String homeId,
+                         List<String> homeMembers) {
 }

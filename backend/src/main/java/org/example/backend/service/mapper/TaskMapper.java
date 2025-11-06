@@ -26,6 +26,8 @@ public class TaskMapper {
         return new TaskSeries(
                 "",
                 taskDefinitionMapper.mapToTaskDefinition(createTaskDTO),
+                new ArrayList<>(),
+                getHomeId(createTaskDTO.homeId()),
                 new ArrayList<>()
         );
     }
@@ -45,7 +47,14 @@ public class TaskMapper {
                 taskSeries.taskList().getLast().status(),
                 taskSeries.taskList().getLast().dueDate(),
                 taskSeries.definition().repetition(),
-                "");
+                getHomeId(taskSeries.homeId()));
+    }
+
+    private String getHomeId(String homeId){
+        if(homeId == null || homeId.isEmpty()){
+            return "";
+        }
+        return homeId;
     }
 
 }

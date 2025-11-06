@@ -10,5 +10,6 @@ public record CreateTaskDTO(String name,
                             List<String> items,
                             Priority priority,
                             LocalDate dueDate,
-                            int repetition) {
+                            int repetition,
+                            String homeId) {
 }
