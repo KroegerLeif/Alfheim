@@ -11,7 +11,5 @@ import java.util.Map;
 public record Home(String id,
                    String name,
                    Address address,
-                   List<String> items,
-                   List<String> taskSeries,
-                   Map<User, Role> members) {
+                   Map<String, Role> members) {
 }
