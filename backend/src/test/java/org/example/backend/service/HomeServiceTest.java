@@ -39,7 +39,7 @@ class HomeServiceTest {
         ArrayList<Home> response = new ArrayList<>();
         when(mockRepo.findAll()).thenReturn(response);
         //THEN
-        homeService.getAllHomes();
+        homeService.getAllHomes("user");
         Mockito.verify(mockRepo).findAll();
     }
 
@@ -52,7 +52,7 @@ class HomeServiceTest {
 
         when(mockRepo.findAll()).thenReturn(response);
         //WHEN
-        homeService.getHomeNames();
+        homeService.getHomeNames("user");
         //THEN
         Mockito.verify(mockRepo).findAll();
     }
@@ -71,7 +71,7 @@ class HomeServiceTest {
         when(mockRepo.save(home)).thenReturn(home);
 
         //WHEN
-        var actual = homeService.createNewHome(createHomeDTO);
+        var actual = homeService.createNewHome("user",createHomeDTO);
 
         //THEN
         assertEquals(actual,homeTableReturnDTO);
@@ -94,7 +94,7 @@ class HomeServiceTest {
         when(homeMapper.mapToHomeTableReturn(any(Home.class))).thenReturn(expected);
 
         //
-        var actual = homeService.editHome(id,editHomeDTO);
+        var actual = homeService.editHome("user",id,editHomeDTO);
 
         //THEN
         assertEquals(expected,actual);
@@ -115,7 +115,7 @@ class HomeServiceTest {
                                 "country"),
                         new HashMap<>()));
         //WHEN
-        homeService.deleteHome(id);
+        homeService.deleteHome("user",id);
         //THEN
         Mockito.verify(mockRepo).deleteById(id);
 

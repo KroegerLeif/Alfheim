@@ -29,18 +29,18 @@ public class HomeService {
         this.idService = idService;
     }
 
-    public List<HomeTableReturnDTO> getAllHomes() {
+    public List<HomeTableReturnDTO> getAllHomes(String userId) {
         return homeRepro.findAll().stream()
                 .map(homeMapper::mapToHomeTableReturn).toList();
 
     }
 
-    public HomeTableReturnDTO createNewHome(CreateHomeDTO createHomeDTO) {
+    public HomeTableReturnDTO createNewHome(String userId, CreateHomeDTO createHomeDTO) {
         Home home = homeMapper.mapToHome(createHomeDTO).withId(idService.createNewId());
         return homeMapper.mapToHomeTableReturn(homeRepro.save(home));
     }
 
-    public HomeTableReturnDTO editHome(String id, EditHomeDTO editHomeDTO) throws HomeDoesNotExistException {
+    public HomeTableReturnDTO editHome(String userId,String id, EditHomeDTO editHomeDTO) throws HomeDoesNotExistException {
         Home home = homeRepro.findById(id).orElseThrow(() ->(new HomeDoesNotExistException("No Home with this ID found")));
 
         //Changes Values if Change is provided by User
@@ -53,8 +53,8 @@ public class HomeService {
         }
 
         if(editHomeDTO.associatedUsers() != null){
-            for(String userId : editHomeDTO.associatedUsers()){
-                home.members().put(userId, Role.MEMBER);
+            for(String associatedUser : editHomeDTO.associatedUsers()){
+                home.members().put(associatedUser, Role.MEMBER);
             }
         }
 
@@ -65,11 +65,12 @@ public class HomeService {
 
     }
 
-    public void deleteHome(String id) {
+    public void deleteHome(String userId,String id) {
+        //TODO What happens to connect Task
         homeRepro.deleteById(id);
     }
 
-    public List<HomeListReturnDTO> getHomeNames() {
+    public List<HomeListReturnDTO> getHomeNames(String userId) {
         return homeRepro.findAll().stream()
                 .map(homeMapper::mapToHomeListReturn)
                 .toList();
