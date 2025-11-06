@@ -39,11 +39,9 @@ class TaskServiceTest {
     private final ItemService itemService = Mockito.mock(ItemService.class);
     @Mock
     private final HomeService homeService = Mockito.mock(HomeService.class);
-    @Mock
-    private final UserService userService = Mockito.mock(UserService.class);
 
 
-    TaskService taskService = new TaskService(mockRepo, taskMapper, idService,itemService,homeService,userService);
+    TaskService taskService = new TaskService(mockRepo, taskMapper, idService,itemService,homeService);
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
@@ -68,6 +66,8 @@ class TaskServiceTest {
                                                             null,
                                                                 Priority.HIGH,
                                                         0),
+                                        new ArrayList<>(),
+                                        "1",
                                         new ArrayList<>()
                                     )
                     );
@@ -79,6 +79,8 @@ class TaskServiceTest {
                                 null,
                                 Priority.HIGH,
                                 0),
+                        new ArrayList<>(),
+                        "1",
                         new ArrayList<>()
                 )
         );
@@ -109,7 +111,8 @@ class TaskServiceTest {
                 new ArrayList<>(),
                 Priority.HIGH,
                 LocalDate.of(2025, 12, 31),
-                0
+                0,
+                "home123"
         );
         
         String expectedTaskSeriesId = "task-series-123";
@@ -127,6 +130,8 @@ class TaskServiceTest {
         TaskSeries taskSeries = new TaskSeries(
                 null,
                 taskDefinition,
+                new ArrayList<>(),
+                "home123",
                 new ArrayList<>()
         );
         
@@ -183,7 +188,9 @@ class TaskServiceTest {
                         Priority.HIGH,
                         3
                 ),
-                taskList
+                taskList,
+                "home123",
+                new ArrayList<>()
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -243,7 +250,9 @@ class TaskServiceTest {
                         Priority.HIGH,
                         3
                 ),
-                taskList
+                taskList,
+                "home123",
+                new ArrayList<>()
         );
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,LocalDate.now().plusDays(5));
@@ -272,7 +281,9 @@ class TaskServiceTest {
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 taskDefinition,
-                taskList
+                taskList,
+                "home123",
+                new ArrayList<>()
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -325,7 +336,9 @@ class TaskServiceTest {
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 taskDefinition,
-                taskList
+                taskList,
+                "home123",
+                new ArrayList<>()
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -403,7 +416,9 @@ class TaskServiceTest {
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 taskDefinition,
-                taskList
+                taskList,
+                "home123",
+                new ArrayList<>()
         );
 
         Mockito.doNothing().when(homeService).deleteTaskFromHome(id);
@@ -455,7 +470,9 @@ class TaskServiceTest {
 
         return new TaskSeries("1",
                 taskDefinition,
-                taskList);
+                taskList,
+                "home123",
+                new ArrayList<>());
     }
 
     private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){

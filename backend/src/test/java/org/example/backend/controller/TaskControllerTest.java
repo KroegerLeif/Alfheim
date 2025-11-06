@@ -227,7 +227,9 @@ class TaskControllerTest {
 
         return new TaskSeries("1",
                 taskDefinition,
-                taskList);
+                taskList,
+                "home123",
+                new ArrayList<>());
     }
 
     private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){

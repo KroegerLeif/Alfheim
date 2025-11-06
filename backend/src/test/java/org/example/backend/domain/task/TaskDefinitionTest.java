@@ -7,6 +7,7 @@ import org.example.backend.domain.user.User;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,8 +23,8 @@ class TaskDefinitionTest {
         TaskDefinition taskDefinition = new TaskDefinition(
                 "1",
                 "Clean the kitchen",
-                Collections.singletonList(user),
-                Collections.singletonList(item),
+                new ArrayList<>(),
+                new ArrayList<>(),
                 new BigDecimal("100.50"),
                 Priority.HIGH,
                 7
@@ -31,7 +32,6 @@ class TaskDefinitionTest {
 
         assertEquals("1", taskDefinition.id());
         assertEquals("Clean the kitchen", taskDefinition.name());
-        assertEquals(Collections.singletonList(user), taskDefinition.responsible());
         assertEquals(Collections.singletonList(item), taskDefinition.connectedItems());
         assertEquals(new BigDecimal("100.50"), taskDefinition.price());
         assertEquals(Priority.HIGH, taskDefinition.priority());
