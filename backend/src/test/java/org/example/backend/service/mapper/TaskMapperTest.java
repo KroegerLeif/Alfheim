@@ -11,6 +11,7 @@ import org.mockito.Mockito;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -38,14 +39,15 @@ class TaskMapperTest {
         TaskDefinition taskDefinition = createTaskDefinition();
 
         when(taskDefinitionMapper.mapToTaskDefinition(createTaskDTO)).thenReturn(taskDefinition);
-
+        List<String> members = new ArrayList<>();
+        members.add("user");
         var expected = new TaskSeries("",
                                     taskDefinition,
                                     new ArrayList<>(),
                                     "home123",
-                                    new ArrayList<>());
+                                    members);
         //WHEN
-        var actual = taskMapper.mapToTaskSeries(createTaskDTO);
+        var actual = taskMapper.mapToTaskSeries("user",createTaskDTO);
 
         //THEN
         assertEquals(expected,actual);

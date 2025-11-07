@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class TaskMapper {
@@ -20,13 +21,16 @@ public class TaskMapper {
         this.taskDefinitionMapper = taskDefinitionMapper;
     }
 
-    public TaskSeries mapToTaskSeries(CreateTaskDTO createTaskDTO){
+    public TaskSeries mapToTaskSeries(String userId,CreateTaskDTO createTaskDTO){
+        List<String> members = new ArrayList<>();
+        members.add(userId);
+
         return new TaskSeries(
                 "",
                 taskDefinitionMapper.mapToTaskDefinition(createTaskDTO),
                 new ArrayList<>(),
                 getHomeId(createTaskDTO.homeId()),
-                new ArrayList<>()
+                members
         );
     }
 

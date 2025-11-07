@@ -14,12 +14,12 @@ import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
+import org.example.backend.service.security.exception.UserDoesNotHavePermissionException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Service
 public class TaskService {
@@ -30,7 +30,6 @@ public class TaskService {
     private final ItemService itemService;
     private final HomeService homeService;
 
-
     public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, ItemService itemService, HomeService homeService) {
         this.taskseriesRepro = taskseriesRepro;
         this.taskMapper = taskMapper;
@@ -40,7 +39,7 @@ public class TaskService {
     }
 
     public TaskTableReturnDTO createNewTask(String userId, CreateTaskDTO createTaskDTO) {
-        TaskSeries taskSeries = createUniqueIds(taskMapper.mapToTaskSeries(createTaskDTO));
+        TaskSeries taskSeries = createUniqueIds(taskMapper.mapToTaskSeries(userId, createTaskDTO));
 
         //added first task to tasklist
         taskSeries.taskList()
@@ -72,6 +71,8 @@ public class TaskService {
     public TaskTableReturnDTO editTask(String userId, String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> (new TaskDoesNotExistException("Task does not Exist")));
 
+        checksIfUserIsAssignedToTask(taskSeries, userId);
+
         if(editTaskDTO.status() == Status.CLOSED){
             //Checks if completion date is in the future
             if(editTaskDTO.dueDate() != null && editTaskDTO.dueDate().isAfter(LocalDate.now())){
@@ -97,6 +98,8 @@ public class TaskService {
 
     public void editTaskSeries(String userId, String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
+
+        checksIfUserIsAssignedToTask(taskSeries, userId);
 
         if(editTaskSeriesDto.name() != null){
             taskSeries = changeTaskName(editTaskSeriesDto.name(), taskSeries);
@@ -131,6 +134,8 @@ public class TaskService {
     }
 
     public void deleteTask(String userId,String id) {
+        TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
+        checksIfUserIsAssignedToTask(taskSeries,userId);
         taskseriesRepro.deleteById(id);
     }
 
@@ -209,6 +214,12 @@ public class TaskService {
 
     private TaskSeries changeRepetition(int newRepetition, TaskSeries taskSeries){
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
+    }
+
+    private void checksIfUserIsAssignedToTask(TaskSeries taskSeries, String userId){
+        if(!taskSeries.taskMembers().contains(userId)){
+            throw new UserDoesNotHavePermissionException("User does not have premision");
+        }
     }
 
 }
