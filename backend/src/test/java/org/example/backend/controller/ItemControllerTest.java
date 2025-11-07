@@ -83,6 +83,35 @@ class ItemControllerTest {
 
     @Test
     @WithMockUser
+    void getItemNames_shouldReturnListOfItemNames_whenCalled() throws Exception {
+        //GIVEN
+        Item item = createItem();
+        itemRepro.save(item);
+        //WHEN
+        List<String> homeIds = new ArrayList<>();
+        homeIds.add("home123");
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
+
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/item/getNames"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json(
+                                """
+                                        [
+                                          {
+                                            "id":"10",
+                                            "name":"test"
+                                          }
+                                        ]
+                                        """
+                        )
+                );
+
+    }
+
+
+    @Test
+    @WithMockUser
     void createItem_shouldReturnItemReturnDTO_whenCreatingNewItem() throws Exception {
         //GIVEN
         CreateItemDTO createItemDTO = createItemDTO();

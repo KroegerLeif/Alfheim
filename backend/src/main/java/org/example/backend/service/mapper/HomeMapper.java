@@ -35,11 +35,11 @@ public class HomeMapper {
 
     private int getNumberOfTask(){
         //TODO getNumberOfTask
-        return 10;
+        return 0;
     }
 
     private int getNumberOfItems(){
         //TODO getNumberOfItems
-        return 10;
+        return 0;
     }
 }

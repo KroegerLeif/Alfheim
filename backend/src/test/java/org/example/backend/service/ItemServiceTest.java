@@ -91,6 +91,27 @@ class ItemServiceTest {
     }
 
     @Test
+    void getAllNames_shouldReturnListOfNames_whenItemsExist() {
+        // GIVEN
+        List<String> homeIds = List.of("home123");
+        List<Item> itemsFromHome = List.of(
+                new Item("1", "Test", null, null, "home123"),
+                new Item("2", "Test2", null, null, "home123")
+        );
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
+        when(mockRepo.findAllByHomeId("home123")).thenReturn(itemsFromHome);
+
+        // WHEN
+        var actual = itemService.getItemNames("user");
+
+        // THEN
+        verify(homeService).findHomeConnectedToUser("user");
+        verify(mockRepo).findAllByHomeId("home123");
+        verify(mockRepo, never()).findAll(); // This confirms findAll() is not called
+        assertEquals(2, actual.size());
+    }
+
+    @Test
     void createNewItem_shouldReturnANewItem_whenCalled(){
         //GIVEN
         CreateItemDTO createItemDTO = new CreateItemDTO("Test", EnergyLabel.E, "TestCategory","home123");

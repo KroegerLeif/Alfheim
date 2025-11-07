@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
 import org.example.backend.controller.dto.edit.EditItemDTO;
+import org.example.backend.controller.dto.response.ItemListReturn;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.service.ItemService;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,12 @@ public class ItemController {
     @ResponseStatus(HttpStatus.OK)
     public List<ItemTableReturnDTO> getAllItems(Principal principal){
         return itemService.getAll(principal.getName());
+    }
+
+    @GetMapping("/getNames")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ItemListReturn> getItemNames(Principal principal) {
+        return itemService.getItemNames(principal.getName());
     }
 
     @PostMapping("/create")

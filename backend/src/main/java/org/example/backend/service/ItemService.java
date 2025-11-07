@@ -2,10 +2,12 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
 import org.example.backend.controller.dto.edit.EditItemDTO;
+import org.example.backend.controller.dto.response.ItemListReturn;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
 import org.example.backend.domain.item.Item;
+import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
@@ -13,9 +15,7 @@ import org.example.backend.service.security.exception.ItemDoesNotExistException;
 import org.example.backend.service.security.exception.UserDoesNotHavePermissionException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class ItemService {
@@ -37,13 +37,14 @@ public class ItemService {
     }
 
     public List<ItemTableReturnDTO> getAll(String userId){
-        List<String> homeIds = homeService.findHomeConnectedToUser(userId);
-        List<Item> allItems = new ArrayList<>();
-        for(String homeId: homeIds) {
-            allItems.addAll(itemRepro.findAllByHomeId(homeId));
-        }
-        return allItems.stream()
-                .map((itemMapper::mapToItemTableReturn))
+        return getAllItems(userId).stream()
+                .map(itemMapper::mapToItemTableReturn)
+                .toList();
+    }
+
+    public List<ItemListReturn> getItemNames(String userId) {
+        return getAllItems(userId).stream().
+                map(itemMapper::mapToItemListReturn)
                 .toList();
     }
 
@@ -135,6 +136,15 @@ public class ItemService {
         if (!homeService.findHomeConnectedToUser(userId).contains(homeId)){
             throw new UserDoesNotHavePermissionException("User does not have premision");
         }
+    }
+    private Set<Item> getAllItems(String userId){
+        List<String> homeIds = homeService.findHomeConnectedToUser(userId);
+        List<Item> allItems = new ArrayList<>();
+        for(String homeId: homeIds) {
+            allItems.addAll(itemRepro.findAllByHomeId(homeId));
+        }
+        //Removes Duplicates
+        return new HashSet<>(allItems);
     }
 
 }

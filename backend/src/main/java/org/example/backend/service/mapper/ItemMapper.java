@@ -1,6 +1,7 @@
 package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
+import org.example.backend.controller.dto.response.ItemListReturn;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.domain.item.Item;
 import org.example.backend.service.mapper.item.CategoryMapper;
@@ -32,6 +33,13 @@ public class ItemMapper {
                 item.energyLabel(),
                 item.category().name(),
                 item.homeId()
+        );
+    }
+
+    public ItemListReturn mapToItemListReturn(Item item){
+        return new ItemListReturn(
+                item.id(),
+                item.name()
         );
     }
 }
