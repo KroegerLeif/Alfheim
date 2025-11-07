@@ -11,58 +11,82 @@ import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
 import org.example.backend.service.security.exception.ItemDoesNotExistException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ItemServiceTest {
 
     @Mock
-    private final ItemRepro mockRepo = Mockito.mock(ItemRepro.class);
+    private ItemRepro mockRepo;
     @Mock
-    private final ItemMapper itemMapper = Mockito.mock(ItemMapper.class);
+    private ItemMapper itemMapper;
 
     @Mock
-    private final IdService idService = Mockito.mock(IdService.class);
+    private IdService idService;
 
     @Mock
-    private final HomeService homeService = Mockito.mock(HomeService.class);
+    private HomeService homeService;
 
-    private final ItemService itemService = new ItemService(mockRepo, itemMapper, idService, homeService);
+    private ItemService itemService;
+
+    @BeforeEach
+    void setUp() {
+        itemService = new ItemService(mockRepo, itemMapper, idService, homeService);
+    }
 
     @AfterEach
     void tearDown() {
-        mockRepo.deleteAll();
+        // No need to call deleteAll on a mock.
+        // If this were a real repository for integration tests, it would be correct.
     }
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
-        //WHEN
-        ArrayList<Item> response = new ArrayList<>();
-        when(mockRepo.findAll()).thenReturn(response);
-        //THEN
-        var actual = itemService.getAll();
-        Mockito.verify(mockRepo).findAll();
+        // GIVEN
+        List<String> homeIds = List.of("home123");
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
+        when(mockRepo.findAllByHomeId("home123")).thenReturn(new ArrayList<>());
+
+        // WHEN
+        var actual = itemService.getAll("user");
+
+        // THEN
+        verify(homeService).findHomeConnectedToUser("user");
+        verify(mockRepo).findAllByHomeId("home123");
+        verify(mockRepo, never()).findAll();
         assertEquals(0, actual.size());
     }
 
     @Test
     void getAll_shouldReturnList_whenItemsExist() {
-        //WHEN
-        ArrayList<Item> response = new ArrayList<>();
-        response.add(new Item("1", "Test", null, null,"home123"));
-        response.add(new Item("2", "Test2", null, null, "home123"));
-        when(mockRepo.findAll()).thenReturn(response);
-        //THEN
-        var actual = itemService.getAll();
-        Mockito.verify(mockRepo).findAll();
+        // GIVEN
+        List<String> homeIds = List.of("home123");
+        List<Item> itemsFromHome = List.of(
+                new Item("1", "Test", null, null, "home123"),
+                new Item("2", "Test2", null, null, "home123")
+        );
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
+        when(mockRepo.findAllByHomeId("home123")).thenReturn(itemsFromHome);
+
+        // WHEN
+        var actual = itemService.getAll("user");
+
+        // THEN
+        verify(homeService).findHomeConnectedToUser("user");
+        verify(mockRepo).findAllByHomeId("home123");
+        verify(mockRepo, never()).findAll(); // This confirms findAll() is not called
         assertEquals(2, actual.size());
     }
 
@@ -77,7 +101,9 @@ class ItemServiceTest {
         Item item_afterId = new Item("1", "Test", category_afterId, EnergyLabel.E,"home123");
 
         ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory","home123");
-
+        List<String> homeIds = new ArrayList<>();
+        homeIds.add("home123");
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
         when(idService.createNewId()).thenReturn("1");
         when(itemMapper.mapToItem(createItemDTO)).thenReturn(item_beforeId);
         when(mockRepo.findFirstByCategory_Name("TestCategory")).thenReturn(Optional.empty());
@@ -85,7 +111,7 @@ class ItemServiceTest {
         when(itemMapper.mapToItemTableReturn(item_afterId)).thenReturn(expectedTableReturn);
 
         //WHEN
-        var actual = itemService.createNewItem(createItemDTO);
+        var actual = itemService.createNewItem("user",createItemDTO);
         //THEN
         assertEquals(expectedTableReturn, actual);
         Mockito.verify(mockRepo).save(item_afterId);
@@ -94,13 +120,14 @@ class ItemServiceTest {
 
     @Test
     void editItem_shouldThrowItemDoesNotExistException_whenItemDoesNotExist(){
-        try{
-            String id = "1";
-            when(mockRepo.findById(id)).thenReturn(Optional.empty());
-            itemService.editItem(id,new EditItemDTO("Test",  "TestCategory",EnergyLabel.E,""));
-        }catch (ItemDoesNotExistException e){
-            assertEquals("No Item with this ID",e.getMessage());
-        }
+        // GIVEN
+        String id = "1";
+        when(mockRepo.findById(id)).thenReturn(Optional.empty());
+
+        // WHEN & THEN
+        ItemDoesNotExistException exception = assertThrows(ItemDoesNotExistException.class,
+                () -> itemService.editItem("user", id, new EditItemDTO("Test", "TestCategory", EnergyLabel.E, "")));
+        assertEquals("No Item with this ID", exception.getMessage());
     }
 
     @Test
@@ -109,19 +136,22 @@ class ItemServiceTest {
         String id = "1";
         EditItemDTO editItemDTO = new EditItemDTO("Kühlschrank", "Küche", EnergyLabel.E,"");
         Item savedItem = new Item(id, "Test", null, null,"home123");
-        mockRepo.save(savedItem);
         ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO(id,
                                                                     "Kühlschrank",
                                                                     EnergyLabel.E,
                                                                     "Küche",
                                                                     "home123"
         );
+
+        List<String> homeIds = new ArrayList<>();
+        homeIds.add("home123");
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedItem));
-        when(itemMapper.mapToItemTableReturn(Mockito.any(Item.class))).thenReturn(expectedTableReturn);
+        when(itemMapper.mapToItemTableReturn(any(Item.class))).thenReturn(expectedTableReturn);
         //WHEN
-        var actual = itemService.editItem(id, editItemDTO);
+        var actual = itemService.editItem("user",id, editItemDTO);
         //THEN
-        Mockito.verify(mockRepo).findById(id);
+        verify(mockRepo).findById(id);
         assertEquals(expectedTableReturn, actual);
 
     }
@@ -131,36 +161,56 @@ class ItemServiceTest {
         //GIVEN
         String id = "1";
         Item item = new Item(id, "Test", null, null,"home123");
-        mockRepo.save(item);
         when(mockRepo.findById(id)).thenReturn(Optional.of(item));
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(List.of("home123"));
         //WHEN
-        var actual = itemService.getItemById(id);
+        var actual = itemService.getItemById("user",id);
         //THEN
-        Mockito.verify(mockRepo).findById(id);
+        verify(mockRepo).findById(id);
         assertEquals(item, actual);
     }
 
     @Test
     void getItemById_shouldThrowItemDoesNotExistException_whenItemDoesNotExist(){
-        try{
-            String id = "1";
-            when(mockRepo.findById(id)).thenReturn(Optional.empty());
-            itemService.getItemById(id);
-            }catch (ItemDoesNotExistException e){
-            assertEquals("No Item with this ID",e.getMessage());
-        }
+        // GIVEN
+        String id = "1";
+        when(mockRepo.findById(id)).thenReturn(Optional.empty());
+
+        // WHEN & THEN
+        ItemDoesNotExistException exception = assertThrows(ItemDoesNotExistException.class,
+                () -> itemService.getItemById("user", id));
+        assertEquals("No Item with this ID", exception.getMessage());
     }
 
     @Test
     void deleteItem_shouldDeleteItem_whenCalled(){
         //GIVEN
         String id = "1";
-        mockRepo.save(new Item(id, "Test", null, null,"home123"));
+        when(mockRepo.findById(id)).thenReturn(Optional.of(generateItem()));
+        when(homeService.findHomeConnectedToUser("user")).thenReturn(List.of("home123"));
         doNothing().when(mockRepo).deleteById(id);
         //WHEN
-        itemService.deleteItem(id);
+        itemService.deleteItem("user",id);
         //THEN
-        Mockito.verify(mockRepo).deleteById(id);
+        verify(mockRepo).deleteById(id);
 
+    }
+
+    @Test
+    void deleteItem_shouldThrowItemDoesNotExistException_whenCalled(){
+        // GIVEN
+        String id = "1";
+        when(mockRepo.findById(id)).thenReturn(Optional.empty());
+
+        // WHEN & THEN
+        ItemDoesNotExistException exception = assertThrows(ItemDoesNotExistException.class,
+                () -> itemService.deleteItem("user", id));
+        assertEquals("No Item with this ID", exception.getMessage());
+
+
+    }
+
+    private Item generateItem(){
+        return new Item("1", "Test", null, null,"home123");
     }
 }

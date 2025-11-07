@@ -7,6 +7,7 @@ import org.example.backend.service.ItemService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -21,27 +22,30 @@ public class ItemController {
 
     @GetMapping("")
     @ResponseStatus(HttpStatus.OK)
-    public List<ItemTableReturnDTO> getAllItems(){
-        return itemService.getAll();
+    public List<ItemTableReturnDTO> getAllItems(Principal principal){
+        return itemService.getAll(principal.getName());
     }
 
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public ItemTableReturnDTO createNewItem(@RequestBody CreateItemDTO createItemDTO){
-        return itemService.createNewItem(createItemDTO);
+    public ItemTableReturnDTO createNewItem(Principal principal,
+                                            @RequestBody CreateItemDTO createItemDTO){
+        return itemService.createNewItem(principal.getName(),createItemDTO);
     }
 
     @PatchMapping("/{id}/edit")
     @ResponseStatus(HttpStatus.OK)
-    public ItemTableReturnDTO editItem(@PathVariable String id,
+    public ItemTableReturnDTO editItem(Principal principal,
+                                       @PathVariable String id,
                                        @RequestBody EditItemDTO editItemDTO){
-        return itemService.editItem(id,editItemDTO);
+        return itemService.editItem(principal.getName(), id, editItemDTO);
     }
 
     @DeleteMapping("/{id}/delete")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void deleteAllItems(@PathVariable String id){
-        itemService.deleteItem(id);
+    public void deleteAllItems(Principal principal,
+                               @PathVariable String id){
+        itemService.deleteItem(principal.getName(), id);
     }
 
 }

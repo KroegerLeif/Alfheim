@@ -2,7 +2,6 @@ package org.example.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
-import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
 import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -166,7 +165,6 @@ class TaskControllerTest {
         taskSeriesRepro.save(taskSeries);
         EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
 
-        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null,"home123"));
         when(userService.getUserById(anyString())).thenReturn(new User("1", "Test User"));
 
         //WHEN

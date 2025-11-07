@@ -106,7 +106,7 @@ public class TaskService {
         }
 
         if(editTaskSeriesDto.itemId() != null){
-            taskSeries = changeTaskItems(editTaskSeriesDto.itemId(), taskSeries);
+            taskSeries = changeTaskItems(userId,editTaskSeriesDto.itemId(), taskSeries);
         }
 
         if(editTaskSeriesDto.assignedUser() != null){
@@ -196,10 +196,10 @@ public class TaskService {
         return taskSeries.withDefinition(taskSeries.definition().withName(newName));
     }
 
-    private  TaskSeries changeTaskItems(List<String> itemId, TaskSeries taskSeries){
+    private  TaskSeries changeTaskItems(String userId,List<String> itemId, TaskSeries taskSeries){
         List<Item> itemList = new ArrayList<>();
         for(String s: itemId){
-            itemList.add(itemService.getItemById(s));
+            itemList.add(itemService.getItemById(userId,s));
         }
         return taskSeries.withDefinition(taskSeries.definition().withConnectedItems(itemList));
     }

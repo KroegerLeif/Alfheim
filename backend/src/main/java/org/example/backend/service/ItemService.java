@@ -10,8 +10,10 @@ import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
 import org.example.backend.service.security.exception.ItemDoesNotExistException;
+import org.example.backend.service.security.exception.UserDoesNotHavePermissionException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,27 +36,57 @@ public class ItemService {
         this.homeService = homeService;
     }
 
-    public List<ItemTableReturnDTO> getAll(){
-        String userId = "admin";
+    public List<ItemTableReturnDTO> getAll(String userId){
         List<String> homeIds = homeService.findHomeConnectedToUser(userId);
-
-        return itemRepro.findAll().stream()
-                .map(itemMapper::mapToItemTableReturn)
+        List<Item> allItems = new ArrayList<>();
+        for(String homeId: homeIds) {
+            allItems.addAll(itemRepro.findAllByHomeId(homeId));
+        }
+        return allItems.stream()
+                .map((itemMapper::mapToItemTableReturn))
                 .toList();
     }
 
-    public Item getItemById(String id) {
-        return itemRepro.findById(id).orElseThrow(() -> new ItemDoesNotExistException("No Item with this ID"));
+    public Item getItemById(String userId, String id) {
+        Item item = itemRepro.findById(id).orElseThrow(()
+                -> new ItemDoesNotExistException("No Item with this ID"));
+        checksIfUserIsAssignedToItem(item, userId);
+        return item;
     }
 
-    public ItemTableReturnDTO createNewItem(CreateItemDTO createItemDTO){
+    public ItemTableReturnDTO createNewItem(String userId, CreateItemDTO createItemDTO){
         Item item = creatUniqueIds(itemMapper.mapToItem(createItemDTO));
+        checksIfUserIsAssignedToItem(item, userId);
         itemRepro.save(item);
         return itemMapper.mapToItemTableReturn(item);
     }
 
-    public void deleteItem(String id) {
+    public void deleteItem(String userId, String id) {
+        Item item = itemRepro.findById(id).orElseThrow(() -> new ItemDoesNotExistException("No Item with this ID"));
+        checksIfUserIsAssignedToItem(item, userId);
         itemRepro.deleteById(id);
+    }
+
+    public ItemTableReturnDTO editItem(String userId, String id, EditItemDTO editItemDTO) {
+        Item item = itemRepro.findById(id).orElseThrow(() -> new ItemDoesNotExistException("No Item with this ID"));
+
+        //Checks every Value and changes them accordingly
+        checksIfUserIsAssignedToItem(item, userId);
+
+        if(editItemDTO.name() != null){
+            item = changeItemName(item, editItemDTO.name());
+        }
+        if (editItemDTO.energyLabel() != null) {
+            item = changeEnergyLabel(item, editItemDTO.energyLabel());
+        }
+        if (editItemDTO.category() != null) {
+            item = changeItemCategory(item, editItemDTO.category());
+        }
+        if (editItemDTO.homeId() != null) {
+            item = changeHome(item, editItemDTO.homeId());
+        }
+        itemRepro.save(item);
+        return itemMapper.mapToItemTableReturn(item);
     }
 
     private Item creatUniqueIds(Item item){
@@ -82,26 +114,6 @@ public class ItemService {
                 .orElseGet(() -> category.withId(idService.createNewId())); // Otherwise, create a new category with a new ID
     }
 
-    public ItemTableReturnDTO editItem(String id, EditItemDTO editItemDTO) {
-        Item item = itemRepro.findById(id).orElseThrow(() -> new ItemDoesNotExistException("No Item with this ID"));
-
-        //Checks every Value and changes them accordingly
-        if(editItemDTO.name() != null){
-            item = changeItemName(item, editItemDTO.name());
-        }
-        if (editItemDTO.energyLabel() != null) {
-            item = changeEnergyLabel(item, editItemDTO.energyLabel());
-        }
-        if (editItemDTO.category() != null) {
-            item = changeItemCategory(item, editItemDTO.category());
-        }
-        if (editItemDTO.homeId() != null) {
-            item = changeHome(item, editItemDTO.homeId());
-        }
-        itemRepro.save(item);
-        return itemMapper.mapToItemTableReturn(item);
-    }
-
     private Item changeItemName(Item item, String newName){
         return item.withName(newName);
     }
@@ -116,6 +128,13 @@ public class ItemService {
     }
     private Item changeHome(Item item, String homeID){
         return item.withHomeId(homeID);
+    }
+
+    private void checksIfUserIsAssignedToItem(Item item, String userId) {
+        String homeId = item.homeId();
+        if (!homeService.findHomeConnectedToUser(userId).contains(homeId)){
+            throw new UserDoesNotHavePermissionException("User does not have premision");
+        }
     }
 
 }
