@@ -5,7 +5,7 @@ function LoginWithGithub(){
     function login(){
         const host:string = window.location.host ===
         "localhost:5173" ? "http://localhost:8080" : window.location.origin;
-        console.log(host + "/oauth2/authorization/github")
+        window.open(host + "/oauth2/authorization/google", "_self")
     }
 
     return(
