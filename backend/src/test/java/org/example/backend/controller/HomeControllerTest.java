@@ -6,7 +6,6 @@ import org.example.backend.controller.dto.edit.EditHomeDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
 import org.example.backend.repro.HomeRepro;
-import org.example.backend.service.HomeService;
 import org.example.backend.service.security.IdService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -41,8 +40,6 @@ class HomeControllerTest {
 
     @MockitoBean
     private IdService idService;
-    @Autowired
-    private HomeService homeService;
 
     @AfterEach
     void tearDown() {
