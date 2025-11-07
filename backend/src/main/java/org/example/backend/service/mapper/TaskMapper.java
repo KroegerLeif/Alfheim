@@ -40,7 +40,7 @@ public class TaskMapper {
                 taskSeries.id(),
                 taskSeries.definition().name(),
                 taskSeries.definition().connectedItems().stream().map(Item::name).toList(),
-                taskSeries.definition().responsible(),
+                taskSeries.taskMembers(),
                 taskSeries.definition().priority(),
                 taskSeries.taskList().getLast().status(),
                 taskSeries.taskList().getLast().dueDate(),

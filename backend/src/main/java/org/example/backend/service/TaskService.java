@@ -200,7 +200,7 @@ public class TaskService {
     }
 
     private  TaskSeries changeAssignedUsers(List<String> assignedUser, TaskSeries taskSeries){
-        return taskSeries.withDefinition(taskSeries.definition().withResponsible(assignedUser));
+        return taskSeries.withTaskMembers(assignedUser);
     }
 
     private  TaskSeries changePriority(Priority newPriority, TaskSeries taskSeries){

@@ -14,7 +14,6 @@ public class TaskDefinitionMapper {
         return new TaskDefinition("",//TaskStatus ID + "_D"
                 createTaskDTO.name(),
                 new ArrayList<>(),
-                new ArrayList<>(),
                 new BigDecimal(0),
                 createTaskDTO.priority(),
                 createTaskDTO.repetition());

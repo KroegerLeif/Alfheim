@@ -73,7 +73,6 @@ class TaskServiceTest {
                                         new TaskDefinition("1",
                                                         "Test",
                                                                 new ArrayList<>(),
-                                                                new ArrayList<>(),
                                                             null,
                                                                 Priority.HIGH,
                                                         0),
@@ -85,7 +84,6 @@ class TaskServiceTest {
         response.add(new TaskSeries("2",
                         new TaskDefinition("2",
                                 "Test",
-                                new ArrayList<>(),
                                 new ArrayList<>(),
                                 null,
                                 Priority.HIGH,
@@ -134,7 +132,6 @@ class TaskServiceTest {
         TaskDefinition taskDefinition = new TaskDefinition(
                 null,
                 "Test Task",
-                new ArrayList<>(),
                 new ArrayList<>(),
                 null,
                 Priority.HIGH,
@@ -197,7 +194,6 @@ class TaskServiceTest {
                 new TaskDefinition(id + "_D",
                         "Test",
                         new ArrayList<>(),
-                        new ArrayList<>(),
                         new BigDecimal(2),
                         Priority.HIGH,
                         3
@@ -258,7 +254,6 @@ class TaskServiceTest {
                 new TaskDefinition(id + "_D",
                         "Test",
                         new ArrayList<>(),
-                        new ArrayList<>(),
                         new BigDecimal(2),
                         Priority.HIGH,
                         3
@@ -285,7 +280,6 @@ class TaskServiceTest {
 
         TaskDefinition taskDefinition = new TaskDefinition(id + "_D",
                 "Test",
-                new ArrayList<>(),
                 new ArrayList<>(),
                 new BigDecimal(2),
                 Priority.HIGH,
@@ -339,7 +333,6 @@ class TaskServiceTest {
         TaskDefinition taskDefinition = new TaskDefinition(
                 id + "_D",
                 "Test",
-                new ArrayList<>(),
                 new ArrayList<>(),
                 new BigDecimal(2),
                 Priority.HIGH,
@@ -419,7 +412,6 @@ class TaskServiceTest {
                 id + "_D",
                 "Test",
                 new ArrayList<>(),
-                new ArrayList<>(),
                 new BigDecimal(2),
                 Priority.HIGH,
                 3);
@@ -442,7 +434,6 @@ class TaskServiceTest {
     private static TaskSeries createTaskSeries() {
         TaskDefinition taskDefinition = new TaskDefinition("1_D",
                 "test",
-                new ArrayList<>(),
                 new ArrayList<>(),
                 new BigDecimal(1),
                 Priority.HIGH,

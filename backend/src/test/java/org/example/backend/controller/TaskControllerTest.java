@@ -195,7 +195,6 @@ class TaskControllerTest {
         TaskDefinition taskDefinition = new TaskDefinition("1",
                 "test",
                 new ArrayList<>(),
-                new ArrayList<>(),
                 new BigDecimal(1),
                 Priority.HIGH,
                 2);

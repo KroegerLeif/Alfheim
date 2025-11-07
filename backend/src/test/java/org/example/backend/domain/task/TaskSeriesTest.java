@@ -18,7 +18,6 @@ class TaskSeriesTest {
                 "1",
                 "Clean the kitchen",
                 new ArrayList<>(),
-                new ArrayList<>(),
                 new BigDecimal("100.50"),
                 Priority.HIGH,
                 7

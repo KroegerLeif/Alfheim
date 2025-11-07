@@ -110,7 +110,6 @@ class TaskMapperTest {
         return  new TaskDefinition("",
                 "def",
                 new ArrayList<>(),
-                new ArrayList<>(),
                 new BigDecimal(0),
                 Priority.HIGH,
                 0

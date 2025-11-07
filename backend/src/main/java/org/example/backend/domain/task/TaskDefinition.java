@@ -9,7 +9,6 @@ import java.util.List;
 @With
 public record TaskDefinition(String id,
                              String name,
-                             List<String> responsible,
                              List<Item> connectedItems,
                              BigDecimal price,
                              Priority priority,
