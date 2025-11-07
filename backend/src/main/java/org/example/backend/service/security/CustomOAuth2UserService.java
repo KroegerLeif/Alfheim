@@ -14,13 +14,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepro userRepo;
 
+    @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) {
+        OAuth2User oauthUser = loadOAuth2User(userRequest);
 
-        OAuth2User oauthUser = super.loadUser(userRequest);
         User appUser = userRepo.findById(oauthUser.getName())
                 .orElseGet(() -> createAndSaveUser(oauthUser));
 
         return oauthUser;
+    }
+
+    protected OAuth2User loadOAuth2User(OAuth2UserRequest request) {
+        return super.loadUser(request);
     }
 
     private User createAndSaveUser(OAuth2User oauthUser) {
