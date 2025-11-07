@@ -4,5 +4,5 @@ export type CreateItem = {
     name: string,
     energyLabel: EnergyLabel,
     category: string
-
+    homeId: string
 }

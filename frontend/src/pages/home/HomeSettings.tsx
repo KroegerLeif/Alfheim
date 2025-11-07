@@ -57,6 +57,7 @@ function HomeSettings({id,name,address, loadHomeData}: Readonly<EditHomeProps & 
                 city: formData.city,
                 country: formData.country
             }as Address,
+            associatedUsers: []
         };
 
         axios.patch("/api/home/" + id + "/edit", editedHome)
