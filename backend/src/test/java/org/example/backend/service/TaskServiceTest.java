@@ -11,6 +11,7 @@ import org.example.backend.service.security.IdService;
 
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
+import org.example.backend.service.security.exception.UserDoesNotHavePermissionException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -73,7 +74,6 @@ class TaskServiceTest {
                                         new TaskDefinition("1",
                                                         "Test",
                                                                 new ArrayList<>(),
-                                                                new ArrayList<>(),
                                                             null,
                                                                 Priority.HIGH,
                                                         0),
@@ -85,7 +85,6 @@ class TaskServiceTest {
         response.add(new TaskSeries("2",
                         new TaskDefinition("2",
                                 "Test",
-                                new ArrayList<>(),
                                 new ArrayList<>(),
                                 null,
                                 Priority.HIGH,
@@ -135,7 +134,6 @@ class TaskServiceTest {
                 null,
                 "Test Task",
                 new ArrayList<>(),
-                new ArrayList<>(),
                 null,
                 Priority.HIGH,
                 0
@@ -162,16 +160,16 @@ class TaskServiceTest {
                 "1"
         );
         
-        Mockito.when(taskMapper.mapToTaskSeries(createTaskDTO)).thenReturn(taskSeries);
+        Mockito.when(taskMapper.mapToTaskSeries("user",createTaskDTO)).thenReturn(taskSeries);
         Mockito.when(idService.createNewId()).thenReturn(expectedTaskSeriesId);
         Mockito.when(mockRepo.save(any(TaskSeries.class))).thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
         
         //WHEN
-        TaskTableReturnDTO result = taskService.createNewTask(createTaskDTO);
+        TaskTableReturnDTO result = taskService.createNewTask("user", createTaskDTO);
         
         //THEN
-        Mockito.verify(taskMapper).mapToTaskSeries(createTaskDTO);
+        Mockito.verify(taskMapper).mapToTaskSeries("user",createTaskDTO);
         Mockito.verify(idService, Mockito.times(1)).createNewId();
         Mockito.verify(mockRepo).save(any(TaskSeries.class));
         Mockito.verify(taskMapper).mapToTaskTableReturn(any(TaskSeries.class));
@@ -191,12 +189,12 @@ class TaskServiceTest {
         LocalDate testDate = LocalDate.of(2025, 10, 30);
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, testDate));
-
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 new TaskDefinition(id + "_D",
                         "Test",
-                        new ArrayList<>(),
                         new ArrayList<>(),
                         new BigDecimal(2),
                         Priority.HIGH,
@@ -204,7 +202,7 @@ class TaskServiceTest {
                 ),
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -226,7 +224,7 @@ class TaskServiceTest {
 
 
         //WHEN
-        TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
+        TaskTableReturnDTO result = taskService.editTask("user",id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
@@ -243,7 +241,7 @@ class TaskServiceTest {
         EditTaskDTO editDto = new EditTaskDTO(Status.IN_PROGRESS, null);
 
         // WHEN & THEN
-        TaskDoesNotExistException exception = assertThrows(TaskDoesNotExistException.class, () -> taskService.editTask(id, editDto));
+        TaskDoesNotExistException exception = assertThrows(TaskDoesNotExistException.class, () -> taskService.editTask("user",id, editDto));
         assertEquals("Task does not Exist", exception.getMessage());
     }
 
@@ -252,12 +250,12 @@ class TaskServiceTest {
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.CLOSED, LocalDate.of(2025, 10, 30)));
-
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 new TaskDefinition(id + "_D",
                         "Test",
-                        new ArrayList<>(),
                         new ArrayList<>(),
                         new BigDecimal(2),
                         Priority.HIGH,
@@ -265,14 +263,29 @@ class TaskServiceTest {
                 ),
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,LocalDate.now().plusDays(5));
 
         // WHEN & THEN
-        TaskCompletionException exception = assertThrows(TaskCompletionException.class, () -> taskService.editTask(id, editTaskDTO));
+        TaskCompletionException exception = assertThrows(TaskCompletionException.class, () -> taskService.editTask("user",id, editTaskDTO));
         assertEquals("Completion Date can not be in the future", exception.getMessage());
+    }
+
+    @Test
+    void editTask_shouldThrowUserDoesNotHavePermissionException_whenUserDoesNotHavePermission() {
+        String userId = "otherUser";
+        String id = "Unique1";
+        EditTaskDTO editTaskDTO = geneartateEditTaskDTO();
+        TaskSeries taskSeries = createTaskSeries();
+
+        when(mockRepo.findById(id)).thenReturn(Optional.of(taskSeries));
+
+        // WHEN & THEN
+        assertThrows(UserDoesNotHavePermissionException.class, () ->
+                taskService.editTask(userId,id, editTaskDTO));
+
     }
 
     @Test
@@ -282,10 +295,11 @@ class TaskServiceTest {
         LocalDate testDate = LocalDate.of(2025, 10, 30);
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, testDate));
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
 
         TaskDefinition taskDefinition = new TaskDefinition(id + "_D",
                 "Test",
-                new ArrayList<>(),
                 new ArrayList<>(),
                 new BigDecimal(2),
                 Priority.HIGH,
@@ -296,7 +310,7 @@ class TaskServiceTest {
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -318,7 +332,7 @@ class TaskServiceTest {
         when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
-        TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
+        TaskTableReturnDTO result = taskService.editTask("user",id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
@@ -335,11 +349,11 @@ class TaskServiceTest {
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, LocalDate.of(2025, 10, 30)));
-
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
         TaskDefinition taskDefinition = new TaskDefinition(
                 id + "_D",
                 "Test",
-                new ArrayList<>(),
                 new ArrayList<>(),
                 new BigDecimal(2),
                 Priority.HIGH,
@@ -350,7 +364,7 @@ class TaskServiceTest {
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -375,7 +389,7 @@ class TaskServiceTest {
         when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
-        TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
+        TaskTableReturnDTO result = taskService.editTask("user",id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
@@ -392,7 +406,7 @@ class TaskServiceTest {
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(taskSeries));
         //WHEN
-        taskService.editTaskSeries(id,editTaskSeriesDTO);
+        taskService.editTaskSeries("user", id,editTaskSeriesDTO);
         //THEN
         Mockito.verify(mockRepo).findById(id);
         Mockito.verify(mockRepo).save(any(TaskSeries.class));
@@ -405,7 +419,22 @@ class TaskServiceTest {
         EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
         when(mockRepo.findById(id)).thenReturn(Optional.empty());
         // WHEN & THEN
-        assertThrows(TaskDoesNotExistException.class, () -> taskService.editTaskSeries(id,editTaskSeriesDTO));
+        assertThrows(TaskDoesNotExistException.class, () -> taskService.editTaskSeries("user",id,editTaskSeriesDTO));
+    }
+
+    @Test
+    void editTaskSeries_shouldThrowUserDoesNotHavePermissionException_whenUserDoesNotHavePermission() {
+        String userId = "otherUser";
+        String id = "Unique1";
+        EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
+        TaskSeries taskSeries = createTaskSeries();
+
+        when(mockRepo.findById(id)).thenReturn(Optional.of(taskSeries));
+
+        // WHEN & THEN
+        assertThrows(UserDoesNotHavePermissionException.class, () ->
+                taskService.editTaskSeries(userId,id, editTaskSeriesDTO));
+
     }
 
     @Test
@@ -414,11 +443,55 @@ class TaskServiceTest {
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, LocalDate.of(2025, 10, 30)));
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
+
 
         TaskDefinition taskDefinition = new TaskDefinition(
                 id + "_D",
                 "Test",
                 new ArrayList<>(),
+                new BigDecimal(2),
+                Priority.HIGH,
+                3);
+
+        TaskSeries savedTaskSeries = new TaskSeries(
+                id,
+                taskDefinition,
+                taskList,
+                "home123",
+                assignedTo
+        );
+
+        mockRepo.save(savedTaskSeries);
+        when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
+        //WHEN
+        taskService.deleteTask("user",id);
+        //THEN
+        Mockito.verify(mockRepo).deleteById(id);
+    }
+
+    @Test
+    void deleteTask_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
+        //GIVEN
+        String id = "Unique1";
+        //WHEN
+        try {
+            taskService.deleteTask("user", id);
+        }catch (TaskDoesNotExistException e){
+            assertEquals("Task does not Exist", e.getMessage());
+        }
+    }
+
+    @Test
+    void deleteTask_shouldThrowUserDoesNotHavePermissionException_whenCalled(){
+        //GIVEN
+        String id = "Unique1";
+        List<Task> taskList = new ArrayList<>();
+        taskList.add(new Task(id + "1",Status.OPEN, LocalDate.of(2025, 10, 30)));
+
+        TaskDefinition taskDefinition = new TaskDefinition(id + "_D",
+                "Test",
                 new ArrayList<>(),
                 new BigDecimal(2),
                 Priority.HIGH,
@@ -432,42 +505,19 @@ class TaskServiceTest {
                 new ArrayList<>()
         );
 
-        mockRepo.save(savedTaskSeries);
-        //WHEN
-        taskService.deleteTask(id);
-        //THEN
-        Mockito.verify(mockRepo).deleteById(id);
-    }
+        when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
 
-    @Test
-    void addTaskToHome_shouldAddTaskToHome_whenCalled(){
-        //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        String homeId = "1";
-        when(mockRepo.findById(taskSeries.id())).thenReturn(Optional.of(taskSeries));
+       try{
+        taskService.deleteTask("user",id);
+       }catch (UserDoesNotHavePermissionException e){
+           assertEquals( "User does not have premision",e.getMessage());
+       }
 
-        //WHEN
-        taskService.addTaskToHome(taskSeries.id(),homeId);
-
-        //THEN
-        Mockito.verify(mockRepo).findById(taskSeries.id());
-    }
-
-    @Test
-    void addTaskToHOme_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
-        // GIVEN
-        String taskId = "non-existent-id";
-        String homeId = "1";
-        when(mockRepo.findById(taskId)).thenReturn(Optional.empty());
-
-        // WHEN & THEN
-        assertThrows(TaskDoesNotExistException.class, () -> taskService.addTaskToHome(taskId, homeId));
     }
 
     private static TaskSeries createTaskSeries() {
         TaskDefinition taskDefinition = new TaskDefinition("1_D",
                 "test",
-                new ArrayList<>(),
                 new ArrayList<>(),
                 new BigDecimal(1),
                 Priority.HIGH,
@@ -476,11 +526,14 @@ class TaskServiceTest {
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task("1", Status.OPEN, null));
 
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
+
         return new TaskSeries("1",
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>());
+                assignedTo);
     }
 
     private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){
@@ -489,7 +542,7 @@ class TaskServiceTest {
         itemIDs.add("2");
 
         List<String> assignedUserIDs = new ArrayList<>();
-        assignedUserIDs.add("1");
+        assignedUserIDs.add("user");
         assignedUserIDs.add("2");
 
         return new EditTaskSeriesDTO("Test",
@@ -501,6 +554,10 @@ class TaskServiceTest {
                 4,
                 "UniqueHome"
         );
+    }
+
+    private static EditTaskDTO geneartateEditTaskDTO(){
+        return new EditTaskDTO(Status.CLOSED,null);
     }
 
 }

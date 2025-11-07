@@ -4,6 +4,6 @@ export type ItemTableReturn ={
     id: string,
     name: string,
     energyLabel: EnergyLabel,
-    category: string
+    category: string,
     homeId: string
 }

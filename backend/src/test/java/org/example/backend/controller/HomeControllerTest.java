@@ -59,6 +59,7 @@ class HomeControllerTest {
     void getAllHomes_shouldReturnListOfHomes_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", address, new HashMap<>());
+        home.members().put("user",null);
         homeRepro.save(home);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/home"))
@@ -79,7 +80,9 @@ class HomeControllerTest {
                                         "admin": "admin",
                                         "numberTask": 0,
                                         "numberItems": 0,
-                                        "members" : []
+                                        "members" : [
+                                          "user"
+                                        ]
                                       }
                                     ]
                                     """));
@@ -90,6 +93,7 @@ class HomeControllerTest {
     void getHomeNames_shouldReturnListOfHomeNames_whenHomesExist() throws Exception {
         Address address = new Address("1", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", address, new HashMap<>());
+        home.members().put("user",null);
         homeRepro.save(home);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/home/getNames"))
@@ -143,7 +147,7 @@ class HomeControllerTest {
                                         "admin": "admin",
                                         "numberTask": 0,
                                         "numberItems": 0,
-                                        "members" : []
+                                        "members" : ["user"]
                                       }
                        
                                     """));
@@ -156,6 +160,7 @@ class HomeControllerTest {
         //GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", originalAddress, new HashMap<>());
+        home.members().put("user",null);
         homeRepro.save(home);
 
         EditHomeDTO editHomeDTO = getEditHomeDTO();
@@ -180,7 +185,7 @@ class HomeControllerTest {
                                         "admin": "admin",
                                         "numberItems": 0,
                                         "numberTask": 0,
-                                        "members" : ["1"]
+                                        "members": ["user"]
                                       }
                        
                                     """));
@@ -192,6 +197,7 @@ class HomeControllerTest {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", originalAddress,  new HashMap<>());
+        home.members().put("user",null);
         homeRepro.save(home);
 
         EditHomeDTO editHomeDTO = new EditHomeDTO("Updated Name", null, new ArrayList<>());
@@ -224,6 +230,7 @@ class HomeControllerTest {
         // GIVEN
         Address originalAddress = new Address("12", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", originalAddress,  new HashMap<>());
+        home.members().put("user",null);
         homeRepro.save(home);
 
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");
@@ -257,6 +264,7 @@ class HomeControllerTest {
         //GIVEN
         Address address = new Address("1", "street", "postCode", "city", "country");
         Home home = new Home("1", "home", address, new HashMap<>());
+        home.members().put("user",null);
         homeRepro.save(home);
 
         //WHEN

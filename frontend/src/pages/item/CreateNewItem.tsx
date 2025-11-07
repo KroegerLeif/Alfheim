@@ -11,7 +11,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog.tsx"
 import { Input } from "@/components/ui/input.tsx"
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import axios from "axios";
 
 import type {CreateItem} from "@/dto/create/CreateItem.ts";
@@ -26,18 +26,26 @@ function CreateNewItem(prop: Readonly<{loadItemData: () => void  }> ) {
 
     const loadData: () => void = prop.loadItemData
     const [visible, setVisible] = useState(false)
+    const [homeList, setHomeList] = useState([
+        {
+            id:"",
+            name:""
+        }
+    ]);
 
     type FormFields = {
         name: string;
         energyLabel: EnergyLabel;
         category: string;
+        homeId: string;
     }
 
     const {register,handleSubmit,control} = useForm<FormFields>({
         defaultValues: {
             name: "",
             energyLabel: "G",
-            category: ""
+            category: "",
+            homeId: ""
         }
     })
 
@@ -47,6 +55,7 @@ function CreateNewItem(prop: Readonly<{loadItemData: () => void  }> ) {
             name: data.name,
             energyLabel: data.energyLabel,
             category: data.category,
+            homeId: data.homeId,
         };
 
         axios.post("/api/item/create", newItem)
@@ -63,6 +72,17 @@ function CreateNewItem(prop: Readonly<{loadItemData: () => void  }> ) {
             })
 
     }
+
+    function getHomeNames(){
+        axios.get("api/home/getNames")
+            .then(response => {
+                setHomeList(response.data);
+            })
+    }
+
+    useEffect(() =>{
+        getHomeNames();
+    },[])
 
     return (
         <Dialog open={visible} onOpenChange={setVisible}>
@@ -108,6 +128,25 @@ function CreateNewItem(prop: Readonly<{loadItemData: () => void  }> ) {
                             <FieldLabel htmlFor={"category"}>Category</FieldLabel>
                             <Input {...register("category")}
                                 type={"text"}/>
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor="home">Home</FieldLabel>
+                            <Controller
+                                control={control}
+                                name="homeId"
+                                render={({field}) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose Home"/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {homeList.map(homeName => (
+                                                <SelectItem key={homeName.id} value={homeName.id}>{homeName.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
                         </Field>
                     </FieldSet>
                 </form>

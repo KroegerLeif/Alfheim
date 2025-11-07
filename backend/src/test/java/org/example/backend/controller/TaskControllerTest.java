@@ -2,7 +2,6 @@ package org.example.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
-import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
 import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -64,7 +63,8 @@ class TaskControllerTest {
         TaskSeries taskSeries = createTaskSeries();
         taskSeriesRepro.save(taskSeries);
         //WHEN
-        when(homeService.findHomeConnectedToUser("user")).thenReturn(List.of("home123"));
+
+
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(
@@ -75,10 +75,12 @@ class TaskControllerTest {
                               "taskSeriesId": "1",
                               "name": "test",
                               "items": [],
-                              "assignedTo": [],
+                              "assignedTo": ["user"],
                               "priority": "HIGH",
                               "status": "OPEN",
-                              "dueDate": null
+                              "dueDate": null,
+                              "repetition": 2,
+                              "homeId": "home123"
                           }
                         ]
                         """
@@ -112,7 +114,7 @@ class TaskControllerTest {
                                         "taskSeriesId": "1",
                                         "name": "Test",
                                         "items" : [],
-                                        "assignedTo": [],
+                                        "assignedTo": ["user"],
                                         "priority": "HIGH",
                                         "status": "OPEN",
                                         "dueDate" : null
@@ -146,7 +148,7 @@ class TaskControllerTest {
                                         "taskSeriesId": "1",
                                         "name": "test",
                                         "items" : [],
-                                        "assignedTo": [],
+                                        "assignedTo": ["user"],
                                         "priority": "HIGH",
                                         "status": "IN_PROGRESS",
                                         "dueDate": "%s"
@@ -163,7 +165,6 @@ class TaskControllerTest {
         taskSeriesRepro.save(taskSeries);
         EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
 
-        when(itemService.getItemById(anyString())).thenReturn(new Item("1", "Test Item", null, null,"home123"));
         when(userService.getUserById(anyString())).thenReturn(new User("1", "Test User"));
 
         //WHEN
@@ -172,27 +173,6 @@ class TaskControllerTest {
                     .content(objectMapper.writeValueAsString(editTaskSeriesDTO)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         
-    }
-
-    @Test
-    @WithMockUser
-    void addTaskToHome_shouldReturnStatusOK_whenCalledToBeAddedToHome() throws Exception {
-        //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        taskSeriesRepro.save(taskSeries);
-
-        //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/addTaskToHome")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                """
-                                    {
-                                      "homeId"  : "1"
-                                    }
-                                    """
-                            )
-                        )
-                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
@@ -216,7 +196,6 @@ class TaskControllerTest {
         TaskDefinition taskDefinition = new TaskDefinition("1",
                 "test",
                 new ArrayList<>(),
-                new ArrayList<>(),
                 new BigDecimal(1),
                 Priority.HIGH,
                 2);
@@ -224,11 +203,14 @@ class TaskControllerTest {
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task("1", Status.OPEN, null));
 
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
+
         return new TaskSeries("1",
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>());
+                assignedTo);
     }
 
     private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){
@@ -237,7 +219,7 @@ class TaskControllerTest {
         itemIDs.add("2");
 
         List<String> assignedUserIDs = new ArrayList<>();
-        assignedUserIDs.add("1");
+        assignedUserIDs.add("user");
         assignedUserIDs.add("2");
 
         return new EditTaskSeriesDTO("Test",

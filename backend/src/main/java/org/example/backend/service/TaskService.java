@@ -14,12 +14,14 @@ import org.example.backend.service.mapper.TaskMapper;
 import org.example.backend.service.security.IdService;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
+import org.example.backend.service.security.exception.UserDoesNotHavePermissionException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-
+import java.util.Set;
 
 @Service
 public class TaskService {
@@ -30,7 +32,6 @@ public class TaskService {
     private final ItemService itemService;
     private final HomeService homeService;
 
-
     public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, ItemService itemService, HomeService homeService) {
         this.taskseriesRepro = taskseriesRepro;
         this.taskMapper = taskMapper;
@@ -39,8 +40,8 @@ public class TaskService {
         this.homeService = homeService;
     }
 
-    public TaskTableReturnDTO createNewTask(CreateTaskDTO createTaskDTO) {
-        TaskSeries taskSeries = createUniqueIds(taskMapper.mapToTaskSeries(createTaskDTO));
+    public TaskTableReturnDTO createNewTask(String userId, CreateTaskDTO createTaskDTO) {
+        TaskSeries taskSeries = createUniqueIds(taskMapper.mapToTaskSeries(userId, createTaskDTO));
 
         //added first task to tasklist
         taskSeries.taskList()
@@ -64,13 +65,17 @@ public class TaskService {
             connectedTasks.addAll(taskseriesRepro.findAllByHomeId(connectedHome));
         }
 
-        return connectedTasks.stream()
+        Set<TaskSeries> connectedTasksWithoutDuplicates = new HashSet<>(connectedTasks);
+
+        return connectedTasksWithoutDuplicates.stream()
                 .map((taskMapper::mapToTaskTableReturn))
                 .toList();
     }
 
-    public TaskTableReturnDTO editTask(String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
+    public TaskTableReturnDTO editTask(String userId, String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> (new TaskDoesNotExistException("Task does not Exist")));
+
+        checksIfUserIsAssignedToTask(taskSeries, userId);
 
         if(editTaskDTO.status() == Status.CLOSED){
             //Checks if completion date is in the future
@@ -95,15 +100,17 @@ public class TaskService {
         return taskMapper.mapToTaskTableReturn(taskSeries);
     }
 
-    public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
+    public void editTaskSeries(String userId, String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
+
+        checksIfUserIsAssignedToTask(taskSeries, userId);
 
         if(editTaskSeriesDto.name() != null){
             taskSeries = changeTaskName(editTaskSeriesDto.name(), taskSeries);
         }
 
         if(editTaskSeriesDto.itemId() != null){
-            taskSeries = changeTaskItems(editTaskSeriesDto.itemId(), taskSeries);
+            taskSeries = changeTaskItems(userId,editTaskSeriesDto.itemId(), taskSeries);
         }
 
         if(editTaskSeriesDto.assignedUser() != null){
@@ -130,13 +137,10 @@ public class TaskService {
 
     }
 
-    public void deleteTask(String id) {
-        taskseriesRepro.deleteById(id);
-    }
-
-    public void addTaskToHome(String id, String homeId) {
+    public void deleteTask(String userId,String id) {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
-        taskseriesRepro.save(taskSeries.withHomeId(homeId));
+        checksIfUserIsAssignedToTask(taskSeries,userId);
+        taskseriesRepro.deleteById(id);
     }
 
     private TaskSeries createUniqueIds(TaskSeries taskSeries){
@@ -196,16 +200,16 @@ public class TaskService {
         return taskSeries.withDefinition(taskSeries.definition().withName(newName));
     }
 
-    private  TaskSeries changeTaskItems(List<String> itemId, TaskSeries taskSeries){
+    private  TaskSeries changeTaskItems(String userId,List<String> itemId, TaskSeries taskSeries){
         List<Item> itemList = new ArrayList<>();
         for(String s: itemId){
-            itemList.add(itemService.getItemById(s));
+            itemList.add(itemService.getItemById(userId,s));
         }
         return taskSeries.withDefinition(taskSeries.definition().withConnectedItems(itemList));
     }
 
     private  TaskSeries changeAssignedUsers(List<String> assignedUser, TaskSeries taskSeries){
-        return taskSeries.withDefinition(taskSeries.definition().withResponsible(assignedUser));
+        return taskSeries.withTaskMembers(assignedUser);
     }
 
     private  TaskSeries changePriority(Priority newPriority, TaskSeries taskSeries){
@@ -216,8 +220,10 @@ public class TaskService {
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
     }
 
-    private List<String> getHomeIds(String userId){
-        return homeService.findHomeConnectedToUser(userId);
+    private void checksIfUserIsAssignedToTask(TaskSeries taskSeries, String userId){
+        if(!taskSeries.taskMembers().contains(userId)){
+            throw new UserDoesNotHavePermissionException("User does not have premision");
+        }
     }
 
 }

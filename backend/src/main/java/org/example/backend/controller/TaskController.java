@@ -7,7 +7,6 @@ import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
 import org.example.backend.service.TaskService;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -30,33 +29,27 @@ public class TaskController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<TaskTableReturnDTO> createTask(@RequestBody CreateTaskDTO createTaskDTO) {
-        TaskTableReturnDTO createdTask = taskService.createNewTask(createTaskDTO);
-        return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
+    @ResponseStatus(HttpStatus.CREATED)
+    public TaskTableReturnDTO createTask(Principal principal, @RequestBody CreateTaskDTO createTaskDTO) {
+        return taskService.createNewTask(principal.getName(),createTaskDTO);
     }
 
     @PatchMapping("/{id}/edit-task")
     @ResponseStatus(HttpStatus.OK)
-    public TaskTableReturnDTO editTask(@PathVariable String id, @RequestBody EditTaskDTO editTask){
-        return taskService.editTask(id, editTask);
-    }
-
-    @PatchMapping("/{id}/addTaskToHome")
-    @ResponseStatus(HttpStatus.OK)
-    public void addTaskToHome(@PathVariable String id, @RequestBody String homeId){
-        taskService.addTaskToHome(id, homeId);
+    public TaskTableReturnDTO editTask(Principal principal, @PathVariable String id, @RequestBody EditTaskDTO editTask){
+        return taskService.editTask(principal.getName(), id, editTask);
     }
 
     @PatchMapping("/{id}/editTaskSeries")
     @ResponseStatus(HttpStatus.OK)
-    public void editTaskSeries(@PathVariable String id, @RequestBody EditTaskSeriesDTO editTaskSeriesDto){
-        taskService.editTaskSeries(id, editTaskSeriesDto);
+    public void editTaskSeries(Principal principal,@PathVariable String id, @RequestBody EditTaskSeriesDTO editTaskSeriesDto){
+        taskService.editTaskSeries(principal.getName(), id, editTaskSeriesDto);
     }
 
     @DeleteMapping("/{id}/delete")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void deleteTask(@PathVariable String id) {
-        taskService.deleteTask(id);
+    public void deleteTask(Principal principal, @PathVariable String id) {
+        taskService.deleteTask(principal.getName(), id);
     }
 
 }

@@ -175,6 +175,25 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
                                 )}
                             />
                         </Field>
+                        <Field>
+                            <FieldLabel htmlFor="home">Home</FieldLabel>
+                            <Controller
+                                control={control}
+                                name="homeId"
+                                render={({field}) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose Home"/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {homeList.map(homeName => (
+                                                <SelectItem key={homeName.id} value={homeName.id}>{homeName.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </Field>
                     </FieldSet>
                 </form>
                 <DialogFooter>

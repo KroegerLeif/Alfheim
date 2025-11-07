@@ -26,13 +26,19 @@ import type {Status} from "@/dto/Status.ts";
 import type {EditTaskSeriesDTO} from "@/dto/edit/EditTaskSeriesDTO.ts";
 import {toast} from "sonner";
 
-function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,homeId, loadTaskData}:
+function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,homeId, loadTaskData,items}:
                       Readonly<TaskTableReturn &
                       {loadTaskData: () => void} >){
 
     const [open, setOpen] = useState(false);
 
     const [homeList, setHomeList] = useState([
+        {
+            id:"",
+            name:""
+        }
+    ]);
+    const [itemist, setItemList] = useState([
         {
             id:"",
             name:""
@@ -46,6 +52,7 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
         status: Status;
         dueDate: string;
         repetition: number;
+        item: string;
     };
 
     const {register, handleSubmit, control} = useForm<FormFields>({
@@ -55,7 +62,8 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
                 homeId:homeId,
                 status:status,
                 dueDate:dueDate,
-                repetition:repetition
+                repetition:repetition,
+                item:items.toString()
             }
         }
     );
@@ -63,7 +71,7 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
     const onSubmit: SubmitHandler<FormFields> = (data) => {
         const editDTO: EditTaskSeriesDTO = {
             name: data.name,
-            items: [],
+            items: [data.item],
             assignedTo: [],
             priority: data.priority,
             status: data.status,
@@ -108,9 +116,17 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
             })
     }
 
+    function getItemNames(){
+        axios.get("api/item/getNames")
+            .then(response => {
+                setItemList(response.data);
+            })
+    }
+
 
     useEffect(() =>{
         getHomeNames();
+        getItemNames();
     },[])
 
     return(
@@ -166,6 +182,25 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
                                             <SelectContent>
                                                 {homeList.map(homeName => (
                                                     <SelectItem key={homeName.id} value={homeName.id}>{homeName.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="item">Item</FieldLabel>
+                                <Controller
+                                    control={control}
+                                    name="item"
+                                    render={({field}) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Choose Item"/>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {itemist.map(itemName => (
+                                                    <SelectItem key={itemName.id} value={itemName.id}>{itemName.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>

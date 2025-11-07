@@ -25,7 +25,7 @@ public class HomeMapper {
                                     "admin",
                                     getNumberOfTask(),
                                     getNumberOfItems(),
-                                    home.members().keySet().stream().toList());
+                                    home.members().keySet().stream().toList());//TODO get Names of all Members
     }
 
     public HomeListReturnDTO mapToHomeListReturn(Home home) {
@@ -34,10 +34,12 @@ public class HomeMapper {
     }
 
     private int getNumberOfTask(){
+        //TODO getNumberOfTask
         return 0;
     }
 
     private int getNumberOfItems(){
+        //TODO getNumberOfItems
         return 0;
     }
 }

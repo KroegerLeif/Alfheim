@@ -45,6 +45,7 @@ function ItemPage() {
                         <TableHead className="w-[100px]">Name</TableHead>
                         <TableHead>Energy Label</TableHead>
                         <TableHead>Category</TableHead>
+                        <TableHead>Home</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -57,6 +58,7 @@ function ItemPage() {
                                                    key={item_data.id}>{item_data.name}</TableCell>
                                         <TableCell>{item_data.energyLabel}</TableCell>
                                         <TableCell>{item_data.category}</TableCell>
+                                        <TableCell>{item_data.homeId}</TableCell>
                                     </TableRow>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-3xl max-h-[90vh]">
