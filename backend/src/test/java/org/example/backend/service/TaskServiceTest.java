@@ -501,7 +501,7 @@ class TaskServiceTest {
        try{
         taskService.deleteTask("user",id);
        }catch (UserDoesNotHavePermissionException e){
-           assertEquals(e.getMessage(), "User does not have premision");
+           assertEquals( "User does not have premision",e.getMessage());
        }
 
     }
