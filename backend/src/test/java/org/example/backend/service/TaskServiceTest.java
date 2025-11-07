@@ -189,7 +189,8 @@ class TaskServiceTest {
         LocalDate testDate = LocalDate.of(2025, 10, 30);
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, testDate));
-
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 new TaskDefinition(id + "_D",
@@ -201,7 +202,7 @@ class TaskServiceTest {
                 ),
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -249,7 +250,8 @@ class TaskServiceTest {
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.CLOSED, LocalDate.of(2025, 10, 30)));
-
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
         TaskSeries savedTaskSeries = new TaskSeries(
                 id,
                 new TaskDefinition(id + "_D",
@@ -261,7 +263,7 @@ class TaskServiceTest {
                 ),
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,LocalDate.now().plusDays(5));
@@ -293,6 +295,8 @@ class TaskServiceTest {
         LocalDate testDate = LocalDate.of(2025, 10, 30);
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, testDate));
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
 
         TaskDefinition taskDefinition = new TaskDefinition(id + "_D",
                 "Test",
@@ -306,7 +310,7 @@ class TaskServiceTest {
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -345,7 +349,8 @@ class TaskServiceTest {
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, LocalDate.of(2025, 10, 30)));
-
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
         TaskDefinition taskDefinition = new TaskDefinition(
                 id + "_D",
                 "Test",
@@ -359,7 +364,7 @@ class TaskServiceTest {
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
 
         TaskTableReturnDTO expectedReturn = new TaskTableReturnDTO(
@@ -438,6 +443,9 @@ class TaskServiceTest {
         String id = "Unique1";
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task(id + "1",Status.OPEN, LocalDate.of(2025, 10, 30)));
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
+
 
         TaskDefinition taskDefinition = new TaskDefinition(
                 id + "_D",
@@ -452,10 +460,11 @@ class TaskServiceTest {
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>()
+                assignedTo
         );
 
         mockRepo.save(savedTaskSeries);
+        when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
         //WHEN
         taskService.deleteTask("user",id);
         //THEN
@@ -517,11 +526,14 @@ class TaskServiceTest {
         List<Task> taskList = new ArrayList<>();
         taskList.add(new Task("1", Status.OPEN, null));
 
+        List<String> assignedTo = new ArrayList<>();
+        assignedTo.add("user");
+
         return new TaskSeries("1",
                 taskDefinition,
                 taskList,
                 "home123",
-                new ArrayList<>());
+                assignedTo);
     }
 
     private static EditTaskSeriesDTO geneartateEditTaskSeriesDTO(){
@@ -530,7 +542,7 @@ class TaskServiceTest {
         itemIDs.add("2");
 
         List<String> assignedUserIDs = new ArrayList<>();
-        assignedUserIDs.add("1");
+        assignedUserIDs.add("user");
         assignedUserIDs.add("2");
 
         return new EditTaskSeriesDTO("Test",
