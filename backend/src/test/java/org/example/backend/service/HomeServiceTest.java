@@ -2,10 +2,12 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.edit.EditHomeDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
 import org.example.backend.domain.task.*;
+import org.example.backend.domain.user.Role;
 import org.example.backend.repro.HomeRepro;
 import org.example.backend.service.mapper.HomeMapper;
 import org.example.backend.service.security.IdService;
@@ -34,27 +36,33 @@ class HomeServiceTest {
     HomeService homeService = new HomeService(mockRepo,homeMapper,idService);
 
     @Test
-    void getAllHomes() {
+    void getAllHomes_shouldReturnEmptyList_whenNoHomesExist() {
         //WHEN
         ArrayList<Home> response = new ArrayList<>();
-        when(mockRepo.findAll()).thenReturn(response);
+        when(mockRepo.findHomesByMemberId("user")).thenReturn(response);
         //THEN
-        homeService.getAllHomes("user");
-        Mockito.verify(mockRepo).findAll();
+        var actual  = homeService.getAllHomes("user");
+        assertEquals(0,actual.size());
     }
 
     @Test
     void getHomeNames_shouldReturnAllHomes_whenCalled(){
         //GIVEN
         Home home = new Home("1", "Test", new Address("1", "street", "postCode", "city", "country"),new HashMap<>());
+        home.members().put("user", Role.ADMIN);
+
         ArrayList<Home> response = new ArrayList<>();
         response.add(home);
 
-        when(mockRepo.findAll()).thenReturn(response);
+        List<HomeListReturnDTO> expectedHomeList = new ArrayList<>();
+        expectedHomeList.add(new HomeListReturnDTO("1","Test"));
+        //MOCKING
+        when(mockRepo.findHomesByMemberId("user")).thenReturn(response);
+        when(homeMapper.mapToHomeListReturn(home)).thenReturn(new HomeListReturnDTO("1","Test"));
         //WHEN
-        homeService.getHomeNames("user");
+        var actual = homeService.getHomeNames("user");
         //THEN
-        Mockito.verify(mockRepo).findAll();
+        assertEquals(expectedHomeList,actual);
     }
 
     @Test
@@ -84,6 +92,7 @@ class HomeServiceTest {
         Address address = new Address("1", "street", "postCode", "city", "country");
         Address address2 = new Address("2", "street2", "postCode", "Town", "country");
         Home home = new Home("1", "home", address, new HashMap<>());
+        home.members().put("user",null);
         String id = "1";
         EditHomeDTO editHomeDTO = getEditHomeDTO();
         HomeTableReturnDTO expected = new HomeTableReturnDTO("1","Test",address2,"admin",0,0,new ArrayList<>());
@@ -105,15 +114,17 @@ class HomeServiceTest {
     void deleteHome_shouldDeleteHome_whenCalled() {
         //GIVEN
         String id = "1";
-        mockRepo.save(
-                new Home(id,
+        Home home = new Home(id,
                         "Test",
                         new Address("1",
                                 "street",
                                 "postCode",
                                 "city",
                                 "country"),
-                        new HashMap<>()));
+                        new HashMap<>());
+        home.members().put("user",null);
+        mockRepo.save(home);
+        when(mockRepo.findById(id)).thenReturn(java.util.Optional.of(home));
         //WHEN
         homeService.deleteHome("user",id);
         //THEN
