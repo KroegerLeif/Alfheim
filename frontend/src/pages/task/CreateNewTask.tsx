@@ -18,13 +18,19 @@ import type {CreateTask} from "@/dto/create/CreateTask.ts";
 import type {Priority} from "@/dto/Priority.ts";
 import {toast} from "sonner";
 import {Controller, type SubmitHandler, useForm} from "react-hook-form";
-import {Field, FieldDescription, FieldSet} from "@/components/ui/field.tsx";
+import {Field, FieldDescription, FieldLabel, FieldSet} from "@/components/ui/field.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
     const loadData: () => void = prop.loadTaskData
     const [visible, setVisible] = useState(false)
+    const [homeList, setHomeList] = useState([
+        {
+            id:"",
+            name:""
+        }
+    ]);
 
     type FormFields = {
         name: string;
@@ -32,6 +38,7 @@ function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
         priority: Priority;
         dueDate: string;
         repetition: number;
+        homeId: string;
     }
 
     const {register, handleSubmit, control} = useForm<FormFields>({
@@ -41,6 +48,7 @@ function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
                 priority: "LOW",
                 dueDate: "",
                 repetition: 0,
+                homeId: ""
             }
         }
     );
@@ -53,6 +61,7 @@ function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
             priority: data.priority,
             dueDate: data.dueDate,
             repetition: data.repetition,
+            homeId: ""
         };
 
         axios.post("/api/task/create", newTask)
@@ -69,6 +78,17 @@ function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
                 toast.warning("Problem:" + error)
             })
     }
+
+    function getHomeNames(){
+        axios.get("api/home/getNames")
+            .then(response => {
+                setHomeList(response.data);
+            })
+    }
+
+    useEffect(() =>{
+        getHomeNames();
+    },[])
 
     return (
         <Dialog open={visible} onOpenChange={setVisible}>
@@ -120,6 +140,25 @@ function CreateNewTask(prop: Readonly<{loadTaskData: () => void  }> ) {
                             <Label htmlFor="repetition">Repetition</Label>
                             <Input {...register("repetition")}
                                 type={"number"}
+                            />
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor="home">Home</FieldLabel>
+                            <Controller
+                                control={control}
+                                name="homeId"
+                                render={({field}) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose Home"/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {homeList.map(homeName => (
+                                                <SelectItem key={homeName.id} value={homeName.id}>{homeName.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             />
                         </Field>
                     </FieldSet>
