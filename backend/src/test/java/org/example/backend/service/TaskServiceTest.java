@@ -168,7 +168,7 @@ class TaskServiceTest {
         Mockito.when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
         
         //WHEN
-        TaskTableReturnDTO result = taskService.createNewTask(createTaskDTO);
+        TaskTableReturnDTO result = taskService.createNewTask("user", createTaskDTO);
         
         //THEN
         Mockito.verify(taskMapper).mapToTaskSeries(createTaskDTO);
@@ -226,7 +226,7 @@ class TaskServiceTest {
 
 
         //WHEN
-        TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
+        TaskTableReturnDTO result = taskService.editTask("user",id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
@@ -243,7 +243,7 @@ class TaskServiceTest {
         EditTaskDTO editDto = new EditTaskDTO(Status.IN_PROGRESS, null);
 
         // WHEN & THEN
-        TaskDoesNotExistException exception = assertThrows(TaskDoesNotExistException.class, () -> taskService.editTask(id, editDto));
+        TaskDoesNotExistException exception = assertThrows(TaskDoesNotExistException.class, () -> taskService.editTask("user",id, editDto));
         assertEquals("Task does not Exist", exception.getMessage());
     }
 
@@ -271,7 +271,7 @@ class TaskServiceTest {
         EditTaskDTO editTaskDTO = new EditTaskDTO(Status.CLOSED,LocalDate.now().plusDays(5));
 
         // WHEN & THEN
-        TaskCompletionException exception = assertThrows(TaskCompletionException.class, () -> taskService.editTask(id, editTaskDTO));
+        TaskCompletionException exception = assertThrows(TaskCompletionException.class, () -> taskService.editTask("user",id, editTaskDTO));
         assertEquals("Completion Date can not be in the future", exception.getMessage());
     }
 
@@ -318,7 +318,7 @@ class TaskServiceTest {
         when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
-        TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
+        TaskTableReturnDTO result = taskService.editTask("user",id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
@@ -375,7 +375,7 @@ class TaskServiceTest {
         when(taskMapper.mapToTaskTableReturn(any(TaskSeries.class))).thenReturn(expectedReturn);
 
         //WHEN
-        TaskTableReturnDTO result = taskService.editTask(id,editTaskDTO);
+        TaskTableReturnDTO result = taskService.editTask("user",id,editTaskDTO);
 
         //THEN
         Mockito.verify(mockRepo).findById(id);
@@ -392,7 +392,7 @@ class TaskServiceTest {
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(taskSeries));
         //WHEN
-        taskService.editTaskSeries(id,editTaskSeriesDTO);
+        taskService.editTaskSeries("user", id,editTaskSeriesDTO);
         //THEN
         Mockito.verify(mockRepo).findById(id);
         Mockito.verify(mockRepo).save(any(TaskSeries.class));
@@ -405,7 +405,7 @@ class TaskServiceTest {
         EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
         when(mockRepo.findById(id)).thenReturn(Optional.empty());
         // WHEN & THEN
-        assertThrows(TaskDoesNotExistException.class, () -> taskService.editTaskSeries(id,editTaskSeriesDTO));
+        assertThrows(TaskDoesNotExistException.class, () -> taskService.editTaskSeries("user",id,editTaskSeriesDTO));
     }
 
     @Test
@@ -434,34 +434,9 @@ class TaskServiceTest {
 
         mockRepo.save(savedTaskSeries);
         //WHEN
-        taskService.deleteTask(id);
+        taskService.deleteTask("user",id);
         //THEN
         Mockito.verify(mockRepo).deleteById(id);
-    }
-
-    @Test
-    void addTaskToHome_shouldAddTaskToHome_whenCalled(){
-        //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        String homeId = "1";
-        when(mockRepo.findById(taskSeries.id())).thenReturn(Optional.of(taskSeries));
-
-        //WHEN
-        taskService.addTaskToHome(taskSeries.id(),homeId);
-
-        //THEN
-        Mockito.verify(mockRepo).findById(taskSeries.id());
-    }
-
-    @Test
-    void addTaskToHOme_shouldThrowTaskDoesNotExistException_whenTaskDoesNotExist(){
-        // GIVEN
-        String taskId = "non-existent-id";
-        String homeId = "1";
-        when(mockRepo.findById(taskId)).thenReturn(Optional.empty());
-
-        // WHEN & THEN
-        assertThrows(TaskDoesNotExistException.class, () -> taskService.addTaskToHome(taskId, homeId));
     }
 
     private static TaskSeries createTaskSeries() {

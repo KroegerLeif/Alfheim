@@ -39,7 +39,7 @@ public class TaskService {
         this.homeService = homeService;
     }
 
-    public TaskTableReturnDTO createNewTask(CreateTaskDTO createTaskDTO) {
+    public TaskTableReturnDTO createNewTask(String userId, CreateTaskDTO createTaskDTO) {
         TaskSeries taskSeries = createUniqueIds(taskMapper.mapToTaskSeries(createTaskDTO));
 
         //added first task to tasklist
@@ -69,7 +69,7 @@ public class TaskService {
                 .toList();
     }
 
-    public TaskTableReturnDTO editTask(String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
+    public TaskTableReturnDTO editTask(String userId, String id, EditTaskDTO editTaskDTO) throws TaskDoesNotExistException, TaskCompletionException{
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> (new TaskDoesNotExistException("Task does not Exist")));
 
         if(editTaskDTO.status() == Status.CLOSED){
@@ -95,7 +95,7 @@ public class TaskService {
         return taskMapper.mapToTaskTableReturn(taskSeries);
     }
 
-    public void editTaskSeries(String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
+    public void editTaskSeries(String userId, String id, EditTaskSeriesDTO editTaskSeriesDto) throws TaskDoesNotExistException {
         TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
 
         if(editTaskSeriesDto.name() != null){
@@ -130,13 +130,8 @@ public class TaskService {
 
     }
 
-    public void deleteTask(String id) {
+    public void deleteTask(String userId,String id) {
         taskseriesRepro.deleteById(id);
-    }
-
-    public void addTaskToHome(String id, String homeId) {
-        TaskSeries taskSeries = taskseriesRepro.findById(id).orElseThrow(() -> new TaskDoesNotExistException("Task does not Exist"));
-        taskseriesRepro.save(taskSeries.withHomeId(homeId));
     }
 
     private TaskSeries createUniqueIds(TaskSeries taskSeries){
@@ -214,10 +209,6 @@ public class TaskService {
 
     private TaskSeries changeRepetition(int newRepetition, TaskSeries taskSeries){
         return taskSeries.withDefinition(taskSeries.definition().withRepetition(newRepetition));
-    }
-
-    private List<String> getHomeIds(String userId){
-        return homeService.findHomeConnectedToUser(userId);
     }
 
 }

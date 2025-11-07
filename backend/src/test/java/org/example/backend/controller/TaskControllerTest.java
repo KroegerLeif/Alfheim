@@ -176,27 +176,6 @@ class TaskControllerTest {
 
     @Test
     @WithMockUser
-    void addTaskToHome_shouldReturnStatusOK_whenCalledToBeAddedToHome() throws Exception {
-        //GIVEN
-        TaskSeries taskSeries = createTaskSeries();
-        taskSeriesRepro.save(taskSeries);
-
-        //WHEN
-        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/addTaskToHome")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                """
-                                    {
-                                      "homeId"  : "1"
-                                    }
-                                    """
-                            )
-                        )
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    @WithMockUser
     void deleteTask_shouldDeleteTask_whenCalled() throws Exception {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
