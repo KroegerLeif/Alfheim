@@ -133,6 +133,31 @@ class HomeServiceTest {
     }
 
     @Test
+    void deleteHome_shouldThrowException_whenCalledBecauseUserDoesNotHavePermission() {
+        //GIVEN
+        String id = "1";
+        Home home = new Home(id,
+                "Test",
+                new Address("1",
+                        "street",
+                        "postCode",
+                        "city",
+                        "country"),
+                new HashMap<>());
+        home.members().put("otherAdmin",null);
+        mockRepo.save(home);
+        when(mockRepo.findById(id)).thenReturn(java.util.Optional.of(home));
+        //WHEN
+        try{
+            homeService.deleteHome("user",id);
+        }catch (Exception e){
+            //THEN
+            assertEquals("User Does Not Have Permission",e.getMessage());
+
+        }
+    }
+
+    @Test
     void findHomeConnectedToUser_shouldReturnAListOfHomesConnectedToTheUser(){
         //GIVEN
         String userId = "1";
