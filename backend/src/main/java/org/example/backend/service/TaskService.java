@@ -19,7 +19,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TaskService {
@@ -63,7 +65,9 @@ public class TaskService {
             connectedTasks.addAll(taskseriesRepro.findAllByHomeId(connectedHome));
         }
 
-        return connectedTasks.stream()
+        Set<TaskSeries> connectedTasksWithoutDuplicates = new HashSet<>(connectedTasks);
+
+        return connectedTasksWithoutDuplicates.stream()
                 .map((taskMapper::mapToTaskTableReturn))
                 .toList();
     }
