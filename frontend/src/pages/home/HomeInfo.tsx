@@ -8,7 +8,7 @@ import HomeSettings from "@/pages/home/HomeSettings.tsx";
 import { Button } from "@/components/ui/button";
 import type {HomeTableReturnDTO} from "@/dto/response/HomeTableReturnDTO.ts";
 
-function HomeInfo({id, name, address, numberTask, numberItems, members, loadHomeData}: Readonly<HomeTableReturnDTO & { loadHomeData: () => void }>) {
+function HomeInfo({id, name, address, numberTask, numberItems, admin, members, loadHomeData}: Readonly<HomeTableReturnDTO & { loadHomeData: () => void }>) {
     return(
         <>
             <DialogHeader>
@@ -22,7 +22,12 @@ function HomeInfo({id, name, address, numberTask, numberItems, members, loadHome
             <div className="grid gap-4">
                 number of tasks: {numberTask} <br/>
                 number of items: {numberItems} <br/>
-                members: {members} <br/>
+                admin: {admin} <br/>
+                members: {
+                    members.map((member) =>
+                    (member + " "))
+                    }
+                <br/>
                 address: {address.street} {address.postCode} {address.city} {address.country} <br/>
             </div>
             <DialogFooter>
