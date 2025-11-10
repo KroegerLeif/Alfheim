@@ -2,10 +2,11 @@ import {WashingMachine, CalendarCheck, HousePlus, Inbox} from "lucide-react"
 
 import {
     Sidebar,
-    SidebarContent,
+    SidebarContent, SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
+    SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
@@ -39,9 +40,14 @@ const items = [
 export function AppSidebar() {
     return (
         <Sidebar>
+            <SidebarHeader>
+                <a href={"/"}>
+                    Alfheim
+                </a>
+            </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel><a href={"/"}>Alfheim</a></SidebarGroupLabel>
+                    <SidebarGroupLabel>Maintenance</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {items.map((item) => (
@@ -55,10 +61,12 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
                             ))}
                         </SidebarMenu>
-                        <Logout />
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
+            <SidebarFooter>
+                <Logout />
+            </SidebarFooter>
         </Sidebar>
     )
 }
