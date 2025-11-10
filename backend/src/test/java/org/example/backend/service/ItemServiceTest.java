@@ -2,6 +2,7 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
 import org.example.backend.controller.dto.edit.EditItemDTO;
+Cimport org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
@@ -121,7 +122,7 @@ class ItemServiceTest {
         Category category_afterId = new Category("1", "TestCategory");
         Item item_afterId = new Item("1", "Test", category_afterId, EnergyLabel.E,"home123");
 
-        ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory","home123");
+        ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory",new HomeListReturnDTO("home123","test"));
         List<String> homeIds = new ArrayList<>();
         homeIds.add("home123");
         when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
@@ -161,7 +162,8 @@ class ItemServiceTest {
                                                                     "Kühlschrank",
                                                                     EnergyLabel.E,
                                                                     "Küche",
-                                                                    "home123"
+                                                                    new HomeListReturnDTO("home123",
+                                                                                        "test")
         );
 
         List<String> homeIds = new ArrayList<>();
