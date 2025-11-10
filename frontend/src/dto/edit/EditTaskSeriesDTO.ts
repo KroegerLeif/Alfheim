@@ -3,7 +3,7 @@ import type {Status} from "@/dto/Status.ts";
 
 export type EditTaskSeriesDTO = {
     name: string;
-    items: string[];
+    itemId: string[];
     assignedTo: string[];
     priority: Priority;
     status: Status;

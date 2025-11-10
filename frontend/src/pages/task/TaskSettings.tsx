@@ -26,7 +26,7 @@ import type {Status} from "@/dto/Status.ts";
 import type {EditTaskSeriesDTO} from "@/dto/edit/EditTaskSeriesDTO.ts";
 import {toast} from "sonner";
 
-function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,homeId, loadTaskData,items}:
+function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,homeData, loadTaskData,items}:
                       Readonly<TaskTableReturn &
                       {loadTaskData: () => void} >){
 
@@ -38,7 +38,7 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
             name:""
         }
     ]);
-    const [itemist, setItemList] = useState([
+    const [itemlist, setItemList] = useState([
         {
             id:"",
             name:""
@@ -55,15 +55,15 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
         item: string;
     };
 
-    const {register, handleSubmit, control} = useForm<FormFields>({
+    const {register, handleSubmit, control, reset} = useForm<FormFields>({
             defaultValues: {
                 name:name,
                 priority:priority,
-                homeId:homeId,
+                homeId:homeData.id,
                 status:status,
                 dueDate:dueDate,
                 repetition:repetition,
-                item:items.toString()
+                item: "" // Wird später per `reset` gesetzt
             }
         }
     );
@@ -71,7 +71,7 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
     const onSubmit: SubmitHandler<FormFields> = (data) => {
         const editDTO: EditTaskSeriesDTO = {
             name: data.name,
-            items: [data.item],
+            itemId: [data.item],
             assignedTo: [],
             priority: data.priority,
             status: data.status,
@@ -125,9 +125,21 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
 
 
     useEffect(() =>{
-        getHomeNames();
-        getItemNames();
-    },[])
+        // Lade beide Listen parallel
+        Promise.all([getHomeNames(), getItemNames()]);
+    },[]);
+
+    // Dieser useEffect wird ausgeführt, wenn die itemlist geladen wurde.
+    // Er setzt den korrekten Standardwert für das Item-Feld.
+    useEffect(() => {
+        if (itemlist.length > 1 && items && items.length > 0) {
+            const firstItemName = items[0];
+            const selectedItem = itemlist.find(item => item.name === firstItemName);
+            if (selectedItem) {
+                reset({ item: selectedItem.id });
+            }
+        }
+    }, [itemlist, items, reset]);
 
     return(
         <Dialog open={open} onOpenChange={setOpen}>
@@ -199,7 +211,7 @@ function TaskSettings({taskSeriesId, name, priority, status, dueDate,repetition,
                                                 <SelectValue placeholder="Choose Item"/>
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {itemist.map(itemName => (
+                                                {itemlist.map(itemName => (
                                                     <SelectItem key={itemName.id} value={itemName.id}>{itemName.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
