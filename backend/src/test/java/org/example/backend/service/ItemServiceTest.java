@@ -2,7 +2,7 @@ package org.example.backend.service;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
 import org.example.backend.controller.dto.edit.EditItemDTO;
-Cimport org.example.backend.controller.dto.response.HomeListReturnDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
