@@ -34,7 +34,7 @@ function TaskInfo(props: Readonly<TaskTableReturn & { loadTaskData: () => void }
                 Status: {status}<br/>
                 Due Date: {dueDate} <br/>
                 Repetition in Days: {repetition} <br/>
-                Home: {homeData.name}
+                Home: {homeData?.name}
             </div>
             <DialogFooter>
                 <DialogClose asChild>
