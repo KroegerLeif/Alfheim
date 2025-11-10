@@ -3,6 +3,7 @@ package org.example.backend.service;
 import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -109,7 +110,7 @@ class TaskServiceTest {
                 Status.OPEN,
                 null,
                 0,
-                "dummyHomeId"
+                new HomeListReturnDTO("dummyHomeId","dummyHomeName")
         ));
         //THEN
         var actual = taskService.getAll(testUserId);
@@ -157,7 +158,7 @@ class TaskServiceTest {
                 Status.OPEN,
                 LocalDate.of(2025, 12, 31),
                 1,
-                "1"
+                new HomeListReturnDTO("1",null)
         );
         
         Mockito.when(taskMapper.mapToTaskSeries("user",createTaskDTO)).thenReturn(taskSeries);
@@ -215,7 +216,7 @@ class TaskServiceTest {
                 Status.IN_PROGRESS,
                 testDate,
                 1,
-                "home123"
+                new HomeListReturnDTO("home123",null)
         );
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
@@ -323,7 +324,7 @@ class TaskServiceTest {
                 Status.OPEN,
                 LocalDate.now().plusDays(3) // The new due date
                 ,1,
-                "home123"
+                new HomeListReturnDTO("home123",null)
         );
         
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedTaskSeries));
@@ -377,7 +378,7 @@ class TaskServiceTest {
                 Status.OPEN,
                 newDueDate
                 ,1,
-                "home123"
+                new HomeListReturnDTO("home123",null)
         );
 
         AtomicReference<TaskSeries> saved = new AtomicReference<>();

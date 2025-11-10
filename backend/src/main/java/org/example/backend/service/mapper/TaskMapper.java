@@ -1,9 +1,11 @@
 package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.create.CreateTaskDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
+import org.example.backend.service.HomeService;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
 import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.springframework.stereotype.Service;
@@ -16,9 +18,11 @@ import java.util.List;
 public class TaskMapper {
 
     private final TaskDefinitionMapper taskDefinitionMapper;
+    private final HomeService homeService;
 
-    public TaskMapper(TaskDefinitionMapper taskDefinitionMapper) {
+    public TaskMapper(TaskDefinitionMapper taskDefinitionMapper, HomeService homeService) {
         this.taskDefinitionMapper = taskDefinitionMapper;
+        this.homeService = homeService;
     }
 
     public TaskSeries mapToTaskSeries(String userId,CreateTaskDTO createTaskDTO){
@@ -49,7 +53,16 @@ public class TaskMapper {
                 taskSeries.taskList().getLast().status(),
                 taskSeries.taskList().getLast().dueDate(),
                 taskSeries.definition().repetition(),
-                getHomeId(taskSeries.homeId()));
+                getHomeData(taskSeries.homeId()));
+    }
+
+    private HomeListReturnDTO getHomeData(String homeId){
+        String id = getHomeId(homeId);
+        if(id.isEmpty()){
+            return null;
+        }else {
+            return new HomeListReturnDTO(id,homeService.getHomeNameById(id));
+        }
     }
 
     private String getHomeId(String homeId){

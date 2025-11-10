@@ -80,7 +80,10 @@ class TaskControllerTest {
                               "status": "OPEN",
                               "dueDate": null,
                               "repetition": 2,
-                              "homeId": "home123"
+                              "homeData": {
+                                "id": "home123",
+                                "name": null
+                              }
                           }
                         ]
                         """

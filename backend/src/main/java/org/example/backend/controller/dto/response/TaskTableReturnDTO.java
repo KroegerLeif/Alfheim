@@ -17,5 +17,5 @@ public record TaskTableReturnDTO(String id,
                                  Status status,
                                  LocalDate dueDate,
                                  int repetition,
-                                 String homeId) {
+                                 HomeListReturnDTO homeData) {
 }

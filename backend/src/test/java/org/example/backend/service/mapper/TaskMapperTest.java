@@ -1,8 +1,10 @@
 package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.create.CreateTaskDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
+import org.example.backend.service.HomeService;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
 import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.junit.jupiter.api.Test;
@@ -19,11 +21,12 @@ import static org.mockito.Mockito.when;
 class TaskMapperTest {
 
     private final TaskDefinitionMapper taskDefinitionMapper = Mockito.mock(TaskDefinitionMapper.class);
+    private final HomeService homeService = Mockito.mock(HomeService.class);
 
     private final TaskMapper taskMapper;
 
     public TaskMapperTest() {
-        this.taskMapper = new TaskMapper(taskDefinitionMapper);
+        this.taskMapper = new TaskMapper(taskDefinitionMapper,homeService);
     }
 
     @Test
@@ -57,6 +60,7 @@ class TaskMapperTest {
     void mapToTaskTableReturn() {
         //GIVEN
         TaskDefinition taskDefinition = createTaskDefinition();
+        when(homeService.getHomeNameById("home123")).thenReturn("test");
 
         Task task = new Task(
                 "2",
@@ -82,8 +86,8 @@ class TaskMapperTest {
                 Priority.HIGH,
                 Status.OPEN,
                 task.dueDate(),
-                0
-                ,"home123");
+                0,
+                new HomeListReturnDTO("home123","test"));
 
         //WHEN
         var actual = taskMapper.mapToTaskTableReturn(taskSeries);
