@@ -11,7 +11,6 @@ import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
 import org.example.backend.service.security.exception.ItemDoesNotExistException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
