@@ -4,7 +4,9 @@ import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.task.*;
+import org.example.backend.domain.user.User;
 import org.example.backend.service.HomeService;
+import org.example.backend.service.UserService;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
 import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -22,11 +25,12 @@ class TaskMapperTest {
 
     private final TaskDefinitionMapper taskDefinitionMapper = Mockito.mock(TaskDefinitionMapper.class);
     private final HomeService homeService = Mockito.mock(HomeService.class);
+    private final UserService userService = Mockito.mock(UserService.class);
 
     private final TaskMapper taskMapper;
 
     public TaskMapperTest() {
-        this.taskMapper = new TaskMapper(taskDefinitionMapper,homeService);
+        this.taskMapper = new TaskMapper(taskDefinitionMapper,homeService,userService);
     }
 
     @Test
@@ -42,6 +46,7 @@ class TaskMapperTest {
         TaskDefinition taskDefinition = createTaskDefinition();
 
         when(taskDefinitionMapper.mapToTaskDefinition(createTaskDTO)).thenReturn(taskDefinition);
+        when(userService.getUserById("user")).thenReturn(Optional.of(new User("user","user")).get());
         List<String> members = new ArrayList<>();
         members.add("user");
         var expected = new TaskSeries("",

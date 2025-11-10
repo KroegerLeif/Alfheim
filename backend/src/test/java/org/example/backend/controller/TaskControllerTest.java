@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 
@@ -63,6 +64,7 @@ class TaskControllerTest {
         TaskSeries taskSeries = createTaskSeries();
         taskSeriesRepro.save(taskSeries);
         //WHEN
+        when(userService.getUserById("user")).thenReturn(Optional.of(new User("user","user")).get());
 
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task"))
@@ -95,6 +97,7 @@ class TaskControllerTest {
     void createTask_shouldReturnCreatedTask_whenTaskIsCreated() throws Exception {
         //GIVEN
         when(idService.createNewId()).thenReturn("1");
+        when(userService.getUserById("user")).thenReturn(Optional.of(new User("user","user")).get());
 
         //WHEN
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task/create")
@@ -132,6 +135,7 @@ class TaskControllerTest {
         //GIVEN
         TaskSeries taskSeries = createTaskSeries();
         taskSeriesRepro.save(taskSeries);
+        when(userService.getUserById("user")).thenReturn(Optional.of(new User("user","user")).get());
 
         //WHEN
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/edit-task")

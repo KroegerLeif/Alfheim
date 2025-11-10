@@ -6,6 +6,7 @@ import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.service.HomeService;
+import org.example.backend.service.UserService;
 import org.example.backend.service.mapper.task.TaskDefinitionMapper;
 import org.example.backend.service.security.exception.EmptyTaskListException;
 import org.springframework.stereotype.Service;
@@ -19,10 +20,13 @@ public class TaskMapper {
 
     private final TaskDefinitionMapper taskDefinitionMapper;
     private final HomeService homeService;
+    private final UserService userService;
 
-    public TaskMapper(TaskDefinitionMapper taskDefinitionMapper, HomeService homeService) {
+
+    public TaskMapper(TaskDefinitionMapper taskDefinitionMapper, HomeService homeService, UserService userService) {
         this.taskDefinitionMapper = taskDefinitionMapper;
         this.homeService = homeService;
+        this.userService = userService;
     }
 
     public TaskSeries mapToTaskSeries(String userId,CreateTaskDTO createTaskDTO){
@@ -48,7 +52,7 @@ public class TaskMapper {
                 taskSeries.id(),
                 taskSeries.definition().name(),
                 taskSeries.definition().connectedItems().stream().map(Item::name).toList(),
-                taskSeries.taskMembers(),
+                getAssignedNames(taskSeries.taskMembers()),
                 taskSeries.definition().priority(),
                 taskSeries.taskList().getLast().status(),
                 taskSeries.taskList().getLast().dueDate(),
@@ -70,6 +74,14 @@ public class TaskMapper {
             return "";
         }
         return homeId;
+    }
+
+    private List<String> getAssignedNames(List<String> assignedTo){
+        List<String> assignedNames = new ArrayList<>();
+        for (String s : assignedTo) {
+            assignedNames.add(userService.getUserById(s).name());
+        }
+        return assignedNames;
     }
 
 }
