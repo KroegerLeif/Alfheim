@@ -5,7 +5,7 @@ import ItemSettings from "@/pages/item/ItemSettings.tsx";
 
 
 function ItemInfo(props: Readonly<ItemTableReturn & { loadItemData: () => void }>){
-    const {name, energyLabel, category, homeId} = props;
+    const {name, energyLabel, category, homeData} = props;
     const {loadItemData} = props;
 
     return(
@@ -21,7 +21,7 @@ function ItemInfo(props: Readonly<ItemTableReturn & { loadItemData: () => void }
             <div className="grid gap-4">
                 EnergyLabel: {energyLabel} <br/>
                 Category: {category} <br/>
-                Home: {homeId}
+                Home: {homeData.name}
             </div>
             <DialogFooter>
                 <ItemSettings {...props} loadItemData={loadItemData}/>
