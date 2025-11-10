@@ -16,24 +16,46 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) {
-        OAuth2User oauthUser = loadOAuth2User(userRequest);
+        // Use the protected method to allow mocking
+        OAuth2User oauthUser = loadSuperUser(userRequest);
 
-        User appUser = userRepo.findById(oauthUser.getName())
-                .orElseGet(() -> createAndSaveUser(oauthUser));
+        userRepo.findById(oauthUser.getName())
+                .orElseGet(() -> createAndSaveUser(userRequest, oauthUser));
 
         return oauthUser;
     }
 
-    protected OAuth2User loadOAuth2User(OAuth2UserRequest request) {
-        return super.loadUser(request);
+    /**
+     * Protected method to delegate to the parent class.
+     * This allows for mocking in tests.
+     */
+    protected OAuth2User loadSuperUser(OAuth2UserRequest userRequest) {
+        return super.loadUser(userRequest);
     }
 
-    private User createAndSaveUser(OAuth2User oauthUser) {
-        User newUser = User.builder()
-                .id(oauthUser.getName())
-                .name(oauthUser.getAttribute("login"))
-                .build();
+    private User createAndSaveUser(OAuth2UserRequest userRequest, OAuth2User oauthUser) {
+        String registrationId = userRequest.getClientRegistration().getRegistrationId();
+
+        User newUser = switch (registrationId) {
+            case "google" -> createGoogleUser(oauthUser);
+            case "github" -> createGithubUser(oauthUser);
+            default -> throw new IllegalArgumentException("Unknown OAuth2 provider: " + registrationId);
+        };
 
         return userRepo.save(newUser);
+    }
+
+    private User createGoogleUser(OAuth2User oauthUser) {
+        return User.builder()
+                .id(oauthUser.getName()) // This is the 'sub' claim
+                .name(oauthUser.getAttribute("name"))
+                .build();
+    }
+
+    private User createGithubUser(OAuth2User oauthUser) {
+        return User.builder()
+                .id(oauthUser.getName()) // This is the 'id' attribute
+                .name(oauthUser.getAttribute("login"))
+                .build();
     }
 }
