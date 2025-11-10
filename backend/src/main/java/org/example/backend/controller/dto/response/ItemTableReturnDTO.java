@@ -6,5 +6,5 @@ public record ItemTableReturnDTO(String id,
                                  String name,
                                  EnergyLabel energyLabel,
                                  String category,
-                                 String homeId) {
+                                 HomeListReturnDTO homeData) {
 }
