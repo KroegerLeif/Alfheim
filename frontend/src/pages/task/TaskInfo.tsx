@@ -4,7 +4,7 @@ import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
 import TaskSettings from "@/pages/task/TaskSettings.tsx";
 
 function TaskInfo(props: Readonly<TaskTableReturn & { loadTaskData: () => void }>) {
-    const { name, items, assignedTo, priority, status, dueDate, repetition, homeId } = props;
+    const { name, items, assignedTo, priority, status, dueDate, repetition, homeData } = props;
 
     return(
         <>
@@ -17,13 +17,24 @@ function TaskInfo(props: Readonly<TaskTableReturn & { loadTaskData: () => void }
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
-                number of tasks: {items?.length} <br/>
-                number of items: {assignedTo?.length} <br/>
+                Assigned To: {assignedTo} <br/>
+                Already completed tasks: {items?.length} <br/>
+                <div>
+                    Items:
+                    {items && items.length > 0 ? (
+                        <ul className="list-disc list-inside pl-4">
+                            {items.map((item, index) =>
+                                <li key={`${item}-${index}`}>{item}</li>)}
+                        </ul>
+                    ) : (
+                        " None"
+                    )}
+                </div>
                 Priority: {priority} <br/>
                 Status: {status}<br/>
                 Due Date: {dueDate} <br/>
-                Repetition: {repetition} <br/>
-                Home: {homeId}
+                Repetition in Days: {repetition} <br/>
+                Home: {homeData?.name}
             </div>
             <DialogFooter>
                 <DialogClose asChild>

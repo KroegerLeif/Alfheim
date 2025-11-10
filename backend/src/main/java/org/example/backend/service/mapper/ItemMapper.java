@@ -1,9 +1,11 @@
 package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.ItemListReturn;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.domain.item.Item;
+import org.example.backend.service.HomeService;
 import org.example.backend.service.mapper.item.CategoryMapper;
 import org.springframework.stereotype.Service;
 
@@ -11,9 +13,11 @@ import org.springframework.stereotype.Service;
 public class ItemMapper {
 
     private final CategoryMapper categoryMapper;
+    private final HomeService homeService;
 
-    public ItemMapper(CategoryMapper categoryMapper) {
+    public ItemMapper(CategoryMapper categoryMapper, HomeService homeService) {
         this.categoryMapper = categoryMapper;
+        this.homeService = homeService;
     }
 
     public Item mapToItem(CreateItemDTO createItemDTO){
@@ -32,7 +36,10 @@ public class ItemMapper {
                 item.name(),
                 item.energyLabel(),
                 item.category().name(),
-                item.homeId()
+                new HomeListReturnDTO(
+                    item.homeId(),
+                    getHomeName(item.homeId())
+                )
         );
     }
 
@@ -41,5 +48,9 @@ public class ItemMapper {
                 item.id(),
                 item.name()
         );
+    }
+
+    private String getHomeName(String id){
+        return homeService.getHomeNameById(id);
     }
 }

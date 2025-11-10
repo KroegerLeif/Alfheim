@@ -1,10 +1,12 @@
 package org.example.backend.service.mapper;
 
 import org.example.backend.controller.dto.create.CreateItemDTO;
+import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
 import org.example.backend.domain.item.Item;
+import org.example.backend.service.HomeService;
 import org.example.backend.service.mapper.item.CategoryMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -15,11 +17,12 @@ import static org.mockito.Mockito.when;
 class ItemMapperTest {
 
     private final CategoryMapper categoryMapper = Mockito.mock(CategoryMapper.class);
+    private final HomeService homeService = Mockito.mock(HomeService.class);
 
     private final ItemMapper itemMapper;
 
     public ItemMapperTest() {
-        this.itemMapper = new ItemMapper(categoryMapper);
+        this.itemMapper = new ItemMapper(categoryMapper, homeService);
     }
 
     @Test
@@ -50,6 +53,8 @@ class ItemMapperTest {
     @Test
     void mapToItemTableReturn_shouldReturnAnItemTableReturn_whenCalled() {
         //GIVEN
+        when(homeService.getHomeNameById("home123")).thenReturn("test");
+
         Item item = new Item("1",
                 "Test",
                 new Category(null, "TestCategory"),
@@ -60,7 +65,7 @@ class ItemMapperTest {
                 "Test",
                 EnergyLabel.A,
                 "TestCategory",
-                "home123");
+                new HomeListReturnDTO("home123", "test"));
         //WHEN
         var actual = itemMapper.mapToItemTableReturn(item);
         //THEN

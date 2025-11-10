@@ -72,7 +72,10 @@ class ItemControllerTest {
                                             "name":"test",
                                             "energyLabel":"A",
                                             "category":"Electronics",
-                                            "homeId": "home123"
+                                            "homeData" : {
+                                              "id" : "home123",
+                                              "name" : null
+                                            }
                                           }
                                         ]
                                         """
@@ -131,7 +134,10 @@ class ItemControllerTest {
                             "name":"newItem",
                             "energyLabel":"E",
                             "category":"TestCategory",
-                            "homeId":"home123"
+                            "homeData" : {
+                              "id" : "home123",
+                              "name" : null
+                            }
                           }
                     """
                 )
@@ -184,7 +190,10 @@ class ItemControllerTest {
                                             "name":"Waschmaschine",
                                             "category" : "Electronics",
                                             "energyLabel" : "A",
-                                            "homeId" : "2"
+                                            "homeData" : {
+                                                "id" : "2",
+                                                "name" : null
+                                            }
                                         }
                                 """));
     }

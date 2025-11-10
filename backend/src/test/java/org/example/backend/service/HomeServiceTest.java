@@ -180,6 +180,21 @@ class HomeServiceTest {
 
     }
 
+    @Test
+    void getHomeNameById_shouldReturnHomeName_whenCalledWithRightID(){
+        //GIVEN
+        String id = "1";
+        Home home = new Home(id,
+                "Test",
+                null,
+                new HashMap<>());
+        when(mockRepo.findById(id)).thenReturn(java.util.Optional.of(home));
+        //WHEN
+        var actual = homeService.getHomeNameById(id);
+        //THEN
+        assertEquals("Test",actual);
+    }
+
 
     private static EditHomeDTO getEditHomeDTO() {
         Address updatedAddress = new Address("12", "new street", "new postCode", "new city", "new country");

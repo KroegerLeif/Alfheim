@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/table"
 
 import type {TaskTableReturn} from "@/dto/response/TaskTableReturn.ts";
-import {Button} from "@/components/ui/button.tsx";
-import type {EditTask} from "@/dto/edit/EditTask.ts";
 import CreateNewTask from "@/pages/task/CreateNewTask.tsx";
 
 import TaskInfo from "@/pages/task/TaskInfo.tsx";
@@ -28,16 +26,6 @@ function TaskPage(){
             .then((response) =>
             {setTaskTableData(response.data);})
             .catch((error) => {console.log(error)})
-    }
-
-    function taskDone(edited: string ){
-        const editTask: EditTask = {
-            status: "CLOSED",
-            dueDate: ""
-        }
-        axios.patch("api/task/"+ edited + "/edit-task",editTask)
-        .then(() => loadTaskData())
-        .catch((error) => {console.log(error)})
     }
 
     useEffect(() => {
@@ -56,11 +44,11 @@ function TaskPage(){
                     <TableRow>
                         <TableHead className="w-[100px]">Name</TableHead>
                         <TableHead>Items</TableHead>
+                        <TableHead>Home</TableHead>
                         <TableHead>Assigned To</TableHead>
                         <TableHead>Priority</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Due Date</TableHead>
-                        <TableHead>TaskDone</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -71,13 +59,11 @@ function TaskPage(){
                                     <TableRow>
                                         <TableCell className="font-medium" key={task_data.id}>{task_data.name}</TableCell>
                                         <TableCell>{task_data.items}</TableCell>
+                                        <TableCell>{task_data.homeData?.name}</TableCell>
                                         <TableCell>{task_data.assignedTo}</TableCell>
                                         <TableCell>{task_data.priority}</TableCell>
                                         <TableCell>{task_data.status}</TableCell>
                                         <TableCell>{task_data.dueDate}</TableCell>
-                                        <TableCell>
-                                            <Button onClick={() => taskDone(task_data.taskSeriesId)} > ✔︎</Button>
-                                        </TableCell>
                                     </TableRow>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-3xl max-h-[90vh]">

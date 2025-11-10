@@ -1,5 +1,6 @@
 import type {Priority} from "@/dto/Priority.ts";
 import type {Status} from "@/dto/Status.ts";
+import type {HomeListReturnDTO} from "@/dto/response/HomeListReturnDTO.ts";
 
 export type TaskTableReturn = {
     id: string,
@@ -11,5 +12,5 @@ export type TaskTableReturn = {
     status: Status,
     dueDate: string,
     repetition: number,
-    homeId: string
+    homeData: HomeListReturnDTO
 }

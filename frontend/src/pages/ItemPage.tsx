@@ -58,7 +58,7 @@ function ItemPage() {
                                                    key={item_data.id}>{item_data.name}</TableCell>
                                         <TableCell>{item_data.energyLabel}</TableCell>
                                         <TableCell>{item_data.category}</TableCell>
-                                        <TableCell>{item_data.homeId}</TableCell>
+                                        <TableCell>{item_data.homeData.name}</TableCell>
                                     </TableRow>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-3xl max-h-[90vh]">

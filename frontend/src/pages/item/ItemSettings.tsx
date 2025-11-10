@@ -23,7 +23,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 
 
 function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => void }>) {
-    const {id,name,category,energyLabel,homeId, loadItemData} = props;
+    const {id,name,category,energyLabel,homeData, loadItemData} = props;
 
     const [open, setOpen] = useState(false);
 
@@ -48,7 +48,7 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
                 name: name,
                 category: category,
                 energyLabel: energyLabel,
-                homeId: homeId
+                homeId: homeData.id
             }
         }
     );
@@ -154,25 +154,6 @@ function ItemSettings(props : Readonly<ItemTableReturn & { loadItemData: () => v
                             <Input {...register("category")}
                                 type={"text"}
                                 placeholder={category}
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor="home">Home</FieldLabel>
-                            <Controller
-                                control={control}
-                                name="homeId"
-                                render={({field}) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Choose Home"/>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {homeList.map(homeName => (
-                                                <SelectItem key={homeName.id} value={homeName.id}>{homeName.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
                             />
                         </Field>
                         <Field>
