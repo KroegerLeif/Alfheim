@@ -1,6 +1,6 @@
 import {Button} from "@/components/ui/button.tsx";
 
-function LoginWithGithub(){
+function LoginWithGoogle(){
 
     function login(){
         const host:string = window.location.host ===
@@ -19,4 +19,4 @@ function LoginWithGithub(){
             Login with Google
         </Button>
     )
-}export default LoginWithGithub;
+}export default LoginWithGoogle;
