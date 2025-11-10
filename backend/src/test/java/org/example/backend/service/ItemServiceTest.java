@@ -47,11 +47,6 @@ class ItemServiceTest {
         itemService = new ItemService(mockRepo, itemMapper, idService, homeService);
     }
 
-    @AfterEach
-    void tearDown() {
-        // No need to call deleteAll on a mock.
-        // If this were a real repository for integration tests, it would be correct.
-    }
 
     @Test
     void getAll_shouldReturnEmptyList_whenNoItemsExist() {
