@@ -56,6 +56,7 @@ function TaskPage(){
                     <TableRow>
                         <TableHead className="w-[100px]">Name</TableHead>
                         <TableHead>Items</TableHead>
+                        <TableHead>Home</TableHead>
                         <TableHead>Assigned To</TableHead>
                         <TableHead>Priority</TableHead>
                         <TableHead>Status</TableHead>
@@ -71,6 +72,7 @@ function TaskPage(){
                                     <TableRow>
                                         <TableCell className="font-medium" key={task_data.id}>{task_data.name}</TableCell>
                                         <TableCell>{task_data.items}</TableCell>
+                                        <TableCell>{task_data.homeData.name}</TableCell>
                                         <TableCell>{task_data.assignedTo}</TableCell>
                                         <TableCell>{task_data.priority}</TableCell>
                                         <TableCell>{task_data.status}</TableCell>
