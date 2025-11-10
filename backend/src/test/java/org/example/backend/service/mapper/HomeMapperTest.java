@@ -4,7 +4,9 @@ import org.example.backend.controller.dto.create.CreateHomeDTO;
 import org.example.backend.controller.dto.response.HomeTableReturnDTO;
 import org.example.backend.domain.home.Address;
 import org.example.backend.domain.home.Home;
+import org.example.backend.service.UserService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +15,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HomeMapperTest {
 
-    private final HomeMapper homeMapper = new HomeMapper();
+    private final UserService userService = Mockito.mock(UserService.class);
+
+    private final HomeMapper homeMapper = new HomeMapper(userService);
 
     @Test
     void mapToHome() {
@@ -41,15 +45,13 @@ class HomeMapperTest {
         var expected = new HomeTableReturnDTO("1",
                                             "home",
                                                 address,
-                                        "admin",
+                                        null,
                                         0,
                                         0,
                                                 new ArrayList<>());
         //WHEN
         var actual = homeMapper.mapToHomeTableReturn(home);
-
         //THEN
         assertEquals(expected,actual);
-
     }
 }
