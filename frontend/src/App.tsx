@@ -35,15 +35,15 @@ function App() {
         <Routes>
             <Route element={<ProtectedRoute user={user}/>}>
                 <Route element={<MainLayout/>} >
-                    <Route path="/" element={<MainPage/>} />
-                    <Route path="/home" element={<HomePage />} />
+                    <Route path={"/"} element={<MainPage/>} />
+                    <Route path={"/home"} element={<HomePage />} />
                     <Route path={"/task"} element={<TaskPage/>} />
                     <Route path={"/item"} element={<ItemPage/>} />
                     <Route path={"/schedule"} element={<SchedulePage/>} />
                 </Route>
             </Route>
 
-            <Route path="/login" element={<LoginPage/>} />
+            <Route path={"/login"} element={<LoginPage/>} />
 
             <Route path={"/landingPage"} element={<LandingPage/>}/>
 

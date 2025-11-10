@@ -12,6 +12,10 @@ public class AuthControlller {
 
     @GetMapping
     public String getMe(@AuthenticationPrincipal OAuth2User user){
-        return user.getAttribute("login").toString().toUpperCase();
+        Object name = user.getAttribute("login");
+        if (name == null) {
+            name = user.getAttribute("name");
+        }
+        return name.toString().toUpperCase();
     }
 }
