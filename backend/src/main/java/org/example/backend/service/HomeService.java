@@ -81,6 +81,12 @@ public class HomeService {
         return homeRepro.findHomesByMemberId(userId).stream().map(Home::id).toList();
     }
 
+    public String getHomeNameById(String id) {
+        return homeRepro.findById(id)
+                .orElseThrow(() ->(new HomeDoesNotExistException("No Home with this ID found")))
+                .name();
+    }
+
     private void checkForPermission(Home home, String userId){
         if(!home.members().containsKey(userId)){
             throw new UserDoesNotHavePermissionException("User Does Not Have Permission");
