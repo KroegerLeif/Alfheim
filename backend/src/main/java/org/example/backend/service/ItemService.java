@@ -56,9 +56,8 @@ public class ItemService {
         return item;
     }
 
-    public ItemTableReturnDTO createNewItem(String userId, CreateItemDTO createItemDTO){
+    public ItemTableReturnDTO createNewItem(CreateItemDTO createItemDTO){
         Item item = creatUniqueIds(itemMapper.mapToItem(createItemDTO));
-        checksIfUserIsAssignedToItem(item, userId);
         itemRepro.save(item);
         // Assuming createNewItem also needs to return ItemTableReturnDTO with tasks,
         // but since it's a new item, it won't have tasks yet.

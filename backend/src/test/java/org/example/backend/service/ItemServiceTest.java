@@ -118,9 +118,6 @@ class ItemServiceTest {
         Item item_afterId = new Item("1", "Test", category_afterId, EnergyLabel.E,"home123");
 
         ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory",new ArrayList<>(),new HomeListReturnDTO("home123","test"));
-        List<String> homeIds = new ArrayList<>();
-        homeIds.add("home123");
-        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
         when(idService.createNewId()).thenReturn("1");
         when(itemMapper.mapToItem(createItemDTO)).thenReturn(item_beforeId);
         when(mockRepo.findFirstByCategory_Name("TestCategory")).thenReturn(Optional.empty());
@@ -128,7 +125,7 @@ class ItemServiceTest {
         when(itemMapper.mapToItemTableReturn(item_afterId, Collections.emptyList())).thenReturn(expectedTableReturn);
 
         //WHEN
-        var actual = itemService.createNewItem("user",createItemDTO);
+        var actual = itemService.createNewItem(createItemDTO);
         //THEN
         assertEquals(expectedTableReturn, actual);
         Mockito.verify(mockRepo).save(item_afterId);
