@@ -134,6 +134,7 @@ function CreateNewItem(prop: Readonly<{loadItemData: () => void  }> ) {
                             <Controller
                                 control={control}
                                 name="homeId"
+                                rules={{ required: "Please select a home" }}
                                 render={({field}) => (
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <SelectTrigger>
