@@ -4,10 +4,13 @@ import org.example.backend.controller.dto.create.CreateItemDTO;
 import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.ItemListReturn;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
+import org.example.backend.controller.dto.response.TaskListReturn;
 import org.example.backend.domain.item.Item;
 import org.example.backend.service.HomeService;
 import org.example.backend.service.mapper.item.CategoryMapper;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class ItemMapper {
@@ -30,12 +33,13 @@ public class ItemMapper {
         );
     }
 
-    public ItemTableReturnDTO mapToItemTableReturn(Item item){
+    public ItemTableReturnDTO mapToItemTableReturn(Item item, List<TaskListReturn> tasks){
         return new ItemTableReturnDTO(
                 item.id(),
                 item.name(),
                 item.energyLabel(),
                 item.category().name(),
+                tasks,
                 new HomeListReturnDTO(
                     item.homeId(),
                     getHomeName(item.homeId())

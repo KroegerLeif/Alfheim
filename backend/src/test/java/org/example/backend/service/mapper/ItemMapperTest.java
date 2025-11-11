@@ -11,6 +11,8 @@ import org.example.backend.service.mapper.item.CategoryMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.ArrayList;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
@@ -65,9 +67,10 @@ class ItemMapperTest {
                 "Test",
                 EnergyLabel.A,
                 "TestCategory",
+                new ArrayList<>(),
                 new HomeListReturnDTO("home123", "test"));
         //WHEN
-        var actual = itemMapper.mapToItemTableReturn(item);
+        var actual = itemMapper.mapToItemTableReturn(item, new ArrayList<>());
         //THEN
         assertEquals(expected,actual);
 

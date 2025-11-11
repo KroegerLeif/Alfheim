@@ -35,9 +35,8 @@ public class ItemController {
 
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public ItemTableReturnDTO createNewItem(Principal principal,
-                                            @RequestBody CreateItemDTO createItemDTO){
-        return itemService.createNewItem(principal.getName(),createItemDTO);
+    public ItemTableReturnDTO createNewItem(@RequestBody CreateItemDTO createItemDTO){
+        return itemService.createNewItem(createItemDTO);
     }
 
     @PatchMapping("/{id}/edit")

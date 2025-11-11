@@ -3,7 +3,6 @@ package org.example.backend.service.mapper;
 import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
-import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.service.HomeService;
 import org.example.backend.service.UserService;
@@ -51,7 +50,7 @@ public class TaskMapper {
                 taskSeries.taskList().getLast().id(),
                 taskSeries.id(),
                 taskSeries.definition().name(),
-                taskSeries.definition().connectedItems().stream().map(Item::name).toList(),
+                getItemNames(),
                 getAssignedNames(taskSeries.taskMembers()),
                 taskSeries.definition().priority(),
                 taskSeries.taskList().getLast().status(),
@@ -82,6 +81,10 @@ public class TaskMapper {
             assignedNames.add(userService.getUserById(s).name());
         }
         return assignedNames;
+    }
+
+    private List<String> getItemNames(){
+        return null;
     }
 
 }

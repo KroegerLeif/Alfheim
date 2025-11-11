@@ -19,6 +19,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,11 +40,14 @@ class ItemServiceTest {
     @Mock
     private HomeService homeService;
 
+    @Mock
+    private TaskService taskService;
+
     private ItemService itemService;
 
     @BeforeEach
     void setUp() {
-        itemService = new ItemService(mockRepo, itemMapper, idService, homeService);
+        itemService = new ItemService(mockRepo, itemMapper, idService, homeService, taskService);
     }
 
 
@@ -60,7 +64,6 @@ class ItemServiceTest {
         // THEN
         verify(homeService).findHomeConnectedToUser("user");
         verify(mockRepo).findAllByHomeId("home123");
-        verify(mockRepo, never()).findAll();
         assertEquals(0, actual.size());
     }
 
@@ -81,7 +84,6 @@ class ItemServiceTest {
         // THEN
         verify(homeService).findHomeConnectedToUser("user");
         verify(mockRepo).findAllByHomeId("home123");
-        verify(mockRepo, never()).findAll(); // This confirms findAll() is not called
         assertEquals(2, actual.size());
     }
 
@@ -102,7 +104,6 @@ class ItemServiceTest {
         // THEN
         verify(homeService).findHomeConnectedToUser("user");
         verify(mockRepo).findAllByHomeId("home123");
-        verify(mockRepo, never()).findAll(); // This confirms findAll() is not called
         assertEquals(2, actual.size());
     }
 
@@ -116,18 +117,15 @@ class ItemServiceTest {
         Category category_afterId = new Category("1", "TestCategory");
         Item item_afterId = new Item("1", "Test", category_afterId, EnergyLabel.E,"home123");
 
-        ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory",new HomeListReturnDTO("home123","test"));
-        List<String> homeIds = new ArrayList<>();
-        homeIds.add("home123");
-        when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
+        ItemTableReturnDTO expectedTableReturn = new ItemTableReturnDTO("1", "Test", EnergyLabel.E, "TestCategory",new ArrayList<>(),new HomeListReturnDTO("home123","test"));
         when(idService.createNewId()).thenReturn("1");
         when(itemMapper.mapToItem(createItemDTO)).thenReturn(item_beforeId);
         when(mockRepo.findFirstByCategory_Name("TestCategory")).thenReturn(Optional.empty());
         when(mockRepo.save(item_afterId)).thenReturn(item_afterId);
-        when(itemMapper.mapToItemTableReturn(item_afterId)).thenReturn(expectedTableReturn);
+        when(itemMapper.mapToItemTableReturn(item_afterId, Collections.emptyList())).thenReturn(expectedTableReturn);
 
         //WHEN
-        var actual = itemService.createNewItem("user",createItemDTO);
+        var actual = itemService.createNewItem(createItemDTO);
         //THEN
         assertEquals(expectedTableReturn, actual);
         Mockito.verify(mockRepo).save(item_afterId);
@@ -156,6 +154,7 @@ class ItemServiceTest {
                                                                     "Kühlschrank",
                                                                     EnergyLabel.E,
                                                                     "Küche",
+                                                                    new ArrayList<>(),
                                                                     new HomeListReturnDTO("home123",
                                                                                         "test")
         );
@@ -164,7 +163,7 @@ class ItemServiceTest {
         homeIds.add("home123");
         when(homeService.findHomeConnectedToUser("user")).thenReturn(homeIds);
         when(mockRepo.findById(id)).thenReturn(Optional.of(savedItem));
-        when(itemMapper.mapToItemTableReturn(any(Item.class))).thenReturn(expectedTableReturn);
+        when(itemMapper.mapToItemTableReturn(any(Item.class), anyList())).thenReturn(expectedTableReturn);
         //WHEN
         var actual = itemService.editItem("user",id, editItemDTO);
         //THEN

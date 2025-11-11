@@ -12,4 +12,6 @@ public interface TaskSeriesRepro extends MongoRepository<TaskSeries, String> {
     TaskSeries getTaskSeriesById(String number);
     List<TaskSeries> findAllByTaskMembersContaining(String userId);
     List<TaskSeries> findAllByHomeId(String homeId);
+
+    List<TaskSeries> findAllByDefinitionConnectedItemsContaining(String id);
 }
