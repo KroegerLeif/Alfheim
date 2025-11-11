@@ -5,6 +5,7 @@ import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
 import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
+import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
 import org.example.backend.repro.TaskSeriesRepro;
 import org.example.backend.service.mapper.TaskMapper;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 
@@ -406,6 +408,7 @@ class TaskServiceTest {
         TaskSeries taskSeries = createTaskSeries();
 
         when(mockRepo.findById(id)).thenReturn(Optional.of(taskSeries));
+        when(itemService.getItemById(anyString(), anyString())).thenReturn(new Item("1", "item", null, null, "home123"));
         //WHEN
         taskService.editTaskSeries("user", id,editTaskSeriesDTO);
         //THEN
@@ -511,7 +514,7 @@ class TaskServiceTest {
        try{
         taskService.deleteTask("user",id);
        }catch (UserDoesNotHavePermissionException e){
-           assertEquals( "User does not have premision",e.getMessage());
+           assertEquals( "User does not have permission",e.getMessage());
        }
 
     }

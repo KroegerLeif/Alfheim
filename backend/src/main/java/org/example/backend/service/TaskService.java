@@ -16,6 +16,7 @@ import org.example.backend.service.security.IdService;
 import org.example.backend.service.security.exception.TaskCompletionException;
 import org.example.backend.service.security.exception.TaskDoesNotExistException;
 import org.example.backend.service.security.exception.UserDoesNotHavePermissionException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -33,7 +34,7 @@ public class TaskService {
     private final ItemService itemService;
     private final HomeService homeService;
 
-    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, ItemService itemService, HomeService homeService) {
+    public TaskService(TaskSeriesRepro taskseriesRepro, TaskMapper taskMapper, IdService idService, @Lazy ItemService itemService, HomeService homeService) {
         this.taskseriesRepro = taskseriesRepro;
         this.taskMapper = taskMapper;
         this.idService = idService;

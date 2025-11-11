@@ -4,10 +4,10 @@ import org.example.backend.controller.dto.create.CreateItemDTO;
 import org.example.backend.controller.dto.edit.EditItemDTO;
 import org.example.backend.controller.dto.response.ItemListReturn;
 import org.example.backend.controller.dto.response.ItemTableReturnDTO;
+import org.example.backend.controller.dto.response.TaskListReturn;
 import org.example.backend.domain.item.Category;
 import org.example.backend.domain.item.EnergyLabel;
 import org.example.backend.domain.item.Item;
-import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.repro.ItemRepro;
 import org.example.backend.service.mapper.ItemMapper;
 import org.example.backend.service.security.IdService;
@@ -21,24 +21,25 @@ import java.util.*;
 public class ItemService {
 
     private final ItemRepro itemRepro;
-
     private final ItemMapper itemMapper;
-
     private final IdService idService;
-
     private final HomeService homeService;
+    private final TaskService taskService; // Added TaskService dependency
 
-
-    public ItemService(ItemRepro itemRepro, ItemMapper itemMapper, IdService idService, HomeService homeService) {
+    public ItemService(ItemRepro itemRepro, ItemMapper itemMapper, IdService idService, HomeService homeService, TaskService taskService) {
         this.itemRepro = itemRepro;
         this.itemMapper = itemMapper;
         this.idService = idService;
         this.homeService = homeService;
+        this.taskService = taskService;
     }
 
     public List<ItemTableReturnDTO> getAll(String userId){
         return getAllItems(userId).stream()
-                .map(itemMapper::mapToItemTableReturn)
+                .map(item -> {
+                    List<TaskListReturn> tasks = taskService.getTasksByItemId(item.id());
+                    return itemMapper.mapToItemTableReturn(item, tasks);
+                })
                 .toList();
     }
 
@@ -59,7 +60,10 @@ public class ItemService {
         Item item = creatUniqueIds(itemMapper.mapToItem(createItemDTO));
         checksIfUserIsAssignedToItem(item, userId);
         itemRepro.save(item);
-        return itemMapper.mapToItemTableReturn(item);
+        // Assuming createNewItem also needs to return ItemTableReturnDTO with tasks,
+        // but since it's a new item, it won't have tasks yet.
+        // If it needs to display tasks, you might need to fetch them here or adjust the DTO.
+        return itemMapper.mapToItemTableReturn(item, Collections.emptyList());
     }
 
     public void deleteItem(String userId, String id) {
@@ -87,7 +91,8 @@ public class ItemService {
             item = changeHome(item, editItemDTO.homeId());
         }
         itemRepro.save(item);
-        return itemMapper.mapToItemTableReturn(item);
+        List<TaskListReturn> tasks = taskService.getTasksByItemId(item.id());
+        return itemMapper.mapToItemTableReturn(item, tasks);
     }
 
     private Item creatUniqueIds(Item item){

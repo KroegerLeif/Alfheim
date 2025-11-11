@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
+import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.*;
 import org.example.backend.domain.user.User;
 import org.example.backend.repro.TaskSeriesRepro;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,7 +78,7 @@ class TaskControllerTest {
                               "id": "1",
                               "taskSeriesId": "1",
                               "name": "test",
-                              "items": [],
+                              "items": null,
                               "assignedTo": ["user"],
                               "priority": "HIGH",
                               "status": "OPEN",
@@ -119,7 +121,7 @@ class TaskControllerTest {
                                         "id": "10",
                                         "taskSeriesId": "1",
                                         "name": "Test",
-                                        "items" : [],
+                                        "items" : null,
                                         "assignedTo": ["user"],
                                         "priority": "HIGH",
                                         "status": "OPEN",
@@ -154,7 +156,7 @@ class TaskControllerTest {
                                         "id": "1",
                                         "taskSeriesId": "1",
                                         "name": "test",
-                                        "items" : [],
+                                        "items" : null,
                                         "assignedTo": ["user"],
                                         "priority": "HIGH",
                                         "status": "IN_PROGRESS",
@@ -173,6 +175,8 @@ class TaskControllerTest {
         EditTaskSeriesDTO editTaskSeriesDTO = geneartateEditTaskSeriesDTO();
 
         when(userService.getUserById(anyString())).thenReturn(new User("1", "Test User"));
+        when(itemService.getItemById(anyString(), anyString())).thenReturn(new Item("1", "item", null, null, "home123"));
+
 
         //WHEN
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/1/editTaskSeries")

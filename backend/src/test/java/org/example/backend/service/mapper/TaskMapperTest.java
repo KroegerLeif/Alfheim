@@ -39,7 +39,7 @@ class TaskMapperTest {
         CreateTaskDTO createTaskDTO = new CreateTaskDTO("def",
                 new ArrayList<>(),
                 Priority.HIGH,
-                LocalDate.now(),
+                LocalDate.of(2025, 11, 11),
                 0,
                 "home123");
 
@@ -70,7 +70,7 @@ class TaskMapperTest {
         Task task = new Task(
                 "2",
                 Status.OPEN,
-                LocalDate.now()
+                LocalDate.of(2025, 11, 11)
         );
         ArrayList<Task> taskList = new ArrayList<>();
         taskList.add(task);
@@ -86,7 +86,7 @@ class TaskMapperTest {
                 "2",
                 "1",
                 "def",
-                new ArrayList<>(),
+                null,
                 new ArrayList<>(),
                 Priority.HIGH,
                 Status.OPEN,
