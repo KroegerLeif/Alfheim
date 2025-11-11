@@ -51,7 +51,7 @@ public class TaskMapper {
                 taskSeries.taskList().getLast().id(),
                 taskSeries.id(),
                 taskSeries.definition().name(),
-                taskSeries.definition().connectedItems().stream().map(Item::name).toList(),
+                getItemNames(),
                 getAssignedNames(taskSeries.taskMembers()),
                 taskSeries.definition().priority(),
                 taskSeries.taskList().getLast().status(),
@@ -82,6 +82,10 @@ public class TaskMapper {
             assignedNames.add(userService.getUserById(s).name());
         }
         return assignedNames;
+    }
+
+    private List<String> getItemNames(){
+        return null;
     }
 
 }

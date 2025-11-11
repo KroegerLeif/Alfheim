@@ -3,6 +3,7 @@ package org.example.backend.service;
 import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
+import org.example.backend.controller.dto.response.TaskListReturn;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
 import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.Priority;
@@ -143,6 +144,15 @@ public class TaskService {
         taskseriesRepro.deleteById(id);
     }
 
+    public List<TaskListReturn> getTasksByItemId(String id) {
+        return taskseriesRepro.findAllByDefinitionConnectedItemsContaining(id).stream()
+                .map((taskSeries -> new TaskListReturn(taskSeries.id(),
+                                                    taskSeries.definition().name(),
+                                                    taskSeries.taskList().getLast().dueDate())
+                )
+                ).toList();
+    }
+
     private TaskSeries createUniqueIds(TaskSeries taskSeries){
         //Creation of new IDs
         String taskServiceId = idService.createNewId();
@@ -201,9 +211,9 @@ public class TaskService {
     }
 
     private  TaskSeries changeTaskItems(String userId,List<String> itemId, TaskSeries taskSeries){
-        List<Item> itemList = new ArrayList<>();
+        List<String> itemList = new ArrayList<>();
         for(String s: itemId){
-            itemList.add(itemService.getItemById(userId,s));
+            itemList.add(itemService.getItemById(userId,s).id());
         }
         return taskSeries.withDefinition(taskSeries.definition().withConnectedItems(itemList));
     }
@@ -222,7 +232,7 @@ public class TaskService {
 
     private void checksIfUserIsAssignedToTask(TaskSeries taskSeries, String userId){
         if(!taskSeries.taskMembers().contains(userId)){
-            throw new UserDoesNotHavePermissionException("User does not have premision");
+            throw new UserDoesNotHavePermissionException("User does not have permission");
         }
     }
 
