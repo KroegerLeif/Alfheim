@@ -35,8 +35,7 @@ public class ItemController {
 
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public ItemTableReturnDTO createNewItem(Principal principal,
-                                            @RequestBody CreateItemDTO createItemDTO){
+    public ItemTableReturnDTO createNewItem(@RequestBody CreateItemDTO createItemDTO){
         return itemService.createNewItem(createItemDTO);
     }
 

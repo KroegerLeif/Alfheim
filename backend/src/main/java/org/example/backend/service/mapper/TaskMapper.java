@@ -3,7 +3,6 @@ package org.example.backend.service.mapper;
 import org.example.backend.controller.dto.create.CreateTaskDTO;
 import org.example.backend.controller.dto.response.HomeListReturnDTO;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
-import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.TaskSeries;
 import org.example.backend.service.HomeService;
 import org.example.backend.service.UserService;

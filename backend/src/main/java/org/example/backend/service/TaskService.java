@@ -5,7 +5,6 @@ import org.example.backend.controller.dto.edit.EditTaskDTO;
 import org.example.backend.controller.dto.edit.EditTaskSeriesDTO;
 import org.example.backend.controller.dto.response.TaskListReturn;
 import org.example.backend.controller.dto.response.TaskTableReturnDTO;
-import org.example.backend.domain.item.Item;
 import org.example.backend.domain.task.Priority;
 import org.example.backend.domain.task.Status;
 import org.example.backend.domain.task.Task;
