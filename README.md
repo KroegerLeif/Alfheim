@@ -145,6 +145,26 @@ You'll need to create OAuth2 applications for authentication:
 
 ## Running the Application
 
+### Option 1: Using Docker (Recommended)
+
+The easiest way to run Alfheim is using the pre-built Docker image from Docker Hub:
+
+```bash
+docker pull leifkroegerdocker/alfheim:latest
+docker run -p 8080:8080 \
+  -e MONGODB_URI="your_mongodb_uri" \
+  -e GITHUB_CLIENT_ID="your_github_client_id" \
+  -e GITHUB_CLIENT_SECRET="your_github_client_secret" \
+  -e GOOGLE_CLIENT_ID="your_google_client_id" \
+  -e GOOGLE_CLIENT_SECRET="your_google_client_secret" \
+  -e APP_URL="http://localhost:5173" \
+  leifkroegerdocker/alfheim:latest
+```
+
+**Note**: Make sure to replace the environment variable values with your actual credentials.
+
+### Option 2: Manual Setup
+
 1. **Start MongoDB** (if running locally)
    ```bash
    mongod
@@ -254,6 +274,23 @@ mvn test
 cd frontend
 npm run lint
 ```
+
+## Code Quality
+
+### SonarCloud Integration
+
+This project uses [SonarCloud](https://sonarcloud.io/) for continuous code quality inspection of the backend. The analysis runs automatically on:
+- Push to the `master` branch
+- Pull request creation and updates
+
+You can view the code quality reports at the SonarCloud dashboard for the project.
+
+The SonarCloud analysis includes:
+- Code coverage tracking with JaCoCo
+- Bug detection
+- Security vulnerability scanning
+- Code smell identification
+- Technical debt assessment
 
 ## Contributing
 
