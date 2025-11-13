@@ -48,7 +48,8 @@ Alfheim is a full-stack web application designed to simplify home management. Wh
 - **Vite** for fast development and building
 - **React Router** for navigation
 - **TailwindCSS** for styling
-- **Radix UI** for accessible components
+- **shadcn/ui** for UI components (built on Radix UI)
+- **Radix UI** for accessible primitives
 - **Axios** for API communication
 - **React Hook Form** for form management
 - **Lucide React** for icons
