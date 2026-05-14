@@ -1,0 +1,19 @@
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Environment
+**/.env
+**/.venv/
+
+# Build/Cache/Logs
+**/node_modules/
+**/__pycache__/
+**/.ruff_cache/
+**/*.log
