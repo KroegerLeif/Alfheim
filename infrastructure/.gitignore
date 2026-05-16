@@ -1,0 +1,10 @@
+.env
+*.env
+!.env.example
+
+postgres-iam/data/
+*/data/
+
+.DS_Store
+.AppleDouble
+.LSOverride
