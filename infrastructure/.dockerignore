@@ -1,0 +1,16 @@
+# Git
+.git
+.gitignore
+
+# Secrets
+.env
+*.env
+
+# Volumes & Data
+postgres-iam/data/
+*/data/
+
+README.md
+
+# OS specific
+.DS_Store
