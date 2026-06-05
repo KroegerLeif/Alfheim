@@ -38,9 +38,19 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize DB tables
+    from src.core.database import init_db, async_session_factory
+    await init_db()
+
+    # Seed default locations (like system-level Backlog)
+    from src.features.locations.router import seed_default_locations
+    async with async_session_factory() as session:
+        await seed_default_locations(session)
+
     # Initialize FastMCP lifespan
     async with mcp.lifespan():
         yield
+
 
 
 app = FastAPI(
