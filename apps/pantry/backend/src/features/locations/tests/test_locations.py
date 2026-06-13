@@ -27,10 +27,6 @@ async def override_get_db_session():
         yield session
 
 
-# Override the dependency in the FastAPI app
-app.dependency_overrides[get_db_session] = override_get_db_session
-
-
 @pytest_asyncio.fixture(autouse=True, scope="function")
 async def setup_db():
     """Automatically create and drop tables for each test function, and seed the default backlog."""
@@ -55,10 +51,12 @@ async def setup_db():
 @pytest_asyncio.fixture
 async def client():
     """ASGI test client fixture."""
+    app.dependency_overrides[get_db_session] = override_get_db_session
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
+    app.dependency_overrides.pop(get_db_session, None)
 
 
 @pytest.mark.asyncio

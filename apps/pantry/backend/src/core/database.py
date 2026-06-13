@@ -33,6 +33,7 @@ async def init_db() -> None:
     """
     # Import models to register them on SQLModel.metadata
     from src.features.locations.models import Location  # noqa: F401
+    from src.features.categories.models import Category  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
