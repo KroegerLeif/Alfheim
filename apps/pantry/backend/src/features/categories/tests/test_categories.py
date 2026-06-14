@@ -8,7 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
 from src.features.locations.dependencies import MOCK_HOME_ID
-from src.features.categories.models import Category  # noqa: F401
+from src.features.categories import Category  # noqa: F401
 from src.main import app
 
 # Use an in-memory SQLite database for test runs
@@ -36,7 +36,7 @@ async def setup_db():
 
     # Seed global categories
     async with db_session_factory() as session:
-        from src.features.categories.seeder import seed_default_categories
+        from src.features.categories import seed_default_categories
         await seed_default_categories(session)
 
     yield

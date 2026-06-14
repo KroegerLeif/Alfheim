@@ -43,8 +43,8 @@ async def lifespan(app: FastAPI):
     await init_db()
 
     # Seed default locations and categories
-    from src.features.locations.router import seed_default_locations
-    from src.features.categories.seeder import seed_default_categories
+    from src.features.locations import seed_default_locations
+    from src.features.categories import seed_default_categories
     async with async_session_factory() as session:
         await seed_default_locations(session)
         await seed_default_categories(session)
