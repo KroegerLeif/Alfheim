@@ -6,8 +6,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
 from src.features.locations.dependencies import (
-    MOCK_HOME_ID,
-    MOCK_USER_ID,
     UserHomeContext,
     get_current_user_and_home,
 )
@@ -19,30 +17,6 @@ from src.features.locations.models import (
 )
 
 router = APIRouter(prefix="/api/v1/locations", tags=["locations"])
-
-
-async def seed_default_locations(session: AsyncSession) -> None:
-    """Ensure a default system-level 'Backlog' location exists for the mock home.
-
-    This runs on application startup.
-    """
-    # Check if a system-level location already exists for this home space
-    statement = select(Location).where(
-        Location.home_id == MOCK_HOME_ID, Location.is_system
-    )
-    result = await session.exec(statement)
-    fallback = result.first()
-
-    if not fallback:
-        backlog = Location(
-            name="Backlog",
-            description="Default storage location for items before they are organized.",
-            is_system=True,
-            owner_id=MOCK_USER_ID,
-            home_id=MOCK_HOME_ID,
-        )
-        session.add(backlog)
-        await session.commit()
 
 
 async def reassign_items_to_fallback(

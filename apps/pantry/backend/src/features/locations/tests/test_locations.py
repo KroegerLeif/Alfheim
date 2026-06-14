@@ -8,6 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
 from src.features.locations.dependencies import MOCK_HOME_ID
+from src.features.locations import Location  # noqa: F401
 from src.main import app
 
 # Use an in-memory SQLite database for test runs
@@ -27,10 +28,6 @@ async def override_get_db_session():
         yield session
 
 
-# Override the dependency in the FastAPI app
-app.dependency_overrides[get_db_session] = override_get_db_session
-
-
 @pytest_asyncio.fixture(autouse=True, scope="function")
 async def setup_db():
     """Automatically create and drop tables for each test function, and seed the default backlog."""
@@ -43,7 +40,7 @@ async def setup_db():
     async with db_session_factory() as session:
 
 
-        from src.features.locations.router import seed_default_locations
+        from src.features.locations import seed_default_locations
         await seed_default_locations(session)
 
     yield
@@ -55,10 +52,12 @@ async def setup_db():
 @pytest_asyncio.fixture
 async def client():
     """ASGI test client fixture."""
+    app.dependency_overrides[get_db_session] = override_get_db_session
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
+    app.dependency_overrides.pop(get_db_session, None)
 
 
 @pytest.mark.asyncio

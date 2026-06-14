@@ -1,0 +1,7 @@
+[
+  {
+    "name": "Backlog",
+    "description": "Default storage location for items before they are organized.",
+    "is_system": true
+  }
+]
