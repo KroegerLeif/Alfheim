@@ -36,7 +36,7 @@ async def setup_db():
 
     # Seed global categories
     async with db_session_factory() as session:
-        from src.features.categories.router import seed_default_categories
+        from src.features.categories.seeder import seed_default_categories
         await seed_default_categories(session)
 
     yield
