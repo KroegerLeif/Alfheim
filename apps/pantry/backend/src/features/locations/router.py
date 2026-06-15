@@ -5,11 +5,11 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
-from src.features.locations.dependencies import (
+from src.core.dependencies import (
     UserHomeContext,
     get_current_user_and_home,
 )
-from src.features.locations.models import (
+from src.features.locations import (
     Location,
     LocationCreate,
     LocationRead,

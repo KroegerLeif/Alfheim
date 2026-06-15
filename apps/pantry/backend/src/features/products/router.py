@@ -4,18 +4,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
-from src.features.locations.dependencies import (
+from src.core.dependencies import (
     UserHomeContext,
     get_current_user_and_home,
 )
-from src.features.products.schemas import (
+from src.features.products import (
     ProductCreate,
     ProductRead,
     ProductUpdate,
     ProductNutritionRead,
     ProductNutritionUpdate,
+    ProductService,
 )
-from src.features.products.service import ProductService
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 
 router = APIRouter(prefix="/api/v1/products", tags=["products"])

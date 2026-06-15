@@ -4,16 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
-from src.features.locations.dependencies import (
+from src.core.dependencies import (
     UserHomeContext,
     get_current_user_and_home,
 )
-from src.features.categories.models import (
+from src.features.categories import (
     CategoryRead,
     CategoryCreate,
     CategoryUpdate,
+    CategoryService,
 )
-from src.features.categories.service import CategoryService
 
 router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
 

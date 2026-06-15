@@ -32,9 +32,9 @@ async def init_db() -> None:
     Imports all models to ensure they register with SQLModel.metadata.
     """
     # Import models to register them on SQLModel.metadata
-    from src.features.locations.models import Location  # noqa: F401
-    from src.features.categories.models import Category  # noqa: F401
-    from src.features.products.models import Product, ProductNutrition  # noqa: F401
+    from src.features.locations import Location  # noqa: F401
+    from src.features.categories import Category  # noqa: F401
+    from src.features.products import Product, ProductNutrition  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)

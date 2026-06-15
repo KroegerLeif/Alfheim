@@ -7,7 +7,7 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
-from src.features.locations.dependencies import MOCK_HOME_ID
+from src.core.dependencies import MOCK_HOME_ID
 from src.features.products.models import BaseUnit
 from src.features.products.schemas import ProductCreate, ProductNutritionCreate
 from src.main import app
