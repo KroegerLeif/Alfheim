@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Oatly Barista Edition",
+    "brand": "Oatly",
+    "barcode": "7394376615967",
+    "image_url": "https://images.openfoodfacts.org/images/products/739/437/661/5967/front_en.188.400.jpg",
+    "base_unit": "ml",
+    "nutrition": {
+      "calories": 59.0,
+      "fat": 3.0,
+      "saturated_fat": 0.3,
+      "carbohydrates": 6.6,
+      "sugars": 4.0,
+      "protein": 1.0,
+      "salt": 0.1
+    }
+  },
+  {
+    "name": "Spaghetti No. 5",
+    "brand": "Barilla",
+    "barcode": "8013383000570",
+    "image_url": "https://images.openfoodfacts.org/images/products/801/338/300/0570/front_en.4.400.jpg",
+    "base_unit": "g",
+    "nutrition": {
+      "calories": 359.0,
+      "fat": 2.0,
+      "saturated_fat": 0.5,
+      "carbohydrates": 71.2,
+      "sugars": 3.5,
+      "protein": 12.5,
+      "salt": 0.01
+    }
+  },
+  {
+    "name": "Natural Mineral Water",
+    "brand": "Volvic",
+    "barcode": "4006381333931",
+    "image_url": "https://images.openfoodfacts.org/images/products/400/638/133/3931/front_en.44.400.jpg",
+    "base_unit": "ml",
+    "nutrition": null
+  }
+]

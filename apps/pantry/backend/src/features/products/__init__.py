@@ -8,6 +8,7 @@ from src.features.products.schemas import (
     ProductNutritionUpdate,
 )
 from src.features.products.service import ProductService
+from src.features.products.seeder import seed_default_products
 
 __all__ = [
     "Product",
@@ -20,4 +21,5 @@ __all__ = [
     "ProductNutritionRead",
     "ProductNutritionUpdate",
     "ProductService",
+    "seed_default_products",
 ]

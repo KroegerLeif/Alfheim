@@ -42,12 +42,14 @@ async def lifespan(app: FastAPI):
     from src.core.database import init_db, async_session_factory
     await init_db()
 
-    # Seed default locations and categories
+    # Seed default locations, categories, and products
     from src.features.locations import seed_default_locations
     from src.features.categories import seed_default_categories
+    from src.features.products import seed_default_products
     async with async_session_factory() as session:
         await seed_default_locations(session)
         await seed_default_categories(session)
+        await seed_default_products(session)
 
     # Initialize FastMCP lifespan
     async with mcp.lifespan():
