@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional, Sequence
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select, or_
+from sqlmodel import select, or_, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.features.products.models import Product, ProductNutrition
@@ -172,7 +172,7 @@ class ProductService:
         )
 
         if name:
-            statement = statement.where(Product.name.icontains(name))
+            statement = statement.where(col(Product.name).ilike(f"%{name}%"))
         if barcode:
             statement = statement.where(Product.barcode == barcode)
 
