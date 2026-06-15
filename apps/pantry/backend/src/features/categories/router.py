@@ -25,18 +25,12 @@ async def create_category(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Create a new custom product category."""
-    try:
-        return await CategoryService.create_category(
-            session=session,
-            payload=payload,
-            owner_id=context.user_id,
-            home_id=context.home_id,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    return await CategoryService.create_category(
+        session=session,
+        payload=payload,
+        owner_id=context.user_id,
+        home_id=context.home_id,
+    )
 
 
 @router.get("", response_model=list[CategoryRead])
@@ -85,24 +79,18 @@ async def update_category(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Partially update an existing custom category."""
-    try:
-        category = await CategoryService.update_category(
-            session=session,
-            category_id=id,
-            home_id=context.home_id,
-            payload=payload,
-        )
-        if not category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Category not found.",
-            )
-        return category
-    except ValueError as e:
+    category = await CategoryService.update_category(
+        session=session,
+        category_id=id,
+        home_id=context.home_id,
+        payload=payload,
+    )
+    if not category:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found.",
         )
+    return category
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -112,19 +100,13 @@ async def delete_category(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Delete a custom category."""
-    try:
-        deleted = await CategoryService.delete_category(
-            session=session,
-            category_id=id,
-            home_id=context.home_id,
-        )
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Category not found.",
-            )
-    except ValueError as e:
+    deleted = await CategoryService.delete_category(
+        session=session,
+        category_id=id,
+        home_id=context.home_id,
+    )
+    if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found.",
         )

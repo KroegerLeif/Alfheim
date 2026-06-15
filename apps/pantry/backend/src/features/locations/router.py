@@ -27,18 +27,12 @@ async def create_location(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Create a new physical storage location in the user's home space."""
-    try:
-        return await LocationService.create_location(
-            session=session,
-            payload=payload,
-            owner_id=context.user_id,
-            home_id=context.home_id,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    return await LocationService.create_location(
+        session=session,
+        payload=payload,
+        owner_id=context.user_id,
+        home_id=context.home_id,
+    )
 
 
 @router.get("", response_model=list[LocationRead])
@@ -93,24 +87,18 @@ async def update_location(
 
     System locations (like Backlog) are protected and cannot be modified.
     """
-    try:
-        location = await LocationService.update_location(
-            session=session,
-            location_id=id,
-            home_id=context.home_id,
-            payload=payload,
-        )
-        if not location:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Location not found.",
-            )
-        return location
-    except ValueError as e:
+    location = await LocationService.update_location(
+        session=session,
+        location_id=id,
+        home_id=context.home_id,
+        payload=payload,
+    )
+    if not location:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Location not found.",
         )
+    return location
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -124,19 +112,13 @@ async def delete_location(
     All pantry items currently in the deleted location will be automatically
     reassigned to the fallback 'Backlog' system location. System locations cannot be deleted.
     """
-    try:
-        deleted = await LocationService.delete_location(
-            session=session,
-            location_id=id,
-            home_id=context.home_id,
-        )
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Location not found.",
-            )
-    except ValueError as e:
+    deleted = await LocationService.delete_location(
+        session=session,
+        location_id=id,
+        home_id=context.home_id,
+    )
+    if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Location not found.",
         )

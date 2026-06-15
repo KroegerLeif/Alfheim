@@ -29,18 +29,12 @@ async def create_product(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Create a new product blueprint."""
-    try:
-        return await ProductService.create_product(
-            session=session,
-            payload=payload,
-            home_id=context.home_id,
-            is_global=False,  # Created by home users are local by default
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    return await ProductService.create_product(
+        session=session,
+        payload=payload,
+        home_id=context.home_id,
+        is_global=False,
+    )
 
 
 @router.get("", response_model=list[ProductRead])
@@ -121,24 +115,18 @@ async def update_product(
 
     Global catalog templates cannot be modified.
     """
-    try:
-        product = await ProductService.update_product(
-            session=session,
-            product_id=id,
-            home_id=context.home_id,
-            payload=payload,
-        )
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found.",
-            )
-        return product
-    except ValueError as e:
+    product = await ProductService.update_product(
+        session=session,
+        product_id=id,
+        home_id=context.home_id,
+        payload=payload,
+    )
+    if not product:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found.",
         )
+    return product
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -151,21 +139,15 @@ async def delete_product(
 
     Global catalog templates cannot be deleted.
     """
-    try:
-        deleted = await ProductService.delete_product(
-            session=session,
-            product_id=id,
-            home_id=context.home_id,
-        )
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found.",
-            )
-    except ValueError as e:
+    deleted = await ProductService.delete_product(
+        session=session,
+        product_id=id,
+        home_id=context.home_id,
+    )
+    if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found.",
         )
 
 
@@ -200,21 +182,15 @@ async def update_product_nutrition(
 
     Global catalog templates cannot be modified.
     """
-    try:
-        nutrition = await ProductService.update_product_nutrition(
-            session=session,
-            product_id=id,
-            home_id=context.home_id,
-            payload=payload,
-        )
-        if not nutrition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found.",
-            )
-        return nutrition
-    except ValueError as e:
+    nutrition = await ProductService.update_product_nutrition(
+        session=session,
+        product_id=id,
+        home_id=context.home_id,
+        payload=payload,
+    )
+    if not nutrition:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found.",
         )
+    return nutrition

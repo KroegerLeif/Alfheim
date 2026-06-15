@@ -57,10 +57,22 @@ async def lifespan(app: FastAPI):
 
 
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(ValueError)
+async def value_error_exception_handler(request: Request, exc: ValueError):
+    """Globally catch ValueError exceptions and convert them into 400 Bad Request responses."""
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
 
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)
