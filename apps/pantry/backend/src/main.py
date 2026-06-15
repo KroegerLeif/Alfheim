@@ -42,12 +42,14 @@ async def lifespan(app: FastAPI):
     from src.core.database import init_db, async_session_factory
     await init_db()
 
-    # Seed default locations and categories
+    # Seed default locations, categories, and products
     from src.features.locations import seed_default_locations
     from src.features.categories import seed_default_categories
+    from src.features.products import seed_default_products
     async with async_session_factory() as session:
         await seed_default_locations(session)
         await seed_default_categories(session)
+        await seed_default_products(session)
 
     # Initialize FastMCP lifespan
     async with mcp.lifespan():
@@ -55,10 +57,22 @@ async def lifespan(app: FastAPI):
 
 
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(ValueError)
+async def value_error_exception_handler(request: Request, exc: ValueError):
+    """Globally catch ValueError exceptions and convert them into 400 Bad Request responses."""
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
 
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)

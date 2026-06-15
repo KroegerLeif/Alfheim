@@ -4,7 +4,7 @@ import anyio
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.locations.models import Location
-from src.features.locations.dependencies import MOCK_USER_ID, MOCK_HOME_ID
+from src.core.dependencies import MOCK_USER_ID, MOCK_HOME_ID
 
 
 async def seed_default_locations(session: AsyncSession) -> None:
