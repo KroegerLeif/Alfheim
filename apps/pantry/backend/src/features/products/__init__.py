@@ -7,6 +7,7 @@ from src.features.products.schemas import (
     ProductNutritionRead,
     ProductNutritionUpdate,
 )
+from src.features.products.service import ProductService
 
 __all__ = [
     "Product",
@@ -18,4 +19,5 @@ __all__ = [
     "ProductNutritionCreate",
     "ProductNutritionRead",
     "ProductNutritionUpdate",
+    "ProductService",
 ]
