@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, date, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import Column, DateTime, Date, String, Index, text
+from sqlalchemy import Column, DateTime, String, Index, text
 from sqlmodel import Field, SQLModel, Relationship, func
 
 if TYPE_CHECKING:
@@ -68,7 +68,6 @@ class InventoryLedger(SQLModel, table=True):
     )
     expiration_date: Optional[date] = Field(
         default=None,
-        sa_column=Column(Date, nullable=True),
         index=True,
         description="Optional expiration date of this batch.",
     )
@@ -134,7 +133,6 @@ class InventoryState(SQLModel, table=True):
     )
     expiration_date: Optional[date] = Field(
         default=None,
-        sa_column=Column(Date, nullable=True),
         index=True,
         description="Optional expiration date.",
     )
