@@ -35,6 +35,7 @@ async def init_db() -> None:
     from src.features.locations import Location  # noqa: F401
     from src.features.categories import Category  # noqa: F401
     from src.features.products import Product, ProductNutrition  # noqa: F401
+    from src.features.inventory.models import InventoryLedger, InventoryState  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
