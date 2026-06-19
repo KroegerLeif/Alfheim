@@ -1,9 +1,13 @@
 import enum
 import uuid
 from datetime import datetime, date, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import Column, DateTime, Date, String, Index, text
-from sqlmodel import Field, SQLModel, func
+from sqlmodel import Field, SQLModel, Relationship, func
+
+if TYPE_CHECKING:
+    from src.features.products.models import Product
+    from src.features.locations.models import Location
 
 
 class InventoryTransactionType(str, enum.Enum):
@@ -84,6 +88,14 @@ class InventoryLedger(SQLModel, table=True):
         description="Timestamp of the transaction, stored in UTC.",
     )
 
+    # Relationships
+    product: Optional["Product"] = Relationship(
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+    location: Optional["Location"] = Relationship(
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+
 
 class InventoryState(SQLModel, table=True):
     """Real-time cache storing consolidated stock levels per product/location/batch."""
@@ -142,6 +154,14 @@ class InventoryState(SQLModel, table=True):
             onupdate=func.now(),
             nullable=False,
         ),
+    )
+
+    # Relationships
+    product: Optional["Product"] = Relationship(
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+    location: Optional["Location"] = Relationship(
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
 
 
