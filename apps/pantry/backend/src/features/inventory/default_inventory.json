@@ -1,0 +1,16 @@
+[
+  {
+    "product_barcode": "8013383000570",
+    "location_name": "Backlog",
+    "quantity_input": 500.0,
+    "unit_input": "g",
+    "notes": "Seeded initial stock for Spaghetti No. 5"
+  },
+  {
+    "product_barcode": "7394376615967",
+    "location_name": "Backlog",
+    "quantity_input": 3000.0,
+    "unit_input": "ml",
+    "notes": "Seeded initial stock for Oatly Barista Edition"
+  }
+]
