@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Drinks",
+    "description": "Global system category for drinks."
+  },
+  {
+    "name": "Batteries",
+    "description": "Global system category for batteries."
+  },
+  {
+    "name": "Spices",
+    "description": "Global system category for spices."
+  },
+  {
+    "name": "Grains",
+    "description": "Global system category for grains."
+  },
+  {
+    "name": "Canned Goods",
+    "description": "Global system category for canned goods."
+  },
+  {
+    "name": "Snacks",
+    "description": "Global system category for snacks."
+  }
+]
