@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional, Sequence
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select, or_
+from sqlmodel import select, or_, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.features.products.models import Product
@@ -181,7 +181,7 @@ class InventoryService:
         if location_id:
             statement = statement.where(InventoryLedger.location_id == location_id)
 
-        statement = statement.order_by(InventoryLedger.created_at.desc()).offset(offset).limit(limit)
+        statement = statement.order_by(col(InventoryLedger.created_at).desc()).offset(offset).limit(limit)
         result = await session.exec(statement)
         return result.all()
 

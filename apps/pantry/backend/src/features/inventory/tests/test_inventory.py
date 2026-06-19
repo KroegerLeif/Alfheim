@@ -6,10 +6,8 @@ from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
-from src.core.dependencies import MOCK_HOME_ID
 from src.features.products.models import Product
 from src.features.locations.models import Location
-from src.features.inventory.models import InventoryLedger, InventoryState
 from src.main import app
 
 # Use an in-memory SQLite database for test runs
