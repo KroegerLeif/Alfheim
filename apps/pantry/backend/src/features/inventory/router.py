@@ -10,6 +10,8 @@ from src.features.inventory.schemas import (
     InventoryTransactionCreate,
     InventoryLedgerRead,
     InventoryStateReadWithRelations,
+    LowStockItem,
+    ExpirationSummary,
 )
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
@@ -75,4 +77,36 @@ async def get_current_state(
         home_id=context.home_id,
         product_id=product_id,
         location_id=location_id,
+    )
+
+
+@router.get(
+    "/low-stock",
+    response_model=Sequence[LowStockItem],
+    summary="Get low stock products",
+)
+async def get_low_stock_items(
+    session: AsyncSession = Depends(get_db_session),
+    context: UserHomeContext = Depends(get_current_user_and_home),
+):
+    """Retrieve products that are below their minimum stock thresholds for the current home space."""
+    return await InventoryService.get_low_stock_items(
+        session=session,
+        home_id=context.home_id,
+    )
+
+
+@router.get(
+    "/expiration-summary",
+    response_model=ExpirationSummary,
+    summary="Get inventory expiration date summary status",
+)
+async def get_expiration_summary(
+    session: AsyncSession = Depends(get_db_session),
+    context: UserHomeContext = Depends(get_current_user_and_home),
+):
+    """Retrieve summary of inventory items categorized by their expiration status (Expired, Valid, Untracked)."""
+    return await InventoryService.get_expiration_summary(
+        session=session,
+        home_id=context.home_id,
     )

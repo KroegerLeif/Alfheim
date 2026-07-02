@@ -65,6 +65,11 @@ class Product(SQLModel, table=True):
         index=True,
         description="UUID of the home space this local product belongs to. Null for global products.",
     )
+    minimum_stock: float = Field(
+        default=0.0,
+        nullable=False,
+        description="Minimum stock threshold quantity required for this product in the home.",
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
