@@ -138,14 +138,15 @@ def setup_telemetry(app: FastAPI) -> None:
 
     try:
         # 2. Configure Tracing Provider & OTLP Exporter
-        _tracer_provider = TracerProvider(resource=resource)
+        tracer_provider = TracerProvider(resource=resource)
         span_exporter = OTLPSpanExporter(
             endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
             insecure=settings.OTEL_EXPORTER_OTLP_INSECURE,
         )
         span_processor = BatchSpanProcessor(span_exporter)
-        _tracer_provider.add_span_processor(span_processor)
-        trace.set_tracer_provider(_tracer_provider)
+        tracer_provider.add_span_processor(span_processor)
+        trace.set_tracer_provider(tracer_provider)
+        _tracer_provider = tracer_provider
 
         # 3. Configure Metrics Provider & OTLP Exporter
         metric_exporter = OTLPMetricExporter(
@@ -153,11 +154,12 @@ def setup_telemetry(app: FastAPI) -> None:
             insecure=settings.OTEL_EXPORTER_OTLP_INSECURE,
         )
         metric_reader = PeriodicExportingMetricReader(metric_exporter)
-        _meter_provider = MeterProvider(
+        meter_provider = MeterProvider(
             resource=resource,
             metric_readers=[metric_reader]
         )
-        metrics.set_meter_provider(_meter_provider)
+        metrics.set_meter_provider(meter_provider)
+        _meter_provider = meter_provider
 
         # 4. Instrument Libraries
         # FastAPI
