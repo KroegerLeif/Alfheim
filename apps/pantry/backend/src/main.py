@@ -87,6 +87,10 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)
 
+# Discover and register FastMCP tools dynamically
+from src.mcp.server import discover_and_import_mcp_tools
+discover_and_import_mcp_tools()
+
 # Mount the FastMCP server
 app.mount("/mcp", mcp.http_app())
 
