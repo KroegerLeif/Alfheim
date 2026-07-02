@@ -38,6 +38,10 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize OpenTelemetry
+    from src.core.telemetry import setup_telemetry, shutdown_telemetry
+    setup_telemetry(app)
+
     # Initialize DB tables
     from src.core.database import init_db, async_session_factory
     await init_db()
@@ -53,9 +57,13 @@ async def lifespan(app: FastAPI):
         await seed_default_products(session)
         await seed_default_inventory(session)
 
-    # Initialize FastMCP lifespan
-    async with mcp.lifespan():
-        yield
+    try:
+        # Initialize FastMCP lifespan
+        async with mcp.lifespan():
+            yield
+    finally:
+        # Gracefully flush and shutdown OpenTelemetry providers
+        shutdown_telemetry()
 
 
 
