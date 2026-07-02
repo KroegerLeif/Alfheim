@@ -90,6 +90,10 @@ class ProductBase(SQLModel):
         ge=0.0,
         description="Minimum stock threshold quantity required for this product in the home.",
     )
+    category_id: Optional[uuid.UUID] = Field(
+        default=None,
+        description="Optional reference to the product category.",
+    )
 
 
 class ProductCreate(ProductBase):
@@ -113,7 +117,7 @@ class ProductUpdate(SQLModel):
     image_url: Optional[str] = Field(default=None, max_length=2048)
     base_unit: Optional[BaseUnit] = Field(default=None)
     minimum_stock: Optional[float] = Field(default=None, ge=0.0)
-
+    category_id: Optional[uuid.UUID] = Field(default=None)
 
 class ProductRead(ProductBase):
     """Schema for returning product details in API list and detail responses.

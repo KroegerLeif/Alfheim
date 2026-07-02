@@ -41,6 +41,7 @@ async def create_product(
 async def list_products(
     name: Optional[str] = None,
     barcode: Optional[str] = None,
+    category_id: Optional[uuid.UUID] = None,
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),
@@ -55,6 +56,7 @@ async def list_products(
         home_id=context.home_id,
         name=name,
         barcode=barcode,
+        category_id=category_id,
         limit=limit,
         offset=offset,
     )

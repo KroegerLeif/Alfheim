@@ -24,20 +24,39 @@ class ProductService:
         Enforces global barcode uniqueness and writes both product and nutrition
         profile in a single ACID transaction.
         """
-        # 1. Barcode uniqueness pre-check
-        if payload.barcode:
+        # 1. Barcode uniqueness pre-check & global promotion logic
+        if payload.barcode and len(payload.barcode.strip()) > 0:
             barcode_stmt = select(Product).where(Product.barcode == payload.barcode)
             barcode_res = await session.exec(barcode_stmt)
             if barcode_res.first():
                 raise ValueError(
                     f"Product with barcode '{payload.barcode}' already exists."
                 )
+            # Products with valid barcodes are promoted globally to prevent collisions
+            is_global = True
 
-        # 2. Instantiate core product
+        # 2. Category boundary check
+        if payload.category_id:
+            from src.features.categories.models import Category
+            category_stmt = select(Category).where(Category.id == payload.category_id)
+            if not is_global:
+                category_stmt = category_stmt.where(
+                    or_(Category.is_global, Category.home_id == home_id)
+                )
+            else:
+                category_stmt = category_stmt.where(Category.is_global)
+            category_res = await session.exec(category_stmt)
+            if not category_res.first():
+                raise ValueError(
+                    f"Category with ID '{payload.category_id}' not found or not authorized for this product."
+                )
+
+        # 3. Instantiate core product
         product = Product(
             name=payload.name,
             brand=payload.brand,
             barcode=payload.barcode,
+            category_id=payload.category_id,
             image_url=payload.image_url,
             base_unit=payload.base_unit,
             is_global=is_global,
@@ -45,7 +64,7 @@ class ProductService:
         )
         session.add(product)
 
-        # 3. Instantiate nutrition if provided
+        # 4. Instantiate nutrition if provided
         if payload.nutrition:
             nutrition = ProductNutrition(
                 calories=payload.nutrition.calories,
@@ -59,7 +78,7 @@ class ProductService:
             product.nutrition = nutrition
             session.add(nutrition)
 
-        # 4. Transaction commit with rollback safety
+        # 5. Transaction commit with rollback safety
         try:
             await session.commit()
         except IntegrityError as e:
@@ -163,6 +182,7 @@ class ProductService:
         home_id: uuid.UUID,
         name: Optional[str] = None,
         barcode: Optional[str] = None,
+        category_id: Optional[uuid.UUID] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Product]:
@@ -175,6 +195,8 @@ class ProductService:
             statement = statement.where(col(Product.name).ilike(f"%{name}%"))
         if barcode:
             statement = statement.where(Product.barcode == barcode)
+        if category_id:
+            statement = statement.where(Product.category_id == category_id)
 
         statement = statement.offset(offset).limit(limit)
         result = await session.exec(statement)
@@ -197,10 +219,10 @@ class ProductService:
 
         update_data = payload.model_dump(exclude_unset=True)
 
-        # Barcode uniqueness pre-check on update
+        # Barcode uniqueness pre-check on update & global promotion logic
         if "barcode" in update_data and update_data["barcode"] != product.barcode:
             barcode_val = update_data["barcode"]
-            if barcode_val:
+            if barcode_val and len(barcode_val.strip()) > 0:
                 clash_stmt = select(Product).where(
                     Product.barcode == barcode_val, Product.id != product.id
                 )
@@ -209,6 +231,27 @@ class ProductService:
                     raise ValueError(
                         f"Product with barcode '{barcode_val}' already exists."
                     )
+                # Adding a valid barcode promotes local product to global
+                product.is_global = True
+                product.home_id = None
+
+        # Category boundary check on update
+        if "category_id" in update_data and update_data["category_id"] is not None:
+            category_id = update_data["category_id"]
+            from src.features.categories.models import Category
+            category_stmt = select(Category).where(Category.id == category_id)
+            is_now_global = product.is_global
+            if not is_now_global:
+                category_stmt = category_stmt.where(
+                    or_(Category.is_global, Category.home_id == home_id)
+                )
+            else:
+                category_stmt = category_stmt.where(Category.is_global)
+            category_res = await session.exec(category_stmt)
+            if not category_res.first():
+                raise ValueError(
+                    f"Category with ID '{category_id}' not found or not authorized for this product."
+                )
 
         for key, value in update_data.items():
             setattr(product, key, value)

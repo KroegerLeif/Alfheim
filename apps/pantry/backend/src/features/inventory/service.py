@@ -172,8 +172,8 @@ class InventoryService:
         """Retrieve historical transaction log entries, ensuring home space boundaries."""
         statement = (
             select(InventoryLedger)
-            .join(Product, Product.id == InventoryLedger.product_id)
-            .where(or_(Product.is_global, Product.home_id == home_id))
+            .join(Location, Location.id == InventoryLedger.location_id)
+            .where(Location.home_id == home_id)
         )
 
         if product_id:
@@ -195,8 +195,8 @@ class InventoryService:
         """Retrieve real-time consolidated stock levels cache, ensuring home space boundaries."""
         statement = (
             select(InventoryState)
-            .join(Product, Product.id == InventoryState.product_id)
-            .where(or_(Product.is_global, Product.home_id == home_id))
+            .join(Location, Location.id == InventoryState.location_id)
+            .where(Location.home_id == home_id)
         )
 
         if product_id:
