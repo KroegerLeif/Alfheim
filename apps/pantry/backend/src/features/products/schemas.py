@@ -85,6 +85,11 @@ class ProductBase(SQLModel):
     base_unit: BaseUnit = Field(
         description="Base unit of measurement (g, ml, piece, m)."
     )
+    minimum_stock: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Minimum stock threshold quantity required for this product in the home.",
+    )
 
 
 class ProductCreate(ProductBase):
@@ -107,6 +112,7 @@ class ProductUpdate(SQLModel):
     barcode: Optional[str] = Field(default=None)
     image_url: Optional[str] = Field(default=None, max_length=2048)
     base_unit: Optional[BaseUnit] = Field(default=None)
+    minimum_stock: Optional[float] = Field(default=None, ge=0.0)
 
 
 class ProductRead(ProductBase):

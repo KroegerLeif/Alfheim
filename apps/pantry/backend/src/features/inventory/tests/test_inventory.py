@@ -6,6 +6,7 @@ from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
+from src.core.dependencies import MOCK_HOME_ID
 from src.features.products.models import Product
 from src.features.locations.models import Location
 from src.main import app
@@ -330,3 +331,131 @@ async def test_count_based_product_flexible_units(client: AsyncClient):
     state_res = await client.get("/api/v1/inventory/state")
     states = {item["product_id"]: item for item in state_res.json()}
     assert states[tomatoes["id"]]["quantity"] == 2.0
+
+
+@pytest.mark.asyncio
+async def test_get_low_stock_items(client: AsyncClient):
+    """Verify that the low stock query aggregates quantity and compares it against minimum_stock."""
+    # Find Spaghetti and Oatly products
+    async with db_session_factory() as session:
+        # Update minimum stock values for products to test thresholds
+        spag_res = await session.exec(select(Product).where(Product.barcode == "8013383000570"))
+        spaghetti = spag_res.one()
+        spaghetti.minimum_stock = 600.0  # Currently has 500.0, so should be low stock
+
+        oatly_res = await session.exec(select(Product).where(Product.barcode == "7394376615967"))
+        oatly = oatly_res.one()
+        oatly.minimum_stock = 2000.0  # Currently has 3000.0, so should NOT be low stock
+
+        # Create a new local product with minimum_stock = 10.0 and NO stock at all
+        new_prod = Product(
+            name="Zero Stock Product",
+            brand="Brand X",
+            base_unit="piece",
+            minimum_stock=10.0,
+            is_global=False,
+            home_id=MOCK_HOME_ID
+        )
+        session.add(new_prod)
+        await session.commit()
+        await session.refresh(new_prod)
+        new_prod_id = new_prod.id
+
+    # Query low stock items
+    response = await client.get("/api/v1/inventory/low-stock")
+    assert response.status_code == 200
+    data = response.json()
+
+    # Spaghetti (500 < 600) and Zero Stock Product (0 < 10) should be low stock.
+    # Oatly (3000 >= 2000) should NOT be in the list.
+    low_stock_product_ids = {item["product"]["id"] for item in data}
+    assert str(spaghetti.id) in low_stock_product_ids
+    assert str(new_prod_id) in low_stock_product_ids
+    assert str(oatly.id) not in low_stock_product_ids
+
+    # Verify returned quantities
+    items = {item["product"]["id"]: item for item in data}
+    assert items[str(spaghetti.id)]["current_stock"] == 500.0
+    assert items[str(new_prod_id)]["current_stock"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_get_expiration_summary(client: AsyncClient):
+    """Verify that the expiration summary correctly categorizes stock by expiration date."""
+    from datetime import date, timedelta
+    from src.features.inventory.models import InventoryState
+
+    # Get products and location to set custom stock records
+    async with db_session_factory() as session:
+        spag_res = await session.exec(select(Product).where(Product.barcode == "8013383000570"))
+        spaghetti = spag_res.one()
+        oatly_res = await session.exec(select(Product).where(Product.barcode == "7394376615967"))
+        oatly = oatly_res.one()
+        loc_res = await session.exec(select(Location).where(Location.name == "Backlog"))
+        backlog = loc_res.one()
+
+        # Delete all existing InventoryState records to start clean
+        existing_states = await session.exec(select(InventoryState))
+        for state in existing_states.all():
+            await session.delete(state)
+        await session.commit()
+
+        # Add 1: Expired item (expiration_date in the past)
+        expired_state = InventoryState(
+            product_id=spaghetti.id,
+            location_id=backlog.id,
+            quantity=100.0,
+            expiration_date=date.today() - timedelta(days=5),
+        )
+        session.add(expired_state)
+
+        # Add 2: Valid item (expiration_date in the future)
+        valid_state = InventoryState(
+            product_id=oatly.id,
+            location_id=backlog.id,
+            quantity=200.0,
+            expiration_date=date.today() + timedelta(days=10),
+        )
+        session.add(valid_state)
+
+        # Add 3: Infinite item (sentinel expiration date '9999-12-31')
+        infinite_state = InventoryState(
+            product_id=spaghetti.id,
+            location_id=backlog.id,
+            quantity=300.0,
+            batch_code="infinite-batch",
+            expiration_date=date(9999, 12, 31),
+        )
+        session.add(infinite_state)
+
+        # Add 4: Untracked item (expiration_date is None)
+        untracked_state = InventoryState(
+            product_id=oatly.id,
+            location_id=backlog.id,
+            quantity=400.0,
+            batch_code="untracked-batch",
+            expiration_date=None,
+        )
+        session.add(untracked_state)
+
+        await session.commit()
+
+    # Query expiration summary
+    response = await client.get("/api/v1/inventory/expiration-summary")
+    assert response.status_code == 200
+    data = response.json()
+
+    # Verify categorization counts
+    assert len(data["expired"]) == 1
+    assert len(data["valid"]) == 2  # Future date + 9999-12-31 sentinel date
+    assert len(data["untracked"]) == 1
+
+    # Verify details
+    assert data["expired"][0]["quantity"] == 100.0
+
+    valid_quantities = {item["quantity"] for item in data["valid"]}
+    assert 200.0 in valid_quantities
+    assert 300.0 in valid_quantities
+
+    assert data["untracked"][0]["quantity"] == 400.0
+

@@ -100,3 +100,22 @@ class InventoryStateReadWithRelations(InventoryStateRead):
 
     product: Optional[ProductRead] = None
     location: Optional[LocationRead] = None
+
+
+# -------------------------------------------------------------
+# Pull Engine & Summary Schemas
+# -------------------------------------------------------------
+
+class LowStockItem(SQLModel):
+    """Schema representing a product that has fallen below its minimum stock threshold."""
+
+    product: ProductRead
+    current_stock: float
+
+
+class ExpirationSummary(SQLModel):
+    """Schema representing stock levels categorized by expiration status."""
+
+    expired: list[InventoryStateReadWithRelations]
+    valid: list[InventoryStateReadWithRelations]
+    untracked: list[InventoryStateReadWithRelations]
