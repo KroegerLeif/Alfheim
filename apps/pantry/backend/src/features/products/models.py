@@ -26,6 +26,13 @@ class Product(SQLModel, table=True):
         nullable=False,
         description="Unique identifier for the product blueprint.",
     )
+    category_id: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="categories.id",
+        nullable=True,
+        index=True,
+        description="Optional reference to the product category.",
+    )
     name: str = Field(
         index=True,
         min_length=1,

@@ -15,5 +15,11 @@ class Settings(BaseSettings):
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/pantry"
 
+    # OpenTelemetry Configuration
+    OTEL_ENABLED: bool = False
+    OTEL_SERVICE_NAME: str = "pantry-backend"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
+    OTEL_EXPORTER_OTLP_INSECURE: bool = True
+
 
 settings = Settings()
