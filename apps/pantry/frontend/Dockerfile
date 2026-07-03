@@ -14,6 +14,7 @@ COPY . .
 # Environment variables must be present at build time for Next.js client bundling
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV CI=true
 
 RUN corepack enable pnpm && pnpm run build
 
