@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { 
   InventoryStateReadWithRelations, 
   LowStockItem, 
-  ExpirationSummary 
+  ExpirationSummary,
+  InventoryTransactionCreate,
+  InventoryLedgerRead
 } from "../types";
 
 export const inventoryKeys = {
@@ -67,4 +69,24 @@ export async function exportLowStockShoppingList(): Promise<LowStockItem[]> {
   const response = await apiClient.get<LowStockItem[]>("/api/v1/inventory/low-stock");
   // Forward payload to external REST webhook or external handler here in the future
   return response.data;
+}
+
+/**
+ * 5. POST /api/v1/inventory/transactions
+ * TanStack Mutation to record an IN, OUT, WASTE, or RECONCILIATION transaction.
+ * Re-fetches all relevant inventory lists on success.
+ */
+export function useCreateTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation<InventoryLedgerRead, any, InventoryTransactionCreate>({
+    mutationFn: (payload) =>
+      apiClient
+        .post<InventoryLedgerRead>("/api/v1/inventory/transactions", payload)
+        .then((res) => res.data),
+    onSuccess: () => {
+      // Invalidate all inventory queries to refresh states across the app
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+    },
+  });
 }
