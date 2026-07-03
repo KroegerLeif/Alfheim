@@ -3,6 +3,7 @@ import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import Providers from "./providers";
+import { Sidebar } from "@/components/shared/Sidebar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,9 +40,16 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       lang={locale}
       className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex bg-background text-foreground">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>{children}</Providers>
+          <Providers>
+            <div className="flex w-full min-h-screen">
+              <Sidebar />
+              <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+                {children}
+              </div>
+            </div>
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>
