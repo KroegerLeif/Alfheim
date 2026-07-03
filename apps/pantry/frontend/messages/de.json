@@ -15,5 +15,16 @@
     "ledger": "Transaktionen",
     "lowStock": "Niedriger Bestand",
     "expired": "Abgelaufen"
+  },
+  "Table": {
+    "product": "Produkt",
+    "location": "Lagerort",
+    "quantity": "Menge",
+    "expiration": "Ablaufdatum",
+    "actions": "Aktionen",
+    "searchPlaceholder": "Suche nach Name oder Barcode...",
+    "filterLocation": "Alle Lagerorte",
+    "filterCategory": "Alle Kategorien",
+    "noItems": "Keine Bestände gefunden."
   }
 }

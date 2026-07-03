@@ -20,6 +20,7 @@ interface StockActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: "in" | "out";
+  preselectedProduct?: ProductRead | null;
 }
 
 /**
@@ -28,7 +29,7 @@ interface StockActionModalProps {
  * Provides a simulated barcode reader and a manual registry search.
  * Incorporates a touch-stepper for fast tablet-based quantity logging.
  */
-export function StockActionModal({ isOpen, onClose, mode }: StockActionModalProps) {
+export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = null }: StockActionModalProps) {
   const [productQuery, setProductQuery] = React.useState("");
   const [selectedProduct, setSelectedProduct] = React.useState<ProductRead | null>(null);
   const [selectedLocationId, setSelectedLocationId] = React.useState<string>("");
@@ -49,7 +50,11 @@ export function StockActionModal({ isOpen, onClose, mode }: StockActionModalProp
 
   // Reset local state variables when modal status changes
   React.useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      if (preselectedProduct) {
+        setSelectedProduct(preselectedProduct);
+      }
+    } else {
       setProductQuery("");
       setSelectedProduct(null);
       setSelectedLocationId("");
@@ -61,7 +66,7 @@ export function StockActionModal({ isOpen, onClose, mode }: StockActionModalProp
       setBarcodeInput("");
       setScanError("");
     }
-  }, [isOpen]);
+  }, [isOpen, preselectedProduct]);
 
   // Handle location auto-selection (fall back to the standard 'backlog' system location, or first index)
   React.useEffect(() => {

@@ -15,5 +15,16 @@
     "ledger": "Ledger Log",
     "lowStock": "Low Stock",
     "expired": "Expired"
+  },
+  "Table": {
+    "product": "Product",
+    "location": "Location",
+    "quantity": "Quantity",
+    "expiration": "Expiration",
+    "actions": "Actions",
+    "searchPlaceholder": "Search by name or barcode...",
+    "filterLocation": "All Locations",
+    "filterCategory": "All Categories",
+    "noItems": "No inventory stock lines found."
   }
 }
