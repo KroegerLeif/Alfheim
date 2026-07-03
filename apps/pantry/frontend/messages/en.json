@@ -1,0 +1,12 @@
+{
+  "Dashboard": {
+    "title": "Digital Pantry",
+    "subtitle": "loeger-os physical inventory management",
+    "lowStock": "Low Stock Items",
+    "expiration": "Expiration Status",
+    "exportList": "Export Shopping List",
+    "itemsExpired": "Expired",
+    "itemsValid": "Valid Stock",
+    "itemsUntracked": "Untracked"
+  }
+}

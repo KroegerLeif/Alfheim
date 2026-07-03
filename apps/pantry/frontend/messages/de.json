@@ -1,0 +1,12 @@
+{
+  "Dashboard": {
+    "title": "Vorratsschrank",
+    "subtitle": "loeger-os physische Bestandsverwaltung",
+    "lowStock": "Niedriger Bestand",
+    "expiration": "Ablaufstatus",
+    "exportList": "Einkaufsliste exportieren",
+    "itemsExpired": "Abgelaufen",
+    "itemsValid": "Haltbar",
+    "itemsUntracked": "Unüberwacht"
+  }
+}
