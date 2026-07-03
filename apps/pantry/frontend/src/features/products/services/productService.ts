@@ -38,3 +38,16 @@ export function useProductByBarcode(barcode: string, enabled = true) {
     retry: false, // Don't retry since barcode lookup can fail on non-existent items
   });
 }
+
+/**
+ * Hook to retrieve all products visible to the home space.
+ */
+export function useProducts() {
+  return useQuery<ProductRead[]>({
+    queryKey: productKeys.all,
+    queryFn: () => 
+      apiClient
+        .get<ProductRead[]>("/api/v1/products")
+        .then((res) => res.data),
+  });
+}
