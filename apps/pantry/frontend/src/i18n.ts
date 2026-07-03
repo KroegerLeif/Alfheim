@@ -4,11 +4,12 @@ import { locales } from "./navigation";
 
 export default getRequestConfig(async ({ locale }) => {
   // Validate that the incoming locale is supported
-  if (!locales.includes(locale as any)) {
+  if (!locale || !locales.includes(locale as any)) {
     notFound();
   }
 
   return {
+    locale,
     messages: (await import(`../messages/${locale}.json`)).default,
   };
 });
