@@ -15,6 +15,9 @@ export const inventoryKeys = {
     [...inventoryKeys.states(), { productId, locationId }] as const,
   lowStock: () => [...inventoryKeys.all, "low-stock"] as const,
   expirationSummary: () => [...inventoryKeys.all, "expiration-summary"] as const,
+  ledger: () => [...inventoryKeys.all, "ledger"] as const,
+  ledgerFiltered: (productId?: string, locationId?: string, limit?: number, offset?: number) => 
+    [...inventoryKeys.ledger(), { productId, locationId, limit, offset }] as const,
 };
 
 /**
@@ -88,5 +91,21 @@ export function useCreateTransaction() {
       // Invalidate all inventory queries to refresh states across the app
       queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
     },
+  });
+}
+
+/**
+ * 6. GET /api/v1/inventory/transactions
+ * Retrieves transaction audit ledger history logs.
+ */
+export function useLedgerHistory(productId?: string, locationId?: string, limit = 100, offset = 0) {
+  return useQuery<InventoryLedgerRead[]>({
+    queryKey: inventoryKeys.ledgerFiltered(productId, locationId, limit, offset),
+    queryFn: () => 
+      apiClient
+        .get<InventoryLedgerRead[]>("/api/v1/inventory/transactions", {
+          params: { product_id: productId, location_id: locationId, limit, offset },
+        })
+        .then((res) => res.data),
   });
 }
