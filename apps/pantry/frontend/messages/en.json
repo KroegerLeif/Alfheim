@@ -8,5 +8,12 @@
     "itemsExpired": "Expired",
     "itemsValid": "Valid Stock",
     "itemsUntracked": "Untracked"
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "ledger": "Ledger Log",
+    "lowStock": "Low Stock",
+    "expired": "Expired"
   }
 }

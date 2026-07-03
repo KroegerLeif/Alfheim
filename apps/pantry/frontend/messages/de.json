@@ -8,5 +8,12 @@
     "itemsExpired": "Abgelaufen",
     "itemsValid": "Haltbar",
     "itemsUntracked": "Unüberwacht"
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Bestand",
+    "ledger": "Transaktionen",
+    "lowStock": "Niedriger Bestand",
+    "expired": "Abgelaufen"
   }
 }
