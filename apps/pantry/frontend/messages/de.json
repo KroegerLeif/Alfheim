@@ -1,0 +1,30 @@
+{
+  "Dashboard": {
+    "title": "Vorratsschrank",
+    "subtitle": "loeger-os physische Bestandsverwaltung",
+    "lowStock": "Niedriger Bestand",
+    "expiration": "Ablaufstatus",
+    "exportList": "Einkaufsliste exportieren",
+    "itemsExpired": "Abgelaufen",
+    "itemsValid": "Haltbar",
+    "itemsUntracked": "Unüberwacht"
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Bestand",
+    "ledger": "Transaktionen",
+    "lowStock": "Niedriger Bestand",
+    "expired": "Abgelaufen"
+  },
+  "Table": {
+    "product": "Produkt",
+    "location": "Lagerort",
+    "quantity": "Menge",
+    "expiration": "Ablaufdatum",
+    "actions": "Aktionen",
+    "searchPlaceholder": "Suche nach Name oder Barcode...",
+    "filterLocation": "Alle Lagerorte",
+    "filterCategory": "Alle Kategorien",
+    "noItems": "Keine Bestände gefunden."
+  }
+}
