@@ -1,1 +1,1 @@
-# Product feature tests package.
+# Package initializer for products tests.

@@ -195,7 +195,21 @@ docker compose up -d
    ```
 
 ### 5.3 Testing
-Run the pytest suite to verify routers, services, Pint unit conversions, database lock queries, and categories validations:
+
+Pantry uses Pytest alongside HTTPX ASGITransport for asynchronous test cases. Tests are co-located within feature directories in accordance with FDD principles, split into unit tests (verifying services, unit conversions, and schemas in isolation) and integration tests (verifying API routing and serialization logic).
+
+#### Running backend tests from the parent folder:
+You can run all tests and get a coverage report directly from the `pantry/` root folder:
 ```bash
-PYTHONPATH=. pytest
+./run-tests.sh
 ```
+
+#### Running backend tests from the `backend/` folder:
+```bash
+# Run pytest with code coverage tracking
+uv run pytest --cov=src src/
+
+# Run a specific feature's tests
+uv run pytest src/features/products/tests/
+```
+

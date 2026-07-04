@@ -1,1 +1,1 @@
-# Inventory feature tests
+# Package initializer for inventory tests.

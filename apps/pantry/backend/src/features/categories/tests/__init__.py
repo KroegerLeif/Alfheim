@@ -1,1 +1,1 @@
-# Categories integration tests package.
+# Package initializer for categories tests.
