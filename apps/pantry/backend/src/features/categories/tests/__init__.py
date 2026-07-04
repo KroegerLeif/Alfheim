@@ -1,1 +1,0 @@
-# Categories integration tests package.

@@ -1,63 +1,18 @@
 import pytest
-import pytest_asyncio
 from unittest.mock import AsyncMock, patch
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlmodel import SQLModel
+from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from src.core.database import get_db_session
 from src.core.dependencies import MOCK_HOME_ID
 from src.features.products.models import BaseUnit
 from src.features.products.schemas import ProductCreate, ProductNutritionCreate
-from src.main import app
 
-# Use an in-memory SQLite database for test runs
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+@pytest.fixture(autouse=True)
+async def seed_products(db_session: AsyncSession):
+    """Seed global products dynamically for product tests."""
+    from src.features.products.seeder import seed_default_products
+    await seed_default_products(db_session)
+    await db_session.commit()
 
-test_engine = create_async_engine(TEST_DATABASE_URL, future=True)
-db_session_factory = async_sessionmaker(
-    bind=test_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-
-async def override_get_db_session():
-    """Override database session dependency to use test session factory."""
-    async with db_session_factory() as session:
-        yield session
-
-
-@pytest_asyncio.fixture(autouse=True, scope="function")
-async def setup_db():
-    """Automatically create and drop tables for each test function, and seed defaults."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-
-    # Seed global products
-    async with db_session_factory() as session:
-        from src.features.products.seeder import seed_default_products
-        await seed_default_products(session)
-
-    yield
-
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest_asyncio.fixture
-async def client():
-    """ASGI test client fixture."""
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        yield ac
-    app.dependency_overrides.pop(get_db_session, None)
-
-
-@pytest.mark.asyncio
 async def test_startup_seeds_products(client: AsyncClient):
     """Verify that default global products are seeded on startup."""
     response = await client.get("/api/v1/products")
@@ -76,8 +31,6 @@ async def test_startup_seeds_products(client: AsyncClient):
         assert prod["home_id"] is None
         assert "nutrition" not in prod  # Core list query excludes nutrition payload
 
-
-@pytest.mark.asyncio
 async def test_create_personal_product(client: AsyncClient):
     """Verify that a home user can create a personal/local product blueprint."""
     payload = {
@@ -117,8 +70,6 @@ async def test_create_personal_product(client: AsyncClient):
     assert nut_data["sugars"] == 55
     assert nut_data["product_id"] == prod_id
 
-
-@pytest.mark.asyncio
 async def test_create_duplicate_barcode_clash(client: AsyncClient):
     """Verify barcode uniqueness is globally enforced."""
     # Oats is already seeded with barcode "7394376615967"
@@ -131,8 +82,6 @@ async def test_create_duplicate_barcode_clash(client: AsyncClient):
     assert response.status_code == 400
     assert "already exists" in response.json()["detail"]
 
-
-@pytest.mark.asyncio
 async def test_list_and_search_products(client: AsyncClient):
     """Verify filtering and search options for products list."""
     # List all
@@ -164,8 +113,6 @@ async def test_list_and_search_products(client: AsyncClient):
     assert len(data) == 1
     assert data[0]["brand"] == "Oatly"
 
-
-@pytest.mark.asyncio
 async def test_update_personal_product(client: AsyncClient):
     """Verify updating fields on a local product."""
     create_res = await client.post(
@@ -183,8 +130,6 @@ async def test_update_personal_product(client: AsyncClient):
     assert data["name"] == "Unsweetened Almond Milk"
     assert data["brand"] == "Alpro Premium"
 
-
-@pytest.mark.asyncio
 async def test_update_global_product_blocked(client: AsyncClient):
     """Verify global products cannot be updated by home spaces."""
     list_res = await client.get("/api/v1/products")
@@ -197,8 +142,6 @@ async def test_update_global_product_blocked(client: AsyncClient):
     assert patch_res.status_code == 400
     assert "Global products cannot be modified" in patch_res.json()["detail"]
 
-
-@pytest.mark.asyncio
 async def test_delete_personal_product_cascade(client: AsyncClient):
     """Verify that deleting a product cascades to its nutrition profile."""
     # Create product with nutrition
@@ -224,8 +167,6 @@ async def test_delete_personal_product_cascade(client: AsyncClient):
     get_nut_res = await client.get(f"/api/v1/products/{prod_id}/nutrition")
     assert get_nut_res.status_code == 404
 
-
-@pytest.mark.asyncio
 async def test_delete_global_product_blocked(client: AsyncClient):
     """Verify that global products cannot be deleted by home spaces."""
     list_res = await client.get("/api/v1/products")
@@ -235,8 +176,6 @@ async def test_delete_global_product_blocked(client: AsyncClient):
     assert del_res.status_code == 400
     assert "Global products cannot be deleted" in del_res.json()["detail"]
 
-
-@pytest.mark.asyncio
 async def test_update_nutrition_profile(client: AsyncClient):
     """Verify updating/adding nutrition details on-demand."""
     # 1. Product without nutrition
@@ -267,8 +206,6 @@ async def test_update_nutrition_profile(client: AsyncClient):
     assert patch_global_nut.status_code == 400
     assert "Global product nutrition cannot be modified" in patch_global_nut.json()["detail"]
 
-
-@pytest.mark.asyncio
 async def test_barcode_lookup_cache_hit(client: AsyncClient):
     """Verify barcode lookup serves from local database if cached."""
     # Oatly is seeded with barcode "7394376615967"
@@ -279,12 +216,9 @@ async def test_barcode_lookup_cache_hit(client: AsyncClient):
     assert data["brand"] == "Oatly"
     assert data["is_global"] is True
 
-
-@pytest.mark.asyncio
 @patch("src.features.products.router.off_client.get_by_barcode")
 async def test_barcode_lookup_cache_miss_ingested(mock_get: AsyncMock, client: AsyncClient):
     """Verify cache miss triggers Open Food Facts client and auto-ingests data."""
-    # Mock Open Food Facts lookup return payload
     mock_get.return_value = ProductCreate(
         name="Cola Zero",
         brand="Coca Cola",
@@ -299,15 +233,13 @@ async def test_barcode_lookup_cache_miss_ingested(mock_get: AsyncMock, client: A
     data = response.json()
     assert data["name"] == "Cola Zero"
     assert data["brand"] == "Coca Cola"
-    assert data["is_global"] is True  # Ingested from OFF should be global
+    assert data["is_global"] is True
 
     # Verify it was persisted locally
     local_check = await client.get(f"/api/v1/products/{data['id']}")
     assert local_check.status_code == 200
     assert local_check.json()["barcode"] == "5449000131805"
 
-
-@pytest.mark.asyncio
 @patch("src.features.products.router.off_client.get_by_barcode")
 async def test_barcode_lookup_not_found(mock_get: AsyncMock, client: AsyncClient):
     """Verify that if OFF doesn't have the barcode, a 404 is returned."""

@@ -30,3 +30,7 @@ dev = [
     "ruff>=0.15.15",
     "ty>=0.0.40",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
