@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { ProductRead } from "@/features/inventory/types";
+import { ProductRead, ProductCreate } from "@/features/inventory/types";
 
 export const productKeys = {
   all: ["products"] as const,
@@ -51,3 +51,21 @@ export function useProducts() {
         .then((res) => res.data),
   });
 }
+
+/**
+ * Hook to create a new product blueprint.
+ */
+export function useCreateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ProductRead, any, ProductCreate>({
+    mutationFn: (payload) =>
+      apiClient
+        .post<ProductRead>("/api/v1/products", payload)
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+

@@ -14,7 +14,10 @@
     "inventory": "Inventory",
     "ledger": "Ledger Log",
     "lowStock": "Low Stock",
-    "expired": "Expired"
+    "expired": "Expired",
+    "products": "Products",
+    "locations": "Locations",
+    "analytics": "Analytics"
   },
   "Table": {
     "product": "Product",
@@ -26,5 +29,57 @@
     "filterLocation": "All Locations",
     "filterCategory": "All Categories",
     "noItems": "No inventory stock lines found."
+  },
+  "Products": {
+    "title": "Product Catalog",
+    "subtitle": "Global and custom item blueprints",
+    "searchPlaceholder": "Search product blueprints...",
+    "createTitle": "Create New Product",
+    "name": "Product Name",
+    "brand": "Brand (Optional)",
+    "barcode": "Barcode / EAN (Optional)",
+    "baseUnit": "Base Unit of Measurement",
+    "minimumStock": "Minimum Stock Threshold",
+    "category": "Category",
+    "submit": "Create Product",
+    "creating": "Creating Blueprint...",
+    "success": "Product blueprint created successfully.",
+    "noProducts": "No product blueprints found.",
+    "global": "Global",
+    "custom": "Custom",
+    "minStockLabel": "Min Stock",
+    "barcodeLabel": "Barcode",
+    "brandLabel": "Brand",
+    "unitLabel": "Unit",
+    "allCategories": "No Category"
+  },
+  "Locations": {
+    "title": "Storage Locations",
+    "subtitle": "Physical storage zones and alert monitors",
+    "createBtn": "+ NEUEN LAGERORT ANLEGEN",
+    "createBtnClose": "- ABBRECHEN",
+    "createTitle": "Create New Storage Location",
+    "name": "Location Name",
+    "description": "Description (Optional)",
+    "submit": "Create Location",
+    "creating": "Creating Location...",
+    "success": "Storage location created successfully.",
+    "noLocations": "No storage locations found.",
+    "system": "System Fallback",
+    "ok": "✓ OK",
+    "mhd": "MHD",
+    "knapp": "knapp"
+  },
+  "Analytics": {
+    "title": "Performance Analytics",
+    "subtitle": "Live consumption metrics and catalog distribution",
+    "consumptionTitle": "Consumption per Month",
+    "categoryTitle": "Current Stock by Category",
+    "noData": "No ledger audit history available to calculate consumption.",
+    "noStockData": "No inventory stock items found.",
+    "consumedLabel": "Consumed",
+    "stockLabel": "Stock",
+    "items": "Items",
+    "noCategory": "Uncategorized"
   }
 }

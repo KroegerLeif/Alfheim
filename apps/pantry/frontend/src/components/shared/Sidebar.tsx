@@ -8,7 +8,10 @@ import {
   Archive, 
   History, 
   AlertTriangle, 
-  Clock 
+  Clock,
+  Package,
+  MapPin,
+  BarChart3
 } from "lucide-react";
 import { useLowStockItems, useExpirationSummary } from "@/features/inventory/services/inventoryService";
 
@@ -40,11 +43,27 @@ export function Sidebar() {
       icon: Archive,
     },
     {
+      href: "/products",
+      label: t("products"),
+      icon: Package,
+    },
+    {
+      href: "/locations",
+      label: t("locations"),
+      icon: MapPin,
+    },
+    {
+      href: "/analytics",
+      label: t("analytics"),
+      icon: BarChart3,
+    },
+    {
       href: "/ledger",
       label: t("ledger"),
       icon: History,
     },
   ];
+
 
   return (
     <aside className="w-64 border-r border-border bg-background flex flex-col h-full select-none font-mono">
