@@ -14,7 +14,10 @@
     "inventory": "Inventory",
     "ledger": "Ledger Log",
     "lowStock": "Low Stock",
-    "expired": "Expired"
+    "expired": "Expired",
+    "products": "Products",
+    "locations": "Locations",
+    "analytics": "Analytics"
   },
   "Table": {
     "product": "Product",
@@ -26,5 +29,28 @@
     "filterLocation": "All Locations",
     "filterCategory": "All Categories",
     "noItems": "No inventory stock lines found."
+  },
+  "Products": {
+    "title": "Product Catalog",
+    "subtitle": "Global and custom item blueprints",
+    "searchPlaceholder": "Search product blueprints...",
+    "createTitle": "Create New Product",
+    "name": "Product Name",
+    "brand": "Brand (Optional)",
+    "barcode": "Barcode / EAN (Optional)",
+    "baseUnit": "Base Unit of Measurement",
+    "minimumStock": "Minimum Stock Threshold",
+    "category": "Category",
+    "submit": "Create Product",
+    "creating": "Creating Blueprint...",
+    "success": "Product blueprint created successfully.",
+    "noProducts": "No product blueprints found.",
+    "global": "Global",
+    "custom": "Custom",
+    "minStockLabel": "Min Stock",
+    "barcodeLabel": "Barcode",
+    "brandLabel": "Brand",
+    "unitLabel": "Unit",
+    "allCategories": "No Category"
   }
 }

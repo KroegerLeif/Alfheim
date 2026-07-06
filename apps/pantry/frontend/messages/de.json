@@ -14,7 +14,10 @@
     "inventory": "Bestand",
     "ledger": "Transaktionen",
     "lowStock": "Niedriger Bestand",
-    "expired": "Abgelaufen"
+    "expired": "Abgelaufen",
+    "products": "Produktkatalog",
+    "locations": "Lagerorte",
+    "analytics": "Analysen"
   },
   "Table": {
     "product": "Produkt",
@@ -26,5 +29,28 @@
     "filterLocation": "Alle Lagerorte",
     "filterCategory": "Alle Kategorien",
     "noItems": "Keine Bestände gefunden."
+  },
+  "Products": {
+    "title": "Produktkatalog",
+    "subtitle": "Globale und benutzerdefinierte Produktvorlagen",
+    "searchPlaceholder": "Produktvorlagen durchsuchen...",
+    "createTitle": "Neues Produkt anlegen",
+    "name": "Produktname",
+    "brand": "Marke (Optional)",
+    "barcode": "Barcode / EAN (Optional)",
+    "baseUnit": "Basiseinheit",
+    "minimumStock": "Mindestbestand-Schwellenwert",
+    "category": "Kategorie",
+    "submit": "Neues Produkt",
+    "creating": "Produktvorlage wird erstellt...",
+    "success": "Produktvorlage erfolgreich erstellt.",
+    "noProducts": "Keine Produktvorlagen gefunden.",
+    "global": "Global",
+    "custom": "Benutzerdefiniert",
+    "minStockLabel": "Min-Bestand",
+    "barcodeLabel": "Barcode",
+    "brandLabel": "Marke",
+    "unitLabel": "Einheit",
+    "allCategories": "Keine Kategorie"
   }
 }
