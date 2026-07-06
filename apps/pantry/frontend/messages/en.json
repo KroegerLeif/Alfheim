@@ -69,5 +69,17 @@
     "ok": "✓ OK",
     "mhd": "MHD",
     "knapp": "knapp"
+  },
+  "Analytics": {
+    "title": "Performance Analytics",
+    "subtitle": "Live consumption metrics and catalog distribution",
+    "consumptionTitle": "Consumption per Month",
+    "categoryTitle": "Current Stock by Category",
+    "noData": "No ledger audit history available to calculate consumption.",
+    "noStockData": "No inventory stock items found.",
+    "consumedLabel": "Consumed",
+    "stockLabel": "Stock",
+    "items": "Items",
+    "noCategory": "Uncategorized"
   }
 }

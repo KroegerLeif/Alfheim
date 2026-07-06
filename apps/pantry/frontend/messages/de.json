@@ -69,5 +69,17 @@
     "ok": "✓ OK",
     "mhd": "MHD",
     "knapp": "knapp"
+  },
+  "Analytics": {
+    "title": "Verbrauchsanalysen",
+    "subtitle": "Echtzeit-Verbrauchsdaten und Bestandsverteilung nach Kategorien",
+    "consumptionTitle": "Verbrauch pro Monat",
+    "categoryTitle": "Aktueller Bestand nach Kategorie",
+    "noData": "Keine Transaktionsdaten vorhanden, um Verbrauch zu berechnen.",
+    "noStockData": "Keine Bestände gefunden.",
+    "consumedLabel": "Verbraucht",
+    "stockLabel": "Bestand",
+    "items": "Artikel",
+    "noCategory": "Nicht kategorisiert"
   }
 }
