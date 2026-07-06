@@ -52,5 +52,22 @@
     "brandLabel": "Brand",
     "unitLabel": "Unit",
     "allCategories": "No Category"
+  },
+  "Locations": {
+    "title": "Storage Locations",
+    "subtitle": "Physical storage zones and alert monitors",
+    "createBtn": "+ NEUEN LAGERORT ANLEGEN",
+    "createBtnClose": "- ABBRECHEN",
+    "createTitle": "Create New Storage Location",
+    "name": "Location Name",
+    "description": "Description (Optional)",
+    "submit": "Create Location",
+    "creating": "Creating Location...",
+    "success": "Storage location created successfully.",
+    "noLocations": "No storage locations found.",
+    "system": "System Fallback",
+    "ok": "✓ OK",
+    "mhd": "MHD",
+    "knapp": "knapp"
   }
 }

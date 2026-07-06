@@ -52,5 +52,22 @@
     "brandLabel": "Marke",
     "unitLabel": "Einheit",
     "allCategories": "Keine Kategorie"
+  },
+  "Locations": {
+    "title": "Lagerorte",
+    "subtitle": "Physische Lagerbereiche und Warnstatus",
+    "createBtn": "+ NEUEN LAGERORT ANLEGEN",
+    "createBtnClose": "- ABBRECHEN",
+    "createTitle": "Neuen Lagerort anlegen",
+    "name": "Name des Lagerorts",
+    "description": "Beschreibung (Optional)",
+    "submit": "Lagerort anlegen",
+    "creating": "Lagerort wird erstellt...",
+    "success": "Lagerort erfolgreich erstellt.",
+    "noLocations": "Keine Lagerorte gefunden.",
+    "system": "System-Fallback",
+    "ok": "✓ OK",
+    "mhd": "MHD",
+    "knapp": "knapp"
   }
 }

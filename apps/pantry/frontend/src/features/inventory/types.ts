@@ -107,3 +107,9 @@ export interface ProductCreate {
   nutrition?: ProductNutritionCreate | null;
 }
 
+export interface LocationCreate {
+  name: string;
+  description?: string | null;
+}
+
+
