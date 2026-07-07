@@ -16,6 +16,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - loeger-os-network
 
   pantry-backend:
     build:
@@ -23,8 +25,6 @@ services:
       dockerfile: Dockerfile
     container_name: pantry-backend
     restart: always
-    ports:
-      - "8000:8000"
     env_file:
       - .env
     environment:
@@ -32,23 +32,29 @@ services:
     depends_on:
       pantry-db:
         condition: service_healthy
+    networks:
+      - loeger-os-network
 
   pantry-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/pantry/api}
     container_name: pantry-frontend
     restart: always
-    ports:
-      - "3000:3000"
     env_file:
       - .env
     depends_on:
       - pantry-backend
     environment:
       - PORT=3000
+    networks:
+      - loeger-os-network
 
 volumes:
   postgres_data:
+
+networks:
+  loeger-os-network:
+    name: loeger-os-network

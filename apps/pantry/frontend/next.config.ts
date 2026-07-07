@@ -5,6 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  basePath: "/pantry",
   /* config options here */
 };
 
