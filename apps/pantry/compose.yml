@@ -58,4 +58,3 @@ volumes:
 networks:
   loeger-os-network:
     name: loeger-os-network
-    external: true
