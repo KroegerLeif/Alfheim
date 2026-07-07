@@ -1,0 +1,10 @@
+name: loeger-os
+
+include:
+  - ./infrastructure/compose.yml
+  - ./apps/pantry/compose.yml
+
+networks:
+  loeger-os-network:
+    name: loeger-os-network
+    driver: bridge
