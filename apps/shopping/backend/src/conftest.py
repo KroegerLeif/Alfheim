@@ -36,7 +36,9 @@ def event_loop():
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def init_test_db():
     """Create all database tables for the duration of the test session."""
-    # Models will be imported here in Phase 3 to ensure they register on SQLModel.metadata
+    from src.features.shopping_lists.models import ShoppingList, ShoppingItem  # noqa: F401
+    from src.features.history.models import ShoppingHistory  # noqa: F401
+
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     yield

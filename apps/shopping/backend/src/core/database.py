@@ -31,6 +31,8 @@ async def init_db() -> None:
 
     Imports all models to ensure they register with SQLModel.metadata.
     """
-    # Models will be imported here in Phase 3 to register them with metadata.
+    from src.features.shopping_lists.models import ShoppingList, ShoppingItem  # noqa: F401
+    from src.features.history.models import ShoppingHistory  # noqa: F401
+
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
