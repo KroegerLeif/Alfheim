@@ -119,3 +119,69 @@ class ExpirationSummary(SQLModel):
     expired: list[InventoryStateReadWithRelations]
     valid: list[InventoryStateReadWithRelations]
     untracked: list[InventoryStateReadWithRelations]
+
+
+# -------------------------------------------------------------
+# Bulk Sync Schemas (i18n-ready)
+# -------------------------------------------------------------
+
+class BulkAddProductItem(SQLModel):
+    """Schema for an individual item to be ingested in bulk from a shopping list."""
+
+    shopping_item_id: uuid.UUID = Field(
+        description="The unique identifier of the source shopping item."
+    )
+    name: str = Field(
+        min_length=1, max_length=255, description="Name of the product."
+    )
+    brand: Optional[str] = Field(
+        default=None, max_length=255, description="Brand name of the product."
+    )
+    barcode: Optional[str] = Field(
+        default=None, description="Globally unique barcode if available."
+    )
+    quantity: float = Field(
+        gt=0, description="Quantity of the item to add."
+    )
+    unit: str = Field(
+        min_length=1, max_length=50, description="The unit of measurement (e.g. piece, kg, g, ml, l)."
+    )
+
+
+class BulkAddInventoryPayload(SQLModel):
+    """Schema for validating a list of bulk items to add to inventory."""
+
+    items: list[BulkAddProductItem] = Field(
+        description="List of purchased items to sync to the pantry."
+    )
+
+
+class BulkAddSuccessfulItem(SQLModel):
+    """Schema for successfully synced items."""
+
+    shopping_item_id: uuid.UUID
+    product_id: uuid.UUID
+    quantity_added: float
+    unit: str
+
+
+class BulkAddUnrecognizedItem(SQLModel):
+    """Schema for unrecognized items returning standardized translatable reasons."""
+
+    shopping_item_id: uuid.UUID
+    name: str
+    brand: Optional[str] = None
+    barcode: Optional[str] = None
+    quantity: float
+    unit: str
+    reason: str = Field(
+        description="Standardized i18n translation key mapping to next-intl error details (e.g. 'pantry.error.product_not_found')."
+    )
+
+
+class BulkAddResponse(SQLModel):
+    """Consolidated response payload for a bulk addition operation."""
+
+    successful_items: list[BulkAddSuccessfulItem] = Field(default_factory=list)
+    unrecognized_items: list[BulkAddUnrecognizedItem] = Field(default_factory=list)
+

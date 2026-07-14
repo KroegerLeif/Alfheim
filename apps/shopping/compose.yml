@@ -1,0 +1,43 @@
+services:
+  shopping-db:
+    image: postgres:16-alpine
+    container_name: shopping-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shopping
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_shopping:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shopping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - loeger-os-network
+
+  shopping-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: shopping-backend
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@shopping-db:5432/shopping
+    depends_on:
+      shopping-db:
+        condition: service_healthy
+    networks:
+      - loeger-os-network
+
+volumes:
+  postgres_data_shopping:
+
+networks:
+  loeger-os-network:
+    name: loeger-os-network

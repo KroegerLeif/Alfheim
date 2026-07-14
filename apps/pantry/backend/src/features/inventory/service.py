@@ -298,3 +298,134 @@ class InventoryService:
             "valid": valid,
             "untracked": untracked,
         }
+
+    @staticmethod
+    async def bulk_add_items(
+        session: AsyncSession,
+        payload: "BulkAddInventoryPayload",
+        home_id: uuid.UUID,
+    ) -> "BulkAddResponse":
+        """Process bulk addition of items from a shopping list into the pantry.
+
+        Attempts to match items by barcode first (with OFF lookup), and falls back to
+        exact name matches (case-insensitive) for items without barcodes. Adds matched
+        items to the 'Backlog' system location and returns unrecognized items with
+        standardized translatable i18n reasons.
+        """
+        from sqlmodel import func
+        from src.features.inventory.schemas import (
+            BulkAddResponse,
+            BulkAddSuccessfulItem,
+            BulkAddUnrecognizedItem,
+        )
+        from src.features.products.service import ProductService
+
+        # 1. Fetch system fallback location 'Backlog' for this home space
+        fallback_stmt = select(Location).where(
+            Location.home_id == home_id, Location.is_system == True
+        )
+        fallback_res = await session.exec(fallback_stmt)
+        backlog_location = fallback_res.first()
+        if not backlog_location:
+            unrecognized = []
+            for item in payload.items:
+                unrecognized.append(
+                    BulkAddUnrecognizedItem(
+                        shopping_item_id=item.shopping_item_id,
+                        name=item.name,
+                        brand=item.brand,
+                        barcode=item.barcode,
+                        quantity=item.quantity,
+                        unit=item.unit,
+                        reason="pantry.error.system_location_missing",
+                    )
+                )
+            return BulkAddResponse(successful_items=[], unrecognized_items=unrecognized)
+
+        successful_items = []
+        unrecognized_items = []
+
+        for item in payload.items:
+            product = None
+
+            # Match 1: By barcode
+            if item.barcode:
+                try:
+                    product = await ProductService.get_or_create_by_barcode(
+                        session=session,
+                        barcode=item.barcode,
+                        home_id=home_id,
+                    )
+                except Exception:
+                    product = None
+
+            # Match 2: By exact name (case-insensitive) if barcode lookup did not match
+            if not product:
+                name_query = item.name.strip().lower()
+                stmt = select(Product).where(
+                    func.lower(Product.name) == name_query,
+                    or_(Product.is_global == True, Product.home_id == home_id),
+                )
+                res = await session.exec(stmt)
+                product = res.first()
+
+            if not product:
+                unrecognized_items.append(
+                    BulkAddUnrecognizedItem(
+                        shopping_item_id=item.shopping_item_id,
+                        name=item.name,
+                        brand=item.brand,
+                        barcode=item.barcode,
+                        quantity=item.quantity,
+                        unit=item.unit,
+                        reason="pantry.error.product_not_found",
+                    )
+                )
+                continue
+
+            try:
+                # Create transaction payload inside try block to catch unit validation errors
+                tx_payload = InventoryTransactionCreate(
+                    product_id=product.id,
+                    location_id=backlog_location.id,
+                    transaction_type=InventoryTransactionType.IN,
+                    quantity_input=item.quantity,
+                    unit_input=item.unit,
+                    notes="Synced in bulk from shopping app.",
+                )
+                await InventoryService.create_transaction(
+                    session=session,
+                    payload=tx_payload,
+                    home_id=home_id,
+                )
+                successful_items.append(
+                    BulkAddSuccessfulItem(
+                        shopping_item_id=item.shopping_item_id,
+                        product_id=product.id,
+                        quantity_added=item.quantity,
+                        unit=item.unit,
+                    )
+                )
+            except Exception as e:
+                # If transaction fails due to invalid units or Pint dimensional errors
+                reason_code = "pantry.error.invalid_unit"
+                if "dimension" in str(e).lower() or "incompatible" in str(e).lower():
+                    reason_code = "pantry.error.incompatible_units"
+                
+                unrecognized_items.append(
+                    BulkAddUnrecognizedItem(
+                        shopping_item_id=item.shopping_item_id,
+                        name=item.name,
+                        brand=item.brand,
+                        barcode=item.barcode,
+                        quantity=item.quantity,
+                        unit=item.unit,
+                        reason=reason_code,
+                    )
+                )
+
+        return BulkAddResponse(
+            successful_items=successful_items,
+            unrecognized_items=unrecognized_items,
+        )
+
