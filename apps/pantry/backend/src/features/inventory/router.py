@@ -12,6 +12,8 @@ from src.features.inventory.schemas import (
     InventoryStateReadWithRelations,
     LowStockItem,
     ExpirationSummary,
+    BulkAddInventoryPayload,
+    BulkAddResponse,
 )
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
@@ -108,5 +110,24 @@ async def get_expiration_summary(
     """Retrieve summary of inventory items categorized by their expiration status (Expired, Valid, Untracked)."""
     return await InventoryService.get_expiration_summary(
         session=session,
+        home_id=context.home_id,
+    )
+
+
+@router.post(
+    "/bulk-add",
+    response_model=BulkAddResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Record bulk inventory stock additions from shopping list",
+)
+async def bulk_add_items(
+    payload: BulkAddInventoryPayload,
+    session: AsyncSession = Depends(get_db_session),
+    context: UserHomeContext = Depends(get_current_user_and_home),
+):
+    """Sync completed items from the Shopping App into the digital pantry in bulk."""
+    return await InventoryService.bulk_add_items(
+        session=session,
+        payload=payload,
         home_id=context.home_id,
     )

@@ -26,5 +26,5 @@ def is_valid_unit(unit_str: str) -> bool:
     try:
         ureg.parse_units(unit_str)
         return True
-    except (UndefinedUnitError, ValueError):
+    except Exception:
         return False
