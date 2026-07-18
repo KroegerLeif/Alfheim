@@ -1,0 +1,77 @@
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body), sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading), sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+}
+
+/* Glassmorphism Dynamic Utility Clases */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+  border-top: 1px solid var(--glass-border-top);
+  border-left: 1px solid var(--glass-border-left);
+  border-right: 1px solid var(--glass-border-right);
+  border-bottom: 1px solid var(--glass-border-bottom);
+  box-shadow: var(--glass-shadow);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-inset {
+  background: var(--glass-inset-bg);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-top: 1px solid var(--glass-inset-border-top);
+  border-left: 1px solid var(--glass-inset-border-left);
+  border-right: 1px solid var(--glass-inset-border-right);
+  border-bottom: 1px solid var(--glass-inset-border-bottom);
+  box-shadow: var(--glass-inset-shadow);
+  transition: all 0.18s ease;
+}
+
+.glass-active {
+  background: var(--glass-active-bg);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border-top: 1px solid var(--glass-active-border-top);
+  border-left: 1px solid var(--glass-active-border-left);
+  border-right: 1px solid var(--glass-active-border-right);
+  border-bottom: 1px solid var(--glass-active-border-bottom);
+  box-shadow: var(--glass-active-shadow);
+  transition: all 0.18s ease;
+}
+
+.glass-modal {
+  background: var(--glass-modal-bg);
+  backdrop-filter: blur(80px) saturate(220%);
+  -webkit-backdrop-filter: blur(80px) saturate(220%);
+  border-top: 1px solid var(--glass-modal-border);
+  border-left: 1px solid var(--glass-modal-border);
+  border-right: 1px solid var(--glass-modal-border);
+  border-bottom: 1px solid var(--glass-modal-border);
+  box-shadow: var(--glass-modal-shadow);
+}
+
+/* Custom Scrollbars */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Smooth Focus State Overrides */
+input:focus-visible, button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
