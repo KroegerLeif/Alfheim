@@ -27,3 +27,6 @@ playwright/.cache/
 
 # System files
 .DS_Store
+
+# TS Cache build info
+*.tsbuildinfo
