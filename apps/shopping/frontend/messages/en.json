@@ -1,0 +1,51 @@
+{
+  "Navigation": {
+    "title": "loeger-os",
+    "subtitle": "Shopping List Management",
+    "lists": "Lists",
+    "history": "History",
+    "pantry": "Pantry System"
+  },
+  "Checklist": {
+    "title": "Shopping Checklist",
+    "searchPlaceholder": "Search...",
+    "open": "open",
+    "completed": "completed",
+    "empty": "No items",
+    "einlagernBtn": "Store Einkauf",
+    "pantryBadge": "Pantry",
+    "pantryLegend": "Linked with Pantry app — will be automatically added to stock"
+  },
+  "AddForm": {
+    "title": "Add Item",
+    "namePlaceholder": "Enter item...",
+    "addBtn": "Add",
+    "stepperDec": "Decrease quantity",
+    "stepperInc": "Increase quantity"
+  },
+  "History": {
+    "title": "Frequently Bought",
+    "noHistory": "No history items"
+  },
+  "Modal": {
+    "scanTitle": "Einlagern · Scan",
+    "unresolvedTitle": "{count} Unknown Items Found",
+    "allDoneTitle": "All Items Processed",
+    "catalogBtn": "Catalog",
+    "ignoreBtn": "Ignore",
+    "ignoredLabel": "— Ignored",
+    "savedLabel": "✓ {catalogName}",
+    "inputLabel": "Set Catalog Name",
+    "saveBtn": "Save",
+    "doneBtn": "Done",
+    "laterBtn": "Do Later",
+    "summaryText": "{saved} saved · {ignored} ignored"
+  },
+  "Error": {
+    "nameRequired": "Item name is required",
+    "invalidQty": "Quantity must be positive",
+    "fetchFailed": "Failed to load details",
+    "syncFailed": "Pantry sync failed",
+    "unrecognizedError": "An unexpected error occurred"
+  }
+}

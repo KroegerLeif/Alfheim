@@ -1,0 +1,51 @@
+{
+  "Navigation": {
+    "title": "loeger-os",
+    "subtitle": "Einkaufslistenverwaltung",
+    "lists": "Listen",
+    "history": "Verlauf",
+    "pantry": "Vorratsschrank"
+  },
+  "Checklist": {
+    "title": "Einkaufszettel",
+    "searchPlaceholder": "Suchen…",
+    "open": "offen",
+    "completed": "erledigt",
+    "empty": "Keine Artikel",
+    "einlagernBtn": "Einkauf Einlagern",
+    "pantryBadge": "Pantry",
+    "pantryLegend": "Mit Pantry-App verknüpft — wird automatisch eingelagert"
+  },
+  "AddForm": {
+    "title": "Artikel hinzufügen",
+    "namePlaceholder": "Artikel eingeben…",
+    "addBtn": "Hinzufügen",
+    "stepperDec": "Menge verringern",
+    "stepperInc": "Menge erhöhen"
+  },
+  "History": {
+    "title": "Häufig gekauft",
+    "noHistory": "Keine Einträge"
+  },
+  "Modal": {
+    "scanTitle": "Einlagern · Scan",
+    "unresolvedTitle": "{count} Unbekannte Artikel gefunden",
+    "allDoneTitle": "Alle Artikel verarbeitet",
+    "catalogBtn": "Katalog",
+    "ignoreBtn": "Ignorieren",
+    "ignoredLabel": "— Ignoriert",
+    "savedLabel": "✓ {catalogName}",
+    "inputLabel": "Katalogname festlegen",
+    "saveBtn": "Speichern",
+    "doneBtn": "Fertig",
+    "laterBtn": "Später erledigen",
+    "summaryText": "{saved} gespeichert · {ignored} ignoriert"
+  },
+  "Error": {
+    "nameRequired": "Name ist erforderlich",
+    "invalidQty": "Menge muss positiv sein",
+    "fetchFailed": "Details konnten nicht geladen werden",
+    "syncFailed": "Pantry-Synchronisierung fehlgeschlagen",
+    "unrecognizedError": "Ein unerwarteter Fehler ist aufgetreten"
+  }
+}
