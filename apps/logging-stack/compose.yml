@@ -44,40 +44,21 @@ services:
       signoz-clickhouse:
         condition: service_healthy
 
-  signoz-query-service:
-    image: signoz/query-service:0.45.0
-    container_name: signoz-query-service
+  signoz:
+    image: signoz/signoz:v0.133.0
+    container_name: signoz-ui
+
     restart: unless-stopped
     environment:
       - ClickHouseUrl=tcp://signoz-clickhouse:9000?database=signoz_traces
-      - STORAGE=clickhouse
-      - GODEBUG=netdns=go
       - SIGNOZ_GLOBAL_EXTERNAL__URL=http://loeger-os/signoz
     volumes:
       - signoz_sqlite_data:/var/lib/signoz
     deploy:
       resources:
         limits:
-          cpus: '0.20'
+          cpus: '0.25'
           memory: 256M
-    networks:
-      - observability-internal
-    depends_on:
-      signoz-clickhouse:
-        condition: service_healthy
-
-  signoz-frontend:
-    image: signoz/frontend:0.45.0
-    container_name: signoz-frontend
-    restart: unless-stopped
-    environment:
-      - BACKEND_API_URL=http://signoz-query-service:8080
-      - SIGNOZ_GLOBAL_EXTERNAL__URL=http://loeger-os/signoz
-    deploy:
-      resources:
-        limits:
-          cpus: '0.15'
-          memory: 128M
     networks:
       - observability-internal
       - public-ingress
@@ -86,9 +67,11 @@ services:
       - "traefik.http.routers.signoz.rule=Host(`loeger-os`) && PathPrefix(`/signoz`)"
       - "traefik.http.routers.signoz.entrypoints=web"
       - "traefik.http.routers.signoz.service=signoz-service"
-      - "traefik.http.services.signoz-service.loadbalancer.server.port=3301"
+      - "traefik.http.services.signoz-service.loadbalancer.server.port=8080"
     depends_on:
-      - signoz-query-service
+      signoz-clickhouse:
+        condition: service_healthy
+
 
   vector:
     image: timberio/vector:0.39.0-alpine
