@@ -1,0 +1,127 @@
+"use client";
+
+import React, { useState } from "react";
+import { useLayout, NavOption } from "./LayoutContext";
+import { Bell, AlertTriangle, Clock, Calendar } from "lucide-react";
+import { cn } from "../utils";
+
+interface NotificationItem {
+  id: string;
+  type: "overdue" | "due_soon" | "info";
+  message: string;
+  time: string;
+}
+
+export function Header() {
+  const { activeNav } = useLayout();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const titleMap: Record<NavOption, string> = {
+    devices: "Device Inventory",
+    maintenance: "Maintenance Work",
+    scheduled: "Scheduled Tasks",
+    history: "Service History",
+    shopping: "Maintenance Shopping",
+  };
+
+  const mockNotifications: NotificationItem[] = [
+    {
+      id: "1",
+      type: "overdue",
+      message: "Generator A Oil Change is OVERDUE",
+      time: "3 days ago",
+    },
+    {
+      id: "2",
+      type: "due_soon",
+      message: "HVAC Filter Replacement due soon",
+      time: "In 2 days",
+    },
+    {
+      id: "3",
+      type: "info",
+      message: "Monthly Fire Alarm drill scheduled",
+      time: "Tomorrow",
+    },
+  ];
+
+  const alertCount = mockNotifications.filter(n => n.type === "overdue" || n.type === "due_soon").length;
+
+  return (
+    <header className="h-16 border-b border-white/5 bg-slate-950 px-6 flex items-center justify-between select-none relative shrink-0">
+      {/* Dynamic Title based on context active nav option */}
+      <h1 className="text-xl font-black text-white tracking-wide uppercase">
+        {titleMap[activeNav]}
+      </h1>
+
+      {/* Action Panel */}
+      <div className="flex items-center gap-4">
+        {/* Notification Bell Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all text-slate-400 hover:text-white cursor-pointer relative"
+            aria-label="View notifications"
+          >
+            <Bell className="h-4.5 w-4.5" />
+            {alertCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-[10px] font-black text-white flex items-center justify-center border border-slate-950 shadow-md">
+                {alertCount}
+              </span>
+            )}
+          </button>
+
+          {isOpen && (
+            <>
+              {/* Overlay background to capture clicks outside the dropdown */}
+              <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+              
+              <div className="absolute right-0 mt-2 w-80 z-20 rounded-2xl glass-modal border border-white/10 p-3 shadow-2xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                    System Alerts
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/10">
+                    {alertCount} Urgent
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-0.5">
+                  {mockNotifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={cn(
+                        "p-2.5 rounded-xl border flex items-start gap-3 transition-colors",
+                        notif.type === "overdue"
+                          ? "bg-red-500/5 border-red-500/10 hover:bg-red-500/10"
+                          : notif.type === "due_soon"
+                          ? "bg-amber-500/5 border-amber-500/10 hover:bg-amber-500/10"
+                          : "bg-white/5 border-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      {notif.type === "overdue" ? (
+                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                      ) : notif.type === "due_soon" ? (
+                        <Clock className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                      ) : (
+                        <Calendar className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-200 leading-tight">
+                          {notif.message}
+                        </p>
+                        <span className="text-[10px] font-medium text-slate-500 font-mono">
+                          {notif.time}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

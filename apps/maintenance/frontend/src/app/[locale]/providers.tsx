@@ -2,18 +2,9 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { ReactNode, useState, useEffect, createContext, useContext } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Keycloak from "keycloak-js";
-
-export const SidebarContext = createContext<{
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
-}>({
-  isSidebarOpen: true,
-  setIsSidebarOpen: () => {},
-});
-
-export const useSidebar = () => useContext(SidebarContext);
+import { LayoutProvider } from "@/shared/layout/LayoutContext";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -30,7 +21,6 @@ export default function Providers({ children }: { children: ReactNode }) {
   );
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -85,9 +75,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
+        <LayoutProvider>
           {children}
-        </SidebarContext.Provider>
+        </LayoutProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
