@@ -18,5 +18,12 @@ class Settings(BaseSettings):
     # Pantry Backend service integration URL
     PANTRY_BACKEND_URL: str = "http://pantry-backend:8000"
 
+    # OpenTelemetry Configuration
+    OTEL_ENABLED: bool = False
+    OTEL_SERVICE_NAME: str = "shopping-backend"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
+    OTEL_EXPORTER_OTLP_INSECURE: bool = True
+
 
 settings = Settings()
+

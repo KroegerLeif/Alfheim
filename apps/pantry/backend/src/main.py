@@ -38,10 +38,6 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize OpenTelemetry
-    from src.core.telemetry import setup_telemetry, shutdown_telemetry
-    setup_telemetry(app)
-
     # Initialize DB tables
     from src.core.database import init_db, async_session_factory
     await init_db()
@@ -63,6 +59,7 @@ async def lifespan(app: FastAPI):
             yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers
+        from src.core.telemetry import shutdown_telemetry
         shutdown_telemetry()
 
 
@@ -74,6 +71,10 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
+
+# Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
+from src.core.telemetry import setup_telemetry
+setup_telemetry(app)
 
 
 @app.exception_handler(ValueError)
@@ -95,7 +96,9 @@ discover_and_import_mcp_tools()
 app.mount("/mcp", mcp.http_app())
 
 
-@app.get("/health")
+@app.get("/api/v1/health")
 async def health_check():
     """Simple health check endpoint."""
+    import logging
+    logging.info("Pantry health check endpoint hit!")
     return {"status": "ok", "project": settings.PROJECT_NAME}
