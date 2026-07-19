@@ -42,8 +42,8 @@ services:
       - "traefik.http.routers.shopping-backend.entrypoints=web"
       - "traefik.http.routers.shopping-backend.middlewares=shopping-api-replace"
       - "traefik.http.routers.shopping-backend.service=shopping-backend-service"
-      - "traefik.http.middlewares.shopping-api-replace.replacepathregex.regex=^/api/v1/shopping/(.*)"
-      - "traefik.http.middlewares.shopping-api-replace.replacepathregex.replacement=/api/v1/$$1"
+      - "traefik.http.middlewares.shopping-api-replace.replacepathregex.regex=^/api/v1/shopping/(api/v1/)?(.*)"
+      - "traefik.http.middlewares.shopping-api-replace.replacepathregex.replacement=/api/v1/$$2"
       - "traefik.http.services.shopping-backend-service.loadbalancer.server.port=8000"
 
   shopping-frontend:

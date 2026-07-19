@@ -42,8 +42,8 @@ services:
       - "traefik.http.routers.pantry-backend.entrypoints=web"
       - "traefik.http.routers.pantry-backend.middlewares=pantry-api-replace"
       - "traefik.http.routers.pantry-backend.service=pantry-backend-service"
-      - "traefik.http.middlewares.pantry-api-replace.replacepathregex.regex=^/api/v1/pantry/(.*)"
-      - "traefik.http.middlewares.pantry-api-replace.replacepathregex.replacement=/api/v1/$$1"
+      - "traefik.http.middlewares.pantry-api-replace.replacepathregex.regex=^/api/v1/pantry/(api/v1/)?(.*)"
+      - "traefik.http.middlewares.pantry-api-replace.replacepathregex.replacement=/api/v1/$$2"
       - "traefik.http.services.pantry-backend-service.loadbalancer.server.port=8000"
 
   pantry-frontend:

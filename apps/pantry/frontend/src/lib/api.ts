@@ -1,6 +1,19 @@
 import axios, { AxiosError } from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Sanitize and resolve base host URLs to bypass client-side path mutations
+const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
+  let resolved = url || defaultFallback;
+  if (resolved.startsWith("/")) {
+    if (typeof window !== "undefined") {
+      resolved = window.location.origin + resolved;
+    } else {
+      resolved = "http://loeger-os" + resolved;
+    }
+  }
+  return resolved.endsWith("/") ? resolved : resolved + "/";
+};
+
+const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://loeger-os/api/v1/pantry/");
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
