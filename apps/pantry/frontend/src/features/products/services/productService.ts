@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api";
+import { pantryClient } from "@/lib/api";
 import { ProductRead, ProductCreate } from "@/features/inventory/types";
 
 export const productKeys = {
@@ -15,11 +15,14 @@ export function useSearchProducts(name?: string) {
   return useQuery<ProductRead[]>({
     queryKey: productKeys.search(name),
     queryFn: () => 
-      apiClient
-        .get<ProductRead[]>("/api/v1/products", {
-          params: { name, limit: 20 },
+      pantryClient
+        .get("api/v1/products", {
+          searchParams: {
+            ...(name && { name }),
+            limit: 20,
+          },
         })
-        .then((res) => res.data),
+        .json<ProductRead[]>(),
     enabled: name !== undefined && name.trim().length > 0,
   });
 }
@@ -31,9 +34,9 @@ export function useProductByBarcode(barcode: string, enabled = true) {
   return useQuery<ProductRead>({
     queryKey: productKeys.barcode(barcode),
     queryFn: () => 
-      apiClient
-        .get<ProductRead>(`/api/v1/products/barcode/${barcode}`)
-        .then((res) => res.data),
+      pantryClient
+        .get(`api/v1/products/barcode/${barcode}`)
+        .json<ProductRead>(),
     enabled: enabled && barcode.trim().length > 0,
     retry: false, // Don't retry since barcode lookup can fail on non-existent items
   });
@@ -46,9 +49,9 @@ export function useProducts() {
   return useQuery<ProductRead[]>({
     queryKey: productKeys.all,
     queryFn: () => 
-      apiClient
-        .get<ProductRead[]>("/api/v1/products")
-        .then((res) => res.data),
+      pantryClient
+        .get("api/v1/products")
+        .json<ProductRead[]>(),
   });
 }
 
@@ -60,12 +63,11 @@ export function useCreateProduct() {
 
   return useMutation<ProductRead, any, ProductCreate>({
     mutationFn: (payload) =>
-      apiClient
-        .post<ProductRead>("/api/v1/products", payload)
-        .then((res) => res.data),
+      pantryClient
+        .post("api/v1/products", { json: payload })
+        .json<ProductRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
     },
   });
 }
-

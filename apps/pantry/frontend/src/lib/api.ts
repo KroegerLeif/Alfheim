@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import ky from "ky";
 
 // Sanitize and resolve base host URLs to bypass client-side path mutations
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
@@ -15,57 +15,23 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
 
 const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://loeger-os/api/v1/pantry/");
 
-export const apiClient = axios.create({
-  baseURL: BASE_URL,
+export const pantryClient = ky.create({
+  prefixUrl: BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
-});
-
-// Request Interceptor: Placeholder for Keycloak tokens and OTel headers
-apiClient.interceptors.request.use(
-  (config) => {
-    // Strip leading slash to force Axios to merge with subpath baseURL rather than domain origin
-    if (config.url && config.url.startsWith("/")) {
-      config.url = config.url.substring(1);
-    }
-
-    // Future Keycloak token placement:
-    // const token = getAuthToken();
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
-
-    // Future OpenTelemetry context propagation:
-    // config.headers['traceparent'] = getTelemetryTraceId();
-
-    return config;
+  hooks: {
+    beforeRequest: [
+      (request) => {
+        if (typeof window !== "undefined") {
+          const token = sessionStorage.getItem("token_pantry-frontend");
+          if (token) {
+            request.headers.set("Authorization", `Bearer ${token}`);
+          }
+        }
+      },
+    ],
   },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response Interceptor: Normalized error format
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    const status = error.response?.status;
-    const data = error.response?.data;
-    
-    // Extract FastAPI detailed message: e.g. { detail: "..." }
-    const message = 
-      (data as any)?.detail || 
-      error.message || 
-      "An unexpected error occurred";
-
-    console.error(`API Client Error [Status ${status}]:`, message);
-
-    return Promise.reject({
-      status,
-      message,
-      raw: error,
-    });
-  }
-);
+});
+export type apiClientType = typeof pantryClient;

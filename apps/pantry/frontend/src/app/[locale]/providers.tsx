@@ -3,7 +3,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect } from "react";
 import Keycloak from "keycloak-js";
-import { apiClient } from "@/lib/api";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -40,14 +39,13 @@ export default function Providers({ children }: { children: ReactNode }) {
       .then((authenticated) => {
         if (authenticated) {
           setIsAuthenticated(true);
-          // Set access token for axios requests
-          apiClient.defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+          sessionStorage.setItem("token_pantry-frontend", keycloak.token || "");
 
           // Set up token auto-refresh
           const interval = setInterval(() => {
             keycloak.updateToken(70).then((refreshed) => {
               if (refreshed) {
-                apiClient.defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+                sessionStorage.setItem("token_pantry-frontend", keycloak.token || "");
               }
             }).catch(() => {
               console.error("Failed to refresh Keycloak token");

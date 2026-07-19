@@ -1,12 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useSearchProducts, useProductByBarcode, useProducts, useCreateProduct, productKeys } from '../productService'
 import { createQueryWrapper } from '@/tests/utils'
-import { apiClient } from '@/lib/api'
+import { pantryClient } from '@/lib/api'
 import { vi } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 
 vi.mock('@/lib/api', () => ({
-  apiClient: {
+  pantryClient: {
     get: vi.fn(),
     post: vi.fn(),
   },
@@ -20,7 +20,10 @@ describe('Product Service Hooks', () => {
   describe('useSearchProducts', () => {
     it('fetches search results correctly when search term is provided', async () => {
       const mockProducts = [{ id: 'p1', name: 'Apple', brand: 'Fuji', barcode: '123', base_unit: 'piece', minimum_stock: 5 }]
-      vi.mocked(apiClient.get).mockResolvedValue({ data: mockProducts })
+      const mockJson = vi.fn().mockResolvedValue(mockProducts)
+      vi.mocked(pantryClient.get).mockReturnValue({
+        json: mockJson,
+      } as any)
 
       const { result } = renderHook(() => useSearchProducts('Apple'), {
         wrapper: createQueryWrapper(),
@@ -29,8 +32,8 @@ describe('Product Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockProducts)
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/products', {
-        params: { name: 'Apple', limit: 20 },
+      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/products', {
+        searchParams: { name: 'Apple', limit: 20 },
       })
     })
 
@@ -45,7 +48,10 @@ describe('Product Service Hooks', () => {
   describe('useProductByBarcode', () => {
     it('fetches product by barcode correctly', async () => {
       const mockProduct = { id: 'p1', name: 'Banana', brand: 'Chiquita', barcode: '456', base_unit: 'piece', minimum_stock: 2 }
-      vi.mocked(apiClient.get).mockResolvedValue({ data: mockProduct })
+      const mockJson = vi.fn().mockResolvedValue(mockProduct)
+      vi.mocked(pantryClient.get).mockReturnValue({
+        json: mockJson,
+      } as any)
 
       const { result } = renderHook(() => useProductByBarcode('456'), {
         wrapper: createQueryWrapper(),
@@ -54,7 +60,7 @@ describe('Product Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockProduct)
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/products/barcode/456')
+      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/products/barcode/456')
     })
   })
 
@@ -64,7 +70,10 @@ describe('Product Service Hooks', () => {
         { id: 'p1', name: 'Apple', brand: 'Fuji', barcode: '123', base_unit: 'piece', minimum_stock: 5 },
         { id: 'p2', name: 'Banana', brand: 'Chiquita', barcode: '456', base_unit: 'piece', minimum_stock: 2 },
       ]
-      vi.mocked(apiClient.get).mockResolvedValue({ data: mockProducts })
+      const mockJson = vi.fn().mockResolvedValue(mockProducts)
+      vi.mocked(pantryClient.get).mockReturnValue({
+        json: mockJson,
+      } as any)
 
       const { result } = renderHook(() => useProducts(), {
         wrapper: createQueryWrapper(),
@@ -73,7 +82,7 @@ describe('Product Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockProducts)
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/products')
+      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/products')
     })
   })
 
@@ -81,7 +90,10 @@ describe('Product Service Hooks', () => {
     it('creates product and invalidates all product queries', async () => {
       const newProduct = { name: 'Potato', brand: 'Local', base_unit: 'g', minimum_stock: 1000 }
       const mockProductRead = { id: 'p3', ...newProduct, barcode: null, category_id: null, is_global: false, home_id: 'h1', created_at: 'now', updated_at: 'now' }
-      vi.mocked(apiClient.post).mockResolvedValue({ data: mockProductRead })
+      const mockJson = vi.fn().mockResolvedValue(mockProductRead)
+      vi.mocked(pantryClient.post).mockReturnValue({
+        json: mockJson,
+      } as any)
 
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
@@ -94,7 +106,7 @@ describe('Product Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockProductRead)
-      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/products', newProduct)
+      expect(pantryClient.post).toHaveBeenCalledWith('api/v1/products', { json: newProduct })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: productKeys.all })
       
       invalidateSpy.mockRestore()
