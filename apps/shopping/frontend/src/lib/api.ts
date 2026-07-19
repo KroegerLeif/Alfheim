@@ -39,7 +39,12 @@ export const shoppingClient = ky.create({
   hooks: {
     beforeRequest: [
       (request) => {
-        // Placeholders for future Keycloak JWT token bindings
+        if (typeof window !== "undefined") {
+          const token = sessionStorage.getItem("token_shopping-frontend");
+          if (token) {
+            request.headers.set("Authorization", `Bearer ${token}`);
+          }
+        }
       },
     ],
     afterResponse: [
@@ -62,7 +67,12 @@ export const pantryClient = ky.create({
   hooks: {
     beforeRequest: [
       (request) => {
-        // Placeholders for future Keycloak JWT token bindings
+        if (typeof window !== "undefined") {
+          const token = sessionStorage.getItem("token_shopping-frontend");
+          if (token) {
+            request.headers.set("Authorization", `Bearer ${token}`);
+          }
+        }
       },
     ],
     afterResponse: [
