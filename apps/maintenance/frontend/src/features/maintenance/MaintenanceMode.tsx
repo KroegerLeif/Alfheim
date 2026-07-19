@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Device } from "@/shared/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { submitMaintenance } from "@/shared/api";
+import { Device, MaintenanceSubmitPayload } from "@/shared/types";
 import { 
   X, 
   Check, 
@@ -13,7 +15,8 @@ import {
   FileText,
   Download,
   PackagePlus,
-  PackageMinus
+  PackageMinus,
+  Loader2
 } from "lucide-react";
 import { formatDate, daysUntil } from "@/shared/utils";
 import { cn } from "@/shared/utils";
@@ -24,15 +27,16 @@ interface MaintenanceModeProps {
 }
 
 export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
-  const steps = device.serviceSteps || [];
+  const steps = device.steps || [];
   const totalSteps = steps.length;
   
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [doneSteps, setDoneSteps] = useState<Set<string>>(new Set());
-  const [stepNotes, setStepNotes] = useState<Record<string, string>>({});
+  const [doneSteps, setDoneSteps] = useState<Set<number>>(new Set());
+  const [stepNotes, setStepNotes] = useState<Record<number, string>>({});
   const [cart, setCart] = useState<string[]>([]);
 
   const activeStep = steps[currentStepIndex];
+  const queryClient = useQueryClient();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -55,6 +59,24 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
       localStorage.setItem("cart_maintenance-frontend", JSON.stringify(newCart));
     }
   };
+
+  // Submit mutation
+  const submissionMutation = useMutation({
+    mutationFn: submitMaintenance,
+    onSuccess: () => {
+      // Invalidate the query key to refresh list
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      
+      // Clear shopping cart if items were successfully sent
+      updateCart([]);
+      
+      onClose();
+      alert("Maintenance successfully submitted and synced to database!");
+    },
+    onError: (error: any) => {
+      alert(`Failed to save maintenance log: ${error?.message || "Unknown error"}`);
+    }
+  });
 
   if (totalSteps === 0) {
     return (
@@ -94,7 +116,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
     return "Universal Cleaning & Maintenance Pack";
   };
 
-  const currentSupplyItem = getSupplyItemForStep(activeStep.name);
+  const currentSupplyItem = activeStep ? getSupplyItemForStep(activeStep.title) : "Universal Cleaning Pack";
   const isPartInCart = cart.includes(currentSupplyItem);
 
   const toggleCartPart = () => {
@@ -105,7 +127,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
     }
   };
 
-  const handleToggleStepDone = (stepId: string) => {
+  const handleToggleStepDone = (stepId: number) => {
     const newDone = new Set(doneSteps);
     if (newDone.has(stepId)) {
       newDone.delete(stepId);
@@ -128,6 +150,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   };
 
   const handleNoteChange = (text: string) => {
+    if (!activeStep) return;
     setStepNotes({
       ...stepNotes,
       [activeStep.id]: text,
@@ -138,9 +161,26 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   const isWizardComplete = doneSteps.size === totalSteps;
 
   const handleFinishWizard = () => {
-    // Commit the maintenance completed status to local logs if needed
-    // In production, this would make an API call to create service history events
-    onClose();
+    const completedStepIds = Array.from(doneSteps);
+    
+    // Aggregate notes from stepNotes dictionary
+    const notesArray = Object.entries(stepNotes)
+      .map(([id, note]) => {
+        const stepTitle = steps.find(s => s.id === Number(id))?.title || "Step";
+        return `${stepTitle}: ${note}`;
+      })
+      .filter(Boolean);
+    const stepNotesMerged = notesArray.join("\n");
+
+    const payload: MaintenanceSubmitPayload = {
+      device_id: device.id,
+      completed_step_ids: completedStepIds,
+      step_notes: stepNotesMerged || "All service steps inspected and completed.",
+      performer: "Lena Müller", // Mocked active performer
+      supply_items: cart.length > 0 ? cart : null,
+    };
+
+    submissionMutation.mutate(payload);
   };
 
   return (
@@ -175,6 +215,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
           onClick={onClose}
           className="p-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
           aria-label="Exit Wizard"
+          disabled={submissionMutation.isPending}
         >
           <X className="h-4.5 w-4.5" />
         </button>
@@ -198,25 +239,19 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
             <span>Direct Manuals Access</span>
           </div>
           
-          {!device.manuals || device.manuals.length === 0 ? (
-            <p className="text-xs text-slate-500 italic">No manuals attached.</p>
-          ) : (
-            <div className="space-y-2">
-              {device.manuals.map((man) => (
-                <a
-                  key={man.id}
-                  href={man.url}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors text-slate-300 hover:text-white text-xs font-semibold"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <BookOpen className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                    <span className="truncate">{man.title}</span>
-                  </div>
-                  <Download className="h-3.5 w-3.5 text-slate-500 hover:text-slate-300 shrink-0" />
-                </a>
-              ))}
-            </div>
-          )}
+          {/* Mock manuals fallback */}
+          <div className="space-y-2">
+            <a
+              href="#"
+              className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors text-slate-300 hover:text-white text-xs font-semibold"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <BookOpen className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                <span className="truncate">User Guide PDF</span>
+              </div>
+              <Download className="h-3.5 w-3.5 text-slate-500 hover:text-slate-300 shrink-0" />
+            </a>
+          </div>
         </div>
 
         {/* Center Section: Active Wizard Step (6 cols) */}
@@ -228,64 +263,74 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
               <span className="text-xs font-mono font-bold text-slate-500">
                 STEP {currentStepIndex + 1} OF {totalSteps}
               </span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400">
-                Interval: {activeStep.intervalMonths}m
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-2xl font-black uppercase text-white tracking-wide">
-                {activeStep.name}
-              </h3>
-              {activeStep.description && (
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  {activeStep.description}
-                </p>
+              {activeStep && (
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400">
+                  Interval: {activeStep.recurrence}m
+                </span>
               )}
             </div>
 
-            {/* Checkbox completion */}
-            <div className="pt-4">
-              <button
-                onClick={() => handleToggleStepDone(activeStep.id)}
-                className={cn(
-                  "w-full flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer font-semibold text-sm",
-                  doneSteps.has(activeStep.id)
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                    : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+            {activeStep && (
+              <div className="space-y-4">
+                <h3 className="text-2xl font-black uppercase text-white tracking-wide">
+                  {activeStep.title}
+                </h3>
+                {activeStep.description && (
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                    {activeStep.description}
+                  </p>
                 )}
-              >
-                <span>Mark this step as completed</span>
-                <div className={cn(
-                  "h-6 w-6 rounded-lg border flex items-center justify-center transition-all",
-                  doneSteps.has(activeStep.id)
-                    ? "bg-emerald-500 border-emerald-500 text-black"
-                    : "border-slate-500"
-                )}>
-                  {doneSteps.has(activeStep.id) && <Check className="h-4 w-4 stroke-[3]" />}
-                </div>
-              </button>
-            </div>
+              </div>
+            )}
+
+            {/* Checkbox completion */}
+            {activeStep && (
+              <div className="pt-4">
+                <button
+                  onClick={() => handleToggleStepDone(activeStep.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer font-semibold text-sm",
+                    doneSteps.has(activeStep.id)
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                      : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                  )}
+                  disabled={submissionMutation.isPending}
+                >
+                  <span>Mark this step as completed</span>
+                  <div className={cn(
+                    "h-6 w-6 rounded-lg border flex items-center justify-center transition-all",
+                    doneSteps.has(activeStep.id)
+                      ? "bg-emerald-500 border-emerald-500 text-black"
+                      : "border-slate-500"
+                  )}>
+                    {doneSteps.has(activeStep.id) && <Check className="h-4 w-4 stroke-[3]" />}
+                  </div>
+                </button>
+              </div>
+            )}
 
             {/* Step specific notes */}
-            <div className="space-y-2 pt-4">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
-                Operation Notes & Comments
-              </span>
-              <textarea
-                value={stepNotes[activeStep.id] || ""}
-                onChange={(e) => handleNoteChange(e.target.value)}
-                placeholder="Log any anomalies, actions taken, or parts used..."
-                className="w-full h-32 p-3 bg-white/5 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-xl text-slate-200 text-xs focus:outline-none resize-none transition-all placeholder:text-slate-600 font-mono"
-              />
-            </div>
+            {activeStep && (
+              <div className="space-y-2 pt-4">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                  Operation Notes & Comments
+                </span>
+                <textarea
+                  value={stepNotes[activeStep.id] || ""}
+                  onChange={(e) => handleNoteChange(e.target.value)}
+                  placeholder="Log any anomalies, actions taken, or parts used..."
+                  className="w-full h-32 p-3 bg-white/5 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-xl text-slate-200 text-xs focus:outline-none resize-none transition-all placeholder:text-slate-600 font-mono"
+                  disabled={submissionMutation.isPending}
+                />
+              </div>
+            )}
           </div>
 
           {/* Navigation Controls */}
           <div className="flex items-center justify-between gap-4 pt-8 mt-auto">
             <button
               onClick={handlePrev}
-              disabled={currentStepIndex === 0}
+              disabled={currentStepIndex === 0 || submissionMutation.isPending}
               className={cn(
                 "px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                 currentStepIndex === 0
@@ -300,20 +345,30 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
             {currentStepIndex === totalSteps - 1 ? (
               <button
                 onClick={handleFinishWizard}
-                disabled={!isWizardComplete}
+                disabled={!isWizardComplete || submissionMutation.isPending}
                 className={cn(
                   "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg",
-                  isWizardComplete
+                  isWizardComplete && !submissionMutation.isPending
                     ? "bg-emerald-500 text-black hover:bg-emerald-600 shadow-emerald-500/10"
                     : "bg-white/5 border border-white/5 text-slate-600 cursor-not-allowed"
                 )}
               >
-                <Check className="h-4 w-4 stroke-[3]" />
-                Complete Wizard
+                {submissionMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 stroke-[3]" />
+                    Finish & Save
+                  </>
+                )}
               </button>
             ) : (
               <button
                 onClick={handleNext}
+                disabled={submissionMutation.isPending}
                 className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/10"
               >
                 Next
@@ -338,6 +393,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
 
             <button
               onClick={toggleCartPart}
+              disabled={submissionMutation.isPending}
               className={cn(
                 "w-full py-2.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                 isPartInCart

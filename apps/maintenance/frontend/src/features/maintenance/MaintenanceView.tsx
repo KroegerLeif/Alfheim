@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import { useLayout } from "@/shared/layout/LayoutContext";
-import { initialDevices, households, CATEGORY_ICONS } from "@/shared/data";
+import { useQuery } from "@tanstack/react-query";
+import { getDevices } from "@/shared/api";
+import { CATEGORY_ICONS } from "@/shared/data";
 import { Device } from "@/shared/types";
 import { formatDate, daysUntil } from "@/shared/utils";
 import { DeviceDetailPanel } from "../devices/DeviceDetailPanel";
@@ -13,7 +15,8 @@ import {
   CheckCircle2, 
   Play, 
   Eye, 
-  Info
+  Info,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/shared/utils";
 
@@ -28,10 +31,19 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
   const [filter, setFilter] = useState<MetricFilter>("all");
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
-  // Filter devices based on household selection
-  const householdDevices = initialDevices.filter(
-    (d) => householdId === null || d.householdId === householdId
-  );
+  // Fetch devices dynamically
+  const { data: householdDevices = [], isLoading } = useQuery({
+    queryKey: ["devices", householdId],
+    queryFn: () => getDevices(householdId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh] text-cyan-400">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   // Calculate metrics across the filtered devices
   let totalStepsCount = 0;
@@ -40,10 +52,10 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
   let okStepsCount = 0;
 
   householdDevices.forEach((device) => {
-    if (device.serviceSteps) {
-      device.serviceSteps.forEach((step) => {
+    if (device.steps) {
+      device.steps.forEach((step) => {
         totalStepsCount++;
-        const remainingDays = daysUntil(step.nextDue);
+        const remainingDays = daysUntil(step.supply_needed_date || undefined);
         if (remainingDays < 0) {
           overdueStepsCount++;
         } else if (remainingDays <= 14) {
@@ -57,13 +69,13 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
 
   // Helper to categorize a device's maintenance state
   const getDeviceMaintenanceState = (device: Device): MetricFilter => {
-    if (!device.serviceSteps || device.serviceSteps.length === 0) return "ok";
+    if (!device.steps || device.steps.length === 0) return "ok";
     
     let hasOverdue = false;
     let hasDueSoon = false;
 
-    device.serviceSteps.forEach((step) => {
-      const remainingDays = daysUntil(step.nextDue);
+    device.steps.forEach((step) => {
+      const remainingDays = daysUntil(step.supply_needed_date || undefined);
       if (remainingDays < 0) {
         hasOverdue = true;
       } else if (remainingDays <= 14) {
@@ -83,9 +95,9 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
   });
 
   const getNextServiceDate = (device: Device): string => {
-    if (!device.serviceSteps || device.serviceSteps.length === 0) return "Never";
-    const dates = device.serviceSteps
-      .map((s) => s.nextDue)
+    if (!device.steps || device.steps.length === 0) return "Never";
+    const dates = device.steps
+      .map((s) => s.supply_needed_date)
       .filter((d): d is string => !!d);
     if (dates.length === 0) return "Never";
     return dates.reduce((min, d) => (d < min ? d : min), dates[0]);

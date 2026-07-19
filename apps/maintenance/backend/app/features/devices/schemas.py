@@ -10,6 +10,7 @@ class HouseholdRead(BaseModel):
 class MaintenanceStepRead(BaseModel):
     id: int
     title: str
+    description: Optional[str] = None
     recurrence: int
     supply_item: Optional[str] = None
     supply_needed_date: Optional[str] = None

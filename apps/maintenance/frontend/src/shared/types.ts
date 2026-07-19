@@ -1,9 +1,9 @@
-// Shared type definitions for the Maintenance application
+// Shared type definitions matching backend models
 
-export interface AssignedUser {
-  id: string;
+export interface Household {
+  id: number;
   name: string;
-  avatarUrl?: string | null;
+  address?: string | null;
 }
 
 export interface Manual {
@@ -13,36 +13,45 @@ export interface Manual {
   url: string;
 }
 
-export interface ServiceStep {
-  id: string;
-  name: string;
-  description?: string;
-  intervalMonths: number;
-  lastPerformed?: string;
-  nextDue?: string;
+export interface MaintenanceStep {
+  id: number;
+  title: string;
+  description?: string | null;
+  recurrence: number; // interval in months
+  supply_item?: string | null;
+  supply_needed_date?: string | null;
+  last_completed?: string | null;
+  device_id: number;
 }
 
-export interface ServiceEvent {
-  id: string;
-  title: string;
-  performedAt: string;
-  performedBy: string;
-  notes?: string;
-  cost?: number;
+export interface ServiceHistoryEvent {
+  id: number;
+  date: string;
+  performer: string;
+  notes?: string | null;
+  device_id: number;
+  completed_steps?: string[] | null;
 }
 
 export interface Device {
-  id: string;
+  id: number;
   name: string;
   model: string;
-  serialNumber: string;
-  location: string;
+  serial: string;
   category: string;
+  location: string;
   status: "active" | "maintenance" | "inactive";
-  householdId: number;
-  imageUrl?: string;
-  assignedUser?: AssignedUser;
-  manuals?: Manual[];
-  serviceSteps?: ServiceStep[];
-  serviceHistory?: ServiceEvent[];
+  service_interval_months?: number | null;
+  notes?: string | null;
+  household_id: number;
+  steps: MaintenanceStep[];
+  history_events: ServiceHistoryEvent[];
+}
+
+export interface MaintenanceSubmitPayload {
+  device_id: number;
+  completed_step_ids: number[];
+  step_notes?: string | null;
+  performer: string;
+  supply_items?: string[] | null;
 }

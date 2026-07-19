@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Device, ServiceStep } from "@/shared/types";
+import { Device, MaintenanceStep } from "@/shared/types";
 import { formatDate, daysUntil } from "@/shared/utils";
 import { ChevronDown, Calendar, FileText, Camera } from "lucide-react";
 import { cn } from "@/shared/utils";
 
 interface ScheduledTaskItemProps {
-  step: ServiceStep;
+  step: MaintenanceStep;
   device: Device;
 }
 
@@ -16,7 +16,7 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
   const [comment, setComment] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
 
-  const remainingDays = daysUntil(step.nextDue);
+  const remainingDays = daysUntil(step.supply_needed_date || undefined);
   const isOverdue = remainingDays < 0;
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,7 +46,7 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
           </div>
           <div className="min-w-0">
             <h4 className="text-sm font-bold text-white uppercase tracking-wide truncate">
-              {step.name}
+              {step.title}
             </h4>
             <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-semibold uppercase tracking-wider">
               <span className="truncate text-slate-300">{device.name}</span>
@@ -77,11 +77,11 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
           <div className="grid grid-cols-2 gap-4 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
             <div className="space-y-0.5">
               <span>Next Due Date</span>
-              <span className="block text-slate-300 font-mono">{formatDate(step.nextDue)}</span>
+              <span className="block text-slate-300 font-mono">{formatDate(step.supply_needed_date || undefined)}</span>
             </div>
             <div className="space-y-0.5">
               <span>Service Interval</span>
-              <span className="block text-slate-300 font-mono">{step.intervalMonths} Months</span>
+              <span className="block text-slate-300 font-mono">{step.recurrence} Months</span>
             </div>
           </div>
 

@@ -71,6 +71,7 @@ async def seed_database(session: AsyncSession) -> None:
     # Add steps for Dyson
     s1 = MaintenanceStep(
         title="Vacuum air filter meshes",
+        description="Remove filter cover and gently vacuum meshes.",
         recurrence=2,
         supply_item="Microfiber Cloth",
         supply_needed_date="2026-09-01",
@@ -79,6 +80,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     s2 = MaintenanceStep(
         title="Replace HEPA filter",
+        description="Insert brand new HEPA filter insert.",
         recurrence=12,
         supply_item="Dyson TP02 HEPA Filter",
         supply_needed_date="2027-01-10",
@@ -91,6 +93,7 @@ async def seed_database(session: AsyncSession) -> None:
     # Add steps for Water Softener
     s3 = MaintenanceStep(
         title="Refill salt pellets",
+        description="Open lid and pour in 25kg eco salt bag.",
         recurrence=2,
         supply_item="EcoWater Salt Bags (25kg)",
         supply_needed_date="2026-08-15",
@@ -99,6 +102,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     s4 = MaintenanceStep(
         title="Sanitize system",
+        description="Run system cleaning fluid through bypass cycle.",
         recurrence=12,
         supply_item="System Disinfectant Pack",
         supply_needed_date="2027-05-01",
@@ -150,6 +154,7 @@ async def seed_database(session: AsyncSession) -> None:
     # Add steps for Roborock
     s5 = MaintenanceStep(
         title="Clean main brush & sensors",
+        description="Clear hair from roll brush and wipe optical sensors.",
         recurrence=1,
         supply_item="Brush Cleaner Tool",
         supply_needed_date="2026-08-01",
@@ -158,6 +163,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     s6 = MaintenanceStep(
         title="Empty dustbin bag",
+        description="Replace bag inside auto-empty charging station.",
         recurrence=3,
         supply_item="Roborock Disposable Dust Bag",
         supply_needed_date="2026-10-15",
@@ -170,6 +176,7 @@ async def seed_database(session: AsyncSession) -> None:
     # Add steps for Compressor
     s7 = MaintenanceStep(
         title="Drain condensation tank",
+        description="Open bottom valve to let accumulated moisture out.",
         recurrence=3,
         supply_item="Drain Valve Cap",
         supply_needed_date="2026-09-01",
@@ -178,6 +185,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     s8 = MaintenanceStep(
         title="Check pump oil level",
+        description="Verify oil level glass is between min/max markers.",
         recurrence=12,
         supply_item="Stanley Compressor Oil",
         supply_needed_date="2026-07-01",

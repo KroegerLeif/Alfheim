@@ -2,13 +2,19 @@
 
 import React, { useState } from "react";
 import { useLayout } from "./LayoutContext";
-import { households } from "../data";
+import { useQuery } from "@tanstack/react-query";
+import { getHouseholds } from "../api";
 import { ChevronDown, Home, Check } from "lucide-react";
 import { cn } from "../utils";
 
 export function SidebarHouseholdPicker() {
   const { householdId, setHouseholdId, isSidebarCollapsed } = useLayout();
   const [isOpen, setIsOpen] = useState(false);
+
+  const { data: households = [] } = useQuery({
+    queryKey: ["households"],
+    queryFn: getHouseholds,
+  });
 
   const selectedHousehold = households.find((h) => h.id === householdId);
 

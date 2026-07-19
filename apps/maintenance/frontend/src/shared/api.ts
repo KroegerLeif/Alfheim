@@ -1,4 +1,5 @@
 import ky from "ky";
+import { Household, Device, ServiceHistoryEvent, MaintenanceSubmitPayload } from "@/shared/types";
 
 export interface ApiError {
   status?: number;
@@ -68,3 +69,20 @@ export const maintenanceClient = ky.create({
     ],
   },
 });
+
+export const getHouseholds = async (): Promise<Household[]> => {
+  return await maintenanceClient.get("households").json<Household[]>();
+};
+
+export const getDevices = async (householdId?: number | null): Promise<Device[]> => {
+  const searchParams: Record<string, string> = {};
+  if (householdId !== undefined && householdId !== null) {
+    searchParams["household_id"] = householdId.toString();
+  }
+  return await maintenanceClient.get("devices", { searchParams }).json<Device[]>();
+};
+
+export const submitMaintenance = async (payload: MaintenanceSubmitPayload): Promise<ServiceHistoryEvent> => {
+  return await maintenanceClient.post("submit", { json: payload }).json<ServiceHistoryEvent>();
+};
+

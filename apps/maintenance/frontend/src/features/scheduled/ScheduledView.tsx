@@ -2,15 +2,16 @@
 
 import React, { useState } from "react";
 import { useLayout } from "@/shared/layout/LayoutContext";
-import { initialDevices } from "@/shared/data";
-import { Device, ServiceStep } from "@/shared/types";
+import { useQuery } from "@tanstack/react-query";
+import { getDevices } from "@/shared/api";
+import { Device, MaintenanceStep } from "@/shared/types";
 import { ScheduledTaskItem } from "./ScheduledTaskItem";
-import { CalendarRange, Info } from "lucide-react";
+import { CalendarRange, Info, Loader2 } from "lucide-react";
 import { cn } from "@/shared/utils";
 import { daysUntil } from "@/shared/utils";
 
 interface FlattenedTask {
-  step: ServiceStep;
+  step: MaintenanceStep;
   device: Device;
 }
 
@@ -18,32 +19,41 @@ export function ScheduledView() {
   const { householdId } = useLayout();
   const [filter, setFilter] = useState<"upcoming" | "all">("upcoming");
 
-  // Filter devices based on household selection
-  const filteredDevices = initialDevices.filter(
-    (d) => householdId === null || d.householdId === householdId
-  );
+  // Fetch devices dynamically
+  const { data: devices = [], isLoading } = useQuery({
+    queryKey: ["devices", householdId],
+    queryFn: () => getDevices(householdId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh] text-cyan-400">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   // Flatten steps from all filtered devices
   const allTasks: FlattenedTask[] = [];
-  filteredDevices.forEach((device) => {
-    if (device.serviceSteps) {
-      device.serviceSteps.forEach((step) => {
+  devices.forEach((device) => {
+    if (device.steps) {
+      device.steps.forEach((step) => {
         allTasks.push({ step, device });
       });
     }
   });
 
-  // Sort them chronologically by computed nextDue date (null or undefined last)
+  // Sort them chronologically by supply_needed_date (null or undefined last)
   allTasks.sort((a, b) => {
-    const dateA = a.step.nextDue || "9999-12-31";
-    const dateB = b.step.nextDue || "9999-12-31";
+    const dateA = a.step.supply_needed_date || "9999-12-31";
+    const dateB = b.step.supply_needed_date || "9999-12-31";
     return dateA.localeCompare(dateB);
   });
 
   // Filter tasks based on "Upcoming" (due <= 30 days) or "All Tasks"
   const visibleTasks = allTasks.filter((task) => {
     if (filter === "all") return true;
-    const remainingDays = daysUntil(task.step.nextDue);
+    const remainingDays = daysUntil(task.step.supply_needed_date || undefined);
     return remainingDays <= 30; // Includes overdue and next 30 days
   });
 

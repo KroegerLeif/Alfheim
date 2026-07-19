@@ -2,10 +2,12 @@
 
 import React, { useState } from "react";
 import { useLayout } from "@/shared/layout/LayoutContext";
-import { initialDevices, households, CATEGORY_ICONS } from "@/shared/data";
+import { useQuery } from "@tanstack/react-query";
+import { getDevices, getHouseholds } from "@/shared/api";
+import { CATEGORY_ICONS } from "@/shared/data";
 import { Device } from "@/shared/types";
 import { DeviceDetailPanel } from "./DeviceDetailPanel";
-import { Info, MapPin } from "lucide-react";
+import { Info, MapPin, Loader2 } from "lucide-react";
 import { cn } from "@/shared/utils";
 
 interface DevicesViewProps {
@@ -16,23 +18,37 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const { householdId } = useLayout();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
-  // Filter devices based on household selection
-  const filteredDevices = initialDevices.filter(
-    (d) => householdId === null || d.householdId === householdId
-  );
+  // Fetch households and devices
+  const { data: households = [] } = useQuery({
+    queryKey: ["households"],
+    queryFn: getHouseholds,
+  });
+
+  const { data: devices = [], isLoading } = useQuery({
+    queryKey: ["devices", householdId],
+    queryFn: () => getDevices(householdId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh] text-cyan-400">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   // Group devices by household
-  const groupedDevices = households.reduce((acc, h) => {
-    const devicesInHousehold = filteredDevices.filter((d) => d.householdId === h.id);
+  const groupedDevices = households.reduce<{ household: any; devices: Device[] }[]>((acc, h) => {
+    const devicesInHousehold = devices.filter((d) => d.household_id === h.id);
     if (devicesInHousehold.length > 0) {
       acc.push({ household: h, devices: devicesInHousehold });
     }
     return acc;
-  }, [] as { household: typeof households[number]; devices: Device[] }[]);
+  }, []);
 
   // If "All Households" is selected and there are devices not matching any defined household
-  const orphans = filteredDevices.filter(
-    (d) => !households.some((h) => h.id === d.householdId)
+  const orphans = devices.filter(
+    (d) => !households.some((h) => h.id === d.household_id)
   );
   if (orphans.length > 0) {
     groupedDevices.push({
@@ -123,7 +139,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
                         <span className="truncate">{device.location}</span>
                       </div>
                       <span className="font-mono text-[10px] text-slate-600 truncate max-w-[40%]">
-                        {device.serialNumber}
+                        {device.serial}
                       </span>
                     </div>
                   </div>

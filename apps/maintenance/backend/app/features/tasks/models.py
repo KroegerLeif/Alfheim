@@ -5,6 +5,7 @@ from sqlmodel import SQLModel, Field, Relationship
 class MaintenanceStep(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
+    description: Optional[str] = None
     recurrence: int  # in months
     supply_item: Optional[str] = None
     supply_needed_date: Optional[str] = None
