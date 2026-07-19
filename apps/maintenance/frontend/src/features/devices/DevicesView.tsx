@@ -7,7 +7,8 @@ import { getDevices, getHouseholds } from "@/shared/api";
 import { CATEGORY_ICONS } from "@/shared/data";
 import { Device } from "@/shared/types";
 import { DeviceDetailPanel } from "./DeviceDetailPanel";
-import { Info, MapPin, Loader2 } from "lucide-react";
+import { AddDeviceWizard } from "./AddDeviceWizard";
+import { Info, MapPin, Loader2, Plus } from "lucide-react";
 import { cn } from "@/shared/utils";
 
 interface DevicesViewProps {
@@ -17,6 +18,7 @@ interface DevicesViewProps {
 export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const { householdId } = useLayout();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
 
   // Fetch households and devices
   const { data: households = [] } = useQuery({
@@ -72,6 +74,19 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      {/* Page header with Add Device FAB */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-black uppercase tracking-widest text-cyan-400">Device Inventory //</span>
+        </div>
+        <button
+          onClick={() => setShowWizard(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl border border-transparent transition-all"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add Device
+        </button>
+      </div>
       {groupedDevices.length === 0 ? (
         <div className="glass-card rounded-2xl border border-white/10 p-12 text-center max-w-md mx-auto space-y-4">
           <Info className="h-10 w-10 text-cyan-400 mx-auto" />
@@ -157,6 +172,11 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
           onClose={() => setSelectedDevice(null)}
           onStartMaintenance={onStartMaintenance}
         />
+      )}
+
+      {/* Add Device Wizard Overlay */}
+      {showWizard && (
+        <AddDeviceWizard onClose={() => setShowWizard(false)} />
       )}
     </div>
   );

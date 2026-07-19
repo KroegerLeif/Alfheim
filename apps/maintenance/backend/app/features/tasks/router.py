@@ -1,7 +1,7 @@
 import datetime
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -10,8 +10,8 @@ import httpx
 from app.core.database import get_db_session
 from app.features.devices.models import Device
 from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
-from app.features.tasks.schemas import MaintenanceSubmission
-from app.features.devices.schemas import ServiceHistoryEventRead, ServiceHistoryEventDetailRead
+from app.features.tasks.schemas import MaintenanceSubmission, TaskStateUpdate
+from app.features.devices.schemas import ServiceHistoryEventRead, ServiceHistoryEventDetailRead, MaintenanceStepRead
 
 router = APIRouter(prefix="/api/v1", tags=["tasks"])
 
@@ -163,3 +163,39 @@ async def get_service_history(
         )
         for e in events
     ]
+
+
+@router.post(
+    "/tasks/{step_id}/state",
+    response_model=MaintenanceStepRead,
+    summary="Save an individual step's inspection comment or property overrides",
+)
+async def update_task_state(
+    step_id: int = Path(..., description="The MaintenanceStep primary key"),
+    payload: TaskStateUpdate = ...,
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Persist lightweight step updates from the ScheduledView accordion:
+    inspection comments, supply item overrides, and manual due-date adjustments.
+    Only non-None fields in the payload are applied to avoid unintended resets.
+    """
+    step = await session.get(MaintenanceStep, step_id)
+    if not step:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MaintenanceStep {step_id} not found",
+        )
+
+    # Apply only the fields explicitly provided in the request
+    if payload.comment is not None:
+        # Store the comment in the description field (inspection note override)
+        step.description = payload.comment
+    if payload.supply_needed_date is not None:
+        step.supply_needed_date = payload.supply_needed_date
+    if payload.supply_item is not None:
+        step.supply_item = payload.supply_item
+
+    session.add(step)
+    await session.commit()
+    await session.refresh(step)
+    return step

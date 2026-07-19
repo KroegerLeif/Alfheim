@@ -61,3 +61,32 @@ export interface MaintenanceSubmitPayload {
   performer: string;
   supply_items?: string[] | null;
 }
+
+/** Input payload for a single step during device creation. */
+export interface CreateStepPayload {
+  title: string;
+  description?: string | null;
+  recurrence: number;
+  supply_item?: string | null;
+}
+
+/** Input payload for POST /api/v1/devices — creates a device with its initial steps. */
+export interface CreateDevicePayload {
+  name: string;
+  model: string;
+  serial: string;
+  category: string;
+  location: string;
+  status: string;
+  service_interval_months?: number | null;
+  notes?: string | null;
+  household_id: number;
+  steps: CreateStepPayload[];
+}
+
+/** Input payload for POST /api/v1/tasks/{step_id}/state — lightweight step update. */
+export interface TaskStateUpdatePayload {
+  comment?: string | null;
+  supply_needed_date?: string | null;
+  supply_item?: string | null;
+}

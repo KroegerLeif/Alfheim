@@ -1,5 +1,5 @@
 import ky from "ky";
-import { Household, Device, ServiceHistoryEvent, ServiceHistoryEventDetail, MaintenanceSubmitPayload } from "@/shared/types";
+import { Household, Device, ServiceHistoryEvent, ServiceHistoryEventDetail, MaintenanceSubmitPayload, CreateDevicePayload, TaskStateUpdatePayload, MaintenanceStep } from "@/shared/types";
 
 export interface ApiError {
   status?: number;
@@ -92,4 +92,17 @@ export const getServiceHistory = async (householdId?: number | null): Promise<Se
     searchParams["household_id"] = householdId.toString();
   }
   return await maintenanceClient.get("history", { searchParams }).json<ServiceHistoryEventDetail[]>();
+};
+
+export const createDevice = async (payload: CreateDevicePayload): Promise<Device> => {
+  return await maintenanceClient.post("devices", { json: payload }).json<Device>();
+};
+
+export const updateTaskState = async (
+  stepId: number,
+  payload: TaskStateUpdatePayload,
+): Promise<MaintenanceStep> => {
+  return await maintenanceClient
+    .post(`tasks/${stepId}/state`, { json: payload })
+    .json<MaintenanceStep>();
 };

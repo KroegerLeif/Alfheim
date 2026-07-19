@@ -54,3 +54,25 @@ class DeviceRead(BaseModel):
     steps: List[MaintenanceStepRead] = []
     history_events: List[ServiceHistoryEventRead] = []
     model_config = ConfigDict(from_attributes=True)
+
+
+class StepCreate(BaseModel):
+    """Input schema for a single maintenance step during device creation."""
+    title: str
+    description: Optional[str] = None
+    recurrence: int  # interval in months
+    supply_item: Optional[str] = None
+
+
+class DeviceCreate(BaseModel):
+    """Input schema for the POST /api/v1/devices endpoint."""
+    name: str
+    model: str
+    serial: str
+    category: str
+    location: str
+    status: str = "active"
+    service_interval_months: Optional[int] = None
+    notes: Optional[str] = None
+    household_id: int
+    steps: List[StepCreate] = []

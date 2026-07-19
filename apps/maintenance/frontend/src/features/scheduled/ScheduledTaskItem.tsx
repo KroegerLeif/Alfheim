@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Device, MaintenanceStep } from "@/shared/types";
 import { formatDate, daysUntil } from "@/shared/utils";
-import { ChevronDown, Calendar, FileText, Camera } from "lucide-react";
+import { updateTaskState } from "@/shared/api";
+import { ChevronDown, Calendar, FileText, Camera, Save, Loader2 } from "lucide-react";
 import { cn } from "@/shared/utils";
 
 interface ScheduledTaskItemProps {
@@ -12,17 +14,38 @@ interface ScheduledTaskItemProps {
 }
 
 export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
+  const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [comment, setComment] = useState("");
+  // Pre-fill comment from the existing step description (set by previous saves)
+  const [comment, setComment] = useState(step.description ?? "");
   const [photo, setPhoto] = useState<string | null>(null);
+  const [savedFlash, setSavedFlash] = useState(false);
 
   const remainingDays = daysUntil(step.supply_needed_date || undefined);
   const isOverdue = remainingDays < 0;
 
+  const mutation = useMutation({
+    mutationFn: () =>
+      updateTaskState(step.id, {
+        comment: comment.trim() || null,
+      }),
+    onSuccess: () => {
+      // Invalidate the device cache so ScheduledView and MaintenanceView reflect the updated description
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2000);
+    },
+  });
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhoto(file.name);
+      setPhoto(e.target.files[0].name);
+    }
+  };
+
+  const handleSaveComment = () => {
+    if (!mutation.isPending) {
+      mutation.mutate();
     }
   };
 
@@ -85,14 +108,14 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
             </div>
           </div>
 
-          {/* Description */}
-          {step.description && (
+          {/* Step procedure description */}
+          {step.description && !comment && (
             <p className="text-xs text-slate-400 leading-relaxed">
               <strong>Procedure:</strong> {step.description}
             </p>
           )}
 
-          {/* Comment text area */}
+          {/* Comment textarea + Save button */}
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
               <FileText className="h-3.5 w-3.5" />
@@ -104,6 +127,32 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
               placeholder="Add comments or status remarks about this task..."
               className="w-full h-20 p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/30 rounded-xl text-slate-200 text-xs focus:outline-none resize-none transition-all placeholder:text-slate-600 font-mono"
             />
+            <div className="flex items-center justify-between">
+              {mutation.isError && (
+                <p className="text-[9px] text-red-400 font-mono">Save failed — try again.</p>
+              )}
+              {!mutation.isError && <span />}
+              <button
+                type="button"
+                onClick={handleSaveComment}
+                disabled={mutation.isPending}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all",
+                  savedFlash
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : mutation.isPending
+                    ? "bg-white/5 text-slate-500 border-white/5 cursor-wait"
+                    : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20 hover:bg-cyan-500/20"
+                )}
+              >
+                {mutation.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Save className="h-3 w-3" />
+                )}
+                {savedFlash ? "Saved!" : "Save Comment"}
+              </button>
+            </div>
           </div>
 
           {/* Photo attach stub */}
@@ -123,7 +172,7 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
                 Choose File
               </label>
               <span className="text-xs text-slate-500 font-mono truncate">
-                {photo ? photo : "No file chosen"}
+                {photo ?? "No file chosen"}
               </span>
             </div>
           </div>
