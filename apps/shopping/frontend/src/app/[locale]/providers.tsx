@@ -71,11 +71,27 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        {children}
+        <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
+          {children}
+        </SidebarContext.Provider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 }
+
+import { createContext, useContext } from "react";
+
+export const SidebarContext = createContext<{
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (open: boolean) => void;
+}>({
+  isSidebarOpen: true,
+  setIsSidebarOpen: () => {},
+});
+
+export const useSidebar = () => useContext(SidebarContext);

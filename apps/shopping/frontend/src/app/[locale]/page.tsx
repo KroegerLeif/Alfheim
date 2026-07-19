@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Archive, Sparkles, Package } from "lucide-react";
+import { ShoppingCart, Archive, Sparkles, Package, Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useSidebar } from "./providers";
 import { ListSelector } from "@/features/shopping-lists/components/ListSelector";
 import { ChecklistContainer } from "@/features/shopping-lists/components/ChecklistContainer";
 import { AddManualItem } from "@/features/shopping-lists/components/AddManualItem";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 export default function ShoppingDashboard() {
   const t = useTranslations("Checklist");
   const navT = useTranslations("Navigation");
+  const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
 
   // State
   const [activeListId, setActiveListId] = useState<string | null>(null);
@@ -117,6 +119,16 @@ export default function ShoppingDashboard() {
         {/* Top bar */}
         <header className="flex items-center justify-between shrink-0 select-none">
           <div className="flex items-center gap-3">
+            {!isSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="w-10 h-10 rounded-[13px] flex items-center justify-center glass-inset hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-colors duration-200"
+                aria-label="Expand Sidebar"
+                title="Expand Sidebar"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
             <div className="w-10 h-10 rounded-[13px] flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-500 to-blue-800 border-t border-blue-300/50 border-l border-blue-300/30 border-r border-blue-900/40 border-b border-blue-950/50 shadow-lg shadow-blue-500/30">
               <ShoppingCart className="h-5.5 w-5.5 text-white" strokeWidth={2} />
             </div>
