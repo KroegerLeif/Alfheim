@@ -2,6 +2,7 @@ name: loeger-os
 
 include:
   - ./infrastructure/compose.yml
+  - ./apps/logging-stack/compose.yml
   - ./apps/pantry/compose.yml
   - ./apps/shopping/compose.yml
 
@@ -15,3 +16,7 @@ networks:
   shopping-internal:
     name: shopping-internal
     driver: bridge
+  observability-internal:
+    name: observability-internal
+    driver: bridge
+

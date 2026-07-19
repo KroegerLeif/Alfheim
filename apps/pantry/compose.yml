@@ -29,6 +29,10 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@pantry-db:5432/pantry
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=pantry-backend
     depends_on:
       pantry-db:
         condition: service_healthy
@@ -36,6 +40,7 @@ services:
       - public-ingress
       - pantry-internal
       - shopping-internal
+      - observability-internal
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pantry-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/pantry`)"
@@ -99,3 +104,7 @@ networks:
     name: pantry-internal
   shopping-internal:
     name: shopping-internal
+  observability-internal:
+    name: observability-internal
+
+

@@ -1,0 +1,39 @@
+<clickhouse>
+    <!-- Allow connections from the Docker network -->
+    <listen_host>::</listen_host>
+
+    <!-- Built-in Keeper Server configuration for single-node deployment -->
+    <keeper_server>
+        <tcp_port>9181</tcp_port>
+        <server_id>1</server_id>
+        <storage_path>/var/lib/clickhouse/keeper</storage_path>
+        <enable_reconfiguration>true</enable_reconfiguration>
+        <raft_configuration>
+            <server>
+                <id>1</id>
+                <hostname>127.0.0.1</hostname>
+                <port>9444</port>
+            </server>
+        </raft_configuration>
+    </keeper_server>
+
+    <!-- Configure ClickHouse to use the local Keeper instance as the ZooKeeper coordinator -->
+    <zookeeper>
+        <node index="1">
+            <host>127.0.0.1</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+
+    <!-- Configure a single-node cluster named 'cluster' to satisfy SigNoz exporters -->
+    <remote_servers>
+        <cluster>
+            <shard>
+                <replica>
+                    <host>127.0.0.1</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </cluster>
+    </remote_servers>
+</clickhouse>

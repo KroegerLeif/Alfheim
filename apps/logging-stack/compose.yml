@@ -1,0 +1,119 @@
+# apps/logging-stack/compose.yml
+services:
+  signoz-clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: signoz-clickhouse
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+    volumes:
+      - ./keeper.xml:/etc/clickhouse-server/config.d/keeper.xml:ro
+      - ./clickhouse-users.xml:/etc/clickhouse-server/users.d/users.xml:ro
+      - clickhouse_data:/var/lib/clickhouse
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1024M
+    networks:
+      - observability-internal
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  signoz-otel-collector:
+    image: signoz/signoz-otel-collector:0.102.0
+
+    container_name: signoz-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 256M
+    networks:
+      - observability-internal
+    depends_on:
+      signoz-clickhouse:
+        condition: service_healthy
+
+  signoz-query-service:
+    image: signoz/query-service:0.45.0
+    container_name: signoz-query-service
+    restart: unless-stopped
+    environment:
+      - ClickHouseUrl=tcp://signoz-clickhouse:9000?database=signoz_traces
+      - STORAGE=clickhouse
+      - GODEBUG=netdns=go
+      - SIGNOZ_GLOBAL_EXTERNAL__URL=http://loeger-os/signoz
+    volumes:
+      - signoz_sqlite_data:/var/lib/signoz
+    deploy:
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 256M
+    networks:
+      - observability-internal
+    depends_on:
+      signoz-clickhouse:
+        condition: service_healthy
+
+  signoz-frontend:
+    image: signoz/frontend:0.45.0
+    container_name: signoz-frontend
+    restart: unless-stopped
+    environment:
+      - BACKEND_API_URL=http://signoz-query-service:8080
+      - SIGNOZ_GLOBAL_EXTERNAL__URL=http://loeger-os/signoz
+    deploy:
+      resources:
+        limits:
+          cpus: '0.15'
+          memory: 128M
+    networks:
+      - observability-internal
+      - public-ingress
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.signoz.rule=Host(`loeger-os`) && PathPrefix(`/signoz`)"
+      - "traefik.http.routers.signoz.entrypoints=web"
+      - "traefik.http.routers.signoz.service=signoz-service"
+      - "traefik.http.services.signoz-service.loadbalancer.server.port=3301"
+    depends_on:
+      - signoz-query-service
+
+  vector:
+    image: timberio/vector:0.39.0-alpine
+    container_name: vector-shipper
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./vector.toml:/etc/vector/vector.toml:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.15'
+          memory: 128M
+    networks:
+      - observability-internal
+    depends_on:
+      - signoz-otel-collector
+
+volumes:
+  clickhouse_data:
+  signoz_sqlite_data:
+
+networks:
+  observability-internal:
+    name: observability-internal
+  public-ingress:
+    name: public-ingress
+
