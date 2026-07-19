@@ -39,13 +39,24 @@ async def lifespan(app: FastAPI):
     # Initialize DB tables
     from src.core.database import init_db
     await init_db()
-    yield
+    
+    try:
+        yield
+    finally:
+        # Gracefully flush and shutdown OpenTelemetry providers
+        from src.core.telemetry import shutdown_telemetry
+        shutdown_telemetry()
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
+
+# Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
+from src.core.telemetry import setup_telemetry
+setup_telemetry(app)
+
 
 
 @app.exception_handler(ShoppingError)

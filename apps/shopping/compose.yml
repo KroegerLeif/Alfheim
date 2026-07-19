@@ -30,12 +30,17 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@shopping-db:5432/shopping
       - PANTRY_BACKEND_URL=http://pantry-backend:8000
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=shopping-backend
     depends_on:
       shopping-db:
         condition: service_healthy
     networks:
       - public-ingress
       - shopping-internal
+      - observability-internal
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.shopping-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/shopping`)"
@@ -90,3 +95,7 @@ networks:
     name: public-ingress
   shopping-internal:
     name: shopping-internal
+  observability-internal:
+    name: observability-internal
+
+
