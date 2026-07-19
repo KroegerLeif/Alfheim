@@ -64,20 +64,28 @@ services:
       - public-ingress
     labels:
       - "traefik.enable=true"
-      # Route for standard /pantry namespace
+      # Catch-all router for standard subpath asset routing (e.g., /pantry/en, /pantry/_next/...)
       - "traefik.http.routers.pantry-frontend.rule=Host(`loeger-os`) && PathPrefix(`/pantry`)"
       - "traefik.http.routers.pantry-frontend.entrypoints=web"
       - "traefik.http.routers.pantry-frontend.service=pantry-frontend-service"
       
-      # Route for root / redirect
+      # Explicit router for root/basePath direct hits
+      - "traefik.http.routers.pantry-exact.rule=Host(`loeger-os`) && (Path(`/pantry`) || Path(`/pantry/`))"
+      - "traefik.http.routers.pantry-exact.entrypoints=web"
+      - "traefik.http.routers.pantry-exact.middlewares=pantry-redirect-en"
+      - "traefik.http.routers.pantry-exact.service=pantry-frontend-service"
+      
+      # Redirect /pantry or /pantry/ directly to /pantry/en to prevent Next.js 404s
+      - "traefik.http.middlewares.pantry-redirect-en.redirectregex.regex=^http://loeger-os/pantry/?$$"
+      - "traefik.http.middlewares.pantry-redirect-en.redirectregex.replacement=http://loeger-os/pantry/en"
+      
+      # Redirect global root / to /pantry/en
       - "traefik.http.routers.pantry-root.rule=Host(`loeger-os`) && Path(`/`)"
       - "traefik.http.routers.pantry-root.entrypoints=web"
       - "traefik.http.routers.pantry-root.middlewares=pantry-root-redirect"
       - "traefik.http.routers.pantry-root.service=pantry-frontend-service"
-      
-      # Middleware: Redirect / to /pantry/ for clean basePath loading
       - "traefik.http.middlewares.pantry-root-redirect.redirectregex.regex=^http://loeger-os/$$"
-      - "traefik.http.middlewares.pantry-root-redirect.redirectregex.replacement=http://loeger-os/pantry/"
+      - "traefik.http.middlewares.pantry-root-redirect.redirectregex.replacement=http://loeger-os/pantry/en"
       
       - "traefik.http.services.pantry-frontend-service.loadbalancer.server.port=3000"
 

@@ -65,9 +65,21 @@ services:
       - public-ingress
     labels:
       - "traefik.enable=true"
+      # Catch-all router for standard subpath asset routing (e.g., /shopping/en, /shopping/_next/...)
       - "traefik.http.routers.shopping-frontend.rule=Host(`loeger-os`) && PathPrefix(`/shopping`)"
       - "traefik.http.routers.shopping-frontend.entrypoints=web"
       - "traefik.http.routers.shopping-frontend.service=shopping-frontend-service"
+      
+      # Explicit router for root/basePath direct hits
+      - "traefik.http.routers.shopping-exact.rule=Host(`loeger-os`) && (Path(`/shopping`) || Path(`/shopping/`))"
+      - "traefik.http.routers.shopping-exact.entrypoints=web"
+      - "traefik.http.routers.shopping-exact.middlewares=shopping-redirect-en"
+      - "traefik.http.routers.shopping-exact.service=shopping-frontend-service"
+      
+      # Redirect /shopping or /shopping/ directly to /shopping/en to prevent Next.js 404s
+      - "traefik.http.middlewares.shopping-redirect-en.redirectregex.regex=^http://loeger-os/shopping/?$$"
+      - "traefik.http.middlewares.shopping-redirect-en.redirectregex.replacement=http://loeger-os/shopping/en"
+      
       - "traefik.http.services.shopping-frontend-service.loadbalancer.server.port=3010"
 
 volumes:
