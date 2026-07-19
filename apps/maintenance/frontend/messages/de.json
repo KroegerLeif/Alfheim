@@ -1,0 +1,12 @@
+{
+  "Navigation": {
+    "title": "loeger-os",
+    "subtitle": "Wartungsverwaltung",
+    "devices": "Geräte",
+    "tasks": "Aufgaben",
+    "history": "Verlauf"
+  },
+  "Error": {
+    "unrecognizedError": "Ein unerwarteter Fehler ist aufgetreten"
+  }
+}
