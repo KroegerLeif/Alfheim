@@ -37,7 +37,21 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
     );
   }
 
-  if (!list) return null;
+  if (!list) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+        <Specular opacityClassName="via-white/20 dark:via-white/10" />
+        <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3 shrink-0">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center glass-inset">
+            <ShoppingCart className="h-5 w-5 text-muted-foreground/30" />
+          </div>
+          <span className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-widest select-none">
+            {t("empty")}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const items = list.items || [];
 

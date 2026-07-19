@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, ChevronUp, ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
-import { useAddShoppingItem } from "../services/shoppingListService";
+import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
 import { Specular } from "@/components/shared/Specular";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +23,12 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   const [qty, setQty] = useState("1");
   const [unit, setUnit] = useState("Stk");
 
+  // Retrieve lists to default active ID if empty
+  const { data: lists = [] } = useShoppingLists();
+  const effectiveListId = listId || (lists.length > 0 ? lists[0].id : "");
+
   // Mutation
-  const addItem = useAddShoppingItem(listId);
+  const addItem = useAddShoppingItem(effectiveListId);
 
   const handleIncrement = () => {
     const current = parseFloat(qty) || 0;
@@ -44,15 +48,20 @@ export function AddManualItem({ listId }: AddManualItemProps) {
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    addItem.mutate({
-      name: trimmed,
-      quantity: parseFloat(qty) || 1,
-      unit,
-    });
-
-    // Reset input fields
-    setName("");
-    setQty("1");
+    addItem.mutate(
+      {
+        name: trimmed,
+        quantity: parseFloat(qty) || 1,
+        unit,
+      },
+      {
+        onSuccess: () => {
+          // Reset input fields only on success
+          setName("");
+          setQty("1");
+        },
+      }
+    );
   };
 
   const isInvalid = !name.trim() || addItem.isPending;

@@ -51,6 +51,7 @@ async def get_lists(
     return await ShoppingListService.get_lists(
         session=session,
         home_id=context.home_id,
+        owner_id=context.user_id,
     )
 
 

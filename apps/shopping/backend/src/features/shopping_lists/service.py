@@ -41,11 +41,27 @@ class ShoppingListService:
     async def get_lists(
         session: AsyncSession,
         home_id: uuid.UUID,
+        owner_id: Optional[uuid.UUID] = None,
     ) -> Sequence[ShoppingList]:
         """Retrieve all shopping lists scoped to a home space."""
         stmt = select(ShoppingList).where(ShoppingList.home_id == home_id)
         result = await session.exec(stmt)
-        return result.all()
+        lists = result.all()
+        if not lists:
+            # Auto-provision a default list named "Wocheneinkauf"
+            default_list = ShoppingList(
+                name="Wocheneinkauf",
+                home_id=home_id,
+                owner_id=owner_id or uuid.UUID("00000000-0000-0000-0000-000000000001"),
+            )
+            session.add(default_list)
+            await session.commit()
+            await session.refresh(default_list)
+            
+            # Re-fetch the lists
+            result = await session.exec(stmt)
+            lists = result.all()
+        return lists
 
     @staticmethod
     async def get_list(

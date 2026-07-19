@@ -3,8 +3,15 @@ name: loeger-os
 include:
   - ./infrastructure/compose.yml
   - ./apps/pantry/compose.yml
+  - ./apps/shopping/compose.yml
 
 networks:
-  loeger-os-network:
-    name: loeger-os-network
+  public-ingress:
+    name: public-ingress
+    driver: bridge
+  pantry-internal:
+    name: pantry-internal
+    driver: bridge
+  shopping-internal:
+    name: shopping-internal
     driver: bridge

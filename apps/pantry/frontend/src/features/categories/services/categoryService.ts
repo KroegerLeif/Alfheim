@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api";
+import { pantryClient } from "@/lib/api";
 import { CategoryRead } from "@/features/inventory/types";
 
 /**
@@ -9,8 +9,8 @@ export function useCategories() {
   return useQuery<CategoryRead[]>({
     queryKey: ["categories"],
     queryFn: () => 
-      apiClient
-        .get<CategoryRead[]>("/api/v1/categories")
-        .then((res) => res.data),
+      pantryClient
+        .get("api/v1/categories")
+        .json<CategoryRead[]>(),
   });
 }

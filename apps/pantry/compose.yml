@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - loeger-os-network
+      - pantry-internal
 
   pantry-backend:
     build:
@@ -33,14 +33,25 @@ services:
       pantry-db:
         condition: service_healthy
     networks:
-      - loeger-os-network
+      - public-ingress
+      - pantry-internal
+      - shopping-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pantry-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/pantry`)"
+      - "traefik.http.routers.pantry-backend.entrypoints=web"
+      - "traefik.http.routers.pantry-backend.middlewares=pantry-api-replace"
+      - "traefik.http.routers.pantry-backend.service=pantry-backend-service"
+      - "traefik.http.middlewares.pantry-api-replace.replacepathregex.regex=^/api/v1/pantry/(api/v1/)?(.*)"
+      - "traefik.http.middlewares.pantry-api-replace.replacepathregex.replacement=/api/v1/$$2"
+      - "traefik.http.services.pantry-backend-service.loadbalancer.server.port=8000"
 
   pantry-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/pantry/api}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/pantry}
     container_name: pantry-frontend
     restart: always
     env_file:
@@ -50,11 +61,41 @@ services:
     environment:
       - PORT=3000
     networks:
-      - loeger-os-network
+      - public-ingress
+    labels:
+      - "traefik.enable=true"
+      # Catch-all router for standard subpath asset routing (e.g., /pantry/en, /pantry/_next/...)
+      - "traefik.http.routers.pantry-frontend.rule=Host(`loeger-os`) && PathPrefix(`/pantry`)"
+      - "traefik.http.routers.pantry-frontend.entrypoints=web"
+      - "traefik.http.routers.pantry-frontend.service=pantry-frontend-service"
+      
+      # Explicit router for root/basePath direct hits
+      - "traefik.http.routers.pantry-exact.rule=Host(`loeger-os`) && (Path(`/pantry`) || Path(`/pantry/`))"
+      - "traefik.http.routers.pantry-exact.entrypoints=web"
+      - "traefik.http.routers.pantry-exact.middlewares=pantry-redirect-en"
+      - "traefik.http.routers.pantry-exact.service=pantry-frontend-service"
+      
+      # Redirect /pantry or /pantry/ directly to /pantry/en to prevent Next.js 404s
+      - "traefik.http.middlewares.pantry-redirect-en.redirectregex.regex=^http://loeger-os/pantry/?$$"
+      - "traefik.http.middlewares.pantry-redirect-en.redirectregex.replacement=http://loeger-os/pantry/en"
+      
+      # Redirect global root / to /pantry/en
+      - "traefik.http.routers.pantry-root.rule=Host(`loeger-os`) && Path(`/`)"
+      - "traefik.http.routers.pantry-root.entrypoints=web"
+      - "traefik.http.routers.pantry-root.middlewares=pantry-root-redirect"
+      - "traefik.http.routers.pantry-root.service=pantry-frontend-service"
+      - "traefik.http.middlewares.pantry-root-redirect.redirectregex.regex=^http://loeger-os/$$"
+      - "traefik.http.middlewares.pantry-root-redirect.redirectregex.replacement=http://loeger-os/pantry/en"
+      
+      - "traefik.http.services.pantry-frontend-service.loadbalancer.server.port=3000"
 
 volumes:
   postgres_data:
 
 networks:
-  loeger-os-network:
-    name: loeger-os-network
+  public-ingress:
+    name: public-ingress
+  pantry-internal:
+    name: pantry-internal
+  shopping-internal:
+    name: shopping-internal

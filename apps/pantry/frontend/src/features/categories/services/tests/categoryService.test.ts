@@ -1,11 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCategories } from '../categoryService'
 import { createQueryWrapper } from '@/tests/utils'
-import { apiClient } from '@/lib/api'
+import { pantryClient } from '@/lib/api'
 import { vi } from 'vitest'
 
 vi.mock('@/lib/api', () => ({
-  apiClient: {
+  pantryClient: {
     get: vi.fn(),
   },
 }))
@@ -17,7 +17,10 @@ describe('useCategories Hook', () => {
       { id: '2', name: 'Snacks', description: 'Crunchies', is_global: false },
     ]
     
-    vi.mocked(apiClient.get).mockResolvedValue({ data: mockCategories })
+    const mockJson = vi.fn().mockResolvedValue(mockCategories)
+    vi.mocked(pantryClient.get).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const { result } = renderHook(() => useCategories(), {
       wrapper: createQueryWrapper(),
@@ -30,12 +33,15 @@ describe('useCategories Hook', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(result.current.data).toEqual(mockCategories)
-    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/categories')
+    expect(pantryClient.get).toHaveBeenCalledWith('api/v1/categories')
   })
 
   it('handles errors gracefully when API fetch fails', async () => {
     const apiError = new Error('Network error')
-    vi.mocked(apiClient.get).mockRejectedValue(apiError)
+    const mockJson = vi.fn().mockRejectedValue(apiError)
+    vi.mocked(pantryClient.get).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const { result } = renderHook(() => useCategories(), {
       wrapper: createQueryWrapper(),

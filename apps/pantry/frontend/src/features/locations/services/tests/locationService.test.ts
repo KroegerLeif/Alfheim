@@ -1,12 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useLocations, useCreateLocation } from '../locationService'
 import { createQueryWrapper } from '@/tests/utils'
-import { apiClient } from '@/lib/api'
+import { pantryClient } from '@/lib/api'
 import { vi } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 
 vi.mock('@/lib/api', () => ({
-  apiClient: {
+  pantryClient: {
     get: vi.fn(),
     post: vi.fn(),
   },
@@ -23,7 +23,10 @@ describe('Location Service Hooks', () => {
         { id: 'l1', name: 'Pantry Room A', description: 'Main pantry', is_system: false, owner_id: 'u1', home_id: 'h1', created_at: 'now', updated_at: 'now' },
         { id: 'l2', name: 'Fridge', description: 'Refrigerated section', is_system: true, owner_id: null, home_id: 'h1', created_at: 'now', updated_at: 'now' },
       ]
-      vi.mocked(apiClient.get).mockResolvedValue({ data: mockLocations })
+      const mockJson = vi.fn().mockResolvedValue(mockLocations)
+      vi.mocked(pantryClient.get).mockReturnValue({
+        json: mockJson,
+      } as any)
 
       const { result } = renderHook(() => useLocations(), {
         wrapper: createQueryWrapper(),
@@ -32,7 +35,7 @@ describe('Location Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockLocations)
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/locations')
+      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/locations')
     })
   })
 
@@ -40,7 +43,10 @@ describe('Location Service Hooks', () => {
     it('creates a new physical location and invalidates cache', async () => {
       const newLoc = { name: 'Basement shelf', description: 'Cold storage' }
       const mockLocRead = { id: 'l3', ...newLoc, is_system: false, owner_id: 'u1', home_id: 'h1', created_at: 'now', updated_at: 'now' }
-      vi.mocked(apiClient.post).mockResolvedValue({ data: mockLocRead })
+      const mockJson = vi.fn().mockResolvedValue(mockLocRead)
+      vi.mocked(pantryClient.post).mockReturnValue({
+        json: mockJson,
+      } as any)
 
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
@@ -53,7 +59,7 @@ describe('Location Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockLocRead)
-      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/locations', newLoc)
+      expect(pantryClient.post).toHaveBeenCalledWith('api/v1/locations', { json: newLoc })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['locations'] })
 
       invalidateSpy.mockRestore()

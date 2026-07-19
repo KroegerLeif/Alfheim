@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Archive, Sparkles, Package } from "lucide-react";
+import { ShoppingCart, Archive, Sparkles, Package, Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useSidebar } from "./providers";
 import { ListSelector } from "@/features/shopping-lists/components/ListSelector";
 import { ChecklistContainer } from "@/features/shopping-lists/components/ChecklistContainer";
 import { AddManualItem } from "@/features/shopping-lists/components/AddManualItem";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 export default function ShoppingDashboard() {
   const t = useTranslations("Checklist");
   const navT = useTranslations("Navigation");
+  const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
 
   // State
   const [activeListId, setActiveListId] = useState<string | null>(null);
@@ -117,6 +119,16 @@ export default function ShoppingDashboard() {
         {/* Top bar */}
         <header className="flex items-center justify-between shrink-0 select-none">
           <div className="flex items-center gap-3">
+            {!isSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="w-10 h-10 rounded-[13px] flex items-center justify-center glass-inset hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-colors duration-200"
+                aria-label="Expand Sidebar"
+                title="Expand Sidebar"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
             <div className="w-10 h-10 rounded-[13px] flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-500 to-blue-800 border-t border-blue-300/50 border-l border-blue-300/30 border-r border-blue-900/40 border-b border-blue-950/50 shadow-lg shadow-blue-500/30">
               <ShoppingCart className="h-5.5 w-5.5 text-white" strokeWidth={2} />
             </div>
@@ -198,9 +210,9 @@ export default function ShoppingDashboard() {
         <div className="grid md:grid-cols-[2fr_1fr] gap-3.5 flex-1 min-h-0">
           
           {/* Left panel: Checklist list scrolling container */}
-          {(!isMobile || mobileView === "list") && activeListId && (
+          {(!isMobile || mobileView === "list") && (
             <div className="glass-card rounded-2xl flex flex-col min-h-0 overflow-hidden">
-              <ChecklistContainer listId={activeListId} />
+              <ChecklistContainer listId={activeListId || ""} />
               
               {/* Einkauf Einlagern Sync CTA Button */}
               {listDetails && listDetails.items.some((i) => i.is_completed) && (
@@ -223,14 +235,14 @@ export default function ShoppingDashboard() {
           )}
 
           {/* Right panel: Sticky action inputs & Quick Add selection grid */}
-          {(!isMobile || mobileView === "add") && activeListId && (
+          {(!isMobile || mobileView === "add") && (
             <div className="flex flex-col gap-3.5 min-h-0">
               
               {/* Stepper Manual Add form */}
-              <AddManualItem listId={activeListId} />
+              <AddManualItem listId={activeListId || ""} />
               
               {/* Quick Tile Grid aggregation */}
-              <QuickAddGrid onAdd={handleQuickAdd} disabled={addItem.isPending} />
+              <QuickAddGrid onAdd={handleQuickAdd} disabled={!activeListId || addItem.isPending} />
 
               {/* Pantry Legend description box */}
               <div className="glass-inset rounded-xl p-3 flex items-center gap-3 shrink-0 select-none">

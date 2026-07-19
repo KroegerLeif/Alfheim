@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - loeger-os-network
+      - shopping-internal
 
   shopping-backend:
     build:
@@ -29,15 +29,64 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@shopping-db:5432/shopping
+      - PANTRY_BACKEND_URL=http://pantry-backend:8000
     depends_on:
       shopping-db:
         condition: service_healthy
     networks:
-      - loeger-os-network
+      - public-ingress
+      - shopping-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.shopping-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/shopping`)"
+      - "traefik.http.routers.shopping-backend.entrypoints=web"
+      - "traefik.http.routers.shopping-backend.middlewares=shopping-api-replace"
+      - "traefik.http.routers.shopping-backend.service=shopping-backend-service"
+      - "traefik.http.middlewares.shopping-api-replace.replacepathregex.regex=^/api/v1/shopping/(api/v1/)?(.*)"
+      - "traefik.http.middlewares.shopping-api-replace.replacepathregex.replacement=/api/v1/$$2"
+      - "traefik.http.services.shopping-backend-service.loadbalancer.server.port=8000"
+
+  shopping-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/shopping}
+        - NEXT_PUBLIC_PANTRY_API_URL=${NEXT_PUBLIC_PANTRY_API_URL:-/api/v1/pantry}
+    container_name: shopping-frontend
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - shopping-backend
+    environment:
+      - PORT=3010
+    networks:
+      - public-ingress
+    labels:
+      - "traefik.enable=true"
+      # Catch-all router for standard subpath asset routing (e.g., /shopping/en, /shopping/_next/...)
+      - "traefik.http.routers.shopping-frontend.rule=Host(`loeger-os`) && PathPrefix(`/shopping`)"
+      - "traefik.http.routers.shopping-frontend.entrypoints=web"
+      - "traefik.http.routers.shopping-frontend.service=shopping-frontend-service"
+      
+      # Explicit router for root/basePath direct hits
+      - "traefik.http.routers.shopping-exact.rule=Host(`loeger-os`) && (Path(`/shopping`) || Path(`/shopping/`))"
+      - "traefik.http.routers.shopping-exact.entrypoints=web"
+      - "traefik.http.routers.shopping-exact.middlewares=shopping-redirect-en"
+      - "traefik.http.routers.shopping-exact.service=shopping-frontend-service"
+      
+      # Redirect /shopping or /shopping/ directly to /shopping/en to prevent Next.js 404s
+      - "traefik.http.middlewares.shopping-redirect-en.redirectregex.regex=^http://loeger-os/shopping/?$$"
+      - "traefik.http.middlewares.shopping-redirect-en.redirectregex.replacement=http://loeger-os/shopping/en"
+      
+      - "traefik.http.services.shopping-frontend-service.loadbalancer.server.port=3010"
 
 volumes:
   postgres_data_shopping:
 
 networks:
-  loeger-os-network:
-    name: loeger-os-network
+  public-ingress:
+    name: public-ingress
+  shopping-internal:
+    name: shopping-internal

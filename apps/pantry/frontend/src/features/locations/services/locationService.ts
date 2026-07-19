@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api";
+import { pantryClient } from "@/lib/api";
 import { LocationRead, LocationCreate } from "@/features/inventory/types";
 
 /**
@@ -9,9 +9,9 @@ export function useLocations() {
   return useQuery<LocationRead[]>({
     queryKey: ["locations"],
     queryFn: () => 
-      apiClient
-        .get<LocationRead[]>("/api/v1/locations")
-        .then((res) => res.data),
+      pantryClient
+        .get("api/v1/locations")
+        .json<LocationRead[]>(),
   });
 }
 
@@ -23,12 +23,11 @@ export function useCreateLocation() {
 
   return useMutation<LocationRead, any, LocationCreate>({
     mutationFn: (payload) =>
-      apiClient
-        .post<LocationRead>("/api/v1/locations", payload)
-        .then((res) => res.data),
+      pantryClient
+        .post("api/v1/locations", { json: payload })
+        .json<LocationRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
     },
   });
 }
-

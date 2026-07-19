@@ -8,11 +8,11 @@ import {
   exportLowStockShoppingList 
 } from '../inventoryService'
 import { createQueryWrapper } from '@/tests/utils'
-import { apiClient } from '@/lib/api'
+import { pantryClient } from '@/lib/api'
 import { vi } from 'vitest'
 
 vi.mock('@/lib/api', () => ({
-  apiClient: {
+  pantryClient: {
     get: vi.fn(),
     post: vi.fn(),
   },
@@ -27,7 +27,10 @@ describe('Inventory Hooks Service', () => {
     const mockData = [
       { id: '1', quantity: 500.0, product_id: 'p1', location_id: 'l1', product: { name: 'Oatly' }, location: { name: 'Backlog' } }
     ]
-    vi.mocked(apiClient.get).mockResolvedValue({ data: mockData })
+    const mockJson = vi.fn().mockResolvedValue(mockData)
+    vi.mocked(pantryClient.get).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const { result } = renderHook(() => useInventoryState('p1', 'l1'), {
       wrapper: createQueryWrapper(),
@@ -35,8 +38,8 @@ describe('Inventory Hooks Service', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual(mockData)
-    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/inventory/state', {
-      params: { product_id: 'p1', location_id: 'l1' }
+    expect(pantryClient.get).toHaveBeenCalledWith('api/v1/inventory/state', {
+      searchParams: { product_id: 'p1', location_id: 'l1' }
     })
   })
 
@@ -44,7 +47,10 @@ describe('Inventory Hooks Service', () => {
     const mockData = [
       { product: { id: 'p1', name: 'Oatly', minimum_stock: 1000 }, current_stock: 500 }
     ]
-    vi.mocked(apiClient.get).mockResolvedValue({ data: mockData })
+    const mockJson = vi.fn().mockResolvedValue(mockData)
+    vi.mocked(pantryClient.get).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const { result } = renderHook(() => useLowStockItems(), {
       wrapper: createQueryWrapper(),
@@ -52,7 +58,7 @@ describe('Inventory Hooks Service', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual(mockData)
-    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/inventory/low-stock')
+    expect(pantryClient.get).toHaveBeenCalledWith('api/v1/inventory/low-stock')
   })
 
   it('useExpirationSummary fetches expiration summary status correctly', async () => {
@@ -61,7 +67,10 @@ describe('Inventory Hooks Service', () => {
       valid: [{ product_id: 'p2', quantity: 20 }],
       untracked: []
     }
-    vi.mocked(apiClient.get).mockResolvedValue({ data: mockData })
+    const mockJson = vi.fn().mockResolvedValue(mockData)
+    vi.mocked(pantryClient.get).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const { result } = renderHook(() => useExpirationSummary(), {
       wrapper: createQueryWrapper(),
@@ -73,16 +82,22 @@ describe('Inventory Hooks Service', () => {
 
   it('exportLowStockShoppingList fetches stock list directly', async () => {
     const mockData = [{ product: { name: 'Sugar' }, current_stock: 0 }]
-    vi.mocked(apiClient.get).mockResolvedValue({ data: mockData })
+    const mockJson = vi.fn().mockResolvedValue(mockData)
+    vi.mocked(pantryClient.get).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const list = await exportLowStockShoppingList()
     expect(list).toEqual(mockData)
-    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/inventory/low-stock')
+    expect(pantryClient.get).toHaveBeenCalledWith('api/v1/inventory/low-stock')
   })
 
   it('useCreateTransaction posts transaction mutation successfully', async () => {
     const mockTx = { id: 'tx-1', quantity: 10.0 }
-    vi.mocked(apiClient.post).mockResolvedValue({ data: mockTx })
+    const mockJson = vi.fn().mockResolvedValue(mockTx)
+    vi.mocked(pantryClient.post).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const { result } = renderHook(() => useCreateTransaction(), {
       wrapper: createQueryWrapper(),
@@ -100,12 +115,15 @@ describe('Inventory Hooks Service', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual(mockTx)
-    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/inventory/transactions', payload)
+    expect(pantryClient.post).toHaveBeenCalledWith('api/v1/inventory/transactions', { json: payload })
   })
 
   it('useLedgerHistory retrieves transaction log records', async () => {
     const mockData = [{ id: 'tx-1', quantity: 100.0, transaction_type: 'in' }]
-    vi.mocked(apiClient.get).mockResolvedValue({ data: mockData })
+    const mockJson = vi.fn().mockResolvedValue(mockData)
+    vi.mocked(pantryClient.get).mockReturnValue({
+      json: mockJson,
+    } as any)
 
     const { result } = renderHook(() => useLedgerHistory('p1', 'l1', 10, 0), {
       wrapper: createQueryWrapper(),
@@ -113,8 +131,8 @@ describe('Inventory Hooks Service', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual(mockData)
-    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/inventory/transactions', {
-      params: { product_id: 'p1', location_id: 'l1', limit: 10, offset: 0 }
+    expect(pantryClient.get).toHaveBeenCalledWith('api/v1/inventory/transactions', {
+      searchParams: { product_id: 'p1', location_id: 'l1', limit: 10, offset: 0 }
     })
   })
 })

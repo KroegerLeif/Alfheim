@@ -5,9 +5,21 @@ export interface ApiError {
   message: string;
 }
 
-// Retrieve base host URLs from environment configs
-const SHOPPING_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8010";
-const PANTRY_API_URL = process.env.NEXT_PUBLIC_PANTRY_API_URL || "http://localhost:8000";
+// Sanitize and resolve base host URLs to bypass client-side path mutations
+const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
+  let resolved = url || defaultFallback;
+  if (resolved.startsWith("/")) {
+    if (typeof window !== "undefined") {
+      resolved = window.location.origin + resolved;
+    } else {
+      resolved = "http://loeger-os" + resolved;
+    }
+  }
+  return resolved.endsWith("/") ? resolved : resolved + "/";
+};
+
+const SHOPPING_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://loeger-os/api/v1/shopping/");
+const PANTRY_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_PANTRY_API_URL, "http://loeger-os/api/v1/pantry/");
 
 /**
  * Normalizes HTTP error payloads from FastAPI and throws custom ApiError objects.
@@ -39,7 +51,12 @@ export const shoppingClient = ky.create({
   hooks: {
     beforeRequest: [
       (request) => {
-        // Placeholders for future Keycloak JWT token bindings
+        if (typeof window !== "undefined") {
+          const token = sessionStorage.getItem("token_shopping-frontend");
+          if (token) {
+            request.headers.set("Authorization", `Bearer ${token}`);
+          }
+        }
       },
     ],
     afterResponse: [
@@ -62,7 +79,12 @@ export const pantryClient = ky.create({
   hooks: {
     beforeRequest: [
       (request) => {
-        // Placeholders for future Keycloak JWT token bindings
+        if (typeof window !== "undefined") {
+          const token = sessionStorage.getItem("token_shopping-frontend");
+          if (token) {
+            request.headers.set("Authorization", `Bearer ${token}`);
+          }
+        }
       },
     ],
     afterResponse: [
