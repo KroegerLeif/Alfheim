@@ -198,9 +198,9 @@ export default function ShoppingDashboard() {
         <div className="grid md:grid-cols-[2fr_1fr] gap-3.5 flex-1 min-h-0">
           
           {/* Left panel: Checklist list scrolling container */}
-          {(!isMobile || mobileView === "list") && activeListId && (
+          {(!isMobile || mobileView === "list") && (
             <div className="glass-card rounded-2xl flex flex-col min-h-0 overflow-hidden">
-              <ChecklistContainer listId={activeListId} />
+              <ChecklistContainer listId={activeListId || ""} />
               
               {/* Einkauf Einlagern Sync CTA Button */}
               {listDetails && listDetails.items.some((i) => i.is_completed) && (
@@ -223,14 +223,14 @@ export default function ShoppingDashboard() {
           )}
 
           {/* Right panel: Sticky action inputs & Quick Add selection grid */}
-          {(!isMobile || mobileView === "add") && activeListId && (
+          {(!isMobile || mobileView === "add") && (
             <div className="flex flex-col gap-3.5 min-h-0">
               
               {/* Stepper Manual Add form */}
-              <AddManualItem listId={activeListId} />
+              <AddManualItem listId={activeListId || ""} />
               
               {/* Quick Tile Grid aggregation */}
-              <QuickAddGrid onAdd={handleQuickAdd} disabled={addItem.isPending} />
+              <QuickAddGrid onAdd={handleQuickAdd} disabled={!activeListId || addItem.isPending} />
 
               {/* Pantry Legend description box */}
               <div className="glass-inset rounded-xl p-3 flex items-center gap-3 shrink-0 select-none">
