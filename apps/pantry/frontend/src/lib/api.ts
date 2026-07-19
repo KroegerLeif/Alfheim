@@ -26,6 +26,11 @@ export const apiClient = axios.create({
 // Request Interceptor: Placeholder for Keycloak tokens and OTel headers
 apiClient.interceptors.request.use(
   (config) => {
+    // Strip leading slash to force Axios to merge with subpath baseURL rather than domain origin
+    if (config.url && config.url.startsWith("/")) {
+      config.url = config.url.substring(1);
+    }
+
     // Future Keycloak token placement:
     // const token = getAuthToken();
     // if (token) {
