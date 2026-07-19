@@ -20,6 +20,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   );
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -70,8 +71,6 @@ export default function Providers({ children }: { children: ReactNode }) {
       </div>
     );
   }
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <QueryClientProvider client={queryClient}>
