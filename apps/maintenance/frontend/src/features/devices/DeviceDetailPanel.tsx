@@ -9,11 +9,12 @@ import { cn } from "@/shared/utils";
 interface DeviceDetailPanelProps {
   device: Device;
   onClose: () => void;
+  onStartMaintenance?: (device: Device) => void;
 }
 
 type TabType = "overview" | "steps" | "manuals" | "timeline";
 
-export function DeviceDetailPanel({ device, onClose }: DeviceDetailPanelProps) {
+export function DeviceDetailPanel({ device, onClose, onStartMaintenance }: DeviceDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
 
   const tabs: { id: TabType; label: string }[] = [
@@ -123,6 +124,19 @@ export function DeviceDetailPanel({ device, onClose }: DeviceDetailPanelProps) {
                   </p>
                 </div>
               </div>
+
+              {onStartMaintenance && (
+                <button
+                  onClick={() => {
+                    onStartMaintenance(device);
+                    onClose();
+                  }}
+                  className="w-full py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/10 animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <Wrench className="h-4 w-4" />
+                  Start Maintenance
+                </button>
+              )}
             </div>
           )}
 

@@ -8,7 +8,11 @@ import { DeviceDetailPanel } from "./DeviceDetailPanel";
 import { Info, MapPin } from "lucide-react";
 import { cn } from "@/shared/utils";
 
-export function DevicesView() {
+interface DevicesViewProps {
+  onStartMaintenance?: (device: Device) => void;
+}
+
+export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const { householdId } = useLayout();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
@@ -135,6 +139,7 @@ export function DevicesView() {
         <DeviceDetailPanel
           device={selectedDevice}
           onClose={() => setSelectedDevice(null)}
+          onStartMaintenance={onStartMaintenance}
         />
       )}
     </div>
