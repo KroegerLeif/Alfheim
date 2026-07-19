@@ -8,6 +8,11 @@ export default createMiddleware({
 });
 
 export const config = {
-  // Match all paths except internal Next.js assets, API routes, or files (like images, favicon, robots.txt)
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  // Intercept all paths including the basePath-stripped root ("/") and locale prefixed paths.
+  // Excludes Next.js internals, Vercel internals, and static file extensions.
+  matcher: [
+    "/",
+    "/(de|en)/:path*",
+    "/((?!api|_next|_vercel|.*\\..*).*)",
+  ],
 };

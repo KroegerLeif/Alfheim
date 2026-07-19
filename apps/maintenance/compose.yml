@@ -38,21 +38,28 @@ services:
       - observability-internal
     labels:
       - "traefik.enable=true"
-      # Catch-all router for standard subpath asset routing (e.g., /maintenance/en, /maintenance/_next/...)
+
+      # --- Catch-all router: handles /maintenance/en/*, /maintenance/_next/*, etc. ---
+      # Priority 1 (lower wins for catch-all, exact router gets higher priority below)
       - "traefik.http.routers.maintenance-frontend.rule=Host(`loeger-os`) && PathPrefix(`/maintenance`)"
       - "traefik.http.routers.maintenance-frontend.entrypoints=web"
       - "traefik.http.routers.maintenance-frontend.service=maintenance-frontend-service"
-      
-      # Explicit router for root/basePath direct hits
+      - "traefik.http.routers.maintenance-frontend.priority=1"
+
+      # --- Exact router: catches /maintenance and /maintenance/ and redirects to /en ---
+      # Priority 10 ensures this fires before the catch-all for the bare base path
       - "traefik.http.routers.maintenance-exact.rule=Host(`loeger-os`) && (Path(`/maintenance`) || Path(`/maintenance/`))"
       - "traefik.http.routers.maintenance-exact.entrypoints=web"
       - "traefik.http.routers.maintenance-exact.middlewares=maintenance-redirect-en"
       - "traefik.http.routers.maintenance-exact.service=maintenance-frontend-service"
-      
-      # Redirect /maintenance or /maintenance/ directly to /maintenance/en to prevent Next.js 404s
+      - "traefik.http.routers.maintenance-exact.priority=10"
+
+      # --- Redirect middleware: 302 to /maintenance/en (non-permanent avoids browser caching a bad redirect) ---
       - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.regex=^http://loeger-os/maintenance/?$$"
       - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.replacement=http://loeger-os/maintenance/en"
-      
+      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.permanent=false"
+
+      # --- Service: port matches Dockerfile EXPOSE and container PORT env variable ---
       - "traefik.http.services.maintenance-frontend-service.loadbalancer.server.port=3020"
 
 networks:
