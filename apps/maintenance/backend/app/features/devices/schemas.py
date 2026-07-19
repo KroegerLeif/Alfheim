@@ -27,6 +27,19 @@ class ServiceHistoryEventRead(BaseModel):
     completed_steps: Optional[List[str]] = None
     model_config = ConfigDict(from_attributes=True)
 
+class ServiceHistoryEventDetailRead(BaseModel):
+    """Extended history event schema that includes denormalised device fields
+    so the frontend /history endpoint never needs a second round-trip."""
+    id: int
+    date: str
+    performer: str
+    notes: Optional[str] = None
+    device_id: int
+    device_name: str
+    device_location: str
+    completed_steps: Optional[List[str]] = None
+    model_config = ConfigDict(from_attributes=True)
+
 class DeviceRead(BaseModel):
     id: int
     name: str

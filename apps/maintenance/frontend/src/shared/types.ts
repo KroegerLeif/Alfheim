@@ -33,6 +33,12 @@ export interface ServiceHistoryEvent {
   completed_steps?: string[] | null;
 }
 
+/** Enriched variant returned by GET /api/v1/history — includes denormalised device fields. */
+export interface ServiceHistoryEventDetail extends ServiceHistoryEvent {
+  device_name: string;
+  device_location: string;
+}
+
 export interface Device {
   id: number;
   name: string;

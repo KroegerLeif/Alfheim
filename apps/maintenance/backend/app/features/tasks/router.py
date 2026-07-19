@@ -1,16 +1,17 @@
 import datetime
 import logging
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import selectinload
 import httpx
 
 from app.core.database import get_db_session
 from app.features.devices.models import Device
 from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
 from app.features.tasks.schemas import MaintenanceSubmission
-from app.features.devices.schemas import ServiceHistoryEventRead
+from app.features.devices.schemas import ServiceHistoryEventRead, ServiceHistoryEventDetailRead
 
 router = APIRouter(prefix="/api/v1", tags=["tasks"])
 
@@ -119,3 +120,46 @@ async def submit_maintenance(
             logging.error(f"Uncaught exception during supply forwarding: {e}")
 
     return event
+
+
+@router.get(
+    "/history",
+    response_model=List[ServiceHistoryEventDetailRead],
+    summary="Retrieve service history events sorted newest first",
+)
+async def get_service_history(
+    household_id: Optional[int] = Query(default=None, description="Optional household filter"),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Fetch all ServiceHistoryEvent records joined with their Device.
+
+    Results are sorted in descending chronological order (newest first).
+    An optional household_id parameter filters events to devices belonging
+    to that household only.
+    """
+    statement = (
+        select(ServiceHistoryEvent)
+        .options(selectinload(ServiceHistoryEvent.device))
+        .order_by(ServiceHistoryEvent.date.desc())
+    )
+    result = await session.execute(statement)
+    events = result.scalars().all()
+
+    # Apply household filter post-load (avoids a join on device table)
+    if household_id is not None:
+        events = [e for e in events if e.device and e.device.household_id == household_id]
+
+    # Build enriched response dicts with denormalised device fields
+    return [
+        ServiceHistoryEventDetailRead(
+            id=e.id,
+            date=e.date,
+            performer=e.performer,
+            notes=e.notes,
+            device_id=e.device_id,
+            device_name=e.device.name if e.device else "Unknown",
+            device_location=e.device.location if e.device else "Unknown",
+            completed_steps=e.completed_steps,
+        )
+        for e in events
+    ]
