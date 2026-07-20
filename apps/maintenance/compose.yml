@@ -32,7 +32,7 @@ services:
     container_name: maintenance-frontend
     restart: always
     environment:
-      - PORT=3020
+      - PORT=3000
     networks:
       - public-ingress
       - observability-internal
@@ -60,7 +60,7 @@ services:
       - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.permanent=false"
 
       # --- Service: port matches Dockerfile EXPOSE and container PORT env variable ---
-      - "traefik.http.services.maintenance-frontend-service.loadbalancer.server.port=3020"
+      - "traefik.http.services.maintenance-frontend-service.loadbalancer.server.port=3000"
 
 networks:
   public-ingress:

@@ -23,12 +23,15 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# Default port — overridden at runtime by the compose PORT env variable
-ENV PORT=3020
+# Port defaults to 3000; overridden at runtime by the compose PORT env variable
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Ensure public dir exists even if no static assets were committed
+RUN mkdir -p public
 
 # Leverage Next.js standalone build output
 COPY --from=builder /app/public ./public
@@ -37,6 +40,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3020
+EXPOSE 3000
 
 CMD ["node", "server.js"]
