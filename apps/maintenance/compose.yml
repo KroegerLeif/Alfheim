@@ -65,5 +65,7 @@ services:
 networks:
   public-ingress:
     name: public-ingress
+    external: true
   observability-internal:
     name: observability-internal
+    external: true
