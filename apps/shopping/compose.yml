@@ -93,9 +93,11 @@ volumes:
 networks:
   public-ingress:
     name: public-ingress
+    external: true
   shopping-internal:
     name: shopping-internal
   observability-internal:
     name: observability-internal
+    external: true
 
 

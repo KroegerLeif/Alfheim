@@ -64,5 +64,10 @@ services:
 networks:
   iam_network:
     driver: bridge
+  # public-ingress is owned by this compose — all other stacks reference it as external
   public-ingress:
     name: public-ingress
+  # observability-internal is owned by the logging-stack — declare as external to prevent accidental teardown
+  observability-internal:
+    name: observability-internal
+    external: true

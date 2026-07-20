@@ -100,11 +100,13 @@ volumes:
 networks:
   public-ingress:
     name: public-ingress
+    external: true
   pantry-internal:
     name: pantry-internal
   shopping-internal:
     name: shopping-internal
   observability-internal:
     name: observability-internal
+    external: true
 
 
