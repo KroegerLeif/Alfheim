@@ -35,19 +35,16 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables and seed data
+    # Initialize DB tables and seed data on startup
     from app.core.database import init_db
     await init_db()
 
-    # Run the MCP session manager alongside the FastAPI lifecycle
-    from app.core.mcp import mcp_server
-    async with mcp_server.session_manager.run():
-        try:
-            yield
-        finally:
-            # Gracefully flush and shutdown OpenTelemetry providers
-            from app.core.telemetry import shutdown_telemetry
-            shutdown_telemetry()
+    try:
+        yield
+    finally:
+        # Gracefully flush and shutdown OpenTelemetry providers on shutdown
+        from app.core.telemetry import shutdown_telemetry
+        shutdown_telemetry()
 
 
 app = FastAPI(

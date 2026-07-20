@@ -1,4 +1,22 @@
 services:
+  maintenance-db:
+    image: postgres:16-alpine
+    container_name: maintenance-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: maintenance
+    volumes:
+      - maintenance_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d maintenance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maintenance-internal
+
   maintenance-backend:
     build:
       context: ./backend
@@ -6,12 +24,17 @@ services:
     container_name: maintenance-backend
     restart: always
     environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@maintenance-db:5432/maintenance
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=maintenance-backend
+    depends_on:
+      maintenance-db:
+        condition: service_healthy
     networks:
       - public-ingress
+      - maintenance-internal
       - observability-internal
     labels:
       - "traefik.enable=true"
@@ -62,10 +85,15 @@ services:
       # --- Service: port matches Dockerfile EXPOSE and container PORT env variable ---
       - "traefik.http.services.maintenance-frontend-service.loadbalancer.server.port=3000"
 
+volumes:
+  maintenance_postgres_data:
+
 networks:
   public-ingress:
     name: public-ingress
     external: true
+  maintenance-internal:
+    name: maintenance-internal
   observability-internal:
     name: observability-internal
     external: true
