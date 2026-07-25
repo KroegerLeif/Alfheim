@@ -29,3 +29,26 @@ type Member struct {
 	Role        HouseholdRole `json:"role"`
 	JoinedAt    time.Time     `json:"joined_at"`
 }
+
+// Invite represents an invitation token generated for joining a household.
+type Invite struct {
+	Token       string        `json:"token"`
+	HouseholdID string        `json:"household_id"`
+	InviterID   string        `json:"inviter_id"`
+	Role        HouseholdRole `json:"role"`
+	ExpiresAt   time.Time     `json:"expires_at"`
+	MaxUses     int           `json:"max_uses"`
+	Uses        int           `json:"uses"`
+	CreatedAt   time.Time     `json:"created_at"`
+}
+
+// IsValid checks whether an invitation is expired or has reached its usage limit.
+func (i *Invite) IsValid() bool {
+	if time.Now().After(i.ExpiresAt) {
+		return false
+	}
+	if i.MaxUses > 0 && i.Uses >= i.MaxUses {
+		return false
+	}
+	return true
+}
