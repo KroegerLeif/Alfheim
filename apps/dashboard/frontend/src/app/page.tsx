@@ -1,8 +1,15 @@
+'use client';
+
+import { useAppCatalog } from '@/features/apps';
+import Link from 'next/link';
+
 /**
- * Root Dashboard Overview Page.
- * Utilizes 12-column CSS grid utility classes defined in globals.css.
+ * Root Dashboard View.
+ * Dynamically fetches and renders active internal and external app cards via TanStack Query useAppCatalog().
  */
 export default function DashboardPage() {
+  const { data: catalog, isLoading, isError, refetch } = useAppCatalog();
+
   return (
     <>
       {/* Top Banner / Welcome Widget */}
@@ -11,102 +18,157 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--primary-main)]/10 border border-[var(--border-accent)] text-[var(--primary-main)] text-xs font-mono mb-3">
-              <span className="material-symbols-outlined text-sm">verified</span>
-              Phase 1 Shell Active
+              <span className="material-symbols-outlined text-sm">hub</span>
+              Loeger OS Gateway Active
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text-main)]">
-              System Overview & Control
+              Application Portal & Catalog
             </h1>
             <p className="text-sm text-[var(--text-muted)] mt-1">
-              Real-time monitoring and orchestration for Loeger OS micro-services.
+              Launch and manage platform applications, IAM portals, and micro-services.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 shadow-[0_0_15px_var(--accent-glow)] cursor-pointer">
-              Deploy Service
+            <button
+              onClick={() => refetch()}
+              className="px-3.5 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-2 cursor-pointer transition-all duration-150"
+            >
+              <span className="material-symbols-outlined text-sm">refresh</span>
+              Sync Catalog
             </button>
           </div>
         </div>
       </div>
 
-      {/* Grid Cards (12-column layout testing) */}
-      <div className="col-span-12 md:col-span-4 p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-all duration-200">
-        <div className="flex items-center justify-between text-[var(--text-muted)] mb-3">
-          <span className="text-xs font-mono uppercase tracking-wider">Active Services</span>
-          <span className="material-symbols-outlined text-lg text-[var(--primary-main)]">dns</span>
-        </div>
-        <div className="text-2xl font-bold font-mono text-[var(--text-main)]">6 / 6</div>
-        <div className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
-          <span className="material-symbols-outlined text-sm">check_circle</span>
-          All containers healthy
-        </div>
-      </div>
-
-      <div className="col-span-12 md:col-span-4 p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-all duration-200">
-        <div className="flex items-center justify-between text-[var(--text-muted)] mb-3">
-          <span className="text-xs font-mono uppercase tracking-wider">Pantry Backend API</span>
-          <span className="material-symbols-outlined text-lg text-[var(--primary-main)]">api</span>
-        </div>
-        <div className="text-2xl font-bold font-mono text-[var(--text-main)]">99.98%</div>
-        <div className="text-xs text-[var(--text-muted)] mt-2 font-mono">
-          Avg Response: 12ms
-        </div>
-      </div>
-
-      <div className="col-span-12 md:col-span-4 p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-all duration-200">
-        <div className="flex items-center justify-between text-[var(--text-muted)] mb-3">
-          <span className="text-xs font-mono uppercase tracking-wider">IAM Authentication</span>
-          <span className="material-symbols-outlined text-lg text-[var(--primary-main)]">lock</span>
-        </div>
-        <div className="text-2xl font-bold font-mono text-[var(--text-main)]">Keycloak</div>
-        <div className="text-xs text-[var(--primary-main)] mt-2 font-mono">
-          OAuth2 / OIDC Secured
-        </div>
-      </div>
-
-      {/* Feature Showcase Grid Section */}
-      <div className="col-span-12 md:col-span-8 p-6 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
-        <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
-          Stitch Obsidian Flux Architecture
-        </h2>
-        <p className="text-xs text-[var(--text-muted)] mb-4">
-          Integrated with 12-column grid utilities, custom CSS variables, and persistent sidebar shell.
-        </p>
-
-        <div className="space-y-3">
-          <div className="p-3.5 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
-            <span className="font-mono text-[var(--text-main)]">Sidebar width: 280px persistent</span>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[10px]">VERIFIED</span>
+      {/* Internal Applications Section */}
+      <div className="col-span-12 mt-2">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--primary-main)]">apps</span>
+            <h2 className="text-lg font-bold text-[var(--text-main)]">Internal Services</h2>
           </div>
-          <div className="p-3.5 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
-            <span className="font-mono text-[var(--text-main)]">TanStack Query v5 & Ky Integration</span>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[10px]">VERIFIED</span>
-          </div>
-          <div className="p-3.5 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
-            <span className="font-mono text-[var(--text-main)]">Google Material Symbols Outlined</span>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[10px]">VERIFIED</span>
-          </div>
+          <span className="text-xs font-mono text-[var(--text-muted)]">
+            {catalog?.internal.length || 0} Registered
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-44 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] animate-pulse p-5 flex flex-col justify-between"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[var(--surface-elevated)]" />
+                <div className="space-y-2">
+                  <div className="h-4 w-1/2 bg-[var(--surface-elevated)] rounded" />
+                  <div className="h-3 w-3/4 bg-[var(--surface-elevated)] rounded" />
+                </div>
+              </div>
+            ))
+          ) : isError ? (
+            <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
+              Failed to load internal app catalog. Please check backend connection.
+            </div>
+          ) : (
+            catalog?.internal.map((app) => (
+              <div
+                key={app.id}
+                className="p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/60 transition-all duration-200 flex flex-col justify-between group shadow-lg"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] group-hover:scale-105 transition-transform duration-200">
+                      <span className="material-symbols-outlined text-xl">
+                        {app.icon_url || 'grid_view'}
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-[var(--surface-canvas)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
+                      {app.category}
+                    </span>
+                  </div>
+
+                  <h3 className="text-base font-bold text-[var(--text-main)] group-hover:text-[var(--primary-main)] transition-colors duration-150">
+                    {app.name}
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
+                    {app.description}
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
+                    Role: {app.required_role}
+                  </span>
+                  <Link
+                    href={app.app_url}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
+                  >
+                    <span>Launch</span>
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Side Quick Actions */}
-      <div className="col-span-12 md:col-span-4 p-6 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
-        <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
-          Quick Actions
-        </h2>
-        <p className="text-xs text-[var(--text-muted)] mb-4">
-          Platform quick commands
-        </p>
-        <div className="space-y-2">
-          <button className="w-full text-left p-3 rounded-lg bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/40 text-xs font-mono text-[var(--text-main)] transition-all duration-150 flex items-center justify-between group cursor-pointer">
-            <span>View Micro-Services</span>
-            <span className="material-symbols-outlined text-sm text-[var(--text-muted)] group-hover:text-[var(--primary-main)]">chevron_right</span>
-          </button>
-          <button className="w-full text-left p-3 rounded-lg bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/40 text-xs font-mono text-[var(--text-main)] transition-all duration-150 flex items-center justify-between group cursor-pointer">
-            <span>Audit Gateway Proxy</span>
-            <span className="material-symbols-outlined text-sm text-[var(--text-muted)] group-hover:text-[var(--primary-main)]">chevron_right</span>
-          </button>
+      {/* External Applications Section */}
+      <div className="col-span-12 mt-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--primary-main)]">open_in_new</span>
+            <h2 className="text-lg font-bold text-[var(--text-main)]">External & Infrastructure Portals</h2>
+          </div>
+          <span className="text-xs font-mono text-[var(--text-muted)]">
+            {catalog?.external.length || 0} Portals
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {catalog?.external.map((app) => (
+            <div
+              key={app.id}
+              className="p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/60 transition-all duration-200 flex flex-col justify-between group shadow-lg"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-main)]">
+                    <span className="material-symbols-outlined text-xl">
+                      {app.icon_url || 'link'}
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-[var(--surface-canvas)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
+                    {app.category}
+                  </span>
+                </div>
+
+                <h3 className="text-base font-bold text-[var(--text-main)]">
+                  {app.name}
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
+                  {app.description}
+                </p>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
+                  External URL
+                </span>
+                <a
+                  href={app.app_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
+                >
+                  <span>Open Portal</span>
+                  <span className="material-symbols-outlined text-sm">open_in_new</span>
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </>
