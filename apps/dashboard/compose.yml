@@ -1,0 +1,45 @@
+services:
+  dashboard-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dashboard-backend
+    restart: always
+    environment:
+      - PORT=8080
+    networks:
+      - public-ingress
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, `/api/v1/telemetry`)"
+      - "traefik.http.routers.dashboard-backend.entrypoints=web"
+      - "traefik.http.routers.dashboard-backend.service=dashboard-backend-service"
+      - "traefik.http.services.dashboard-backend-service.loadbalancer.server.port=8080"
+
+  dashboard-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
+    container_name: dashboard-frontend
+    restart: always
+    depends_on:
+      - dashboard-backend
+    environment:
+      - PORT=3000
+    networks:
+      - public-ingress
+    labels:
+      - "traefik.enable=true"
+      # Route root `/` and dashboard pages to dashboard-frontend
+      - "traefik.http.routers.dashboard-frontend.rule=Host(`loeger-os`) && (Path(`/`) || PathPrefix(`/_next`) || PathPrefix(`/profile`) || PathPrefix(`/household`) || PathPrefix(`/settings`))"
+      - "traefik.http.routers.dashboard-frontend.entrypoints=web"
+      - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend-service"
+      - "traefik.http.routers.dashboard-frontend.priority=10"
+      - "traefik.http.services.dashboard-frontend-service.loadbalancer.server.port=3000"
+
+networks:
+  public-ingress:
+    name: public-ingress
+    external: true
