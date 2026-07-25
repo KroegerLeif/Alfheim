@@ -43,12 +43,12 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex bg-background text-foreground transition-colors duration-200">
+      <body className="min-h-full flex bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
             <div className="flex w-full min-h-screen">
               <Sidebar />
-              <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-950">
+              <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-100 dark:bg-slate-950 transition-colors duration-200">
                 <Header />
                 <main className="flex-1">
                   {children}

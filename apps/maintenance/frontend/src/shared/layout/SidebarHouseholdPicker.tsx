@@ -19,12 +19,12 @@ export function SidebarHouseholdPicker() {
   const selectedHousehold = households.find((h) => h.id === householdId);
 
   return (
-    <div className="relative w-full px-4 py-2 border-b border-white/5">
+    <div className="relative w-full px-4 py-2 border-b border-slate-200 dark:border-white/5">
       {isSidebarCollapsed ? (
         <div className="flex justify-center py-2">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10 transition-all cursor-pointer"
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-white/10 transition-all cursor-pointer"
             title="Switch Household"
           >
             <Home className="h-5 w-5" />
@@ -34,15 +34,15 @@ export function SidebarHouseholdPicker() {
         <>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all cursor-pointer"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-sm font-semibold transition-all cursor-pointer"
           >
-            <div className="flex items-center gap-2.5 text-slate-200">
-              <Home className="h-4 w-4 text-cyan-400" />
+            <div className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200">
+              <Home className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
               <span className="truncate">
                 {selectedHousehold ? selectedHousehold.name : "All Households"}
               </span>
             </div>
-            <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
+            <ChevronDown className={cn("h-4 w-4 text-slate-500 dark:text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
           </button>
 
           {isOpen && (
@@ -50,7 +50,7 @@ export function SidebarHouseholdPicker() {
               {/* Backdrop element to close the dropdown when clicking outside */}
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
               
-              <div className="absolute left-4 right-4 mt-1.5 z-20 rounded-xl glass-modal border border-white/10 p-1.5 shadow-2xl space-y-0.5">
+              <div className="absolute left-4 right-4 mt-1.5 z-20 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-1.5 shadow-2xl space-y-0.5">
                 <button
                   onClick={() => {
                     setHouseholdId(null);
@@ -59,8 +59,8 @@ export function SidebarHouseholdPicker() {
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all cursor-pointer",
                     householdId === null
-                      ? "bg-cyan-500/10 text-cyan-400"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                   )}
                 >
                   <span>All Households</span>
@@ -76,8 +76,8 @@ export function SidebarHouseholdPicker() {
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all cursor-pointer",
                       householdId === h.id
-                        ? "bg-cyan-500/10 text-cyan-400"
-                        : "text-slate-300 hover:bg-white/5 hover:text-white"
+                        ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                     )}
                   >
                     <span className="truncate">{h.name}</span>

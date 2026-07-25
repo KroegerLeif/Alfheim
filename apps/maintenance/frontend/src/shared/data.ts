@@ -19,8 +19,8 @@ export const households: Household[] = [
 ];
 
 export const currentUser = {
-  name: "Lena Müller",
-  role: "Admin",
+  name: "Authenticated User",
+  role: "Maintenance User",
   avatarUrl: null as string | null
 };
 

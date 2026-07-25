@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { formatDate, daysUntil } from "@/shared/utils";
 import { cn } from "@/shared/utils";
+import { useAuth } from "@/shared/auth/AuthContext";
 
 interface MaintenanceModeProps {
   device: Device;
@@ -27,6 +28,7 @@ interface MaintenanceModeProps {
 }
 
 export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
+  const { user } = useAuth();
   const steps = device.steps || [];
   const totalSteps = steps.length;
   
@@ -176,7 +178,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
       device_id: device.id,
       completed_step_ids: completedStepIds,
       step_notes: stepNotesMerged || "All service steps inspected and completed.",
-      performer: "Lena Müller", // Mocked active performer
+      performer: user?.name || "Authenticated User",
       supply_items: cart.length > 0 ? cart : null,
     };
 
