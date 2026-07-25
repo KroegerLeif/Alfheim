@@ -1,9 +1,15 @@
+"""
+Main FastAPI application entry point for the Maintenance OS backend.
+"""
+
 import importlib
 import pathlib
 from contextlib import asynccontextmanager
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
+from app.core.mcp import mcp_server, discover_and_import_mcp_tools
 
 
 def discover_and_include_routers(app: FastAPI) -> None:
@@ -12,7 +18,6 @@ def discover_and_include_routers(app: FastAPI) -> None:
     if not features_dir.exists():
         return
 
-    # Find all router.py files in the features directory
     for router_path in features_dir.rglob("router.py"):
         relative_path = router_path.relative_to(pathlib.Path(__file__).parent.parent)
         module_parts = relative_path.with_suffix("").parts
@@ -52,6 +57,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.exception_handler(ValueError)
+async def value_error_exception_handler(request: Request, exc: ValueError):
+    """Globally catch ValueError domain exceptions and convert them into 400 Bad Request responses."""
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
+
+
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
 from app.core.telemetry import setup_telemetry
 setup_telemetry(app)
@@ -59,9 +74,10 @@ setup_telemetry(app)
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)
 
+# Discover and register FastMCP tools dynamically from features/*/mcp_tools.py
+discover_and_import_mcp_tools()
+
 # Mount the MCP SSE transport at /api/v1/mcp
-# This exposes /api/v1/mcp/sse (stream) and /api/v1/mcp/messages (post) endpoints
-from app.core.mcp import mcp_server
 app.mount("/api/v1/mcp", mcp_server.sse_app())
 
 
