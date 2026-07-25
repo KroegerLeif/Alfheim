@@ -561,6 +561,49 @@
       ]
     },
     {
+      "id": "maintenance-frontend-client",
+      "clientId": "maintenance-frontend",
+      "name": "Maintenance Frontend",
+      "rootUrl": "http://loeger-os/maintenance",
+      "baseUrl": "/maintenance/",
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "http://loeger-os/maintenance/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "http://loeger-os/maintenance/*",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
       "id": "46fad5fb-68c9-4878-88a4-b4b39dd969d5",
       "clientId": "account",
       "name": "${client_account}",

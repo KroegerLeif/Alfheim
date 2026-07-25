@@ -3,6 +3,7 @@ name: loeger-os
 include:
   - ./infrastructure/compose.yml
   - ./apps/logging-stack/compose.yml
+  - ./apps/maintenance/compose.yml
   - ./apps/pantry/compose.yml
   - ./apps/shopping/compose.yml
 

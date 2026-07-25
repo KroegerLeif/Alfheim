@@ -1,0 +1,99 @@
+services:
+  maintenance-db:
+    image: postgres:16-alpine
+    container_name: maintenance-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: maintenance
+    volumes:
+      - maintenance_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d maintenance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maintenance-internal
+
+  maintenance-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: maintenance-backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@maintenance-db:5432/maintenance
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=maintenance-backend
+    depends_on:
+      maintenance-db:
+        condition: service_healthy
+    networks:
+      - public-ingress
+      - maintenance-internal
+      - observability-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.maintenance-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/maintenance`)"
+      - "traefik.http.routers.maintenance-backend.entrypoints=web"
+      - "traefik.http.routers.maintenance-backend.middlewares=maintenance-api-replace"
+      - "traefik.http.routers.maintenance-backend.service=maintenance-backend-service"
+      - "traefik.http.middlewares.maintenance-api-replace.replacepathregex.regex=^/api/v1/maintenance/(api/v1/)?(.*)"
+      - "traefik.http.middlewares.maintenance-api-replace.replacepathregex.replacement=/api/v1/$$2"
+      - "traefik.http.services.maintenance-backend-service.loadbalancer.server.port=8000"
+
+  maintenance-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/maintenance}
+    container_name: maintenance-frontend
+    restart: always
+    environment:
+      - PORT=3000
+    networks:
+      - public-ingress
+      - observability-internal
+    labels:
+      - "traefik.enable=true"
+
+      # --- Catch-all router: handles /maintenance/en/*, /maintenance/_next/*, etc. ---
+      # Priority 1 (lower wins for catch-all, exact router gets higher priority below)
+      - "traefik.http.routers.maintenance-frontend.rule=Host(`loeger-os`) && PathPrefix(`/maintenance`)"
+      - "traefik.http.routers.maintenance-frontend.entrypoints=web"
+      - "traefik.http.routers.maintenance-frontend.service=maintenance-frontend-service"
+      - "traefik.http.routers.maintenance-frontend.priority=1"
+
+      # --- Exact router: catches /maintenance and /maintenance/ and redirects to /en ---
+      # Priority 10 ensures this fires before the catch-all for the bare base path
+      - "traefik.http.routers.maintenance-exact.rule=Host(`loeger-os`) && (Path(`/maintenance`) || Path(`/maintenance/`))"
+      - "traefik.http.routers.maintenance-exact.entrypoints=web"
+      - "traefik.http.routers.maintenance-exact.middlewares=maintenance-redirect-en"
+      - "traefik.http.routers.maintenance-exact.service=maintenance-frontend-service"
+      - "traefik.http.routers.maintenance-exact.priority=10"
+
+      # --- Redirect middleware: 302 to /maintenance/en (non-permanent avoids browser caching a bad redirect) ---
+      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.regex=^http://loeger-os/maintenance/?$$"
+      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.replacement=http://loeger-os/maintenance/en"
+      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.permanent=false"
+
+      # --- Service: port matches Dockerfile EXPOSE and container PORT env variable ---
+      - "traefik.http.services.maintenance-frontend-service.loadbalancer.server.port=3000"
+
+volumes:
+  maintenance_postgres_data:
+
+networks:
+  public-ingress:
+    name: public-ingress
+    external: true
+  maintenance-internal:
+    name: maintenance-internal
+  observability-internal:
+    name: observability-internal
+    external: true

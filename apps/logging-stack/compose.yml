@@ -95,8 +95,10 @@ volumes:
   signoz_sqlite_data:
 
 networks:
+  # observability-internal is owned by this compose — all backend services reference it as external
   observability-internal:
     name: observability-internal
+  # public-ingress is owned by infrastructure/compose.yml — reference as external only
   public-ingress:
     name: public-ingress
-
+    external: true
