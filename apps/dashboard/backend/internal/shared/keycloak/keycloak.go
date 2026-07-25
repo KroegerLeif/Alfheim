@@ -78,3 +78,19 @@ func (c *Client) GetUserByID(ctx context.Context, userID string) (*gocloak.User,
 
 	return user, nil
 }
+
+// UpdateUser updates user profile attributes in Keycloak using the Admin API.
+func (c *Client) UpdateUser(ctx context.Context, user gocloak.User) error {
+	token, err := c.GetAdminToken(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = c.Gocloak.UpdateUser(ctx, token, c.cfg.Realm, user)
+	if err != nil {
+		return fmt.Errorf("failed to update user in keycloak: %w", err)
+	}
+
+	c.log.Info("successfully updated user in keycloak admin api", slog.String("user_id", gocloak.PString(user.ID)))
+	return nil
+}
