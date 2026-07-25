@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useHouseholds, useCreateInvite, useJoinHousehold } from '@/features/household';
+import { QRCodeModal } from '@/features/household/components/QRCodeModal';
 import { InviteCodeResponse } from '@/shared/types';
 
 /**
@@ -120,32 +121,9 @@ export default function HouseholdPage() {
         </button>
       </div>
 
-      {/* Invite Code Generator Output Modal/Card */}
+      {/* QR Code Modal Popup */}
       {activeInvite && (
-        <div className="col-span-12 p-5 rounded-xl bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-elevated)] border border-[var(--primary-main)]/50 shadow-xl">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-[var(--primary-main)]">
-              <span className="material-symbols-outlined">confirmation_number</span>
-              <span className="text-xs font-mono font-bold uppercase">Household Invite Generated</span>
-            </div>
-            <button
-              onClick={() => setActiveInvite(null)}
-              className="text-[var(--text-muted)] hover:text-[var(--text-main)]"
-            >
-              <span className="material-symbols-outlined text-sm">close</span>
-            </button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="px-4 py-2.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--primary-main)] text-lg font-mono font-bold text-[var(--primary-main)] tracking-wider">
-              {activeInvite.token}
-            </div>
-            <div className="text-xs text-[var(--text-muted)] font-mono">
-              Valid for {activeInvite.max_uses} uses • Expires at{' '}
-              {new Date(activeInvite.expires_at).toLocaleTimeString()}
-            </div>
-          </div>
-        </div>
+        <QRCodeModal invite={activeInvite} onClose={() => setActiveInvite(null)} />
       )}
 
       {/* Members List Section */}

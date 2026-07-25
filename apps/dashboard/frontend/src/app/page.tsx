@@ -1,45 +1,24 @@
 'use client';
 
 import { useAppCatalog } from '@/features/apps';
+import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
+import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
 import Link from 'next/link';
 
 /**
  * Root Dashboard View.
- * Dynamically fetches and renders active internal and external app cards via TanStack Query useAppCatalog().
+ * Renders live telemetry stats, interactive terminal log shell, and dynamic app catalog.
  */
 export default function DashboardPage() {
   const { data: catalog, isLoading, isError, refetch } = useAppCatalog();
 
   return (
     <>
-      {/* Top Banner / Welcome Widget */}
-      <div className="col-span-12 p-6 rounded-2xl bg-gradient-to-r from-[var(--surface-card)] via-[var(--surface-elevated)] to-[var(--surface-card)] border border-[var(--border-subtle)] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary-main)]/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--primary-main)]/10 border border-[var(--border-accent)] text-[var(--primary-main)] text-xs font-mono mb-3">
-              <span className="material-symbols-outlined text-sm">hub</span>
-              Loeger OS Gateway Active
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text-main)]">
-              Application Portal & Catalog
-            </h1>
-            <p className="text-sm text-[var(--text-muted)] mt-1">
-              Launch and manage platform applications, IAM portals, and micro-services.
-            </p>
-          </div>
+      {/* System Health Telemetry Widget */}
+      <SystemHealthWidget />
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => refetch()}
-              className="px-3.5 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-2 cursor-pointer transition-all duration-150"
-            >
-              <span className="material-symbols-outlined text-sm">refresh</span>
-              Sync Catalog
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Live System Shell / Terminal Log Feed */}
+      <SystemShellLogs />
 
       {/* Internal Applications Section */}
       <div className="col-span-12 mt-2">
@@ -48,9 +27,18 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined text-[var(--primary-main)]">apps</span>
             <h2 className="text-lg font-bold text-[var(--text-main)]">Internal Services</h2>
           </div>
-          <span className="text-xs font-mono text-[var(--text-muted)]">
-            {catalog?.internal.length || 0} Registered
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono text-[var(--text-muted)]">
+              {catalog?.internal.length || 0} Registered
+            </span>
+            <button
+              onClick={() => refetch()}
+              className="px-2.5 py-1 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-150"
+            >
+              <span className="material-symbols-outlined text-sm">refresh</span>
+              Sync
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
