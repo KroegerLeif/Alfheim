@@ -15,15 +15,16 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 1024M
+          cpus: '2.00'
+          memory: 4096M
     networks:
       - observability-internal
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
   signoz-otel-collector:
     image: signoz/signoz-otel-collector:0.102.0
@@ -95,9 +96,10 @@ volumes:
   signoz_sqlite_data:
 
 networks:
-  # observability-internal is owned by this compose — all backend services reference it as external
+  # observability-internal network reference
   observability-internal:
     name: observability-internal
+    external: true
   # public-ingress is owned by infrastructure/compose.yml — reference as external only
   public-ingress:
     name: public-ingress
