@@ -47,26 +47,39 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
     }
   };
 
+  const getStatusBadgeText = () => {
+    if (isOverdue) return `OVERDUE (${Math.abs(remainingDays)}d)`;
+    if (remainingDays <= 14) return `DUE SOON (${remainingDays}d)`;
+    return `GOOD (${remainingDays}d)`;
+  };
+
+  const getStatusBadgeClass = () => {
+    if (isOverdue) return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+    if (remainingDays <= 14) return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+    return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+  };
+
   return (
-    <div className="glass-card rounded-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-all duration-300 shadow-sm">
-      {/* Header Summary Row */}
+    <div className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl border transition-all duration-300 shadow-sm overflow-hidden">
+      {/* Header Summary Row in 12-column CSS Grid */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+        className="w-full p-4 grid grid-cols-1 md:grid-cols-12 md:items-center gap-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
       >
-        <div className="flex items-center gap-4 min-w-0">
+        {/* Cols 1–5: Icon & Task Info */}
+        <div className="col-span-12 md:col-span-5 flex items-center gap-4 min-w-0">
           <div className={cn(
-            "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 border",
+            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
             isOverdue
               ? "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
               : remainingDays <= 14
               ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-              : "bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 text-cyan-600 dark:text-cyan-400"
+              : "bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-cyan-600 dark:text-cyan-400"
           )}>
             <Calendar className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide truncate">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide truncate">
               {step.title}
             </h4>
             <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
@@ -77,24 +90,31 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0">
-          <span className={cn(
-            "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border",
-            isOverdue
-              ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-              : remainingDays <= 14
-              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-              : "bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400 border-slate-200 dark:border-white/5"
-          )}>
-            {isOverdue ? `Overdue ${Math.abs(remainingDays)}d` : `In ${remainingDays}d`}
+        {/* Cols 6–7: Status Badge */}
+        <div className="col-span-6 md:col-span-2 flex items-center justify-start md:justify-center">
+          <span className={cn("text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0", getStatusBadgeClass())}>
+            {getStatusBadgeText()}
           </span>
-          <ChevronDown className={cn("h-4.5 w-4.5 text-slate-400 dark:text-slate-500 transition-transform duration-300", isExpanded && "rotate-180")} />
+        </div>
+
+        {/* Cols 8–9: Next Service Due Date */}
+        <div className="col-span-6 md:col-span-2 text-left md:text-center text-xs">
+          <span className="block text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Next Service Due</span>
+          <span className="font-mono text-slate-800 dark:text-slate-300 font-bold">{formatDate(step.supply_needed_date || undefined)}</span>
+        </div>
+
+        {/* Cols 10–12: Expand / Action */}
+        <div className="col-span-12 md:col-span-3 flex items-center justify-end gap-2.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+            {isExpanded ? "Hide Details" : "Show Details"}
+            <ChevronDown className={cn("h-4 w-4 text-slate-400 dark:text-slate-500 transition-transform duration-300", isExpanded && "rotate-180")} />
+          </span>
         </div>
       </button>
 
       {/* Accordion Expand Section */}
       {isExpanded && (
-        <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50/80 dark:bg-slate-950/40 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/40 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-2 gap-4 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             <div className="space-y-0.5">
               <span>Next Due Date</span>

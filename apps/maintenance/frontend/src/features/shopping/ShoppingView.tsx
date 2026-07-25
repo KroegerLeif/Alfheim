@@ -72,7 +72,7 @@ export function ShoppingView() {
     <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans text-slate-900 dark:text-white">
       
       {/* Header Bar */}
-      <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-slate-200 dark:border-white/5">
+      <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
           <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
@@ -84,14 +84,14 @@ export function ShoppingView() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleClear}
-              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 hover:bg-red-500/10 hover:border-red-500/20 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 hover:bg-red-500/10 hover:border-red-500/20 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Clear
             </button>
             <button
               onClick={handleExport}
-              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Download className="h-3.5 w-3.5" />
               CSV Export
@@ -102,9 +102,9 @@ export function ShoppingView() {
 
       {/* Main Cart Layout */}
       {cart.length === 0 ? (
-        <div className="glass-card rounded-2xl border border-slate-200 dark:border-white/10 p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+        <div className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
           <ShoppingCart className="h-10 w-10 text-cyan-600 dark:text-cyan-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Your Cart is Empty</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">Your Cart is Empty</h3>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             To add parts to your shopping list, start a maintenance wizard and select associated parts on the supplies panel.
           </p>
@@ -116,20 +116,20 @@ export function ShoppingView() {
             {cart.map((item) => (
               <div
                 key={item}
-                className="glass-card rounded-xl p-4 border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-colors flex items-center justify-between gap-4 shadow-sm"
+                className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-xl p-4 border hover:border-slate-300 dark:hover:border-slate-700 transition-colors flex items-center justify-between gap-4 shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
                     <ShoppingCart className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-white">
+                  <span className="text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100">
                     {item}
                   </span>
                 </div>
 
                 <button
                   onClick={() => handleRemove(item)}
-                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-red-500/10 hover:border-red-500/20 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-red-500/10 hover:border-red-500/20 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
                   title="Remove from cart"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -139,7 +139,7 @@ export function ShoppingView() {
           </div>
 
           {/* Call-to-Action Block */}
-          <div className="pt-4 border-t border-slate-200 dark:border-white/5 flex justify-end">
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
             <button
               onClick={handleSendToShoppingApp}
               disabled={isSent}

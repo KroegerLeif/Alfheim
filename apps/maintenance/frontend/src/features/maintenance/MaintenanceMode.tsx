@@ -186,15 +186,15 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md font-sans text-white">
+    <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-950 backdrop-blur-md font-sans text-slate-900 dark:text-slate-100">
       {/* Top Wizard Bar */}
-      <div className="h-16 border-b border-white/5 px-6 flex items-center justify-between bg-slate-950">
+      <div className="h-16 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between bg-white dark:bg-slate-950">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase tracking-widest text-cyan-400 leading-none">
+            <span className="text-[9px] font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400 leading-none">
               Maintenance Wizard //
             </span>
-            <span className="text-base font-black uppercase text-white truncate max-w-sm">
+            <span className="text-base font-black uppercase text-slate-900 dark:text-slate-100 truncate max-w-sm">
               {device.name}
             </span>
           </div>
@@ -202,20 +202,20 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
 
         {/* Progress Bar Container */}
         <div className="hidden md:flex items-center gap-4 w-96">
-          <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/5">
+          <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
             <div
               className="bg-cyan-500 h-full transition-all duration-300 shadow-md shadow-cyan-500/20"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
-          <span className="text-xs font-mono font-bold text-cyan-400 shrink-0">
+          <span className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400 shrink-0">
             {progressPercentage}%
           </span>
         </div>
 
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+          className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all cursor-pointer"
           aria-label="Exit Wizard"
           disabled={submissionMutation.isPending}
         >
@@ -224,7 +224,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
       </div>
 
       {/* Progress Bar on Mobile */}
-      <div className="md:hidden w-full bg-white/5 h-1 relative overflow-hidden">
+      <div className="md:hidden w-full bg-slate-200 dark:bg-slate-800 h-1 relative overflow-hidden">
         <div
           className="bg-cyan-500 h-full transition-all duration-300"
           style={{ width: `${progressPercentage}%` }}
@@ -235,7 +235,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
         
         {/* Left Side Column: Manuals Panel (3 cols) */}
-        <div className="hidden lg:flex lg:col-span-3 border-r border-white/5 bg-slate-900/40 p-6 flex-col space-y-4 overflow-y-auto">
+        <div className="hidden lg:flex lg:col-span-3 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-6 flex-col space-y-4 overflow-y-auto">
           <div className="flex items-center gap-2 pb-2 border-b border-white/5 text-[10px] font-black uppercase tracking-wider text-slate-500">
             <FileText className="h-4 w-4 text-slate-500" />
             <span>Direct Manuals Access</span>

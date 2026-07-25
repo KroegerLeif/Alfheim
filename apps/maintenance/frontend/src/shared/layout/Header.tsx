@@ -50,9 +50,9 @@ export function Header() {
   const alertCount = mockNotifications.filter(n => n.type === "overdue" || n.type === "due_soon").length;
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950 px-6 flex items-center justify-between select-none relative shrink-0 transition-colors duration-200">
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 flex items-center justify-between select-none relative shrink-0 transition-colors duration-200">
       {/* Dynamic Title based on context active nav option */}
-      <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-wide uppercase">
+      <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-wide uppercase">
         {titleMap[activeNav]}
       </h1>
 
@@ -62,7 +62,7 @@ export function Header() {
         <div className="relative">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer relative"
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer relative"
             aria-label="View notifications"
           >
             <Bell className="h-4.5 w-4.5" />
@@ -78,8 +78,8 @@ export function Header() {
               {/* Overlay background to capture clicks outside the dropdown */}
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
               
-              <div className="absolute right-0 mt-2 w-80 z-20 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-3 shadow-2xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+              <div className="absolute right-0 mt-2 w-80 z-20 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 shadow-2xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     System Alerts
                   </span>
@@ -98,7 +98,7 @@ export function Header() {
                           ? "bg-red-500/5 border-red-500/10 hover:bg-red-500/10"
                           : notif.type === "due_soon"
                           ? "bg-amber-500/5 border-amber-500/10 hover:bg-amber-500/10"
-                          : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10"
+                          : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
                       )}
                     >
                       {notif.type === "overdue" ? (
@@ -128,7 +128,7 @@ export function Header() {
         {user && (
           <button
             onClick={logout}
-            className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-red-500/10 hover:border-red-500/20 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-red-500/10 hover:border-red-500/20 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
             title="Sign out of Keycloak"
             aria-label="Sign out"
           >

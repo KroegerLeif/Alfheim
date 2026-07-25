@@ -127,15 +127,15 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "all"
-              ? "bg-cyan-500/10 border-cyan-500/30 text-slate-900 dark:text-white"
-              : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-200"
+              ? "bg-cyan-500/10 border-cyan-500/30 text-slate-900 dark:text-slate-100"
+              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
           )}
         >
           <div className="flex items-center justify-between w-full">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Total Steps</span>
             <Wrench className={cn("h-4.5 w-4.5", filter === "all" ? "text-cyan-600 dark:text-cyan-400" : "text-slate-400")} />
           </div>
-          <span className="text-3xl font-black mt-4 text-slate-900 dark:text-white">{totalStepsCount}</span>
+          <span className="text-3xl font-black mt-4 text-slate-900 dark:text-slate-100">{totalStepsCount}</span>
         </button>
 
         {/* Overdue Card */}
@@ -144,8 +144,8 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "overdue"
-              ? "bg-red-500/10 border-red-500/30 text-slate-900 dark:text-white"
-              : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-200"
+              ? "bg-red-500/10 border-red-500/30 text-slate-900 dark:text-slate-100"
+              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
           )}
         >
           <div className="flex items-center justify-between w-full">
@@ -161,8 +161,8 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "due_soon"
-              ? "bg-amber-500/10 border-amber-500/30 text-slate-900 dark:text-white"
-              : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-200"
+              ? "bg-amber-500/10 border-amber-500/30 text-slate-900 dark:text-slate-100"
+              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
           )}
         >
           <div className="flex items-center justify-between w-full">
@@ -178,8 +178,8 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "ok"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-slate-900 dark:text-white"
-              : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-200"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-slate-900 dark:text-slate-100"
+              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
           )}
         >
           <div className="flex items-center justify-between w-full">
@@ -192,19 +192,19 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
 
       {/* Main List Layout */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-white/5">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
           <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
             Maintenance Schedule //
           </span>
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-white/5 dark:text-slate-400 uppercase">
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 uppercase">
             Showing {filter} ({filteredDevices.length} items)
           </span>
         </div>
 
         {filteredDevices.length === 0 ? (
-          <div className="glass-card rounded-2xl border border-slate-200 dark:border-white/10 p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+          <div className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 dark:text-emerald-400 mx-auto" />
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">All Clear</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">All Clear</h3>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               No devices match the selected filter category.
             </p>
@@ -219,15 +219,15 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
               return (
                 <div
                   key={device.id}
-                  className="glass-card rounded-2xl p-4 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm grid grid-cols-1 md:grid-cols-12 md:items-center gap-4"
+                  className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl p-4 border hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm grid grid-cols-1 md:grid-cols-12 md:items-center gap-4"
                 >
                   {/* Cols 1–5: Icon & Device Info */}
                   <div className="col-span-12 md:col-span-5 flex items-center gap-4 min-w-0">
-                    <div className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                    <div className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide truncate">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide truncate">
                         {device.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
@@ -241,7 +241,7 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
                   {/* Cols 6–7: Status Badge */}
                   <div className="col-span-6 md:col-span-2 flex items-center justify-start md:justify-center">
                     <span className={cn("text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0", getStatusColor(state))}>
-                      {state === "ok" ? "good" : state === "due_soon" ? "due soon" : "overdue"}
+                      {state === "ok" ? "GOOD" : state === "due_soon" ? "DUE SOON" : "OVERDUE"}
                     </span>
                   </div>
 
@@ -255,7 +255,7 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
                   <div className="col-span-12 md:col-span-3 flex items-center justify-end gap-2.5">
                     <button
                       onClick={() => setSelectedDevice(device)}
-                      className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <Eye className="h-3.5 w-3.5" />
                       Details

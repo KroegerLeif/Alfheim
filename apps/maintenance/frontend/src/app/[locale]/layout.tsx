@@ -5,6 +5,7 @@ import { getMessages } from "next-intl/server";
 import Providers from "./providers";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Header } from "@/shared/layout/Header";
+import "../globals.css";
 
 const inter = Inter({
   subsets: ["latin"],

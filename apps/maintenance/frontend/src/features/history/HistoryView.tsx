@@ -36,7 +36,7 @@ export function HistoryView() {
     <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans text-slate-900 dark:text-white">
 
       {/* Title Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/5">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <History className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
           <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
@@ -52,15 +52,15 @@ export function HistoryView() {
 
       {/* History Timeline Stream */}
       {events.length === 0 ? (
-        <div className="glass-card rounded-2xl border border-slate-200 dark:border-white/10 p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+        <div className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
           <Info className="h-10 w-10 text-cyan-600 dark:text-cyan-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">No History Found</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">No History Found</h3>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             There are no previous service operations logged for this location.
           </p>
         </div>
       ) : (
-        <div className="relative border-l border-slate-200 dark:border-white/10 pl-6 ml-4 space-y-8 py-2">
+        <div className="relative border-l border-slate-200 dark:border-slate-800 pl-6 ml-4 space-y-8 py-2">
           {events.map((event: ServiceHistoryEventDetail) => {
             const eventTitle =
               event.completed_steps && event.completed_steps.length > 0
@@ -75,7 +75,7 @@ export function HistoryView() {
                 {/* Header Row */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
                   <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
                       {eventTitle}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -106,7 +106,7 @@ export function HistoryView() {
 
                 {/* Notes Block */}
                 {event.notes && (
-                  <p className="text-xs text-slate-700 dark:text-slate-400 leading-relaxed italic bg-slate-100 dark:bg-white/5 p-3 rounded-xl border border-slate-200 dark:border-white/5 max-w-2xl font-mono">
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 max-w-2xl font-mono">
                     &quot;{event.notes}&quot;
                   </p>
                 )}

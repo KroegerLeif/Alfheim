@@ -107,22 +107,22 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
   return (
     // Full-screen backdrop
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-card rounded-2xl border border-white/10 shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-slate-900/80 backdrop-blur-sm rounded-t-2xl z-10">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-t-2xl z-10">
           <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-cyan-400">
+            <h2 className="text-sm font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
               Register New Device
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Create a device and define its initial maintenance schedule.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+            className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all"
           >
             <X className="h-4 w-4" />
           </button>
@@ -133,49 +133,49 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
           {/* Section: Device Details */}
           <fieldset className="space-y-4">
-            <legend className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-3">
+            <legend className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">
               Device Details
             </legend>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Name *</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Name *</span>
                 <input
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Heat Pump Daikin"
-                  className="w-full p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600 font-mono"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
                 />
               </label>
               <label className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Model *</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Model *</span>
                 <input
                   required
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   placeholder="e.g. EHVH08S23EJ6V"
-                  className="w-full p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600 font-mono"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
                 />
               </label>
               <label className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Serial No. *</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Serial No. *</span>
                 <input
                   required
                   value={serial}
                   onChange={(e) => setSerial(e.target.value)}
                   placeholder="e.g. DK-90812903-HP"
-                  className="w-full p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600 font-mono"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
                 />
               </label>
               <label className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Location *</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Location *</span>
                 <input
                   required
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="e.g. Basement / Utility Room"
-                  className="w-full p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600 font-mono"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
                 />
               </label>
             </div>
@@ -183,15 +183,15 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Category */}
               <label className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Category</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Category</span>
                 <div className="relative">
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full appearance-none p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all pr-8"
+                    className="w-full appearance-none p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all pr-8"
                   >
                     {CATEGORIES.map((c) => (
-                      <option key={c} value={c} className="bg-slate-900">{c}</option>
+                      <option key={c} value={c} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
@@ -200,15 +200,15 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
               {/* Status */}
               <label className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Status</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Status</span>
                 <div className="relative">
                   <select
                     value={deviceStatus}
                     onChange={(e) => setDeviceStatus(e.target.value)}
-                    className="w-full appearance-none p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all pr-8"
+                    className="w-full appearance-none p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all pr-8"
                   >
                     {STATUSES.map((s) => (
-                      <option key={s} value={s} className="bg-slate-900 capitalize">{s}</option>
+                      <option key={s} value={s} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 capitalize">{s}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
@@ -217,7 +217,7 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
               {/* Service interval */}
               <label className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Interval (months)
                 </span>
                 <input
@@ -226,22 +226,22 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
                   max={120}
                   value={intervalMonths}
                   onChange={(e) => setIntervalMonths(Number(e.target.value))}
-                  className="w-full p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all font-mono"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all font-mono"
                 />
               </label>
             </div>
 
             {/* Household */}
             <label className="space-y-1.5 block">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Household</span>
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Household</span>
               <div className="relative">
                 <select
                   value={selectedHouseholdId}
                   onChange={(e) => setSelectedHouseholdId(Number(e.target.value))}
-                  className="w-full appearance-none p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none transition-all pr-8"
+                  className="w-full appearance-none p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none transition-all pr-8"
                 >
                   {households.map((h) => (
-                    <option key={h.id} value={h.id} className="bg-slate-900">{h.name}</option>
+                    <option key={h.id} value={h.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{h.name}</option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
@@ -250,13 +250,13 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
             {/* Notes */}
             <label className="space-y-1.5 block">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Notes</span>
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Notes</span>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Optional notes about this device..."
-                className="w-full p-2.5 bg-white/5 border border-white/5 focus:border-cyan-500/40 rounded-xl text-slate-200 text-sm focus:outline-none resize-none transition-all placeholder:text-slate-600 font-mono"
+                className="w-full p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/40 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none resize-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
               />
             </label>
           </fieldset>
@@ -264,13 +264,13 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
           {/* Section: Maintenance Steps */}
           <fieldset className="space-y-3">
             <div className="flex items-center justify-between">
-              <legend className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+              <legend className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
                 Maintenance Steps
               </legend>
               <button
                 type="button"
                 onClick={handleAddStep}
-                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-cyan-400 hover:text-cyan-300 transition-colors px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20"
+                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 transition-colors px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20"
               >
                 <Plus className="h-3 w-3" />
                 Add Step
@@ -280,17 +280,17 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
             {steps.map((step, idx) => (
               <div
                 key={idx}
-                className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-3"
+                className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Step {idx + 1}
                   </span>
                   {steps.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveStep(idx)}
-                      className="h-6 w-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-all"
+                      className="h-6 w-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-all"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -299,41 +299,41 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label className="space-y-1 block">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600">Title *</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Title *</span>
                     <input
                       value={step.title}
                       onChange={(e) => handleStepChange(idx, "title", e.target.value)}
                       placeholder="e.g. Replace Air Filter"
-                      className="w-full p-2 bg-black/20 border border-white/5 focus:border-cyan-500/30 rounded-lg text-slate-200 text-xs focus:outline-none transition-all placeholder:text-slate-700 font-mono"
+                      className="w-full p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/30 rounded-lg text-slate-900 dark:text-slate-100 text-xs focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
                     />
                   </label>
                   <label className="space-y-1 block">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600">Supply Item</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Supply Item</span>
                     <input
                       value={step.supply_item ?? ""}
                       onChange={(e) => handleStepChange(idx, "supply_item", e.target.value || null)}
                       placeholder="e.g. HEPA Filter F7"
-                      className="w-full p-2 bg-black/20 border border-white/5 focus:border-cyan-500/30 rounded-lg text-slate-200 text-xs focus:outline-none transition-all placeholder:text-slate-700 font-mono"
+                      className="w-full p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/30 rounded-lg text-slate-900 dark:text-slate-100 text-xs focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
                     />
                   </label>
                   <label className="space-y-1 block">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600">Recurrence (months)</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Recurrence (months)</span>
                     <input
                       type="number"
                       min={1}
                       max={120}
                       value={step.recurrence}
                       onChange={(e) => handleStepChange(idx, "recurrence", Number(e.target.value))}
-                      className="w-full p-2 bg-black/20 border border-white/5 focus:border-cyan-500/30 rounded-lg text-slate-200 text-xs focus:outline-none transition-all font-mono"
+                      className="w-full p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/30 rounded-lg text-slate-900 dark:text-slate-100 text-xs focus:outline-none transition-all font-mono"
                     />
                   </label>
                   <label className="space-y-1 block sm:col-span-2">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600">Procedure Description</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Procedure Description</span>
                     <input
                       value={step.description ?? ""}
                       onChange={(e) => handleStepChange(idx, "description", e.target.value || null)}
                       placeholder="Short description of what to do..."
-                      className="w-full p-2 bg-black/20 border border-white/5 focus:border-cyan-500/30 rounded-lg text-slate-200 text-xs focus:outline-none transition-all placeholder:text-slate-700 font-mono"
+                      className="w-full p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/30 rounded-lg text-slate-900 dark:text-slate-100 text-xs focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono"
                     />
                   </label>
                 </div>
@@ -343,17 +343,17 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
           {/* Error message */}
           {mutation.isError && (
-            <p className="text-xs text-red-400 font-mono">
+            <p className="text-xs text-red-500 dark:text-red-400 font-mono">
               Error saving device. Please check the form and try again.
             </p>
           )}
 
           {/* Submit */}
-          <div className="flex justify-end gap-3 pt-2 border-t border-white/5">
+          <div className="flex justify-end gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all"
+              className="px-5 py-2 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl transition-all"
             >
               Cancel
             </button>

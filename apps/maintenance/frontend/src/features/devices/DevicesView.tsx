@@ -119,7 +119,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
                   <div
                     key={device.id}
                     onClick={() => setSelectedDevice(device)}
-                    className="group glass-card rounded-2xl p-5 border border-slate-200 dark:border-white/10 hover:border-cyan-500/40 dark:hover:border-cyan-500/30 hover:shadow-cyan-500/10 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden shadow-sm"
+                    className="group bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl p-5 border hover:border-cyan-500/40 dark:hover:border-cyan-500/30 hover:shadow-cyan-500/10 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden shadow-sm"
                   >
                     {/* Glow effect on hover */}
                     <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-colors" />
@@ -127,7 +127,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
                     <div className="space-y-3 relative z-10">
                       {/* Top Row: Category icon & Status */}
                       <div className="flex items-center justify-between">
-                        <div className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-500 dark:group-hover:text-cyan-300 transition-colors">
+                        <div className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-500 dark:group-hover:text-cyan-300 transition-colors">
                           <IconComponent className="h-4.5 w-4.5" />
                         </div>
                         <span className={cn("text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border", getStatusBadgeClass(device.status))}>
@@ -137,7 +137,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
 
                       {/* Device Meta */}
                       <div className="space-y-1">
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">
                           {device.name}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium font-mono truncate">
@@ -147,7 +147,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
                     </div>
 
                     {/* Bottom Row: Location & Serial */}
-                    <div className="pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-500 font-semibold uppercase tracking-wide relative z-10">
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-semibold uppercase tracking-wide relative z-10">
                       <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 truncate max-w-[60%]">
                         <MapPin className="h-3.5 w-3.5 text-cyan-500/70 shrink-0" />
                         <span className="truncate">{device.location}</span>
