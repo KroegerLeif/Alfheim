@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-card: var(--surface-card);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-primary-main: var(--primary-main);
+  --color-primary-hover: var(--primary-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-accent: var(--border-accent);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+}
+
+:root,
+[data-theme="obsidian"] {
+  --surface-canvas: #0b1326;
+  --surface-card: #111b33;
+  --surface-elevated: #182542;
+  --primary-main: #3eb1ff;
+  --primary-hover: #60beff;
+  --border-subtle: #222222;
+  --border-accent: rgba(62, 177, 255, 0.3);
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --accent-glow: rgba(62, 177, 255, 0.15);
+}
+
+[data-theme="kinetic"] {
+  --surface-canvas: #060b17;
+  --surface-card: #0c162d;
+  --surface-elevated: #142244;
+  --primary-main: #00f0ff;
+  --primary-hover: #38f4ff;
+  --border-subtle: #1e293b;
+  --border-accent: rgba(0, 240, 255, 0.5);
+  --text-main: #ffffff;
+  --text-muted: #94a3b8;
+  --accent-glow: rgba(0, 240, 255, 0.25);
+}
+
+body {
+  background-color: var(--surface-canvas);
+  color: var(--text-main);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* 12-column CSS Grid Utilities */
+.stitch-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.col-span-12 { grid-column: span 12 / span 12; }
+.col-span-11 { grid-column: span 11 / span 11; }
+.col-span-10 { grid-column: span 10 / span 10; }
+.col-span-9 { grid-column: span 9 / span 9; }
+.col-span-8 { grid-column: span 8 / span 8; }
+.col-span-7 { grid-column: span 7 / span 7; }
+.col-span-6 { grid-column: span 6 / span 6; }
+.col-span-5 { grid-column: span 5 / span 5; }
+.col-span-4 { grid-column: span 4 / span 4; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-1 { grid-column: span 1 / span 1; }
+
+@media (max-width: 1024px) {
+  .stitch-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .stitch-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  .col-span-12, .col-span-8, .col-span-6, .col-span-4, .col-span-3 {
+    grid-column: span 1 / span 1;
+  }
+}

@@ -1,0 +1,16 @@
+/**
+ * Settings Page component.
+ */
+export default function SettingsPage() {
+  return (
+    <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="material-symbols-outlined text-2xl text-[var(--primary-main)]">settings</span>
+        <h1 className="text-2xl font-bold text-[var(--text-main)]">System Settings</h1>
+      </div>
+      <p className="text-sm text-[var(--text-muted)] font-mono">
+        Configure system parameters, gateway proxy routes, and feature flags.
+      </p>
+    </div>
+  );
+}
