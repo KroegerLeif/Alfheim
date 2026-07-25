@@ -3,16 +3,35 @@ package apps
 
 import "time"
 
-// App represents an application entry registered in the loeger-os control plane.
-type App struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Slug         string    `json:"slug"`
-	Description  string    `json:"description"`
-	IconURL      string    `json:"icon_url"`
-	AppURL       string    `json:"app_url"`
-	RequiredRole string    `json:"required_role"`
-	IsActive     bool      `json:"is_active"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+// AppCategory defines the application classification type.
+type AppCategory string
+
+const (
+	CategoryInternal AppCategory = "internal"
+	CategoryExternal AppCategory = "external"
+)
+
+// AppRole defines the minimum required household role for accessing an application.
+type AppRole string
+
+const (
+	RoleOwner  AppRole = "OWNER"
+	RoleAdmin  AppRole = "ADMIN"
+	RoleMember AppRole = "MEMBER"
+)
+
+// AppItem represents an application entry registered in the loeger-os control plane catalog.
+type AppItem struct {
+	ID           string      `json:"id"`
+	Name         string      `json:"name"`
+	Slug         string      `json:"slug"`
+	Description  string      `json:"description"`
+	IconURL      string      `json:"icon_url"`
+	AppURL       string      `json:"app_url"`
+	Category     AppCategory `json:"category"`
+	RequiredRole AppRole     `json:"required_role"`
+	IsActive     bool        `json:"is_active"`
+	DisplayOrder int         `json:"display_order"`
+	CreatedAt    time.Time   `json:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at"`
 }

@@ -18,7 +18,7 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// RegisterRoutes registers app catalog endpoints on the chi router.
+// RegisterRoutes registers app catalog endpoints on the chi router with auth middleware.
 func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler) http.Handler) {
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
@@ -26,7 +26,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 	})
 }
 
-// GetAppCatalog serves allowed catalog applications for the current user.
+// GetAppCatalog serves permitted catalog applications for the current user.
 func (h *Handler) GetAppCatalog(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
@@ -34,7 +34,15 @@ func (h *Handler) GetAppCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	catalog, err := h.service.GetAppCatalog(r.Context(), claims.Roles)
+	householdRole := r.Header.Get("X-Household-Role")
+	if householdRole == "" {
+		householdRole = r.URL.Query().Get("household_role")
+	}
+	if householdRole == "" {
+		householdRole = "MEMBER"
+	}
+
+	catalog, err := h.service.GetPermittedApps(r.Context(), claims.Roles, householdRole)
 	if err != nil {
 		http.Error(w, `{"error":"internal_server_error","message":"failed to retrieve app catalog"}`, http.StatusInternalServerError)
 		return
