@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '../providers/AuthProvider';
 
 interface NavItem {
   name: string;
@@ -19,10 +20,11 @@ const NAV_ITEMS: NavItem[] = [
 
 /**
  * Persistent 280px Sidebar component adhering to the Stitch Obsidian Flux design system.
- * Features an active 4px leading indicator pill for selected navigation items.
+ * Features an active 4px leading indicator pill for selected navigation items, user session identity, and logout.
  */
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="hidden md:flex w-[280px] h-full bg-[var(--surface-card)] border-r border-[var(--border-subtle)] flex-col shrink-0 select-none z-20">
@@ -87,20 +89,29 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* System Status Footer */}
-      <div className="p-4 m-3 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span className="text-xs font-mono text-[var(--text-muted)]">
-            System Nominal
-          </span>
-        </div>
-        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--surface-card)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
-          v15.2
-        </span>
+      {/* User Session & Logout Footer */}
+      <div className="p-3 m-3 space-y-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
+        {user && (
+          <div className="flex items-center justify-between px-1">
+            <div className="flex flex-col truncate">
+              <span className="text-xs font-semibold text-[var(--text-main)] truncate">
+                {user.name}
+              </span>
+              <span className="text-[10px] font-mono text-[var(--text-muted)] truncate">
+                @{user.preferred_username}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={logout}
+          type="button"
+          className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 hover:bg-red-900/30 text-xs font-mono transition-all duration-200 cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-sm">logout</span>
+          <span>Logout (Abmelden)</span>
+        </button>
       </div>
     </aside>
   );

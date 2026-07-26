@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useUserProfile, useUpdateProfile } from '@/features/profile';
+import { useAuth } from '@/shared/providers/AuthProvider';
 
 /**
  * Profile Page View.
- * Binds useUserProfile() to render profile details and useUpdateProfile() to save profile updates.
+ * Binds OIDC JWT user identity claims from useAuth() and syncs profile updates via useUserProfile()/useUpdateProfile().
  */
 export default function ProfilePage() {
+  const { user: authUser, logout } = useAuth();
   const { data: profile, isLoading, isError } = useUserProfile();
   const updateMutation = useUpdateProfile();
 
@@ -18,11 +20,14 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (profile) {
-      setFirstName(profile.first_name || '');
-      setLastName(profile.last_name || '');
+      setFirstName(profile.first_name || authUser?.given_name || '');
+      setLastName(profile.last_name || authUser?.family_name || '');
       setAvatarUrl(profile.avatar_url || '');
+    } else if (authUser) {
+      setFirstName(authUser.given_name || '');
+      setLastName(authUser.family_name || '');
     }
-  }, [profile]);
+  }, [profile, authUser]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,54 +51,56 @@ export default function ProfilePage() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="col-span-12 p-8 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] animate-pulse space-y-4">
-        <div className="h-8 w-48 bg-[var(--surface-elevated)] rounded" />
-        <div className="h-32 w-full bg-[var(--surface-elevated)] rounded-xl" />
-      </div>
-    );
-  }
+  const displayName = profile
+    ? `${profile.first_name} ${profile.last_name}`
+    : authUser?.name || 'Authenticated User';
 
-  if (isError || !profile) {
-    return (
-      <div className="col-span-12 p-6 rounded-2xl bg-red-950/20 border border-red-800/40 text-red-300 text-sm font-mono">
-        Error loading profile. Ensure backend service is reachable.
-      </div>
-    );
-  }
+  const username = profile?.username || authUser?.preferred_username || 'user';
+  const email = profile?.email || authUser?.email || '';
+  const userId = profile?.id || authUser?.sub || 'N/A';
 
   return (
     <>
       {/* Header Banner */}
       <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[var(--surface-elevated)] to-[var(--primary-main)]/30 border-2 border-[var(--primary-main)] flex items-center justify-center text-xl font-bold text-[var(--primary-main)] overflow-hidden">
-            {profile.avatar_url ? (
+          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[var(--surface-elevated)] to-[var(--primary-main)]/30 border-2 border-[var(--primary-main)] flex items-center justify-center text-xl font-bold text-[var(--primary-main)] overflow-hidden font-mono">
+            {profile?.avatar_url || avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={profile.avatar_url}
-                alt={`${profile.first_name} ${profile.last_name}`}
+                src={profile?.avatar_url || avatarUrl}
+                alt={displayName}
                 className="w-full h-full object-cover"
               />
             ) : (
-              `${profile.first_name?.[0] || 'U'}${profile.last_name?.[0] || ''}`
+              `${(firstName?.[0] || displayName[0] || 'U').toUpperCase()}${(lastName?.[0] || '').toUpperCase()}`
             )}
           </div>
           <div>
             <h1 className="text-xl font-bold text-[var(--text-main)]">
-              {profile.first_name} {profile.last_name}
+              {displayName}
             </h1>
             <p className="text-xs font-mono text-[var(--text-muted)] mt-0.5">
-              @{profile.username} • {profile.email}
+              @{username} • {email}
             </p>
           </div>
         </div>
 
-        <div className="hidden sm:block text-right">
-          <span className="px-2.5 py-1 rounded bg-[var(--primary-main)]/10 text-[var(--primary-main)] border border-[var(--primary-main)]/30 text-xs font-mono">
-            ID: {profile.id}
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block text-right">
+            <span className="px-2.5 py-1 rounded bg-[var(--primary-main)]/10 text-[var(--primary-main)] border border-[var(--primary-main)]/30 text-xs font-mono">
+              Keycloak ID: {userId}
+            </span>
+          </div>
+
+          <button
+            onClick={logout}
+            type="button"
+            className="px-3.5 py-1.5 rounded-lg bg-red-950/30 border border-red-800/40 text-red-400 hover:bg-red-900/40 text-xs font-mono flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-sm">logout</span>
+            <span>Logout (Abmelden)</span>
+          </button>
         </div>
       </div>
 
@@ -103,7 +110,7 @@ export default function ProfilePage() {
           Edit Profile Information
         </h2>
         <p className="text-xs text-[var(--text-muted)] mb-6">
-          Update your public name and avatar URL across the platform.
+          Update your identity details synchronized across the platform.
         </p>
 
         {statusMessage && (
@@ -174,27 +181,27 @@ export default function ProfilePage() {
 
       {/* Profile Metadata Sidebar */}
       <div className="col-span-12 md:col-span-4 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
-        <h2 className="text-base font-bold text-[var(--text-main)] mb-4">Account Metadata</h2>
+        <h2 className="text-base font-bold text-[var(--text-main)] mb-4">OIDC Claims & Metadata</h2>
         <div className="space-y-3.5 text-xs">
           <div>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Subject (sub)</span>
+            <span className="font-mono text-[var(--text-main)] break-all">{authUser?.sub || userId}</span>
+          </div>
+          <div>
             <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Username</span>
-            <span className="font-semibold text-[var(--text-main)]">@{profile.username}</span>
+            <span className="font-semibold text-[var(--text-main)]">@{username}</span>
           </div>
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Email Binding</span>
-            <span className="font-semibold text-[var(--text-main)]">{profile.email}</span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Email Claim</span>
+            <span className="font-semibold text-[var(--text-main)]">{email || 'N/A'}</span>
           </div>
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Created At</span>
-            <span className="font-mono text-[var(--text-main)]">
-              {new Date(profile.created_at).toLocaleDateString()}
-            </span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Given Name</span>
+            <span className="font-mono text-[var(--text-main)]">{authUser?.given_name || firstName || 'N/A'}</span>
           </div>
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Last Updated</span>
-            <span className="font-mono text-[var(--text-main)]">
-              {new Date(profile.updated_at).toLocaleString()}
-            </span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Family Name</span>
+            <span className="font-mono text-[var(--text-main)]">{authUser?.family_name || lastName || 'N/A'}</span>
           </div>
         </div>
       </div>

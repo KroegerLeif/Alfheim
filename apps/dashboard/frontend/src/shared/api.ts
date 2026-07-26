@@ -8,15 +8,13 @@ import {
   InviteCodeResponse,
   JoinHouseholdRequest,
 } from './types';
+import { getInMemoryToken } from './providers/AuthProvider';
 
 /**
- * Get Bearer auth token from localStorage if present.
+ * Get Bearer auth token dynamically from in-memory AuthProvider state.
  */
 function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
+  return getInMemoryToken();
 }
 
 /**

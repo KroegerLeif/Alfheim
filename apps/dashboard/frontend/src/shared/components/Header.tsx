@@ -2,15 +2,28 @@
 
 import { useState } from 'react';
 import { useTheme } from '../providers/ThemeProvider';
+import { useAuth } from '../providers/AuthProvider';
 
 /**
  * Top Header component featuring a global search bar, notification trigger,
- * and a dynamic theme switcher (Obsidian vs Kinetic).
+ * dynamic theme switcher (Obsidian vs Kinetic), and dynamic user identity claims.
  */
 export function Header() {
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount] = useState(3);
+
+  const getInitials = () => {
+    if (!user) return 'U';
+    if (user.given_name && user.family_name) {
+      return `${user.given_name[0]}${user.family_name[0]}`.toUpperCase();
+    }
+    if (user.preferred_username) {
+      return user.preferred_username.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
 
   return (
     <header className="h-16 bg-[var(--surface-card)] border-b border-[var(--border-subtle)] px-6 flex items-center justify-between shrink-0 z-10">
@@ -89,10 +102,13 @@ export function Header() {
           )}
         </div>
 
-        {/* User Avatar */}
+        {/* User Identity Avatar */}
         <div className="flex items-center gap-2 pl-2 border-l border-[var(--border-subtle)]">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#182542] to-[#3eb1ff]/30 border border-[var(--primary-main)]/40 flex items-center justify-center text-xs font-bold text-[var(--primary-main)]">
-            LK
+          <div
+            className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#182542] to-[#3eb1ff]/30 border border-[var(--primary-main)]/40 flex items-center justify-center text-xs font-bold text-[var(--primary-main)] font-mono"
+            title={user ? `${user.name} (@${user.preferred_username})` : 'Authenticated User'}
+          >
+            {getInitials()}
           </div>
         </div>
       </div>
