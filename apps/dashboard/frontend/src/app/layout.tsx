@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { LanguageProvider, ThemeProvider } from '@loeger-os/shared';
 import { QueryProvider } from '@/shared/providers/QueryProvider';
-import { ThemeProvider } from '@/shared/providers/ThemeProvider';
 import { Sidebar } from '@/shared/components/Sidebar';
 import { Header } from '@/shared/components/Header';
 import { BottomNavBar } from '@/shared/components/BottomNavBar';
-
 import { AuthProvider } from '@/shared/providers/AuthProvider';
 
 const geistSans = Geist({
@@ -43,20 +42,22 @@ export default function RootLayout({
       </head>
       <body className="h-full bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
         <AuthProvider>
-          <ThemeProvider>
-            <QueryProvider>
-              <div className="flex h-screen w-full overflow-hidden">
-                <Sidebar />
-                <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative">
-                  <Header />
-                  <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-8 stitch-grid">
-                    {children}
-                  </main>
-                  <BottomNavBar />
+          <LanguageProvider defaultLanguage="de">
+            <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
+              <QueryProvider>
+                <div className="flex h-screen w-full overflow-hidden">
+                  <Sidebar />
+                  <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative">
+                    <Header />
+                    <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-8 stitch-grid">
+                      {children}
+                    </main>
+                    <BottomNavBar />
+                  </div>
                 </div>
-              </div>
-            </QueryProvider>
-          </ThemeProvider>
+              </QueryProvider>
+            </ThemeProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

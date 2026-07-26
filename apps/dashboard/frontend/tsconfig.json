@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@loeger-os/shared": ["../../../packages/shared/src/index.ts"]
     }
   },
   "include": [

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@loeger-os/shared';
 import { useUpdateApp } from '../queries';
 import { AppItem } from '@/shared/types';
 
@@ -36,6 +37,7 @@ export function EditAppModal({
   onClose,
   onSuccess,
 }: EditAppModalProps) {
+  const { t } = useTranslation();
   const updateAppMutation = useUpdateApp();
 
   const [title, setTitle] = useState('');
@@ -111,7 +113,7 @@ export function EditAppModal({
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">edit_square</span>
             <h2 className="text-base font-bold text-[var(--text-main)]">
-              Edit Application ({app.title || app.name})
+              {t('catalog.edit_app_title')} ({app.title || app.name})
             </h2>
           </div>
           <button
@@ -133,7 +135,7 @@ export function EditAppModal({
           {/* Title */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Service Title
+              {t('catalog.app_name')}
             </label>
             <input
               type="text"
@@ -148,7 +150,7 @@ export function EditAppModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Description
+              {t('catalog.description')}
             </label>
             <textarea
               value={description}
@@ -162,7 +164,7 @@ export function EditAppModal({
           {/* URL */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Target URL / Path
+              {t('catalog.app_url')}
             </label>
             <input
               type="text"
@@ -177,7 +179,7 @@ export function EditAppModal({
           {/* Icon Picker */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Select Material Icon
+              {t('catalog.icon')}
             </label>
             <div className="grid grid-cols-6 gap-2 max-h-28 overflow-y-auto p-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
               {PRESET_ICONS.map((ic) => (
@@ -202,30 +204,30 @@ export function EditAppModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-                Classification
+                {t('catalog.category')}
               </label>
               <select
                 value={isExternal ? 'external' : 'internal'}
                 onChange={(e) => setIsExternal(e.target.value === 'external')}
                 className="w-full px-3 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
               >
-                <option value="internal">Internal App</option>
-                <option value="external">External Portal</option>
+                <option value="internal">{t('catalog.internal_category')}</option>
+                <option value="external">{t('catalog.external_category')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-                Lifecycle Status
+                {t('catalog.status')}
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'active' | 'in_progress' | 'maintenance')}
                 className="w-full px-3 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
               >
-                <option value="active">Active</option>
-                <option value="in_progress">In Progress</option>
-                <option value="maintenance">Maintenance</option>
+                <option value="active">{t('common.active')}</option>
+                <option value="in_progress">{t('common.in_progress')}</option>
+                <option value="maintenance">{t('common.maintenance')}</option>
               </select>
             </div>
           </div>
@@ -237,14 +239,14 @@ export function EditAppModal({
               onClick={onClose}
               className="px-4 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)]"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={updateAppMutation.isPending}
               className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50 transition-all shadow-md"
             >
-              {updateAppMutation.isPending ? 'Saving...' : 'Save Changes'}
+              {updateAppMutation.isPending ? t('common.loading') : t('common.save_changes')}
             </button>
           </div>
         </form>

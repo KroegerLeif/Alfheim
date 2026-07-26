@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTheme, ThemeMode } from '@/shared/providers/ThemeProvider';
+import { useTheme, useTranslation } from '@loeger-os/shared';
 
 /**
  * System Settings View component.
@@ -9,17 +9,17 @@ import { useTheme, ThemeMode } from '@/shared/providers/ThemeProvider';
  * and system health / update status cards.
  */
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
+  const { variant, setVariant } = useTheme();
 
   // Network configuration state toggles
   const [nginxGateway, setNginxGateway] = useState(true);
   const [keycloakSso, setKeycloakSso] = useState(true);
   const [telemetryStream, setTelemetryStream] = useState(true);
-  const [sslEdge, setSslEdge] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const handleSaveSettings = () => {
-    setStatusMessage('Settings updated successfully!');
+    setStatusMessage(t('common.save_changes'));
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
@@ -30,13 +30,13 @@ export default function SettingsPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--primary-main)]/10 text-[var(--primary-main)] text-xs font-mono mb-2 border border-[var(--border-accent)]">
             <span className="material-symbols-outlined text-sm">settings_suggest</span>
-            System Configuration
+            {t('nav.settings')}
           </div>
           <h1 className="text-2xl font-bold text-[var(--text-main)]">
-            Platform Settings & Design Theme
+            {t('settings.title')}
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
-            Customize UI appearance, gateway proxy rules, and security tokens.
+            {t('settings.subtitle')}
           </p>
         </div>
 
@@ -44,7 +44,7 @@ export default function SettingsPage() {
           onClick={handleSaveSettings}
           className="px-4 py-2.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 shadow-[0_0_15px_var(--accent-glow)] cursor-pointer"
         >
-          Save Changes
+          {t('common.save_changes')}
         </button>
       </div>
 
@@ -57,18 +57,18 @@ export default function SettingsPage() {
       {/* Visual Theme Picker */}
       <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
-          Visual Theme Mode (Google Stitch Specs)
+          {t('settings.theme_title')}
         </h2>
         <p className="text-xs text-[var(--text-muted)] mb-5">
-          Select between Obsidian Flux (Default dark slate) and Kinetic Minimalist (High contrast neon).
+          {t('settings.theme_subtitle')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {/* Obsidian Flux Theme Card */}
           <div
-            onClick={() => setTheme('obsidian')}
+            onClick={() => setVariant('obsidian')}
             className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-              theme === 'obsidian'
+              variant === 'obsidian'
                 ? 'bg-[#111b33] border-[#3eb1ff] shadow-[0_0_20px_rgba(62,177,255,0.2)]'
                 : 'bg-[#0b1326] border-[#222222] hover:border-[#3eb1ff]/50'
             }`}
@@ -76,14 +76,14 @@ export default function SettingsPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-bold font-mono text-[#f0f6fc]">Obsidian Flux</span>
-                {theme === 'obsidian' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#3eb1ff]/20 text-[#3eb1ff] border border-[#3eb1ff]/40">
-                    ACTIVE
+                {variant === 'obsidian' && (
+                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#3eb1ff]/20 text-[#3eb1ff] border border-[#3eb1ff]/40 font-bold">
+                    {t('common.active')}
                   </span>
                 )}
               </div>
               <p className="text-xs text-[#8b949e] mb-4">
-                Sleek dark canvas (#0b1326) with refined cyan primary accents (#3eb1ff).
+                {t('settings.obsidian_desc')}
               </p>
             </div>
 
@@ -96,9 +96,9 @@ export default function SettingsPage() {
 
           {/* Kinetic Minimalist Theme Card */}
           <div
-            onClick={() => setTheme('kinetic')}
+            onClick={() => setVariant('kinetic')}
             className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-              theme === 'kinetic'
+              variant === 'kinetic'
                 ? 'bg-[#0c162d] border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.25)]'
                 : 'bg-[#060b17] border-[#1e293b] hover:border-[#00f0ff]/50'
             }`}
@@ -106,14 +106,14 @@ export default function SettingsPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-bold font-mono text-white">Kinetic Minimalist</span>
-                {theme === 'kinetic' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40">
-                    ACTIVE
+                {variant === 'kinetic' && (
+                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 font-bold">
+                    {t('common.active')}
                   </span>
                 )}
               </div>
               <p className="text-xs text-[#94a3b8] mb-4">
-                Deep black canvas (#060b17) paired with electric neon blue glow (#00f0ff).
+                {t('settings.kinetic_desc')}
               </p>
             </div>
 
@@ -129,18 +129,18 @@ export default function SettingsPage() {
       {/* Network & Infrastructure Toggles */}
       <div className="col-span-12 md:col-span-8 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
-          Gateway & Security Rules
+          {t('settings.gateway_rules')}
         </h2>
         <p className="text-xs text-[var(--text-muted)] mb-5">
-          Configure central Nginx reverse proxy routes and Keycloak IAM tokens.
+          {t('settings.gateway_subtitle')}
         </p>
 
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">Nginx Gateway Proxy</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.nginx_proxy')}</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                Route /dashboard requests to localhost:3000
+                {t('settings.nginx_proxy_desc')}
               </div>
             </div>
             <button
@@ -160,9 +160,9 @@ export default function SettingsPage() {
 
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">Keycloak OAuth2 / OIDC</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.keycloak_sso')}</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                Validate Bearer tokens against Keycloak auth realm
+                {t('settings.keycloak_sso_desc')}
               </div>
             </div>
             <button
@@ -182,9 +182,9 @@ export default function SettingsPage() {
 
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">OpenTelemetry Stream</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.telemetry_stream')}</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                Push live CPU/RAM telemetry logs to SigNoz collector
+                {t('settings.telemetry_stream_desc')}
               </div>
             </div>
             <button
@@ -207,7 +207,7 @@ export default function SettingsPage() {
       {/* System Information & Update Status */}
       <div className="col-span-12 md:col-span-4 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
-          System Update
+          {t('settings.system_update')}
         </h2>
         <p className="text-xs text-[var(--text-muted)] mb-4">
           Loeger OS Platform Release
@@ -221,12 +221,12 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono text-[var(--text-muted)]">Build Target</span>
-            <span className="text-xs font-mono text-[var(--text-main)]">Next.js 15+ App Router</span>
+            <span className="text-xs font-mono text-[var(--text-main)]">Next.js 16+ App Router</span>
           </div>
 
           <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center gap-2 text-emerald-400 text-xs font-mono">
             <span className="material-symbols-outlined text-sm">verified</span>
-            <span>Platform Up to Date</span>
+            <span>{t('settings.platform_up_to_date')}</span>
           </div>
         </div>
       </div>

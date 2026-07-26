@@ -2,20 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslation } from '@loeger-os/shared';
 import { useAuth } from '../providers/AuthProvider';
 
-interface NavItem {
-  name: string;
+interface NavItemConfig {
+  key: string;
+  defaultName: string;
   href: string;
   icon: string;
   badge?: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: 'dashboard' },
-  { name: 'Profile', href: '/profile', icon: 'person' },
-  { name: 'Household', href: '/household', icon: 'home_app_logo' },
-  { name: 'Settings', href: '/settings', icon: 'settings' },
+const NAV_CONFIG: NavItemConfig[] = [
+  { key: 'nav.dashboard', defaultName: 'Dashboard', href: '/', icon: 'dashboard' },
+  { key: 'nav.profile', defaultName: 'Profile', href: '/profile', icon: 'person' },
+  { key: 'nav.household', defaultName: 'Household', href: '/household', icon: 'home_app_logo' },
+  { key: 'nav.settings', defaultName: 'Settings', href: '/settings', icon: 'settings' },
 ];
 
 /**
@@ -24,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
  */
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
 
   return (
@@ -46,15 +49,16 @@ export function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto">
         <div className="px-3 pb-2 text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
-          Main Navigation
+          {t('nav.main_navigation')}
         </div>
 
-        {NAV_ITEMS.map((item) => {
+        {NAV_CONFIG.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          const translatedName = t(item.key);
 
           return (
             <Link
-              key={item.name}
+              key={item.key}
               href={item.href}
               className={`relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
                 isActive
@@ -77,7 +81,7 @@ export function Sidebar() {
                 {item.icon}
               </span>
 
-              <span>{item.name}</span>
+              <span>{translatedName}</span>
 
               {item.badge && (
                 <span className="ml-auto px-2 py-0.5 text-[10px] font-mono rounded-full bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/30">
@@ -110,7 +114,7 @@ export function Sidebar() {
           className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 hover:bg-red-900/30 text-xs font-mono transition-all duration-200 cursor-pointer"
         >
           <span className="material-symbols-outlined text-sm">logout</span>
-          <span>Logout (Abmelden)</span>
+          <span>{t('common.logout')}</span>
         </button>
       </div>
     </aside>
