@@ -1,20 +1,17 @@
 import os
-import uuid
 import logging
 import jwt
 from typing import Optional
 from fastapi import Request, HTTPException, status
 from pydantic import BaseModel
-from src.core.config import settings
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
-MOCK_HOME_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
-class UserHomeContext(BaseModel):
-    user_id: uuid.UUID
-    home_id: uuid.UUID
+class UserHouseholdContext(BaseModel):
+    user_id: str
+    household_id: Optional[int] = None
     email: Optional[str] = None
     username: Optional[str] = None
     roles: list[str] = []
@@ -58,12 +55,12 @@ def decode_keycloak_token(token: str) -> dict:
         )
 
 
-async def get_current_user_and_home(request: Request) -> UserHomeContext:
-    """Dependency injector providing authenticated user and active household context from Keycloak JWT."""
+async def get_current_user_and_household(request: Request) -> UserHouseholdContext:
+    """Dependency injector providing authenticated user and household context from Keycloak JWT."""
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "true" or settings.ENVIRONMENT == "testing":
-            return UserHomeContext(user_id=MOCK_USER_ID, home_id=MOCK_HOME_ID)
+            return UserHouseholdContext(user_id="test-user", household_id=1)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="missing authorization header",
@@ -86,25 +83,19 @@ async def get_current_user_and_home(request: Request) -> UserHomeContext:
             detail="missing sub claim in token",
         )
 
-    try:
-        user_id = uuid.UUID(sub)
-    except ValueError:
-        user_id = uuid.uuid5(uuid.NAMESPACE_DNS, sub)
-
-    hh_str = payload.get("household_id") or payload.get("active_household_id") or request.headers.get("X-Household-ID")
-    if hh_str:
+    hh_val = payload.get("household_id") or payload.get("active_household_id") or request.headers.get("X-Household-ID")
+    parsed_hh_id: Optional[int] = None
+    if hh_val is not None:
         try:
-            home_id = uuid.UUID(hh_str)
-        except ValueError:
-            home_id = uuid.uuid5(uuid.NAMESPACE_DNS, hh_str)
-    else:
-        home_id = MOCK_HOME_ID
+            parsed_hh_id = int(hh_val)
+        except (ValueError, TypeError):
+            parsed_hh_id = None
 
     roles = payload.get("realm_access", {}).get("roles", [])
 
-    return UserHomeContext(
-        user_id=user_id,
-        home_id=home_id,
+    return UserHouseholdContext(
+        user_id=sub,
+        household_id=parsed_hh_id,
         email=payload.get("email"),
         username=payload.get("preferred_username"),
         roles=roles,

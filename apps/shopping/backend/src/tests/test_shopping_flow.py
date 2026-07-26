@@ -262,3 +262,35 @@ async def test_sync_to_pantry_flow_and_history_logging(mock_bulk_add: AsyncMock,
 
     rice_hist = next(x for x in histories if x.name == "Basmati Rice")
     assert rice_hist.purchase_count == 2
+
+
+@pytest.mark.asyncio
+async def test_push_shopping_item(client: AsyncClient, db_session: AsyncSession):
+    payload = {
+        "name": "Oat Milk",
+        "brand": "Oatly",
+        "barcode": "7394376615967",
+        "quantity": 2.0,
+        "unit": "l",
+    }
+    response = await client.post("/api/v1/shopping/items", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["name"] == "Oat Milk"
+    assert data["quantity"] == 2.0
+    assert data["unit"] == "l"
+    assert data["is_auto_generated"] is True
+
+
+@pytest.mark.asyncio
+async def test_unauthorized_access(client: AsyncClient):
+    def fake_getenv(key, default=None):
+        if key in ("PYTEST_CURRENT_TEST", "TESTING"):
+            return None
+        return default
+
+    with patch("os.getenv", side_effect=fake_getenv):
+        with patch("src.core.config.settings.ENVIRONMENT", "production"):
+            response = await client.get("/api/v1/shopping-lists", headers={})
+            assert response.status_code == 401
+            assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()

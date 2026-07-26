@@ -25,15 +25,10 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
         try:
             module = importlib.import_module(module_name)
-            router = getattr(module, "router", None)
-            if isinstance(router, APIRouter):
-                app.include_router(router)
-            else:
-                for attr_name in dir(module):
-                    attr = getattr(module, attr_name)
-                    if isinstance(attr, APIRouter):
-                        app.include_router(attr)
-                        break
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if isinstance(attr, APIRouter):
+                    app.include_router(attr)
         except Exception as e:
             print(f"Failed to import router from {module_name}: {e}")
 

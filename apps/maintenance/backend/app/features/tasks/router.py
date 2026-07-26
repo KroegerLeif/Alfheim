@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
+from app.core.dependencies import get_current_user_and_household, UserHouseholdContext
 from app.features.devices.exceptions import DeviceNotFoundError
 from app.features.tasks.schemas import MaintenanceSubmission, TaskStateUpdate
 from app.features.devices.schemas import ServiceHistoryEventRead, ServiceHistoryEventDetailRead, MaintenanceStepRead
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/api/v1", tags=["tasks"])
 async def submit_maintenance(
     payload: MaintenanceSubmission,
     session: AsyncSession = Depends(get_db_session),
+    context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
     """Log a new service history event and update completed steps' due dates."""
     try:
@@ -46,9 +48,11 @@ async def submit_maintenance(
 async def get_service_history(
     household_id: Optional[int] = Query(default=None, description="Optional household filter"),
     session: AsyncSession = Depends(get_db_session),
+    context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
     """Fetch all ServiceHistoryEvent records joined with their Device."""
-    return await TaskService.get_history(session, household_id=household_id)
+    target_hh = household_id if household_id is not None else context.household_id
+    return await TaskService.get_history(session, household_id=target_hh)
 
 
 @router.post(
@@ -60,6 +64,7 @@ async def update_task_state(
     step_id: int = Path(..., description="The MaintenanceStep primary key"),
     payload: TaskStateUpdate = ...,
     session: AsyncSession = Depends(get_db_session),
+    context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
     """Persist lightweight step updates from ScheduledView accordion."""
     try:
