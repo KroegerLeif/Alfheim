@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useTranslation } from "@loeger-os/shared";
 import { useLocations, useCreateLocation } from "../services/locationService";
 import { useInventoryState, useLowStockItems } from "@/features/inventory/services/inventoryService";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import {
  * Also includes an inline creation form to provision new physical zones.
  */
 export function LocationsGridView() {
-  const t = useTranslations("Locations");
+  const { t } = useTranslation();
 
   // State to toggle inline form
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -74,7 +74,7 @@ export function LocationsGridView() {
       },
       {
         onSuccess: () => {
-          setSuccessMessage(t("success"));
+          setSuccessMessage(t("pantry.locationSuccess"));
           setName("");
           setDescription("");
           setIsFormOpen(false);
@@ -93,15 +93,15 @@ export function LocationsGridView() {
   const isLoadingData = isLoadingLocs || isLoadingStates || isLoadingLowStock;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-background text-foreground font-mono p-8 space-y-6">
+    <div className="flex-1 flex flex-col min-w-0 bg-[var(--surface-canvas)] text-[var(--text-main)] font-mono p-8 space-y-6">
       {/* Top Bar Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--border-subtle)] pb-6 gap-4">
         <div>
-          <h1 className="text-4xl font-heading font-black tracking-wide leading-none select-none">
-            {t("title")}
+          <h1 className="text-4xl font-heading font-black tracking-wide leading-none select-none text-[var(--text-main)]">
+            {t("pantry.locationsTitle")}
           </h1>
-          <p className="uppercase tracking-widest text-[10px] text-muted-foreground mt-2 font-mono">
-            {t("subtitle")}
+          <p className="uppercase tracking-widest text-[10px] text-[var(--text-muted)] mt-2 font-mono">
+            {t("pantry.locationsSub")}
           </p>
         </div>
 
@@ -112,17 +112,17 @@ export function LocationsGridView() {
             clearMessages();
           }}
           variant="outline"
-          className="py-6 px-6 font-black tracking-widest border-2 border-black hover:bg-black hover:text-white cursor-pointer select-none transition-all h-12 flex items-center justify-center gap-2 self-start"
+          className="py-6 px-6 font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--surface-card)] text-[var(--primary-main)] hover:bg-[var(--primary-main)] hover:text-black cursor-pointer select-none transition-all h-12 flex items-center justify-center gap-2 self-start rounded-lg"
         >
           {isFormOpen ? (
             <>
               <Minus className="h-4 w-4" />
-              {t("createBtnClose")}
+              {t("pantry.createBtnClose")}
             </>
           ) : (
             <>
               <Plus className="h-4 w-4" />
-              {t("createBtn")}
+              {t("pantry.createBtn")}
             </>
           )}
         </Button>
@@ -130,13 +130,13 @@ export function LocationsGridView() {
 
       {/* Collapsible Inline Creation Form */}
       {isFormOpen && (
-        <div className="border border-border bg-neutral-50 p-6 max-w-xl animate-in fade-in slide-in-from-top-4 duration-200">
-          <h2 className="text-xl font-heading font-black tracking-wide border-b border-border pb-2 mb-4">
-            {t("createTitle")}
+        <div className="border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 max-w-xl animate-in fade-in slide-in-from-top-4 duration-200 rounded-lg shadow-sm">
+          <h2 className="text-xl font-heading font-black tracking-wide border-b border-[var(--border-subtle)] pb-2 mb-4 text-[var(--text-main)]">
+            {t("pantry.createLocationTitle")}
           </h2>
 
           {errorMessage && (
-            <div className="border border-destructive bg-red-50 text-destructive p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal mb-4">
+            <div className="border border-red-800/40 bg-red-950/20 text-red-400 p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal mb-4 rounded">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
             </div>
@@ -145,8 +145,8 @@ export function LocationsGridView() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Location Name */}
             <div className="space-y-1.5">
-              <label htmlFor="location-name" className="text-xs font-bold uppercase tracking-wider block">
-                {t("name")} *
+              <label htmlFor="location-name" className="text-xs font-bold uppercase tracking-wider block text-[var(--text-main)]">
+                {t("pantry.locationName")} *
               </label>
               <input
                 id="location-name"
@@ -158,14 +158,14 @@ export function LocationsGridView() {
                 }}
                 placeholder="e.g. Basement Room A"
                 required
-                className="w-full py-3 px-3 border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring text-sm h-12 uppercase font-mono"
+                className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase font-mono rounded"
               />
             </div>
 
             {/* Location Description */}
             <div className="space-y-1.5">
-              <label htmlFor="location-description" className="text-xs font-bold uppercase tracking-wider block">
-                {t("description")}
+              <label htmlFor="location-description" className="text-xs font-bold uppercase tracking-wider block text-[var(--text-main)]">
+                {t("pantry.locationDesc")}
               </label>
               <textarea
                 id="location-description"
@@ -176,7 +176,7 @@ export function LocationsGridView() {
                 }}
                 placeholder="e.g. Shelf unit against the west wall"
                 rows={3}
-                className="w-full py-3 px-3 border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring text-sm uppercase font-mono resize-none"
+                className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm uppercase font-mono resize-none rounded"
               />
             </div>
 
@@ -184,17 +184,17 @@ export function LocationsGridView() {
               <Button
                 type="submit"
                 disabled={createLocationMut.isPending}
-                className="w-full py-6 text-xs font-black tracking-widest border-2 border-black hover:bg-black hover:text-white cursor-pointer select-none transition-all flex items-center justify-center gap-2"
+                className="w-full py-6 text-xs font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--primary-main)] text-black hover:bg-[var(--primary-hover)] cursor-pointer select-none transition-all flex items-center justify-center gap-2 rounded-lg"
               >
                 {createLocationMut.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {t("creating")}
+                    {t("pantry.creatingLocation")}
                   </>
                 ) : (
                   <>
                     <Plus className="h-4 w-4" />
-                    {t("submit")}
+                    {t("pantry.submitLocation")}
                   </>
                 )}
               </Button>
@@ -205,7 +205,7 @@ export function LocationsGridView() {
 
       {/* Success Notification outside form */}
       {successMessage && !isFormOpen && (
-        <div className="border border-emerald-600 bg-emerald-50 text-emerald-950 p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal max-w-xl">
+        <div className="border border-emerald-800/40 bg-emerald-950/20 text-emerald-400 p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal max-w-xl rounded">
           <Check className="h-4 w-4 shrink-0 mt-0.5" />
           <span>{successMessage}</span>
         </div>
@@ -214,14 +214,14 @@ export function LocationsGridView() {
       {/* Locations Cards Grid View */}
       {isLoadingData ? (
         <div className="flex items-center justify-center py-20 gap-3">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-xs uppercase font-bold tracking-widest text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--primary-main)]" />
+          <span className="text-xs uppercase font-bold tracking-widest text-[var(--text-muted)]">
             POLLING PHYSICAL SPACES...
           </span>
         </div>
       ) : locations.length === 0 ? (
-        <div className="border border-dashed border-neutral-300 p-12 text-center text-xs text-muted-foreground uppercase tracking-widest">
-          {t("noLocations")}
+        <div className="border border-dashed border-[var(--border-subtle)] p-12 text-center text-xs text-[var(--text-muted)] uppercase tracking-widest rounded-lg">
+          {t("pantry.noLocations")}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,46 +243,46 @@ export function LocationsGridView() {
             return (
               <div 
                 key={loc.id} 
-                className="border border-border bg-white hover:border-black p-6 flex flex-col justify-between gap-6 transition-all"
+                className="border border-[var(--border-subtle)] bg-[var(--surface-card)] hover:border-[var(--border-accent)] p-6 flex flex-col justify-between gap-6 transition-all rounded-lg shadow-sm"
               >
                 {/* Location Title & Type Header */}
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-4">
-                    <h3 className="font-heading text-2xl font-bold uppercase tracking-wide leading-none truncate max-w-[200px]">
+                    <h3 className="font-heading text-2xl font-bold uppercase tracking-wide leading-none truncate max-w-[200px] text-[var(--text-main)]">
                       {loc.name}
                     </h3>
-                    <MapPin className="h-4 w-4 text-neutral-400 shrink-0 mt-0.5" />
+                    <MapPin className="h-4 w-4 text-[var(--text-muted)] shrink-0 mt-0.5" />
                   </div>
 
                   {loc.is_system && (
-                    <span className="inline-block text-[8px] font-bold tracking-wider px-1 py-0.5 border border-neutral-300 text-neutral-400 uppercase">
-                      {t("system")}
+                    <span className="inline-block text-[8px] font-bold tracking-wider px-1 py-0.5 border border-[var(--border-subtle)] text-[var(--text-muted)] uppercase rounded">
+                      {t("pantry.systemLocation")}
                     </span>
                   )}
 
-                  <p className="text-[10px] text-muted-foreground uppercase leading-relaxed line-clamp-2">
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase leading-relaxed line-clamp-2 font-sans">
                     {loc.description || "—"}
                   </p>
                 </div>
 
                 {/* Alarm Metrics Row (Badges) */}
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-100">
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--border-subtle)]">
                   {expiredCount === 0 && knappCount === 0 ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-1 uppercase tracking-wide border border-emerald-600 bg-emerald-50 text-emerald-950 select-none">
-                      {t("ok")}
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-1 uppercase tracking-wide border border-emerald-800/40 bg-emerald-950/20 text-emerald-400 select-none rounded">
+                      {t("pantry.ok")}
                     </span>
                   ) : (
                     <>
                       {expiredCount > 0 && (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold font-mono px-2 py-1 uppercase tracking-wide border border-destructive bg-red-50 text-destructive select-none">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold font-mono px-2 py-1 uppercase tracking-wide border border-red-800/40 bg-red-950/20 text-red-400 select-none rounded">
                           <Clock className="h-3 w-3 shrink-0" />
-                          {expiredCount} {t("mhd")}
+                          {expiredCount} {t("pantry.mhd")}
                         </span>
                       )}
                       {knappCount > 0 && (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold font-mono px-2 py-1 uppercase tracking-wide border border-amber-600 bg-amber-50 text-amber-900 select-none">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold font-mono px-2 py-1 uppercase tracking-wide border border-amber-800/40 bg-amber-950/20 text-amber-400 select-none rounded">
                           <AlertTriangle className="h-3 w-3 shrink-0" />
-                          {knappCount} {t("knapp")}
+                          {knappCount} {t("pantry.knapp")}
                         </span>
                       )}
                     </>

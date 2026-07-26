@@ -112,4 +112,10 @@ export interface LocationCreate {
   description?: string | null;
 }
 
+export interface CategoryCreate {
+  name: string;
+  description?: string | null;
+}
+
+
 

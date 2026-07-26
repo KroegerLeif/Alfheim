@@ -3,6 +3,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect } from "react";
 import Keycloak from "keycloak-js";
+import { AuthContext } from "@/lib/authContext";
+import { UserIdentity } from "@loeger-os/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -19,6 +21,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   );
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<UserIdentity | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [keycloakInstance, setKeycloakInstance] = useState<Keycloak | null>(null);
 
   useEffect(() => {
     // Only run Keycloak initialization in the browser context
@@ -39,13 +44,29 @@ export default function Providers({ children }: { children: ReactNode }) {
       .then((authenticated) => {
         if (authenticated) {
           setIsAuthenticated(true);
-          sessionStorage.setItem("token_pantry-frontend", keycloak.token || "");
+          setKeycloakInstance(keycloak);
+          const currentToken = keycloak.token || "";
+          setToken(currentToken);
+          sessionStorage.setItem("token_pantry-frontend", currentToken);
+
+          if (keycloak.tokenParsed) {
+            const parsed = keycloak.tokenParsed as any;
+            setUser({
+              name: parsed.name || parsed.preferred_username || "User",
+              preferred_username: parsed.preferred_username,
+              email: parsed.email,
+              given_name: parsed.given_name,
+              family_name: parsed.family_name,
+            });
+          }
 
           // Set up token auto-refresh
           const interval = setInterval(() => {
             keycloak.updateToken(70).then((refreshed) => {
               if (refreshed) {
-                sessionStorage.setItem("token_pantry-frontend", keycloak.token || "");
+                const refreshedToken = keycloak.token || "";
+                setToken(refreshedToken);
+                sessionStorage.setItem("token_pantry-frontend", refreshedToken);
               }
             }).catch(() => {
               console.error("Failed to refresh Keycloak token");
@@ -60,6 +81,12 @@ export default function Providers({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  const handleLogout = () => {
+    if (keycloakInstance) {
+      keycloakInstance.logout();
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-black text-white">
@@ -72,8 +99,11 @@ export default function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <AuthContext.Provider value={{ user, token, logout: handleLogout }}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </AuthContext.Provider>
   );
 }
+

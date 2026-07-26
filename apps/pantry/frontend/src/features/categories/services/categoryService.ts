@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pantryClient } from "@/lib/api";
-import { CategoryRead } from "@/features/inventory/types";
+import { CategoryRead, CategoryCreate } from "@/features/inventory/types";
 
 /**
  * Hook to retrieve product category classifications from the backend.
@@ -14,3 +14,21 @@ export function useCategories() {
         .json<CategoryRead[]>(),
   });
 }
+
+/**
+ * Hook to create a new product category.
+ */
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CategoryRead, any, CategoryCreate>({
+    mutationFn: (payload) =>
+      pantryClient
+        .post("api/v1/categories", { json: payload })
+        .json<CategoryRead>(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+
