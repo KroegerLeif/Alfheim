@@ -1,21 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppCatalog, AddAppModal } from '@/features/apps';
+import { useAppCatalog, AddAppModal, EditAppModal } from '@/features/apps';
 import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
 import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
+import { AppItem } from '@/shared/types';
 import Link from 'next/link';
 
 /**
  * Root Dashboard View.
  * Renders live telemetry stats, interactive terminal log shell, dynamic PostgreSQL app catalog,
- * and dynamic registration modal for internal apps & external portals.
+ * and dynamic registration/edit modals for internal apps & external portals.
  */
 export default function DashboardPage() {
   const { data: catalog, isLoading, isError, refetch } = useAppCatalog();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<'internal' | 'external'>('internal');
+  const [editingApp, setEditingApp] = useState<AppItem | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const openAddModal = (cat: 'internal' | 'external') => {
@@ -23,8 +26,18 @@ export default function DashboardPage() {
     setIsModalOpen(true);
   };
 
+  const openEditModal = (app: AppItem) => {
+    setEditingApp(app);
+    setIsEditModalOpen(true);
+  };
+
   const handleSuccess = (appName: string) => {
     setToastMessage(`Service "${appName}" registered successfully!`);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleEditSuccess = (appName: string) => {
+    setToastMessage(`Service "${appName}" updated successfully!`);
     setTimeout(() => setToastMessage(null), 4000);
   };
 
@@ -141,7 +154,17 @@ export default function DashboardPage() {
                           {app.icon || app.icon_url || 'grid_view'}
                         </span>
                       </div>
-                      {renderStatusBadge(app.status)}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(app)}
+                          className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
+                          title="Edit application details"
+                        >
+                          <span className="material-symbols-outlined text-sm">settings</span>
+                        </button>
+                        {renderStatusBadge(app.status)}
+                      </div>
                     </div>
 
                     <h3 className="text-base font-bold text-[var(--text-main)] group-hover:text-[var(--primary-main)] transition-colors duration-150">
@@ -224,7 +247,17 @@ export default function DashboardPage() {
                         {app.icon || app.icon_url || 'link'}
                       </span>
                     </div>
-                    {renderStatusBadge(app.status)}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(app)}
+                        className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
+                        title="Edit application details"
+                      >
+                        <span className="material-symbols-outlined text-sm">settings</span>
+                      </button>
+                      {renderStatusBadge(app.status)}
+                    </div>
                   </div>
 
                   <h3 className="text-base font-bold text-[var(--text-main)]">
@@ -271,6 +304,17 @@ export default function DashboardPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleSuccess}
         initialCategory={modalCategory}
+      />
+
+      {/* Edit App Modal */}
+      <EditAppModal
+        app={editingApp}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingApp(null);
+        }}
+        onSuccess={handleEditSuccess}
       />
     </>
   );

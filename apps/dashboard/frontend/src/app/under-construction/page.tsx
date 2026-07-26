@@ -1,12 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-/**
- * Under Construction fallback page view for applications in progress or undergoing maintenance.
- */
-export default function UnderConstructionPage() {
+function UnderConstructionContent() {
   const searchParams = useSearchParams();
   const appName = searchParams.get('app') || 'Service';
 
@@ -41,3 +39,21 @@ export default function UnderConstructionPage() {
     </div>
   );
 }
+
+/**
+ * Under Construction fallback page view for applications in progress or undergoing maintenance.
+ */
+export default function UnderConstructionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="col-span-12 min-h-[70vh] flex flex-col items-center justify-center p-8 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
+          <div className="h-8 w-64 bg-[var(--surface-elevated)] animate-pulse rounded" />
+        </div>
+      }
+    >
+      <UnderConstructionContent />
+    </Suspense>
+  );
+}
+

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchAppCatalog, createApp } from '@/shared/api';
+import { fetchAppCatalog, createApp, updateApp } from '@/shared/api';
 import { AppCatalogResponse, CreateAppRequest, AppItem } from '@/shared/types';
 
 export const APP_CATALOG_QUERY_KEY = ['apps', 'catalog'];
@@ -29,3 +29,19 @@ export function useCreateApp() {
     },
   });
 }
+
+/**
+ * Custom TanStack Query mutation hook to update an app via PUT /api/v1/apps/{id}.
+ * Automatically invalidates the app catalog query cache.
+ */
+export function useUpdateApp() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AppItem, Error, { id: string; payload: Partial<CreateAppRequest> }>({
+    mutationFn: ({ id, payload }) => updateApp(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: APP_CATALOG_QUERY_KEY });
+    },
+  });
+}
+
