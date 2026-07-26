@@ -34,6 +34,19 @@ type CreateAppRequest struct {
 	RequiredRole string `json:"required_role"`
 }
 
+// UpdateAppRequest payload for PUT /api/v1/apps/{id}.
+type UpdateAppRequest struct {
+	Title       string `json:"title"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	AppURL      string `json:"app_url,omitempty"`
+	Icon        string `json:"icon"`
+	IconURL     string `json:"icon_url,omitempty"`
+	IsExternal  bool   `json:"is_external"`
+	Status      string `json:"status"`
+}
+
 // AppCatalogResponse groups accessible applications by category.
 type AppCatalogResponse struct {
 	Internal []AppDTO `json:"internal"`

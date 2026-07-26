@@ -85,12 +85,31 @@ func (m *mockAppRepository) GetActiveApps(ctx context.Context) ([]*apps.AppItem,
 	return m.items, nil
 }
 
+func (m *mockAppRepository) GetAppByID(ctx context.Context, id string) (*apps.AppItem, error) {
+	for _, item := range m.items {
+		if item.ID == id {
+			return item, nil
+		}
+	}
+	return nil, apps.ErrAppNotFound
+}
+
 func (m *mockAppRepository) CreateApp(ctx context.Context, app *apps.AppItem) error {
 	app.ID = "app-created-1"
 	app.CreatedAt = time.Now()
 	app.UpdatedAt = time.Now()
 	m.items = append(m.items, app)
 	return nil
+}
+
+func (m *mockAppRepository) UpdateApp(ctx context.Context, app *apps.AppItem) error {
+	for i, item := range m.items {
+		if item.ID == app.ID {
+			m.items[i] = app
+			return nil
+		}
+	}
+	return apps.ErrAppNotFound
 }
 
 func (m *mockAppRepository) SeedDefaultApps(ctx context.Context) error {
@@ -172,5 +191,35 @@ func TestAppService_CreateApp(t *testing.T) {
 
 	if created.Title != "Custom Service" || !created.IsExternal || created.Category != "external" {
 		t.Errorf("unexpected created DTO content: %+v", created)
+	}
+}
+
+func TestAppService_UpdateApp(t *testing.T) {
+	repo := newMockAppRepository()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := apps.NewService(repo, logger)
+	ctx := context.Background()
+
+	// Test non-existent app
+	_, err := svc.UpdateApp(ctx, "app-non-existent", apps.UpdateAppRequest{Title: "Updated Title"})
+	if err == nil {
+		t.Error("expected error for non-existent app update, got nil")
+	}
+
+	// Test updating existing app
+	updated, err := svc.UpdateApp(ctx, "app-1", apps.UpdateAppRequest{
+		Title:       "Updated Pantry",
+		Description: "Updated description",
+		URL:         "/pantry-v2",
+		Icon:        "kitchen",
+		IsExternal:  false,
+		Status:      "active",
+	})
+	if err != nil {
+		t.Fatalf("expected no error updating app-1, got: %v", err)
+	}
+
+	if updated.Title != "Updated Pantry" || updated.Description != "Updated description" || updated.URL != "/pantry-v2" {
+		t.Errorf("unexpected updated DTO fields: %+v", updated)
 	}
 }

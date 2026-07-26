@@ -2,15 +2,19 @@ package apps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Repository database access contract for app catalog.
 type Repository interface {
 	GetActiveApps(ctx context.Context) ([]*AppItem, error)
+	GetAppByID(ctx context.Context, id string) (*AppItem, error)
 	CreateApp(ctx context.Context, app *AppItem) error
+	UpdateApp(ctx context.Context, app *AppItem) error
 	SeedDefaultApps(ctx context.Context) error
 }
 
@@ -106,6 +110,80 @@ func (r *repository) CreateApp(ctx context.Context, app *AppItem) error {
 	app.Icon = app.IconURL
 	app.URL = app.AppURL
 	app.IsActive = true
+	return nil
+}
+
+func (r *repository) GetAppByID(ctx context.Context, id string) (*AppItem, error) {
+	query := `
+		SELECT id, name, slug, description, icon_url, app_url, category, required_role, is_active,
+		       COALESCE(is_external, FALSE) as is_external,
+		       COALESCE(status, 'active') as status,
+		       COALESCE(is_default, TRUE) as is_default,
+		       display_order, created_at, updated_at
+		FROM app_catalog
+		WHERE id = $1
+	`
+
+	app := &AppItem{}
+	var catStr, roleStr string
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&app.ID,
+		&app.Name,
+		&app.Slug,
+		&app.Description,
+		&app.IconURL,
+		&app.AppURL,
+		&catStr,
+		&roleStr,
+		&app.IsActive,
+		&app.IsExternal,
+		&app.Status,
+		&app.IsDefault,
+		&app.DisplayOrder,
+		&app.CreatedAt,
+		&app.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrAppNotFound
+		}
+		return nil, fmt.Errorf("failed to query app by id %s: %w", id, err)
+	}
+
+	app.Title = app.Name
+	app.Icon = app.IconURL
+	app.URL = app.AppURL
+	app.Category = AppCategory(catStr)
+	app.RequiredRole = AppRole(roleStr)
+	return app, nil
+}
+
+func (r *repository) UpdateApp(ctx context.Context, app *AppItem) error {
+	query := `
+		UPDATE app_catalog
+		SET name = $1, slug = $2, description = $3, icon_url = $4, app_url = $5, category = $6, is_external = $7, status = $8, updated_at = NOW()
+		WHERE id = $9
+	`
+
+	tag, err := r.pool.Exec(
+		ctx,
+		query,
+		app.Name,
+		app.Slug,
+		app.Description,
+		app.IconURL,
+		app.AppURL,
+		string(app.Category),
+		app.IsExternal,
+		app.Status,
+		app.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update app catalog item %s: %w", app.ID, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrAppNotFound
+	}
 	return nil
 }
 

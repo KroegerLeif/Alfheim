@@ -15,6 +15,7 @@ import (
 type Service interface {
 	GetPermittedApps(ctx context.Context, userRealmRoles []string, householdRole string) (*AppCatalogResponse, error)
 	CreateApp(ctx context.Context, req CreateAppRequest) (*AppDTO, error)
+	UpdateApp(ctx context.Context, id string, req UpdateAppRequest) (*AppDTO, error)
 }
 
 type service struct {
@@ -148,6 +149,68 @@ func (s *service) CreateApp(ctx context.Context, req CreateAppRequest) (*AppDTO,
 	}
 
 	dto := ToDTO(item)
+	return &dto, nil
+}
+
+func (s *service) UpdateApp(ctx context.Context, id string, req UpdateAppRequest) (*AppDTO, error) {
+	if strings.TrimSpace(id) == "" {
+		return nil, errors.New("app id is required")
+	}
+
+	app, err := s.repo.GetAppByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		title = strings.TrimSpace(req.Name)
+	}
+	if title != "" {
+		app.Name = title
+		app.Title = title
+		reg := regexp.MustCompile("[^a-z0-9]+")
+		app.Slug = strings.Trim(reg.ReplaceAllString(strings.ToLower(title), "-"), "-")
+	}
+
+	if req.Description != "" {
+		app.Description = req.Description
+	}
+
+	url := strings.TrimSpace(req.URL)
+	if url == "" {
+		url = strings.TrimSpace(req.AppURL)
+	}
+	if url != "" {
+		app.AppURL = url
+		app.URL = url
+	}
+
+	icon := strings.TrimSpace(req.Icon)
+	if icon == "" {
+		icon = strings.TrimSpace(req.IconURL)
+	}
+	if icon != "" {
+		app.IconURL = icon
+		app.Icon = icon
+	}
+
+	app.IsExternal = req.IsExternal
+	if req.IsExternal {
+		app.Category = CategoryExternal
+	} else {
+		app.Category = CategoryInternal
+	}
+
+	if req.Status != "" {
+		app.Status = strings.ToLower(strings.TrimSpace(req.Status))
+	}
+
+	if err := s.repo.UpdateApp(ctx, app); err != nil {
+		return nil, fmt.Errorf("failed to update catalog app %s: %w", id, err)
+	}
+
+	dto := ToDTO(app)
 	return &dto, nil
 }
 

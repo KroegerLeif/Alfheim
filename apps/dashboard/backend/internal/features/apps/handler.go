@@ -2,6 +2,7 @@ package apps
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -24,6 +25,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 		r.Use(authMiddleware)
 		r.Get("/api/v1/apps", h.GetAppCatalog)
 		r.Post("/api/v1/apps", h.CreateApp)
+		r.Put("/api/v1/apps/{id}", h.UpdateApp)
 	})
 }
 
@@ -72,4 +74,35 @@ func (h *Handler) CreateApp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(createdApp)
+}
+
+// UpdateApp updates an existing application in the catalog.
+func (h *Handler) UpdateApp(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, `{"error":"bad_request","message":"app id parameter required"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateAppRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"bad_request","message":"invalid json payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	updatedApp, err := h.service.UpdateApp(r.Context(), id, req)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		if errors.Is(err, ErrAppNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "app not found"})
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(updatedApp)
 }
