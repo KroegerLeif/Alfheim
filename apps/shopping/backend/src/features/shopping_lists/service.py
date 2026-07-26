@@ -9,6 +9,7 @@ from src.features.shopping_lists.schemas import (
     ShoppingListCreate,
     ShoppingItemCreate,
     ShoppingItemUpdate,
+    PushItemPayload,
     SyncToPantryResponse,
     UnrecognizedShoppingItem,
 )
@@ -110,6 +111,36 @@ class ShoppingListService:
             barcode=payload.barcode.strip() if payload.barcode else None,
             quantity=payload.quantity,
             unit=payload.unit.strip().lower(),
+        )
+        session.add(db_item)
+        await session.commit()
+        await session.refresh(db_item)
+        return db_item
+
+    @staticmethod
+    async def push_item(
+        session: AsyncSession,
+        payload: PushItemPayload,
+        home_id: uuid.UUID,
+        owner_id: uuid.UUID,
+    ) -> ShoppingItem:
+        """Push an out-of-stock item directly into a household shopping list."""
+        list_id = payload.list_id
+        if list_id:
+            await ShoppingListService.get_list(session, list_id, home_id)
+        else:
+            lists = await ShoppingListService.get_lists(session, home_id, owner_id)
+            list_id = lists[0].id
+
+        db_item = ShoppingItem(
+            list_id=list_id,
+            name=payload.name.strip(),
+            brand=payload.brand.strip() if payload.brand else None,
+            barcode=payload.barcode.strip() if payload.barcode else None,
+            quantity=payload.quantity,
+            unit=payload.unit.strip().lower(),
+            is_auto_generated=True,
+            product_id=payload.product_id,
         )
         session.add(db_item)
         await session.commit()

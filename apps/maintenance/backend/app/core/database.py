@@ -215,10 +215,3 @@ async def init_db() -> None:
     """
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-
-    # Run automated database seeding if the Household table is empty
-    async with async_session_factory() as session:
-        result = await session.execute(select(Household))
-        households_list = result.scalars().all()
-        if not households_list:
-            await seed_database(session)

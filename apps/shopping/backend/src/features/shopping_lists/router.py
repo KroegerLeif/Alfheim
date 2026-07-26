@@ -12,10 +12,12 @@ from src.features.shopping_lists.schemas import (
     ShoppingItemCreate,
     ShoppingItemUpdate,
     ShoppingItemRead,
+    PushItemPayload,
     SyncToPantryResponse,
 )
 
 router = APIRouter(prefix="/api/v1/shopping-lists", tags=["shopping-lists"])
+items_router = APIRouter(prefix="/api/v1/shopping/items", tags=["shopping-items"])
 
 
 @router.post(
@@ -193,4 +195,24 @@ async def sync_to_pantry(
         list_id=list_id,
         home_id=context.home_id,
         token=token,
+    )
+
+
+@items_router.post(
+    "",
+    response_model=ShoppingItemRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Push an out-of-stock item to the household shopping list",
+)
+async def push_shopping_item(
+    payload: PushItemPayload,
+    session: AsyncSession = Depends(get_db_session),
+    context: UserHomeContext = Depends(get_current_user_and_home),
+):
+    """Internal inter-service API allowing Pantry or external callers to push out-of-stock items directly to the household shopping list."""
+    return await ShoppingListService.push_item(
+        session=session,
+        payload=payload,
+        home_id=context.home_id,
+        owner_id=context.user_id,
     )

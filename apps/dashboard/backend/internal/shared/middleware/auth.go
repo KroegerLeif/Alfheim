@@ -29,6 +29,7 @@ type UserClaims struct {
 	GivenName         string   `json:"given_name"`
 	FamilyName        string   `json:"family_name"`
 	Roles             []string `json:"roles"`
+	HouseholdID       string   `json:"household_id"`
 }
 
 // Authenticator handles OIDC JWT validation via Keycloak JWKS endpoint.
@@ -63,13 +64,17 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			http.Error(w, `{"error":"unauthorized","message":"missing authorization header"}`, http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"error":"unauthorized","message":"missing authorization header"}`))
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			http.Error(w, `{"error":"unauthorized","message":"invalid authorization header format"}`, http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"error":"unauthorized","message":"invalid authorization header format"}`))
 			return
 		}
 
@@ -78,17 +83,21 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 		token, err := jwt.Parse(rawToken, a.jwks.Keyfunc)
 		if err != nil || !token.Valid {
 			a.log.Warn("invalid jwt bearer token received", slog.String("error", err.Error()))
-			http.Error(w, `{"error":"unauthorized","message":"invalid or expired token"}`, http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"error":"unauthorized","message":"invalid or expired token"}`))
 			return
 		}
 
 		claimsMap, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			http.Error(w, `{"error":"unauthorized","message":"invalid token claims payload"}`, http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"error":"unauthorized","message":"invalid token claims payload"}`))
 			return
 		}
 
-		userClaims := extractUserClaims(claimsMap)
+		userClaims := extractUserClaims(claimsMap, r)
 		ctx := context.WithValue(r.Context(), UserContextKey, userClaims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -103,7 +112,7 @@ func GetUserClaims(ctx context.Context) (*UserClaims, error) {
 	return claims, nil
 }
 
-func extractUserClaims(claims jwt.MapClaims) *UserClaims {
+func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 	uc := &UserClaims{}
 
 	if sub, ok := claims["sub"].(string); ok {
@@ -120,6 +129,14 @@ func extractUserClaims(claims jwt.MapClaims) *UserClaims {
 	}
 	if familyName, ok := claims["family_name"].(string); ok {
 		uc.FamilyName = familyName
+	}
+
+	if householdID, ok := claims["household_id"].(string); ok && householdID != "" {
+		uc.HouseholdID = householdID
+	} else if activeHouseholdID, ok := claims["active_household_id"].(string); ok && activeHouseholdID != "" {
+		uc.HouseholdID = activeHouseholdID
+	} else if headerHousehold := r.Header.Get("X-Household-ID"); headerHousehold != "" {
+		uc.HouseholdID = headerHousehold
 	}
 
 	if realmAccess, ok := claims["realm_access"].(map[string]interface{}); ok {

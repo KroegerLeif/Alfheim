@@ -21,17 +21,10 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
         try:
             module = importlib.import_module(module_name)
-            # Check for standard 'router' variable
-            router = getattr(module, "router", None)
-            if isinstance(router, APIRouter):
-                app.include_router(router)
-            else:
-                # Fallback: scan all module attributes for an APIRouter
-                for attr_name in dir(module):
-                    attr = getattr(module, attr_name)
-                    if isinstance(attr, APIRouter):
-                        app.include_router(attr)
-                        break
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if isinstance(attr, APIRouter):
+                    app.include_router(attr)
         except Exception as e:
             print(f"Failed to import router from {module_name}: {e}")
 
@@ -39,19 +32,8 @@ def discover_and_include_routers(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB tables
-    from src.core.database import init_db, async_session_factory
+    from src.core.database import init_db
     await init_db()
-
-    # Seed default locations, categories, and products
-    from src.features.locations import seed_default_locations
-    from src.features.categories import seed_default_categories
-    from src.features.products import seed_default_products
-    from src.features.inventory import seed_default_inventory
-    async with async_session_factory() as session:
-        await seed_default_locations(session)
-        await seed_default_categories(session)
-        await seed_default_products(session)
-        await seed_default_inventory(session)
 
     try:
         # Initialize FastMCP lifespan

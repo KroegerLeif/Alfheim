@@ -146,6 +146,7 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "pint" },
     { name = "pydantic-settings" },
+    { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlmodel" },
     { name = "uvicorn" },
 ]
@@ -175,6 +176,7 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = ">=1.25.0" },
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
     { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.39.0" },
 ]

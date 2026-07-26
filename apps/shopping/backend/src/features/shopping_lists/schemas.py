@@ -20,6 +20,16 @@ class ShoppingItemCreate(ShoppingItemBase):
     pass
 
 
+class PushItemPayload(BaseModel):
+    name: str = Field(min_length=1, max_length=255, description="Name of the item.")
+    brand: Optional[str] = Field(default=None, max_length=255)
+    barcode: Optional[str] = Field(default=None, max_length=100)
+    quantity: float = Field(default=1.0, gt=0)
+    unit: str = Field(default="piece", max_length=50)
+    product_id: Optional[uuid.UUID] = Field(default=None)
+    list_id: Optional[uuid.UUID] = Field(default=None)
+
+
 class ShoppingItemUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     brand: Optional[str] = Field(default=None, max_length=255)
