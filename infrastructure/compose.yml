@@ -62,6 +62,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=public-ingress"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.maxHeaderBytes=1048576"
     environment:
       - DOCKER_API_VERSION=1.40
     ports:

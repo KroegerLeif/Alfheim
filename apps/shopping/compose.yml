@@ -73,6 +73,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3010
+      - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3010/shopping/en || exit 1"]
       interval: 5s
