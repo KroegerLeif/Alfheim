@@ -50,12 +50,12 @@ const INITIAL_LOGS: LogEntry[] = [
 
 /**
  * Live System Shell / Terminal Log Feed component.
- * Features auto-scrolling log stream and interactive $ shell command prompt.
+ * Repaired contrast, crisp level badges (ERR, WARN, OK, INFO), and zero visual clutter.
  */
 export function SystemShellLogs() {
   const [logs, setLogs] = useState<LogEntry[]>(INITIAL_LOGS);
   const [commandInput, setCommandInput] = useState('');
-  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [, setCommandHistory] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new log entries
@@ -76,7 +76,7 @@ export function SystemShellLogs() {
 
     const interval = setInterval(() => {
       const now = new Date();
-      const timestamp = `${now.toTimeString().split(' ')[0]}.${now.getMilliseconds()}`;
+      const timestamp = `${now.toTimeString().split(' ')[0]}.${now.getMilliseconds().toString().padStart(3, '0')}`;
       const randomService = services[Math.floor(Math.random() * services.length)];
       const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
@@ -100,7 +100,7 @@ export function SystemShellLogs() {
     if (!cmd) return;
 
     const now = new Date();
-    const timestamp = `${now.toTimeString().split(' ')[0]}.${now.getMilliseconds()}`;
+    const timestamp = `${now.toTimeString().split(' ')[0]}.${now.getMilliseconds().toString().padStart(3, '0')}`;
 
     // Append executed command log
     const cmdLog: LogEntry = {
@@ -160,33 +160,51 @@ export function SystemShellLogs() {
   const getLevelBadge = (level: LogEntry['level']) => {
     switch (level) {
       case 'ERROR':
-        return <span className="px-1.5 py-0.5 rounded bg-red-950/80 text-red-400 font-mono text-[9px] border border-red-800/40">ERR</span>;
+        return (
+          <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-mono text-[9px] font-bold border border-red-500/40 tracking-wider">
+            ERR
+          </span>
+        );
       case 'WARN':
-        return <span className="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 font-mono text-[9px] border border-amber-800/40">WARN</span>;
+        return (
+          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[9px] font-bold border border-amber-500/40 tracking-wider">
+            WARN
+          </span>
+        );
       case 'SUCCESS':
-        return <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 font-mono text-[9px] border border-emerald-800/40">OK</span>;
+        return (
+          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold border border-emerald-500/40 tracking-wider">
+            OK
+          </span>
+        );
       default:
-        return <span className="px-1.5 py-0.5 rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] font-mono text-[9px] border border-[var(--primary-main)]/30">INFO</span>;
+        return (
+          <span className="px-1.5 py-0.5 rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] font-mono text-[9px] font-bold border border-[var(--border-accent)] tracking-wider">
+            INFO
+          </span>
+        );
     }
   };
 
   return (
     <div className="col-span-12 rounded-2xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] overflow-hidden shadow-2xl flex flex-col font-mono text-xs">
       {/* Terminal Bar Header */}
-      <div className="h-10 px-4 bg-[var(--surface-card)] border-b border-[var(--border-subtle)] flex items-center justify-between select-none">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500/80" />
-          <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-          <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-          <span className="ml-2 text-xs font-mono text-[var(--text-muted)]">
+      <div className="h-10 px-4 bg-[var(--surface-card)] border-b border-[var(--border-subtle)] flex items-center justify-between select-none shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="w-3 h-3 rounded-full bg-red-500/80" />
+            <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+          </div>
+          <span className="ml-2 text-xs font-mono text-[var(--text-muted)] truncate">
             shell@loeger-os:~# live-telemetry-feed
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setLogs([])}
-            className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] cursor-pointer"
+            className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] px-2.5 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 transition-colors duration-150 cursor-pointer"
           >
             Clear
           </button>
@@ -194,17 +212,17 @@ export function SystemShellLogs() {
       </div>
 
       {/* Log Output Window */}
-      <div className="p-4 h-64 overflow-y-auto space-y-2 bg-[var(--surface-canvas)]/90">
+      <div className="p-4 h-64 overflow-y-auto space-y-2 bg-[var(--surface-canvas)] scrollbar-thin">
         {logs.map((log) => (
-          <div key={log.id} className="flex items-start gap-2 leading-relaxed">
-            <span className="text-[var(--primary-main)] shrink-0 font-mono opacity-80">
+          <div key={log.id} className="flex items-start gap-2.5 leading-relaxed">
+            <span className="text-[var(--primary-main)] shrink-0 font-mono text-xs font-semibold opacity-90">
               [{log.timestamp}]
             </span>
             <span className="shrink-0">{getLevelBadge(log.level)}</span>
-            <span className="text-[var(--text-muted)] font-mono shrink-0">
+            <span className="text-[var(--text-muted)] font-mono shrink-0 text-xs">
               [{log.service}]
             </span>
-            <span className="text-[var(--text-main)] font-mono break-all">
+            <span className="text-[var(--text-main)] font-mono break-all text-xs">
               {log.message}
             </span>
           </div>
@@ -215,19 +233,19 @@ export function SystemShellLogs() {
       {/* Terminal Command Input Prompt */}
       <form
         onSubmit={handleCommandSubmit}
-        className="h-11 px-4 border-t border-[var(--border-subtle)] bg-[var(--surface-card)] flex items-center gap-2"
+        className="h-11 px-4 border-t border-[var(--border-subtle)] bg-[var(--surface-card)] flex items-center gap-2.5 shrink-0"
       >
-        <span className="text-[var(--primary-main)] font-bold font-mono">$</span>
+        <span className="text-[var(--primary-main)] font-bold font-mono text-sm select-none">$</span>
         <input
           type="text"
           value={commandInput}
           onChange={(e) => setCommandInput(e.target.value)}
           placeholder="Type command (e.g. status, help, ping, clear)..."
-          className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)]"
+          className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:ring-0"
         />
         <button
           type="submit"
-          className="px-3 py-1 rounded bg-[var(--primary-main)]/10 hover:bg-[var(--primary-main)]/20 text-[var(--primary-main)] text-[10px] font-mono border border-[var(--primary-main)]/30 cursor-pointer"
+          className="px-3.5 py-1 rounded-lg bg-[var(--primary-main)]/10 hover:bg-[var(--primary-main)]/20 text-[var(--primary-main)] text-[11px] font-mono font-semibold border border-[var(--primary-main)]/30 cursor-pointer transition-colors duration-150 shrink-0"
         >
           EXEC
         </button>

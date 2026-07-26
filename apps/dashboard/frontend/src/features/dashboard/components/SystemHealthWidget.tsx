@@ -17,6 +17,7 @@ interface TelemetryMetrics {
 /**
  * System Health Telemetry Widget.
  * Fetches real metrics from `/api/v1/telemetry` with fallback to live-simulated telemetry stream.
+ * Styled with high contrast and responsive layout boundaries for Obsidian Flux & Kinetic themes.
  */
 export function SystemHealthWidget() {
   // Live animated telemetry state for smooth micro-updates
@@ -88,45 +89,45 @@ export function SystemHealthWidget() {
   };
 
   return (
-    <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] relative overflow-hidden shadow-xl">
+    <div className="col-span-12 p-5 sm:p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] relative overflow-hidden shadow-xl">
       {/* Background Accent Glow */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--primary-main)]/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-[var(--border-subtle)] min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 shrink-0 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]">
             <span className="material-symbols-outlined text-xl">insights</span>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-[var(--text-main)]">System Health Telemetry</h2>
-            <p className="text-xs text-[var(--text-muted)] font-mono">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-[var(--text-main)] truncate">System Health Telemetry</h2>
+            <p className="text-xs text-[var(--text-muted)] font-mono truncate">
               Live OpenTelemetry / SigNoz metrics stream
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--surface-canvas)] border border-[var(--border-subtle)] shrink-0">
+          <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--primary-main)] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--primary-main)]"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--primary-main)]"></span>
           </span>
-          <span className="text-xs font-mono text-[var(--primary-main)]">LIVE STREAM</span>
+          <span className="text-[10px] font-bold font-mono tracking-wider text-[var(--primary-main)] uppercase">LIVE STREAM</span>
         </div>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* CPU Load Gauge */}
-        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-w-0 shadow-sm hover:border-[var(--border-accent)] transition-colors duration-200">
           <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-            <span>CPU LOAD</span>
+            <span className="font-semibold tracking-wider">CPU LOAD</span>
             <span className="material-symbols-outlined text-base text-[var(--primary-main)]">memory</span>
           </div>
-          <div className="text-2xl font-bold font-mono text-[var(--text-main)] mb-3">
+          <div className="text-2xl font-bold font-mono text-[var(--text-main)] mb-3 tracking-tight">
             {metrics.cpu_percent}%
           </div>
-          <div className="w-full bg-[var(--surface-elevated)] h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-[var(--surface-elevated)] h-2 rounded-full overflow-hidden p-0.5 border border-[var(--border-subtle)]">
             <div
               className="bg-[var(--primary-main)] h-full transition-all duration-500 rounded-full shadow-[0_0_8px_var(--primary-main)]"
               style={{ width: `${metrics.cpu_percent}%` }}
@@ -135,18 +136,18 @@ export function SystemHealthWidget() {
         </div>
 
         {/* RAM Usage Gauge */}
-        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-w-0 shadow-sm hover:border-[var(--border-accent)] transition-colors duration-200">
           <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-            <span>MEMORY (RAM)</span>
+            <span className="font-semibold tracking-wider">MEMORY (RAM)</span>
             <span className="material-symbols-outlined text-base text-[var(--primary-main)]">storage</span>
           </div>
-          <div className="text-2xl font-bold font-mono text-[var(--text-main)] mb-1">
+          <div className="text-2xl font-bold font-mono text-[var(--text-main)] mb-1 tracking-tight">
             {metrics.memory_percent}%
           </div>
-          <div className="text-[10px] font-mono text-[var(--text-muted)] mb-2">
+          <div className="text-[10px] font-mono text-[var(--text-muted)] mb-2.5 truncate">
             {metrics.memory_used_gb} GB / {metrics.memory_total_gb} GB
           </div>
-          <div className="w-full bg-[var(--surface-elevated)] h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-[var(--surface-elevated)] h-2 rounded-full overflow-hidden p-0.5 border border-[var(--border-subtle)]">
             <div
               className="bg-[var(--primary-main)] h-full transition-all duration-500 rounded-full shadow-[0_0_8px_var(--primary-main)]"
               style={{ width: `${metrics.memory_percent}%` }}
@@ -155,31 +156,31 @@ export function SystemHealthWidget() {
         </div>
 
         {/* Network I/O Gauge */}
-        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-w-0 shadow-sm hover:border-[var(--border-accent)] transition-colors duration-200">
           <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-            <span>NETWORK I/O</span>
+            <span className="font-semibold tracking-wider">NETWORK I/O</span>
             <span className="material-symbols-outlined text-base text-[var(--primary-main)]">swap_vert</span>
           </div>
-          <div className="text-xl font-bold font-mono text-[var(--text-main)] mb-1">
+          <div className="text-xl font-bold font-mono text-[var(--text-main)] mb-1 tracking-tight truncate">
             ↓ {metrics.network_rx_mbps} <span className="text-xs font-normal text-[var(--text-muted)]">MB/s</span>
           </div>
-          <div className="text-xs font-mono text-[var(--text-muted)]">
+          <div className="text-xs font-mono text-[var(--text-muted)] truncate">
             ↑ {metrics.network_tx_mbps} MB/s
           </div>
         </div>
 
         {/* System Uptime Card */}
-        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-w-0 shadow-sm hover:border-[var(--border-accent)] transition-colors duration-200">
           <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-            <span>UPTIME</span>
+            <span className="font-semibold tracking-wider">UPTIME</span>
             <span className="material-symbols-outlined text-base text-[var(--primary-main)]">schedule</span>
           </div>
-          <div className="text-xl font-bold font-mono text-[var(--text-main)] mb-1">
+          <div className="text-xl font-bold font-mono text-[var(--text-main)] mb-1 tracking-tight truncate">
             {formatUptime(metrics.uptime_seconds)}
           </div>
-          <div className="text-xs font-mono text-emerald-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            {metrics.active_containers} Containers Online
+          <div className="text-xs font-mono text-emerald-400 font-semibold flex items-center gap-1.5 truncate">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+            <span>{metrics.active_containers} Containers Online</span>
           </div>
         </div>
       </div>
