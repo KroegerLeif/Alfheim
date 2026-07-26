@@ -6,8 +6,13 @@ settings:
 
 importers:
 
+  .: {}
+
   apps/dashboard/frontend:
     dependencies:
+      '@loeger-os/shared':
+        specifier: workspace:*
+        version: link:../../../packages/shared
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.4)
@@ -60,6 +65,9 @@ importers:
 
   apps/maintenance/frontend:
     dependencies:
+      '@loeger-os/shared':
+        specifier: workspace:*
+        version: link:../../../packages/shared
       '@radix-ui/react-dialog':
         specifier: ^1.1.18
         version: 1.1.23(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -92,7 +100,7 @@ importers:
         version: 1.26.0(react@19.2.4)
       next:
         specifier: 16.2.10
-        version: 16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next-intl:
         specifier: ^4.13.1
         version: 4.13.4(next@16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -160,6 +168,9 @@ importers:
 
   apps/pantry/frontend:
     dependencies:
+      '@loeger-os/shared':
+        specifier: workspace:*
+        version: link:../../../packages/shared
       '@radix-ui/react-dialog':
         specifier: ^1.1.18
         version: 1.1.23(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -189,7 +200,7 @@ importers:
         version: 1.26.0(react@19.2.4)
       next:
         specifier: 16.2.10
-        version: 16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next-intl:
         specifier: ^4.13.1
         version: 4.13.4(next@16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -251,6 +262,9 @@ importers:
 
   apps/shopping/frontend:
     dependencies:
+      '@loeger-os/shared':
+        specifier: workspace:*
+        version: link:../../../packages/shared
       '@radix-ui/react-dialog':
         specifier: ^1.1.18
         version: 1.1.23(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -283,7 +297,7 @@ importers:
         version: 1.26.0(react@19.2.4)
       next:
         specifier: 16.2.10
-        version: 16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next-intl:
         specifier: ^4.13.1
         version: 4.13.4(next@16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -6010,7 +6024,7 @@ snapshots:
       '@swc/core': 1.15.46
       icu-minify: 4.13.4
       negotiator: 1.0.0
-      next: 16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      next: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next-intl-swc-plugin-extractor: 4.13.4
       po-parser: 2.1.1
       react: 19.2.4
@@ -6025,7 +6039,7 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  next@16.2.10(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+  next@16.2.10(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
       '@next/env': 16.2.10
       '@swc/helpers': 0.5.15
