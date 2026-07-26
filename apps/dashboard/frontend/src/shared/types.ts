@@ -101,3 +101,27 @@ export interface InviteCodeResponse {
 export interface JoinHouseholdRequest {
   token: string;
 }
+
+export interface TelemetryMetrics {
+  cpu_percent: number;
+  memory_percent: number;
+  memory_used_gb: number;
+  memory_total_gb: number;
+  network_rx_mbps: number;
+  network_tx_mbps: number;
+  uptime_seconds: number;
+  active_containers: number;
+}
+
+export interface TelemetryLogEntry {
+  id: string;
+  timestamp: string;
+  level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS' | string;
+  service: string;
+  message: string;
+}
+
+export interface TelemetryLogsResponse {
+  logs: TelemetryLogEntry[];
+  total: number;
+}

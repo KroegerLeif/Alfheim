@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTelemetryLogs } from '../queries';
 
 interface LogEntry {
   id: string;
   timestamp: string;
-  level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS';
+  level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS' | string;
   service: string;
   message: string;
 }
@@ -37,14 +38,14 @@ const INITIAL_LOGS: LogEntry[] = [
     timestamp: '23:40:05.120',
     level: 'INFO',
     service: 'dashboard-go',
-    message: 'Go Fiber HTTP handler listening on :8080 (App Catalog ready)',
+    message: 'Go Chi HTTP handler listening on :8080 (App Catalog ready)',
   },
   {
     id: 'log-5',
     timestamp: '23:40:07.450',
     level: 'WARN',
     service: 'telemetry',
-    message: 'SigNoz collector running in fallback local simulation mode',
+    message: 'SigNoz query service operating with proc metrics fallback',
   },
 ];
 
@@ -53,6 +54,7 @@ const INITIAL_LOGS: LogEntry[] = [
  * Repaired contrast, crisp level badges (ERR, WARN, OK, INFO), and zero visual clutter.
  */
 export function SystemShellLogs() {
+  const { data: serverLogs } = useTelemetryLogs();
   const [logs, setLogs] = useState<LogEntry[]>(INITIAL_LOGS);
   const [commandInput, setCommandInput] = useState('');
   const [, setCommandHistory] = useState<string[]>([]);
@@ -63,36 +65,18 @@ export function SystemShellLogs() {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  // Periodic log stream generator
+  // Sync server logs when received from Go backend
   useEffect(() => {
-    const services = ['gateway', 'pantry-backend', 'dashboard-go', 'auth-keycloak', 'telemetry'];
-    const messages = [
-      'GET /api/v1/apps 200 OK (3ms)',
-      'Token validation succeeded for sub=kc-user-oidc',
-      'Heartbeat check: status=healthy load=0.14',
-      'GET /api/v1/profile/me 200 OK (5ms)',
-      'Database connection pool health check OK',
-    ];
-
-    const interval = setInterval(() => {
-      const now = new Date();
-      const timestamp = `${now.toTimeString().split(' ')[0]}.${now.getMilliseconds().toString().padStart(3, '0')}`;
-      const randomService = services[Math.floor(Math.random() * services.length)];
-      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-
-      const newLog: LogEntry = {
-        id: `log-${Date.now()}`,
-        timestamp,
-        level: 'INFO',
-        service: randomService,
-        message: randomMsg,
-      };
-
-      setLogs((prev) => [...prev.slice(-30), newLog]);
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, []);
+    if (serverLogs && serverLogs.length > 0) {
+      setLogs((prev) => {
+        const userCmds = prev.filter((l) => l.service === 'shell' || l.service === 'system' || l.service === 'network');
+        const combined = [...serverLogs, ...userCmds];
+        // Deduplicate by ID
+        const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
+        return unique.slice(-50);
+      });
+    }
+  }, [serverLogs]);
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +144,7 @@ export function SystemShellLogs() {
   const getLevelBadge = (level: LogEntry['level']) => {
     switch (level) {
       case 'ERROR':
+      case 'ERR':
         return (
           <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-mono text-[9px] font-bold border border-red-500/40 tracking-wider">
             ERR
@@ -172,6 +157,7 @@ export function SystemShellLogs() {
           </span>
         );
       case 'SUCCESS':
+      case 'OK':
         return (
           <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold border border-emerald-500/40 tracking-wider">
             OK

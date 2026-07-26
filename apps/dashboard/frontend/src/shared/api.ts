@@ -10,6 +10,9 @@ import {
   CreateInviteRequest,
   InviteCodeResponse,
   JoinHouseholdRequest,
+  TelemetryMetrics,
+  TelemetryLogEntry,
+  TelemetryLogsResponse,
 } from './types';
 import { getInMemoryToken, parseInMemoryTokenClaims } from './providers/AuthProvider';
 
@@ -380,5 +383,23 @@ export async function joinHousehold(payload: JoinHouseholdRequest): Promise<Hous
   } catch (error) {
     console.warn('Backend API unreachable for POST /api/v1/households/join, returning dynamic household.', error);
     return getDynamicFallbackHouseholds()[0];
+  }
+}
+
+export async function fetchTelemetryMetrics(): Promise<TelemetryMetrics> {
+  try {
+    return await api.get('api/v1/telemetry/metrics').json<TelemetryMetrics>();
+  } catch {
+    // Attempt backward compatibility endpoint
+    return await api.get('api/v1/telemetry').json<TelemetryMetrics>();
+  }
+}
+
+export async function fetchTelemetryLogs(): Promise<TelemetryLogEntry[]> {
+  try {
+    const res = await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
+    return res.logs;
+  } catch {
+    return [];
   }
 }
