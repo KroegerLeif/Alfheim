@@ -218,6 +218,8 @@
     "cancel": "Cancel",
     "submitTransaction": "Submit Transaction",
     "loggingLedger": "Logging Ledger...",
-    "transactionRejected": "Transaction rejected"
+    "transactionRejected": "Transaction rejected",
+    "actionIn": "IN",
+    "actionOut": "OUT"
   }
 }

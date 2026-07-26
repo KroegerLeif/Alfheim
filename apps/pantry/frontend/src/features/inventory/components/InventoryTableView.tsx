@@ -235,7 +235,7 @@ export function InventoryTableView() {
                           className="h-8 text-[10px] px-2.5 font-black uppercase tracking-wider text-emerald-400 border-emerald-800/40 bg-emerald-950/20 hover:bg-emerald-900/40 cursor-pointer"
                         >
                           <Plus className="h-3 w-3 mr-0.5" />
-                          IN
+                          {t("pantry.actionIn")}
                         </Button>
 
                         {/* Quick Stock Out */}
@@ -246,7 +246,7 @@ export function InventoryTableView() {
                           className="h-8 text-[10px] px-2.5 font-black uppercase tracking-wider text-red-400 border-red-800/40 bg-red-950/20 hover:bg-red-900/40 cursor-pointer"
                         >
                           <Minus className="h-3 w-3 mr-0.5" />
-                          OUT
+                          {t("pantry.actionOut")}
                         </Button>
                       </div>
                     </TableCell>

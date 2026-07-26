@@ -216,7 +216,7 @@ export function LocationsGridView() {
         <div className="flex items-center justify-center py-20 gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-[var(--primary-main)]" />
           <span className="text-xs uppercase font-bold tracking-widest text-[var(--text-muted)]">
-            POLLING PHYSICAL SPACES...
+            {t("pantry.loadingRegisters")}
           </span>
         </div>
       ) : locations.length === 0 ? (

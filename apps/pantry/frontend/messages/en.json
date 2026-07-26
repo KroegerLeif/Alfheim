@@ -56,8 +56,8 @@
   "Locations": {
     "title": "Storage Locations",
     "subtitle": "Physical storage zones and alert monitors",
-    "createBtn": "+ NEUEN LAGERORT ANLEGEN",
-    "createBtnClose": "- ABBRECHEN",
+    "createBtn": "+ CREATE NEW LOCATION",
+    "createBtnClose": "- CANCEL",
     "createTitle": "Create New Storage Location",
     "name": "Location Name",
     "description": "Description (Optional)",
@@ -190,8 +190,8 @@
     "submitCategory": "Create Category",
     "creatingCategory": "Creating Category...",
     "categorySuccess": "Category created successfully.",
-    "transactionModalTitleIn": "TRANSAKTION: STOCK IN",
-    "transactionModalTitleOut": "TRANSAKTION: STOCK OUT",
+    "transactionModalTitleIn": "TRANSACTION: STOCK IN",
+    "transactionModalTitleOut": "TRANSACTION: STOCK OUT",
     "transactionModalSub": "Physical stock ledger update utility",
     "simulateBarcode": "Simulate Barcode Scanner (UPC/EAN)",
     "scanEAN": "Scan EAN",
@@ -210,6 +210,8 @@
     "cancel": "Cancel",
     "submitTransaction": "Submit Transaction",
     "loggingLedger": "Logging Ledger...",
-    "transactionRejected": "Transaction rejected"
+    "transactionRejected": "Transaction rejected",
+    "actionIn": "IN",
+    "actionOut": "OUT"
   }
 }

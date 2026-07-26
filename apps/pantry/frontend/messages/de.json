@@ -210,6 +210,8 @@
     "cancel": "Abbrechen",
     "submitTransaction": "Buchung absenden",
     "loggingLedger": "Buchung wird erfasst...",
-    "transactionRejected": "Buchung abgelehnt"
+    "transactionRejected": "Buchung abgelehnt",
+    "actionIn": "EIN",
+    "actionOut": "AUS"
   }
 }
