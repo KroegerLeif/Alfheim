@@ -35,6 +35,26 @@ export function getInMemoryToken(): string | null {
   return inMemoryToken;
 }
 
+export function parseInMemoryTokenClaims(): UserIdentityClaims | null {
+  if (!inMemoryToken) return null;
+  try {
+    const parts = inMemoryToken.split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return {
+      sub: payload.sub || '',
+      preferred_username: payload.preferred_username || payload.email || 'user',
+      email: payload.email || '',
+      given_name: payload.given_name || '',
+      family_name: payload.family_name || '',
+      name: payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim() || payload.preferred_username || 'User',
+    };
+  } catch {
+    return null;
+  }
+}
+
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserIdentityClaims | null>(null);
   const [token, setToken] = useState<string | null>(null);

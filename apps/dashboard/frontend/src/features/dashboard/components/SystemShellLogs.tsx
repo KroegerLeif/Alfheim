@@ -68,7 +68,7 @@ export function SystemShellLogs() {
     const services = ['gateway', 'pantry-backend', 'dashboard-go', 'auth-keycloak', 'telemetry'];
     const messages = [
       'GET /api/v1/apps 200 OK (3ms)',
-      'Token validation succeeded for sub=usr-101',
+      'Token validation succeeded for sub=kc-user-oidc',
       'Heartbeat check: status=healthy load=0.14',
       'GET /api/v1/profile/me 200 OK (5ms)',
       'Database connection pool health check OK',

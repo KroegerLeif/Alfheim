@@ -221,7 +221,10 @@ export default function HouseholdPage() {
     }
     if (m.username) return `@${m.username}`;
     if (m.email) return m.email;
-    return `User ${m.user_id.slice(-6)}`;
+    if (m.user_id) {
+      return `User (${m.user_id.length > 8 ? `${m.user_id.substring(0, 8)}...` : m.user_id})`;
+    }
+    return 'Member User';
   };
 
   const getMemberInitials = (m: HouseholdMember) => {
@@ -229,7 +232,8 @@ export default function HouseholdPage() {
       return `${m.first_name[0]}${m.last_name[0]}`.toUpperCase();
     }
     if (m.username) return m.username.substring(0, 2).toUpperCase();
-    return m.user_id.slice(-2).toUpperCase();
+    if (m.email) return m.email.substring(0, 2).toUpperCase();
+    return m.user_id ? m.user_id.substring(0, 2).toUpperCase() : 'MU';
   };
 
   return (

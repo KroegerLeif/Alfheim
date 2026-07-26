@@ -11,13 +11,62 @@ import {
   InviteCodeResponse,
   JoinHouseholdRequest,
 } from './types';
-import { getInMemoryToken } from './providers/AuthProvider';
+import { getInMemoryToken, parseInMemoryTokenClaims } from './providers/AuthProvider';
 
 /**
  * Get Bearer auth token dynamically from in-memory AuthProvider state.
  */
 function getAuthToken(): string | null {
   return getInMemoryToken();
+}
+
+/**
+ * Dynamically construct fallback identity profile from active in-memory OIDC token claims.
+ */
+function getDynamicFallbackProfile(): UserProfile {
+  const claims = parseInMemoryTokenClaims();
+  return {
+    id: claims?.sub || '',
+    email: claims?.email || '',
+    username: claims?.preferred_username || 'user',
+    first_name: claims?.given_name || '',
+    last_name: claims?.family_name || '',
+    avatar_url: '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Dynamically construct fallback household state from active in-memory OIDC token claims.
+ */
+function getDynamicFallbackHouseholds(): Household[] {
+  const claims = parseInMemoryTokenClaims();
+  const userId = claims?.sub || '';
+  const userName = claims?.name || claims?.preferred_username || 'User';
+  return [
+    {
+      id: 'hh-default',
+      name: `${userName}'s Residence`,
+      slug: 'default-residence',
+      owner_id: userId,
+      role: 'owner',
+      members: [
+        {
+          household_id: 'hh-default',
+          user_id: userId,
+          role: 'owner',
+          joined_at: new Date().toISOString(),
+          email: claims?.email || '',
+          username: claims?.preferred_username || '',
+          first_name: claims?.given_name || '',
+          last_name: claims?.family_name || '',
+        },
+      ],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ];
 }
 
 /**
@@ -167,50 +216,13 @@ const MOCK_APP_CATALOG: AppCatalogResponse = {
   total: 7,
 };
 
-const MOCK_PROFILE: UserProfile = {
-  id: 'usr-101',
-  email: 'leif.kroeger@loeger-os.local',
-  username: 'leifkroeger',
-  first_name: 'Leif',
-  last_name: 'Kroeger',
-  avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-  created_at: '2026-01-15T10:00:00Z',
-  updated_at: '2026-07-25T12:00:00Z',
-};
-
-const MOCK_HOUSEHOLDS: Household[] = [
-  {
-    id: 'hh-1',
-    name: 'Kroeger Residence',
-    slug: 'kroeger-residence',
-    owner_id: 'usr-101',
-    role: 'owner',
-    members: [
-      {
-        household_id: 'hh-1',
-        user_id: 'usr-101',
-        role: 'owner',
-        joined_at: '2026-01-15T10:00:00Z',
-      },
-      {
-        household_id: 'hh-1',
-        user_id: 'usr-102',
-        role: 'member',
-        joined_at: '2026-02-01T14:30:00Z',
-      },
-    ],
-    created_at: '2026-01-15T10:00:00Z',
-    updated_at: '2026-07-20T16:45:00Z',
-  },
-];
-
 /* API Fetcher Functions */
 
 export async function fetchAppCatalog(): Promise<AppCatalogResponse> {
   try {
     return await api.get('api/v1/apps').json<AppCatalogResponse>();
   } catch (error) {
-    console.warn('Backend API unreachable for GET /api/v1/apps, using fallback mock data.', error);
+    console.warn('Backend API unreachable for GET /api/v1/apps, using fallback catalog.', error);
     return MOCK_APP_CATALOG;
   }
 }
@@ -250,12 +262,43 @@ export async function createApp(payload: CreateAppRequest): Promise<AppItem> {
   }
 }
 
+export async function updateApp(id: string, payload: Partial<CreateAppRequest>): Promise<AppItem> {
+  try {
+    return await api.put(`api/v1/apps/${id}`, { json: payload }).json<AppItem>();
+  } catch (error) {
+    console.warn(`Backend API unreachable for PUT /api/v1/apps/${id}, updating local fallback catalog.`, error);
+    let found: AppItem | undefined;
+    for (const list of [MOCK_APP_CATALOG.internal, MOCK_APP_CATALOG.external]) {
+      found = list.find((a) => a.id === id);
+      if (found) {
+        if (payload.title) {
+          found.title = payload.title;
+          found.name = payload.title;
+        }
+        if (payload.description !== undefined) found.description = payload.description;
+        if (payload.url) {
+          found.url = payload.url;
+          found.app_url = payload.url;
+        }
+        if (payload.icon) {
+          found.icon = payload.icon;
+          found.icon_url = payload.icon;
+        }
+        if (payload.is_external !== undefined) found.is_external = payload.is_external;
+        if (payload.status) found.status = payload.status;
+        return found;
+      }
+    }
+    throw error;
+  }
+}
+
 export async function fetchUserProfile(): Promise<UserProfile> {
   try {
     return await api.get('api/v1/profile/me').json<UserProfile>();
   } catch (error) {
-    console.warn('Backend API unreachable for GET /api/v1/profile/me, using fallback mock data.', error);
-    return MOCK_PROFILE;
+    console.warn('Backend API unreachable for GET /api/v1/profile/me, using dynamic claims fallback.', error);
+    return getDynamicFallbackProfile();
   }
 }
 
@@ -263,12 +306,13 @@ export async function updateUserProfile(payload: UpdateProfileRequest): Promise<
   try {
     return await api.put('api/v1/profile/me', { json: payload }).json<UserProfile>();
   } catch (error) {
-    console.warn('Backend API unreachable for PUT /api/v1/profile/me, updating local mock state.', error);
-    MOCK_PROFILE.first_name = payload.first_name;
-    MOCK_PROFILE.last_name = payload.last_name;
-    MOCK_PROFILE.avatar_url = payload.avatar_url;
-    MOCK_PROFILE.updated_at = new Date().toISOString();
-    return { ...MOCK_PROFILE };
+    console.warn('Backend API unreachable for PUT /api/v1/profile/me, returning updated dynamic profile.', error);
+    const profile = getDynamicFallbackProfile();
+    profile.first_name = payload.first_name;
+    profile.last_name = payload.last_name;
+    profile.avatar_url = payload.avatar_url || '';
+    profile.updated_at = new Date().toISOString();
+    return profile;
   }
 }
 
@@ -276,8 +320,8 @@ export async function fetchHouseholds(): Promise<Household[]> {
   try {
     return await api.get('api/v1/households/me').json<Household[]>();
   } catch (error) {
-    console.warn('Backend API unreachable for GET /api/v1/households/me, using fallback mock data.', error);
-    return MOCK_HOUSEHOLDS;
+    console.warn('Backend API unreachable for GET /api/v1/households/me, using dynamic claims fallback.', error);
+    return getDynamicFallbackHouseholds();
   }
 }
 
@@ -287,24 +331,29 @@ export async function createHousehold(payload: CreateHouseholdRequest): Promise<
     return await api.post('api/v1/households', { json: { name: payload.name, slug } }).json<Household>();
   } catch (error) {
     console.warn('Backend API unreachable for POST /api/v1/households, generating mock household.', error);
+    const claims = parseInMemoryTokenClaims();
+    const userId = claims?.sub || '';
     const newHh: Household = {
       id: `hh-${Date.now()}`,
       name: payload.name,
       slug: payload.slug || payload.name.toLowerCase().replace(/\s+/g, '-'),
-      owner_id: 'usr-me',
+      owner_id: userId,
       role: 'owner',
       members: [
         {
           household_id: `hh-${Date.now()}`,
-          user_id: 'usr-me',
+          user_id: userId,
           role: 'owner',
           joined_at: new Date().toISOString(),
+          email: claims?.email || '',
+          username: claims?.preferred_username || '',
+          first_name: claims?.given_name || '',
+          last_name: claims?.family_name || '',
         },
       ],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    MOCK_HOUSEHOLDS.push(newHh);
     return newHh;
   }
 }
@@ -329,7 +378,7 @@ export async function joinHousehold(payload: JoinHouseholdRequest): Promise<Hous
   try {
     return await api.post('api/v1/households/join', { json: payload }).json<Household>();
   } catch (error) {
-    console.warn('Backend API unreachable for POST /api/v1/households/join, returning mock household.', error);
-    return MOCK_HOUSEHOLDS[0];
+    console.warn('Backend API unreachable for POST /api/v1/households/join, returning dynamic household.', error);
+    return getDynamicFallbackHouseholds()[0];
   }
 }
