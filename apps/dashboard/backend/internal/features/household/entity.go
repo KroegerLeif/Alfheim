@@ -22,10 +22,15 @@ type Household struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// Member represents a user's membership in a household.
+// Member represents a user's membership in a household with optional profile details.
 type Member struct {
 	HouseholdID string        `json:"household_id"`
 	UserID      string        `json:"user_id"`
+	Email       string        `json:"email,omitempty"`
+	Username    string        `json:"username,omitempty"`
+	FirstName   string        `json:"first_name,omitempty"`
+	LastName    string        `json:"last_name,omitempty"`
+	AvatarURL   string        `json:"avatar_url,omitempty"`
 	Role        HouseholdRole `json:"role"`
 	JoinedAt    time.Time     `json:"joined_at"`
 }

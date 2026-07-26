@@ -181,10 +181,16 @@ func (r *repository) GetMemberRole(ctx context.Context, householdID string, user
 
 func (r *repository) GetMembers(ctx context.Context, householdID string) ([]*Member, error) {
 	query := `
-		SELECT household_id, user_id, role, joined_at
-		FROM household_members
-		WHERE household_id = $1
-		ORDER BY joined_at ASC
+		SELECT hm.household_id, hm.user_id, hm.role, hm.joined_at,
+		       COALESCE(p.email, '') as email,
+		       COALESCE(p.username, '') as username,
+		       COALESCE(p.first_name, '') as first_name,
+		       COALESCE(p.last_name, '') as last_name,
+		       COALESCE(p.avatar_url, '') as avatar_url
+		FROM household_members hm
+		LEFT JOIN user_profiles p ON hm.user_id = p.id
+		WHERE hm.household_id = $1
+		ORDER BY hm.joined_at ASC
 	`
 	rows, err := r.pool.Query(ctx, query, householdID)
 	if err != nil {
@@ -196,7 +202,17 @@ func (r *repository) GetMembers(ctx context.Context, householdID string) ([]*Mem
 	for rows.Next() {
 		m := &Member{}
 		var roleStr string
-		if err := rows.Scan(&m.HouseholdID, &m.UserID, &roleStr, &m.JoinedAt); err != nil {
+		if err := rows.Scan(
+			&m.HouseholdID,
+			&m.UserID,
+			&roleStr,
+			&m.JoinedAt,
+			&m.Email,
+			&m.Username,
+			&m.FirstName,
+			&m.LastName,
+			&m.AvatarURL,
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan member row: %w", err)
 		}
 		m.Role = HouseholdRole(roleStr)

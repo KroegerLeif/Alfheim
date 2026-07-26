@@ -6,6 +6,7 @@ import {
   UserProfile,
   UpdateProfileRequest,
   Household,
+  CreateHouseholdRequest,
   CreateInviteRequest,
   InviteCodeResponse,
   JoinHouseholdRequest,
@@ -277,6 +278,34 @@ export async function fetchHouseholds(): Promise<Household[]> {
   } catch (error) {
     console.warn('Backend API unreachable for GET /api/v1/households/me, using fallback mock data.', error);
     return MOCK_HOUSEHOLDS;
+  }
+}
+
+export async function createHousehold(payload: CreateHouseholdRequest): Promise<Household> {
+  try {
+    const slug = payload.slug || payload.name.toLowerCase().replace(/\s+/g, '-');
+    return await api.post('api/v1/households', { json: { name: payload.name, slug } }).json<Household>();
+  } catch (error) {
+    console.warn('Backend API unreachable for POST /api/v1/households, generating mock household.', error);
+    const newHh: Household = {
+      id: `hh-${Date.now()}`,
+      name: payload.name,
+      slug: payload.slug || payload.name.toLowerCase().replace(/\s+/g, '-'),
+      owner_id: 'usr-me',
+      role: 'owner',
+      members: [
+        {
+          household_id: `hh-${Date.now()}`,
+          user_id: 'usr-me',
+          role: 'owner',
+          joined_at: new Date().toISOString(),
+        },
+      ],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    MOCK_HOUSEHOLDS.push(newHh);
+    return newHh;
   }
 }
 

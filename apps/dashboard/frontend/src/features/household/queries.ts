@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchHouseholds, createHouseholdInvite, joinHousehold } from '@/shared/api';
+import { fetchHouseholds, createHousehold, createHouseholdInvite, joinHousehold } from '@/shared/api';
 import {
   Household,
+  CreateHouseholdRequest,
   CreateInviteRequest,
   InviteCodeResponse,
   JoinHouseholdRequest,
@@ -16,6 +17,20 @@ export function useHouseholds() {
   return useQuery<Household[]>({
     queryKey: HOUSEHOLDS_QUERY_KEY,
     queryFn: fetchHouseholds,
+  });
+}
+
+/**
+ * Mutation hook to create a new household via POST /api/v1/households.
+ */
+export function useCreateHousehold() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Household, Error, CreateHouseholdRequest>({
+    mutationFn: createHousehold,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: HOUSEHOLDS_QUERY_KEY });
+    },
   });
 }
 

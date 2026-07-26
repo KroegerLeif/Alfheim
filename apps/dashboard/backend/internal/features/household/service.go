@@ -88,7 +88,15 @@ func (s *service) GetUserHouseholds(ctx context.Context, userID string) ([]House
 			if err != nil {
 				return fmt.Errorf("failed to fetch role for household %s: %w", item.ID, err)
 			}
-			results[index] = ToHouseholdResponse(item, string(role), nil)
+			members, err := s.repo.GetMembers(gCtx, item.ID)
+			if err != nil {
+				return fmt.Errorf("failed to fetch members for household %s: %w", item.ID, err)
+			}
+			memberResponses := make([]MemberResponse, len(members))
+			for j, m := range members {
+				memberResponses[j] = ToMemberResponse(m)
+			}
+			results[index] = ToHouseholdResponse(item, string(role), memberResponses)
 			return nil
 		})
 	}

@@ -1,24 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { useHouseholds, useCreateInvite, useJoinHousehold } from '@/features/household';
+import { useHouseholds, useCreateHousehold, useCreateInvite, useJoinHousehold } from '@/features/household';
 import { QRCodeModal } from '@/features/household/components/QRCodeModal';
-import { InviteCodeResponse } from '@/shared/types';
+import { InviteCodeResponse, HouseholdMember } from '@/shared/types';
 
 /**
  * Household Management Page View.
- * Displays household details, member list, and invite code generation / joining workflows.
+ * Displays dynamic household environments, member registry with Keycloak identity sync, and invite/create workflows.
  */
 export default function HouseholdPage() {
   const { data: households, isLoading, isError } = useHouseholds();
+  const createHouseholdMutation = useCreateHousehold();
   const createInviteMutation = useCreateInvite();
   const joinMutation = useJoinHousehold();
 
+  const [selectedHouseholdIndex, setSelectedHouseholdIndex] = useState(0);
   const [activeInvite, setActiveInvite] = useState<InviteCodeResponse | null>(null);
   const [joinTokenInput, setJoinTokenInput] = useState('');
   const [joinStatus, setJoinStatus] = useState<string | null>(null);
 
-  const activeHousehold = households && households.length > 0 ? households[0] : null;
+  // Create Household Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newHouseholdName, setNewHouseholdName] = useState('');
+  const [createStatus, setCreateStatus] = useState<string | null>(null);
+
+  const activeHousehold = households && households.length > 0 ? households[selectedHouseholdIndex] || households[0] : null;
 
   const handleGenerateInvite = () => {
     if (!activeHousehold) return;
@@ -33,6 +40,25 @@ export default function HouseholdPage() {
       {
         onSuccess: (data) => {
           setActiveInvite(data);
+        },
+      }
+    );
+  };
+
+  const handleCreateHouseholdSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newHouseholdName.trim()) return;
+    setCreateStatus(null);
+
+    createHouseholdMutation.mutate(
+      { name: newHouseholdName.trim() },
+      {
+        onSuccess: () => {
+          setNewHouseholdName('');
+          setIsCreateModalOpen(false);
+        },
+        onError: (err) => {
+          setCreateStatus(`Failed to create household: ${err.message}`);
         },
       }
     );
@@ -66,43 +92,173 @@ export default function HouseholdPage() {
     );
   }
 
-  if (isError || !activeHousehold) {
+  // Zero Household Empty State
+  if (isError || !households || households.length === 0 || !activeHousehold) {
     return (
-      <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
-        <h1 className="text-xl font-bold text-[var(--text-main)] mb-2">No Active Household</h1>
-        <p className="text-xs text-[var(--text-muted)] mb-4">
-          You are not currently enrolled in a household. Join one using an invite code below.
+      <div className="col-span-12 min-h-[65vh] flex flex-col items-center justify-center p-8 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] relative overflow-hidden shadow-2xl">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[var(--primary-main)]/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="w-16 h-16 rounded-2xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] mb-4 shadow-[0_0_20px_var(--accent-glow)]">
+          <span className="material-symbols-outlined text-3xl">home_app_logo</span>
+        </div>
+
+        <h1 className="text-2xl font-bold text-[var(--text-main)] mb-2">No Enrolled Household</h1>
+        <p className="text-xs text-[var(--text-muted)] max-w-md text-center mb-8 leading-relaxed font-sans">
+          You are not currently enrolled in a household environment. Create a new household or enter an invite token to join an existing environment.
         </p>
 
-        <form onSubmit={handleJoinSubmit} className="flex gap-3 max-w-md">
-          <input
-            type="text"
-            placeholder="Enter invite token (e.g. INV-XXXXXX)"
-            value={joinTokenInput}
-            onChange={(e) => setJoinTokenInput(e.target.value)}
-            className="flex-1 px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)]"
-          />
-          <button
-            type="submit"
-            disabled={joinMutation.isPending}
-            className="px-4 py-2 bg-[var(--primary-main)] text-slate-950 font-semibold text-xs rounded-lg hover:bg-[var(--primary-hover)] cursor-pointer"
-          >
-            Join
-          </button>
-        </form>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-xl">
+          {/* Create Household Card */}
+          <div className="p-5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-main)] mb-1">
+                <span className="material-symbols-outlined text-[var(--primary-main)]">add_home</span>
+                <span>Create Household</span>
+              </div>
+              <p className="text-xs text-[var(--text-muted)]">
+                Setup a new household environment for your residence or organization.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="w-full py-2.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer shadow-md"
+            >
+              Create New Household
+            </button>
+          </div>
+
+          {/* Join Household Card */}
+          <div className="p-5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-main)] mb-1">
+                <span className="material-symbols-outlined text-[var(--primary-main)]">qr_code_scanner</span>
+                <span>Join via Invite Token</span>
+              </div>
+              <p className="text-xs text-[var(--text-muted)]">
+                Enter an invite code token generated by a household administrator.
+              </p>
+            </div>
+
+            <form onSubmit={handleJoinSubmit} className="space-y-2">
+              <input
+                type="text"
+                placeholder="Enter invite token..."
+                value={joinTokenInput}
+                onChange={(e) => setJoinTokenInput(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+                required
+              />
+              <button
+                type="submit"
+                disabled={joinMutation.isPending}
+                className="w-full py-2 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-semibold text-[var(--text-main)] transition-all cursor-pointer disabled:opacity-50"
+              >
+                {joinMutation.isPending ? 'Joining...' : 'Submit Token'}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Create Household Modal */}
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+                <h3 className="text-base font-bold text-[var(--text-main)]">Create Household</h3>
+                <button onClick={() => setIsCreateModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              {createStatus && (
+                <div className="p-3 rounded bg-red-950/40 border border-red-800/40 text-red-300 text-xs font-mono">
+                  {createStatus}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateHouseholdSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+                    Household Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newHouseholdName}
+                    onChange={(e) => setNewHouseholdName(e.target.value)}
+                    placeholder="e.g. Kroeger Residence"
+                    className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    className="px-4 py-2 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createHouseholdMutation.isPending}
+                    className="px-4 py-2 rounded bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
+                  >
+                    {createHouseholdMutation.isPending ? 'Creating...' : 'Create'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
+
+  const getMemberDisplayName = (m: HouseholdMember) => {
+    if (m.first_name || m.last_name) {
+      return `${m.first_name || ''} ${m.last_name || ''}`.trim();
+    }
+    if (m.username) return `@${m.username}`;
+    if (m.email) return m.email;
+    return `User ${m.user_id.slice(-6)}`;
+  };
+
+  const getMemberInitials = (m: HouseholdMember) => {
+    if (m.first_name && m.last_name) {
+      return `${m.first_name[0]}${m.last_name[0]}`.toUpperCase();
+    }
+    if (m.username) return m.username.substring(0, 2).toUpperCase();
+    return m.user_id.slice(-2).toUpperCase();
+  };
 
   return (
     <>
       {/* Household Header */}
       <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--primary-main)]/10 text-[var(--primary-main)] text-xs font-mono mb-2 border border-[var(--border-accent)]">
-            <span className="material-symbols-outlined text-sm">home</span>
-            Active Household
+          <div className="flex items-center gap-3 mb-2">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--primary-main)]/10 text-[var(--primary-main)] text-xs font-mono border border-[var(--border-accent)]">
+              <span className="material-symbols-outlined text-sm">home</span>
+              Active Household
+            </div>
+
+            {/* Multiple Household Switcher */}
+            {households.length > 1 && (
+              <select
+                value={selectedHouseholdIndex}
+                onChange={(e) => setSelectedHouseholdIndex(Number(e.target.value))}
+                className="px-2.5 py-1 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-main)]"
+              >
+                {households.map((h, i) => (
+                  <option key={h.id} value={i}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
+
           <h1 className="text-2xl font-bold text-[var(--text-main)]">
             {activeHousehold.name}
           </h1>
@@ -111,14 +267,24 @@ export default function HouseholdPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleGenerateInvite}
-          disabled={createInviteMutation.isPending}
-          className="px-4 py-2.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 shadow-[0_0_15px_var(--accent-glow)] cursor-pointer flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined text-base">qr_code_2</span>
-          {createInviteMutation.isPending ? 'Generating...' : 'Generate Invite Code'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-3.5 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-150"
+          >
+            <span className="material-symbols-outlined text-sm">add_home</span>
+            <span>New</span>
+          </button>
+
+          <button
+            onClick={handleGenerateInvite}
+            disabled={createInviteMutation.isPending}
+            className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 shadow-[0_0_15px_var(--accent-glow)] cursor-pointer flex items-center gap-2 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-base">qr_code_2</span>
+            {createInviteMutation.isPending ? 'Generating...' : 'Generate Invite Code'}
+          </button>
+        </div>
       </div>
 
       {/* QR Code Modal Popup */}
@@ -126,10 +292,63 @@ export default function HouseholdPage() {
         <QRCodeModal invite={activeInvite} onClose={() => setActiveInvite(null)} />
       )}
 
+      {/* Create Household Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+              <h3 className="text-base font-bold text-[var(--text-main)]">Create Household</h3>
+              <button onClick={() => setIsCreateModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {createStatus && (
+              <div className="p-3 rounded bg-red-950/40 border border-red-800/40 text-red-300 text-xs font-mono">
+                {createStatus}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateHouseholdSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+                  Household Name *
+                </label>
+                <input
+                  type="text"
+                  value={newHouseholdName}
+                  onChange={(e) => setNewHouseholdName(e.target.value)}
+                  placeholder="e.g. Kroeger Residence"
+                  className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createHouseholdMutation.isPending}
+                  className="px-4 py-2 rounded bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
+                >
+                  {createHouseholdMutation.isPending ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Members List Section */}
       <div className="col-span-12 md:col-span-8 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border-subtle)]">
-          <h2 className="text-base font-bold text-[var(--text-main)]">Household Members</h2>
+          <h2 className="text-base font-bold text-[var(--text-main)]">Household Registry & Members</h2>
           <span className="text-xs font-mono text-[var(--text-muted)]">
             {activeHousehold.members?.length || 0} Enrolled
           </span>
@@ -139,21 +358,28 @@ export default function HouseholdPage() {
           {activeHousehold.members?.map((member) => (
             <div
               key={member.user_id}
-              className="p-3.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs"
+              className="p-3.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs hover:border-[var(--border-accent)] transition-colors duration-150"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-bold text-[var(--primary-main)]">
-                  {member.user_id.slice(-2).toUpperCase()}
+                <div className="w-9 h-9 rounded-full bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-bold text-[var(--primary-main)] shrink-0 overflow-hidden">
+                  {member.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={member.avatar_url} alt={getMemberDisplayName(member)} className="w-full h-full object-cover" />
+                  ) : (
+                    getMemberInitials(member)
+                  )}
                 </div>
                 <div>
-                  <div className="font-semibold text-[var(--text-main)]">User ID: {member.user_id}</div>
+                  <div className="font-semibold text-[var(--text-main)]">
+                    {getMemberDisplayName(member)}
+                  </div>
                   <div className="text-[var(--text-muted)] text-[10px] font-mono">
-                    Joined: {new Date(member.joined_at).toLocaleDateString()}
+                    {member.email ? `${member.email} • ` : ''}Joined: {new Date(member.joined_at).toLocaleDateString()}
                   </div>
                 </div>
               </div>
 
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase bg-[var(--surface-canvas)] text-[var(--primary-main)] border border-[var(--border-subtle)]">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-[var(--surface-canvas)] text-[var(--primary-main)] border border-[var(--border-subtle)]">
                 {member.role}
               </span>
             </div>
@@ -162,49 +388,55 @@ export default function HouseholdPage() {
       </div>
 
       {/* Join Another Household Form */}
-      <div className="col-span-12 md:col-span-4 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
-        <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
-          Join Household
-        </h2>
-        <p className="text-xs text-[var(--text-muted)] mb-4">
-          Enter an invite token received from a household owner.
-        </p>
+      <div className="col-span-12 md:col-span-4 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
+        <div>
+          <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
+            Join Household
+          </h2>
+          <p className="text-xs text-[var(--text-muted)] mb-4">
+            Enter an invite token received from a household owner or administrator.
+          </p>
 
-        {joinStatus && (
-          <div
-            className={`p-3 mb-4 rounded-lg text-xs font-mono ${
-              joinMutation.isError
-                ? 'bg-red-950/40 border border-red-800/40 text-red-300'
-                : 'bg-emerald-950/40 border border-emerald-800/40 text-emerald-300'
-            }`}
-          >
-            {joinStatus}
-          </div>
-        )}
+          {joinStatus && (
+            <div
+              className={`p-3 mb-4 rounded-lg text-xs font-mono ${
+                joinMutation.isError
+                  ? 'bg-red-950/40 border border-red-800/40 text-red-300'
+                  : 'bg-emerald-950/40 border border-emerald-800/40 text-emerald-300'
+              }`}
+            >
+              {joinStatus}
+            </div>
+          )}
 
-        <form onSubmit={handleJoinSubmit} className="space-y-3">
-          <div>
-            <label className="block text-[10px] font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Invite Code Token
-            </label>
-            <input
-              type="text"
-              placeholder="INV-XXXXXX"
-              value={joinTokenInput}
-              onChange={(e) => setJoinTokenInput(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-              required
-            />
-          </div>
+          <form onSubmit={handleJoinSubmit} className="space-y-3">
+            <div>
+              <label className="block text-[10px] font-mono uppercase text-[var(--text-muted)] mb-1.5">
+                Invite Code Token
+              </label>
+              <input
+                type="text"
+                placeholder="INV-XXXXXX"
+                value={joinTokenInput}
+                onChange={(e) => setJoinTokenInput(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={joinMutation.isPending}
-            className="w-full py-2.5 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-semibold text-[var(--text-main)] transition-all cursor-pointer"
-          >
-            {joinMutation.isPending ? 'Joining...' : 'Submit Invite Token'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={joinMutation.isPending}
+              className="w-full py-2.5 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-semibold text-[var(--text-main)] transition-all cursor-pointer disabled:opacity-50"
+            >
+              {joinMutation.isPending ? 'Joining...' : 'Submit Invite Token'}
+            </button>
+          </form>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-muted)]">
+          Household IDs and membership permissions are cryptographically verified downstream across Loeger OS microservices.
+        </div>
       </div>
     </>
   );

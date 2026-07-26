@@ -24,6 +24,11 @@ type HouseholdResponse struct {
 type MemberResponse struct {
 	HouseholdID string    `json:"household_id"`
 	UserID      string    `json:"user_id"`
+	Email       string    `json:"email,omitempty"`
+	Username    string    `json:"username,omitempty"`
+	FirstName   string    `json:"first_name,omitempty"`
+	LastName    string    `json:"last_name,omitempty"`
+	AvatarURL   string    `json:"avatar_url,omitempty"`
 	Role        string    `json:"role"`
 	JoinedAt    time.Time `json:"joined_at"`
 }
@@ -75,6 +80,11 @@ func ToMemberResponse(m *Member) MemberResponse {
 	return MemberResponse{
 		HouseholdID: m.HouseholdID,
 		UserID:      m.UserID,
+		Email:       m.Email,
+		Username:    m.Username,
+		FirstName:   m.FirstName,
+		LastName:    m.LastName,
+		AvatarURL:   m.AvatarURL,
 		Role:        string(m.Role),
 		JoinedAt:    m.JoinedAt,
 	}
