@@ -64,11 +64,11 @@ services:
       - public-ingress
     labels:
       - "traefik.enable=true"
-      # Route root `/` and dashboard pages to dashboard-frontend
-      - "traefik.http.routers.dashboard-frontend.rule=Host(`loeger-os`) && (Path(`/`) || PathPrefix(`/_next`) || PathPrefix(`/profile`) || PathPrefix(`/household`) || PathPrefix(`/settings`))"
+      # Route all frontend sub-paths on loeger-os to dashboard-frontend with fallback priority
+      - "traefik.http.routers.dashboard-frontend.rule=Host(`loeger-os`) && PathPrefix(`/`)"
       - "traefik.http.routers.dashboard-frontend.entrypoints=web"
       - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend"
-      - "traefik.http.routers.dashboard-frontend.priority=10"
+      - "traefik.http.routers.dashboard-frontend.priority=1"
       - "traefik.http.services.dashboard-frontend.loadbalancer.server.port=3000"
 
 networks:
