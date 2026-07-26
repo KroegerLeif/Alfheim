@@ -1,6 +1,6 @@
 <clickhouse>
     <!-- Allow connections from the Docker network -->
-    <listen_host>::</listen_host>
+    <listen_host>0.0.0.0</listen_host>
 
     <!-- Built-in Keeper Server configuration for single-node deployment -->
     <keeper_server>

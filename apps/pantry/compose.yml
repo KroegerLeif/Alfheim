@@ -84,14 +84,6 @@ services:
       - "traefik.http.middlewares.pantry-redirect-en.redirectregex.regex=^http://loeger-os/pantry/?$$"
       - "traefik.http.middlewares.pantry-redirect-en.redirectregex.replacement=http://loeger-os/pantry/en"
       
-      # Redirect global root / to /pantry/en
-      - "traefik.http.routers.pantry-root.rule=Host(`loeger-os`) && Path(`/`)"
-      - "traefik.http.routers.pantry-root.entrypoints=web"
-      - "traefik.http.routers.pantry-root.middlewares=pantry-root-redirect"
-      - "traefik.http.routers.pantry-root.service=pantry-frontend-service"
-      - "traefik.http.middlewares.pantry-root-redirect.redirectregex.regex=^http://loeger-os/$$"
-      - "traefik.http.middlewares.pantry-root-redirect.redirectregex.replacement=http://loeger-os/pantry/en"
-      
       - "traefik.http.services.pantry-frontend-service.loadbalancer.server.port=3000"
 
 volumes:

@@ -2,6 +2,7 @@ name: loeger-os
 
 include:
   - ./infrastructure/compose.yml
+  - ./apps/dashboard/compose.yml
   - ./apps/logging-stack/compose.yml
   - ./apps/maintenance/compose.yml
   - ./apps/pantry/compose.yml
@@ -20,4 +21,3 @@ networks:
   observability-internal:
     name: observability-internal
     driver: bridge
-
