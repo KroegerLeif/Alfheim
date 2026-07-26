@@ -1,54 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppCatalog, useCreateApp } from '@/features/apps';
+import { useAppCatalog, AddAppModal } from '@/features/apps';
 import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
 import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
 import Link from 'next/link';
 
 /**
  * Root Dashboard View.
- * Renders live telemetry stats, interactive terminal log shell, and dynamic PostgreSQL app catalog.
- * Supports adding runtime applications via POST /api/v1/apps.
+ * Renders live telemetry stats, interactive terminal log shell, dynamic PostgreSQL app catalog,
+ * and dynamic registration modal for internal apps & external portals.
  */
 export default function DashboardPage() {
   const { data: catalog, isLoading, isError, refetch } = useAppCatalog();
-  const createAppMutation = useCreateApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [url, setUrl] = useState('');
-  const [icon, setIcon] = useState('grid_view');
-  const [category, setCategory] = useState<'internal' | 'external'>('internal');
-  const [status, setStatus] = useState<'active' | 'in_progress' | 'maintenance'>('active');
+  const [modalCategory, setModalCategory] = useState<'internal' | 'external'>('internal');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const handleAddAppSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !url) return;
+  const openAddModal = (cat: 'internal' | 'external') => {
+    setModalCategory(cat);
+    setIsModalOpen(true);
+  };
 
-    createAppMutation.mutate(
-      {
-        title,
-        description,
-        icon,
-        url,
-        is_external: category === 'external',
-        category,
-        status,
-      },
-      {
-        onSuccess: () => {
-          setIsModalOpen(false);
-          setTitle('');
-          setDescription('');
-          setUrl('');
-          setIcon('grid_view');
-          setCategory('internal');
-          setStatus('active');
-        },
-      }
-    );
+  const handleSuccess = (appName: string) => {
+    setToastMessage(`Service "${appName}" registered successfully!`);
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const renderStatusBadge = (appStatus?: string) => {
@@ -76,6 +53,22 @@ export default function DashboardPage() {
 
   return (
     <>
+      {/* Toast Success Notification */}
+      {toastMessage && (
+        <div className="col-span-12 p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-mono flex items-center justify-between shadow-2xl animate-in slide-in-from-top-3 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-base text-emerald-400">check_circle</span>
+            <span>{toastMessage}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-emerald-400 hover:text-white"
+          >
+            <span className="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+      )}
+
       {/* System Health Telemetry Widget */}
       <SystemHealthWidget />
 
@@ -94,18 +87,18 @@ export default function DashboardPage() {
               {catalog?.internal.length || 0} Registered
             </span>
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-3 py-1 rounded bg-[var(--primary-main)] text-slate-950 font-semibold font-mono text-xs flex items-center gap-1.5 cursor-pointer hover:bg-[var(--primary-hover)] transition-all duration-150 shadow-md"
+              onClick={() => openAddModal('internal')}
+              className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold font-mono text-xs flex items-center gap-1.5 cursor-pointer hover:bg-[var(--primary-hover)] transition-all duration-150 shadow-[0_0_12px_var(--accent-glow)]"
             >
               <span className="material-symbols-outlined text-sm font-bold">add</span>
-              Add App
+              <span>Add Service</span>
             </button>
             <button
               onClick={() => refetch()}
-              className="px-2.5 py-1 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-150"
+              className="px-2.5 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-150"
             >
               <span className="material-symbols-outlined text-sm">refresh</span>
-              Sync
+              <span>Sync</span>
             </button>
           </div>
         </div>
@@ -197,9 +190,18 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined text-[var(--primary-main)]">open_in_new</span>
             <h2 className="text-lg font-bold text-[var(--text-main)]">External Services & Portals</h2>
           </div>
-          <span className="text-xs font-mono text-[var(--text-muted)]">
-            {catalog?.external.length || 0} Portals
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono text-[var(--text-muted)]">
+              {catalog?.external.length || 0} Portals
+            </span>
+            <button
+              onClick={() => openAddModal('external')}
+              className="px-3 py-1.5 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--primary-main)] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-150"
+            >
+              <span className="material-symbols-outlined text-sm font-bold">add_link</span>
+              <span>Add Portal Link</span>
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -264,128 +266,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Add App Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[var(--primary-main)]">add_box</span>
-                <h3 className="text-base font-bold text-[var(--text-main)]">Register New Service</h3>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-main)]"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleAddAppSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                  Service Title *
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Grafana Dashboards"
-                  required
-                  className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                  Service URL *
-                </label>
-                <input
-                  type="text"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="e.g. /grafana or http://grafana.local"
-                  required
-                  className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Short description of service..."
-                  rows={2}
-                  className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as 'internal' | 'external')}
-                    className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-                  >
-                    <option value="internal">Internal App</option>
-                    <option value="external">External Service</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as 'active' | 'in_progress' | 'maintenance')}
-                    className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-                  >
-                    <option value="active">Active</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="maintenance">Maintenance</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                  Material Icon Name
-                </label>
-                <input
-                  type="text"
-                  value={icon}
-                  onChange={(e) => setIcon(e.target.value)}
-                  placeholder="e.g. analytics, cloud, build, home"
-                  className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createAppMutation.isPending}
-                  className="px-5 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
-                >
-                  {createAppMutation.isPending ? 'Registering...' : 'Register App'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddAppModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleSuccess}
+        initialCategory={modalCategory}
+      />
     </>
   );
 }
