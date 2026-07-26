@@ -1,4 +1,20 @@
 services:
+  dashboard-db:
+    image: postgres:16-alpine
+    container_name: dashboard-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dashboard_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dashboard_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashboard-internal
+
   dashboard-backend:
     build:
       context: ./backend
@@ -7,14 +23,24 @@ services:
     restart: always
     environment:
       - PORT=8080
+      - DATABASE_URL=postgres://postgres:postgres@dashboard-db:5432/dashboard_db?sslmode=disable
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      dashboard-db:
+        condition: service_healthy
     networks:
       - public-ingress
+      - dashboard-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, `/api/v1/telemetry`)"
+      - "traefik.http.routers.dashboard-backend.rule=Host(`loeger-os`) && (PathPrefix(`/api/v1/apps`) || PathPrefix(`/api/v1/profile`) || PathPrefix(`/api/v1/households`) || PathPrefix(`/api/v1/telemetry`))"
       - "traefik.http.routers.dashboard-backend.entrypoints=web"
-      - "traefik.http.routers.dashboard-backend.service=dashboard-backend-service"
-      - "traefik.http.services.dashboard-backend-service.loadbalancer.server.port=8080"
+      - "traefik.http.routers.dashboard-backend.service=dashboard-backend"
+      - "traefik.http.services.dashboard-backend.loadbalancer.server.port=8080"
 
   dashboard-frontend:
     build:
@@ -25,9 +51,15 @@ services:
     container_name: dashboard-frontend
     restart: always
     depends_on:
-      - dashboard-backend
+      dashboard-backend:
+        condition: service_healthy
     environment:
       - PORT=3000
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - public-ingress
     labels:
@@ -35,11 +67,13 @@ services:
       # Route root `/` and dashboard pages to dashboard-frontend
       - "traefik.http.routers.dashboard-frontend.rule=Host(`loeger-os`) && (Path(`/`) || PathPrefix(`/_next`) || PathPrefix(`/profile`) || PathPrefix(`/household`) || PathPrefix(`/settings`))"
       - "traefik.http.routers.dashboard-frontend.entrypoints=web"
-      - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend-service"
+      - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend"
       - "traefik.http.routers.dashboard-frontend.priority=10"
-      - "traefik.http.services.dashboard-frontend-service.loadbalancer.server.port=3000"
+      - "traefik.http.services.dashboard-frontend.loadbalancer.server.port=3000"
 
 networks:
   public-ingress:
     name: public-ingress
     external: true
+  dashboard-internal:
+    name: dashboard-internal
