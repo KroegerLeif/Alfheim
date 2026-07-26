@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@loeger-os/shared';
 import { useAppCatalog, AddAppModal, EditAppModal } from '@/features/apps';
 import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
 import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
@@ -13,6 +14,7 @@ import Link from 'next/link';
  * and dynamic registration/edit modals for internal apps & external portals.
  */
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { data: catalog, isLoading, isError, refetch } = useAppCatalog();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,19 +48,19 @@ export default function DashboardPage() {
       case 'in_progress':
         return (
           <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-amber-950/60 text-amber-400 border border-amber-800/40 font-bold">
-            In Progress
+            {t('common.in_progress')}
           </span>
         );
       case 'maintenance':
         return (
           <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-red-950/60 text-red-400 border border-red-800/40 font-bold">
-            Maintenance
+            {t('common.maintenance')}
           </span>
         );
       default:
         return (
           <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 font-bold">
-            Active
+            {t('common.active')}
           </span>
         );
     }
@@ -93,25 +95,27 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">apps</span>
-            <h2 className="text-lg font-bold text-[var(--text-main)]">Internal Services</h2>
+            <h2 className="text-lg font-bold text-[var(--text-main)]">
+              {t('dashboard.internal_services')}
+            </h2>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono text-[var(--text-muted)]">
-              {catalog?.internal.length || 0} Registered
+              {t('dashboard.registered_count', { count: catalog?.internal.length || 0 })}
             </span>
             <button
               onClick={() => openAddModal('internal')}
               className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold font-mono text-xs flex items-center gap-1.5 cursor-pointer hover:bg-[var(--primary-hover)] transition-all duration-150 shadow-[0_0_12px_var(--accent-glow)]"
             >
               <span className="material-symbols-outlined text-sm font-bold">add</span>
-              <span>Add Service</span>
+              <span>{t('dashboard.add_service')}</span>
             </button>
             <button
               onClick={() => refetch()}
               className="px-2.5 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-150"
             >
               <span className="material-symbols-outlined text-sm">refresh</span>
-              <span>Sync</span>
+              <span>{t('common.sync')}</span>
             </button>
           </div>
         </div>
@@ -159,7 +163,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => openEditModal(app)}
                           className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
-                          title="Edit application details"
+                          title={t('catalog.edit_app_title')}
                         >
                           <span className="material-symbols-outlined text-sm">settings</span>
                         </button>
@@ -177,7 +181,7 @@ export default function DashboardPage() {
 
                   <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
                     <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
-                      Role: {app.required_role || 'MEMBER'}
+                      {t('common.role')}: {app.required_role || 'MEMBER'}
                     </span>
                     {isExt ? (
                       <a
@@ -186,7 +190,7 @@ export default function DashboardPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                       >
-                        <span>Launch</span>
+                        <span>{t('common.launch')}</span>
                         <span className="material-symbols-outlined text-sm">open_in_new</span>
                       </a>
                     ) : (
@@ -194,7 +198,7 @@ export default function DashboardPage() {
                         href={targetUrl}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                       >
-                        <span>Launch</span>
+                        <span>{t('common.launch')}</span>
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                       </Link>
                     )}
@@ -211,18 +215,20 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">open_in_new</span>
-            <h2 className="text-lg font-bold text-[var(--text-main)]">External Services & Portals</h2>
+            <h2 className="text-lg font-bold text-[var(--text-main)]">
+              {t('dashboard.external_services')}
+            </h2>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono text-[var(--text-muted)]">
-              {catalog?.external.length || 0} Portals
+              {t('dashboard.portals_count', { count: catalog?.external.length || 0 })}
             </span>
             <button
               onClick={() => openAddModal('external')}
               className="px-3 py-1.5 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--primary-main)] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-150"
             >
               <span className="material-symbols-outlined text-sm font-bold">add_link</span>
-              <span>Add Portal Link</span>
+              <span>{t('dashboard.add_portal')}</span>
             </button>
           </div>
         </div>
@@ -252,7 +258,7 @@ export default function DashboardPage() {
                         type="button"
                         onClick={() => openEditModal(app)}
                         className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
-                        title="Edit application details"
+                        title={t('catalog.edit_app_title')}
                       >
                         <span className="material-symbols-outlined text-sm">settings</span>
                       </button>
@@ -270,14 +276,14 @@ export default function DashboardPage() {
 
                 <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
                   <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
-                    External Service
+                    {t('catalog.external_category')}
                   </span>
                   {isInternalRoute ? (
                     <Link
                       href={targetUrl}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                     >
-                      <span>Open Portal</span>
+                      <span>{t('common.open_portal')}</span>
                       <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </Link>
                   ) : (
@@ -287,7 +293,7 @@ export default function DashboardPage() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                     >
-                      <span>Open Portal</span>
+                      <span>{t('common.open_portal')}</span>
                       <span className="material-symbols-outlined text-sm">open_in_new</span>
                     </a>
                   )}

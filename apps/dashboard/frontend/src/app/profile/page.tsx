@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@loeger-os/shared';
 import { useUserProfile, useUpdateProfile } from '@/features/profile';
 import { useAuth } from '@/shared/providers/AuthProvider';
 
@@ -9,6 +10,7 @@ import { useAuth } from '@/shared/providers/AuthProvider';
  * Binds OIDC JWT user identity claims from useAuth() and syncs profile updates via useUserProfile()/useUpdateProfile().
  */
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user: authUser, logout } = useAuth();
   const { data: profile, isLoading, isError } = useUserProfile();
   const updateMutation = useUpdateProfile();
@@ -41,7 +43,7 @@ export default function ProfilePage() {
       },
       {
         onSuccess: () => {
-          setStatusMessage('Profile updated successfully!');
+          setStatusMessage(t('common.save_changes'));
           setTimeout(() => setStatusMessage(null), 4000);
         },
         onError: (error) => {
@@ -99,7 +101,7 @@ export default function ProfilePage() {
             className="px-3.5 py-1.5 rounded-lg bg-red-950/30 border border-red-800/40 text-red-400 hover:bg-red-900/40 text-xs font-mono flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm">logout</span>
-            <span>Logout (Abmelden)</span>
+            <span>{t('common.logout')}</span>
           </button>
         </div>
       </div>
@@ -107,10 +109,10 @@ export default function ProfilePage() {
       {/* Edit Form */}
       <div className="col-span-12 md:col-span-8 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">
-          Edit Profile Information
+          {t('profile.title')}
         </h2>
         <p className="text-xs text-[var(--text-muted)] mb-6">
-          Update your identity details synchronized across the platform.
+          {t('profile.user_details')}
         </p>
 
         {statusMessage && (
@@ -173,7 +175,7 @@ export default function ProfilePage() {
               disabled={updateMutation.isPending}
               className="px-5 py-2.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 cursor-pointer disabled:opacity-50"
             >
-              {updateMutation.isPending ? 'Saving...' : 'Save Profile Changes'}
+              {updateMutation.isPending ? t('common.loading') : t('common.save_changes')}
             </button>
           </div>
         </form>
@@ -188,11 +190,11 @@ export default function ProfilePage() {
             <span className="font-mono text-[var(--text-main)] break-all">{authUser?.sub || userId}</span>
           </div>
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Username</span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.username')}</span>
             <span className="font-semibold text-[var(--text-main)]">@{username}</span>
           </div>
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Email Claim</span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.email')}</span>
             <span className="font-semibold text-[var(--text-main)]">{email || 'N/A'}</span>
           </div>
           <div>

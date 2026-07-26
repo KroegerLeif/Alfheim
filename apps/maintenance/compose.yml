@@ -29,6 +29,11 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=maintenance-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     depends_on:
       maintenance-db:
         condition: service_healthy
@@ -48,14 +53,22 @@ services:
 
   maintenance-frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/maintenance/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/maintenance}
     container_name: maintenance-frontend
     restart: always
     environment:
       - PORT=3000
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/maintenance/en || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      maintenance-backend:
+        condition: service_healthy
     networks:
       - public-ingress
       - observability-internal
@@ -78,8 +91,8 @@ services:
       - "traefik.http.routers.maintenance-exact.priority=10"
 
       # --- Redirect middleware: 302 to /maintenance/en (non-permanent avoids browser caching a bad redirect) ---
-      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.regex=^http://loeger-os/maintenance/?$$"
-      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.replacement=http://loeger-os/maintenance/en"
+      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.regex=^(https?://[^/]+)/maintenance/?$$"
+      - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.replacement=$${1}/maintenance/en"
       - "traefik.http.middlewares.maintenance-redirect-en.redirectregex.permanent=false"
 
       # --- Service: port matches Dockerfile EXPOSE and container PORT env variable ---

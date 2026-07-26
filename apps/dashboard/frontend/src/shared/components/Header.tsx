@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useTheme } from '../providers/ThemeProvider';
+import { LanguageSwitcher, ThemeToggle, useTranslation } from '@loeger-os/shared';
 import { useAuth } from '../providers/AuthProvider';
 
 /**
  * Top Header component featuring a global search bar, notification trigger,
- * dynamic theme switcher (Obsidian vs Kinetic), and dynamic user identity claims.
+ * shared language switcher (DE/EN/PL), theme toggle (Obsidian/Kinetic, Light/Dark/System), and dynamic user identity claims.
  */
 export function Header() {
-  const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount] = useState(3);
@@ -34,7 +34,7 @@ export function Header() {
         </div>
         <input
           type="text"
-          placeholder="Search system, devices, rules..."
+          placeholder={t('common.search_placeholder')}
           className="w-full pl-9 pr-12 py-1.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] focus:ring-1 focus:ring-[var(--primary-main)] transition-all duration-200"
         />
         <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
@@ -46,18 +46,11 @@ export function Header() {
 
       {/* Header Actions */}
       <div className="flex items-center gap-3">
-        {/* Dynamic Theme Toggle (Obsidian vs Kinetic) */}
-        <button
-          onClick={toggleTheme}
-          type="button"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-mono text-[var(--text-main)] transition-all duration-200 cursor-pointer group"
-          title={`Current Theme: ${theme.toUpperCase()}. Click to toggle.`}
-        >
-          <span className="material-symbols-outlined text-base text-[var(--primary-main)] group-hover:rotate-180 transition-transform duration-300">
-            {theme === 'obsidian' ? 'dark_mode' : 'bolt'}
-          </span>
-          <span className="capitalize">{theme} Mode</span>
-        </button>
+        {/* Language Switcher dropdown */}
+        <LanguageSwitcher variant="dropdown" />
+
+        {/* Dynamic Theme Toggle (Obsidian vs Kinetic, Dark/Light/System) */}
+        <ThemeToggle showVariantToggle={true} />
 
         {/* Notification Trigger */}
         <div className="relative">
@@ -65,7 +58,7 @@ export function Header() {
             onClick={() => setNotificationsOpen(!notificationsOpen)}
             type="button"
             className="relative p-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all duration-200 cursor-pointer"
-            aria-label="Notifications"
+            aria-label={t('header.notifications')}
           >
             <span className="material-symbols-outlined text-xl">notifications</span>
             {unreadCount > 0 && (
@@ -78,7 +71,7 @@ export function Header() {
             <div className="absolute right-0 mt-2 w-80 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
                 <span className="text-xs font-semibold uppercase font-mono text-[var(--text-main)]">
-                  Notifications ({unreadCount})
+                  {t('header.notifications')} ({unreadCount})
                 </span>
                 <button
                   onClick={() => setNotificationsOpen(false)}

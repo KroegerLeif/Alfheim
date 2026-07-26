@@ -1,0 +1,93 @@
+{
+  "common": {
+    "logout": "Logout",
+    "back_to_dashboard": "Back to Dashboard",
+    "save": "Save",
+    "save_changes": "Save Changes",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "active": "Active",
+    "in_progress": "In Progress",
+    "maintenance": "Maintenance",
+    "sync": "Sync",
+    "close": "Close",
+    "role": "Role",
+    "launch": "Launch",
+    "open_portal": "Open Portal",
+    "search_placeholder": "Search system, devices, rules...",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "household": "Household",
+    "settings": "Settings",
+    "main_navigation": "Main Navigation"
+  },
+  "header": {
+    "notifications": "Notifications",
+    "theme_obsidian": "Obsidian Mode",
+    "theme_kinetic": "Kinetic Mode"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "internal_services": "Internal Services",
+    "external_services": "External Services & Portals",
+    "registered_count": "{count} Registered",
+    "portals_count": "{count} Portals",
+    "add_service": "Add Service",
+    "add_portal": "Add Portal Link"
+  },
+  "catalog": {
+    "add_app_title": "Register New Service",
+    "edit_app_title": "Edit Service Details",
+    "app_name": "Service Name",
+    "app_url": "URL / Target Path",
+    "category": "Category",
+    "description": "Description",
+    "icon": "Icon Identifier",
+    "required_role": "Required Role",
+    "status": "Status",
+    "internal_category": "Internal Service",
+    "external_category": "External Portal"
+  },
+  "household": {
+    "title": "Household",
+    "no_household": "No Enrolled Household",
+    "no_household_desc": "You are currently not enrolled in any household. Create a new household or join an existing one.",
+    "create_household": "Create Household",
+    "create_household_desc": "Set up a new household group and invite family members.",
+    "join_household": "Join via Invite Token",
+    "join_household_desc": "Enter your invitation token to join an existing household.",
+    "invite_token_placeholder": "Enter invite token...",
+    "submit_token": "Submit Token",
+    "joining": "Joining..."
+  },
+  "settings": {
+    "title": "Platform Settings & Design Theme",
+    "subtitle": "Customize UI appearance, gateway proxy rules, and security tokens.",
+    "theme_title": "Visual Theme Mode",
+    "theme_subtitle": "Select between Obsidian Flux and Kinetic Minimalist.",
+    "obsidian_desc": "Sleek dark slate canvas with refined cyan primary accents.",
+    "kinetic_desc": "Deep black canvas paired with electric neon blue glow.",
+    "gateway_rules": "Gateway & Security Rules",
+    "gateway_subtitle": "Configure central Nginx reverse proxy routes and Keycloak IAM tokens.",
+    "nginx_proxy": "Nginx Gateway Proxy",
+    "nginx_proxy_desc": "Route /dashboard requests to localhost:3000.",
+    "keycloak_sso": "Keycloak OAuth2 / OIDC",
+    "keycloak_sso_desc": "Validate Bearer tokens against Keycloak auth realm.",
+    "telemetry_stream": "OpenTelemetry Stream",
+    "telemetry_stream_desc": "Push live CPU/RAM telemetry logs to SigNoz collector.",
+    "system_update": "System Update",
+    "platform_up_to_date": "Platform Up to Date"
+  },
+  "profile": {
+    "title": "User Profile",
+    "user_details": "User Details",
+    "username": "Username",
+    "email": "Email Address",
+    "roles": "Assigned Roles"
+  }
+}
