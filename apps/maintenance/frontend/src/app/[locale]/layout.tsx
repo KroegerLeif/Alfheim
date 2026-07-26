@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import { LanguageProvider, ThemeProvider } from "@loeger-os/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Header } from "@/shared/layout/Header";
@@ -44,19 +45,29 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
+      </head>
+      <body className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>
-            <div className="flex w-full min-h-screen">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-100 dark:bg-slate-950 transition-colors duration-200">
-                <Header />
-                <main className="flex-1">
-                  {children}
-                </main>
-              </div>
-            </div>
-          </Providers>
+          <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
+            <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
+              <Providers>
+                <div className="flex w-full min-h-screen">
+                  <Sidebar />
+                  <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[var(--surface-canvas)] transition-colors duration-200">
+                    <Header />
+                    <main className="flex-1">
+                      {children}
+                    </main>
+                  </div>
+                </div>
+              </Providers>
+            </ThemeProvider>
+          </LanguageProvider>
         </NextIntlClientProvider>
       </body>
     </html>
