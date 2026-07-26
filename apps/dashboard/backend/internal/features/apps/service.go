@@ -2,8 +2,10 @@ package apps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
@@ -12,6 +14,7 @@ import (
 // Service defines domain logic contract for the application catalog and permission routing.
 type Service interface {
 	GetPermittedApps(ctx context.Context, userRealmRoles []string, householdRole string) (*AppCatalogResponse, error)
+	CreateApp(ctx context.Context, req CreateAppRequest) (*AppDTO, error)
 }
 
 type service struct {
@@ -62,7 +65,7 @@ func (s *service) GetPermittedApps(ctx context.Context, userRealmRoles []string,
 	for _, item := range activeApps {
 		if hasPermission(item.RequiredRole, userRealmRoles, householdRole) {
 			dto := ToDTO(item)
-			if item.Category == CategoryExternal {
+			if item.IsExternal || item.Category == CategoryExternal {
 				response.External = append(response.External, dto)
 			} else {
 				response.Internal = append(response.Internal, dto)
@@ -72,6 +75,80 @@ func (s *service) GetPermittedApps(ctx context.Context, userRealmRoles []string,
 	}
 
 	return response, nil
+}
+
+func (s *service) CreateApp(ctx context.Context, req CreateAppRequest) (*AppDTO, error) {
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		title = strings.TrimSpace(req.Name)
+	}
+
+	url := strings.TrimSpace(req.URL)
+	if url == "" {
+		url = strings.TrimSpace(req.AppURL)
+	}
+
+	if title == "" {
+		return nil, errors.New("app title or name is required")
+	}
+	if url == "" {
+		return nil, errors.New("app url is required")
+	}
+
+	icon := strings.TrimSpace(req.Icon)
+	if icon == "" {
+		icon = strings.TrimSpace(req.IconURL)
+	}
+	if icon == "" {
+		icon = "grid_view"
+	}
+
+	category := strings.ToLower(strings.TrimSpace(req.Category))
+	if category == "" {
+		if req.IsExternal {
+			category = "external"
+		} else {
+			category = "internal"
+		}
+	}
+
+	status := strings.ToLower(strings.TrimSpace(req.Status))
+	if status == "" {
+		status = "active"
+	}
+
+	role := strings.ToUpper(strings.TrimSpace(req.RequiredRole))
+	if role == "" {
+		role = "MEMBER"
+	}
+
+	reg := regexp.MustCompile("[^a-z0-9]+")
+	slug := strings.Trim(reg.ReplaceAllString(strings.ToLower(title), "-"), "-")
+
+	item := &AppItem{
+		Name:         title,
+		Title:        title,
+		Slug:         slug,
+		Description:  req.Description,
+		IconURL:      icon,
+		Icon:         icon,
+		AppURL:       url,
+		URL:          url,
+		Category:     AppCategory(category),
+		RequiredRole: AppRole(role),
+		IsActive:     true,
+		IsExternal:   req.IsExternal || category == "external",
+		Status:       status,
+		IsDefault:    false,
+		DisplayOrder: 99,
+	}
+
+	if err := s.repo.CreateApp(ctx, item); err != nil {
+		return nil, fmt.Errorf("failed to create catalog app: %w", err)
+	}
+
+	dto := ToDTO(item)
+	return &dto, nil
 }
 
 func hasPermission(requiredRole AppRole, realmRoles []string, householdRole string) bool {

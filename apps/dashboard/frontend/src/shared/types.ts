@@ -5,13 +5,30 @@
 export interface AppItem {
   id: string;
   name: string;
+  title?: string;
   slug: string;
   description: string;
   icon_url: string;
+  icon?: string;
   app_url: string;
-  category: string;
+  url?: string;
+  category: 'internal' | 'external' | string;
   required_role: string;
+  is_external?: boolean;
+  status?: 'active' | 'in_progress' | 'maintenance' | string;
+  is_default?: boolean;
   display_order: number;
+}
+
+export interface CreateAppRequest {
+  title: string;
+  description?: string;
+  icon?: string;
+  url: string;
+  is_external?: boolean;
+  category?: 'internal' | 'external' | string;
+  status?: 'active' | 'in_progress' | 'maintenance' | string;
+  required_role?: string;
 }
 
 export interface AppCatalogResponse {

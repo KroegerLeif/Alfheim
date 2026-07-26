@@ -23,6 +23,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
 		r.Get("/api/v1/apps", h.GetAppCatalog)
+		r.Post("/api/v1/apps", h.CreateApp)
 	})
 }
 
@@ -50,4 +51,25 @@ func (h *Handler) GetAppCatalog(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(catalog)
+}
+
+// CreateApp registers a new application in the catalog.
+func (h *Handler) CreateApp(w http.ResponseWriter, r *http.Request) {
+	var req CreateAppRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"bad_request","message":"invalid json payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	createdApp, err := h.service.CreateApp(r.Context(), req)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(createdApp)
 }

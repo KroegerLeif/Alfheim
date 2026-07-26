@@ -1,6 +1,8 @@
 import ky from 'ky';
 import {
   AppCatalogResponse,
+  AppItem,
+  CreateAppRequest,
   UserProfile,
   UpdateProfileRequest,
   Household,
@@ -42,51 +44,126 @@ const MOCK_APP_CATALOG: AppCatalogResponse = {
     {
       id: 'app-1',
       name: 'Digital Pantry',
+      title: 'Digital Pantry',
       slug: 'pantry',
       description: 'Manage household food inventory, recipes, and expiration dates.',
       icon_url: 'kitchen',
+      icon: 'kitchen',
       app_url: '/pantry',
-      category: 'household',
-      required_role: 'user',
+      url: '/pantry',
+      category: 'internal',
+      required_role: 'MEMBER',
+      is_external: false,
+      status: 'active',
+      is_default: true,
       display_order: 1,
     },
     {
       id: 'app-2',
       name: 'Smart Shopping',
+      title: 'Smart Shopping',
       slug: 'shopping',
       description: 'Automated shopping list generator and store price aggregator.',
       icon_url: 'shopping_cart',
+      icon: 'shopping_cart',
       app_url: '/shopping',
-      category: 'household',
-      required_role: 'user',
+      url: '/shopping',
+      category: 'internal',
+      required_role: 'MEMBER',
+      is_external: false,
+      status: 'active',
+      is_default: true,
       display_order: 2,
     },
     {
       id: 'app-3',
       name: 'Maintenance Hub',
+      title: 'Maintenance Hub',
       slug: 'maintenance',
       description: 'Schedule device maintenance and home repairs.',
       icon_url: 'build',
+      icon: 'build',
       app_url: '/maintenance',
-      category: 'utility',
-      required_role: 'admin',
+      url: '/maintenance',
+      category: 'internal',
+      required_role: 'MEMBER',
+      is_external: false,
+      status: 'active',
+      is_default: true,
       display_order: 3,
+    },
+    {
+      id: 'app-4',
+      name: 'Task Tracker (TODO)',
+      title: 'Task Tracker (TODO)',
+      slug: 'todo',
+      description: 'Manage personal and household tasks and reminders.',
+      icon_url: 'checklist',
+      icon: 'checklist',
+      app_url: '/under-construction?app=TODO',
+      url: '/under-construction?app=TODO',
+      category: 'internal',
+      required_role: 'MEMBER',
+      is_external: false,
+      status: 'in_progress',
+      is_default: true,
+      display_order: 4,
     },
   ],
   external: [
     {
-      id: 'app-4',
-      name: 'Keycloak IAM Portal',
-      slug: 'keycloak',
-      description: 'Identity access management, security tokens, and user realm admin.',
-      icon_url: 'security',
-      app_url: 'http://localhost:8080/auth',
-      category: 'admin',
-      required_role: 'admin',
-      display_order: 4,
+      id: 'app-5',
+      name: 'Home Assistant',
+      title: 'Home Assistant',
+      slug: 'home-assistant',
+      description: 'Smart home automation, climate control, and security dashboard.',
+      icon_url: 'home',
+      icon: 'home',
+      app_url: 'http://homeassistant.local',
+      url: 'http://homeassistant.local',
+      category: 'external',
+      required_role: 'MEMBER',
+      is_external: true,
+      status: 'active',
+      is_default: true,
+      display_order: 5,
+    },
+    {
+      id: 'app-6',
+      name: 'Plex Media Server',
+      title: 'Plex Media Server',
+      slug: 'plex',
+      description: 'Stream movies, TV shows, and personal media across devices.',
+      icon_url: 'movie',
+      icon: 'movie',
+      app_url: '/under-construction?app=Plex',
+      url: '/under-construction?app=Plex',
+      category: 'external',
+      required_role: 'MEMBER',
+      is_external: true,
+      status: 'in_progress',
+      is_default: true,
+      display_order: 6,
+    },
+    {
+      id: 'app-7',
+      name: 'Nextcloud Storage',
+      title: 'Nextcloud Storage',
+      slug: 'nextcloud',
+      description: 'Private cloud storage, photos, and document synchronization.',
+      icon_url: 'cloud',
+      icon: 'cloud',
+      app_url: '/under-construction?app=Nextcloud',
+      url: '/under-construction?app=Nextcloud',
+      category: 'external',
+      required_role: 'MEMBER',
+      is_external: true,
+      status: 'in_progress',
+      is_default: true,
+      display_order: 7,
     },
   ],
-  total: 4,
+  total: 7,
 };
 
 const MOCK_PROFILE: UserProfile = {
@@ -134,6 +211,41 @@ export async function fetchAppCatalog(): Promise<AppCatalogResponse> {
   } catch (error) {
     console.warn('Backend API unreachable for GET /api/v1/apps, using fallback mock data.', error);
     return MOCK_APP_CATALOG;
+  }
+}
+
+export async function createApp(payload: CreateAppRequest): Promise<AppItem> {
+  try {
+    return await api.post('api/v1/apps', { json: payload }).json<AppItem>();
+  } catch (error) {
+    console.warn('Backend API unreachable for POST /api/v1/apps, generating mock app entry.', error);
+    const title = payload.title || 'Custom App';
+    const isExt = payload.is_external || payload.category === 'external';
+    const newApp: AppItem = {
+      id: `app-${Date.now()}`,
+      name: title,
+      title: title,
+      slug: title.toLowerCase().replace(/\s+/g, '-'),
+      description: payload.description || '',
+      icon_url: payload.icon || 'grid_view',
+      icon: payload.icon || 'grid_view',
+      app_url: payload.url,
+      url: payload.url,
+      category: isExt ? 'external' : 'internal',
+      required_role: payload.required_role || 'MEMBER',
+      is_external: isExt,
+      status: payload.status || 'active',
+      is_default: false,
+      display_order: 99,
+    };
+
+    if (isExt) {
+      MOCK_APP_CATALOG.external.push(newApp);
+    } else {
+      MOCK_APP_CATALOG.internal.push(newApp);
+    }
+    MOCK_APP_CATALOG.total++;
+    return newApp;
   }
 }
 
