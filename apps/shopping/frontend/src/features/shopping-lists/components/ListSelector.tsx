@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Check, X } from "lucide-react";
+import { Plus, Trash2, Check, X, Home, User } from "lucide-react";
 import {
   useShoppingLists,
   useCreateShoppingList,
@@ -9,6 +9,7 @@ import {
 } from "../services/shoppingListService";
 import { Specular } from "@/components/shared/Specular";
 import { cn } from "@/lib/utils";
+import type { ShoppingList } from "../types";
 
 interface ListSelectorProps {
   activeListId: string | null;
@@ -16,7 +17,20 @@ interface ListSelectorProps {
 }
 
 /**
- * Tab switcher displaying active lists and counts, with inline create and delete options.
+ * Determine whether the list qualifies as a protected (non-deletable) list.
+ * Both the auto-provisioned Household List (is_default) and the Personal List
+ * (is_personal) are protected and may never be deleted from the UI.
+ */
+function isProtectedList(list: ShoppingList): boolean {
+  return list.is_default || list.is_personal;
+}
+
+/**
+ * Tab switcher displaying all visible shopping lists with inline create / delete actions.
+ *
+ * Deletion is permanently disabled for protected lists (Household List and Personal List).
+ * The delete button is only shown for active custom lists when there is at least one
+ * non-protected list remaining after deletion.
  */
 export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const { data: lists = [], isLoading } = useShoppingLists();
@@ -56,6 +70,9 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     );
   }
 
+  // A custom list can be deleted only when there are other lists to fall back to
+  const deletableCount = lists.filter((l) => !isProtectedList(l)).length;
+
   return (
     <div className="shrink-0 max-w-full overflow-x-auto scrollbar-none flex items-center gap-2">
       <div className="inline-flex p-1.5 rounded-2xl glass-card relative overflow-hidden shrink-0 select-none">
@@ -64,18 +81,42 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
         <div className="flex gap-1 relative z-10 items-center">
           {lists.map((list) => {
             const isActive = activeListId === list.id;
+            const isProtected = isProtectedList(list);
+
+            // Show delete only for active, non-protected lists when more exist
+            const canDelete = isActive && !isProtected && deletableCount > 0;
+
             return (
               <div key={list.id} className="flex items-center gap-1">
                 <button
                   onClick={() => onSelect(list.id)}
                   className={cn(
-                    "flex items-center gap-2 h-9 px-5 rounded-xl cursor-pointer transition-all duration-300 font-heading text-xs font-extrabold uppercase tracking-wider outline-none",
+                    "flex items-center gap-2 h-9 px-4 rounded-xl cursor-pointer transition-all duration-300 font-heading text-xs font-extrabold uppercase tracking-wider outline-none",
                     isActive
                       ? "glass-active text-foreground font-black"
                       : "bg-transparent border border-transparent text-muted-foreground hover:text-foreground"
                   )}
                 >
+                  {/* Protected list type badge icon */}
+                  {list.is_personal && (
+                    <User
+                      className={cn(
+                        "h-3 w-3 shrink-0",
+                        isActive ? "text-blue-400" : "text-muted-foreground/40"
+                      )}
+                    />
+                  )}
+                  {list.is_default && (
+                    <Home
+                      className={cn(
+                        "h-3 w-3 shrink-0",
+                        isActive ? "text-emerald-400" : "text-muted-foreground/40"
+                      )}
+                    />
+                  )}
+
                   <span>{list.name}</span>
+
                   <span
                     className={cn(
                       "font-mono text-[10px] font-bold leading-none px-1 py-0.5 rounded",
@@ -88,12 +129,13 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                   </span>
                 </button>
 
-                {isActive && lists.length > 1 && (
+                {canDelete && (
                   <button
                     onClick={() => {
                       if (confirm(`Delete list "${list.name}"?`)) {
                         deleteList.mutate(list.id, {
                           onSuccess: () => {
+                            // Select the first remaining list after deletion
                             const remaining = lists.filter((l) => l.id !== list.id);
                             if (remaining.length > 0) {
                               onSelect(remaining[0].id);

@@ -32,6 +32,13 @@ class PantryServiceError(ShoppingError):
         super().__init__(message, error_code="shopping.error.pantry_service_unavailable")
 
 
+class ShoppingListProtectedError(ShoppingError):
+    """Raised when a caller attempts to delete a protected list (Household or Personal)."""
+
+    def __init__(self, message: str = "This shopping list is protected and cannot be deleted."):
+        super().__init__(message, error_code="shopping.error.list_protected")
+
+
 class InvalidUnitError(ShoppingError):
     """Raised when a unit string cannot be parsed or matched."""
 

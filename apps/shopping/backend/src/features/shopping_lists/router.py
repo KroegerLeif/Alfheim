@@ -49,11 +49,16 @@ async def get_lists(
     session: AsyncSession = Depends(get_db_session),
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
-    """Retrieve all shopping lists shared within the current household context."""
+    """Retrieve all shopping lists visible to the caller.
+
+    Auto-provisions the Personal List (user-bound) and Household List (home-bound)
+    on first access. Returns them in stable order: personal → household → custom.
+    """
     return await ShoppingListService.get_lists(
         session=session,
         home_id=context.home_id,
         owner_id=context.user_id,
+        username=context.username,
     )
 
 

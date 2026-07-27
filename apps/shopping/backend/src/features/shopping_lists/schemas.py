@@ -65,6 +65,8 @@ class ShoppingListRead(BaseModel):
     name: str
     home_id: uuid.UUID
     owner_id: uuid.UUID
+    is_default: bool
+    is_personal: bool
     created_at: datetime
     updated_at: datetime
     items: List[ShoppingItemRead] = []

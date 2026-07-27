@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ShoppingCart, Archive, Sparkles, Package, Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSidebar } from "./providers";
@@ -30,7 +30,6 @@ export default function ShoppingDashboard() {
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
 
   // State
-  const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "add">("list");
   const [unrecognizedItems, setUnrecognizedItems] = useState<UnrecognizedShoppingItem[]>([]);
@@ -38,11 +37,28 @@ export default function ShoppingDashboard() {
 
   // Queries
   const { data: lists = [], isLoading: listsLoading } = useShoppingLists();
-  const { data: listDetails } = useShoppingListDetails(activeListId || "");
 
-  // Mutations
-  const addItem = useAddShoppingItem(activeListId || "");
-  const syncToPantry = useSyncToPantry(activeListId || "");
+  // Derive the default list synchronously on every render so the first frame
+  // after data arrives already has a valid selection (eliminates blank-screen flash).
+  // Priority order: personal list first, then household (is_default), then first available.
+  const defaultListId = useMemo(() => {
+    if (lists.length === 0) return null;
+    const personal = lists.find((l) => l.is_personal);
+    if (personal) return personal.id;
+    const household = lists.find((l) => l.is_default);
+    if (household) return household.id;
+    return lists[0].id;
+  }, [lists]);
+
+  const [activeListId, setActiveListId] = useState<string | null>(null);
+
+  // Keep activeListId in sync: use the caller's explicit selection, falling back
+  // to the computed default when no explicit selection has been made yet.
+  const resolvedListId = activeListId ?? defaultListId;
+
+  const { data: listDetails } = useShoppingListDetails(resolvedListId || "");
+  const addItem = useAddShoppingItem(resolvedListId || "");
+  const syncToPantry = useSyncToPantry(resolvedListId || "");
 
   // Detect mobile viewport size changes
   useEffect(() => {
@@ -52,13 +68,6 @@ export default function ShoppingDashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Auto-select first list when data loads
-  useEffect(() => {
-    if (lists.length > 0 && !activeListId) {
-      setActiveListId(lists[0].id);
-    }
-  }, [lists, activeListId]);
-
   // Compute checklist progress metrics
   const items = listDetails?.items || [];
   const total = items.length;
@@ -67,7 +76,7 @@ export default function ShoppingDashboard() {
   const circumference = 2 * Math.PI * 15; // r=15
 
   const handleQuickAdd = (name: string, unit: string) => {
-    if (!activeListId) return;
+    if (!resolvedListId) return;
     addItem.mutate({
       name,
       quantity: 1,
@@ -76,7 +85,7 @@ export default function ShoppingDashboard() {
   };
 
   const handleSyncToPantry = async () => {
-    if (!activeListId) return;
+    if (!resolvedListId) return;
     try {
       const response = await syncToPantry.mutateAsync();
       
@@ -186,7 +195,7 @@ export default function ShoppingDashboard() {
         </header>
 
         {/* Dynamic horizontal lists select switcher */}
-        <ListSelector activeListId={activeListId} onSelect={setActiveListId} />
+        <ListSelector activeListId={resolvedListId} onSelect={setActiveListId} />
 
         {/* Mobile View Toggle Switchers */}
         {isMobile && (
@@ -212,7 +221,7 @@ export default function ShoppingDashboard() {
           {/* Left panel: Checklist list scrolling container */}
           {(!isMobile || mobileView === "list") && (
             <div className="glass-card rounded-2xl flex flex-col min-h-0 overflow-hidden">
-              <ChecklistContainer listId={activeListId || ""} />
+              <ChecklistContainer listId={resolvedListId || ""} />
               
               {/* Einkauf Einlagern Sync CTA Button */}
               {listDetails && listDetails.items.some((i) => i.is_completed) && (
@@ -239,10 +248,10 @@ export default function ShoppingDashboard() {
             <div className="flex flex-col gap-3.5 min-h-0">
               
               {/* Stepper Manual Add form */}
-              <AddManualItem listId={activeListId || ""} />
+              <AddManualItem listId={resolvedListId || ""} />
               
               {/* Quick Tile Grid aggregation */}
-              <QuickAddGrid onAdd={handleQuickAdd} disabled={!activeListId || addItem.isPending} />
+              <QuickAddGrid onAdd={handleQuickAdd} disabled={!resolvedListId || addItem.isPending} />
 
               {/* Pantry Legend description box */}
               <div className="glass-inset rounded-xl p-3 flex items-center gap-3 shrink-0 select-none">
