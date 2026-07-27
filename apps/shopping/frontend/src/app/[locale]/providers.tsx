@@ -41,6 +41,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       .then((authenticated) => {
         if (authenticated) {
           setIsAuthenticated(true);
+          (window as any).__keycloak_instance__ = keycloak;
           sessionStorage.setItem("token_shopping-frontend", keycloak.token || "");
 
           // Set up token auto-refresh

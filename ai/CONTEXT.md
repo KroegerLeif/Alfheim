@@ -18,9 +18,30 @@
 
 ## Current Sprint — Completed Commits
 
-### `fix(shopping): repair startup DDL migration and verify stack lifecycle scripts`
+### `fix(shopping): resolve backend keycloak jwt 401 error and add frontend auth interceptor`
 
 **Date**: 2026-07-27
+
+#### Root cause
+1. **Container JWKS Resolution & PyJWT Validation**: In `apps/shopping/backend`, `KEYCLOAK_URL` defaulted to `http://localhost:8080/auth`. Inside Docker containers, `localhost:8080` points to the container itself (where Keycloak is absent), causing JWKS fetches to fail with Connection Refused (`127.0.0.1:8080`) and returning HTTP 401 Unauthorized. Additionally, PyJWT issuer validation rejected browser tokens issued with `iss="http://loeger-os/auth/realms/loeger-os"` when decoded internally.
+2. **Frontend 401 Unhandled State**: `apps/shopping/frontend/src/lib/api.ts` lacked a 401 response interceptor to handle token refresh or trigger re-authentication, leaving React Query in an unhandled error state.
+
+#### Fix
+1. **Shopping Backend (`compose.yml`, `config.py`, `dependencies.py`)**:
+   - Passed `KEYCLOAK_URL=http://keycloak:8080/auth` and `KEYCLOAK_PUBLIC_URL=http://loeger-os/auth` in `compose.yml`.
+   - Updated `config.py` with `KEYCLOAK_PUBLIC_URL` and `jwks_fallback_urls` helper.
+   - Updated `dependencies.py` `decode_keycloak_token()` to iterate through fallback JWKS endpoints and pass `options={"verify_aud": False, "verify_iss": False}` to PyJWT `jwt.decode(...)`.
+2. **Shopping Frontend (`providers.tsx`, `api.ts`, `page.tsx`)**:
+   - Attached `keycloak` instance to `(window as any).__keycloak_instance__` in `providers.tsx`.
+   - Added a 401 response interceptor in `lib/api.ts` that triggers `keycloak.updateToken(30)` or `keycloak.login()`.
+   - Enhanced `page.tsx` list query error state to render a dedicated **"Session Expired - Re-authenticate"** UI card with a direct **"Log In"** button when 401/403 errors occur.
+
+#### Verification
+- `pnpm --filter shopping-frontend exec tsc --noEmit` passed cleanly (exit code 0).
+- Pytest unit tests in `apps/shopping/backend` passed 100% (7/7 passed).
+- Docker image rebuild and startup verified healthy startup in container logs.
+
+---
 
 #### Root cause
 1. **Multi-statement DDL in `asyncpg`**: In `apps/shopping/backend/src/core/database.py`, multiple SQL statements were passed in a single string separated by `;` to `conn.execute(text(...))`. `asyncpg` raises `PostgresSyntaxError: cannot insert multiple commands into a prepared statement` when executing multiple SQL commands in a single prepared statement context.

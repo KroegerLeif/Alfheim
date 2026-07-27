@@ -114,6 +114,22 @@ export default function ShoppingDashboard() {
   }
 
   if (listsError) {
+    const isAuthError =
+      (listsErrObj as any)?.status === 401 ||
+      (listsErrObj as any)?.status === 403 ||
+      (listsErrObj instanceof Error && listsErrObj.message.includes("401"));
+
+    const handleLogin = () => {
+      if (typeof window !== "undefined") {
+        const keycloak = (window as any).__keycloak_instance__;
+        if (keycloak && typeof keycloak.login === "function") {
+          keycloak.login();
+          return;
+        }
+        window.location.reload();
+      }
+    };
+
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 text-center">
         <div className="glass-card max-w-md p-6 rounded-2xl border border-red-500/20 space-y-4">
@@ -121,17 +137,32 @@ export default function ShoppingDashboard() {
             <ShoppingCart className="h-6 w-6" />
           </div>
           <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
-            Failed to Load Shopping Lists
+            {isAuthError ? "Session Expired" : "Failed to Load Shopping Lists"}
           </h2>
           <p className="text-xs text-muted-foreground">
-            {listsErrObj instanceof Error ? listsErrObj.message : "Unable to reach the shopping backend service."}
+            {isAuthError
+              ? "Your security token has expired or is invalid. Please re-authenticate with Keycloak to resume."
+              : listsErrObj instanceof Error
+              ? listsErrObj.message
+              : "Unable to reach the shopping backend service."}
           </p>
-          <button
-            onClick={() => refetchLists()}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
-          >
-            Retry
-          </button>
+          <div className="flex gap-2 justify-center">
+            {isAuthError ? (
+              <button
+                onClick={handleLogin}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Log In
+              </button>
+            ) : (
+              <button
+                onClick={() => refetchLists()}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Retry
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
