@@ -25,11 +25,12 @@ async def test_create_retrieve_delete_shopping_list(client: AsyncClient, db_sess
     assert response.status_code == 200
     assert response.json()["name"] == "Weekly Groceries"
 
-    # 3. Retrieve all lists
+    # 3. Retrieve all lists (auto-provisions Personal and Household lists)
     response = await client.get("/api/v1/shopping-lists")
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["id"] == list_id
+    lists = response.json()
+    assert len(lists) == 3
+    assert any(l["id"] == list_id for l in lists)
 
     # 4. Delete the shopping list
     response = await client.delete(f"/api/v1/shopping-lists/{list_id}")

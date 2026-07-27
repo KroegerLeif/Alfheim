@@ -18,6 +18,22 @@
 
 ## Current Sprint — Completed Commits
 
+### `feat(infra): add DB auto-migration, lazy list provisioning, fix app routing, and add down/seed scripts`
+
+**Date**: 2026-07-27
+
+#### What was delivered
+
+| Area | Change |
+|---|---|
+| Shopping DB Auto-Migration | `apps/shopping/backend/src/core/database.py` now executes raw DDL SQL (`ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_default...`, `is_personal...`) directly inside `init_db()` on application startup so legacy database instances update automatically without manual DDL. |
+| On-Demand Lazy List Provisioning | `apps/shopping/backend/src/features/shopping_lists/service.py` `get_lists()` checks and lazily auto-provisions both the Personal List (`is_personal=True`, `owner_id=user_id`) and Household List (`is_default=True`, `home_id=household_id`) on-the-fly for any existing Keycloak user account without relying on user-creation hooks. Guaranteed 200 OK. |
+| Maintenance App Routing | Fixed `apps/maintenance/frontend/src/middleware.ts` route matcher (`matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"]`), preventing `next-intl` from skipping locale resolution and resolving `notFound()` 404s when accessing `/maintenance` or `/maintenance/de`. |
+| `scripts/down.sh` | New executable teardown script (`./scripts/down.sh`). Cleanly stops stack, removes orphans, and supports `--volumes` / `-v` flag to tear down volumes and external networks (`observability-internal`). |
+| `scripts/seed.sh` | New executable seeding script (`./scripts/seed.sh`). Populates presentation demo data across Pantry (demo products), Shopping ("Haushalt" and "Personal" list items), and Maintenance (devices & maintenance steps). |
+
+---
+
 ### `fix(apps): resolve shopping infinite skeleton and maintenance 404 routing`
 
 **Date**: 2026-07-27

@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -27,12 +28,29 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize the database tables.
+    """Initialize the database tables and apply auto-migrations.
 
     Imports all models to ensure they register with SQLModel.metadata.
+    Executes raw SQL DDL migrations to ensure column additions for existing tables.
     """
     from src.features.shopping_lists.models import ShoppingList, ShoppingItem  # noqa: F401
     from src.features.history.models import ShoppingHistory  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.execute(
+            text(
+                "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE; "
+                "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE;"
+            )
+        )
+        try:
+            await conn.execute(
+                text(
+                    "ALTER TABLE shoppinglist ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE; "
+                    "ALTER TABLE shoppinglist ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE;"
+                )
+            )
+        except Exception:
+            pass
+

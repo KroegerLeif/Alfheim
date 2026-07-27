@@ -96,6 +96,21 @@ class ShoppingListService:
         household = result.first()
 
         if not household:
+            # Fallback check for existing list named "Haushalt"
+            fallback_stmt = select(ShoppingList).where(
+                ShoppingList.home_id == home_id,
+                ShoppingList.name == "Haushalt",
+            )
+            fallback_res = await session.exec(fallback_stmt)
+            legacy_household = fallback_res.first()
+            if legacy_household:
+                legacy_household.is_default = True
+                legacy_household.is_personal = False
+                session.add(legacy_household)
+                await session.commit()
+                await session.refresh(legacy_household)
+                return legacy_household
+
             household = ShoppingList(
                 name="Haushalt",
                 home_id=home_id,
