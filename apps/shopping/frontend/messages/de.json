@@ -4,7 +4,10 @@
     "subtitle": "Einkaufslistenverwaltung",
     "lists": "Listen",
     "history": "Verlauf",
-    "pantry": "Vorratsschrank"
+    "pantry": "Vorratsschrank",
+    "newList": "+ Neue Liste",
+    "newListPlaceholder": "Listenname...",
+    "noLists": "Keine Listen gefunden"
   },
   "Checklist": {
     "title": "Einkaufszettel",

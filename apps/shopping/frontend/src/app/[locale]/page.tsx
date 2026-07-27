@@ -92,8 +92,8 @@ export default function ShoppingDashboard() {
   if (listsLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 animate-pulse">
-        <div className="h-10 w-10 bg-white/5 rounded-xl" />
-        <div className="h-4 w-32 bg-white/5 rounded-md" />
+        <div className="h-10 w-10 bg-[var(--surface-elevated)] rounded-xl" />
+        <div className="h-4 w-32 bg-[var(--surface-elevated)] rounded-md" />
       </div>
     );
   }

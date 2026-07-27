@@ -4,7 +4,10 @@
     "subtitle": "Shopping List Management",
     "lists": "Lists",
     "history": "History",
-    "pantry": "Pantry System"
+    "pantry": "Pantry System",
+    "newList": "+ New List",
+    "newListPlaceholder": "List name...",
+    "noLists": "No lists found"
   },
   "Checklist": {
     "title": "Shopping Checklist",

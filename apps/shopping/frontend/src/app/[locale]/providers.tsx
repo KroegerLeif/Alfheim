@@ -63,9 +63,9 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
+      <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="text-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary-main)] border-t-transparent mx-auto"></div>
           <p className="text-lg font-medium tracking-wide">Securing session with Keycloak...</p>
         </div>
       </div>

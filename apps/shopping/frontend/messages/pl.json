@@ -1,0 +1,54 @@
+{
+  "Navigation": {
+    "title": "loeger-os",
+    "subtitle": "Zarządzanie listą zakupów",
+    "lists": "Listy",
+    "history": "Historia",
+    "pantry": "Spiżarnia",
+    "newList": "+ Nowa lista",
+    "newListPlaceholder": "Nazwa listy...",
+    "noLists": "Brak list"
+  },
+  "Checklist": {
+    "title": "Lista zakupów",
+    "searchPlaceholder": "Szukaj...",
+    "open": "otwarte",
+    "completed": "ukończone",
+    "empty": "Brak artykułów",
+    "einlagernBtn": "Zapisz do spiżarni",
+    "pantryBadge": "Spiżarnia",
+    "pantryLegend": "Powiązano ze spiżarnią — zostanie automatycznie dodane do zapasów"
+  },
+  "AddForm": {
+    "title": "Dodaj artykuł",
+    "namePlaceholder": "Wpisz artykuł...",
+    "addBtn": "Dodaj",
+    "stepperDec": "Zmniejsz ilość",
+    "stepperInc": "Zwiększ ilość"
+  },
+  "History": {
+    "title": "Często kupowane",
+    "noHistory": "Brak historii"
+  },
+  "Modal": {
+    "scanTitle": "Zapisz · Skanuj",
+    "unresolvedTitle": "{count} nieznanych artykułów",
+    "allDoneTitle": "Wszystkie artykuły przetworzone",
+    "catalogBtn": "Katalog",
+    "ignoreBtn": "Ignoruj",
+    "ignoredLabel": "— Zignorowano",
+    "savedLabel": "✓ {catalogName}",
+    "inputLabel": "Ustaw nazwę katalogu",
+    "saveBtn": "Zapisz",
+    "doneBtn": "Gotowe",
+    "laterBtn": "Zrób później",
+    "summaryText": "{saved} zapisano · {ignored} zignorowano"
+  },
+  "Error": {
+    "nameRequired": "Nazwa artykułu jest wymagana",
+    "invalidQty": "Ilość musi być dodatnia",
+    "fetchFailed": "Nie udało się załadować szczegółów",
+    "syncFailed": "Synchronizacja ze spiżarnią nie powiodła się",
+    "unrecognizedError": "Wystąpił nieoczekiwany błąd"
+  }
+}

@@ -103,7 +103,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                       }
                     }}
                     disabled={deleteList.isPending}
-                    className="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:text-red-300 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                    className="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:text-red-300 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card)] transition-colors cursor-pointer shrink-0"
                     title="Delete List"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -115,7 +115,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
           {/* Inline creation form */}
           {isCreating ? (
-            <div className="flex items-center gap-1 px-2.5 h-9 bg-white/5 rounded-xl border border-white/5 shrink-0">
+            <div className="flex items-center gap-1 px-2.5 h-9 bg-[var(--surface-elevated)] rounded-xl border border-[var(--border-subtle)] shrink-0">
               <input
                 type="text"
                 value={newListName}
@@ -145,7 +145,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
           ) : (
             <button
               onClick={() => setIsCreating(true)}
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground hover:text-foreground bg-white/5 hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+              className="flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground hover:text-foreground bg-[var(--surface-elevated)] hover:bg-[var(--surface-card)] transition-colors cursor-pointer shrink-0"
               aria-label="Create List"
               title="Create List"
             >
