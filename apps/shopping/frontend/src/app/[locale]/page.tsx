@@ -36,7 +36,13 @@ export default function ShoppingDashboard() {
   const [showModal, setShowModal] = useState(false);
 
   // Queries
-  const { data: lists = [], isLoading: listsLoading } = useShoppingLists();
+  const {
+    data: lists = [],
+    isLoading: listsLoading,
+    isError: listsError,
+    error: listsErrObj,
+    refetch: refetchLists,
+  } = useShoppingLists();
 
   // Derive the default list synchronously on every render so the first frame
   // after data arrives already has a valid selection (eliminates blank-screen flash).
@@ -103,6 +109,30 @@ export default function ShoppingDashboard() {
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 animate-pulse">
         <div className="h-10 w-10 bg-[var(--surface-elevated)] rounded-xl" />
         <div className="h-4 w-32 bg-[var(--surface-elevated)] rounded-md" />
+      </div>
+    );
+  }
+
+  if (listsError) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 text-center">
+        <div className="glass-card max-w-md p-6 rounded-2xl border border-red-500/20 space-y-4">
+          <div className="h-12 w-12 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center mx-auto">
+            <ShoppingCart className="h-6 w-6" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
+            Failed to Load Shopping Lists
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {listsErrObj instanceof Error ? listsErrObj.message : "Unable to reach the shopping backend service."}
+          </p>
+          <button
+            onClick={() => refetchLists()}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

@@ -18,6 +18,24 @@
 
 ## Current Sprint — Completed Commits
 
+### `fix(apps): resolve shopping infinite skeleton and maintenance 404 routing`
+
+**Date**: 2026-07-27
+
+#### Root cause
+1. **Shopping App**: `providers.tsx` Keycloak `.catch()` was swallowing initialization errors without updating state, leaving `isAuthenticated` as `false` and hanging on the authentication spinner indefinitely. Additionally, `page.tsx` lacked `isError` destructuring and error UI fallback for React Query list queries.
+2. **Maintenance App**: The route structure under `app/[locale]/` lacked `dashboard/page.tsx` route matching for requests to `/maintenance/[locale]/dashboard`. When hit, Next.js rendered a 404 `notFound()` view inside the main `{children}` content layout while keeping the `Sidebar` and `Header` intact.
+
+#### Fix
+1. **Shopping Frontend (`providers.tsx`, `page.tsx`)**: Added `authError` state and retry UI to Keycloak initialization in `providers.tsx`. Destructured `isError`, `error`, and `refetch` from `useShoppingLists()` in `page.tsx`, displaying an actionable error card instead of hanging on the skeleton.
+2. **Maintenance Frontend (`app/[locale]/dashboard/page.tsx`, `providers.tsx`)**: Added `app/[locale]/dashboard/page.tsx` re-exporting `MaintenancePage` to support `/dashboard` subpaths cleanly. Added `authError` state and retry UI to Keycloak init in `providers.tsx`.
+
+#### Verification
+- `pnpm --filter shopping-frontend exec tsc --noEmit` passed cleanly (exit 0).
+- `pnpm --filter maintenance-frontend exec tsc --noEmit` passed cleanly (exit 0).
+
+---
+
 ### `fix(infra): align docker network creation in up.sh for clean compose execution`
 
 **Date**: 2026-07-27
