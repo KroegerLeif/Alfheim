@@ -18,6 +18,39 @@
 
 ## Current Sprint — Completed Commits
 
+### `fix(infra): align docker network creation in up.sh for clean compose execution`
+
+**Date**: 2026-07-27
+
+#### Root cause
+`scripts/up.sh` STAGE 0 used a `for`-loop to call `docker network create` for four networks:
+`public-ingress`, `observability-internal`, `pantry-internal`, `shopping-internal`.
+Bare `docker network create` produces networks **without** Docker Compose project labels
+(`com.docker.compose.network`, `com.docker.compose.project`). When STAGE 3 then ran
+`dc up ... shopping-backend`, Compose found `pantry-internal` and `shopping-internal` already
+existing but label-less → **"network was found but has incorrect label"** crash.
+
+#### Fix
+STAGE 0 now only pre-creates `observability-internal` — the single network declared
+`external: true` in **every** sub-compose file (including `logging-stack`), meaning no Compose
+project owns it and raw creation with no labels is correct.
+
+All other networks are Compose-owned and must **never** be pre-created manually:
+
+| Network | Owner | Created by |
+|---|---|---|
+| `public-ingress` | `infrastructure/compose.yml` | STAGE 1 `dc up -d postgres-iam traefik` |
+| `pantry-internal` | `apps/pantry/compose.yml` | STAGE 3 `dc up ... pantry-backend` |
+| `shopping-internal` | `apps/shopping/compose.yml` | STAGE 3 `dc up ... shopping-backend` |
+| `dashboard-internal` | `apps/dashboard/compose.yml` | STAGE 3 `dc up ... dashboard-backend` |
+| `maintenance-internal` | `apps/maintenance/compose.yml` | STAGE 4 `dc up ... maintenance-frontend` |
+| `iam_network` | `infrastructure/compose.yml` | STAGE 1 |
+
+#### Verification
+`./scripts/up.sh --no-build` completed exit 0 through all 5 stages with every service healthy.
+
+---
+
 ### `feat(infra): add scripts/up.sh for staged stack boot and ensure auto-provisioned household shopping list`
 
 **Date**: 2026-07-27

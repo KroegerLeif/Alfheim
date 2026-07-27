@@ -155,16 +155,27 @@ step "STAGE 0 · Pre-flight"
 docker info > /dev/null 2>&1 || fail "Docker daemon is not running. Start Docker Desktop and retry."
 ok "Docker daemon is reachable"
 
-# Ensure external Docker networks exist before any compose up call.
-# infrastructure/compose.yml declares public-ingress as canonical; all other
-# stacks reference it as external. We create them idempotently here.
-for net in public-ingress observability-internal pantry-internal shopping-internal; do
-  if ! docker network inspect "${net}" > /dev/null 2>&1; then
-    info "Creating Docker network: ${net}"
-    docker network create "${net}"
-  fi
-done
+# Pre-create only the networks declared `external: true` in every sub-compose file
+# (i.e. networks that have no Compose owner and must exist before any `dc up` call).
+#
+# Network ownership map (verified against all compose files):
+#   observability-internal → external: true in ALL stacks (no owner) → must pre-create here
+#   public-ingress         → owned by infrastructure/compose.yml    → created in STAGE 1
+#   pantry-internal        → owned by apps/pantry/compose.yml       → created by Compose in STAGE 3
+#   shopping-internal      → owned by apps/shopping/compose.yml     → created by Compose in STAGE 3
+#   dashboard-internal     → owned by apps/dashboard/compose.yml    → created by Compose in STAGE 3
+#   maintenance-internal   → owned by apps/maintenance/compose.yml  → created by Compose in STAGE 4
+#   iam_network            → owned by infrastructure/compose.yml    → created in STAGE 1
+#
+# Rationale: pre-creating a Compose-owned network with bare `docker network create` omits
+# the required project labels (com.docker.compose.network, com.docker.compose.project).
+# Docker Compose detects this on `dc up` and throws a label-mismatch error, crashing STAGE 3.
+if ! docker network inspect observability-internal > /dev/null 2>&1; then
+  info "Creating external Docker network: observability-internal"
+  docker network create observability-internal
+fi
 ok "Docker networks are ready"
+
 
 # =============================================================================
 # STAGE 1 — IAM Core (postgres-iam → keycloak → traefik)
