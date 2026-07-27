@@ -38,19 +38,15 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        await conn.execute(
-            text(
-                "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE; "
-                "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE;"
-            )
-        )
-        try:
-            await conn.execute(
-                text(
-                    "ALTER TABLE shoppinglist ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE; "
-                    "ALTER TABLE shoppinglist ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE;"
-                )
-            )
-        except Exception:
-            pass
+        statements = [
+            "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE shoppinglist ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE shoppinglist ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE",
+        ]
+        for stmt in statements:
+            try:
+                await conn.execute(text(stmt))
+            except Exception:
+                pass
 

@@ -18,9 +18,25 @@
 
 ## Current Sprint — Completed Commits
 
-### `feat(infra): add DB auto-migration, lazy list provisioning, fix app routing, and add down/seed scripts`
+### `fix(shopping): repair startup DDL migration and verify stack lifecycle scripts`
 
 **Date**: 2026-07-27
+
+#### Root cause
+1. **Multi-statement DDL in `asyncpg`**: In `apps/shopping/backend/src/core/database.py`, multiple SQL statements were passed in a single string separated by `;` to `conn.execute(text(...))`. `asyncpg` raises `PostgresSyntaxError: cannot insert multiple commands into a prepared statement` when executing multiple SQL commands in a single prepared statement context.
+2. **Traefik Router Priority**: `apps/maintenance/compose.yml` specified explicit `priority=1` and `priority=10` on frontend routers, which overrode Traefik's automatic rule length matching and routed subpath requests to `dashboard-frontend` instead of `maintenance-frontend`.
+
+#### Fix
+1. **Shopping Backend (`database.py`)**: Iterated over DDL statements individually in a loop (`for stmt in statements: await conn.execute(text(stmt))`), wrapping each in `try/except` to prevent asyncpg syntax errors.
+2. **Maintenance Compose (`compose.yml`)**: Removed explicit priority overrides from `maintenance-frontend` routers, allowing Traefik's default rule length matching (`/maintenance` > `/`) to correctly route to `maintenance-frontend`.
+
+#### E2E Lifecycle Verification Results
+- `./scripts/down.sh -v` — Clean teardown including named volumes and external networks (exit code 0).
+- `./scripts/up.sh` — Sequential 5-stage stack boot completed with 100% healthy services across all backends & frontends (exit code 0).
+- `./scripts/seed.sh` — Demo data seeding completed with zero errors for Pantry products, Shopping lists ("Haushalt" & "Personal"), and Maintenance Hub devices.
+- HTTP endpoint verification: `/shopping/en`, `/maintenance/en`, and `/maintenance/de` all returned HTTP 200 OK responses.
+
+---
 
 #### What was delivered
 
