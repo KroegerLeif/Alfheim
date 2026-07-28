@@ -74,12 +74,15 @@ export function ThemeToggle({ className = '', showVariantToggle = true }: ThemeT
                   key={m}
                   type="button"
                   onClick={() => setMode(m)}
-                  className={`py-1 rounded text-[11px] font-mono capitalize transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  className={`py-1.5 rounded text-[11px] font-mono capitalize transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     mode === m
                       ? 'bg-[var(--surface-elevated)] text-[var(--primary-main)] font-bold border border-[var(--border-accent)]'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                   }`}
                 >
+                  <span className="material-symbols-outlined text-xs">
+                    {m === 'dark' ? 'dark_mode' : m === 'light' ? 'light_mode' : 'desktop_windows'}
+                  </span>
                   <span>{m}</span>
                 </button>
               ))}
