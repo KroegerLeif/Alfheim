@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, ChevronRight } from "lucide-react";
+import { X } from "lucide-react";
 import { GlassCheckbox } from "./GlassCheckbox";
 import { PantryBadge } from "@/components/shared/PantryBadge";
 import { ShoppingItem } from "../types";
@@ -26,12 +26,10 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
       onMouseEnter={() => !isOptimistic && setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        "grid grid-cols-[22px_1fr_auto_auto] items-center gap-3 px-3 py-2.5 rounded-[12px] cursor-pointer",
-        "transition-all duration-200 border-t border-b border-transparent select-none",
-        item.is_completed ? "opacity-40" : "opacity-100",
-        hovered && !item.is_completed
-          ? "bg-blue-500/10 dark:bg-blue-500/5 border-t-blue-400/20 border-b-black/10 shadow-sm"
-          : "bg-white/2 dark:bg-white/[0.01] border-b-black/5 dark:border-b-black/10"
+        "grid grid-cols-[22px_1fr_auto_24px] items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer",
+        "transition-all duration-200 border border-transparent select-none",
+        item.is_completed ? "opacity-50 glass-inset" : "glass-card hover:glass-active",
+        hovered && !item.is_completed && "border-blue-500/20 shadow-xs"
       )}
     >
       {/* Tactile Checkbox */}
@@ -45,9 +43,9 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
       <div className="flex items-center gap-2 min-w-0">
         <span
           className={cn(
-            "font-heading text-sm font-semibold tracking-wide truncate transition-all",
+            "font-heading text-sm font-bold tracking-wide truncate transition-all duration-300",
             item.is_completed
-              ? "line-through text-muted-foreground/50"
+              ? "line-through text-muted-foreground/60"
               : "text-foreground"
           )}
         >
@@ -64,35 +62,35 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
       </div>
 
       {/* Quantities & units */}
-      <div className="flex items-baseline gap-0.5 font-mono shrink-0 select-none">
+      <div className="flex items-baseline gap-1 font-mono shrink-0 select-none">
         <span
           className={cn(
-            "text-xs font-bold leading-none",
+            "text-xs font-black leading-none",
             item.is_completed
-              ? "text-muted-foreground/30"
-              : "text-blue-500 dark:text-blue-400"
+              ? "text-muted-foreground/40"
+              : "text-primary"
           )}
         >
           {item.quantity}
         </span>
-        <span className="text-[9px] font-bold text-muted-foreground/50 leading-none">
+        <span className="text-[10px] font-bold text-muted-foreground/60 leading-none">
           {item.unit}
         </span>
       </div>
 
       {/* Actions container (hover triggers delete button) */}
-      <div className="w-[18px] h-[18px] flex items-center justify-center shrink-0">
-        {!isOptimistic && hovered && (
+      <div className="w-5 h-5 flex items-center justify-center shrink-0">
+        {!isOptimistic && (hovered || item.is_completed) && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }}
-            className="w-full h-full flex items-center justify-center rounded-[4px] 
-                       hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-colors"
+            className="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
             aria-label="Remove item"
+            title="Remove item"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>

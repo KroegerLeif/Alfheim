@@ -18,9 +18,36 @@
 
 ## Current Sprint — Completed Commits
 
-### `fix(shopping): eliminate live docker HTTP 500 in list endpoint`
+### `feat(shopping): overhaul UI with unified light/dark mode, figma sidepanel, and stitch layout`
 
 **Date**: 2026-07-28
+
+#### Summary
+1. **Unified Global Light/Dark Mode System**:
+   - Removed legacy multi-variant theme pickers ("obsidian", "kinetic").
+   - Implemented a clean, standard 2-way Light/Dark toggle switch (`ThemeToggle.tsx`) that dynamically toggles `.dark` on `document.documentElement` (`next-themes`).
+   - All surfaces (sidepanel, top bar, main canvas cards, quick-add tiles, checklist rows, modal overlays) switch color scheme simultaneously with full contrast and high legibility.
+2. **Global Top Header Bar Integration**:
+   - Created sticky top application bar (`Header.tsx`) across all views consolidating system chrome:
+     - Left: "Back to Dashboard" button (`http://loeger-os/`) with back arrow icon and sidebar toggle.
+     - Right: i18n Language Selector (DE/EN toggle) updating `next-intl` locale and standardized 2-way Light/Dark switch button.
+3. **Figma Export & Stitch Sidepanel Refactoring**:
+   - Replaced legacy sidebar with Figma Export structure (`Sidebar.tsx`):
+     - Workspace brand header (`loeger-os / Shopping List Management`).
+     - System Lists section featuring protected Household List ("Haushalt") and Personal User List ("{username} - Liste") pinned at top with icon badges and active indicators.
+     - Custom Lists section with inline "+ New List" creation input and item count badges (`completed/total`).
+     - User Profile / Account section at bottom displaying Keycloak user avatar, display name, username, and functioning Logout CTA button (`useKeycloakUser.ts`).
+     - Desktop persistent/collapsible drawer & Mobile overlay drawer with backdrop blur (`Sidebar.tsx`).
+4. **Main Content Canvas Redesign (`stitch_loeger_os` Alignment)**:
+   - Active list summary header banner with progress ring indicator (`% completed`), list type badge, and action bar ("Share", "Print", "Clear Completed", "Store Einkauf").
+   - Quick Add Article Form Card (`AddManualItem.tsx`) with item search input, quantity stepper, category selector, and unit popover.
+   - Frequently Bought Quick-Tile Grid (`QuickAddGrid.tsx`) with scaling micro-interactions.
+   - Categorized Main Checklist View (`ChecklistContainer.tsx`) with intelligent category grouping (Produce 🥦, Dairy 🧀, Bakery 🍞, Household 🧹, Meat 🥩, Pantry 🥫, Beverages 🥤, Other 📦), custom checkboxes (`GlassCheckbox.tsx`), strikethrough animations, and Pantry integration badges.
+
+#### Verification
+- `pnpm --filter shopping-frontend exec tsc --noEmit` passed cleanly with exit code 0.
+
+---
 
 #### Root cause
 1. **Transaction Rollback in Startup `init_db()`**: In `apps/shopping/backend/src/core/database.py`, `init_db()` ran `SQLModel.metadata.create_all` inside the same `async with engine.begin() as conn:` transaction block as raw DDL statements (`ALTER TABLE shoppinglist ...`). Because table `shoppinglist` (singular) did not exist, PostgreSQL threw an `UndefinedTableError`. Even though Python caught the exception, SQLAlchemy 2.0 transaction managers mark any failed DB-level statement within an `engine.begin()` block as aborted and automatically rolled back the entire transaction including `create_all`. This left the `shopping` database with 0 tables, causing `GET /api/v1/shopping/lists` to throw `UndefinedTableError: relation "shopping_lists" does not exist` (HTTP 500).
