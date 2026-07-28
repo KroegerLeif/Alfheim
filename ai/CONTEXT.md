@@ -18,6 +18,31 @@
 
 ## Current Sprint — Completed Commits
 
+### `feat(i18n): centralize monorepo translation files into shared package and fix polish locale`
+
+**Date**: 2026-07-28
+
+#### Summary
+1. **Resolved `scripts/up.sh` Stage 6 Service Name Error**:
+   - Fixed `scripts/up.sh` Stage 6 to call `docker compose up ... signoz` matching the container service name defined in `apps/logging-stack/compose.yml` (rather than `signoz-ui`).
+2. **Theme Toggle Dropdown Switcher Refinement**:
+   - Refined `ThemeToggle.tsx` in `packages/shared` to display the Sun/Moon/System icon next to the theme name and a chevron (`expand_more` / `expand_less`).
+   - Integrated full theme mode switching (Light / Dark / System) with explicit icons (`light_mode`, `dark_mode`, `desktop_windows`) alongside Theme Variant selection (Obsidian, Kinetic, Slate) in the dropdown popover.
+3. **Centralized i18n Translation Architecture in `packages/shared`**:
+   - Created a centralized translation file structure in `packages/shared/src/i18n/locales/{de,en,pl}/`:
+     - `common.json`: Navigation, system labels, headers, user controls.
+     - `shopping.json`: Full checklist, add form, categories, modals, errors.
+     - `pantry.json`: Inventory, storage, batch, and barcode scanner keys.
+     - `maintenance.json`: System diagnostics, device status, and task keys.
+   - Provided unified helper export `getSharedMessages(locale)` in `packages/shared/src/i18n/locales.ts`.
+   - Reconfigured `next-intl` in `apps/shopping/frontend/src/i18n.ts` to import and merge central shared locale messages from `@loeger-os/shared`.
+   - Fully populated Polish (`pl`), German (`de`), and English (`en`) translation files, eliminating missing keys and raw translation key fallbacks in the UI.
+
+#### Verification
+- `pnpm --filter shopping-frontend exec tsc --noEmit` passed cleanly with exit code 0.
+
+---
+
 ### `refactor(infra): enforce granular vertical up.sh pipeline and sync new-app guidelines`
 
 **Date**: 2026-07-28
