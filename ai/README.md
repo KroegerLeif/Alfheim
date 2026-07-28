@@ -28,6 +28,7 @@ ai/
 ├── CORE.md                # Repository-wide universal architectural standards
 ├── ARCHITECTURE.md        # Monorepo layout, Docker services, Traefik routing, JWT claims
 ├── CONTEXT.md             # Sprint state, completed commits, DB invariants, feature flags
+├── new-app-guideline.md   # Blueprint & checklist for creating new apps in apps/
 └── stacks/                # Technology-specific architectural guidelines
     ├── _template.md       # Standardized blueprint for documentation of new stacks
     ├── python-fastapi.md  # Python FastAPI & FastMCP architectural guide
