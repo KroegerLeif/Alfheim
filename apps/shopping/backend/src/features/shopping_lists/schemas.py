@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 # -------------------------------------------------------------
@@ -69,7 +69,12 @@ class ShoppingListRead(BaseModel):
     is_personal: bool
     created_at: datetime
     updated_at: datetime
-    items: List[ShoppingItemRead] = []
+    items: List[ShoppingItemRead] = Field(default_factory=list)
+
+    @field_validator("items", mode="before")
+    @classmethod
+    def default_items(cls, v):
+        return v if v is not None else []
 
     model_config = ConfigDict(from_attributes=True)
 

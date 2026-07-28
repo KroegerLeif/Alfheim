@@ -42,10 +42,10 @@ class ShoppingListService:
     def _personal_list_name(username: Optional[str], user_id: uuid.UUID) -> str:
         """Build a deterministic Personal List display name.
 
-        Falls back to a UUID-derived short name when the username claim is absent.
+        Falls back to a UUID-derived short name when the username claim is absent or non-string.
         The suffix ' - Liste' corresponds to the i18n key shopping.personalListSuffix.
         """
-        label = username.strip() if username else str(user_id)[:8]
+        label = username.strip() if isinstance(username, str) and username.strip() else str(user_id)[:8]
         return f"{label} - Liste"
 
     @staticmethod
@@ -79,6 +79,9 @@ class ShoppingListService:
             await session.commit()
             await session.refresh(personal)
 
+        if personal.items is None:
+            personal.items = []
+
         return personal
 
     @staticmethod
@@ -109,6 +112,8 @@ class ShoppingListService:
                 session.add(legacy_household)
                 await session.commit()
                 await session.refresh(legacy_household)
+                if legacy_household.items is None:
+                    legacy_household.items = []
                 return legacy_household
 
             household = ShoppingList(
@@ -121,6 +126,9 @@ class ShoppingListService:
             session.add(household)
             await session.commit()
             await session.refresh(household)
+
+        if household.items is None:
+            household.items = []
 
         return household
 
@@ -146,6 +154,8 @@ class ShoppingListService:
         session.add(db_list)
         await session.commit()
         await session.refresh(db_list)
+        if db_list.items is None:
+            db_list.items = []
         return db_list
 
     @staticmethod
@@ -183,8 +193,13 @@ class ShoppingListService:
         result = await session.exec(stmt)
         custom_lists = list(result.all())
 
+        all_lists = [personal, household, *custom_lists]
+        for lst in all_lists:
+            if lst.items is None:
+                lst.items = []
+
         # 3. Return in deterministic order: personal → household → custom
-        return [personal, household, *custom_lists]
+        return all_lists
 
     @staticmethod
     async def get_list(

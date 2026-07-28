@@ -18,9 +18,23 @@
 
 ## Current Sprint — Completed Commits
 
-### `fix(shopping): resolve backend keycloak jwt 401 error and add frontend auth interceptor`
+### `fix(shopping): resolve backend 500 error in lazy list provisioning`
 
-**Date**: 2026-07-27
+**Date**: 2026-07-28
+
+#### Root cause
+1. **Uninitialized SQLAlchemy Model Relationship Serialization**: When lazy auto-provisioning created new `ShoppingList` records in `_ensure_personal_list` and `_ensure_household_list`, the `items` relationship attribute on freshly instantiated models remained uninitialized (`None`). Pydantic's `ShoppingListRead` schema expected `items: List[ShoppingItemRead] = []` and threw a Pydantic `ValidationError` when attempting to serialize `None`, resulting in HTTP 500 Internal Server Errors.
+2. **Non-String Claim Evaluation**: `_personal_list_name` was vulnerable to `AttributeError` if `username` was non-string.
+
+#### Fix
+1. **Schemas (`schemas.py`)**: Added `@field_validator("items", mode="before")` to `ShoppingListRead` to normalize `None` inputs to `[]`.
+2. **Service (`service.py`)**: Explicitly normalized `personal.items` and `household.items` to `[]` prior to returning from `_ensure_personal_list`, `_ensure_household_list`, and `get_lists`. Hardened `_personal_list_name` with `isinstance(username, str)`.
+
+#### Verification
+- Pytest suite in `apps/shopping/backend` passed 100% (7/7 passed).
+- Container rebuild (`shopping-backend`) completed and health check returned HTTP 200 OK.
+
+---
 
 #### Root cause
 1. **Container JWKS Resolution & PyJWT Validation**: In `apps/shopping/backend`, `KEYCLOAK_URL` defaulted to `http://localhost:8080/auth`. Inside Docker containers, `localhost:8080` points to the container itself (where Keycloak is absent), causing JWKS fetches to fail with Connection Refused (`127.0.0.1:8080`) and returning HTTP 401 Unauthorized. Additionally, PyJWT issuer validation rejected browser tokens issued with `iss="http://loeger-os/auth/realms/loeger-os"` when decoded internally.
