@@ -2,25 +2,29 @@
 # =============================================================================
 # scripts/up.sh — Loeger-OS staged stack boot orchestrator
 #
-# Starts the full loeger-os monorepo stack in a controlled sequential pipeline
-# instead of the default brute-force parallel build that takes 250 s+.
+# Starts the full loeger-os monorepo stack in a controlled, strictly sequential
+# pipeline instead of a brute-force parallel bring-up that saturates the CPU.
 #
 # Pipeline stages:
-#   1. Pre-flight    — validate .env files and Docker network prerequisites
-#   2. IAM Core      — postgres-iam  →  keycloak  →  traefik
-#   3. Logging       — signoz-clickhouse  →  schema-migrator  →  otel-collector
-#                      →  signoz  →  vector
-#   4. Backends      — dashboard-backend  pantry-backend
-#                      shopping-backend  maintenance-backend
-#   5. Frontends     — dashboard-frontend  pantry-frontend
-#                      shopping-frontend  maintenance-frontend
-#   6. Summary       — print accessible URLs with green checkmarks
+#   0. Pre-flight    — validate .env files and Docker network prerequisites
+#   1. IAM Core      — postgres-iam  →  keycloak  →  traefik
+#   2. Dashboard     — dashboard-db  →  dashboard-backend  →  dashboard-frontend
+#                      [accessible at http://loeger-os/ after this stage]
+#   3. Applications  — (shopping-db + pantry-db + maintenance-db)
+#                      → (shopping-backend + pantry-backend + maintenance-backend)
+#                      → (shopping-frontend + pantry-frontend + maintenance-frontend)
+#   4. Observability — signoz-clickhouse  →  schema-migrator
+#                      →  signoz-otel-collector  →  signoz  →  vector
+#   5. Summary       — print accessible URLs with green checkmarks
 #
 # Usage:
-#   ./scripts/up.sh [--no-build] [--skip-logging]
+#   ./scripts/up.sh              # start stack (use cached images — no build)
+#   ./scripts/up.sh -b           # start stack AND rebuild images first
+#   ./scripts/up.sh --build      # same as -b
+#   ./scripts/up.sh --skip-obs   # skip the SigNoz/Vector observability stack
 #
-#   --no-build      Skip image rebuilds (use cached images). Useful for restarts.
-#   --skip-logging  Skip the SigNoz / Vector logging stack.
+# Tip: run ./scripts/build.sh first to pre-compile images, then use up.sh
+#      without -b for a fast restart.
 # =============================================================================
 
 set -euo pipefail
@@ -41,23 +45,27 @@ info() { echo -e "${CYAN}▶${RESET}  $*"; }
 warn() { echo -e "${YELLOW}⚠${RESET}  $*"; }
 fail() { echo -e "${RED}✖${RESET}  $*" >&2; exit 1; }
 step() { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}"; }
+hr()   { echo -e "${DIM}──────────────────────────────────────────────────${RESET}"; }
 
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
-BUILD_FLAG="--build"
-SKIP_LOGGING=false
+BUILD=false       # by default, do NOT rebuild images
+SKIP_OBS=false    # by default, start the observability stack
 
 for arg in "$@"; do
   case "$arg" in
-    --no-build)     BUILD_FLAG="" ;;
-    --skip-logging) SKIP_LOGGING=true ;;
+    -b|--build)     BUILD=true ;;
+    --skip-obs)     SKIP_OBS=true ;;
     *) warn "Unknown argument: $arg" ;;
   esac
 done
 
+BUILD_FLAG=""
+[[ "${BUILD}" == "true" ]] && BUILD_FLAG="--build"
+
 # ---------------------------------------------------------------------------
-# Paths — resolve script location so the script works from any CWD
+# Paths — resolve relative to script location so the script works from any CWD
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -66,8 +74,7 @@ COMPOSE_FILE="${REPO_ROOT}/compose.yaml"
 cd "${REPO_ROOT}"
 
 # ---------------------------------------------------------------------------
-# Spinner — overwrites the current line in a loop until the caller exits
-# Usage: spin_start "label"; ... ; spin_stop
+# Spinner — overwrites the current line until the caller calls spin_stop
 # ---------------------------------------------------------------------------
 _SPINNER_PID=""
 
@@ -77,7 +84,7 @@ spin_start() {
   (
     local i=0
     while true; do
-      printf "\r  ${CYAN}%s${RESET}  %s " "${frames[$((i % ${#frames[@]}))]]}" "$label"
+      printf "\r  ${CYAN}%s${RESET}  %s " "${frames[$((i % ${#frames[@]}))]}" "$label"
       i=$((i + 1))
       sleep 0.1
     done
@@ -91,16 +98,16 @@ spin_stop() {
     kill "${_SPINNER_PID}" 2>/dev/null || true
     wait "${_SPINNER_PID}" 2>/dev/null || true
     _SPINNER_PID=""
-    printf "\r\033[K"   # clear spinner line
+    printf "\r\033[K"  # clear spinner line
   fi
 }
 
 # ---------------------------------------------------------------------------
-# Health-wait loop
-# Waits until `docker inspect` reports "healthy" for the given container name.
+# wait_healthy — blocks until a container reports "healthy" via docker inspect
+#
 # Arguments:
-#   $1 — container name
-#   $2 — human-readable label for the spinner
+#   $1 — container name (as declared in compose, or container_name override)
+#   $2 — human-readable label for progress output
 #   $3 — timeout in seconds (default: 120)
 # ---------------------------------------------------------------------------
 wait_healthy() {
@@ -112,10 +119,10 @@ wait_healthy() {
 
   spin_start "Waiting for ${label} …"
 
-  while [[ "$elapsed" -lt "$timeout" ]]; do
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
     status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null || echo "missing")
 
-    case "$status" in
+    case "${status}" in
       healthy)
         spin_stop
         ok "${label} is healthy"
@@ -123,16 +130,16 @@ wait_healthy() {
         ;;
       unhealthy)
         spin_stop
-        fail "${label} reported unhealthy — check logs: docker logs ${container}"
+        fail "${label} reported UNHEALTHY — check logs: docker logs ${container}"
         ;;
       missing)
         spin_stop
-        fail "Container '${container}' not found — is the compose project running?"
+        fail "Container '${container}' not found. Is the compose project running?"
         ;;
     esac
 
     sleep 3
-    elapsed=$((elapsed + 3))
+    elapsed=$(( elapsed + 3 ))
   done
 
   spin_stop
@@ -140,167 +147,263 @@ wait_healthy() {
 }
 
 # ---------------------------------------------------------------------------
-# Compose helper — run docker compose scoped to the root compose file
+# wait_running — blocks until a container's state is "running"
+# Used for services without a HEALTHCHECK (e.g. traefik, vector)
+#
+# Arguments:
+#   $1 — container name
+#   $2 — human-readable label
+#   $3 — timeout in seconds (default: 60)
+# ---------------------------------------------------------------------------
+wait_running() {
+  local container="$1"
+  local label="$2"
+  local timeout="${3:-60}"
+  local elapsed=0
+  local state=""
+
+  spin_start "Waiting for ${label} to start …"
+
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
+
+    case "${state}" in
+      running)
+        spin_stop
+        ok "${label} is running"
+        return 0
+        ;;
+      exited|dead)
+        spin_stop
+        fail "${label} exited unexpectedly — check logs: docker logs ${container}"
+        ;;
+      missing)
+        # Container may not be created yet; keep waiting
+        ;;
+    esac
+
+    sleep 2
+    elapsed=$(( elapsed + 2 ))
+  done
+
+  spin_stop
+  fail "Timed out after ${timeout}s waiting for ${label} to start."
+}
+
+# ---------------------------------------------------------------------------
+# wait_one_shot — waits for a container to exit 0 (for migrator-type jobs)
+#
+# Arguments:
+#   $1 — container name
+#   $2 — human-readable label
+#   $3 — timeout in seconds (default: 120)
+# ---------------------------------------------------------------------------
+wait_one_shot() {
+  local container="$1"
+  local label="$2"
+  local timeout="${3:-120}"
+  local elapsed=0
+  local state="" exit_code=""
+
+  spin_start "Waiting for ${label} to complete …"
+
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
+
+    if [[ "${state}" == "exited" ]]; then
+      spin_stop
+      exit_code=$(docker inspect --format='{{.State.ExitCode}}' "${container}" 2>/dev/null || echo "1")
+      if [[ "${exit_code}" == "0" ]]; then
+        ok "${label} completed successfully"
+        return 0
+      else
+        fail "${label} exited with code ${exit_code} — check logs: docker logs ${container}"
+      fi
+    fi
+
+    sleep 3
+    elapsed=$(( elapsed + 3 ))
+  done
+
+  spin_stop
+  fail "Timed out after ${timeout}s waiting for ${label} to complete."
+}
+
+# ---------------------------------------------------------------------------
+# dc — run docker compose scoped to the root compose file
 # ---------------------------------------------------------------------------
 dc() {
   docker compose -f "${COMPOSE_FILE}" "$@"
 }
 
 # =============================================================================
+# Banner
+# =============================================================================
+echo ""
+echo -e "${BOLD}${CYAN}"
+echo "  ██╗      ██████╗ ███████╗ ██████╗ ███████╗██████╗        ██████╗ ███████╗"
+echo "  ██║     ██╔═══██╗██╔════╝██╔════╝ ██╔════╝██╔══██╗      ██╔═══██╗██╔════╝"
+echo "  ██║     ██║   ██║█████╗  ██║  ███╗█████╗  ██████╔╝█████╗██║   ██║███████╗"
+echo "  ██║     ██║   ██║██╔══╝  ██║   ██║██╔══╝  ██╔══██╗╚════╝██║   ██║╚════██║"
+echo "  ███████╗╚██████╔╝███████╗╚██████╔╝███████╗██║  ██║      ╚██████╔╝███████║"
+echo "  ╚══════╝ ╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝       ╚═════╝ ╚══════╝"
+echo -e "${RESET}"
+hr
+echo -e "  ${DIM}Staged boot orchestrator — $(date '+%Y-%m-%d %H:%M:%S')${RESET}"
+if [[ "${BUILD}" == "true" ]]; then
+  echo -e "  ${YELLOW}⚠${RESET}  Build mode: images will be (re)compiled before startup"
+else
+  echo -e "  ${DIM}Build mode: OFF — using cached images  (pass -b to rebuild)${RESET}"
+fi
+[[ "${SKIP_OBS}" == "true" ]] && echo -e "  ${YELLOW}⚠${RESET}  Observability stack will be skipped (--skip-obs)"
+hr
+
+# =============================================================================
 # STAGE 0 — Pre-flight checks
 # =============================================================================
 step "STAGE 0 · Pre-flight"
 
-# Validate Docker daemon is reachable
 docker info > /dev/null 2>&1 || fail "Docker daemon is not running. Start Docker Desktop and retry."
 ok "Docker daemon is reachable"
 
-# Pre-create only the networks declared `external: true` in every sub-compose file
-# (i.e. networks that have no Compose owner and must exist before any `dc up` call).
-#
-# Network ownership map (verified against all compose files):
-#   observability-internal → external: true in ALL stacks (no owner) → must pre-create here
-#   public-ingress         → owned by infrastructure/compose.yml    → created in STAGE 1
-#   pantry-internal        → owned by apps/pantry/compose.yml       → created by Compose in STAGE 3
-#   shopping-internal      → owned by apps/shopping/compose.yml     → created by Compose in STAGE 3
-#   dashboard-internal     → owned by apps/dashboard/compose.yml    → created by Compose in STAGE 3
-#   maintenance-internal   → owned by apps/maintenance/compose.yml  → created by Compose in STAGE 4
-#   iam_network            → owned by infrastructure/compose.yml    → created in STAGE 1
-#
-# Rationale: pre-creating a Compose-owned network with bare `docker network create` omits
-# the required project labels (com.docker.compose.network, com.docker.compose.project).
-# Docker Compose detects this on `dc up` and throws a label-mismatch error, crashing STAGE 3.
+# The observability-internal network is declared external: true across ALL
+# sub-compose files, so no Compose project owns it — we must create it manually
+# before any 'dc up' call.  All other networks are owned by a Compose file and
+# will be created automatically with the correct project labels.
 if ! docker network inspect observability-internal > /dev/null 2>&1; then
   info "Creating external Docker network: observability-internal"
   docker network create observability-internal
 fi
 ok "Docker networks are ready"
 
-
 # =============================================================================
-# STAGE 1 — IAM Core (postgres-iam → keycloak → traefik)
+# STAGE 1 — IAM Core  (postgres-iam → keycloak → traefik)
 # =============================================================================
-step "STAGE 1 · IAM Core (postgres-iam · keycloak · traefik)"
+step "STAGE 1 · IAM Core  (postgres-iam · keycloak · traefik)"
 
 info "Starting postgres-iam and traefik …"
-dc up -d postgres-iam traefik
+dc up ${BUILD_FLAG} -d postgres-iam traefik
 
-# postgres-iam must be healthy before Keycloak attempts to connect
+# postgres-iam must reach healthy state before Keycloak tries to connect
 wait_healthy "loeger_postgres_iam" "postgres-iam" 60
+wait_running "loeger_traefik"       "traefik"      30
 
-info "Starting Keycloak (may take up to 90 s on first boot) …"
-dc up -d keycloak
-
-# Keycloak performs realm import on first start — allow generous timeout
+info "Starting Keycloak (realm import may take up to 90 s on first boot) …"
+dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "loeger_keycloak" "keycloak" 180
 
-ok "IAM Core is ready"
+ok "IAM Core is fully operational"
 
 # =============================================================================
-# STAGE 2 — Logging / Observability (SigNoz stack)
+# STAGE 2 — Dashboard  (dashboard-db → dashboard-backend → dashboard-frontend)
 # =============================================================================
-if [[ "${SKIP_LOGGING}" == "true" ]]; then
-  warn "Skipping logging stack (--skip-logging flag set)"
+step "STAGE 2 · Dashboard  (database · backend · frontend)"
+
+info "Starting dashboard-db …"
+dc up ${BUILD_FLAG} -d dashboard-db
+wait_healthy "dashboard-db" "dashboard-db" 60
+
+info "Starting dashboard-backend …"
+dc up ${BUILD_FLAG} -d dashboard-backend
+wait_healthy "dashboard-backend" "dashboard-backend" 120
+
+info "Starting dashboard-frontend …"
+dc up ${BUILD_FLAG} -d dashboard-frontend
+wait_healthy "dashboard-frontend" "dashboard-frontend" 240
+
+ok "Dashboard is operational"
+echo ""
+echo -e "  ${BOLD}${GREEN}  ➜  http://loeger-os/ is now accessible!${RESET}"
+echo ""
+
+# =============================================================================
+# STAGE 3 — Application stacks
+#   3a. Databases      — shopping-db · pantry-db · maintenance-db  (parallel)
+#   3b. Backends       — shopping-backend · pantry-backend · maintenance-backend (parallel)
+#   3c. Frontends      — shopping-frontend · pantry-frontend · maintenance-frontend (parallel)
+# =============================================================================
+step "STAGE 3 · Application stacks  (shopping · pantry · maintenance)"
+
+# --- 3a: Databases ---
+info "Starting application databases …"
+dc up ${BUILD_FLAG} -d shopping-db pantry-db maintenance-db
+
+wait_healthy "shopping-db"     "shopping-db"     60
+wait_healthy "pantry-db"       "pantry-db"       60
+wait_healthy "maintenance-db"  "maintenance-db"  60
+
+ok "All application databases are healthy"
+
+# --- 3b: Backends ---
+info "Starting application backends …"
+dc up ${BUILD_FLAG} -d shopping-backend pantry-backend maintenance-backend
+
+wait_healthy "shopping-backend"     "shopping-backend"     180
+wait_healthy "pantry-backend"       "pantry-backend"       180
+wait_healthy "maintenance-backend"  "maintenance-backend"  180
+
+ok "All application backends are healthy"
+
+# --- 3c: Frontends ---
+info "Starting application frontends (Next.js builds may take 60–120 s each) …"
+dc up ${BUILD_FLAG} -d shopping-frontend pantry-frontend maintenance-frontend
+
+wait_healthy "shopping-frontend"     "shopping-frontend"     240
+wait_healthy "pantry-frontend"       "pantry-frontend"       240
+wait_healthy "maintenance-frontend"  "maintenance-frontend"  240
+
+ok "All application frontends are healthy"
+
+# =============================================================================
+# STAGE 4 — Observability  (SigNoz · Vector)
+# =============================================================================
+if [[ "${SKIP_OBS}" == "true" ]]; then
+  warn "Skipping observability stack (--skip-obs flag set)"
 else
-  step "STAGE 2 · Logging / Observability (SigNoz · Vector)"
+  step "STAGE 4 · Observability  (ClickHouse · SigNoz · Vector)"
 
   info "Starting ClickHouse …"
-  dc up -d signoz-clickhouse
-
+  dc up ${BUILD_FLAG} -d signoz-clickhouse
   wait_healthy "signoz-clickhouse" "ClickHouse" 120
 
-  info "Running SigNoz schema migrator …"
-  # schema-migrator is a one-shot job; wait for it to exit successfully
-  dc up -d signoz-schema-migrator
-  spin_start "Waiting for schema-migrator to complete …"
+  info "Running SigNoz schema migrator (one-shot job) …"
+  dc up ${BUILD_FLAG} -d signoz-schema-migrator
+  wait_one_shot "signoz-schema-migrator" "schema-migrator" 120
 
-  _migrator_timeout=120
-  _migrator_elapsed=0
-  while [[ "${_migrator_elapsed}" -lt "${_migrator_timeout}" ]]; do
-    _migrator_state=$(docker inspect --format='{{.State.Status}}' "signoz-schema-migrator" 2>/dev/null || echo "missing")
-    if [[ "${_migrator_state}" == "exited" ]]; then
-      _migrator_exit=$(docker inspect --format='{{.State.ExitCode}}' "signoz-schema-migrator" 2>/dev/null || echo "1")
-      spin_stop
-      if [[ "${_migrator_exit}" == "0" ]]; then
-        ok "SigNoz schema migrator completed"
-        break
-      else
-        fail "SigNoz schema migrator exited with code ${_migrator_exit}"
-      fi
-    fi
-    sleep 3
-    _migrator_elapsed=$((_migrator_elapsed + 3))
-  done
+  info "Starting SigNoz UI, OTEL collector, and Vector log shipper …"
+  dc up ${BUILD_FLAG} -d signoz-otel-collector signoz vector
 
-  info "Starting SigNoz UI, OTEL collector, and Vector shipper …"
-  dc up -d signoz-otel-collector signoz vector
+  wait_running "signoz-otel-collector" "otel-collector" 30
+  wait_running "signoz-ui"             "SigNoz UI"      30
+  wait_running "vector-shipper"        "Vector"         30
 
-  ok "Logging stack is ready"
+  ok "Observability stack is operational"
 fi
-
-# =============================================================================
-# STAGE 3 — Backend microservices (build + start)
-# =============================================================================
-step "STAGE 3 · Backend microservices (build + start)"
-
-info "Building and starting backend services …"
-dc up ${BUILD_FLAG} -d \
-  dashboard-backend \
-  pantry-backend \
-  shopping-backend \
-  maintenance-backend
-
-for svc in \
-  "dashboard-backend:dashboard-backend" \
-  "pantry-backend:pantry-backend" \
-  "shopping-backend:shopping-backend" \
-  "maintenance-backend:maintenance-backend"; do
-  wait_healthy "${svc%%:*}" "${svc##*:}" 180
-done
-
-ok "All backend services are healthy"
-
-# =============================================================================
-# STAGE 4 — Frontend microservices (build + start)
-# =============================================================================
-step "STAGE 4 · Frontend microservices (build + start)"
-
-info "Building and starting frontend services (Next.js builds may take 60–120 s each) …"
-dc up ${BUILD_FLAG} -d \
-  dashboard-frontend \
-  pantry-frontend \
-  shopping-frontend \
-  maintenance-frontend
-
-for svc in \
-  "dashboard-frontend:dashboard-frontend" \
-  "pantry-frontend:pantry-frontend" \
-  "shopping-frontend:shopping-frontend" \
-  "maintenance-frontend:maintenance-frontend"; do
-  wait_healthy "${svc%%:*}" "${svc##*:}" 240
-done
-
-ok "All frontend services are healthy"
 
 # =============================================================================
 # STAGE 5 — Summary
 # =============================================================================
-step "STAGE 5 · Stack is fully operational"
+step "STAGE 5 · Stack fully operational 🚀"
 
 echo ""
 echo -e "  ${BOLD}${GREEN}✔  Loeger-OS is running!${RESET}"
 echo ""
-echo -e "  ${DIM}Application URLs:${RESET}"
+echo -e "  ${DIM}Applications:${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://loeger-os/${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://loeger-os/pantry${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://loeger-os/shopping${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://loeger-os/pantry${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://loeger-os/maintenance${RESET}"
 echo ""
 echo -e "  ${DIM}Infrastructure:${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://loeger-os/auth${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Traefik dashboard  →  ${BOLD}http://localhost:8080${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Keycloak           →  ${BOLD}http://loeger-os/auth${RESET}"
-echo -e "  ${GREEN}✔${RESET}  SigNoz             →  ${BOLD}http://loeger-os/signoz${RESET}"
+if [[ "${SKIP_OBS}" != "true" ]]; then
+  echo -e "  ${GREEN}✔${RESET}  SigNoz             →  ${BOLD}http://loeger-os/signoz${RESET}"
+fi
 echo ""
-echo -e "  ${DIM}Run ${BOLD}docker compose logs -f <service>${DIM} to tail any service.${RESET}"
-echo -e "  ${DIM}Run ${BOLD}docker compose down${DIM} to stop the full stack.${RESET}"
+echo -e "  ${DIM}Useful commands:${RESET}"
+echo -e "  ${DIM}  docker compose logs -f <service>   tail a service${RESET}"
+echo -e "  ${DIM}  docker compose ps                  show container health${RESET}"
+echo -e "  ${DIM}  ./scripts/down.sh                  stop the full stack${RESET}"
+echo -e "  ${DIM}  ./scripts/seed.sh                  populate demo data${RESET}"
 echo ""
