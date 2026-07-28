@@ -18,6 +18,23 @@
 
 ## Current Sprint — Completed Commits
 
+### `refactor(i18n): remove legacy local frontend messages and enforce centralized shared locales`
+
+**Date**: 2026-07-28
+
+#### Summary
+1. **Audited & Merged All Frontend Translation Keys**:
+   - Merged all remaining domain keys from local `apps/*/frontend/messages/` (`Dashboard`, `Navigation`, `Table`, `Products`, `Locations`, `Analytics`, `Error`, `pantry`) into `packages/shared/src/i18n/locales/{de,en,pl}/`.
+2. **Deleted Legacy Local `messages/` Folders**:
+   - Removed `apps/pantry/frontend/messages/`, `apps/maintenance/frontend/messages/`, and `apps/shopping/frontend/messages/`.
+3. **Rewired All Frontend `i18n.ts` Configurations**:
+   - Updated `apps/pantry/frontend/src/i18n.ts`, `apps/maintenance/frontend/src/i18n.ts`, and `apps/shopping/frontend/src/i18n.ts` to consume central locale dictionaries via `getSharedMessages(locale)` from `@loeger-os/shared`.
+
+#### Verification
+- All 4 frontends (`shopping-frontend`, `pantry-frontend`, `maintenance-frontend`, `dashboard-frontend`) passed TypeScript typechecks cleanly with 0 errors.
+
+---
+
 ### `fix(infra): align vector and signoz service names in up.sh Stage 6`
 
 **Date**: 2026-07-28
