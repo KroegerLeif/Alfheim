@@ -18,6 +18,30 @@
 
 ## Current Sprint — Completed Commits
 
+### `refactor(infra): enforce granular vertical up.sh pipeline and sync new-app guidelines`
+
+**Date**: 2026-07-28
+
+#### Summary
+1. **Deleted `scripts/build.sh`** (`git rm`): Removed the standalone image builder script to keep repository tooling streamlined. Build functionality is fully covered by `up.sh -b` (`--build` flag).
+2. **Granular Vertical Slice Boot Sequence in `scripts/up.sh`**: Replaced the previous Stage 3 monolithic batch (all DBs → all backends → all frontends in parallel) with four independent per-app vertical slices (Stages 2–5). Each slice starts its DB, waits for healthy, starts its backend, waits for healthy, starts its frontend, waits for healthy, then prints a `🟢 <App> is live` notice before proceeding to the next app. Stage 6 is Observability; Stage 7 is Summary.
+3. **Next.js 16 `proxy` Convention Fix**: Renamed `src/middleware.ts` → `src/proxy.ts` in `apps/shopping/frontend`, `apps/pantry/frontend`, and `apps/maintenance/frontend`. Removed the legacy `export function middleware()` alias from `apps/dashboard/frontend/src/proxy.ts`. Eliminates the Next.js 16 deprecation warning: `⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.`
+4. **`ai/new-app-guideline.md` — Section 6 Added**: New mandatory section documenting how AI agents and developers must register new apps into `scripts/up.sh` using the vertical DB → Backend → Frontend slice pattern, including the exact code template, insertion point rules, timeout guidelines, and summary block update instructions.
+5. **`ai/new-app-guideline.md` — Directory Tree Updated**: Renamed `src/middleware.ts` → `src/proxy.ts` in the canonical frontend directory tree.
+6. **`ai/CONTEXT.md` Updated**: Corrected stale `--no-build` / `--skip-logging` flag names to `--build` / `--skip-obs` in Active Feature Flags table.
+
+#### Affected Files
+- `scripts/build.sh` — deleted
+- `scripts/up.sh` — full rewrite
+- `apps/shopping/frontend/src/middleware.ts` → `proxy.ts`
+- `apps/pantry/frontend/src/middleware.ts` → `proxy.ts`
+- `apps/maintenance/frontend/src/middleware.ts` → `proxy.ts`
+- `apps/dashboard/frontend/src/proxy.ts` — removed legacy `middleware()` export
+- `ai/new-app-guideline.md` — Section 6 added, directory tree updated
+- `ai/CONTEXT.md` — sprint entry added, feature flags corrected
+
+---
+
 ### `feat(shopping): integrate theme pairs, dnd lists, icon picker, and pantry store workflow`
 
 **Date**: 2026-07-28
@@ -267,8 +291,8 @@ Fresh deployments (empty volume) will have the columns created automatically at 
 |---|---|---|---|
 | `OTEL_ENABLED` | All Python backends | `true` in Docker Compose | Disable in dev by setting `OTEL_ENABLED=false` |
 | `TESTING` env var | Shopping backend | `false` (production) | Set to `"true"` to bypass JWT validation in tests |
-| `--no-build` flag | `scripts/up.sh` | Optional | Skip Docker image rebuilds on restart |
-| `--skip-logging` flag | `scripts/up.sh` | Optional | Skip the SigNoz observability stack |
+| `-b` / `--build` flag | `scripts/up.sh` | Optional | Rebuild Docker images before startup |
+| `--skip-obs` flag | `scripts/up.sh` | Optional | Skip the SigNoz/Vector observability stack |
 
 ---
 

@@ -6,25 +6,24 @@
 # pipeline instead of a brute-force parallel bring-up that saturates the CPU.
 #
 # Pipeline stages:
-#   0. Pre-flight    — validate .env files and Docker network prerequisites
+#   0. Pre-flight    — validate Docker network prerequisites
 #   1. IAM Core      — postgres-iam  →  keycloak  →  traefik
 #   2. Dashboard     — dashboard-db  →  dashboard-backend  →  dashboard-frontend
-#                      [accessible at http://loeger-os/ after this stage]
-#   3. Applications  — (shopping-db + pantry-db + maintenance-db)
-#                      → (shopping-backend + pantry-backend + maintenance-backend)
-#                      → (shopping-frontend + pantry-frontend + maintenance-frontend)
-#   4. Observability — signoz-clickhouse  →  schema-migrator
-#                      →  signoz-otel-collector  →  signoz  →  vector
-#   5. Summary       — print accessible URLs with green checkmarks
+#                      [live at http://loeger-os/ after this stage]
+#   3. Shopping      — shopping-db  →  shopping-backend  →  shopping-frontend
+#                      [live at http://loeger-os/shopping after this stage]
+#   4. Pantry        — pantry-db  →  pantry-backend  →  pantry-frontend
+#                      [live at http://loeger-os/pantry after this stage]
+#   5. Maintenance   — maintenance-db  →  maintenance-backend  →  maintenance-frontend
+#                      [live at http://loeger-os/maintenance after this stage]
+#   6. Observability — signoz-clickhouse  →  signoz-otel-collector  →  signoz-ui  →  vector-shipper
+#   7. Summary       — print accessible URLs with green checkmarks
 #
 # Usage:
 #   ./scripts/up.sh              # start stack (use cached images — no build)
 #   ./scripts/up.sh -b           # start stack AND rebuild images first
 #   ./scripts/up.sh --build      # same as -b
 #   ./scripts/up.sh --skip-obs   # skip the SigNoz/Vector observability stack
-#
-# Tip: run ./scripts/build.sh first to pre-compile images, then use up.sh
-#      without -b for a fast restart.
 # =============================================================================
 
 set -euo pipefail
@@ -40,12 +39,13 @@ BOLD='\033[1m'
 DIM='\033[2m'
 RESET='\033[0m'
 
-ok()   { echo -e "${GREEN}✔${RESET}  $*"; }
-info() { echo -e "${CYAN}▶${RESET}  $*"; }
-warn() { echo -e "${YELLOW}⚠${RESET}  $*"; }
-fail() { echo -e "${RED}✖${RESET}  $*" >&2; exit 1; }
-step() { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}"; }
-hr()   { echo -e "${DIM}──────────────────────────────────────────────────${RESET}"; }
+ok()     { echo -e "${GREEN}✔${RESET}  $*"; }
+info()   { echo -e "${CYAN}▶${RESET}  $*"; }
+warn()   { echo -e "${YELLOW}⚠${RESET}  $*"; }
+fail()   { echo -e "${RED}✖${RESET}  $*" >&2; exit 1; }
+step()   { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}"; }
+hr()     { echo -e "${DIM}──────────────────────────────────────────────────${RESET}"; }
+notice() { echo -e "\n  ${BOLD}${GREEN}$*${RESET}\n"; }
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -281,23 +281,24 @@ ok "Docker networks are ready"
 # =============================================================================
 step "STAGE 1 · IAM Core  (postgres-iam · keycloak · traefik)"
 
-info "Starting postgres-iam and traefik …"
-dc up ${BUILD_FLAG} -d postgres-iam traefik
-
-# postgres-iam must reach healthy state before Keycloak tries to connect
+info "Starting postgres-iam …"
+dc up ${BUILD_FLAG} -d postgres-iam
 wait_healthy "loeger_postgres_iam" "postgres-iam" 60
-wait_running "loeger_traefik"       "traefik"      30
 
-info "Starting Keycloak (realm import may take up to 90 s on first boot) …"
+info "Starting keycloak (realm import may take up to 90 s on first boot) …"
 dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "loeger_keycloak" "keycloak" 180
 
-ok "IAM Core is fully operational"
+info "Starting traefik …"
+dc up ${BUILD_FLAG} -d traefik
+wait_running "loeger_traefik" "traefik" 30
+
+notice "🟢 IAM Core Ready"
 
 # =============================================================================
-# STAGE 2 — Dashboard  (dashboard-db → dashboard-backend → dashboard-frontend)
+# STAGE 2 — Dashboard App Slice  (dashboard-db → dashboard-backend → dashboard-frontend)
 # =============================================================================
-step "STAGE 2 · Dashboard  (database · backend · frontend)"
+step "STAGE 2 · Dashboard App Slice  (database · backend · frontend)"
 
 info "Starting dashboard-db …"
 dc up ${BUILD_FLAG} -d dashboard-db
@@ -311,56 +312,72 @@ info "Starting dashboard-frontend …"
 dc up ${BUILD_FLAG} -d dashboard-frontend
 wait_healthy "dashboard-frontend" "dashboard-frontend" 240
 
-ok "Dashboard is operational"
-echo ""
-echo -e "  ${BOLD}${GREEN}  ➜  http://loeger-os/ is now accessible!${RESET}"
-echo ""
+notice "🟢 Dashboard is live at http://loeger-os/"
 
 # =============================================================================
-# STAGE 3 — Application stacks
-#   3a. Databases      — shopping-db · pantry-db · maintenance-db  (parallel)
-#   3b. Backends       — shopping-backend · pantry-backend · maintenance-backend (parallel)
-#   3c. Frontends      — shopping-frontend · pantry-frontend · maintenance-frontend (parallel)
+# STAGE 3 — Shopping App Slice  (shopping-db → shopping-backend → shopping-frontend)
 # =============================================================================
-step "STAGE 3 · Application stacks  (shopping · pantry · maintenance)"
+step "STAGE 3 · Shopping App Slice  (database · backend · frontend)"
 
-# --- 3a: Databases ---
-info "Starting application databases …"
-dc up ${BUILD_FLAG} -d shopping-db pantry-db maintenance-db
+info "Starting shopping-db …"
+dc up ${BUILD_FLAG} -d shopping-db
+wait_healthy "shopping-db" "shopping-db" 60
 
-wait_healthy "shopping-db"     "shopping-db"     60
-wait_healthy "pantry-db"       "pantry-db"       60
-wait_healthy "maintenance-db"  "maintenance-db"  60
+info "Starting shopping-backend …"
+dc up ${BUILD_FLAG} -d shopping-backend
+wait_healthy "shopping-backend" "shopping-backend" 180
 
-ok "All application databases are healthy"
+info "Starting shopping-frontend …"
+dc up ${BUILD_FLAG} -d shopping-frontend
+wait_healthy "shopping-frontend" "shopping-frontend" 240
 
-# --- 3b: Backends ---
-info "Starting application backends …"
-dc up ${BUILD_FLAG} -d shopping-backend pantry-backend maintenance-backend
-
-wait_healthy "shopping-backend"     "shopping-backend"     180
-wait_healthy "pantry-backend"       "pantry-backend"       180
-wait_healthy "maintenance-backend"  "maintenance-backend"  180
-
-ok "All application backends are healthy"
-
-# --- 3c: Frontends ---
-info "Starting application frontends (Next.js builds may take 60–120 s each) …"
-dc up ${BUILD_FLAG} -d shopping-frontend pantry-frontend maintenance-frontend
-
-wait_healthy "shopping-frontend"     "shopping-frontend"     240
-wait_healthy "pantry-frontend"       "pantry-frontend"       240
-wait_healthy "maintenance-frontend"  "maintenance-frontend"  240
-
-ok "All application frontends are healthy"
+notice "🟢 Shopping App is live at http://loeger-os/shopping"
 
 # =============================================================================
-# STAGE 4 — Observability  (SigNoz · Vector)
+# STAGE 4 — Pantry App Slice  (pantry-db → pantry-backend → pantry-frontend)
+# =============================================================================
+step "STAGE 4 · Pantry App Slice  (database · backend · frontend)"
+
+info "Starting pantry-db …"
+dc up ${BUILD_FLAG} -d pantry-db
+wait_healthy "pantry-db" "pantry-db" 60
+
+info "Starting pantry-backend …"
+dc up ${BUILD_FLAG} -d pantry-backend
+wait_healthy "pantry-backend" "pantry-backend" 180
+
+info "Starting pantry-frontend …"
+dc up ${BUILD_FLAG} -d pantry-frontend
+wait_healthy "pantry-frontend" "pantry-frontend" 240
+
+notice "🟢 Pantry App is live at http://loeger-os/pantry"
+
+# =============================================================================
+# STAGE 5 — Maintenance App Slice  (maintenance-db → maintenance-backend → maintenance-frontend)
+# =============================================================================
+step "STAGE 5 · Maintenance App Slice  (database · backend · frontend)"
+
+info "Starting maintenance-db …"
+dc up ${BUILD_FLAG} -d maintenance-db
+wait_healthy "maintenance-db" "maintenance-db" 60
+
+info "Starting maintenance-backend …"
+dc up ${BUILD_FLAG} -d maintenance-backend
+wait_healthy "maintenance-backend" "maintenance-backend" 180
+
+info "Starting maintenance-frontend …"
+dc up ${BUILD_FLAG} -d maintenance-frontend
+wait_healthy "maintenance-frontend" "maintenance-frontend" 240
+
+notice "🟢 Maintenance App is live at http://loeger-os/maintenance"
+
+# =============================================================================
+# STAGE 6 — Observability  (ClickHouse · SigNoz · Vector)
 # =============================================================================
 if [[ "${SKIP_OBS}" == "true" ]]; then
   warn "Skipping observability stack (--skip-obs flag set)"
 else
-  step "STAGE 4 · Observability  (ClickHouse · SigNoz · Vector)"
+  step "STAGE 6 · Observability  (ClickHouse · SigNoz · Vector)"
 
   info "Starting ClickHouse …"
   dc up ${BUILD_FLAG} -d signoz-clickhouse
@@ -371,19 +388,19 @@ else
   wait_one_shot "signoz-schema-migrator" "schema-migrator" 120
 
   info "Starting SigNoz UI, OTEL collector, and Vector log shipper …"
-  dc up ${BUILD_FLAG} -d signoz-otel-collector signoz vector
+  dc up ${BUILD_FLAG} -d signoz-otel-collector signoz-ui vector-shipper
 
   wait_running "signoz-otel-collector" "otel-collector" 30
   wait_running "signoz-ui"             "SigNoz UI"      30
   wait_running "vector-shipper"        "Vector"         30
 
-  ok "Observability stack is operational"
+  notice "🟢 Observability Stack Ready"
 fi
 
 # =============================================================================
-# STAGE 5 — Summary
+# STAGE 7 — Summary
 # =============================================================================
-step "STAGE 5 · Stack fully operational 🚀"
+step "STAGE 7 · Stack fully operational 🚀"
 
 echo ""
 echo -e "  ${BOLD}${GREEN}✔  Loeger-OS is running!${RESET}"

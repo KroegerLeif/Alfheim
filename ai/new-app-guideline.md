@@ -38,7 +38,7 @@ apps/<app-name>/
     ├── next.config.ts                 # Next.js configuration (basePath, i18n, output: standalone)
     ├── tailwind.config.ts             # Tailwind CSS styling configuration
     └── src/
-        ├── middleware.ts              # next-intl i18n routing & auth middleware
+        ├── proxy.ts                   # next-intl i18n routing & auth proxy (Next.js 16+)
         ├── app/
         │   └── [locale]/              # Localized pages & layouts (en / de)
         │       ├── layout.tsx         # Root layout with QueryClient & Auth Providers
@@ -161,6 +161,70 @@ labels:
 
 ---
 
+## 6. Registering a New App in `scripts/up.sh`
+
+Every new application **MUST** be registered as a dedicated vertical slice stage inside [`scripts/up.sh`](../scripts/up.sh) **before** the Observability stage. The pattern is strict and must not be altered.
+
+### 6.1 Vertical Slice Pattern
+
+Each app stage must boot its three services **strictly sequentially** (DB first, then backend, then frontend). Parallel bring-up is **forbidden** — it saturates CPU/RAM and violates dependency order.
+
+```bash
+# =============================================================================
+# STAGE N — <App-Name> App Slice  (<app-name>-db → <app-name>-backend → <app-name>-frontend)
+# =============================================================================
+step "STAGE N · <App-Name> App Slice  (database · backend · frontend)"
+
+info "Starting <app-name>-db …"
+dc up ${BUILD_FLAG} -d <app-name>-db
+wait_healthy "<app-name>-db" "<app-name>-db" 60
+
+info "Starting <app-name>-backend …"
+dc up ${BUILD_FLAG} -d <app-name>-backend
+wait_healthy "<app-name>-backend" "<app-name>-backend" 180
+
+info "Starting <app-name>-frontend …"
+dc up ${BUILD_FLAG} -d <app-name>-frontend
+wait_healthy "<app-name>-frontend" "<app-name>-frontend" 240
+
+notice "🟢 <App-Name> App is live at http://loeger-os/<app-name>"
+```
+
+### 6.2 Insertion Point
+
+Insert the new stage **immediately before** the `STAGE 6 · Observability` block. Update the stage number of the new slice and all subsequent stages accordingly:
+
+```
+STAGE 1  IAM Core
+STAGE 2  Dashboard App Slice
+STAGE 3  Shopping App Slice
+STAGE 4  Pantry App Slice
+STAGE 5  Maintenance App Slice
+STAGE N  <New App> App Slice    ← insert here
+STAGE N+1  Observability
+STAGE N+2  Summary
+```
+
+Also update the **pipeline comment block** at the top of `up.sh` to include the new stage in the list.
+
+### 6.3 Timeout Guidelines
+
+| Service type | Recommended timeout |
+|---|---|
+| Database (`-db`) | `60` s |
+| Backend (`-backend`) | `180` s |
+| Frontend (`-frontend`, Next.js build) | `240` s |
+
+### 6.4 Summary Block
+
+Add a URL line to the `STAGE 7 · Summary` block:
+
+```bash
+echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://loeger-os/<app-name>${RESET}"
+```
+
+---
+
 ## 4. Agent Checklist
 
 An AI agent creating a new application must execute the following checklist step-by-step:
@@ -184,6 +248,7 @@ An AI agent creating a new application must execute the following checklist step
   - [ ] Create `apps/<app-name>/compose.yml` with DB, backend, and frontend services.
   - [ ] Add Traefik labels for API prefix `/api/v1/<app-name>` and frontend `/<app-name>`.
   - [ ] Include `./apps/<app-name>/compose.yml` in root `compose.yaml`.
+  - [ ] Register a new vertical slice stage in `scripts/up.sh` following the pattern in **Section 6** (DB → Backend → Frontend, with `notice "🟢 <App-Name> App is live"` at the end).
   - [ ] Create `.env.example` in `apps/<app-name>/`.
 - [ ] **Quality Verification**:
   - [ ] Validate type checking & compilation (`pnpm build` / backend build test).
