@@ -18,9 +18,22 @@
 
 ## Current Sprint — Completed Commits
 
-### `fix(shopping): resolve backend 500 error in lazy list provisioning`
+### `fix(shopping): eliminate live docker HTTP 500 in list endpoint`
 
 **Date**: 2026-07-28
+
+#### Root cause
+1. **Transaction Rollback in Startup `init_db()`**: In `apps/shopping/backend/src/core/database.py`, `init_db()` ran `SQLModel.metadata.create_all` inside the same `async with engine.begin() as conn:` transaction block as raw DDL statements (`ALTER TABLE shoppinglist ...`). Because table `shoppinglist` (singular) did not exist, PostgreSQL threw an `UndefinedTableError`. Even though Python caught the exception, SQLAlchemy 2.0 transaction managers mark any failed DB-level statement within an `engine.begin()` block as aborted and automatically rolled back the entire transaction including `create_all`. This left the `shopping` database with 0 tables, causing `GET /api/v1/shopping/lists` to throw `UndefinedTableError: relation "shopping_lists" does not exist` (HTTP 500).
+
+#### Fix
+1. **Isolated Database Transactions (`database.py`)**: Ran `SQLModel.metadata.create_all` in its own isolated `async with engine.begin()` transaction block. Wrapped subsequent DDL column migration statements for `shopping_lists` in separate individual `async with engine.begin()` blocks, removing non-existent table references.
+
+#### Verification
+- `docker exec shopping-db psql -U postgres -d shopping -c "\dt"` verified all 3 tables (`shopping_lists`, `shopping_items`, `shopping_history`) created and persisted.
+- `./scripts/seed.sh` executed cleanly and populated demo lists ("Haushalt" and "Personal").
+- `curl -s -o /dev/null -w "%{http_code}" -H "Host: loeger-os" http://localhost/shopping/en` returned HTTP 200 OK.
+
+---
 
 #### Root cause
 1. **Uninitialized SQLAlchemy Model Relationship Serialization**: When lazy auto-provisioning created new `ShoppingList` records in `_ensure_personal_list` and `_ensure_household_list`, the `items` relationship attribute on freshly instantiated models remained uninitialized (`None`). Pydantic's `ShoppingListRead` schema expected `items: List[ShoppingItemRead] = []` and threw a Pydantic `ValidationError` when attempting to serialize `None`, resulting in HTTP 500 Internal Server Errors.
