@@ -1,17 +1,4 @@
 {
-  "Navigation": {
-    "title": "loeger-os",
-    "subtitle": "Zarządzanie listą zakupów",
-    "systemLists": "Listy systemowe",
-    "customLists": "Własne listy",
-    "history": "Historia",
-    "pantry": "Spiżarnia",
-    "newList": "+ Nowa lista",
-    "newListPlaceholder": "Nazwa listy...",
-    "noLists": "Brak list",
-    "logout": "Wyloguj się",
-    "backToDashboard": "Powrót do pulpitu"
-  },
   "Checklist": {
     "title": "Lista zakupów",
     "searchPlaceholder": "Szukaj artykułów...",

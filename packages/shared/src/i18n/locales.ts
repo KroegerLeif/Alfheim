@@ -1,0 +1,47 @@
+import deCommon from './locales/de/common.json';
+import deShopping from './locales/de/shopping.json';
+import dePantry from './locales/de/pantry.json';
+import deMaintenance from './locales/de/maintenance.json';
+
+import enCommon from './locales/en/common.json';
+import enShopping from './locales/en/shopping.json';
+import enPantry from './locales/en/pantry.json';
+import enMaintenance from './locales/en/maintenance.json';
+
+import plCommon from './locales/pl/common.json';
+import plShopping from './locales/pl/shopping.json';
+import plPantry from './locales/pl/pantry.json';
+import plMaintenance from './locales/pl/maintenance.json';
+
+import { Language } from './types';
+
+export const deMessages = {
+  ...deCommon,
+  ...deShopping,
+  ...dePantry,
+  ...deMaintenance,
+};
+
+export const enMessages = {
+  ...enCommon,
+  ...enShopping,
+  ...enPantry,
+  ...enMaintenance,
+};
+
+export const plMessages = {
+  ...plCommon,
+  ...plShopping,
+  ...plPantry,
+  ...plMaintenance,
+};
+
+export const messages: Record<Language, typeof deMessages> = {
+  de: deMessages,
+  en: enMessages,
+  pl: plMessages,
+};
+
+export function getSharedMessages(locale: Language) {
+  return messages[locale] || messages.de;
+}

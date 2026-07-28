@@ -1,4 +1,17 @@
 {
+  "Navigation": {
+    "title": "loeger-os",
+    "subtitle": "Shopping List Management",
+    "systemLists": "System Lists",
+    "customLists": "Custom Lists",
+    "history": "History",
+    "pantry": "Pantry System",
+    "newList": "+ New List",
+    "newListPlaceholder": "List name...",
+    "noLists": "No lists found",
+    "logout": "Log Out",
+    "backToDashboard": "Back to Dashboard"
+  },
   "common": {
     "logout": "Logout",
     "back_to_dashboard": "Back to Dashboard",
@@ -89,6 +102,65 @@
     "username": "Username",
     "email": "Email Address",
     "roles": "Assigned Roles"
+  },
+  "Checklist": {
+    "title": "Shopping Checklist",
+    "searchPlaceholder": "Search items...",
+    "open": "open",
+    "completed": "completed",
+    "empty": "No items in list",
+    "einlagernBtn": "Store Einkauf",
+    "pantryBadge": "Pantry",
+    "pantryLegend": "Linked with Pantry app — will be automatically added to stock",
+    "share": "Share",
+    "print": "Print",
+    "clearCompleted": "Clear Completed",
+    "systemProtected": "System Protected",
+    "customList": "Custom List",
+    "linkCopied": "Link copied to clipboard!"
+  },
+  "Categories": {
+    "produce": "Produce 🥦",
+    "dairy": "Dairy 🧀",
+    "bakery": "Bakery 🍞",
+    "household": "Household 🧹",
+    "meat": "Meat & Fish 🥩",
+    "pantry": "Pantry 🥫",
+    "beverages": "Beverages 🥤",
+    "other": "Other 📦"
+  },
+  "AddForm": {
+    "title": "Quick Add Article",
+    "namePlaceholder": "Item name (e.g. Organic Milk)...",
+    "addBtn": "Add Item",
+    "stepperDec": "Decrease quantity",
+    "stepperInc": "Increase quantity",
+    "categoryLabel": "Category"
+  },
+  "History": {
+    "title": "Frequently Bought",
+    "noHistory": "No frequent items"
+  },
+  "Modal": {
+    "scanTitle": "Einlagern · Scan",
+    "unresolvedTitle": "{count} Unknown Items Found",
+    "allDoneTitle": "All Items Processed",
+    "catalogBtn": "Catalog",
+    "ignoreBtn": "Ignore",
+    "ignoredLabel": "— Ignored",
+    "savedLabel": "✓ {catalogName}",
+    "inputLabel": "Set Catalog Name",
+    "saveBtn": "Save",
+    "doneBtn": "Done",
+    "laterBtn": "Do Later",
+    "summaryText": "{saved} saved · {ignored} ignored"
+  },
+  "Error": {
+    "nameRequired": "Item name is required",
+    "invalidQty": "Quantity must be positive",
+    "fetchFailed": "Failed to load details",
+    "syncFailed": "Pantry sync failed",
+    "unrecognizedError": "An unexpected error occurred"
   },
   "pantry": {
     "title": "Digital Pantry",
@@ -221,5 +293,20 @@
     "transactionRejected": "Transaction rejected",
     "actionIn": "IN",
     "actionOut": "OUT"
+  },
+  "maintenance": {
+    "title": "Maintenance & Infrastructure Management",
+    "subtitle": "loeger-os system diagnostics, device monitoring, and maintenance tasks",
+    "devices": "Devices",
+    "tasks": "Maintenance Tasks",
+    "schedule": "Maintenance Schedule",
+    "systemHealth": "System Health",
+    "logs": "System Logs",
+    "upcomingTasks": "Upcoming Tasks",
+    "completedTasks": "Completed Tasks",
+    "createTask": "Create Task",
+    "statusOk": "Operational",
+    "statusWarning": "Warning",
+    "statusCritical": "Critical"
   }
 }
