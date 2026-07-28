@@ -19,19 +19,36 @@ import {
   LogOut,
   Sparkles,
   Trash2,
+  GripVertical,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "@/features/shopping-lists/types";
 
+const DND_STORAGE_KEY = "loeger_os_shopping_list_order";
+
+function getStoredOrder(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(DND_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setStoredOrder(order: string[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(DND_STORAGE_KEY, JSON.stringify(order));
+  }
+}
+
 /**
- * Optimized sidepanel navigation inspired by Figma Export & Stitch Layouts.
- * Features:
- * - Brand header (loeger-os / Shopping List Management)
- * - Protected System Lists (Household & Personal User List) pinned at top
- * - Custom Lists section with inline creator & badge counts
- * - User Profile & Account section at bottom with Keycloak Logout CTA
- * - Desktop persistent/collapsible drawer & Mobile overlay sheet with backdrop blur
+ * Sidepanel navigation featuring:
+ * - Brand header
+ * - Protected System Lists
+ * - Drag-and-Drop reorderable Custom Lists
+ * - User Profile Footer
  */
 export function Sidebar() {
   const t = useTranslations("Navigation");
@@ -39,16 +56,19 @@ export function Sidebar() {
   const { activeListId, setActiveListId } = useActiveList();
   const user = useKeycloakUser();
 
-  // Shopping lists queries & mutations
   const { data: lists = [], isLoading } = useShoppingLists();
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
 
-  // Inline creation state
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
+  const [draggedListId, setDraggedListId] = useState<string | null>(null);
 
-  // Categorize system lists vs custom lists
+  useEffect(() => {
+    setCustomOrder(getStoredOrder());
+  }, []);
+
   const { systemLists, customLists } = useMemo(() => {
     const system: ShoppingList[] = [];
     const custom: ShoppingList[] = [];
@@ -61,11 +81,50 @@ export function Sidebar() {
       }
     });
 
-    // Ensure Household is first, then Personal
     system.sort((a, b) => (a.is_default ? -1 : b.is_default ? 1 : 0));
 
+    if (customOrder.length > 0) {
+      custom.sort((a, b) => {
+        const indexA = customOrder.indexOf(a.id);
+        const indexB = customOrder.indexOf(b.id);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+    }
+
     return { systemLists: system, customLists: custom };
-  }, [lists]);
+  }, [lists, customOrder]);
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedListId(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedListId || draggedListId === targetId) return;
+
+    const currentIds = customLists.map((l) => l.id);
+    const fromIndex = currentIds.indexOf(draggedListId);
+    const toIndex = currentIds.indexOf(targetId);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      const updated = [...currentIds];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+
+      setCustomOrder(updated);
+      setStoredOrder(updated);
+    }
+    setDraggedListId(null);
+  };
 
   const handleCreate = () => {
     const trimmed = newListName.trim();
@@ -78,6 +137,9 @@ export function Sidebar() {
           setIsCreating(false);
           setNewListName("");
           setActiveListId(newList.id);
+          const updated = [...customOrder, newList.id];
+          setCustomOrder(updated);
+          setStoredOrder(updated);
         },
       }
     );
@@ -92,7 +154,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Backdrop Overlay */}
       <div
         className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
         onClick={() => setIsSidebarOpen(false)}
@@ -105,7 +166,6 @@ export function Sidebar() {
           "fixed md:relative inset-y-0 left-0"
         )}
       >
-        {/* Brand Header */}
         <div className="p-5 border-b border-border/40 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
@@ -130,9 +190,7 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Scrollable Navigation Sections */}
         <div className="flex-1 overflow-y-auto p-3 space-y-5 scrollbar-none">
-          {/* Section 1: System Lists (Household & Personal) */}
           <div className="space-y-1">
             <div className="px-3 pb-1">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground/50">
@@ -148,9 +206,7 @@ export function Sidebar() {
             ) : (
               systemLists.map((list) => {
                 const isActive = activeListId === list.id;
-                const completedCount = list.items.filter(
-                  (i) => i.is_completed
-                ).length;
+                const completedCount = list.items.filter((i) => i.is_completed).length;
                 const totalCount = list.items.length;
 
                 return (
@@ -190,7 +246,6 @@ export function Sidebar() {
                         : list.name}
                     </span>
 
-                    {/* Item count badge (completed / total) */}
                     <span
                       className={cn(
                         "font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border leading-none shrink-0 transition-colors",
@@ -207,7 +262,6 @@ export function Sidebar() {
             )}
           </div>
 
-          {/* Section 2: Custom Lists */}
           <div className="space-y-1">
             <div className="px-3 pb-1 flex items-center justify-between">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground/50">
@@ -226,28 +280,33 @@ export function Sidebar() {
 
             {customLists.map((list) => {
               const isActive = activeListId === list.id;
-              const completedCount = list.items.filter(
-                (i) => i.is_completed
-              ).length;
+              const completedCount = list.items.filter((i) => i.is_completed).length;
               const totalCount = list.items.length;
+              const isDragging = draggedListId === list.id;
 
               return (
                 <div
                   key={list.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, list.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, list.id)}
+                  onDragEnd={() => setDraggedListId(null)}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-200 cursor-pointer group",
+                    "flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-all duration-200 cursor-pointer group select-none",
                     isActive
                       ? "glass-active border-blue-500/30 text-foreground font-bold shadow-xs"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40",
+                    isDragging ? "opacity-30 scale-95 border-dashed border-blue-400" : ""
                   )}
                   onClick={() => setActiveListId(list.id)}
                 >
+                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing shrink-0" />
+
                   <ShoppingCart
                     className={cn(
                       "h-4 w-4 shrink-0 transition-colors",
-                      isActive
-                        ? "text-primary"
-                        : "text-muted-foreground/60 group-hover:text-primary"
+                      isActive ? "text-primary" : "text-muted-foreground/60 group-hover:text-primary"
                     )}
                   />
 
@@ -266,7 +325,6 @@ export function Sidebar() {
                     {completedCount}/{totalCount}
                   </span>
 
-                  {/* Delete button for custom list */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -290,7 +348,6 @@ export function Sidebar() {
               );
             })}
 
-            {/* Inline List Creator */}
             <div className="pt-2">
               {isCreating ? (
                 <div className="flex items-center gap-1.5 px-3 h-10 rounded-xl border border-border/60 glass-inset">
@@ -333,11 +390,9 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* User Profile & Account Footer Section */}
         <div className="p-3 border-t border-border/40 bg-card/60 shrink-0">
           <div className="flex items-center justify-between p-2 rounded-xl glass-inset">
             <div className="flex items-center gap-2.5 min-w-0">
-              {/* Avatar Badge */}
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-cyan-500 flex items-center justify-center text-white font-mono text-xs font-black shrink-0 border border-white/20 shadow-xs">
                 {user.avatarInitials}
               </div>
@@ -351,7 +406,6 @@ export function Sidebar() {
               </div>
             </div>
 
-            {/* Logout CTA Button */}
             <button
               onClick={user.logout}
               className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 cursor-pointer transition-colors shrink-0"

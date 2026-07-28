@@ -18,9 +18,36 @@
 
 ## Current Sprint — Completed Commits
 
-### `feat(shopping): overhaul UI with unified light/dark mode, figma sidepanel, and stitch layout`
+### `feat(shopping): integrate theme pairs, dnd lists, icon picker, and pantry store workflow`
 
 **Date**: 2026-07-28
+
+#### Summary
+1. **Centralized Theme Engine with Light/Dark Pairs (`packages/shared`)**:
+   - Defined 3 theme palettes (`obsidian`, `kinetic`, `slate`), each explicitly providing both `dark` and `light` variant token definitions stored as JSON schemas under `packages/shared/src/styles/themes/`.
+   - Updated `ThemeTokens` interface and `CSS_VAR_MAP` with high-contrast AA text tokens (`textPrimary`, `textSecondary`, `textMuted`, `textFaint`).
+   - Refactored `ThemeToggle.tsx` component to display a Sun/Moon icon with a small chevron arrow next to it, opening a dropdown menu allowing users to switch between the 3 themes and toggle Light/Dark/System modes.
+2. **Theme Creation Documentation (`ai/theme-guideline.md`)**:
+   - Created `ai/theme-guideline.md` detailing the developer blueprint for adding new themes (required JSON keys, WCAG contrast rules, type registration, CSS variable mapping, and testing steps).
+3. **Header & Navigation Refactoring (`apps/shopping/frontend`)**:
+   - Restored standard `LanguageSwitcher` dropdown component displaying flag icons (🇩🇪 Deutsch, 🇬🇧 English, 🇵🇱 Polski) with full locale switching support.
+   - Reordered header left layout: `[Hamburger Menu Toggle] -> [App Logo / Shopping Name] -> [<- Back to Dashboard]`.
+4. **Drag-and-Drop List Reordering (`apps/shopping/frontend`)**:
+   - Integrated HTML5 Drag-and-Drop list reordering with subtle visual indicators in both `Sidebar.tsx` and main view `ListSelector.tsx` tab bar.
+   - Persisted custom shopping list order in `localStorage` under `loeger_os_shopping_list_order`.
+5. **Quick-Add High-Res Icon Picker (`apps/shopping/frontend`)**:
+   - Created `IconPicker.tsx` featuring a popover grid of high-resolution Lucide icons.
+   - Integrated `IconPicker` into manual item addition form (`AddManualItem.tsx`).
+6. **Progress Ring & Percentage Fix (`apps/shopping/frontend`)**:
+   - Hardened `ShoppingDashboard` progress calculation: `progress = total > 0 ? Math.min(Math.max(checked / total, 0), 1) : 0` and `percentage = total > 0 ? Math.round((checked / total) * 100) : 0`.
+   - Handled division-by-zero safely so progress ring SVG and text render cleanly without `NaN`.
+7. **Multi-Household Pantry Storage Workflow (`apps/shopping/frontend`)**:
+   - Added household selector dropdown in `EinlagernModal.tsx` querying `/api/v1/households/me` (defaulting automatically if only 1 household exists).
+   - Provided item-level actions for storage batches: inline editing (name, quantity, unit), skipping, removing/deleting, and saving product blueprints to the central Pantry catalog.
+   - Successfully synced resolved items to the selected Household's Pantry and cleared stored items from the active shopping list.
+
+#### Verification
+- `pnpm --filter shopping-frontend exec tsc --noEmit` passed cleanly with exit code 0.
 
 #### Summary
 1. **Unified Global Light/Dark Mode System**:

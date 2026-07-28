@@ -93,8 +93,10 @@ export default function ShoppingDashboard() {
   const items = listDetails?.items || [];
   const total = items.length;
   const checked = items.filter((i) => i.is_completed).length;
-  const progress = total > 0 ? checked / total : 0;
+  const progress = total > 0 ? Math.min(Math.max(checked / total, 0), 1) : 0;
+  const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
   const circumference = 2 * Math.PI * 15; // r=15
+  const strokeDash = total > 0 ? `${progress * circumference} ${circumference}` : `0 ${circumference}`;
 
   const handleQuickAdd = (name: string, unit: string) => {
     if (!resolvedListId) return;
@@ -271,7 +273,7 @@ export default function ShoppingDashboard() {
                       stroke="url(#canvasProgressGrad)"
                       strokeWidth="3.5"
                       strokeLinecap="round"
-                      strokeDasharray={`${progress * circumference} ${circumference}`}
+                      strokeDasharray={strokeDash}
                       className="transition-all duration-500 ease-out"
                     />
                     <defs>
@@ -284,7 +286,7 @@ export default function ShoppingDashboard() {
                 </div>
                 <div className="flex flex-col leading-none">
                   <span className="font-mono text-xs font-black text-foreground">
-                    {Math.round(progress * 100)}%
+                    {percentage}%
                   </span>
                   <span className="text-[9px] font-mono text-muted-foreground/50 uppercase">
                     Progress

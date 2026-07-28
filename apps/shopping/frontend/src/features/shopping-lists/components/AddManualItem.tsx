@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, ChevronUp, ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
+import { IconPicker } from "@/components/shared/IconPicker";
 import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
 import { Specular } from "@/components/shared/Specular";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ interface AddManualItemProps {
 }
 
 /**
- * Control block card containing manual checklist item additions.
+ * Control block card containing manual checklist item additions with Lucide icon picker.
  */
 export function AddManualItem({ listId }: AddManualItemProps) {
   const t = useTranslations("AddForm");
@@ -22,12 +23,11 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   const [name, setName] = useState("");
   const [qty, setQty] = useState("1");
   const [unit, setUnit] = useState("Stk");
+  const [selectedIconId, setSelectedIconId] = useState<string>("apple");
 
-  // Retrieve lists to default active ID if empty
   const { data: lists = [] } = useShoppingLists();
   const effectiveListId = listId || (lists.length > 0 ? lists[0].id : "");
 
-  // Mutation
   const addItem = useAddShoppingItem(effectiveListId);
 
   const handleIncrement = () => {
@@ -38,8 +38,6 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   const handleDecrement = () => {
     const current = parseFloat(qty) || 1;
     if (current <= 0.5) return;
-    
-    // Decrement by 0.5 if value <= 1, otherwise by 1
     const nextVal = current > 1 ? current - 1 : current - 0.5;
     setQty(String(nextVal));
   };
@@ -56,7 +54,6 @@ export function AddManualItem({ listId }: AddManualItemProps) {
       },
       {
         onSuccess: () => {
-          // Reset input fields only on success
           setName("");
           setQty("1");
         },
@@ -75,29 +72,34 @@ export function AddManualItem({ listId }: AddManualItemProps) {
           {t("title")}
         </h3>
 
-        {/* Text Input Row */}
-        <div className="flex items-center gap-3 h-11 px-4 rounded-xl glass-inset">
-          <Search className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !isInvalid && handleSubmit()}
-            placeholder={t("namePlaceholder")}
-            className="flex-1 bg-transparent border-none outline-none font-heading text-sm font-semibold tracking-wide text-foreground placeholder:text-muted-foreground/35 min-w-0"
-            disabled={addItem.isPending}
+        {/* Text Input & Icon Picker Row */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-3 h-11 px-4 rounded-xl glass-inset min-w-0">
+            <Search className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !isInvalid && handleSubmit()}
+              placeholder={t("namePlaceholder")}
+              className="flex-1 bg-transparent border-none outline-none font-heading text-sm font-semibold tracking-wide text-foreground placeholder:text-muted-foreground/35 min-w-0"
+              disabled={addItem.isPending}
+            />
+          </div>
+
+          <IconPicker
+            selectedIconId={selectedIconId}
+            onSelectIcon={setSelectedIconId}
           />
         </div>
 
         {/* Stepper + Unit Selector + Submit Row */}
         <div className="flex gap-2">
-          {/* Stepper controls */}
           <div className="flex items-center h-10 rounded-lg glass-inset overflow-hidden shrink-0">
             <button
               onClick={handleDecrement}
               disabled={addItem.isPending}
               aria-label={t("stepperDec")}
-              className="w-9 h-full flex items-center justify-center cursor-pointer 
-                         text-muted-foreground/50 hover:text-blue-500 hover:bg-white/2 transition-colors disabled:opacity-40"
+              className="w-9 h-full flex items-center justify-center cursor-pointer text-muted-foreground/50 hover:text-blue-500 hover:bg-white/2 transition-colors disabled:opacity-40"
             >
               <ChevronDown className="h-4 w-4" strokeWidth={2.5} />
             </button>
@@ -112,17 +114,14 @@ export function AddManualItem({ listId }: AddManualItemProps) {
               onClick={handleIncrement}
               disabled={addItem.isPending}
               aria-label={t("stepperInc")}
-              className="w-9 h-full flex items-center justify-center cursor-pointer 
-                         text-muted-foreground/50 hover:text-blue-500 hover:bg-white/2 transition-colors disabled:opacity-40"
+              className="w-9 h-full flex items-center justify-center cursor-pointer text-muted-foreground/50 hover:text-blue-500 hover:bg-white/2 transition-colors disabled:opacity-40"
             >
               <ChevronUp className="h-4 w-4" strokeWidth={2.5} />
             </button>
           </div>
 
-          {/* Radix Popover Unit Picker */}
           <UnitSelector value={unit} onChange={setUnit} />
 
-          {/* Add submit button */}
           <button
             onClick={handleSubmit}
             disabled={isInvalid}

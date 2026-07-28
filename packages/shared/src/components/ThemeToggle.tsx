@@ -10,7 +10,7 @@ export interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = '', showVariantToggle = true }: ThemeToggleProps) {
-  const { mode, variant, resolvedMode, setMode, setVariant, toggleTheme } = useTheme();
+  const { mode, variant, resolvedMode, setMode, setVariant } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +29,12 @@ export function ThemeToggle({ className = '', showVariantToggle = true }: ThemeT
     return resolvedMode === 'dark' ? 'dark_mode' : 'light_mode';
   };
 
+  const themes: { id: ThemeVariant; label: string; icon: string }[] = [
+    { id: 'obsidian', label: 'Obsidian', icon: 'dark_mode' },
+    { id: 'kinetic', label: 'Kinetic', icon: 'bolt' },
+    { id: 'slate', label: 'Slate', icon: 'palette' },
+  ];
+
   return (
     <div className={`relative inline-block ${className}`} ref={dropdownRef}>
       <button
@@ -45,7 +51,7 @@ export function ThemeToggle({ className = '', showVariantToggle = true }: ThemeT
         title="Theme settings"
       >
         <span className="material-symbols-outlined text-base text-[var(--primary-main)] group-hover:rotate-180 transition-transform duration-300">
-          {variant === 'kinetic' ? 'bolt' : getModeIcon()}
+          {getModeIcon()}
         </span>
         <span className="capitalize font-semibold">{variant} ({resolvedMode})</span>
         {showVariantToggle && (
@@ -56,7 +62,7 @@ export function ThemeToggle({ className = '', showVariantToggle = true }: ThemeT
       </button>
 
       {isOpen && showVariantToggle && (
-        <div className="absolute right-0 mt-1.5 w-52 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3">
+        <div className="absolute right-0 mt-1.5 w-56 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3">
           {/* Mode Selector */}
           <div>
             <div className="text-[10px] font-mono uppercase text-[var(--text-muted)] mb-1.5 font-bold">
@@ -74,33 +80,33 @@ export function ThemeToggle({ className = '', showVariantToggle = true }: ThemeT
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                   }`}
                 >
-                  <span className="capitalize">{m}</span>
+                  <span>{m}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Variant Selector */}
+          {/* Theme Selector */}
           <div>
             <div className="text-[10px] font-mono uppercase text-[var(--text-muted)] mb-1.5 font-bold">
-              Variant
+              Theme Palette
             </div>
-            <div className="grid grid-cols-2 gap-1 p-1 bg-[var(--surface-canvas)] rounded-lg border border-[var(--border-subtle)]">
-              {(['obsidian', 'kinetic'] as ThemeVariant[]).map((v) => (
+            <div className="grid grid-cols-3 gap-1 p-1 bg-[var(--surface-canvas)] rounded-lg border border-[var(--border-subtle)]">
+              {themes.map((t) => (
                 <button
-                  key={v}
+                  key={t.id}
                   type="button"
-                  onClick={() => setVariant(v)}
-                  className={`py-1.5 px-2 rounded text-[11px] font-mono capitalize transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    variant === v
+                  onClick={() => setVariant(t.id)}
+                  className={`py-1.5 px-1 rounded text-[11px] font-mono capitalize transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                    variant === t.id
                       ? 'bg-[var(--surface-elevated)] text-[var(--primary-main)] font-bold border border-[var(--border-accent)]'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                   }`}
                 >
                   <span className="material-symbols-outlined text-xs">
-                    {v === 'obsidian' ? 'dark_mode' : 'bolt'}
+                    {t.icon}
                   </span>
-                  <span>{v}</span>
+                  <span className="text-[10px]">{t.label}</span>
                 </button>
               ))}
             </div>

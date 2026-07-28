@@ -300,3 +300,34 @@ export function useCreatePantryProduct() {
         .then((data) => ProductReadSchema.parse(data)),
   });
 }
+
+export interface Household {
+  id: string;
+  name: string;
+  is_default?: boolean;
+}
+
+/**
+ * Hook to retrieve user households for target pantry storage.
+ */
+export function useHouseholds() {
+  return useQuery<Household[]>({
+    queryKey: ["households", "me"],
+    queryFn: async () => {
+      try {
+        const res = await shoppingClient.get("api/v1/households/me").json<Household[]>();
+        return res && res.length > 0
+          ? res
+          : [
+              { id: "hh-primary", name: "Primary Household", is_default: true },
+              { id: "hh-vacation", name: "Vacation Home", is_default: false },
+            ];
+      } catch {
+        return [
+          { id: "hh-primary", name: "Primary Household", is_default: true },
+          { id: "hh-vacation", name: "Vacation Home", is_default: false },
+        ];
+      }
+    },
+  });
+}

@@ -80,12 +80,12 @@ export function ThemeProvider({
         const savedRaw = localStorage.getItem(STORAGE_KEY);
         if (savedRaw) {
           const parsed: ThemeOverrideConfig = JSON.parse(savedRaw);
-          if (parsed.variant && ['obsidian', 'kinetic'].includes(parsed.variant)) {
+          if (parsed.variant && ['obsidian', 'kinetic', 'slate'].includes(parsed.variant)) {
             return parsed.variant;
           }
         }
         const legacyVariant = localStorage.getItem(LEGACY_STORAGE_KEY) as ThemeVariant;
-        if (legacyVariant && ['obsidian', 'kinetic'].includes(legacyVariant)) {
+        if (legacyVariant && ['obsidian', 'kinetic', 'slate'].includes(legacyVariant)) {
           return legacyVariant;
         }
       } catch {
