@@ -388,7 +388,7 @@ else
   wait_one_shot "signoz-schema-migrator" "schema-migrator" 120
 
   info "Starting SigNoz UI, OTEL collector, and Vector log shipper …"
-  dc up ${BUILD_FLAG} -d signoz-otel-collector signoz-ui vector-shipper
+  dc up ${BUILD_FLAG} -d signoz-otel-collector signoz vector-shipper
 
   wait_running "signoz-otel-collector" "otel-collector" 30
   wait_running "signoz-ui"             "SigNoz UI"      30
