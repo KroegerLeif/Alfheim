@@ -18,6 +18,19 @@
 
 ## Current Sprint — Completed Commits
 
+### `fix(infra): align vector and signoz service names in up.sh Stage 6`
+
+**Date**: 2026-07-28
+
+#### Summary
+1. **Aligned Service Names in `scripts/up.sh` Stage 6**:
+   - Fixed `scripts/up.sh` Stage 6 line 391 to pass `vector` (the exact Compose service key defined in `apps/logging-stack/compose.yml`) instead of `vector-shipper` (which is the `container_name`).
+   - Verified that `docker compose up --no-build -d signoz-otel-collector signoz vector --dry-run` executes cleanly with exit code 0.
+2. **Updated AI Monorepo Guidelines (`ai/new-app-guideline.md`)**:
+   - Synchronized all architectural requirements: `src/proxy.ts` (Next.js 16+ proxy convention), centralized i18n via `packages/shared/src/i18n/locales/{de,en,pl}/` and `getSharedMessages(locale)`, theme engine tokens & shared `ThemeToggle` usage, and vertical slice stage registration rules in `scripts/up.sh`.
+
+---
+
 ### `feat(i18n): centralize monorepo translation files into shared package and fix polish locale`
 
 **Date**: 2026-07-28
