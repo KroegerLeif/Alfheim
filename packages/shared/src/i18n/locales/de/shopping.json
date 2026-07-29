@@ -1,27 +1,37 @@
 {
-  "Navigation": {
-    "title": "loeger-os",
-    "subtitle": "Einkaufslistenverwaltung",
-    "lists": "Listen",
-    "history": "Verlauf",
-    "pantry": "Vorratsschrank"
-  },
   "Checklist": {
     "title": "Einkaufszettel",
-    "searchPlaceholder": "Suchen…",
+    "searchPlaceholder": "Artikel suchen...",
     "open": "offen",
     "completed": "erledigt",
-    "empty": "Keine Artikel",
+    "empty": "Keine Artikel in der Liste",
     "einlagernBtn": "Einkauf Einlagern",
     "pantryBadge": "Pantry",
-    "pantryLegend": "Mit Pantry-App verknüpft — wird automatisch eingelagert"
+    "pantryLegend": "Mit Pantry-App verknüpft — wird automatisch eingelagert",
+    "share": "Teilen",
+    "print": "Drucken",
+    "clearCompleted": "Erledigte löschen",
+    "systemProtected": "Systemgeschützt",
+    "customList": "Eigene Liste",
+    "linkCopied": "Link in Zwischenablage kopiert!"
+  },
+  "Categories": {
+    "produce": "Obst & Gemüse 🥦",
+    "dairy": "Milchprodukte 🧀",
+    "bakery": "Backwaren 🍞",
+    "household": "Haushalt 🧹",
+    "meat": "Fleisch & Fisch 🥩",
+    "pantry": "Vorrat & Konserven 🥫",
+    "beverages": "Getränke 🥤",
+    "other": "Sonstiges 📦"
   },
   "AddForm": {
     "title": "Artikel hinzufügen",
-    "namePlaceholder": "Artikel eingeben…",
+    "namePlaceholder": "Artikelname (z. B. Bio-Milch)...",
     "addBtn": "Hinzufügen",
     "stepperDec": "Menge verringern",
-    "stepperInc": "Menge erhöhen"
+    "stepperInc": "Menge erhöhen",
+    "categoryLabel": "Kategorie"
   },
   "History": {
     "title": "Häufig gekauft",

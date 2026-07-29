@@ -2,8 +2,28 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, createContext, useContext } from "react";
 import Keycloak from "keycloak-js";
+
+export const SidebarContext = createContext<{
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (open: boolean) => void;
+}>({
+  isSidebarOpen: true,
+  setIsSidebarOpen: () => {},
+});
+
+export const useSidebar = () => useContext(SidebarContext);
+
+export const ActiveListContext = createContext<{
+  activeListId: string | null;
+  setActiveListId: (id: string | null) => void;
+}>({
+  activeListId: null,
+  setActiveListId: () => {},
+});
+
+export const useActiveList = () => useContext(ActiveListContext);
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -20,7 +40,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   );
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [activeListId, setActiveListId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -40,17 +62,24 @@ export default function Providers({ children }: { children: ReactNode }) {
       .then((authenticated) => {
         if (authenticated) {
           setIsAuthenticated(true);
+          (window as any).__keycloak_instance__ = keycloak;
           sessionStorage.setItem("token_shopping-frontend", keycloak.token || "");
 
           // Set up token auto-refresh
           const interval = setInterval(() => {
-            keycloak.updateToken(70).then((refreshed) => {
-              if (refreshed) {
-                sessionStorage.setItem("token_shopping-frontend", keycloak.token || "");
-              }
-            }).catch(() => {
-              console.error("Failed to refresh Keycloak token");
-            });
+            keycloak
+              .updateToken(70)
+              .then((refreshed) => {
+                if (refreshed) {
+                  sessionStorage.setItem(
+                    "token_shopping-frontend",
+                    keycloak.token || ""
+                  );
+                }
+              })
+              .catch(() => {
+                console.error("Failed to refresh Keycloak token");
+              });
           }, 60000);
 
           return () => clearInterval(interval);
@@ -58,14 +87,35 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
       .catch((err) => {
         console.error("Keycloak initialization failed", err);
+        setAuthError("Failed to connect to Keycloak auth service.");
       });
   }, []);
 
+  if (authError) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground p-6">
+        <div className="text-center space-y-4 max-w-md p-6 rounded-2xl glass-card border border-red-500/20">
+          <div className="h-12 w-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto text-xl font-bold">
+            !
+          </div>
+          <h2 className="text-lg font-bold">Authentication Error</h2>
+          <p className="text-sm text-muted-foreground">{authError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
+      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
           <p className="text-lg font-medium tracking-wide">Securing session with Keycloak...</p>
         </div>
       </div>
@@ -76,21 +126,11 @@ export default function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-          {children}
+          <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
+            {children}
+          </ActiveListContext.Provider>
         </SidebarContext.Provider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 }
-
-import { createContext, useContext } from "react";
-
-export const SidebarContext = createContext<{
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
-}>({
-  isSidebarOpen: true,
-  setIsSidebarOpen: () => {},
-});
-
-export const useSidebar = () => useContext(SidebarContext);

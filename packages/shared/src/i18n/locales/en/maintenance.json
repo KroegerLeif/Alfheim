@@ -1,0 +1,17 @@
+{
+  "maintenance": {
+    "title": "Maintenance & Infrastructure Management",
+    "subtitle": "loeger-os system diagnostics, device monitoring, and maintenance tasks",
+    "devices": "Devices",
+    "tasks": "Maintenance Tasks",
+    "schedule": "Maintenance Schedule",
+    "systemHealth": "System Health",
+    "logs": "System Logs",
+    "upcomingTasks": "Upcoming Tasks",
+    "completedTasks": "Completed Tasks",
+    "createTask": "Create Task",
+    "statusOk": "Operational",
+    "statusWarning": "Warning",
+    "statusCritical": "Critical"
+  }
+}

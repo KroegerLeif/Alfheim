@@ -30,6 +30,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@shopping-db:5432/shopping
       - PANTRY_BACKEND_URL=http://pantry-backend:8000
+      - KEYCLOAK_URL=http://keycloak:8080/auth
+      - KEYCLOAK_PUBLIC_URL=http://loeger-os/auth
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -73,6 +75,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3010
+      - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3010/shopping/en || exit 1"]
       interval: 5s

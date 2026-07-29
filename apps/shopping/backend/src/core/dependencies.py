@@ -32,30 +32,34 @@ def get_jwks_client(jwks_url: str) -> jwt.PyJWKClient:
 def decode_keycloak_token(token: str) -> dict:
     if os.getenv("TESTING") == "true" or settings.ENVIRONMENT == "testing":
         try:
-            return jwt.decode(token, options={"verify_signature": False, "verify_aud": False})
+            return jwt.decode(token, options={"verify_signature": False, "verify_aud": False, "verify_iss": False})
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"invalid or expired token: {e}",
             )
 
-    try:
-        jwks_client = get_jwks_client(settings.jwks_url)
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
-        return jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256", "HS256"],
-            options={"verify_aud": False},
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.warning(f"Keycloak JWT validation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"invalid or expired token: {e}",
-        )
+    last_error = None
+    for jwks_url in settings.jwks_fallback_urls:
+        try:
+            jwks_client = get_jwks_client(jwks_url)
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            return jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256", "HS256"],
+                options={"verify_aud": False, "verify_iss": False},
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            last_error = e
+
+    logger.warning(f"Keycloak JWT validation failed across endpoints: {last_error}")
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=f"invalid or expired token: {last_error}",
+    )
 
 
 async def get_current_user_and_home(request: Request) -> UserHomeContext:

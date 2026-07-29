@@ -61,7 +61,23 @@ export const shoppingClient = ky.create({
     ],
     afterResponse: [
       async (request, options, response) => {
-        if (!response.ok) {
+        if (response.status === 401 && typeof window !== "undefined") {
+          const keycloak = (window as any).__keycloak_instance__;
+          if (keycloak && typeof keycloak.updateToken === "function") {
+            try {
+              const refreshed = await keycloak.updateToken(30);
+              if (refreshed && keycloak.token) {
+                sessionStorage.setItem("token_shopping-frontend", keycloak.token);
+              }
+            } catch (err) {
+              console.warn("Keycloak token refresh failed on 401:", err);
+              if (typeof keycloak.login === "function") {
+                keycloak.login();
+              }
+            }
+          }
+          await handleResponseError(response);
+        } else if (!response.ok) {
           await handleResponseError(response);
         }
       },
@@ -89,7 +105,23 @@ export const pantryClient = ky.create({
     ],
     afterResponse: [
       async (request, options, response) => {
-        if (!response.ok) {
+        if (response.status === 401 && typeof window !== "undefined") {
+          const keycloak = (window as any).__keycloak_instance__;
+          if (keycloak && typeof keycloak.updateToken === "function") {
+            try {
+              const refreshed = await keycloak.updateToken(30);
+              if (refreshed && keycloak.token) {
+                sessionStorage.setItem("token_shopping-frontend", keycloak.token);
+              }
+            } catch (err) {
+              console.warn("Keycloak token refresh failed on 401:", err);
+              if (typeof keycloak.login === "function") {
+                keycloak.login();
+              }
+            }
+          }
+          await handleResponseError(response);
+        } else if (!response.ok) {
           await handleResponseError(response);
         }
       },

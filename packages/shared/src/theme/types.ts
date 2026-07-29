@@ -1,4 +1,4 @@
-export type ThemeVariant = 'obsidian' | 'kinetic';
+export type ThemeVariant = 'obsidian' | 'kinetic' | 'slate';
 export type ThemeMode = 'dark' | 'light' | 'system';
 export type ResolvedMode = 'dark' | 'light';
 
@@ -11,7 +11,10 @@ export interface ThemeTokens {
   borderSubtle: string;
   borderAccent: string;
   textMain: string;
+  textPrimary: string;
+  textSecondary: string;
   textMuted: string;
+  textFaint: string;
   accentGlow: string;
 }
 

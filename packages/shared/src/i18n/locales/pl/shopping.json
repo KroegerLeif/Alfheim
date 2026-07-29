@@ -1,0 +1,61 @@
+{
+  "Checklist": {
+    "title": "Lista zakupów",
+    "searchPlaceholder": "Szukaj artykułów...",
+    "open": "otwarte",
+    "completed": "ukończone",
+    "empty": "Brak artykułów w liście",
+    "einlagernBtn": "Zapisz do spiżarni",
+    "pantryBadge": "Spiżarnia",
+    "pantryLegend": "Powiązano ze spiżarnią — zostanie automatycznie dodane do zapasów",
+    "share": "Udostępnij",
+    "print": "Drukuj",
+    "clearCompleted": "Usuń ukończone",
+    "systemProtected": "Systemowa chroniona",
+    "customList": "Własna lista",
+    "linkCopied": "Link skopiowano do schowka!"
+  },
+  "Categories": {
+    "produce": "Owoce i warzywa 🥦",
+    "dairy": "Nabiał 🧀",
+    "bakery": "Pieczywo 🍞",
+    "household": "Artykuły domowe 🧹",
+    "meat": "Mięso i ryby 🥩",
+    "pantry": "Przetwory i spiżarnia 🥫",
+    "beverages": "Napoje 🥤",
+    "other": "Inne 📦"
+  },
+  "AddForm": {
+    "title": "Dodaj artykuł",
+    "namePlaceholder": "Nazwa artykułu (np. Mleko ekologiczne)...",
+    "addBtn": "Dodaj artykuł",
+    "stepperDec": "Zmniejsz ilość",
+    "stepperInc": "Zwiększ ilość",
+    "categoryLabel": "Kategoria"
+  },
+  "History": {
+    "title": "Często kupowane",
+    "noHistory": "Brak historii"
+  },
+  "Modal": {
+    "scanTitle": "Zapisz · Skanuj",
+    "unresolvedTitle": "{count} nieznanych artykułów",
+    "allDoneTitle": "Wszystkie artykuły przetworzone",
+    "catalogBtn": "Katalog",
+    "ignoreBtn": "Ignoruj",
+    "ignoredLabel": "— Zignorowano",
+    "savedLabel": "✓ {catalogName}",
+    "inputLabel": "Ustaw nazwę katalogu",
+    "saveBtn": "Zapisz",
+    "doneBtn": "Gotowe",
+    "laterBtn": "Zrób później",
+    "summaryText": "{saved} zapisano · {ignored} zignorowano"
+  },
+  "Error": {
+    "nameRequired": "Nazwa artykułu jest wymagana",
+    "invalidQty": "Ilość musi być dodatnia",
+    "fetchFailed": "Nie udało się załadować szczegółów",
+    "syncFailed": "Synchronizacja ze spiżarnią nie powiodła się",
+    "unrecognizedError": "Wystąpił nieoczekiwany błąd"
+  }
+}

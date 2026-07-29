@@ -27,6 +27,8 @@ export const ShoppingListSchema = z.object({
   name: z.string().min(1),
   home_id: z.string().uuid(),
   owner_id: z.string().uuid(),
+  is_default: z.boolean().default(false),
+  is_personal: z.boolean().default(false),
   created_at: z.string(),
   updated_at: z.string(),
   items: z.array(ShoppingItemSchema).default([]),

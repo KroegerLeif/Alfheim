@@ -8,10 +8,10 @@ import {
   BackToDashboard,
   LanguageSwitcher,
   ThemeToggle,
-  AuthControls,
 } from "@loeger-os/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
+import { HeaderAuthControls } from "@/components/shared/HeaderAuthControls";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -46,7 +46,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
+      data-theme="obsidian"
+      data-mode="dark"
+      data-theme-variant="obsidian"
     >
       <head>
         <link
@@ -68,7 +71,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                       <div className="flex items-center gap-3">
                         <LanguageSwitcher variant="dropdown" />
                         <ThemeToggle showVariantToggle={true} />
-                        <AuthControls />
+                        <HeaderAuthControls />
                       </div>
                     </header>
 

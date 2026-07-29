@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     PANTRY_BACKEND_URL: str = "http://pantry-backend:8000"
 
     # Keycloak OIDC Configuration
-    KEYCLOAK_URL: str = "http://localhost:8080/auth"
+    KEYCLOAK_URL: str = "http://keycloak:8080/auth"
+    KEYCLOAK_PUBLIC_URL: str = "http://loeger-os/auth"
     KEYCLOAK_REALM: str = "loeger-os"
     KEYCLOAK_JWKS_URL: str = ""
 
@@ -29,6 +30,20 @@ class Settings(BaseSettings):
             return self.KEYCLOAK_JWKS_URL
         base = self.KEYCLOAK_URL.rstrip("/")
         return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+
+    @property
+    def jwks_fallback_urls(self) -> list[str]:
+        urls = [self.jwks_url]
+        for base_url in [
+            "http://keycloak:8080/auth",
+            "http://loeger_keycloak:8080/auth",
+            "http://loeger-os/auth",
+            "http://localhost:8080/auth",
+        ]:
+            url = f"{base_url.rstrip('/')}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+            if url not in urls:
+                urls.append(url)
+        return urls
 
     # OpenTelemetry Configuration
     OTEL_ENABLED: bool = False

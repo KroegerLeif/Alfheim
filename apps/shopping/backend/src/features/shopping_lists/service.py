@@ -3,7 +3,11 @@ from typing import Optional, List, Sequence
 from sqlmodel import select, and_, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.core.exceptions import ShoppingListNotFoundError, ShoppingItemNotFoundError
+from src.core.exceptions import (
+    ShoppingListNotFoundError,
+    ShoppingListProtectedError,
+    ShoppingItemNotFoundError,
+)
 from src.features.shopping_lists.models import ShoppingList, ShoppingItem
 from src.features.shopping_lists.schemas import (
     ShoppingListCreate,
@@ -18,7 +22,119 @@ from src.features.history.service import ShoppingHistoryService
 
 
 class ShoppingListService:
-    """Service class encapsulating business operations for Shopping Lists."""
+    """Service class encapsulating business operations for Shopping Lists.
+
+    Auto-provisioning rules enforced on every get_lists() call:
+      1. Personal List  — one per user (owner_id), identified by is_personal=True.
+                          Persists across all households the user belongs to.
+                          Name pattern: "{username} - Liste" (i18n suffix appended by backend).
+      2. Household List — one per home_id, identified by is_default=True.
+                          Shared with every member of the household.
+                          Name: "Haushalt".
+    Both list types are non-deletable (guarded in delete_list).
+    """
+
+    # ------------------------------------------------------------------ #
+    # Internal helpers                                                     #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _personal_list_name(username: Optional[str], user_id: uuid.UUID) -> str:
+        """Build a deterministic Personal List display name.
+
+        Falls back to a UUID-derived short name when the username claim is absent or non-string.
+        The suffix ' - Liste' corresponds to the i18n key shopping.personalListSuffix.
+        """
+        label = username.strip() if isinstance(username, str) and username.strip() else str(user_id)[:8]
+        return f"{label} - Liste"
+
+    @staticmethod
+    async def _ensure_personal_list(
+        session: AsyncSession,
+        home_id: uuid.UUID,
+        owner_id: uuid.UUID,
+        username: Optional[str],
+    ) -> ShoppingList:
+        """Return the caller's Personal List, creating it if it does not yet exist.
+
+        The lookup is scoped to owner_id only — the Personal List deliberately
+        ignores home_id so it follows the user across households.
+        """
+        stmt = select(ShoppingList).where(
+            ShoppingList.owner_id == owner_id,
+            ShoppingList.is_personal == True,  # noqa: E712
+        )
+        result = await session.exec(stmt)
+        personal = result.first()
+
+        if not personal:
+            personal = ShoppingList(
+                name=ShoppingListService._personal_list_name(username, owner_id),
+                home_id=home_id,
+                owner_id=owner_id,
+                is_personal=True,
+                is_default=False,
+            )
+            session.add(personal)
+            await session.commit()
+            await session.refresh(personal)
+
+        if personal.items is None:
+            personal.items = []
+
+        return personal
+
+    @staticmethod
+    async def _ensure_household_list(
+        session: AsyncSession,
+        home_id: uuid.UUID,
+        owner_id: uuid.UUID,
+    ) -> ShoppingList:
+        """Return the shared Household List for a home_id, creating it if absent."""
+        stmt = select(ShoppingList).where(
+            ShoppingList.home_id == home_id,
+            ShoppingList.is_default == True,  # noqa: E712
+        )
+        result = await session.exec(stmt)
+        household = result.first()
+
+        if not household:
+            # Fallback check for existing list named "Haushalt"
+            fallback_stmt = select(ShoppingList).where(
+                ShoppingList.home_id == home_id,
+                ShoppingList.name == "Haushalt",
+            )
+            fallback_res = await session.exec(fallback_stmt)
+            legacy_household = fallback_res.first()
+            if legacy_household:
+                legacy_household.is_default = True
+                legacy_household.is_personal = False
+                session.add(legacy_household)
+                await session.commit()
+                await session.refresh(legacy_household)
+                if legacy_household.items is None:
+                    legacy_household.items = []
+                return legacy_household
+
+            household = ShoppingList(
+                name="Haushalt",
+                home_id=home_id,
+                owner_id=owner_id,
+                is_default=True,
+                is_personal=False,
+            )
+            session.add(household)
+            await session.commit()
+            await session.refresh(household)
+
+        if household.items is None:
+            household.items = []
+
+        return household
+
+    # ------------------------------------------------------------------ #
+    # Public API                                                           #
+    # ------------------------------------------------------------------ #
 
     @staticmethod
     async def create_list(
@@ -27,15 +143,19 @@ class ShoppingListService:
         home_id: uuid.UUID,
         owner_id: uuid.UUID,
     ) -> ShoppingList:
-        """Create a new shopping list scoped to a home space."""
+        """Create a new user-defined shopping list scoped to a home space."""
         db_list = ShoppingList(
             name=payload.name,
             home_id=home_id,
             owner_id=owner_id,
+            is_default=False,
+            is_personal=False,
         )
         session.add(db_list)
         await session.commit()
         await session.refresh(db_list)
+        if db_list.items is None:
+            db_list.items = []
         return db_list
 
     @staticmethod
@@ -43,26 +163,43 @@ class ShoppingListService:
         session: AsyncSession,
         home_id: uuid.UUID,
         owner_id: Optional[uuid.UUID] = None,
+        username: Optional[str] = None,
     ) -> Sequence[ShoppingList]:
-        """Retrieve all shopping lists scoped to a home space."""
-        stmt = select(ShoppingList).where(ShoppingList.home_id == home_id)
+        """Retrieve all shopping lists visible to the caller.
+
+        Returns in a guaranteed stable order:
+          [0] Personal List  (caller's private list — always first)
+          [1] Household List (shared default list for home_id)
+          [2+] Additional user-created lists for this household
+
+        Both the Personal List and Household List are auto-provisioned on first call.
+        """
+        effective_owner = owner_id or uuid.UUID("00000000-0000-0000-0000-000000000001")
+
+        # 1. Ensure protected lists exist
+        personal = await ShoppingListService._ensure_personal_list(
+            session, home_id, effective_owner, username
+        )
+        household = await ShoppingListService._ensure_household_list(
+            session, home_id, effective_owner
+        )
+
+        # 2. Fetch remaining user-created lists for this household
+        stmt = select(ShoppingList).where(
+            ShoppingList.home_id == home_id,
+            ShoppingList.is_default == False,  # noqa: E712
+            ShoppingList.is_personal == False,  # noqa: E712
+        )
         result = await session.exec(stmt)
-        lists = result.all()
-        if not lists:
-            # Auto-provision a default list named "Wocheneinkauf"
-            default_list = ShoppingList(
-                name="Wocheneinkauf",
-                home_id=home_id,
-                owner_id=owner_id or uuid.UUID("00000000-0000-0000-0000-000000000001"),
-            )
-            session.add(default_list)
-            await session.commit()
-            await session.refresh(default_list)
-            
-            # Re-fetch the lists
-            result = await session.exec(stmt)
-            lists = result.all()
-        return lists
+        custom_lists = list(result.all())
+
+        all_lists = [personal, household, *custom_lists]
+        for lst in all_lists:
+            if lst.items is None:
+                lst.items = []
+
+        # 3. Return in deterministic order: personal → household → custom
+        return all_lists
 
     @staticmethod
     async def get_list(
@@ -70,15 +207,22 @@ class ShoppingListService:
         list_id: uuid.UUID,
         home_id: uuid.UUID,
     ) -> Optional[ShoppingList]:
-        """Retrieve a specific shopping list, validating home space bounds."""
-        stmt = select(ShoppingList).where(
-            ShoppingList.id == list_id,
-            ShoppingList.home_id == home_id,
-        )
+        """Retrieve a specific shopping list with boundary checks.
+
+        Personal Lists are accessible from any household context — the home_id
+        constraint is relaxed for is_personal=True lists.
+        """
+        stmt = select(ShoppingList).where(ShoppingList.id == list_id)
         result = await session.exec(stmt)
         db_list = result.first()
+
         if not db_list:
             raise ShoppingListNotFoundError(f"Shopping list with ID '{list_id}' not found.")
+
+        # Allow access if the list belongs to this household, OR if it is the caller's personal list
+        if db_list.home_id != home_id and not db_list.is_personal:
+            raise ShoppingListNotFoundError(f"Shopping list with ID '{list_id}' not found.")
+
         return db_list
 
     @staticmethod
@@ -87,8 +231,22 @@ class ShoppingListService:
         list_id: uuid.UUID,
         home_id: uuid.UUID,
     ) -> bool:
-        """Delete a shopping list."""
+        """Delete a user-created shopping list.
+
+        Protected lists (is_default=True or is_personal=True) cannot be deleted.
+        Raises ShoppingListProtectedError (→ HTTP 400 via global handler) on violation.
+        """
         db_list = await ShoppingListService.get_list(session, list_id, home_id)
+
+        if db_list.is_default:
+            raise ShoppingListProtectedError(
+                "The Household List is protected and cannot be deleted."
+            )
+        if db_list.is_personal:
+            raise ShoppingListProtectedError(
+                "The Personal List is protected and cannot be deleted."
+            )
+
         await session.delete(db_list)
         await session.commit()
         return True
@@ -101,7 +259,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
     ) -> ShoppingItem:
         """Add a manual shopping item to a list."""
-        # Validate list ownership
+        # Validate list ownership / boundary
         await ShoppingListService.get_list(session, list_id, home_id)
 
         db_item = ShoppingItem(
@@ -124,13 +282,28 @@ class ShoppingListService:
         home_id: uuid.UUID,
         owner_id: uuid.UUID,
     ) -> ShoppingItem:
-        """Push an out-of-stock item directly into a household shopping list."""
+        """Push an out-of-stock item directly into a household shopping list.
+
+        When no explicit list_id is supplied, the item lands in the Household List
+        (is_default=True) for the active home_id, falling back to the first list.
+        """
         list_id = payload.list_id
         if list_id:
             await ShoppingListService.get_list(session, list_id, home_id)
         else:
-            lists = await ShoppingListService.get_lists(session, home_id, owner_id)
-            list_id = lists[0].id
+            # Prefer the shared Household List for cross-service pushes
+            stmt = select(ShoppingList).where(
+                ShoppingList.home_id == home_id,
+                ShoppingList.is_default == True,  # noqa: E712
+            )
+            result = await session.exec(stmt)
+            household = result.first()
+            if household:
+                list_id = household.id
+            else:
+                # Fallback: first list in scope
+                lists = await ShoppingListService.get_lists(session, home_id, owner_id)
+                list_id = lists[0].id
 
         db_item = ShoppingItem(
             list_id=list_id,
@@ -226,7 +399,7 @@ class ShoppingListService:
         # 3. Retrieve all currently active (uncompleted) items in the shopping list
         active_items_stmt = select(ShoppingItem).where(
             ShoppingItem.list_id == list_id,
-            ShoppingItem.is_completed == False,
+            ShoppingItem.is_completed == False,  # noqa: E712
         )
         active_items_res = await session.exec(active_items_stmt)
         active_items = active_items_res.all()
@@ -296,8 +469,8 @@ class ShoppingListService:
         # 2. Fetch completed but unsynced items
         stmt = select(ShoppingItem).where(
             ShoppingItem.list_id == list_id,
-            ShoppingItem.is_completed == True,
-            ShoppingItem.is_synced == False,
+            ShoppingItem.is_completed == True,  # noqa: E712
+            ShoppingItem.is_synced == False,  # noqa: E712
         )
         res = await session.exec(stmt)
         completed_items = res.all()
@@ -333,15 +506,13 @@ class ShoppingListService:
         unrecognized_list = sync_result.get("unrecognized_items", [])
 
         # 5. Process updates in Shopping DB
-        # For successful matches: mark as synced and save the resolved product_id
         for item in completed_items:
             if item.id in success_map:
                 item.is_synced = True
                 item.product_id = success_map[item.id]
                 session.add(item)
 
-            # Log to Bring-style selection history (log both successful and unrecognized purchases)
-            # Scoped by home_id
+            # Log to selection history for both successful and unrecognized purchases
             await ShoppingHistoryService.log_purchase(
                 session=session,
                 home_id=home_id,

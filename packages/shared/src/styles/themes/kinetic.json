@@ -1,0 +1,32 @@
+{
+  "dark": {
+    "surfaceCanvas": "#060b17",
+    "surfaceCard": "#0c162d",
+    "surfaceElevated": "#142244",
+    "primaryMain": "#00f0ff",
+    "primaryHover": "#38f4ff",
+    "borderSubtle": "#1e293b",
+    "borderAccent": "rgba(0, 240, 255, 0.5)",
+    "textMain": "#ffffff",
+    "textPrimary": "#ffffff",
+    "textSecondary": "#cbd5e1",
+    "textMuted": "#94a3b8",
+    "textFaint": "#64748b",
+    "accentGlow": "rgba(0, 240, 255, 0.25)"
+  },
+  "light": {
+    "surfaceCanvas": "#fafafa",
+    "surfaceCard": "#ffffff",
+    "surfaceElevated": "#f1f5f9",
+    "primaryMain": "#008899",
+    "primaryHover": "#006677",
+    "borderSubtle": "#cbd5e1",
+    "borderAccent": "rgba(0, 136, 153, 0.4)",
+    "textMain": "#090d16",
+    "textPrimary": "#090d16",
+    "textSecondary": "#334155",
+    "textMuted": "#475569",
+    "textFaint": "#94a3b8",
+    "accentGlow": "rgba(0, 136, 153, 0.2)"
+  }
+}

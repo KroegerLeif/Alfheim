@@ -1,0 +1,17 @@
+{
+  "maintenance": {
+    "title": "Wartungs- & Infrastrukturverwaltung",
+    "subtitle": "loeger-os Systemdiagnose, Geräteüberwachung und Wartungsaufgaben",
+    "devices": "Geräte",
+    "tasks": "Wartungsaufgaben",
+    "schedule": "Wartungsplan",
+    "systemHealth": "Systemstatus",
+    "logs": "Systemprotokolle",
+    "upcomingTasks": "Anstehende Aufgaben",
+    "completedTasks": "Abgeschlossene Aufgaben",
+    "createTask": "Aufgabe erstellen",
+    "statusOk": "Betriebsbereit",
+    "statusWarning": "Warnung",
+    "statusCritical": "Kritisch"
+  }
+}

@@ -1,8 +1,8 @@
-import de from './dictionaries/de.json';
+import { deMessages } from './locales';
 
 export type Language = 'de' | 'en' | 'pl';
 
-export type Dictionary = typeof de;
+export type Dictionary = typeof deMessages;
 
 export type TranslationParams = Record<string, string | number>;
 

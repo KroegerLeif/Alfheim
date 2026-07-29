@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useTranslation } from "@loeger-os/shared";
 import { 
   useInventoryState, 
   useLowStockItems, 
   useExpirationSummary, 
-  exportLowStockShoppingList 
+  pushLowStockToShoppingApp 
 } from "@/features/inventory/services/inventoryService";
 import { StockActionModal } from "./StockActionModal";
 import { Button } from "@/components/ui/button";
@@ -15,18 +15,18 @@ import {
   Plus, 
   Minus, 
   Check, 
-  Download, 
+  Send, 
   Loader2 
 } from "lucide-react";
 
 /**
  * DashboardView Component
- * Renders the main operational panel of the Pantry Application.
- * Consists of 4 metric summary chips, touch-optimized stock IN/OUT transaction row cards,
- * and a sorted urgency feed representing batches requiring physical inspections.
+ * Renders the main operational panel of the Digital Pantry.
+ * Consists of metric summary chips, touch-optimized stock IN/OUT transaction row cards,
+ * urgency expiration feed, and live inter-service Shopping App sync.
  */
 export function DashboardView() {
-  const t = useTranslations("Dashboard");
+  const { t } = useTranslation();
 
   // Load backend data contexts using React Query hooks
   const { data: states = [], isLoading: isLoadingStates } = useInventoryState();
@@ -56,21 +56,13 @@ export function DashboardView() {
     setIsExporting(true);
     setExportSuccess(false);
     try {
-      const payload = await exportLowStockShoppingList();
-      
-      // Generate client-side file download for tablet environments
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `loeger_pantry_low_stock_${new Date().toISOString().slice(0, 10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
+      const res = await pushLowStockToShoppingApp();
+      if (res.success) {
+        setExportSuccess(true);
+        setTimeout(() => setExportSuccess(false), 3000);
+      }
     } catch (err) {
-      console.error("Failed to export shopping list:", err);
+      console.error("Failed to sync low stock items with shopping app:", err);
     } finally {
       setIsExporting(false);
     }
@@ -88,14 +80,13 @@ export function DashboardView() {
         if (!item.expiration_date) return false;
         const expDate = new Date(item.expiration_date);
         const diffDays = Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 14; // expiring in next 14 days
+        return diffDays >= 0 && diffDays <= 14;
       })
       .map(item => ({
         ...item,
         severity: "medium" as const,
       }));
 
-    // Merge feeds: High severity (expired) first, then sort warnings by closest date
     return [
       ...expiredFeed,
       ...warningFeed.sort((a, b) => {
@@ -108,69 +99,73 @@ export function DashboardView() {
   const isLoadingMetrics = isLoadingStates || isLoadingLowStock || isLoadingExp;
 
   return (
-    <div className="flex-1 p-6 md:p-12 space-y-10 max-w-7xl mx-auto w-full select-none">
+    <div className="flex-1 p-6 md:p-12 space-y-10 max-w-7xl mx-auto w-full select-none text-[var(--text-main)]">
       
       {/* 4-COLUMN SUMMARY METRIC GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 font-mono">
         
         {/* Card 1: Total unique lines */}
-        <div className="border border-border p-6 bg-background flex flex-col justify-between h-36">
-          <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-            Total Stock Lines
+        <div className="border border-[var(--border-subtle)] p-6 bg-[var(--surface-card)] flex flex-col justify-between h-36 rounded-lg shadow-sm">
+          <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider">
+            {t("pantry.totalStockLines")}
           </div>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-4xl font-black">
+            <span className="text-4xl font-black text-[var(--text-main)]">
               {isLoadingMetrics ? "--" : uniqueItemsCount}
             </span>
-            <span className="text-xs text-muted-foreground uppercase">
-              ({isLoadingMetrics ? "--" : totalStockQuantity.toFixed(1)} qty)
+            <span className="text-xs text-[var(--text-muted)] uppercase">
+              ({isLoadingMetrics ? "--" : totalStockQuantity.toFixed(1)} {t("pantry.quantity").toLowerCase()})
             </span>
           </div>
-          <div className="text-[9px] text-neutral-400 mt-2 uppercase">
-            Registered unique batches
+          <div className="text-[9px] text-[var(--text-muted)] mt-2 uppercase">
+            {t("pantry.registeredBatches")}
           </div>
         </div>
 
         {/* Card 2: Expiration alarms */}
-        <div className={`border p-6 flex flex-col justify-between h-36 transition-colors ${
-          expiredCount > 0 ? "border-red-600 bg-red-50 text-red-950" : "border-border bg-background"
+        <div className={`border p-6 flex flex-col justify-between h-36 rounded-lg shadow-sm transition-colors ${
+          expiredCount > 0 
+            ? "border-red-600/60 bg-red-950/20 text-red-400" 
+            : "border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]"
         }`}>
           <div className="text-[10px] uppercase font-bold tracking-wider">
-            Expiration Alerts
+            {t("pantry.expirationAlerts")}
           </div>
           <div className="text-4xl font-black mt-2">
             {isLoadingMetrics ? "--" : expiredCount}
           </div>
-          <div className="text-[9px] uppercase">
-            {expiredCount > 0 ? "Immediate physical audit required" : "All batches currently valid"}
+          <div className="text-[9px] uppercase font-mono">
+            {expiredCount > 0 ? t("pantry.immediateAudit") : t("pantry.allValid")}
           </div>
         </div>
 
         {/* Card 3: Stock threshold warnings */}
-        <div className={`border p-6 flex flex-col justify-between h-36 transition-colors ${
-          lowStockCount > 0 ? "border-amber-600 bg-amber-50 text-amber-950" : "border-border bg-background"
+        <div className={`border p-6 flex flex-col justify-between h-36 rounded-lg shadow-sm transition-colors ${
+          lowStockCount > 0 
+            ? "border-amber-600/60 bg-amber-950/20 text-amber-400" 
+            : "border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]"
         }`}>
           <div className="text-[10px] uppercase font-bold tracking-wider">
-            Low Stock Lines
+            {t("pantry.lowStockLines")}
           </div>
           <div className="text-4xl font-black mt-2">
             {isLoadingMetrics ? "--" : lowStockCount}
           </div>
-          <div className="text-[9px] uppercase">
-            {lowStockCount > 0 ? "Threshold warning active" : "Stock meets minimum quotas"}
+          <div className="text-[9px] uppercase font-mono">
+            {lowStockCount > 0 ? t("pantry.thresholdWarning") : t("pantry.stockQuotasMet")}
           </div>
         </div>
 
         {/* Card 4: Untracked expiration counts */}
-        <div className="border border-border p-6 bg-background flex flex-col justify-between h-36">
-          <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-            Untracked Batches
+        <div className="border border-[var(--border-subtle)] p-6 bg-[var(--surface-card)] flex flex-col justify-between h-36 rounded-lg shadow-sm">
+          <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider">
+            {t("pantry.untrackedBatches")}
           </div>
-          <div className="text-4xl font-black mt-2">
+          <div className="text-4xl font-black mt-2 text-[var(--text-main)]">
             {isLoadingMetrics ? "--" : untrackedCount}
           </div>
-          <div className="text-[9px] text-neutral-400 uppercase">
-            No expiration code mapped
+          <div className="text-[9px] text-[var(--text-muted)] uppercase font-mono">
+            {t("pantry.noExpirationMapped")}
           </div>
         </div>
 
@@ -182,82 +177,82 @@ export function DashboardView() {
         {/* STOCK IN QUICK ACCESS */}
         <button
           onClick={() => handleOpenModal("in")}
-          className="border-2 border-border h-32 px-8 flex items-center justify-between text-left hover:bg-emerald-50 hover:border-emerald-600 hover:text-emerald-950 transition-all duration-200 cursor-pointer group"
+          className="border-2 border-[var(--border-subtle)] bg-[var(--surface-card)] h-32 px-8 flex items-center justify-between text-left hover:border-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-all duration-200 cursor-pointer group rounded-lg shadow-sm"
         >
           <div>
-            <div className="text-sm font-bold uppercase tracking-wider text-muted-foreground group-hover:text-emerald-800">
-              Quick Transaction
+            <div className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-[var(--primary-main)]">
+              {t("pantry.quickTransaction")}
             </div>
-            <h2 className="text-4xl font-black uppercase mt-1">
-              Stock In (+)
+            <h2 className="text-4xl font-black uppercase mt-1 text-[var(--text-main)]">
+              {t("pantry.stockIn")}
             </h2>
           </div>
-          <div className="h-14 w-14 border border-border flex items-center justify-center bg-background group-hover:border-emerald-600 group-hover:bg-emerald-100 transition-colors">
-            <Plus className="h-6 w-6 text-foreground group-hover:text-emerald-950" />
+          <div className="h-14 w-14 border border-[var(--border-subtle)] flex items-center justify-center bg-[var(--surface-canvas)] group-hover:border-[var(--primary-main)] group-hover:bg-[var(--primary-main)]/10 transition-colors rounded-lg">
+            <Plus className="h-6 w-6 text-[var(--text-main)] group-hover:text-[var(--primary-main)]" />
           </div>
         </button>
 
         {/* STOCK OUT QUICK ACCESS */}
         <button
           onClick={() => handleOpenModal("out")}
-          className="border-2 border-border h-32 px-8 flex items-center justify-between text-left hover:bg-red-50 hover:border-red-600 hover:text-red-950 transition-all duration-200 cursor-pointer group"
+          className="border-2 border-[var(--border-subtle)] bg-[var(--surface-card)] h-32 px-8 flex items-center justify-between text-left hover:border-red-500 hover:bg-red-950/10 transition-all duration-200 cursor-pointer group rounded-lg shadow-sm"
         >
           <div>
-            <div className="text-sm font-bold uppercase tracking-wider text-muted-foreground group-hover:text-red-800">
-              Quick Transaction
+            <div className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-red-400">
+              {t("pantry.quickTransaction")}
             </div>
-            <h2 className="text-4xl font-black uppercase mt-1">
-              Stock Out (-)
+            <h2 className="text-4xl font-black uppercase mt-1 text-[var(--text-main)]">
+              {t("pantry.stockOut")}
             </h2>
           </div>
-          <div className="h-14 w-14 border border-border flex items-center justify-center bg-background group-hover:border-red-600 group-hover:bg-red-100 transition-colors">
-            <Minus className="h-6 w-6 text-foreground group-hover:text-red-950" />
+          <div className="h-14 w-14 border border-[var(--border-subtle)] flex items-center justify-center bg-[var(--surface-canvas)] group-hover:border-red-500 group-hover:bg-red-950/20 transition-colors rounded-lg">
+            <Minus className="h-6 w-6 text-[var(--text-main)] group-hover:text-red-400" />
           </div>
         </button>
 
       </div>
 
       {/* DETAIL ALERTS FEED & SHOPPING ACTION LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 font-mono">
         
         {/* Urgent batch expiration logs */}
-        <div className="lg:col-span-2 border border-border p-6 flex flex-col min-h-[400px]">
-          <h2 className="font-heading text-2xl font-black border-b border-border pb-3 mb-4 uppercase tracking-wide">
-            Critical Expiration Logs
+        <div className="lg:col-span-2 border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex flex-col min-h-[400px] rounded-lg shadow-sm">
+          <h2 className="font-heading text-2xl font-black border-b border-[var(--border-subtle)] pb-3 mb-4 uppercase tracking-wide text-[var(--text-main)]">
+            {t("pantry.criticalLogs")}
           </h2>
           
           {isLoadingMetrics ? (
-            <div className="flex-1 flex items-center justify-center font-mono text-xs text-muted-foreground">
-              Retrieving alert feed...
+            <div className="flex-1 flex items-center justify-center text-xs text-[var(--text-muted)]">
+              {t("pantry.retrievingAlerts")}
             </div>
           ) : alertFeed.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center font-mono text-xs text-neutral-400">
-              [ NO EXPIRATION ALERTS REGISTERED ]
+            <div className="flex-1 flex items-center justify-center text-xs text-[var(--text-muted)]">
+              {t("pantry.noAlerts")}
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto space-y-3 max-h-[350px] pr-1">
               {alertFeed.map((alert) => (
                 <div 
                   key={alert.id} 
-                  className={`border p-4 flex items-center justify-between font-mono ${
+                  className={`border p-4 flex items-center justify-between rounded ${
                     alert.severity === "high" 
-                      ? "border-red-600 bg-red-50/50 text-red-950" 
-                      : "border-amber-600 bg-amber-50/30 text-amber-950"
+                      ? "border-red-800/40 bg-red-950/20 text-red-400" 
+                      : "border-amber-800/40 bg-amber-950/20 text-amber-400"
                   }`}
                 >
                   <div>
                     <div className="font-black uppercase text-sm tracking-tight">
                       {alert.product?.name}
                     </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5 uppercase">
-                      Location: {alert.location?.name} | Batch: {alert.batch_code || "NONE"}
+                    <div className="text-[10px] text-[var(--text-muted)] mt-0.5 uppercase">
+                      {t("pantry.location")}: {alert.location?.name} | {t("pantry.batch")}: {alert.batch_code || "NONE"}
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <div className="font-bold text-xs uppercase">
-                        EXPIRING
+                        {t("pantry.expiring")}
                       </div>
                       <div className="text-[10px] font-bold mt-0.5">
                         {alert.expiration_date}
@@ -265,7 +260,7 @@ export function DashboardView() {
                     </div>
 
                     <Badge variant={alert.severity === "high" ? "destructive" : "outline"} className="text-[9px]">
-                      {alert.severity === "high" ? "EXPIRED" : "SOON"}
+                      {alert.severity === "high" ? t("pantry.expired") : t("pantry.soon")}
                     </Badge>
                   </div>
                 </div>
@@ -275,30 +270,30 @@ export function DashboardView() {
         </div>
 
         {/* Low-stock Shopping List Action Panel */}
-        <div className="border border-border p-6 flex flex-col justify-between min-h-[400px] bg-neutral-50 font-mono">
+        <div className="border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex flex-col justify-between min-h-[400px] rounded-lg shadow-sm">
           <div>
-            <h2 className="font-heading text-2xl font-black border-b border-border pb-3 mb-4 uppercase tracking-wide text-foreground">
-              Shopping List
+            <h2 className="font-heading text-2xl font-black border-b border-[var(--border-subtle)] pb-3 mb-4 uppercase tracking-wide text-[var(--text-main)]">
+              {t("pantry.shoppingList")}
             </h2>
-            <p className="text-xs text-muted-foreground uppercase leading-relaxed tracking-wide">
-              Generates an auto-export of products that violate local home threshold quotas. Forwards transaction data directly to warehouse logistics.
+            <p className="text-xs text-[var(--text-muted)] uppercase leading-relaxed tracking-wide font-sans">
+              {t("pantry.shoppingListDesc")}
             </p>
 
             <div className="mt-6 space-y-3">
-              <div className="text-xs uppercase font-bold text-neutral-400">
-                Quota Violations
+              <div className="text-xs uppercase font-bold text-[var(--text-muted)]">
+                {t("pantry.quotaViolations")}
               </div>
               {isLoadingMetrics ? (
-                <div className="text-xs text-muted-foreground">Calculating...</div>
+                <div className="text-xs text-[var(--text-muted)]">{t("pantry.calculating")}</div>
               ) : (
                 <div className="space-y-2 max-h-[160px] overflow-y-auto">
                   {lowStockItems.length === 0 ? (
-                    <div className="text-xs text-neutral-400">[ ALL QUOTAS SATISFIED ]</div>
+                    <div className="text-xs text-[var(--text-muted)]">{t("pantry.allQuotasSatisfied")}</div>
                   ) : (
                     lowStockItems.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-xs border-b border-neutral-200 pb-1.5">
-                        <span className="font-bold uppercase truncate max-w-[150px]">{item.product.name}</span>
-                        <span className="text-[10px] text-muted-foreground">
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-[var(--border-subtle)] pb-1.5">
+                        <span className="font-bold uppercase truncate max-w-[150px] text-[var(--text-main)]">{item.product.name}</span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
                           {item.current_stock.toFixed(1)} / {item.product.minimum_stock.toFixed(0)} Min
                         </span>
                       </div>
@@ -314,22 +309,22 @@ export function DashboardView() {
               onClick={handleExport}
               disabled={isExporting || lowStockCount === 0}
               variant="outline"
-              className="w-full py-6 text-xs font-black tracking-widest border-2 border-black hover:bg-black hover:text-white cursor-pointer select-none transition-all flex items-center justify-center gap-2"
+              className="w-full py-6 text-xs font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--surface-elevated)] text-[var(--primary-main)] hover:bg-[var(--primary-main)] hover:text-black cursor-pointer select-none transition-all flex items-center justify-center gap-2 rounded-lg"
             >
               {isExporting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  EXPORTING LOGISTICS...
+                  {t("pantry.exportingLogistics")}
                 </>
               ) : exportSuccess ? (
                 <>
-                  <Check className="h-4 w-4 text-green-600" />
-                  LIST EXPORTED [JSON]
+                  <Check className="h-4 w-4 text-emerald-400" />
+                  {t("pantry.listExported")}
                 </>
               ) : (
                 <>
-                  <Download className="h-4 w-4" />
-                  {t("exportList")}
+                  <Send className="h-4 w-4" />
+                  {t("pantry.exportList")}
                 </>
               )}
             </Button>

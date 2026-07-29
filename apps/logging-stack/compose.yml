@@ -26,6 +26,16 @@ services:
       retries: 10
       start_period: 20s
 
+  signoz-schema-migrator:
+    image: signoz/signoz-schema-migrator:0.102.0
+    container_name: signoz-schema-migrator
+    command: ["--disable-duration-sort-feature", "--disable-timestamp-sort-feature", "--dsn=tcp://signoz-clickhouse:9000"]
+    networks:
+      - observability-internal
+    depends_on:
+      signoz-clickhouse:
+        condition: service_healthy
+
   signoz-otel-collector:
     image: signoz/signoz-otel-collector:0.102.0
 
@@ -44,6 +54,8 @@ services:
     depends_on:
       signoz-clickhouse:
         condition: service_healthy
+      signoz-schema-migrator:
+        condition: service_completed_successfully
 
   signoz:
     image: signoz/signoz:v0.133.0
@@ -72,6 +84,8 @@ services:
     depends_on:
       signoz-clickhouse:
         condition: service_healthy
+      signoz-schema-migrator:
+        condition: service_completed_successfully
 
 
   vector:
