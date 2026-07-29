@@ -18,6 +18,28 @@
 
 ## Current Sprint — Completed Commits
 
+### `refactor(shared): feature-driven shared architecture and centralized locale domains`
+
+**Date**: 2026-07-29
+
+#### Summary
+1. **Refactored `@loeger-os/shared` into Feature Modules**:
+   - Reorganized `packages/shared/src` to `features/i18n`, `features/theme`, `features/layout`, and `features/ui`.
+   - Moved reusable layout controls into `features/layout/Header` and added reusable `SidePanel` and `Shell` components.
+2. **Centralized Locale Domains with German Fallback Preserved**:
+   - Added `dashboard.json` for `de`, `en`, and `pl` at `packages/shared/src/features/i18n/locales/{locale}/dashboard.json`.
+   - Updated message composition in `features/i18n/utils/locales.ts` to merge `common`, `dashboard`, `shopping`, `pantry`, and `maintenance` dictionaries.
+   - `LanguageProvider` and `useTranslation` continue to default/fallback to `de`.
+3. **Shared and AI Documentation Added**:
+   - Added `packages/shared/README.md` with FDD architecture and consumption rules.
+   - Added `ai/add-shared-component.md` with step-by-step shared component workflow.
+   - Initialized `ai/backlog.md` as central cross-app backlog.
+
+#### Verification
+- `pnpm --filter @loeger-os/shared exec tsc --noEmit` passed cleanly.
+
+---
+
 ### `refactor(i18n): remove legacy local frontend messages and enforce centralized shared locales`
 
 **Date**: 2026-07-28
