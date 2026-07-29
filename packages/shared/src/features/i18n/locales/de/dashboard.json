@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "internal_services": "Interne Dienste",
+    "external_services": "Externe Dienste & Portals",
+    "registered_count": "{count} Registriert",
+    "portals_count": "{count} Portale",
+    "add_service": "Dienst hinzufügen",
+    "add_portal": "Portal-Link hinzufügen"
+  }
+}

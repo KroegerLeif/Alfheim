@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "title": "Pulpit",
+    "internal_services": "Usługi wewnętrzne",
+    "external_services": "Usługi zewnętrzne i portale",
+    "registered_count": "{count} Zarejestrowanych",
+    "portals_count": "{count} Portali",
+    "add_service": "Dodaj usługę",
+    "add_portal": "Dodaj link do portalu"
+  }
+}
