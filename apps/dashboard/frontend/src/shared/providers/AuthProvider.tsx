@@ -35,6 +35,10 @@ export function getInMemoryToken(): string | null {
   return inMemoryToken;
 }
 
+export function setInMemoryToken(token: string | null) {
+  inMemoryToken = token;
+}
+
 export function parseInMemoryTokenClaims(): UserIdentityClaims | null {
   if (!inMemoryToken) return null;
   try {
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     setKeycloakInstance(keycloak);
+    (window as any).__keycloak_instance__ = keycloak;
 
     keycloak
       .init({
@@ -108,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               })
               .catch((err) => {
                 console.error('Failed to refresh Keycloak token', err);
+                keycloak.login();
               });
           }, 60000);
 
