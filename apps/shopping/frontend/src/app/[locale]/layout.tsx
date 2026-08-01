@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import { LanguageProvider } from "@loeger-os/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { Header } from "@/components/shared/Header";
@@ -40,7 +41,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
+      className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -51,17 +52,19 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans antialiased overflow-hidden selection:bg-primary selection:text-white">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>
-            <div className="flex w-full h-screen overflow-hidden">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-                <Header />
-                <main className="flex-1 min-h-0 overflow-y-auto bg-background p-3 md:p-5">
-                  {children}
-                </main>
+          <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
+            <Providers>
+              <div className="flex w-full h-screen overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+                  <Header />
+                  <main className="flex-1 min-h-0 overflow-y-auto bg-background p-3 md:p-5">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
-          </Providers>
+            </Providers>
+          </LanguageProvider>
         </NextIntlClientProvider>
       </body>
     </html>

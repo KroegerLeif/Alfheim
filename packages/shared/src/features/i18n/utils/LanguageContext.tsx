@@ -46,6 +46,12 @@ export function LanguageProvider({
     }
   }, []);
 
+  useEffect(() => {
+    if (defaultLanguage && defaultLanguage !== language) {
+      setLanguageState(defaultLanguage);
+    }
+  }, [defaultLanguage]);
+
   return (
     <LanguageContext.Provider value={{ language, setLanguage }}>
       {children}

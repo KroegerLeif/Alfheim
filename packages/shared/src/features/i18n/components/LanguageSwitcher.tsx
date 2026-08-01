@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation, Language } from '../utils';
 
 export interface LanguageOption {
@@ -24,6 +25,8 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
   const { language, setLanguage } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const router = useRouter();
 
   const currentLangOption = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
 
@@ -37,6 +40,20 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleLanguageSelect = (newLang: Language) => {
+    setLanguage(newLang);
+    if (typeof window !== 'undefined' && pathname) {
+      const segments = pathname.split('/');
+      const firstSegment = segments[1];
+      const supportedLocales = ['de', 'en', 'pl'];
+      if (supportedLocales.includes(firstSegment)) {
+        segments[1] = newLang;
+        const newPath = segments.join('/') || '/';
+        router.replace(newPath);
+      }
+    }
+  };
+
   if (variant === 'buttons') {
     return (
       <div className={`inline-flex items-center p-1 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] gap-1 ${className}`}>
@@ -44,7 +61,7 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
           <button
             key={lang.code}
             type="button"
-            onClick={() => setLanguage(lang.code)}
+            onClick={() => handleLanguageSelect(lang.code)}
             className={`px-2 py-1 rounded text-xs font-mono font-medium transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${
               language === lang.code
                 ? 'bg-[var(--surface-elevated)] text-[var(--primary-main)] border border-[var(--border-accent)]'
@@ -81,7 +98,7 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
               key={lang.code}
               type="button"
               onClick={() => {
-                setLanguage(lang.code);
+                handleLanguageSelect(lang.code);
                 setIsOpen(false);
               }}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
