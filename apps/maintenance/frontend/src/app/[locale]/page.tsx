@@ -13,7 +13,7 @@ import { Device } from "@/shared/types";
 import { Wrench } from "lucide-react";
 
 export default function MaintenancePage() {
-  const t = useTranslations("Navigation");
+  const t = useTranslations("common");
   const { activeNav } = useLayout();
   
   // Track which device is currently in active step-by-step wizard mode
@@ -50,22 +50,19 @@ export default function MaintenancePage() {
 
       {/* Fallback for under construction modules if any unrecognized nav option is active */}
       {!isMainView && (
-        <main className="flex flex-col items-center justify-center p-12 text-white text-center h-full min-h-[calc(100vh-4rem)]">
-          <div className="glass-card max-w-md w-full p-8 rounded-2xl border border-white/10 shadow-2xl space-y-6">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400">
+        <main className="flex flex-col items-center justify-center p-12 text-[var(--text-main)] text-center h-full min-h-[calc(100vh-4rem)]">
+          <div className="bg-[var(--surface-card)] max-w-md w-full p-8 rounded-2xl border border-[var(--border-subtle)] shadow-2xl space-y-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--primary-main)]/10 text-[var(--primary-main)]">
               <Wrench className="h-8 w-8 animate-pulse" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-black tracking-tight text-white uppercase">
+              <h2 className="text-2xl font-black tracking-tight text-[var(--text-main)] uppercase">
                 {activeNav}
               </h2>
-              <p className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">
-                Module Under Construction
+              <p className="text-xs font-semibold text-[var(--primary-main)] uppercase tracking-widest">
+                {t("in_progress")}
               </p>
             </div>
-            <p className="text-sm text-slate-400 font-medium">
-              The layout and scaffolding are complete. Feature implementation is in progress.
-            </p>
           </div>
         </main>
       )}

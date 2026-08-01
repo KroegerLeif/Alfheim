@@ -19,6 +19,7 @@ import {
   Loader2
 } from "lucide-react";
 import { cn } from "@/shared/utils";
+import { useTranslations } from "next-intl";
 
 interface MaintenanceViewProps {
   onStartMaintenance: (device: Device) => void;
@@ -27,6 +28,7 @@ interface MaintenanceViewProps {
 type MetricFilter = "all" | "overdue" | "due_soon" | "ok";
 
 export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
+  const t = useTranslations("maintenance");
   const { householdId } = useLayout();
   const [filter, setFilter] = useState<MetricFilter>("all");
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
@@ -39,7 +41,7 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] text-cyan-500 dark:text-cyan-400">
+      <div className="flex items-center justify-center min-h-[50vh] text-[var(--primary-main)]">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -106,13 +108,13 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
   const getStatusColor = (state: MetricFilter) => {
     switch (state) {
       case "overdue":
-        return "text-red-600 bg-red-500/10 border-red-500/20 dark:text-red-400";
+        return "text-red-500 bg-red-500/10 border-red-500/20";
       case "due_soon":
-        return "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400";
+        return "text-amber-500 bg-amber-500/10 border-amber-500/20";
       case "ok":
-        return "text-emerald-600 bg-emerald-500/10 border-emerald-500/20 dark:text-emerald-400";
+        return "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
       default:
-        return "text-slate-500 bg-slate-500/10 border-slate-200 dark:border-white/5";
+        return "text-[var(--text-muted)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]";
     }
   };
 
@@ -127,15 +129,17 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "all"
-              ? "bg-cyan-500/10 border-cyan-500/30 text-slate-900 dark:text-slate-100"
-              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
+              ? "bg-[var(--primary-main)]/10 border-[var(--primary-main)]/30 text-[var(--text-main)]"
+              : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
           )}
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Total Steps</span>
-            <Wrench className={cn("h-4.5 w-4.5", filter === "all" ? "text-cyan-600 dark:text-cyan-400" : "text-slate-400")} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              {t("maintenanceWork.totalSteps")}
+            </span>
+            <Wrench className={cn("h-4.5 w-4.5", filter === "all" ? "text-[var(--primary-main)]" : "text-[var(--text-muted)]")} />
           </div>
-          <span className="text-3xl font-black mt-4 text-slate-900 dark:text-slate-100">{totalStepsCount}</span>
+          <span className="text-3xl font-black mt-4 text-[var(--text-main)]">{totalStepsCount}</span>
         </button>
 
         {/* Overdue Card */}
@@ -144,15 +148,17 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "overdue"
-              ? "bg-red-500/10 border-red-500/30 text-slate-900 dark:text-slate-100"
-              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
+              ? "bg-red-500/10 border-red-500/30 text-[var(--text-main)]"
+              : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
           )}
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Overdue</span>
-            <AlertTriangle className={cn("h-4.5 w-4.5", filter === "overdue" ? "text-red-500 dark:text-red-400" : "text-slate-400")} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              {t("maintenanceWork.overdue")}
+            </span>
+            <AlertTriangle className={cn("h-4.5 w-4.5", filter === "overdue" ? "text-red-500" : "text-[var(--text-muted)]")} />
           </div>
-          <span className="text-3xl font-black mt-4 text-red-600 dark:text-red-400">{overdueStepsCount}</span>
+          <span className="text-3xl font-black mt-4 text-red-500">{overdueStepsCount}</span>
         </button>
 
         {/* Due Soon Card */}
@@ -161,15 +167,17 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "due_soon"
-              ? "bg-amber-500/10 border-amber-500/30 text-slate-900 dark:text-slate-100"
-              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
+              ? "bg-amber-500/10 border-amber-500/30 text-[var(--text-main)]"
+              : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
           )}
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Due Soon</span>
-            <Clock className={cn("h-4.5 w-4.5", filter === "due_soon" ? "text-amber-500 dark:text-amber-400" : "text-slate-400")} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              {t("maintenanceWork.dueSoon")}
+            </span>
+            <Clock className={cn("h-4.5 w-4.5", filter === "due_soon" ? "text-amber-500" : "text-[var(--text-muted)]")} />
           </div>
-          <span className="text-3xl font-black mt-4 text-amber-600 dark:text-amber-400">{dueSoonStepsCount}</span>
+          <span className="text-3xl font-black mt-4 text-amber-500">{dueSoonStepsCount}</span>
         </button>
 
         {/* OK Card */}
@@ -178,35 +186,39 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
           className={cn(
             "p-5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer shadow-sm",
             filter === "ok"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-slate-900 dark:text-slate-100"
-              : "bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-[var(--text-main)]"
+              : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
           )}
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Good</span>
-            <CheckCircle2 className={cn("h-4.5 w-4.5", filter === "ok" ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400")} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              {t("maintenanceWork.good")}
+            </span>
+            <CheckCircle2 className={cn("h-4.5 w-4.5", filter === "ok" ? "text-emerald-500" : "text-[var(--text-muted)]")} />
           </div>
-          <span className="text-3xl font-black mt-4 text-emerald-600 dark:text-emerald-400">{okStepsCount}</span>
+          <span className="text-3xl font-black mt-4 text-emerald-500">{okStepsCount}</span>
         </button>
       </div>
 
       {/* Main List Layout */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
-            Maintenance Schedule //
+        <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
+          <span className="text-xs font-black uppercase tracking-widest text-[var(--primary-main)]">
+            {t("maintenanceWork.scheduleHeader")}
           </span>
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 uppercase">
-            Showing {filter} ({filteredDevices.length} items)
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[var(--surface-elevated)] text-[var(--text-muted)] uppercase">
+            {t("maintenanceWork.showingFilter", { filter, count: filteredDevices.length })}
           </span>
         </div>
 
         {filteredDevices.length === 0 ? (
-          <div className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
-            <CheckCircle2 className="h-10 w-10 text-emerald-500 dark:text-emerald-400 mx-auto" />
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">All Clear</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              No devices match the selected filter category.
+          <div className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+            <h3 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wide">
+              {t("maintenanceWork.allClear")}
+            </h3>
+            <p className="text-sm text-[var(--text-muted)]">
+              {t("maintenanceWork.noMatchFilter")}
             </p>
           </div>
         ) : (
@@ -219,21 +231,21 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
               return (
                 <div
                   key={device.id}
-                  className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl p-4 border hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm grid grid-cols-1 md:grid-cols-12 md:items-center gap-4"
+                  className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl p-4 border hover:border-[var(--border-accent)] transition-all shadow-sm grid grid-cols-1 md:grid-cols-12 md:items-center gap-4"
                 >
                   {/* Cols 1–5: Icon & Device Info */}
                   <div className="col-span-12 md:col-span-5 flex items-center gap-4 min-w-0">
-                    <div className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                    <div className="h-11 w-11 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--primary-main)] shrink-0">
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide truncate">
+                      <h3 className="text-sm font-bold text-[var(--text-main)] uppercase tracking-wide truncate">
                         {device.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">
                         <span className="truncate">{device.location}</span>
                         <span>•</span>
-                        <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{device.model}</span>
+                        <span className="font-mono text-[10px] text-[var(--text-muted)]">{device.model}</span>
                       </div>
                     </div>
                   </div>
@@ -241,31 +253,33 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
                   {/* Cols 6–7: Status Badge */}
                   <div className="col-span-6 md:col-span-2 flex items-center justify-start md:justify-center">
                     <span className={cn("text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0", getStatusColor(state))}>
-                      {state === "ok" ? "GOOD" : state === "due_soon" ? "DUE SOON" : "OVERDUE"}
+                      {state === "ok" ? t("maintenanceWork.statusGood") : state === "due_soon" ? t("maintenanceWork.statusDueSoon") : t("maintenanceWork.statusOverdue")}
                     </span>
                   </div>
 
                   {/* Cols 8–9: Next Service Due Date */}
                   <div className="col-span-6 md:col-span-2 text-left md:text-center text-xs">
-                    <span className="block text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Next Service Due</span>
-                    <span className="font-mono text-slate-800 dark:text-slate-300 font-bold">{formatDate(nextDue)}</span>
+                    <span className="block text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+                      {t("maintenanceWork.nextServiceDue")}
+                    </span>
+                    <span className="font-mono text-[var(--text-main)] font-bold">{formatDate(nextDue)}</span>
                   </div>
 
                   {/* Cols 10–12: Action Buttons */}
                   <div className="col-span-12 md:col-span-3 flex items-center justify-end gap-2.5">
                     <button
                       onClick={() => setSelectedDevice(device)}
-                      className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      Details
+                      {t("maintenanceWork.detailsBtn")}
                     </button>
                     <button
                       onClick={() => onStartMaintenance(device)}
-                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/10"
+                      className="px-4 py-2 rounded-xl bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[var(--primary-main)]/10"
                     >
                       <Play className="h-3.5 w-3.5 fill-black" />
-                      Start
+                      {t("maintenanceWork.startBtn")}
                     </button>
                   </div>
                 </div>

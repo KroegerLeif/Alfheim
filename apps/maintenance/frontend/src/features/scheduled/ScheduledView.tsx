@@ -9,6 +9,7 @@ import { ScheduledTaskItem } from "./ScheduledTaskItem";
 import { CalendarRange, Info, Loader2 } from "lucide-react";
 import { cn } from "@/shared/utils";
 import { daysUntil } from "@/shared/utils";
+import { useTranslations } from "next-intl";
 
 interface FlattenedTask {
   step: MaintenanceStep;
@@ -16,6 +17,7 @@ interface FlattenedTask {
 }
 
 export function ScheduledView() {
+  const t = useTranslations("maintenance");
   const { householdId } = useLayout();
   const [filter, setFilter] = useState<"upcoming" | "all">("upcoming");
 
@@ -27,7 +29,7 @@ export function ScheduledView() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] text-cyan-600 dark:text-cyan-400">
+      <div className="flex items-center justify-center min-h-[50vh] text-[var(--primary-main)]">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -61,48 +63,50 @@ export function ScheduledView() {
     <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans">
       
       {/* Toggle Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-slate-200 dark:border-white/5">
+      <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-2">
-          <CalendarRange className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-          <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
-            Task Planner //
+          <CalendarRange className="h-5 w-5 text-[var(--primary-main)]" />
+          <span className="text-xs font-black uppercase tracking-widest text-[var(--primary-main)]">
+            {t("scheduledTasks.tagline")}
           </span>
         </div>
 
         {/* View Filter Toggles */}
-        <div className="flex bg-slate-100 dark:bg-white/5 rounded-xl p-1 border border-slate-200 dark:border-white/5 shrink-0">
+        <div className="flex bg-[var(--surface-canvas)] rounded-xl p-1 border border-[var(--border-subtle)] shrink-0">
           <button
             onClick={() => setFilter("upcoming")}
             className={cn(
               "px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer",
               filter === "upcoming"
-                ? "bg-cyan-500 text-black shadow-md"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-[var(--primary-main)] text-black shadow-md"
+                : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             )}
           >
-            Upcoming (30d)
+            {t("scheduledTasks.upcoming30d")}
           </button>
           <button
             onClick={() => setFilter("all")}
             className={cn(
               "px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer",
               filter === "all"
-                ? "bg-cyan-500 text-black shadow-md"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-[var(--primary-main)] text-black shadow-md"
+                : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             )}
           >
-            All Tasks
+            {t("scheduledTasks.allTasks")}
           </button>
         </div>
       </div>
 
       {/* Task List Stream */}
       {visibleTasks.length === 0 ? (
-        <div className="glass-card rounded-2xl border border-slate-200 dark:border-white/10 p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
-          <Info className="h-10 w-10 text-cyan-600 dark:text-cyan-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">No Tasks Scheduled</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            There are no checklist tasks matching your filter for this location.
+        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+          <Info className="h-10 w-10 text-[var(--primary-main)] mx-auto" />
+          <h3 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wide">
+            {t("scheduledTasks.noTasksScheduled")}
+          </h3>
+          <p className="text-sm text-[var(--text-muted)]">
+            {t("scheduledTasks.noTasksDesc")}
           </p>
         </div>
       ) : (

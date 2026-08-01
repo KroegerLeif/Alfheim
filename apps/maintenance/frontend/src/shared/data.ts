@@ -12,11 +12,7 @@ import {
 import { Household } from "./types";
 
 // Fallback static household list (overridden by the live API in SidebarHouseholdPicker)
-export const households: Household[] = [
-  { id: 1, name: "Main Residence" },
-  { id: 2, name: "Summer Cottage" },
-  { id: 3, name: "Office HQ" }
-];
+export const households: Household[] = [];
 
 export const currentUser = {
   name: "Authenticated User",

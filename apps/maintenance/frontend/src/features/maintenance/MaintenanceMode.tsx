@@ -9,18 +9,16 @@ import {
   Check, 
   ArrowLeft, 
   ArrowRight, 
-  BookOpen, 
   ShoppingCart, 
   AlertCircle,
   FileText,
-  Download,
   PackagePlus,
   PackageMinus,
   Loader2
 } from "lucide-react";
-import { formatDate, daysUntil } from "@/shared/utils";
 import { cn } from "@/shared/utils";
 import { useAuth } from "@/shared/auth/AuthContext";
+import { useTranslations } from "next-intl";
 
 interface MaintenanceModeProps {
   device: Device;
@@ -28,6 +26,7 @@ interface MaintenanceModeProps {
 }
 
 export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
+  const t = useTranslations("maintenance");
   const { user } = useAuth();
   const steps = device.steps || [];
   const totalSteps = steps.length;
@@ -73,55 +72,38 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
       updateCart([]);
       
       onClose();
-      alert("Maintenance successfully submitted and synced to database!");
     },
-    onError: (error: any) => {
-      alert(`Failed to save maintenance log: ${error?.message || "Unknown error"}`);
-    }
   });
 
   if (totalSteps === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-6 font-sans">
-        <div className="glass-card max-w-md w-full p-8 rounded-2xl border border-white/10 shadow-2xl text-center space-y-6">
-          <AlertCircle className="h-12 w-12 text-amber-400 mx-auto" />
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6 font-sans">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] max-w-md w-full p-8 rounded-2xl shadow-2xl text-center space-y-6">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
           <div className="space-y-2">
-            <h3 className="text-lg font-black uppercase text-white tracking-wide">No Steps Defined</h3>
-            <p className="text-xs text-slate-400">
-              This device does not have any service steps configured. Please setup steps in details tab.
+            <h3 className="text-lg font-black uppercase text-[var(--text-main)] tracking-wide">
+              {t("wizardMode.noStepsDefined")}
+            </h3>
+            <p className="text-xs text-[var(--text-muted)]">
+              {t("wizardMode.noStepsDesc")}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white transition-all cursor-pointer"
+            className="w-full py-2.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all cursor-pointer"
           >
-            Close
+            {t("wizardMode.close")}
           </button>
         </div>
       </div>
     );
   }
 
-  // Get mock supply items for step
-  const getSupplyItemForStep = (name: string): string => {
-    const lowercase = name.toLowerCase();
-    if (lowercase.includes("filter")) return "Air Filter Replacements (Pack of 2)";
-    if (lowercase.includes("fan") || lowercase.includes("lubricant")) return "Fan Lubricant Spray";
-    if (lowercase.includes("salt")) return "EcoWater Salt Bags (25kg)";
-    if (lowercase.includes("sanitize") || lowercase.includes("cleaner")) return "System Disinfectant Pack";
-    if (lowercase.includes("breaker") || lowercase.includes("gfci")) return "Electrical Breaker Tester";
-    if (lowercase.includes("lens") || lowercase.includes("camera")) return "Camera Lens Cleaning Kit";
-    if (lowercase.includes("firmware")) return "NVR Firmware Utility USB";
-    if (lowercase.includes("winter")) return "Winterization Cap Valves";
-    if (lowercase.includes("sieve")) return "Dishwasher Cleaner Agent";
-    if (lowercase.includes("aid")) return "Miele Rinse Aid Liquid";
-    return "Universal Cleaning & Maintenance Pack";
-  };
-
-  const currentSupplyItem = activeStep ? getSupplyItemForStep(activeStep.title) : "Universal Cleaning Pack";
-  const isPartInCart = cart.includes(currentSupplyItem);
+  const currentSupplyItem = activeStep?.supply_item ?? null;
+  const isPartInCart = currentSupplyItem ? cart.includes(currentSupplyItem) : false;
 
   const toggleCartPart = () => {
+    if (!currentSupplyItem) return;
     if (isPartInCart) {
       updateCart(cart.filter((item) => item !== currentSupplyItem));
     } else {
@@ -186,15 +168,15 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-950 backdrop-blur-md font-sans text-slate-900 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--surface-canvas)] backdrop-blur-md font-sans text-[var(--text-main)]">
       {/* Top Wizard Bar */}
-      <div className="h-16 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between bg-white dark:bg-slate-950">
+      <div className="h-16 border-b border-[var(--border-subtle)] px-6 flex items-center justify-between bg-[var(--surface-card)]">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400 leading-none">
-              Maintenance Wizard //
+            <span className="text-[9px] font-black uppercase tracking-widest text-[var(--primary-main)] leading-none">
+              {t("wizardMode.tagline")}
             </span>
-            <span className="text-base font-black uppercase text-slate-900 dark:text-slate-100 truncate max-w-sm">
+            <span className="text-base font-black uppercase text-[var(--text-main)] truncate max-w-sm">
               {device.name}
             </span>
           </div>
@@ -202,21 +184,21 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
 
         {/* Progress Bar Container */}
         <div className="hidden md:flex items-center gap-4 w-96">
-          <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
+          <div className="w-full bg-[var(--surface-canvas)] h-2 rounded-full overflow-hidden border border-[var(--border-subtle)]">
             <div
-              className="bg-cyan-500 h-full transition-all duration-300 shadow-md shadow-cyan-500/20"
+              className="bg-[var(--primary-main)] h-full transition-all duration-300 shadow-md"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
-          <span className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400 shrink-0">
-            {progressPercentage}%
+          <span className="text-xs font-mono font-bold text-[var(--primary-main)] shrink-0">
+            {t("wizardMode.progress", { percentage: progressPercentage })}
           </span>
         </div>
 
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all cursor-pointer"
-          aria-label="Exit Wizard"
+          className="p-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all cursor-pointer"
+          aria-label={t("wizardMode.exitLabel")}
           disabled={submissionMutation.isPending}
         >
           <X className="h-4.5 w-4.5" />
@@ -224,9 +206,9 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
       </div>
 
       {/* Progress Bar on Mobile */}
-      <div className="md:hidden w-full bg-slate-200 dark:bg-slate-800 h-1 relative overflow-hidden">
+      <div className="md:hidden w-full bg-[var(--surface-canvas)] h-1 relative overflow-hidden">
         <div
-          className="bg-cyan-500 h-full transition-all duration-300"
+          className="bg-[var(--primary-main)] h-full transition-all duration-300"
           style={{ width: `${progressPercentage}%` }}
         />
       </div>
@@ -235,50 +217,43 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
         
         {/* Left Side Column: Manuals Panel (3 cols) */}
-        <div className="hidden lg:flex lg:col-span-3 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-6 flex-col space-y-4 overflow-y-auto">
-          <div className="flex items-center gap-2 pb-2 border-b border-white/5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-            <FileText className="h-4 w-4 text-slate-500" />
-            <span>Direct Manuals Access</span>
+        <div className="hidden lg:flex lg:col-span-3 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex-col space-y-4 overflow-y-auto">
+          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)] text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+            <FileText className="h-4 w-4 text-[var(--text-muted)]" />
+            <span>{t("wizardMode.directManuals")}</span>
           </div>
           
-          {/* Mock manuals fallback */}
+          {/* Manuals Empty State */}
           <div className="space-y-2">
-            <a
-              href="#"
-              className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors text-slate-300 hover:text-white text-xs font-semibold"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <BookOpen className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                <span className="truncate">User Guide PDF</span>
-              </div>
-              <Download className="h-3.5 w-3.5 text-slate-500 hover:text-slate-300 shrink-0" />
-            </a>
+            <p className="text-xs text-[var(--text-muted)] text-center py-6">
+              {t("deviceInventory.fields.noManuals")}
+            </p>
           </div>
         </div>
 
         {/* Center Section: Active Wizard Step (6 cols) */}
-        <div className="col-span-1 lg:col-span-6 flex flex-col justify-between p-6 md:p-8 overflow-y-auto">
+        <div className="col-span-1 lg:col-span-6 flex flex-col justify-between p-6 md:p-8 overflow-y-auto bg-[var(--surface-canvas)]">
           
           {/* Step Header */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-slate-500">
-                STEP {currentStepIndex + 1} OF {totalSteps}
+              <span className="text-xs font-mono font-bold text-[var(--text-muted)]">
+                {t("wizardMode.stepCounter", { current: currentStepIndex + 1, total: totalSteps })}
               </span>
               {activeStep && (
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400">
-                  Interval: {activeStep.recurrence}m
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[var(--primary-main)]/10 text-[var(--primary-main)]">
+                  {t("wizardMode.intervalTag", { recurrence: activeStep.recurrence })}
                 </span>
               )}
             </div>
 
             {activeStep && (
               <div className="space-y-4">
-                <h3 className="text-2xl font-black uppercase text-white tracking-wide">
+                <h3 className="text-2xl font-black uppercase text-[var(--text-main)] tracking-wide">
                   {activeStep.title}
                 </h3>
                 {activeStep.description && (
-                  <p className="text-slate-400 text-sm leading-relaxed">
+                  <p className="text-[var(--text-muted)] text-sm leading-relaxed">
                     {activeStep.description}
                   </p>
                 )}
@@ -293,17 +268,17 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
                   className={cn(
                     "w-full flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer font-semibold text-sm",
                     doneSteps.has(activeStep.id)
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                      : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+                      : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
                   )}
                   disabled={submissionMutation.isPending}
                 >
-                  <span>Mark this step as completed</span>
+                  <span>{t("wizardMode.markCompleted")}</span>
                   <div className={cn(
                     "h-6 w-6 rounded-lg border flex items-center justify-center transition-all",
                     doneSteps.has(activeStep.id)
                       ? "bg-emerald-500 border-emerald-500 text-black"
-                      : "border-slate-500"
+                      : "border-[var(--border-subtle)]"
                   )}>
                     {doneSteps.has(activeStep.id) && <Check className="h-4 w-4 stroke-[3]" />}
                   </div>
@@ -314,14 +289,14 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
             {/* Step specific notes */}
             {activeStep && (
               <div className="space-y-2 pt-4">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
-                  Operation Notes & Comments
+                <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] block">
+                  {t("wizardMode.operationNotes")}
                 </span>
                 <textarea
                   value={stepNotes[activeStep.id] || ""}
                   onChange={(e) => handleNoteChange(e.target.value)}
-                  placeholder="Log any anomalies, actions taken, or parts used..."
-                  className="w-full h-32 p-3 bg-white/5 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-xl text-slate-200 text-xs focus:outline-none resize-none transition-all placeholder:text-slate-600 font-mono"
+                  placeholder={t("wizardMode.notesPlaceholder")}
+                  className="w-full h-32 p-3 bg-[var(--surface-card)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-xs focus:outline-none resize-none transition-all placeholder:text-[var(--text-muted)]/50 font-mono"
                   disabled={submissionMutation.isPending}
                 />
               </div>
@@ -336,12 +311,12 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
               className={cn(
                 "px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                 currentStepIndex === 0
-                  ? "border-white/5 text-slate-600 cursor-not-allowed"
-                  : "border-white/5 text-slate-300 hover:bg-white/5 hover:text-white"
+                  ? "border-[var(--border-subtle)] text-[var(--text-muted)]/40 cursor-not-allowed"
+                  : "border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--text-main)]"
               )}
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {t("wizardMode.back")}
             </button>
 
             {currentStepIndex === totalSteps - 1 ? (
@@ -352,18 +327,18 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
                   "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg",
                   isWizardComplete && !submissionMutation.isPending
                     ? "bg-emerald-500 text-black hover:bg-emerald-600 shadow-emerald-500/10"
-                    : "bg-white/5 border border-white/5 text-slate-600 cursor-not-allowed"
+                    : "bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-muted)] cursor-not-allowed"
                 )}
               >
                 {submissionMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
+                    {t("wizardMode.saving")}
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4 stroke-[3]" />
-                    Finish & Save
+                    {t("wizardMode.finishAndSave")}
                   </>
                 )}
               </button>
@@ -371,9 +346,9 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
               <button
                 onClick={handleNext}
                 disabled={submissionMutation.isPending}
-                className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/10"
+                className="px-5 py-2.5 rounded-xl bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-[var(--primary-main)]/10"
               >
-                Next
+                {t("wizardMode.next")}
                 <ArrowRight className="h-4 w-4" />
               </button>
             )}
@@ -381,41 +356,51 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
         </div>
 
         {/* Right Side Column: Buy Parts Panel (3 cols) */}
-        <div className="hidden lg:flex lg:col-span-3 border-l border-white/5 bg-slate-900/40 p-6 flex-col space-y-4 overflow-y-auto">
-          <div className="flex items-center gap-2 pb-2 border-b border-white/5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-            <ShoppingCart className="h-4 w-4 text-slate-500" />
-            <span>Associated Supplies</span>
+        <div className="hidden lg:flex lg:col-span-3 border-l border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex-col space-y-4 overflow-y-auto">
+          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)] text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+            <ShoppingCart className="h-4 w-4 text-[var(--text-muted)]" />
+            <span>{t("shopping.associatedSupplies")}</span>
           </div>
 
-          <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-4">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block">Required Part</span>
-              <p className="text-xs font-bold text-white leading-tight">{currentSupplyItem}</p>
+          {currentSupplyItem ? (
+            <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] space-y-4">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-[var(--primary-main)] block">
+                  {t("shopping.requiredPart")}
+                </span>
+                <p className="text-xs font-bold text-[var(--text-main)] leading-tight">{currentSupplyItem}</p>
+              </div>
+
+              <button
+                onClick={toggleCartPart}
+                disabled={submissionMutation.isPending}
+                className={cn(
+                  "w-full py-2.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                  isPartInCart
+                    ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20"
+                    : "bg-[var(--primary-main)] hover:opacity-90 text-black border-transparent shadow-lg shadow-[var(--primary-main)]/5"
+                )}
+              >
+                {isPartInCart ? (
+                  <>
+                    <PackageMinus className="h-4 w-4" />
+                    {t("shopping.removeFromList")}
+                  </>
+                ) : (
+                  <>
+                    <PackagePlus className="h-4 w-4" />
+                    {t("shopping.selectForCart")}
+                  </>
+                )}
+              </button>
             </div>
-
-            <button
-              onClick={toggleCartPart}
-              disabled={submissionMutation.isPending}
-              className={cn(
-                "w-full py-2.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                isPartInCart
-                  ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
-                  : "bg-cyan-500 hover:bg-cyan-600 text-black border-transparent shadow-lg shadow-cyan-500/5"
-              )}
-            >
-              {isPartInCart ? (
-                <>
-                  <PackageMinus className="h-4 w-4" />
-                  Remove Cart
-                </>
-              ) : (
-                <>
-                  <PackagePlus className="h-4 w-4" />
-                  Select for Cart
-                </>
-              )}
-            </button>
-          </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-center">
+              <p className="text-xs text-[var(--text-muted)]">
+                {t("shopping.cartEmpty")}
+              </p>
+            </div>
+          )}
         </div>
 
       </div>

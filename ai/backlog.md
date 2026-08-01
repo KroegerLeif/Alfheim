@@ -39,6 +39,15 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 ### Device Monitoring
 - [ ] Add backend endpoint for normalized device health timeline data used in dashboard widgets.
 
+### Notifications & System Alerts
+- [ ] Add backend notification stream endpoint (`GET /api/v1/maintenance/notifications`) for real-time system alerts and header counter.
+
+### Documentation & Manuals
+- [ ] Add backend endpoint for device manuals and attachment documents (`GET /api/v1/maintenance/devices/{id}/manuals`).
+
+### Shopping Cart Integration
+- [ ] Add backend export/integration endpoint (`POST /api/v1/maintenance/shopping-export`) for dispatching maintenance supply items directly to the Shopping app.
+
 ## Shared (`@loeger-os/shared`)
 
 ### i18n

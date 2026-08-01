@@ -10,12 +10,14 @@ import { DeviceDetailPanel } from "./DeviceDetailPanel";
 import { AddDeviceWizard } from "./AddDeviceWizard";
 import { Info, MapPin, Loader2, Plus } from "lucide-react";
 import { cn } from "@/shared/utils";
+import { useTranslations } from "next-intl";
 
 interface DevicesViewProps {
   onStartMaintenance?: (device: Device) => void;
 }
 
 export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
+  const t = useTranslations("maintenance");
   const { householdId } = useLayout();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showWizard, setShowWizard] = useState(false);
@@ -33,7 +35,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] text-cyan-600 dark:text-cyan-400">
+      <div className="flex items-center justify-center min-h-[50vh] text-[var(--primary-main)]">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -53,7 +55,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   );
   if (orphans.length > 0) {
     groupedDevices.push({
-      household: { id: -1, name: "Other Locations" },
+      household: { id: -1, name: t("deviceInventory.otherLocations") },
       devices: orphans,
     });
   }
@@ -61,13 +63,13 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const getStatusBadgeClass = (status: Device["status"]) => {
     switch (status) {
       case "active":
-        return "text-emerald-600 bg-emerald-500/10 border-emerald-500/20 dark:text-emerald-400";
+        return "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
       case "maintenance":
-        return "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400";
+        return "text-amber-500 bg-amber-500/10 border-amber-500/20";
       case "inactive":
-        return "text-slate-500 bg-slate-500/10 border-slate-200 dark:border-white/5";
+        return "text-[var(--text-muted)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]";
       default:
-        return "text-slate-500 bg-slate-500/10 border-slate-200 dark:border-white/5";
+        return "text-[var(--text-muted)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]";
     }
   };
 
@@ -76,37 +78,41 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
       {/* Page header with Add Device FAB */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">Device Inventory //</span>
+          <span className="text-xs font-black uppercase tracking-widest text-[var(--primary-main)]">
+            {t("deviceInventory.tagline")}
+          </span>
         </div>
         <button
           onClick={() => setShowWizard(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl border border-transparent transition-all shadow-md shadow-cyan-500/10 cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider rounded-xl border border-transparent transition-all shadow-md shadow-[var(--primary-main)]/10 cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5" />
-          Add Device
+          {t("deviceInventory.addDevice")}
         </button>
       </div>
       {groupedDevices.length === 0 ? (
-        <div className="glass-card rounded-2xl border border-slate-200 dark:border-white/10 p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
-          <Info className="h-10 w-10 text-cyan-600 dark:text-cyan-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">No Devices Found</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            There are no devices registered under the selected household.
+        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+          <Info className="h-10 w-10 text-[var(--primary-main)] mx-auto" />
+          <h3 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wide">
+            {t("deviceInventory.noDevicesFound")}
+          </h3>
+          <p className="text-sm text-[var(--text-muted)]">
+            {t("deviceInventory.noDevicesDesc")}
           </p>
         </div>
       ) : (
         groupedDevices.map(({ household, devices }) => (
           <div key={household.id} className="space-y-4">
             {/* Household Header */}
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-white/5">
-              <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
-                Location Group //
+            <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--primary-main)]">
+                {t("deviceInventory.locationGroup")}
               </span>
-              <h2 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-300">
+              <h2 className="text-sm font-black uppercase tracking-wider text-[var(--text-main)]">
                 {household.name}
               </h2>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-white/5 dark:text-slate-400">
-                {devices.length} {devices.length === 1 ? "device" : "devices"}
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[var(--surface-elevated)] text-[var(--text-muted)]">
+                {t("deviceInventory.deviceCount", { count: devices.length })}
               </span>
             </div>
 
@@ -119,15 +125,15 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
                   <div
                     key={device.id}
                     onClick={() => setSelectedDevice(device)}
-                    className="group bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl p-5 border hover:border-cyan-500/40 dark:hover:border-cyan-500/30 hover:shadow-cyan-500/10 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden shadow-sm"
+                    className="group bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl p-5 border hover:border-[var(--primary-main)]/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden shadow-sm"
                   >
                     {/* Glow effect on hover */}
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-colors" />
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--primary-main)]/5 rounded-full blur-2xl group-hover:bg-[var(--primary-main)]/10 transition-colors" />
 
                     <div className="space-y-3 relative z-10">
                       {/* Top Row: Category icon & Status */}
                       <div className="flex items-center justify-between">
-                        <div className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-500 dark:group-hover:text-cyan-300 transition-colors">
+                        <div className="h-9 w-9 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--primary-main)] group-hover:scale-105 transition-all">
                           <IconComponent className="h-4.5 w-4.5" />
                         </div>
                         <span className={cn("text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border", getStatusBadgeClass(device.status))}>
@@ -137,22 +143,22 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
 
                       {/* Device Meta */}
                       <div className="space-y-1">
-                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">
+                        <h3 className="text-base font-bold text-[var(--text-main)] group-hover:text-[var(--primary-main)] transition-colors truncate">
                           {device.name}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium font-mono truncate">
-                          Model: {device.model}
+                        <p className="text-xs text-[var(--text-muted)] font-medium font-mono truncate">
+                          {t("deviceInventory.model")} {device.model}
                         </p>
                       </div>
                     </div>
 
                     {/* Bottom Row: Location & Serial */}
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-semibold uppercase tracking-wide relative z-10">
-                      <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 truncate max-w-[60%]">
-                        <MapPin className="h-3.5 w-3.5 text-cyan-500/70 shrink-0" />
+                    <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-muted)] font-semibold uppercase tracking-wide relative z-10">
+                      <div className="flex items-center gap-1 text-[var(--text-muted)] truncate max-w-[60%]">
+                        <MapPin className="h-3.5 w-3.5 text-[var(--primary-main)] shrink-0" />
                         <span className="truncate">{device.location}</span>
                       </div>
-                      <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[40%]">
+                      <span className="font-mono text-[10px] text-[var(--text-muted)] truncate max-w-[40%]">
                         {device.serial}
                       </span>
                     </div>
