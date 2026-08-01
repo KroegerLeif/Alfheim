@@ -63,7 +63,7 @@ export function LocationsGridView() {
     clearMessages();
 
     if (!name.trim()) {
-      setErrorMessage("Location name is required.");
+      setErrorMessage(t("pantry.locationNameRequired"));
       return;
     }
 
@@ -84,7 +84,7 @@ export function LocationsGridView() {
           }, 4000);
         },
         onError: (err: any) => {
-          setErrorMessage(err.message || "Failed to create location.");
+          setErrorMessage(err.message || t("pantry.createLocationFailed"));
         },
       }
     );
@@ -156,7 +156,7 @@ export function LocationsGridView() {
                   setName(e.target.value);
                   clearMessages();
                 }}
-                placeholder="e.g. Basement Room A"
+                placeholder={t("pantry.locationNamePlaceholder")}
                 required
                 className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase font-mono rounded"
               />
@@ -174,7 +174,7 @@ export function LocationsGridView() {
                   setDescription(e.target.value);
                   clearMessages();
                 }}
-                placeholder="e.g. Shelf unit against the west wall"
+                placeholder={t("pantry.locationDescPlaceholder")}
                 rows={3}
                 className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm uppercase font-mono resize-none rounded"
               />

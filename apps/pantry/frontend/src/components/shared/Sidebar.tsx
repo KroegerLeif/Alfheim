@@ -68,10 +68,10 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="p-6 border-b border-[var(--border-subtle)] flex flex-col gap-1">
         <div className="font-heading text-2xl font-bold uppercase tracking-wide leading-none text-[var(--text-main)]">
-          LOEGER // OS
+          {t("pantry.systemBrand")}
         </div>
         <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-mono">
-          Pantry System v1.0
+          {t("pantry.systemVersion")}
         </div>
       </div>
 

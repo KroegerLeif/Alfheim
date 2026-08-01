@@ -73,7 +73,7 @@ export function ProductCatalogView() {
     clearMessages();
 
     if (!name.trim()) {
-      setErrorMessage("Product name is required.");
+      setErrorMessage(t("pantry.nameRequired"));
       return;
     }
 
@@ -104,7 +104,7 @@ export function ProductCatalogView() {
           }, 4000);
         },
         onError: (error: any) => {
-          setErrorMessage(error.message || "Failed to create product blueprint.");
+          setErrorMessage(error.message || t("pantry.createProductFailed"));
         }
       }
     );
@@ -244,7 +244,7 @@ export function ProductCatalogView() {
                     setName(e.target.value);
                     clearMessages();
                   }}
-                  placeholder="e.g. Potatoes"
+                  placeholder={t("pantry.namePlaceholder")}
                   required
                   className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase font-mono rounded"
                 />
@@ -263,7 +263,7 @@ export function ProductCatalogView() {
                     setBrand(e.target.value);
                     clearMessages();
                   }}
-                  placeholder="e.g. Bauernhof"
+                  placeholder={t("pantry.brandPlaceholder")}
                   className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase font-mono rounded"
                 />
               </div>
@@ -282,7 +282,7 @@ export function ProductCatalogView() {
                     setBarcode(e.target.value);
                     clearMessages();
                   }}
-                  placeholder="e.g. 40082345 (Leave empty for fresh food)"
+                  placeholder={t("pantry.barcodePlaceholder")}
                   className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase font-mono rounded"
                 />
               </div>
@@ -325,10 +325,10 @@ export function ProductCatalogView() {
                     }}
                     className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase rounded"
                   >
-                    <option value="piece">PIECE</option>
-                    <option value="g">GRAMS (G)</option>
-                    <option value="ml">MILLILITERS (ML)</option>
-                    <option value="m">METERS (M)</option>
+                    <option value="piece">{t("pantry.unitPiece")}</option>
+                    <option value="g">{t("pantry.unitGrams")}</option>
+                    <option value="ml">{t("pantry.unitMilliliters")}</option>
+                    <option value="m">{t("pantry.unitMeters")}</option>
                   </select>
                 </div>
 
