@@ -18,6 +18,42 @@
 
 ## Current Sprint — Completed Commits
 
+### `refactor(shopping): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`
+
+**Date**: 2026-08-01
+
+#### Summary
+1. **Zero Hardcoded UI Text (i18n Rigor)**:
+   - Audited every component, modal, page view, and navigation element in `apps/shopping/frontend/`.
+   - Expanded shared dictionaries in `@loeger-os/shared` (`packages/shared/src/features/i18n/locales/{de,en,pl}/shopping.json`) with navigation, checklist, category, modal, and error keys.
+   - Replaced all raw UI strings with `useTranslations()` / `errT()`, preserving German (`de`) as canonical default/fallback and keeping user runtime input (list titles, item names) as sole exception.
+2. **Elimination of Fake Data & Mock Badges**:
+   - Stripped hardcoded mock household fallbacks (`Primary Household`, `Vacation Home`) from `useHouseholds` in `shoppingListService.ts`, returning clean empty state `[]`.
+   - Registered structured backlog task in `ai/backlog.md` under `## Shopping` for missing backend endpoint `GET /api/v1/households/me`.
+3. **Shared Component & Theme Engine Integration**:
+   - Re-exported and consumed shared `ThemeToggle` and `LanguageSwitcher` from `@loeger-os/shared` in `ThemeToggle.tsx` and `LanguageSwitcher.tsx`.
+   - Refactored `Header.tsx` to consume navigation translations and shared layout components.
+   - Wrapped shopping app with `@loeger-os/shared` `SharedThemeProvider` to inject dynamic theme variables across Obsidian, Kinetic, and Slate themes.
+4. **Verification & Type Safety**:
+   - Verified clean type safety with `pnpm --filter @loeger-os/shared exec tsc --noEmit` and `pnpm --filter shopping-frontend exec tsc --noEmit`.
+
+#### Affected Files
+- `packages/shared/src/features/i18n/locales/{de,en,pl}/shopping.json`
+- `apps/shopping/frontend/src/app/[locale]/providers.tsx`
+- `apps/shopping/frontend/src/app/[locale]/page.tsx`
+- `apps/shopping/frontend/src/components/shared/Header.tsx`
+- `apps/shopping/frontend/src/components/shared/Sidebar.tsx`
+- `apps/shopping/frontend/src/components/shared/ThemeToggle.tsx`
+- `apps/shopping/frontend/src/features/shopping-lists/components/ChecklistContainer.tsx`
+- `apps/shopping/frontend/src/features/shopping-lists/components/EinlagernModal.tsx`
+- `apps/shopping/frontend/src/features/shopping-lists/components/ListSelector.tsx`
+- `apps/shopping/frontend/src/features/shopping-lists/components/ItemRow.tsx`
+- `apps/shopping/frontend/src/features/shopping-lists/services/shoppingListService.ts`
+- `ai/backlog.md`
+- `ai/CONTEXT.md`
+
+---
+
 ### `refactor(dashboard): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`
 
 **Date**: 2026-08-01
