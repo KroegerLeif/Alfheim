@@ -18,6 +18,45 @@
 
 ## Current Sprint — Completed Commits
 
+### `refactor(dashboard): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`
+
+**Date**: 2026-08-01
+
+#### Summary
+1. **Zero Hardcoded UI Text (i18n Rigor)**:
+   - Audited every component, modal, page view, and navigation element in `apps/dashboard/frontend/`.
+   - Replaced all raw UI strings with `useTranslation()` accessing keys from `@loeger-os/shared` (`common.json` & `dashboard.json`), preserving German (`de`) as the canonical default/fallback.
+2. **Elimination of Fake Data & Mock Badges**:
+   - Stripped hardcoded notification badge counts (`unreadCount = 3`) and static mock cards from `Header.tsx`, rendering clean empty states.
+   - Removed fake random telemetry metric generator interval from `SystemHealthWidget.tsx` and static `INITIAL_LOGS` from `SystemShellLogs.tsx`.
+   - Logged structured tasks in `ai/backlog.md` under `## Dashboard` for missing SSE/WebSocket notification streams and container shell log streaming endpoints.
+3. **Shared Component & Theme Engine Integration**:
+   - Created and promoted domain-agnostic `StatusBadge.tsx` component in `@loeger-os/shared` (`features/ui/components/StatusBadge.tsx`) following `ai/add-shared-component.md`.
+   - Replaced hardcoded hex color values across `settings/page.tsx` and `QRCodeModal.tsx` with dynamic CSS variables (`var(--surface-canvas)`, `var(--surface-card)`, `var(--primary-main)`, `var(--border-subtle)`).
+4. **Verification & Type Safety**:
+   - Verified clean type safety with `pnpm --filter @loeger-os/shared exec tsc --noEmit` and `pnpm --filter dashboard-frontend exec tsc --noEmit`.
+
+#### Affected Files
+- `packages/shared/src/features/i18n/locales/{de,en,pl}/dashboard.json`
+- `packages/shared/src/features/i18n/locales/{de,en,pl}/common.json`
+- `packages/shared/src/features/ui/components/StatusBadge.tsx`
+- `apps/dashboard/frontend/src/app/page.tsx`
+- `apps/dashboard/frontend/src/app/household/page.tsx`
+- `apps/dashboard/frontend/src/app/profile/page.tsx`
+- `apps/dashboard/frontend/src/app/settings/page.tsx`
+- `apps/dashboard/frontend/src/app/under-construction/page.tsx`
+- `apps/dashboard/frontend/src/shared/components/Header.tsx`
+- `apps/dashboard/frontend/src/shared/components/BottomNavBar.tsx`
+- `apps/dashboard/frontend/src/features/apps/components/AddAppModal.tsx`
+- `apps/dashboard/frontend/src/features/apps/components/EditAppModal.tsx`
+- `apps/dashboard/frontend/src/features/dashboard/components/SystemHealthWidget.tsx`
+- `apps/dashboard/frontend/src/features/dashboard/components/SystemShellLogs.tsx`
+- `apps/dashboard/frontend/src/features/household/components/QRCodeModal.tsx`
+- `ai/backlog.md`
+- `ai/CONTEXT.md`
+
+---
+
 ### `refactor(shared): feature-driven shared architecture and centralized locale domains`
 
 **Date**: 2026-07-29

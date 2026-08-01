@@ -60,7 +60,7 @@ export default function HouseholdPage() {
           setIsCreateModalOpen(false);
         },
         onError: (err) => {
-          setCreateStatus(`Failed to create household: ${err.message}`);
+          setCreateStatus(t('household.create_failed', { error: err.message }));
         },
       }
     );
@@ -75,11 +75,11 @@ export default function HouseholdPage() {
       { token: joinTokenInput.trim() },
       {
         onSuccess: (household) => {
-          setJoinStatus(`Successfully joined household "${household.name}"!`);
+          setJoinStatus(t('household.join_success', { name: household.name }));
           setJoinTokenInput('');
         },
         onError: (err) => {
-          setJoinStatus(`Failed to join household: ${err.message}`);
+          setJoinStatus(t('household.join_failed', { error: err.message }));
         },
       }
     );
@@ -181,13 +181,13 @@ export default function HouseholdPage() {
               <form onSubmit={handleCreateHouseholdSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                    {t('household.title')} Name *
+                    {t('household.title')} {t('catalog.app_name')} *
                   </label>
                   <input
                     type="text"
                     value={newHouseholdName}
                     onChange={(e) => setNewHouseholdName(e.target.value)}
-                    placeholder="e.g. Kroeger Residence"
+                    placeholder="e.g. Residence"
                     className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
                     required
                   />
@@ -226,7 +226,7 @@ export default function HouseholdPage() {
     if (m.user_id) {
       return `User (${m.user_id.length > 8 ? `${m.user_id.substring(0, 8)}...` : m.user_id})`;
     }
-    return 'Member User';
+    return t('household.member_user');
   };
 
   const getMemberInitials = (m: HouseholdMember) => {
@@ -288,7 +288,7 @@ export default function HouseholdPage() {
             className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 shadow-[0_0_15px_var(--accent-glow)] cursor-pointer flex items-center gap-2 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-base">qr_code_2</span>
-            {createInviteMutation.isPending ? t('common.loading') : 'Generate Invite Code'}
+            {createInviteMutation.isPending ? t('common.loading') : t('household.generate_invite')}
           </button>
         </div>
       </div>
@@ -318,13 +318,13 @@ export default function HouseholdPage() {
             <form onSubmit={handleCreateHouseholdSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                  {t('household.title')} Name *
+                  {t('household.title')} {t('catalog.app_name')} *
                 </label>
                 <input
                   type="text"
                   value={newHouseholdName}
                   onChange={(e) => setNewHouseholdName(e.target.value)}
-                  placeholder="e.g. Kroeger Residence"
+                  placeholder="e.g. Residence"
                   className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
                   required
                 />
@@ -354,9 +354,9 @@ export default function HouseholdPage() {
       {/* Members List Section */}
       <div className="col-span-12 md:col-span-8 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border-subtle)]">
-          <h2 className="text-base font-bold text-[var(--text-main)]">{t('household.title')} Registry & Members</h2>
+          <h2 className="text-base font-bold text-[var(--text-main)]">{t('household.registry_and_members')}</h2>
           <span className="text-xs font-mono text-[var(--text-muted)]">
-            {activeHousehold.members?.length || 0} Enrolled
+            {t('household.enrolled_count', { count: activeHousehold.members?.length || 0 })}
           </span>
         </div>
 
@@ -380,7 +380,7 @@ export default function HouseholdPage() {
                     {getMemberDisplayName(member)}
                   </div>
                   <div className="text-[var(--text-muted)] text-[10px] font-mono">
-                    {member.email ? `${member.email} • ` : ''}Joined: {new Date(member.joined_at).toLocaleDateString()}
+                    {member.email ? `${member.email} • ` : ''}{t('household.joined_date', { date: new Date(member.joined_at).toLocaleDateString() })}
                   </div>
                 </div>
               </div>
@@ -418,7 +418,7 @@ export default function HouseholdPage() {
           <form onSubmit={handleJoinSubmit} className="space-y-3">
             <div>
               <label className="block text-[10px] font-mono uppercase text-[var(--text-muted)] mb-1.5">
-                Invite Code Token
+                {t('household.invite_code_token')}
               </label>
               <input
                 type="text"
@@ -441,7 +441,7 @@ export default function HouseholdPage() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-muted)]">
-          Household IDs and membership permissions are cryptographically verified downstream across Loeger OS microservices.
+          {t('household.household_security_note')}
         </div>
       </div>
     </>

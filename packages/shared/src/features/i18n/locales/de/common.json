@@ -55,7 +55,24 @@
     "required_role": "Erforderliche Rolle",
     "status": "Status",
     "internal_category": "Interner Service",
-    "external_category": "Externes Portal"
+    "external_category": "Externes Portal",
+    "register_new_service": "Neuen Dienst registrieren",
+    "register_subtitle": "Internen Microservice oder externen Portal-Link hinzufügen",
+    "service_type": "Dienst-Typ",
+    "service_title_req": "Diensttitel *",
+    "target_url_req": "Ziel-URL / Pfad *",
+    "short_summary_placeholder": "Kurze Zusammenfassung der Dienstfunktionalität...",
+    "deployment_status": "Bereitstellungsstatus",
+    "status_active_opt": "Aktiv (Live-Dienst)",
+    "status_in_progress_opt": "In Bearbeitung (Im Aufbau)",
+    "status_maintenance_opt": "Wartungsmodus",
+    "select_icon": "Dienst-Icon auswählen",
+    "registering": "Registrierung...",
+    "register_service": "Dienst registrieren",
+    "title_required_error": "Diensttitel ist erforderlich.",
+    "url_required_error": "Dienst-Ziel-URL ist erforderlich.",
+    "register_failed_error": "Registrierung des neuen Dienstes fehlgeschlagen",
+    "update_failed_error": "Kataloganwendung konnte nicht aktualisiert werden"
   },
   "household": {
     "title": "Haushalt",
@@ -67,7 +84,22 @@
     "join_household_desc": "Geben Sie Ihren Einladungstoken ein, um einem Haushalt beizutreten.",
     "invite_token_placeholder": "Einladungstoken eingeben...",
     "submit_token": "Token absenden",
-    "joining": "Beitritt läuft..."
+    "joining": "Beitritt läuft...",
+    "generate_invite": "Einladungscode generieren",
+    "invite_code_token": "Einladungscode-Token",
+    "registry_and_members": "Haushaltsregister & Mitglieder",
+    "enrolled_count": "{count} Eingeschrieben",
+    "member_user": "Mitglied",
+    "joined_date": "Beigetreten: {date}",
+    "household_security_note": "Haushalts-IDs und Mitgliedschaftsberechtigungen werden nachgelagert in den Loeger OS Microservices kryptografisch verifiziert.",
+    "qr_code_title": "Haushaltszugang QR-Code",
+    "qr_code_desc": "Mit mobiler Kamera scannen oder Token zum Beitreten kopieren.",
+    "copied": "Kopiert!",
+    "copy": "Kopieren",
+    "max_uses_expiry": "Max. Nutzungen: {max} • Läuft ab um {time}",
+    "create_failed": "Erstellung des Haushalts fehlgeschlagen: {error}",
+    "join_success": "Erfolgreich dem Haushalt \"{name}\" beigetreten!",
+    "join_failed": "Beitritt zum Haushalt fehlgeschlagen: {error}"
   },
   "settings": {
     "title": "Plattform-Einstellungen & Design-Theme",
@@ -85,13 +117,25 @@
     "telemetry_stream": "OpenTelemetry Stream",
     "telemetry_stream_desc": "Sendet CPU/RAM Telemetriedaten an den SigNoz Collector.",
     "system_update": "System-Update",
-    "platform_up_to_date": "Plattform ist auf dem neuesten Stand"
+    "platform_up_to_date": "Plattform ist auf dem neuesten Stand",
+    "platform_release": "Loeger OS Plattform Release",
+    "current_version": "Aktuelle Version",
+    "build_target": "Build Target"
   },
   "profile": {
     "title": "Benutzerprofil",
     "user_details": "Benutzerdetails",
     "username": "Benutzername",
     "email": "E-Mail-Adresse",
-    "roles": "Zugewiesene Rollen"
+    "roles": "Zugewiesene Rollen",
+    "first_name": "Vorname",
+    "last_name": "Nachname",
+    "avatar_url": "Avatar Bild-URL",
+    "oidc_claims_title": "OIDC Claims & Metadaten",
+    "subject_sub": "Subjekt (sub)",
+    "given_name": "Vorname",
+    "family_name": "Nachname",
+    "not_available": "N/V",
+    "update_failed": "Aktualisierung fehlgeschlagen: {error}"
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@loeger-os/shared';
 import { useCreateApp } from '../queries';
 
 interface AddAppModalProps {
@@ -35,6 +36,7 @@ export function AddAppModal({
   onSuccess,
   initialCategory = 'internal',
 }: AddAppModalProps) {
+  const { t } = useTranslation();
   const createAppMutation = useCreateApp();
 
   const [title, setTitle] = useState('');
@@ -55,11 +57,11 @@ export function AddAppModal({
     const trimmedUrl = url.trim();
 
     if (!trimmedTitle) {
-      setErrorMessage('Service title is required.');
+      setErrorMessage(t('catalog.title_required_error'));
       return;
     }
     if (!trimmedUrl) {
-      setErrorMessage('Service target URL is required.');
+      setErrorMessage(t('catalog.url_required_error'));
       return;
     }
 
@@ -87,7 +89,7 @@ export function AddAppModal({
           onClose();
         },
         onError: (err) => {
-          setErrorMessage(err.message || 'Failed to register new service');
+          setErrorMessage(err.message || t('catalog.register_failed_error'));
         },
       }
     );
@@ -103,9 +105,9 @@ export function AddAppModal({
               <span className="material-symbols-outlined text-xl">add_box</span>
             </div>
             <div>
-              <h3 className="text-base font-bold text-[var(--text-main)]">Register New Service</h3>
+              <h3 className="text-base font-bold text-[var(--text-main)]">{t('catalog.register_new_service')}</h3>
               <p className="text-xs text-[var(--text-muted)] font-mono">
-                Add an internal microservice or external portal link
+                {t('catalog.register_subtitle')}
               </p>
             </div>
           </div>
@@ -113,7 +115,7 @@ export function AddAppModal({
           <button
             onClick={onClose}
             className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
-            aria-label="Close modal"
+            aria-label={t('common.close')}
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -131,7 +133,7 @@ export function AddAppModal({
           {/* Internal vs External Segmented Switch */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Service Type
+              {t('catalog.service_type')}
             </label>
             <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
               <button
@@ -144,7 +146,7 @@ export function AddAppModal({
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">apps</span>
-                <span>Internal Service</span>
+                <span>{t('catalog.internal_category')}</span>
               </button>
               <button
                 type="button"
@@ -156,7 +158,7 @@ export function AddAppModal({
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">open_in_new</span>
-                <span>External Portal</span>
+                <span>{t('catalog.external_category')}</span>
               </button>
             </div>
           </div>
@@ -164,13 +166,13 @@ export function AddAppModal({
           {/* Service Title Input */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              Service Title *
+              {t('catalog.service_title_req')}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Grafana Dashboards, Security Vault"
+              placeholder="e.g. Grafana Dashboards"
               required
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
@@ -179,7 +181,7 @@ export function AddAppModal({
           {/* Target URL Input */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              Target URL / Path *
+              {t('catalog.target_url_req')}
             </label>
             <input
               type="text"
@@ -194,12 +196,12 @@ export function AddAppModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              Description
+              {t('catalog.description')}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short summary of service functionality..."
+              placeholder={t('catalog.short_summary_placeholder')}
               rows={2}
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
@@ -208,23 +210,23 @@ export function AddAppModal({
           {/* Initial Status Selector */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              Deployment Status
+              {t('catalog.deployment_status')}
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as 'active' | 'in_progress' | 'maintenance')}
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
             >
-              <option value="active">Active (Live Service)</option>
-              <option value="in_progress">In Progress (Under Construction)</option>
-              <option value="maintenance">Maintenance Mode</option>
+              <option value="active">{t('catalog.status_active_opt')}</option>
+              <option value="in_progress">{t('catalog.status_in_progress_opt')}</option>
+              <option value="maintenance">{t('catalog.status_maintenance_opt')}</option>
             </select>
           </div>
 
           {/* Icon Selection Grid */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
-              Select Service Icon
+              {t('catalog.select_icon')}
             </label>
             <div className="grid grid-cols-6 gap-2 p-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] max-h-36 overflow-y-auto">
               {PRESET_ICONS.map((item) => (
@@ -252,7 +254,7 @@ export function AddAppModal({
               onClick={onClose}
               className="px-4 py-2.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -262,12 +264,12 @@ export function AddAppModal({
               {createAppMutation.isPending ? (
                 <>
                   <span className="w-3 h-3 rounded-full border-2 border-slate-950 border-t-transparent animate-spin" />
-                  <span>Registering...</span>
+                  <span>{t('catalog.registering')}</span>
                 </>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold">check</span>
-                  <span>Register Service</span>
+                  <span>{t('catalog.register_service')}</span>
                 </>
               )}
             </button>
@@ -277,3 +279,4 @@ export function AddAppModal({
     </div>
   );
 }
+

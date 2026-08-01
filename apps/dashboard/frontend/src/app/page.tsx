@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from '@loeger-os/shared';
+import { StatusBadge, useTranslation } from '@loeger-os/shared';
 import { useAppCatalog, AddAppModal, EditAppModal } from '@/features/apps';
 import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
 import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
@@ -34,36 +34,13 @@ export default function DashboardPage() {
   };
 
   const handleSuccess = (appName: string) => {
-    setToastMessage(`Service "${appName}" registered successfully!`);
+    setToastMessage(t('dashboard.toast_service_registered', { name: appName }));
     setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleEditSuccess = (appName: string) => {
-    setToastMessage(`Service "${appName}" updated successfully!`);
+    setToastMessage(t('dashboard.toast_service_updated', { name: appName }));
     setTimeout(() => setToastMessage(null), 4000);
-  };
-
-  const renderStatusBadge = (appStatus?: string) => {
-    switch (appStatus) {
-      case 'in_progress':
-        return (
-          <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-amber-950/60 text-amber-400 border border-amber-800/40 font-bold">
-            {t('common.in_progress')}
-          </span>
-        );
-      case 'maintenance':
-        return (
-          <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-red-950/60 text-red-400 border border-red-800/40 font-bold">
-            {t('common.maintenance')}
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 font-bold">
-            {t('common.active')}
-          </span>
-        );
-    }
   };
 
   return (
@@ -136,7 +113,7 @@ export default function DashboardPage() {
             ))
           ) : isError ? (
             <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
-              Failed to load internal app catalog. Please check backend connection.
+              {t('dashboard.error_load_catalog')}
             </div>
           ) : (
             catalog?.internal.map((app) => {
@@ -167,7 +144,7 @@ export default function DashboardPage() {
                         >
                           <span className="material-symbols-outlined text-sm">settings</span>
                         </button>
-                        {renderStatusBadge(app.status)}
+                        <StatusBadge status={app.status} />
                       </div>
                     </div>
 
@@ -262,7 +239,7 @@ export default function DashboardPage() {
                       >
                         <span className="material-symbols-outlined text-sm">settings</span>
                       </button>
-                      {renderStatusBadge(app.status)}
+                      <StatusBadge status={app.status} />
                     </div>
                   </div>
 

@@ -55,7 +55,24 @@
     "required_role": "Wymagana rola",
     "status": "Status",
     "internal_category": "Usługa wewnętrzna",
-    "external_category": "Portal zewnętrzny"
+    "external_category": "Portal zewnętrzny",
+    "register_new_service": "Zarejestruj nową usługę",
+    "register_subtitle": "Dodaj wewnętrzną mikrousługę lub link do portalu zewnętrznego",
+    "service_type": "Typ usługi",
+    "service_title_req": "Tytuł usługi *",
+    "target_url_req": "Docelowy URL / Ścieżka *",
+    "short_summary_placeholder": "Krótkie podsumowanie funkcjonalności usługi...",
+    "deployment_status": "Stan wdrożenia",
+    "status_active_opt": "Aktywny (Na żywo)",
+    "status_in_progress_opt": "W trakcie (W budowie)",
+    "status_maintenance_opt": "Tryb konserwacji",
+    "select_icon": "Wybierz ikonę usługi",
+    "registering": "Rejestrowanie...",
+    "register_service": "Zarejestruj usługę",
+    "title_required_error": "Tytuł usługi jest wymagany.",
+    "url_required_error": "URL docelowy usługi jest wymagany.",
+    "register_failed_error": "Nie udało się zarejestrować nowej usługi",
+    "update_failed_error": "Nie udało się zaktualizować aplikacji w katalogu"
   },
   "household": {
     "title": "Gospodarstwo domowe",
@@ -67,7 +84,22 @@
     "join_household_desc": "Wprowadź token zaproszenia, aby dołączyć do gospodarstwa.",
     "invite_token_placeholder": "Wprowadź token zaproszenia...",
     "submit_token": "Wyślij token",
-    "joining": "Dołączanie..."
+    "joining": "Dołączanie...",
+    "generate_invite": "Wygeneruj kod zaproszenia",
+    "invite_code_token": "Token kodu zaproszenia",
+    "registry_and_members": "Rejestr gospodarstwa i członkowie",
+    "enrolled_count": "{count} Zapisanych",
+    "member_user": "Użytkownik",
+    "joined_date": "Dołączono: {date}",
+    "household_security_note": "Identyfikatory gospodarstwa i uprawnienia członków są weryfikowane kryptograficznie w mikrousługach Loeger OS.",
+    "qr_code_title": "Kod QR dostępu do gospodarstwa",
+    "qr_code_desc": "Zeskanuj aparatem lub skopiuj token, aby dołączyć.",
+    "copied": "Skopiowano!",
+    "copy": "Kopiuj",
+    "max_uses_expiry": "Maks. użyć: {max} • Wygasa o {time}",
+    "create_failed": "Nie udało się utworzyć gospodarstwa: {error}",
+    "join_success": "Pomyślnie dołączono do gospodarstwa \"{name}\"!",
+    "join_failed": "Nie udało się dołączyć do gospodarstwa: {error}"
   },
   "settings": {
     "title": "Ustawienia platformy i motyw graficzny",
@@ -85,13 +117,25 @@
     "telemetry_stream": "Strumień OpenTelemetry",
     "telemetry_stream_desc": "Wysyłaj dane telemetryczne CPU/RAM do kolektora SigNoz.",
     "system_update": "Aktualizacja systemu",
-    "platform_up_to_date": "Platforma jest aktualna"
+    "platform_up_to_date": "Platforma jest aktualna",
+    "platform_release": "Wydanie platformy Loeger OS",
+    "current_version": "Aktualna wersja",
+    "build_target": "Cel kompilacji"
   },
   "profile": {
     "title": "Profil użytkownika",
     "user_details": "Szczegóły użytkownika",
     "username": "Nazwa użytkownika",
     "email": "Adres e-mail",
-    "roles": "Przypisane role"
+    "roles": "Przypisane role",
+    "first_name": "Imię",
+    "last_name": "Nazwisko",
+    "avatar_url": "URL awatara",
+    "oidc_claims_title": "Roszczenia i metadane OIDC",
+    "subject_sub": "Podmiot (sub)",
+    "given_name": "Imię",
+    "family_name": "Nazwisko",
+    "not_available": "Brak danych",
+    "update_failed": "Aktualizacja nie powiodła się: {error}"
   }
 }

@@ -70,11 +70,11 @@ export function EditAppModal({
     const trimmedUrl = url.trim();
 
     if (!trimmedTitle) {
-      setErrorMessage('Service title is required.');
+      setErrorMessage(t('catalog.title_required_error'));
       return;
     }
     if (!trimmedUrl) {
-      setErrorMessage('Service target URL is required.');
+      setErrorMessage(t('catalog.url_required_error'));
       return;
     }
 
@@ -99,7 +99,7 @@ export function EditAppModal({
           onClose();
         },
         onError: (err) => {
-          setErrorMessage(err.message || 'Failed to update catalog application');
+          setErrorMessage(err.message || t('catalog.update_failed_error'));
         },
       }
     );

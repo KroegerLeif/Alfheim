@@ -10,6 +10,12 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 ### Household
 - [ ] Add endpoint-level contract documentation for invite code generation/join error states.
 
+### Notifications
+- [ ] Add real-time SSE/WebSocket backend endpoint for notification stream and header unread badge counter.
+
+### System Shell / Telemetry
+- [ ] Add backend endpoint for streaming live container/shell logs directly to the dashboard terminal widget.
+
 ## Shopping
 
 ### Pantry Sync

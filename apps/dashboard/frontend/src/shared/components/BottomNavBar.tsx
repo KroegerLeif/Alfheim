@@ -2,18 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslation } from '@loeger-os/shared';
 
 interface NavItem {
-  name: string;
+  key: string;
   href: string;
   icon: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: 'dashboard' },
-  { name: 'Profile', href: '/profile', icon: 'person' },
-  { name: 'Household', href: '/household', icon: 'home_app_logo' },
-  { name: 'Settings', href: '/settings', icon: 'settings' },
+  { key: 'nav.dashboard', href: '/', icon: 'dashboard' },
+  { key: 'nav.profile', href: '/profile', icon: 'person' },
+  { key: 'nav.household', href: '/household', icon: 'home_app_logo' },
+  { key: 'nav.settings', href: '/settings', icon: 'settings' },
 ];
 
 /**
@@ -22,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
  */
 export function BottomNavBar() {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--surface-card)]/95 backdrop-blur-md border-t border-[var(--border-subtle)] px-2 flex items-center justify-around z-40 select-none shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
@@ -31,7 +33,7 @@ export function BottomNavBar() {
 
         return (
           <Link
-            key={item.name}
+            key={item.key}
             href={item.href}
             className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-all duration-200 ${
               isActive
@@ -51,10 +53,11 @@ export function BottomNavBar() {
             >
               {item.icon}
             </span>
-            <span className="text-[10px] font-mono tracking-tight mt-0.5">{item.name}</span>
+            <span className="text-[10px] font-mono tracking-tight mt-0.5">{t(item.key)}</span>
           </Link>
         );
       })}
     </nav>
   );
 }
+
