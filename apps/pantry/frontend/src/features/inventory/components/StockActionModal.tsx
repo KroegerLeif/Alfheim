@@ -15,6 +15,7 @@ import { useLocations } from "@/features/locations/services/locationService";
 import { useSearchProducts, useCreateProduct } from "@/features/products/services/productService";
 import { useCategories, useCreateCategory } from "@/features/categories/services/categoryService";
 import { useCreateTransaction } from "@/features/inventory/services/inventoryService";
+import { pantryClient } from "@/lib/api";
 import { ProductRead } from "@/features/inventory/types";
 import { Search, Barcode, Plus, Minus, Check, Loader2, AlertCircle, PackagePlus } from "lucide-react";
 
@@ -28,7 +29,7 @@ interface StockActionModalProps {
 /**
  * StockActionModal Component
  * Facilitates recording physical stock transactions (IN / OUT movements).
- * Provides a simulated barcode reader and a manual registry search.
+ * Provides a barcode reader and a manual registry search.
  * Supports quick inline creation of missing product blueprints & categories.
  * Incorporates a touch-stepper for fast tablet-based quantity logging.
  */
@@ -113,22 +114,20 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
     }
   }, [selectedProduct]);
 
-  // Simulate scanning of physical barcodes
+  // Handle scanning of physical barcodes
   const handleBarcodeSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcodeInput.trim()) return;
     
     setScanError("");
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/products/barcode/${barcodeInput}`);
-      if (!response.ok) {
-        throw new Error(t("pantry.noMatchesFound"));
-      }
-      const data: ProductRead = await response.json();
+      const data = await pantryClient
+        .get(`api/v1/products/barcode/${barcodeInput}`)
+        .json<ProductRead>();
       setSelectedProduct(data);
       setBarcodeInput("");
     } catch (err: any) {
-      setScanError(err.message || t("pantry.noMatchesFound"));
+      setScanError(t("pantry.noMatchesFound"));
     }
   };
 
