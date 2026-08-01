@@ -347,6 +347,25 @@
 
 ---
 
+### `refactor(maintenance): apply shared FDD architecture, enforce zero-hardcoding & connect real data`
+
+**Date**: 2026-08-01
+
+#### Goal & Overview
+Refactored `apps/maintenance/frontend` to strictly adhere to the `@loeger-os/shared` Feature-Driven Design (FDD) architecture. All hardcoded UI text was migrated to centralized `next-intl` keys in `packages/shared/src/features/i18n/locales/{de,en,pl}/maintenance.json`, fake/mock data was stripped in favor of clean empty states and registered backend tasks in `ai/backlog.md`, and reusable layout/UI components (`Header`, `Sidebar`, `SidePanel`, `ThemeToggle`) were integrated with dynamic CSS theme variables (`var(--...)`) for transparent Light/Dark support across Obsidian, Kinetic, and Slate themes.
+
+#### What was delivered
+
+| Area | Change |
+|---|---|
+| Centralized i18n Locales | Expanded `packages/shared/src/features/i18n/locales/{de,en,pl}/maintenance.json` with comprehensive keys for `nav`, `deviceInventory`, `wizard`, `maintenanceWork`, `scheduledTasks`, `serviceHistory`, `shopping`, `wizardMode`, and `header`. |
+| Elimination of Fake Data | Removed static fake household items from `data.ts`, stripped `mockNotifications` array from `Header.tsx`, removed `getSupplyItemForStep` hardcoded string switcher and fake PDF manual links in `MaintenanceMode.tsx`/`DeviceDetailPanel.tsx`. Rendered clean empty states. |
+| Central Backlog Integration | Registered structured tasks in `ai/backlog.md` under `## Maintenance` for missing backend endpoints (Notification Stream `GET /api/v1/maintenance/notifications`, Documentation & Manuals `GET /api/v1/maintenance/devices/{id}/manuals`, and Shopping Cart Export `POST /api/v1/maintenance/shopping-export`). |
+| Shared FDD Architecture & Theme Tokens | Integrated `@loeger-os/shared` components (`SidePanel`, `BackToDashboard`, `LanguageSwitcher`, `ThemeToggle`, `AuthControls`). Replaced hardcoded Tailwind slate/cyan classes with CSS tokens (`var(--surface-canvas)`, `var(--surface-card)`, `var(--text-main)`, `var(--text-muted)`, `var(--primary-main)`, `var(--border-subtle)`). |
+| Verification | Ran static typechecks (`pnpm --filter maintenance-frontend exec tsc --noEmit` and `pnpm --filter @loeger-os/shared exec tsc --noEmit`), passing with 0 errors. |
+
+---
+
 #### What was delivered
 
 | Area | Change |

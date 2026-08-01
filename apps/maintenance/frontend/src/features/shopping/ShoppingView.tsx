@@ -9,8 +9,10 @@ import {
   CheckCircle2 
 } from "lucide-react";
 import { cn } from "@/shared/utils";
+import { useTranslations } from "next-intl";
 
 export function ShoppingView() {
+  const t = useTranslations("maintenance");
   const [cart, setCart] = useState<string[]>([]);
   const [isSent, setIsSent] = useState(false);
 
@@ -69,14 +71,14 @@ export function ShoppingView() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans text-slate-900 dark:text-white">
+    <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans text-[var(--text-main)]">
       
       {/* Header Bar */}
-      <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-2">
-          <ShoppingCart className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-          <span className="text-xs font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
-            Shopping Cart //
+          <ShoppingCart className="h-5 w-5 text-[var(--primary-main)]" />
+          <span className="text-xs font-black uppercase tracking-widest text-[var(--primary-main)]">
+            {t("shopping.tagline")}
           </span>
         </div>
 
@@ -84,17 +86,17 @@ export function ShoppingView() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleClear}
-              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 hover:bg-red-500/10 hover:border-red-500/20 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-canvas)] hover:bg-red-500/10 hover:border-red-500/20 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-red-500 transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Clear
+              {t("shopping.clear")}
             </button>
             <button
               onClick={handleExport}
-              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Download className="h-3.5 w-3.5" />
-              CSV Export
+              {t("shopping.csvExport")}
             </button>
           </div>
         )}
@@ -102,11 +104,13 @@ export function ShoppingView() {
 
       {/* Main Cart Layout */}
       {cart.length === 0 ? (
-        <div className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
-          <ShoppingCart className="h-10 w-10 text-cyan-600 dark:text-cyan-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">Your Cart is Empty</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            To add parts to your shopping list, start a maintenance wizard and select associated parts on the supplies panel.
+        <div className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+          <ShoppingCart className="h-10 w-10 text-[var(--primary-main)] mx-auto" />
+          <h3 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wide">
+            {t("shopping.cartEmpty")}
+          </h3>
+          <p className="text-sm text-[var(--text-muted)]">
+            {t("shopping.cartEmptyDesc")}
           </p>
         </div>
       ) : (
@@ -116,21 +120,21 @@ export function ShoppingView() {
             {cart.map((item) => (
               <div
                 key={item}
-                className="bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-xl p-4 border hover:border-slate-300 dark:hover:border-slate-700 transition-colors flex items-center justify-between gap-4 shadow-sm"
+                className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl p-4 border hover:border-[var(--border-accent)] transition-colors flex items-center justify-between gap-4 shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                  <div className="h-9 w-9 rounded-lg bg-[var(--primary-main)]/10 border border-[var(--primary-main)]/20 flex items-center justify-center text-[var(--primary-main)]">
                     <ShoppingCart className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100">
+                  <span className="text-xs font-bold uppercase tracking-wide text-[var(--text-main)]">
                     {item}
                   </span>
                 </div>
 
                 <button
                   onClick={() => handleRemove(item)}
-                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:bg-red-500/10 hover:border-red-500/20 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
-                  title="Remove from cart"
+                  className="p-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-red-500/10 hover:border-red-500/20 text-[var(--text-muted)] hover:text-red-500 transition-all cursor-pointer"
+                  title={t("shopping.removeFromCart")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -139,7 +143,7 @@ export function ShoppingView() {
           </div>
 
           {/* Call-to-Action Block */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+          <div className="pt-4 border-t border-[var(--border-subtle)] flex justify-end">
             <button
               onClick={handleSendToShoppingApp}
               disabled={isSent}
@@ -147,18 +151,18 @@ export function ShoppingView() {
                 "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg",
                 isSent
                   ? "bg-emerald-500 text-black shadow-emerald-500/10"
-                  : "bg-cyan-500 hover:bg-cyan-400 text-black hover:scale-[1.02] shadow-cyan-500/10"
+                  : "bg-[var(--primary-main)] hover:opacity-90 text-black hover:scale-[1.02] shadow-[var(--primary-main)]/10"
               )}
             >
               {isSent ? (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  Sent to Shopping App!
+                  {t("shopping.sentToShoppingApp")}
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  Send to Shopping App
+                  {t("shopping.sendToShoppingApp")}
                 </>
               )}
             </button>
