@@ -69,28 +69,28 @@ export default function SettingsPage() {
             onClick={() => setVariant('obsidian')}
             className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
               variant === 'obsidian'
-                ? 'bg-[#111b33] border-[#3eb1ff] shadow-[0_0_20px_rgba(62,177,255,0.2)]'
-                : 'bg-[#0b1326] border-[#222222] hover:border-[#3eb1ff]/50'
+                ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
+                : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold font-mono text-[#f0f6fc]">Obsidian Flux</span>
+                <span className="text-sm font-bold font-mono text-[var(--text-main)]">Obsidian Flux</span>
                 {variant === 'obsidian' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#3eb1ff]/20 text-[#3eb1ff] border border-[#3eb1ff]/40 font-bold">
+                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
                     {t('common.active')}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#8b949e] mb-4">
+              <p className="text-xs text-[var(--text-muted)] mb-4">
                 {t('settings.obsidian_desc')}
               </p>
             </div>
 
-            <div className="h-10 rounded-lg bg-[#0b1326] border border-[#222222] p-2 flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#3eb1ff]" />
-              <div className="w-12 h-2 rounded bg-[#182542]" />
-              <div className="w-8 h-2 rounded bg-[#3eb1ff]/30 ml-auto" />
+            <div className="h-10 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] p-2 flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-[var(--primary-main)]" />
+              <div className="w-12 h-2 rounded bg-[var(--surface-elevated)]" />
+              <div className="w-8 h-2 rounded bg-[var(--primary-main)]/30 ml-auto" />
             </div>
           </div>
 
@@ -99,28 +99,28 @@ export default function SettingsPage() {
             onClick={() => setVariant('kinetic')}
             className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
               variant === 'kinetic'
-                ? 'bg-[#0c162d] border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.25)]'
-                : 'bg-[#060b17] border-[#1e293b] hover:border-[#00f0ff]/50'
+                ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
+                : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold font-mono text-white">Kinetic Minimalist</span>
+                <span className="text-sm font-bold font-mono text-[var(--text-main)]">Kinetic Minimalist</span>
                 {variant === 'kinetic' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 font-bold">
+                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
                     {t('common.active')}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#94a3b8] mb-4">
+              <p className="text-xs text-[var(--text-muted)] mb-4">
                 {t('settings.kinetic_desc')}
               </p>
             </div>
 
-            <div className="h-10 rounded-lg bg-[#060b17] border border-[#1e293b] p-2 flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#00f0ff]" />
-              <div className="w-12 h-2 rounded bg-[#142244]" />
-              <div className="w-8 h-2 rounded bg-[#00f0ff]/40 ml-auto" />
+            <div className="h-10 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] p-2 flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-[var(--primary-main)]" />
+              <div className="w-12 h-2 rounded bg-[var(--surface-elevated)]" />
+              <div className="w-8 h-2 rounded bg-[var(--primary-main)]/40 ml-auto" />
             </div>
           </div>
         </div>
@@ -210,17 +210,17 @@ export default function SettingsPage() {
           {t('settings.system_update')}
         </h2>
         <p className="text-xs text-[var(--text-muted)] mb-4">
-          Loeger OS Platform Release
+          {t('settings.platform_release')}
         </p>
 
         <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-[var(--text-muted)]">Current Version</span>
+            <span className="text-xs font-mono text-[var(--text-muted)]">{t('settings.current_version')}</span>
             <span className="text-xs font-mono font-bold text-[var(--primary-main)]">v15.2.0</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-[var(--text-muted)]">Build Target</span>
+            <span className="text-xs font-mono text-[var(--text-muted)]">{t('settings.build_target')}</span>
             <span className="text-xs font-mono text-[var(--text-main)]">Next.js 16+ App Router</span>
           </div>
 

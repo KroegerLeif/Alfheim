@@ -12,7 +12,8 @@ export function Header() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [unreadCount] = useState(3);
+  const [notifications] = useState<{ id: string; title: string; body: string }[]>([]);
+  const unreadCount = notifications.length;
 
   const getInitials = () => {
     if (!user) return 'U';
@@ -75,21 +76,14 @@ export function Header() {
                 </span>
                 <button
                   onClick={() => setNotificationsOpen(false)}
-                  className="text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
 
-              <div className="py-2 space-y-2">
-                <div className="p-2.5 rounded-lg bg-[var(--surface-elevated)]/60 text-xs">
-                  <div className="font-semibold text-[var(--text-main)]">Pantry Service Synced</div>
-                  <div className="text-[var(--text-muted)] mt-0.5">Inventory database update completed successfully.</div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-[var(--surface-elevated)]/60 text-xs">
-                  <div className="font-semibold text-[var(--text-main)]">New Gateway Route</div>
-                  <div className="text-[var(--text-muted)] mt-0.5">Proxy rule for /dashboard added to Nginx.</div>
-                </div>
+              <div className="py-4 text-center text-xs font-mono text-[var(--text-muted)]">
+                {t('dashboard.empty_notifications')}
               </div>
             </div>
           )}
@@ -98,8 +92,8 @@ export function Header() {
         {/* User Identity Avatar */}
         <div className="flex items-center gap-2 pl-2 border-l border-[var(--border-subtle)]">
           <div
-            className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#182542] to-[#3eb1ff]/30 border border-[var(--primary-main)]/40 flex items-center justify-center text-xs font-bold text-[var(--primary-main)] font-mono"
-            title={user ? `${user.name} (@${user.preferred_username})` : 'Authenticated User'}
+            className="w-8 h-8 rounded-full bg-gradient-to-tr from-[var(--surface-elevated)] to-[var(--primary-main)]/30 border border-[var(--primary-main)]/40 flex items-center justify-center text-xs font-bold text-[var(--primary-main)] font-mono"
+            title={user ? `${user.name} (@${user.preferred_username})` : t('dashboard.authenticated_user')}
           >
             {getInitials()}
           </div>

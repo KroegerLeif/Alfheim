@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@loeger-os/shared';
 import { useTelemetryLogs } from '../queries';
 
 interface LogEntry {
@@ -11,51 +12,14 @@ interface LogEntry {
   message: string;
 }
 
-const INITIAL_LOGS: LogEntry[] = [
-  {
-    id: 'log-1',
-    timestamp: '23:40:01.102',
-    level: 'INFO',
-    service: 'gateway',
-    message: 'Nginx edge proxy listening on 0.0.0.0:80 [loeger-os.local]',
-  },
-  {
-    id: 'log-2',
-    timestamp: '23:40:02.340',
-    level: 'SUCCESS',
-    service: 'keycloak',
-    message: 'Identity realm "loeger-os" initialized with OIDC discovery enabled',
-  },
-  {
-    id: 'log-3',
-    timestamp: '23:40:03.891',
-    level: 'INFO',
-    service: 'pantry-backend',
-    message: 'FastAPI service connected to PostgreSQL database (pool_size=10)',
-  },
-  {
-    id: 'log-4',
-    timestamp: '23:40:05.120',
-    level: 'INFO',
-    service: 'dashboard-go',
-    message: 'Go Chi HTTP handler listening on :8080 (App Catalog ready)',
-  },
-  {
-    id: 'log-5',
-    timestamp: '23:40:07.450',
-    level: 'WARN',
-    service: 'telemetry',
-    message: 'SigNoz query service operating with proc metrics fallback',
-  },
-];
-
 /**
  * Live System Shell / Terminal Log Feed component.
  * Repaired contrast, crisp level badges (ERR, WARN, OK, INFO), and zero visual clutter.
  */
 export function SystemShellLogs() {
+  const { t } = useTranslation();
   const { data: serverLogs } = useTelemetryLogs();
-  const [logs, setLogs] = useState<LogEntry[]>(INITIAL_LOGS);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [commandInput, setCommandInput] = useState('');
   const [, setCommandHistory] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -108,7 +72,7 @@ export function SystemShellLogs() {
         timestamp,
         level: 'SUCCESS',
         service: 'system',
-        message: 'Available commands: help, status, apps, clear, ping, uptime',
+        message: t('dashboard.shell_help_response'),
       };
     } else if (lower === 'status') {
       responseLog = {
@@ -116,7 +80,7 @@ export function SystemShellLogs() {
         timestamp,
         level: 'SUCCESS',
         service: 'system',
-        message: 'Loeger OS Platform: 6/6 Containers Healthy. All proxy routes bound.',
+        message: t('dashboard.shell_status_response'),
       };
     } else if (lower === 'ping') {
       responseLog = {
@@ -124,7 +88,7 @@ export function SystemShellLogs() {
         timestamp,
         level: 'INFO',
         service: 'network',
-        message: 'pong (latency: 1.2ms)',
+        message: t('dashboard.shell_ping_response'),
       };
     } else {
       responseLog = {
@@ -132,7 +96,7 @@ export function SystemShellLogs() {
         timestamp,
         level: 'WARN',
         service: 'shell',
-        message: `Command "${cmd}" executed. Type "help" for available commands.`,
+        message: t('dashboard.shell_unknown_response', { cmd }),
       };
     }
 
@@ -183,7 +147,7 @@ export function SystemShellLogs() {
             <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
           </div>
           <span className="ml-2 text-xs font-mono text-[var(--text-muted)] truncate">
-            shell@loeger-os:~# live-telemetry-feed
+            shell@loeger-os:~# {t('dashboard.shell_title')}
           </span>
         </div>
 
@@ -192,7 +156,7 @@ export function SystemShellLogs() {
             onClick={() => setLogs([])}
             className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] px-2.5 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 transition-colors duration-150 cursor-pointer"
           >
-            Clear
+            {t('dashboard.shell_clear')}
           </button>
         </div>
       </div>
@@ -226,16 +190,17 @@ export function SystemShellLogs() {
           type="text"
           value={commandInput}
           onChange={(e) => setCommandInput(e.target.value)}
-          placeholder="Type command (e.g. status, help, ping, clear)..."
+          placeholder={t('dashboard.shell_input_placeholder')}
           className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:ring-0"
         />
         <button
           type="submit"
           className="px-3.5 py-1 rounded-lg bg-[var(--primary-main)]/10 hover:bg-[var(--primary-main)]/20 text-[var(--primary-main)] text-[11px] font-mono font-semibold border border-[var(--primary-main)]/30 cursor-pointer transition-colors duration-150 shrink-0"
         >
-          EXEC
+          {t('dashboard.shell_exec')}
         </button>
       </form>
     </div>
   );
 }
+

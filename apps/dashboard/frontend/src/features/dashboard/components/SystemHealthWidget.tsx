@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@loeger-os/shared';
 import { useTelemetryMetrics } from '../queries';
 import { TelemetryMetrics } from '@/shared/types';
 
@@ -10,10 +11,11 @@ import { TelemetryMetrics } from '@/shared/types';
  * Styled with high contrast and explicit layout boundaries for Obsidian Flux & Kinetic themes.
  */
 export function SystemHealthWidget() {
+  const { t } = useTranslation();
   const { data: serverTelemetry, isLoading, isError } = useTelemetryMetrics();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Live animated telemetry fallback for smooth micro-updates when server telemetry is syncing
+  // Live telemetry fallback state for updates when server telemetry is syncing
   const [metrics, setMetrics] = useState<TelemetryMetrics>({
     cpu_percent: 14.2,
     memory_percent: 42.8,
@@ -28,35 +30,7 @@ export function SystemHealthWidget() {
   useEffect(() => {
     if (serverTelemetry) {
       setMetrics(serverTelemetry);
-      return;
     }
-
-    const interval = setInterval(() => {
-      setMetrics((prev) => {
-        const cpuDelta = (Math.random() - 0.48) * 3.5;
-        const newCpu = Math.min(Math.max(prev.cpu_percent + cpuDelta, 5.0), 92.0);
-
-        const memDelta = (Math.random() - 0.5) * 0.4;
-        const newMem = Math.min(Math.max(prev.memory_percent + memDelta, 20.0), 85.0);
-
-        const rxDelta = (Math.random() - 0.48) * 0.5;
-        const newRx = Math.min(Math.max(prev.network_rx_mbps + rxDelta, 0.5), 25.0);
-
-        const txDelta = (Math.random() - 0.48) * 0.4;
-        const newTx = Math.min(Math.max(prev.network_tx_mbps + txDelta, 0.2), 15.0);
-
-        return {
-          ...prev,
-          cpu_percent: Number(newCpu.toFixed(1)),
-          memory_percent: Number(newMem.toFixed(1)),
-          network_rx_mbps: Number(newRx.toFixed(1)),
-          network_tx_mbps: Number(newTx.toFixed(1)),
-          uptime_seconds: prev.uptime_seconds + 2,
-        };
-      });
-    }, 2000);
-
-    return () => clearInterval(interval);
   }, [serverTelemetry]);
 
   const formatUptime = (seconds: number) => {
@@ -84,9 +58,9 @@ export function SystemHealthWidget() {
             <span className="material-symbols-outlined text-xl">insights</span>
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-[var(--text-main)] truncate">System Health Telemetry</h2>
+            <h2 className="text-base font-bold text-[var(--text-main)] truncate">{t('dashboard.telemetry_title')}</h2>
             <p className="text-xs text-[var(--text-muted)] font-mono truncate">
-              Live OpenTelemetry / SigNoz metrics stream
+              {t('dashboard.telemetry_subtitle')}
             </p>
           </div>
         </div>
@@ -98,7 +72,7 @@ export function SystemHealthWidget() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--primary-main)]"></span>
             </span>
             <span className="text-[10px] font-bold font-mono tracking-wider text-[var(--primary-main)] uppercase">
-              {isLoading ? 'SYNCING...' : isError ? 'PROCS FALLBACK' : 'LIVE STREAM'}
+              {isLoading ? t('dashboard.telemetry_syncing') : isError ? t('dashboard.telemetry_procs_fallback') : t('dashboard.telemetry_live_stream')}
             </span>
           </div>
 
@@ -106,7 +80,7 @@ export function SystemHealthWidget() {
             onClick={() => setIsCollapsed(!isCollapsed)}
             type="button"
             className="p-1 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
-            title={isCollapsed ? 'Expand Telemetry View' : 'Collapse Telemetry View'}
+            title={isCollapsed ? t('dashboard.expand_telemetry') : t('dashboard.collapse_telemetry')}
           >
             <span className="material-symbols-outlined text-base">
               {isCollapsed ? 'unfold_more' : 'unfold_less'}
@@ -121,7 +95,7 @@ export function SystemHealthWidget() {
           {/* CPU Load Gauge */}
           <div className="p-4.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-h-[140px] shadow-sm hover:border-[var(--border-accent)] transition-all duration-200 group">
             <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-              <span className="font-semibold tracking-wider uppercase">CPU LOAD</span>
+              <span className="font-semibold tracking-wider uppercase">{t('dashboard.cpu_load')}</span>
               <span className="material-symbols-outlined text-base text-[var(--primary-main)] group-hover:scale-110 transition-transform">
                 memory
               </span>
@@ -131,7 +105,7 @@ export function SystemHealthWidget() {
                 {metrics.cpu_percent}%
               </span>
               <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                {metrics.cpu_percent > 85 ? 'HIGH LOAD' : 'NORMAL'}
+                {metrics.cpu_percent > 85 ? t('dashboard.high_load') : t('dashboard.normal_load')}
               </span>
             </div>
             <div className="w-full bg-[var(--surface-elevated)] h-2.5 rounded-full overflow-hidden p-0.5 border border-[var(--border-subtle)]">
@@ -145,7 +119,7 @@ export function SystemHealthWidget() {
           {/* RAM Usage Gauge */}
           <div className="p-4.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-h-[140px] shadow-sm hover:border-[var(--border-accent)] transition-all duration-200 group">
             <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-              <span className="font-semibold tracking-wider uppercase">MEMORY (RAM)</span>
+              <span className="font-semibold tracking-wider uppercase">{t('dashboard.memory_ram')}</span>
               <span className="material-symbols-outlined text-base text-[var(--primary-main)] group-hover:scale-110 transition-transform">
                 storage
               </span>
@@ -169,7 +143,7 @@ export function SystemHealthWidget() {
           {/* Network I/O Gauge */}
           <div className="p-4.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-h-[140px] shadow-sm hover:border-[var(--border-accent)] transition-all duration-200 group">
             <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-              <span className="font-semibold tracking-wider uppercase">NETWORK I/O</span>
+              <span className="font-semibold tracking-wider uppercase">{t('dashboard.network_io')}</span>
               <span className="material-symbols-outlined text-base text-[var(--primary-main)] group-hover:scale-110 transition-transform">
                 swap_vert
               </span>
@@ -189,15 +163,15 @@ export function SystemHealthWidget() {
               </div>
             </div>
             <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
-              <span>Traffic Mode</span>
-              <span className="text-emerald-400 font-semibold uppercase">Optimal</span>
+              <span>{t('dashboard.traffic_mode')}</span>
+              <span className="text-emerald-400 font-semibold uppercase">{t('dashboard.optimal')}</span>
             </div>
           </div>
 
           {/* System Uptime Card */}
           <div className="p-4.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-h-[140px] shadow-sm hover:border-[var(--border-accent)] transition-all duration-200 group">
             <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
-              <span className="font-semibold tracking-wider uppercase">UPTIME</span>
+              <span className="font-semibold tracking-wider uppercase">{t('dashboard.uptime')}</span>
               <span className="material-symbols-outlined text-base text-[var(--primary-main)] group-hover:scale-110 transition-transform">
                 schedule
               </span>
@@ -207,7 +181,7 @@ export function SystemHealthWidget() {
             </div>
             <div className="text-xs font-mono text-emerald-400 font-semibold flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)] truncate">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-              <span>{metrics.active_containers} Containers Online</span>
+              <span>{t('dashboard.containers_online', { count: metrics.active_containers })}</span>
             </div>
           </div>
         </div>
@@ -215,3 +189,4 @@ export function SystemHealthWidget() {
     </div>
   );
 }
+
