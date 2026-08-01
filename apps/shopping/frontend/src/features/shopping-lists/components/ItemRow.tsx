@@ -18,6 +18,7 @@ interface ItemRowProps {
  * Renders an interactive, touch-optimized row in the checklist.
  */
 export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: ItemRowProps) {
+  const t = useTranslations("Checklist");
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -87,8 +88,8 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
               onDelete();
             }}
             className="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
-            aria-label="Remove item"
-            title="Remove item"
+            aria-label={t("removeItem")}
+            title={t("removeItem")}
           >
             <X className="h-3.5 w-3.5" />
           </button>

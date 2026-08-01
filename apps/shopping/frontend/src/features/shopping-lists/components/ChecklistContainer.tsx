@@ -18,9 +18,10 @@ interface ChecklistContainerProps {
 
 /**
  * Helper to categorize shopping items logically based on product name or metadata.
+ * Returns the category key in the "Categories" translation dictionary.
  */
-function getCategoryForItem(name: string, productId?: string | null): string {
-  if (productId) return "Pantry Stock 🥫";
+function getCategoryKeyForItem(name: string, productId?: string | null): string {
+  if (productId) return "pantryStock";
 
   const lower = name.toLowerCase();
 
@@ -29,7 +30,7 @@ function getCategoryForItem(name: string, productId?: string | null): string {
       lower
     )
   ) {
-    return "Produce 🥦";
+    return "produce";
   }
 
   if (
@@ -37,11 +38,11 @@ function getCategoryForItem(name: string, productId?: string | null): string {
       lower
     )
   ) {
-    return "Dairy 🧀";
+    return "dairy";
   }
 
   if (/brot|bread|brötchen|bun|roll|toast|croissant|baguette|kuchen|cake/i.test(lower)) {
-    return "Bakery 🍞";
+    return "bakery";
   }
 
   if (
@@ -49,7 +50,7 @@ function getCategoryForItem(name: string, productId?: string | null): string {
       lower
     )
   ) {
-    return "Household 🧹";
+    return "household";
   }
 
   if (
@@ -57,7 +58,7 @@ function getCategoryForItem(name: string, productId?: string | null): string {
       lower
     )
   ) {
-    return "Meat & Fish 🥩";
+    return "meat";
   }
 
   if (
@@ -65,7 +66,7 @@ function getCategoryForItem(name: string, productId?: string | null): string {
       lower
     )
   ) {
-    return "Beverages 🥤";
+    return "beverages";
   }
 
   if (
@@ -73,10 +74,10 @@ function getCategoryForItem(name: string, productId?: string | null): string {
       lower
     )
   ) {
-    return "Pantry 🥫";
+    return "pantry";
   }
 
-  return "Sonstiges 📦";
+  return "other";
 }
 
 /**
@@ -84,6 +85,7 @@ function getCategoryForItem(name: string, productId?: string | null): string {
  */
 export function ChecklistContainer({ listId }: ChecklistContainerProps) {
   const t = useTranslations("Checklist");
+  const tCat = useTranslations("Categories");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
 
@@ -130,14 +132,14 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
   const activeItems = filteredItems.filter((i) => !i.is_completed);
   const completedItems = filteredItems.filter((i) => i.is_completed);
 
-  // Group active items by category
+  // Group active items by category key
   const categoriesMap: Record<string, typeof activeItems> = {};
   activeItems.forEach((item) => {
-    const category = getCategoryForItem(item.name, item.product_id);
-    if (!categoriesMap[category]) {
-      categoriesMap[category] = [];
+    const categoryKey = getCategoryKeyForItem(item.name, item.product_id);
+    if (!categoriesMap[categoryKey]) {
+      categoriesMap[categoryKey] = [];
     }
-    categoriesMap[category].push(item);
+    categoriesMap[categoryKey].push(item);
   });
 
   const categories = Object.keys(categoriesMap);
@@ -181,17 +183,17 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
       {/* Checklist scroll area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5 scrollbar-none min-h-0">
         {/* Render grouped category items */}
-        {categories.map((cat) => (
-          <div key={cat} className="space-y-2">
+        {categories.map((catKey) => (
+          <div key={catKey} className="space-y-2">
             <div className="font-mono text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 select-none flex items-center gap-2">
-              <span>{cat}</span>
+              <span>{tCat(catKey)}</span>
               <div className="flex-1 h-[1px] bg-border/30" />
               <span className="text-[9px] text-muted-foreground/40">
-                {categoriesMap[cat].length}
+                {categoriesMap[catKey].length}
               </span>
             </div>
             <div className="space-y-1.5">
-              {categoriesMap[cat].map((item) => (
+              {categoriesMap[catKey].map((item) => (
                 <ItemRow
                   key={item.id}
                   item={item}
@@ -219,7 +221,9 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
               <span>
                 {t("completed")} ({completedItems.length})
               </span>
-              <span className="text-xs">{showCompleted ? "▲ Hide" : "▼ Show"}</span>
+              <span className="text-xs">
+                {showCompleted ? `▲ ${t("hide")}` : `▼ ${t("show")}`}
+              </span>
             </button>
 
             {showCompleted && (

@@ -52,6 +52,7 @@ function setStoredOrder(order: string[]) {
  */
 export function Sidebar() {
   const t = useTranslations("Navigation");
+  const tChecklist = useTranslations("Checklist");
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const { activeListId, setActiveListId } = useActiveList();
   const user = useKeycloakUser();
@@ -183,8 +184,8 @@ export function Sidebar() {
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="p-1.5 rounded-lg hover:bg-muted/60 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-            aria-label="Collapse Sidebar"
-            title="Collapse Sidebar"
+            aria-label={t("collapseSidebar")}
+            title={t("collapseSidebar")}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -328,7 +329,7 @@ export function Sidebar() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`Delete custom list "${list.name}"?`)) {
+                      if (confirm(tChecklist("deleteListConfirm", { name: list.name }))) {
                         deleteList.mutate(list.id, {
                           onSuccess: () => {
                             if (isActive && systemLists.length > 0) {
@@ -340,7 +341,7 @@ export function Sidebar() {
                     }}
                     disabled={deleteList.isPending}
                     className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-red-400 transition-opacity cursor-pointer"
-                    title="Delete List"
+                    title={tChecklist("deleteList")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
