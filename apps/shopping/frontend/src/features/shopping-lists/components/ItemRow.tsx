@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import { GlassCheckbox } from "./GlassCheckbox";
 import { PantryBadge } from "@/components/shared/PantryBadge";

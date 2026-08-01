@@ -335,7 +335,6 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
                           {t("catalogBlueprintName")}
                         </label>
                         <div className="flex gap-2">
-                        <div className="flex gap-2">
                           <input
                             value={catalogInput}
                             onChange={(e) => setCatalogInput(e.target.value)}
