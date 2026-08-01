@@ -1,32 +1,24 @@
 :root {
-  /* Light Mode Variables */
-  --background: #f1f5f9;
-  --foreground: #0f172a;
-  
-  --card: rgba(255, 255, 255, 0.45);
-  --card-foreground: #0f172a;
-  
-  --popover: rgba(255, 255, 255, 0.95);
-  --popover-foreground: #0f172a;
-  
-  --primary: #0052ff;
-  --primary-foreground: #ffffff;
-  
-  --secondary: rgba(0, 82, 255, 0.08);
-  --secondary-foreground: #0052ff;
-  
-  --muted: rgba(15, 23, 42, 0.05);
-  --muted-foreground: rgba(15, 23, 42, 0.45);
-  
-  --accent: #06b6d4;
-  --accent-foreground: #ffffff;
-  
-  --destructive: #ef4444;
+  /* Core Variables mapped to Shared Design System */
+  --background: var(--surface-canvas);
+  --foreground: var(--text-main);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-main);
+  --popover: var(--surface-card);
+  --popover-foreground: var(--text-main);
+  --primary: var(--primary-main);
+  --primary-foreground: var(--surface-canvas);
+  --secondary: var(--surface-elevated);
+  --secondary-foreground: var(--primary-main);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--primary-main);
+  --accent-foreground: var(--surface-canvas);
+  --destructive: #ff3b5c;
   --destructive-foreground: #ffffff;
-  
-  --border: rgba(148, 163, 184, 0.2);
-  --input: rgba(255, 255, 255, 0.6);
-  --ring: rgba(0, 82, 255, 0.5);
+  --border: var(--border-subtle);
+  --input: var(--surface-elevated);
+  --ring: var(--primary-main);
   
   --radius: 1rem;
   
@@ -58,35 +50,6 @@
 }
 
 .dark {
-  /* Dark Mode Variables (Glassmorphism Core) */
-  --background: #03040f;
-  --foreground: #eef2ff;
-  
-  --card: rgba(255, 255, 255, 0.045);
-  --card-foreground: #eef2ff;
-  
-  --popover: rgba(8, 12, 40, 0.97);
-  --popover-foreground: #eef2ff;
-  
-  --primary: #0066ff;
-  --primary-foreground: #ffffff;
-  
-  --secondary: rgba(0, 102, 255, 0.15);
-  --secondary-foreground: #7eb4ff;
-  
-  --muted: rgba(255, 255, 255, 0.03);
-  --muted-foreground: rgba(160, 185, 255, 0.45);
-  
-  --accent: #32cfff;
-  --accent-foreground: #03040f;
-  
-  --destructive: #ff3b5c;
-  --destructive-foreground: #ffffff;
-  
-  --border: rgba(120, 160, 255, 0.15);
-  --input: rgba(255, 255, 255, 0.05);
-  --ring: rgba(50, 207, 255, 0.5);
-  
   /* Dynamic Glass Material Tokens - Dark Mode */
   --glass-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0.03) 100%);
   --glass-border-top: rgba(255, 255, 255, 0.16);

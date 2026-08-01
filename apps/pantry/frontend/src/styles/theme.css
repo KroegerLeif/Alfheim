@@ -1,23 +1,23 @@
 :root {
-  --background: #ffffff;
-  --foreground: #111111;
-  --card: #ffffff;
-  --card-foreground: #111111;
-  --popover: #ffffff;
-  --popover-foreground: #111111;
-  --primary: #111111;
-  --primary-foreground: #ffffff;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #111111;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --accent: #f5f5f5;
-  --accent-foreground: #111111;
+  --background: var(--surface-canvas);
+  --foreground: var(--text-main);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-main);
+  --popover: var(--surface-card);
+  --popover-foreground: var(--text-main);
+  --primary: var(--primary-main);
+  --primary-foreground: var(--surface-canvas);
+  --secondary: var(--surface-elevated);
+  --secondary-foreground: var(--primary-main);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface-elevated);
+  --accent-foreground: var(--text-main);
   --destructive: #ef4444;
   --destructive-foreground: #f8fafc;
-  --border: #111111;
-  --input: #e5e5e5;
-  --ring: #111111;
+  --border: var(--border-subtle);
+  --input: var(--surface-elevated);
+  --ring: var(--primary-main);
   
   /* Strict Swiss style flat corners */
   --radius: 0rem;
