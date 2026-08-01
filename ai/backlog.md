@@ -31,6 +31,8 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 
 ### Inventory / Analytics
 - [ ] Add backend endpoint for aggregated low-stock trend history used by analytics widgets.
+- [ ] Add backend endpoint for external barcode scan auto-fill / OpenFoodFacts catalog integration.
+- [ ] Add backend endpoint for CSV bulk export/import for physical inventory audits.
 
 ## Maintenance
 

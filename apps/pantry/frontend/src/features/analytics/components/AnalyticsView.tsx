@@ -168,8 +168,8 @@ export function AnalyticsView() {
 
             {/* Legend / Metrics Footer */}
             <div className="text-[9px] text-[var(--text-muted)] uppercase flex justify-between items-center select-none pt-4 border-t border-[var(--border-subtle)]">
-              <span>Metric: {t("pantry.consumedLabel")} [Norm. Base Unit]</span>
-              <span>Scale: Max {maxConsumptionValue.toFixed(0)}</span>
+              <span>{t("pantry.metricConsumed")}</span>
+              <span>{t("pantry.scaleMax", { max: maxConsumptionValue.toFixed(0) })}</span>
             </div>
           </div>
 
@@ -216,8 +216,8 @@ export function AnalyticsView() {
 
             {/* Legend / Metrics Footer */}
             <div className="text-[9px] text-[var(--text-muted)] uppercase flex justify-between items-center select-none pt-4 border-t border-[var(--border-subtle)]">
-              <span>Metric: {t("pantry.stockLabel")} [Norm. Base Unit]</span>
-              <span>Sorted: High-to-Low</span>
+              <span>{t("pantry.metricStock")}</span>
+              <span>{t("pantry.sortedHighToLow")}</span>
             </div>
           </div>
 

@@ -15,6 +15,7 @@ import { useLocations } from "@/features/locations/services/locationService";
 import { useSearchProducts, useCreateProduct } from "@/features/products/services/productService";
 import { useCategories, useCreateCategory } from "@/features/categories/services/categoryService";
 import { useCreateTransaction } from "@/features/inventory/services/inventoryService";
+import { pantryClient } from "@/lib/api";
 import { ProductRead } from "@/features/inventory/types";
 import { Search, Barcode, Plus, Minus, Check, Loader2, AlertCircle, PackagePlus } from "lucide-react";
 
@@ -28,7 +29,7 @@ interface StockActionModalProps {
 /**
  * StockActionModal Component
  * Facilitates recording physical stock transactions (IN / OUT movements).
- * Provides a simulated barcode reader and a manual registry search.
+ * Provides a barcode reader and a manual registry search.
  * Supports quick inline creation of missing product blueprints & categories.
  * Incorporates a touch-stepper for fast tablet-based quantity logging.
  */
@@ -113,22 +114,20 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
     }
   }, [selectedProduct]);
 
-  // Simulate scanning of physical barcodes
+  // Handle scanning of physical barcodes
   const handleBarcodeSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcodeInput.trim()) return;
     
     setScanError("");
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/products/barcode/${barcodeInput}`);
-      if (!response.ok) {
-        throw new Error(t("pantry.noMatchesFound"));
-      }
-      const data: ProductRead = await response.json();
+      const data = await pantryClient
+        .get(`api/v1/products/barcode/${barcodeInput}`)
+        .json<ProductRead>();
       setSelectedProduct(data);
       setBarcodeInput("");
     } catch (err: any) {
-      setScanError(err.message || t("pantry.noMatchesFound"));
+      setScanError(t("pantry.noMatchesFound"));
     }
   };
 
@@ -305,7 +304,7 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
                             type="text"
                             value={newCategoryName}
                             onChange={(e) => setNewCategoryName(e.target.value)}
-                            placeholder="Category name"
+                            placeholder={t("pantry.categoryPlaceholder")}
                             className="flex-1 p-2 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-xs text-[var(--text-main)] font-mono"
                           />
                           <Button
@@ -342,10 +341,10 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
                         onChange={(e) => setNewProductBaseUnit(e.target.value)}
                         className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded uppercase font-mono"
                       >
-                        <option value="piece">PIECE</option>
-                        <option value="g">GRAMS (G)</option>
-                        <option value="ml">MILLILITERS (ML)</option>
-                        <option value="m">METERS (M)</option>
+                        <option value="piece">{t("pantry.unitPiece")}</option>
+                        <option value="g">{t("pantry.unitGrams")}</option>
+                        <option value="ml">{t("pantry.unitMilliliters")}</option>
+                        <option value="m">{t("pantry.unitMeters")}</option>
                       </select>
                     </div>
                     <div className="space-y-1">
@@ -390,7 +389,7 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
                         type="text"
                         value={barcodeInput}
                         onChange={(e) => setBarcodeInput(e.target.value)}
-                        placeholder="Enter EAN (e.g. 4008400200123)"
+                        placeholder={t("pantry.eanPlaceholder")}
                         className="w-full pl-9 pr-4 py-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm rounded font-mono"
                       />
                     </div>
@@ -621,7 +620,7 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Log physical inspection notes or adjustments here..."
+                placeholder={t("pantry.notesPlaceholder")}
                 rows={2}
                 className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm font-sans rounded"
               />

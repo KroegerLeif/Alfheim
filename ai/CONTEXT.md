@@ -18,9 +18,40 @@
 
 ## Current Sprint — Completed Commits
 
-### `refactor(shopping): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`
+### `refactor(pantry): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`
 
 **Date**: 2026-08-01
+
+#### Summary
+1. **Zero Hardcoded UI Text (i18n Rigor)**:
+   - Audited every component, modal, page view, and navigation element in `apps/pantry/frontend/`.
+   - Expanded shared dictionaries in `@loeger-os/shared` (`packages/shared/src/features/i18n/locales/{de,en,pl}/pantry.json`) with validation error messages, form placeholders, unit options, system titles, and chart footers.
+   - Replaced all raw UI strings with `useTranslations()` / `useTranslation()`, preserving German (`de`) as canonical default/fallback and keeping user runtime input (product names, location names, batch codes, notes) as sole exception.
+2. **Elimination of Fake Data & Direct HTTP Endpoints**:
+   - Replaced raw `fetch("http://localhost:8000/...")` call in `StockActionModal.tsx` with `pantryClient` API calls.
+   - Standardized `inventoryService.ts` low-stock push logic using `pantryClient` and environment-aware base routes.
+   - Handled empty state rendering cleanly across all inventory views (`DashboardView`, `InventoryTableView`, `LedgerHistoryView`, `LocationsGridView`, `AnalyticsView`, `ProductCatalogView`).
+3. **Shared Component & Theme Engine Integration**:
+   - Updated brand headers in `Sidebar.tsx` to consume dynamic system i18n keys.
+   - Enforced dynamic CSS variables (`var(--...)`) for backgrounds, borders, typography, and status indicators across light and dark theme modes.
+4. **Verification & Type Safety**:
+   - Verified clean type safety with `pnpm --filter pantry-frontend exec tsc --noEmit`.
+   - Ran unit test suite with `pnpm --filter pantry-frontend run test` (35/35 tests passing).
+
+#### Affected Files
+- `packages/shared/src/features/i18n/locales/{de,en,pl}/pantry.json`
+- `apps/pantry/frontend/src/components/shared/Sidebar.tsx`
+- `apps/pantry/frontend/src/features/inventory/components/StockActionModal.tsx`
+- `apps/pantry/frontend/src/features/inventory/components/DashboardView.tsx`
+- `apps/pantry/frontend/src/features/inventory/components/InventoryTableView.tsx`
+- `apps/pantry/frontend/src/features/inventory/components/LedgerHistoryView.tsx`
+- `apps/pantry/frontend/src/features/locations/components/LocationsGridView.tsx`
+- `apps/pantry/frontend/src/features/products/components/ProductCatalogView.tsx`
+- `apps/pantry/frontend/src/features/analytics/components/AnalyticsView.tsx`
+- `ai/backlog.md`
+- `ai/CONTEXT.md`
+
+---
 
 #### Summary
 1. **Zero Hardcoded UI Text (i18n Rigor)**:
