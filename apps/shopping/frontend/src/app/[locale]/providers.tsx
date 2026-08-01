@@ -1,7 +1,6 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider as NextThemeProvider } from "next-themes";
 import { ThemeProvider as SharedThemeProvider } from "@loeger-os/shared";
 import { ReactNode, useState, useEffect, createContext, useContext } from "react";
 import Keycloak from "keycloak-js";
@@ -125,15 +124,13 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
-          <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-            <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
-              {children}
-            </ActiveListContext.Provider>
-          </SidebarContext.Provider>
-        </SharedThemeProvider>
-      </NextThemeProvider>
+      <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
+        <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
+          <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
+            {children}
+          </ActiveListContext.Provider>
+        </SidebarContext.Provider>
+      </SharedThemeProvider>
     </QueryClientProvider>
   );
 }
