@@ -201,7 +201,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
           <div className="p-3 rounded-xl glass-inset flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs font-heading font-extrabold uppercase text-foreground">
               <Building2 className="h-4 w-4 text-primary shrink-0" />
-              <span>Target Household:</span>
+              <span>{t("targetHousehold")}</span>
             </div>
 
             {households.length > 1 ? (
@@ -213,7 +213,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
                 >
                   {households.map((hh) => (
                     <option key={hh.id} value={hh.id}>
-                      {hh.name} {hh.is_default ? "(Default)" : ""}
+                      {hh.name} {hh.is_default ? t("defaultTag") : ""}
                     </option>
                   ))}
                 </select>
@@ -221,7 +221,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
               </div>
             ) : (
               <span className="font-mono text-xs font-bold text-primary px-2 py-1 rounded-md bg-primary/10 border border-primary/20">
-                {selectedHousehold?.name || "Primary Household"}
+                {selectedHousehold?.name || t("defaultTag")}
               </span>
             )}
           </div>
@@ -278,7 +278,9 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
                               </span>
                             )}
                             {item.resolved === "skipped" && (
-                              <span className="text-amber-500 font-bold ml-2">Skipped</span>
+                              <span className="text-amber-500 font-bold ml-2">
+                                {t("skippedLabel")}
+                              </span>
                             )}
                             {item.resolved === "ignored" && (
                               <span className="text-muted-foreground/40 font-bold ml-2">
@@ -294,7 +296,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
                           <button
                             onClick={() => startEdit(item)}
                             className="p-1.5 rounded-lg glass-inset hover:glass-active text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                            title="Edit Item"
+                            title={t("editItem")}
                           >
                             <Edit2 className="h-3.5 w-3.5" />
                           </button>
@@ -302,16 +304,16 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
                           <button
                             onClick={() => startSave(item.shopping_item_id, item.name)}
                             className="h-8 px-2.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer glass-active font-heading text-[10px] font-black uppercase tracking-wider text-blue-500 dark:text-blue-400"
-                            title="Save to Catalog"
+                            title={t("saveToCatalog")}
                           >
                             <Save className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-                            <span>Catalog</span>
+                            <span>{t("catalogBtn")}</span>
                           </button>
 
                           <button
                             onClick={() => skipItem(item.shopping_item_id)}
                             className="p-1.5 rounded-lg glass-inset hover:glass-active text-muted-foreground hover:text-amber-400 cursor-pointer transition-colors"
-                            title="Skip Item"
+                            title={t("skipItem")}
                           >
                             <SkipForward className="h-3.5 w-3.5" />
                           </button>
@@ -319,7 +321,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
                           <button
                             onClick={() => removeItem(item.shopping_item_id)}
                             className="p-1.5 rounded-lg glass-inset hover:bg-red-500/10 text-muted-foreground hover:text-red-400 cursor-pointer transition-colors"
-                            title="Remove Item"
+                            title={t("ignoreBtn")}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -330,7 +332,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
                     {isCurrentSaving && (
                       <div className="mt-3 pt-2.5 border-t border-border/10 flex flex-col gap-2 select-none">
                         <label className="font-mono text-[8px] font-bold text-blue-500 uppercase tracking-widest leading-none">
-                          Catalog Product Blueprint Name:
+                          {t("catalogBlueprintName")}
                         </label>
                         <div className="flex gap-2">
                           <input

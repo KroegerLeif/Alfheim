@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 export default function ShoppingDashboard() {
   const t = useTranslations("Checklist");
   const navT = useTranslations("Navigation");
+  const errT = useTranslations("Error");
   const { activeListId, setActiveListId } = useActiveList();
   const user = useKeycloakUser();
 
@@ -137,7 +138,7 @@ export default function ShoppingDashboard() {
   const handleClearCompleted = () => {
     const completed = items.filter((i) => i.is_completed);
     if (completed.length === 0) return;
-    if (confirm(`Delete ${completed.length} completed item(s)?`)) {
+    if (confirm(t("deleteCompletedConfirm", { count: completed.length }))) {
       completed.forEach((i) => deleteItem.mutate(i.id));
     }
   };
@@ -175,14 +176,14 @@ export default function ShoppingDashboard() {
             <ShoppingCart className="h-6 w-6" />
           </div>
           <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
-            {isAuthError ? "Session Expired" : "Failed to Load Shopping Lists"}
+            {isAuthError ? errT("sessionExpired") : errT("fetchFailed")}
           </h2>
           <p className="text-xs text-muted-foreground">
             {isAuthError
-              ? "Your security token has expired or is invalid. Please re-authenticate with Keycloak to resume."
+              ? errT("sessionExpiredDesc")
               : listsErrObj instanceof Error
               ? listsErrObj.message
-              : "Unable to reach the shopping backend service."}
+              : errT("fetchFailedDesc")}
           </p>
           <div className="flex gap-2 justify-center">
             {isAuthError ? (
@@ -190,14 +191,14 @@ export default function ShoppingDashboard() {
                 onClick={handleLogin}
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
               >
-                Log In
+                {errT("logIn")}
               </button>
             ) : (
               <button
                 onClick={() => refetchLists()}
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
               >
-                Retry
+                {errT("retry")}
               </button>
             )}
           </div>
@@ -209,7 +210,7 @@ export default function ShoppingDashboard() {
   const activeList = lists.find((l) => l.id === resolvedListId);
   const activeListName = activeList?.is_personal && user.username
     ? `${user.username} - Liste`
-    : activeList?.name || "Shopping List";
+    : activeList?.name || t("title");
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden font-sans relative select-none">
@@ -289,7 +290,7 @@ export default function ShoppingDashboard() {
                     {percentage}%
                   </span>
                   <span className="text-[9px] font-mono text-muted-foreground/50 uppercase">
-                    Progress
+                    {t("progress")}
                   </span>
                 </div>
               </div>

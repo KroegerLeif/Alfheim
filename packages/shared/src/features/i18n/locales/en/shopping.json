@@ -1,4 +1,17 @@
 {
+  "Navigation": {
+    "title": "Shopping",
+    "subtitle": "Checklist & Stock",
+    "backToDashboard": "Back to Dashboard",
+    "expandSidebar": "Expand Sidebar",
+    "collapseSidebar": "Collapse Sidebar",
+    "systemLists": "System Lists",
+    "customLists": "Custom Lists",
+    "newList": "New List",
+    "newListPlaceholder": "Name...",
+    "noLists": "No custom lists",
+    "logout": "Log Out"
+  },
   "Checklist": {
     "title": "Shopping Checklist",
     "searchPlaceholder": "Search items...",
@@ -13,7 +26,15 @@
     "clearCompleted": "Clear Completed",
     "systemProtected": "System Protected",
     "customList": "Custom List",
-    "linkCopied": "Link copied to clipboard!"
+    "linkCopied": "Link copied to clipboard!",
+    "progress": "Progress",
+    "deleteCompletedConfirm": "Delete {count} completed item(s)?",
+    "deleteListConfirm": "Delete list \"{name}\"?",
+    "hide": "Hide",
+    "show": "Show",
+    "removeItem": "Remove item",
+    "deleteList": "Delete list",
+    "createList": "Create list"
   },
   "Categories": {
     "produce": "Produce 🥦",
@@ -23,7 +44,8 @@
     "meat": "Meat & Fish 🥩",
     "pantry": "Pantry 🥫",
     "beverages": "Beverages 🥤",
-    "other": "Other 📦"
+    "other": "Other 📦",
+    "pantryStock": "Pantry Stock 🥫"
   },
   "AddForm": {
     "title": "Quick Add Article",
@@ -38,24 +60,37 @@
     "noHistory": "No frequent items"
   },
   "Modal": {
-    "scanTitle": "Einlagern · Scan",
+    "scanTitle": "Store · Scan",
     "unresolvedTitle": "{count} Unknown Items Found",
     "allDoneTitle": "All Items Processed",
     "catalogBtn": "Catalog",
     "ignoreBtn": "Ignore",
     "ignoredLabel": "— Ignored",
+    "skippedLabel": "— Skipped",
     "savedLabel": "✓ {catalogName}",
     "inputLabel": "Set Catalog Name",
     "saveBtn": "Save",
     "doneBtn": "Done",
     "laterBtn": "Do Later",
-    "summaryText": "{saved} saved · {ignored} ignored"
+    "summaryText": "{saved} saved · {ignored} ignored",
+    "targetHousehold": "Target Household:",
+    "catalogBlueprintName": "Catalog Product Name:",
+    "defaultTag": "(Default)",
+    "editItem": "Edit Item",
+    "saveToCatalog": "Save to Catalog",
+    "skipItem": "Skip Item"
   },
   "Error": {
     "nameRequired": "Item name is required",
     "invalidQty": "Quantity must be positive",
-    "fetchFailed": "Failed to load details",
+    "fetchFailed": "Failed to Load Shopping Lists",
+    "fetchFailedDesc": "Unable to reach the shopping backend service.",
     "syncFailed": "Pantry sync failed",
-    "unrecognizedError": "An unexpected error occurred"
+    "unrecognizedError": "An unexpected error occurred",
+    "sessionExpired": "Session Expired",
+    "sessionExpiredDesc": "Your security token has expired or is invalid. Please re-authenticate with Keycloak to resume.",
+    "logIn": "Log In",
+    "retry": "Retry"
   }
 }
+

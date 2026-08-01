@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Plus, Trash2, Check, X, Home, User, GripVertical } from "lucide-react";
 import {
   useShoppingLists,
@@ -42,6 +43,8 @@ function isProtectedList(list: ShoppingList): boolean {
  * Tab switcher displaying all visible shopping lists with drag-and-drop reordering and inline list actions.
  */
 export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
+  const tNav = useTranslations("Navigation");
+  const tChecklist = useTranslations("Checklist");
   const { data: lists = [], isLoading } = useShoppingLists();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -211,7 +214,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                 {canDelete && (
                   <button
                     onClick={() => {
-                      if (confirm(`Delete list "${list.name}"?`)) {
+                      if (confirm(tChecklist("deleteListConfirm", { name: list.name }))) {
                         deleteList.mutate(list.id, {
                           onSuccess: () => {
                             const remaining = lists.filter((l) => l.id !== list.id);
@@ -224,7 +227,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                     }}
                     disabled={deleteList.isPending}
                     className="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:text-red-300 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card)] transition-colors cursor-pointer shrink-0"
-                    title="Delete List"
+                    title={tChecklist("deleteList")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -239,7 +242,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                 type="text"
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
-                placeholder="Name..."
+                placeholder={tNav("newListPlaceholder")}
                 className="bg-transparent border-none outline-none font-heading text-xs font-bold uppercase tracking-wider text-foreground placeholder:text-muted-foreground/40 w-24"
                 autoFocus
                 onKeyDown={(e) => {
@@ -265,8 +268,8 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
             <button
               onClick={() => setIsCreating(true)}
               className="flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground hover:text-foreground bg-[var(--surface-elevated)] hover:bg-[var(--surface-card)] transition-colors cursor-pointer shrink-0"
-              aria-label="Create List"
-              title="Create List"
+              aria-label={tChecklist("createList")}
+              title={tChecklist("createList")}
             >
               <Plus className="h-4 w-4" />
             </button>

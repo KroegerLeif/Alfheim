@@ -1,4 +1,17 @@
 {
+  "Navigation": {
+    "title": "Zakupy",
+    "subtitle": "Lista & Zapasy",
+    "backToDashboard": "Powrót do pulpitu",
+    "expandSidebar": "Rozwiń panel",
+    "collapseSidebar": "Zwiń panel",
+    "systemLists": "Listy systemowe",
+    "customLists": "Własne listy",
+    "newList": "Nowa lista",
+    "newListPlaceholder": "Nazwa...",
+    "noLists": "Brak własnych list",
+    "logout": "Wyloguj"
+  },
   "Checklist": {
     "title": "Lista zakupów",
     "searchPlaceholder": "Szukaj artykułów...",
@@ -13,7 +26,15 @@
     "clearCompleted": "Usuń ukończone",
     "systemProtected": "Systemowa chroniona",
     "customList": "Własna lista",
-    "linkCopied": "Link skopiowano do schowka!"
+    "linkCopied": "Link skopiowano do schowka!",
+    "progress": "Postęp",
+    "deleteCompletedConfirm": "Usunąć {count} ukończone artykuły?",
+    "deleteListConfirm": "Usunąć listę \"{name}\"?",
+    "hide": "Ukryj",
+    "show": "Pokaż",
+    "removeItem": "Usuń artykuł",
+    "deleteList": "Usuń listę",
+    "createList": "Utwórz listę"
   },
   "Categories": {
     "produce": "Owoce i warzywa 🥦",
@@ -23,7 +44,8 @@
     "meat": "Mięso i ryby 🥩",
     "pantry": "Przetwory i spiżarnia 🥫",
     "beverages": "Napoje 🥤",
-    "other": "Inne 📦"
+    "other": "Inne 📦",
+    "pantryStock": "Zapasy spiżarni 🥫"
   },
   "AddForm": {
     "title": "Dodaj artykuł",
@@ -44,18 +66,30 @@
     "catalogBtn": "Katalog",
     "ignoreBtn": "Ignoruj",
     "ignoredLabel": "— Zignorowano",
+    "skippedLabel": "— Pominięto",
     "savedLabel": "✓ {catalogName}",
     "inputLabel": "Ustaw nazwę katalogu",
     "saveBtn": "Zapisz",
     "doneBtn": "Gotowe",
     "laterBtn": "Zrób później",
-    "summaryText": "{saved} zapisano · {ignored} zignorowano"
+    "summaryText": "{saved} zapisano · {ignored} zignorowano",
+    "targetHousehold": "Gospodarstwo docelowe:",
+    "catalogBlueprintName": "Nazwa w katalogu:",
+    "defaultTag": "(Domyślne)",
+    "editItem": "Edytuj artykuł",
+    "saveToCatalog": "Zapisz w katalogu",
+    "skipItem": "Pomiń artykuł"
   },
   "Error": {
     "nameRequired": "Nazwa artykułu jest wymagana",
     "invalidQty": "Ilość musi być dodatnia",
-    "fetchFailed": "Nie udało się załadować szczegółów",
+    "fetchFailed": "Nie udało się załadować list zakupów",
+    "fetchFailedDesc": "Nie można połączyć się z usługą zakupów.",
     "syncFailed": "Synchronizacja ze spiżarnią nie powiodła się",
-    "unrecognizedError": "Wystąpił nieoczekiwany błąd"
+    "unrecognizedError": "Wystąpił nieoczekiwany błąd",
+    "sessionExpired": "Sesja wygasła",
+    "sessionExpiredDesc": "Twój token bezpieczeństwa wygasł. Zaloguj się ponownie przez Keycloak.",
+    "logIn": "Zaloguj",
+    "retry": "Ponów"
   }
 }

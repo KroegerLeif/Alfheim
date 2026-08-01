@@ -316,17 +316,9 @@ export function useHouseholds() {
     queryFn: async () => {
       try {
         const res = await shoppingClient.get("api/v1/households/me").json<Household[]>();
-        return res && res.length > 0
-          ? res
-          : [
-              { id: "hh-primary", name: "Primary Household", is_default: true },
-              { id: "hh-vacation", name: "Vacation Home", is_default: false },
-            ];
+        return Array.isArray(res) ? res : [];
       } catch {
-        return [
-          { id: "hh-primary", name: "Primary Household", is_default: true },
-          { id: "hh-vacation", name: "Vacation Home", is_default: false },
-        ];
+        return [];
       }
     },
   });
