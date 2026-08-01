@@ -3,8 +3,10 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslation } from '@loeger-os/shared';
 
 function UnderConstructionContent() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const appName = searchParams.get('app') || 'Service';
 
@@ -18,15 +20,15 @@ function UnderConstructionContent() {
       </div>
 
       <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold tracking-wider uppercase mb-4">
-        STATUS: IN PROGRESS
+        {t('dashboard.status_in_progress')}
       </span>
 
       <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)] mb-3">
-        {appName} is Under Construction
+        {t('dashboard.under_construction_title', { name: appName })}
       </h1>
 
       <p className="text-sm text-[var(--text-muted)] max-w-md mb-8 leading-relaxed font-sans">
-        The requested microservice or portal is currently being deployed and configured as part of the Loeger OS platform release.
+        {t('dashboard.under_construction_desc')}
       </p>
 
       <Link
@@ -34,7 +36,7 @@ function UnderConstructionContent() {
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 shadow-lg cursor-pointer"
       >
         <span className="material-symbols-outlined text-base">arrow_back</span>
-        <span>Return to Dashboard</span>
+        <span>{t('dashboard.return_to_dashboard')}</span>
       </Link>
     </div>
   );

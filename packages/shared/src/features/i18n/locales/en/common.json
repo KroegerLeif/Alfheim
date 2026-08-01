@@ -55,7 +55,24 @@
     "required_role": "Required Role",
     "status": "Status",
     "internal_category": "Internal Service",
-    "external_category": "External Portal"
+    "external_category": "External Portal",
+    "register_new_service": "Register New Service",
+    "register_subtitle": "Add an internal microservice or external portal link",
+    "service_type": "Service Type",
+    "service_title_req": "Service Title *",
+    "target_url_req": "Target URL / Path *",
+    "short_summary_placeholder": "Short summary of service functionality...",
+    "deployment_status": "Deployment Status",
+    "status_active_opt": "Active (Live Service)",
+    "status_in_progress_opt": "In Progress (Under Construction)",
+    "status_maintenance_opt": "Maintenance Mode",
+    "select_icon": "Select Service Icon",
+    "registering": "Registering...",
+    "register_service": "Register Service",
+    "title_required_error": "Service title is required.",
+    "url_required_error": "Service target URL is required.",
+    "register_failed_error": "Failed to register new service",
+    "update_failed_error": "Failed to update catalog application"
   },
   "household": {
     "title": "Household",
@@ -67,7 +84,22 @@
     "join_household_desc": "Enter your invitation token to join an existing household.",
     "invite_token_placeholder": "Enter invite token...",
     "submit_token": "Submit Token",
-    "joining": "Joining..."
+    "joining": "Joining...",
+    "generate_invite": "Generate Invite Code",
+    "invite_code_token": "Invite Code Token",
+    "registry_and_members": "Household Registry & Members",
+    "enrolled_count": "{count} Enrolled",
+    "member_user": "Member User",
+    "joined_date": "Joined: {date}",
+    "household_security_note": "Household IDs and membership permissions are cryptographically verified downstream across Loeger OS microservices.",
+    "qr_code_title": "Household Access QR Code",
+    "qr_code_desc": "Scan with mobile camera or copy token to join.",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "max_uses_expiry": "Max Uses: {max} • Expires at {time}",
+    "create_failed": "Failed to create household: {error}",
+    "join_success": "Successfully joined household \"{name}\"!",
+    "join_failed": "Failed to join household: {error}"
   },
   "settings": {
     "title": "Platform Settings & Design Theme",
@@ -85,13 +117,25 @@
     "telemetry_stream": "OpenTelemetry Stream",
     "telemetry_stream_desc": "Push live CPU/RAM telemetry logs to SigNoz collector.",
     "system_update": "System Update",
-    "platform_up_to_date": "Platform Up to Date"
+    "platform_up_to_date": "Platform Up to Date",
+    "platform_release": "Loeger OS Platform Release",
+    "current_version": "Current Version",
+    "build_target": "Build Target"
   },
   "profile": {
     "title": "User Profile",
     "user_details": "User Details",
     "username": "Username",
     "email": "Email Address",
-    "roles": "Assigned Roles"
+    "roles": "Assigned Roles",
+    "first_name": "First Name",
+    "last_name": "Last Name",
+    "avatar_url": "Avatar Image URL",
+    "oidc_claims_title": "OIDC Claims & Metadata",
+    "subject_sub": "Subject (sub)",
+    "given_name": "Given Name",
+    "family_name": "Family Name",
+    "not_available": "N/A",
+    "update_failed": "Update failed: {error}"
   }
 }

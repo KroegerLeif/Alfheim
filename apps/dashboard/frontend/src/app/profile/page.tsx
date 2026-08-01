@@ -55,11 +55,11 @@ export default function ProfilePage() {
 
   const displayName = profile
     ? `${profile.first_name} ${profile.last_name}`
-    : authUser?.name || 'Authenticated User';
+    : authUser?.name || t('dashboard.authenticated_user');
 
   const username = profile?.username || authUser?.preferred_username || 'user';
   const email = profile?.email || authUser?.email || '';
-  const userId = profile?.id || authUser?.sub || 'N/A';
+  const userId = profile?.id || authUser?.sub || t('profile.not_available');
 
   return (
     <>
@@ -131,7 +131,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
-                First Name
+                {t('profile.first_name')}
               </label>
               <input
                 type="text"
@@ -144,7 +144,7 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
-                Last Name
+                {t('profile.last_name')}
               </label>
               <input
                 type="text"
@@ -158,7 +158,7 @@ export default function ProfilePage() {
 
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
-              Avatar Image URL
+              {t('profile.avatar_url')}
             </label>
             <input
               type="url"
@@ -183,10 +183,10 @@ export default function ProfilePage() {
 
       {/* Profile Metadata Sidebar */}
       <div className="col-span-12 md:col-span-4 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
-        <h2 className="text-base font-bold text-[var(--text-main)] mb-4">OIDC Claims & Metadata</h2>
+        <h2 className="text-base font-bold text-[var(--text-main)] mb-4">{t('profile.oidc_claims_title')}</h2>
         <div className="space-y-3.5 text-xs">
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Subject (sub)</span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.subject_sub')}</span>
             <span className="font-mono text-[var(--text-main)] break-all">{authUser?.sub || userId}</span>
           </div>
           <div>
@@ -195,15 +195,15 @@ export default function ProfilePage() {
           </div>
           <div>
             <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.email')}</span>
-            <span className="font-semibold text-[var(--text-main)]">{email || 'N/A'}</span>
+            <span className="font-semibold text-[var(--text-main)]">{email || t('profile.not_available')}</span>
           </div>
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Given Name</span>
-            <span className="font-mono text-[var(--text-main)]">{authUser?.given_name || firstName || 'N/A'}</span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.given_name')}</span>
+            <span className="font-mono text-[var(--text-main)]">{authUser?.given_name || firstName || t('profile.not_available')}</span>
           </div>
           <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">Family Name</span>
-            <span className="font-mono text-[var(--text-main)]">{authUser?.family_name || lastName || 'N/A'}</span>
+            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.family_name')}</span>
+            <span className="font-mono text-[var(--text-main)]">{authUser?.family_name || lastName || t('profile.not_available')}</span>
           </div>
         </div>
       </div>
