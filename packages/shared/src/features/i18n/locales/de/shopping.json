@@ -1,4 +1,17 @@
 {
+  "Navigation": {
+    "title": "Einkauf",
+    "subtitle": "Checkliste & Vorrat",
+    "backToDashboard": "Zurück zum Dashboard",
+    "expandSidebar": "Sidebar ausklappen",
+    "collapseSidebar": "Sidebar einklappen",
+    "systemLists": "System-Listen",
+    "customLists": "Eigene Listen",
+    "newList": "Neue Liste",
+    "newListPlaceholder": "Name...",
+    "noLists": "Keine eigenen Listen",
+    "logout": "Abmelden"
+  },
   "Checklist": {
     "title": "Einkaufszettel",
     "searchPlaceholder": "Artikel suchen...",
@@ -13,7 +26,15 @@
     "clearCompleted": "Erledigte löschen",
     "systemProtected": "Systemgeschützt",
     "customList": "Eigene Liste",
-    "linkCopied": "Link in Zwischenablage kopiert!"
+    "linkCopied": "Link in Zwischenablage kopiert!",
+    "progress": "Fortschritt",
+    "deleteCompletedConfirm": "{count} erledigte(n) Artikel löschen?",
+    "deleteListConfirm": "Liste \"{name}\" löschen?",
+    "hide": "Ausblenden",
+    "show": "Einblenden",
+    "removeItem": "Artikel entfernen",
+    "deleteList": "Liste löschen",
+    "createList": "Liste erstellen"
   },
   "Categories": {
     "produce": "Obst & Gemüse 🥦",
@@ -23,7 +44,8 @@
     "meat": "Fleisch & Fisch 🥩",
     "pantry": "Vorrat & Konserven 🥫",
     "beverages": "Getränke 🥤",
-    "other": "Sonstiges 📦"
+    "other": "Sonstiges 📦",
+    "pantryStock": "Pantry-Bestand 🥫"
   },
   "AddForm": {
     "title": "Artikel hinzufügen",
@@ -44,18 +66,31 @@
     "catalogBtn": "Katalog",
     "ignoreBtn": "Ignorieren",
     "ignoredLabel": "— Ignoriert",
+    "skippedLabel": "— Übersprungen",
     "savedLabel": "✓ {catalogName}",
     "inputLabel": "Katalogname festlegen",
     "saveBtn": "Speichern",
     "doneBtn": "Fertig",
     "laterBtn": "Später erledigen",
-    "summaryText": "{saved} gespeichert · {ignored} ignoriert"
+    "summaryText": "{saved} gespeichert · {ignored} ignoriert",
+    "targetHousehold": "Ziel-Haushalt:",
+    "catalogBlueprintName": "Katalog-Name:",
+    "defaultTag": "(Standard)",
+    "editItem": "Artikel bearbeiten",
+    "saveToCatalog": "Im Katalog speichern",
+    "skipItem": "Artikel überspringen"
   },
   "Error": {
     "nameRequired": "Name ist erforderlich",
     "invalidQty": "Menge muss positiv sein",
-    "fetchFailed": "Details konnten nicht geladen werden",
+    "fetchFailed": "Listen konnten nicht geladen werden",
+    "fetchFailedDesc": "Verbindung zum Shopping-Backend konnte nicht hergestellt werden.",
     "syncFailed": "Pantry-Synchronisierung fehlgeschlagen",
-    "unrecognizedError": "Ein unerwarteter Fehler ist aufgetreten"
+    "unrecognizedError": "Ein unerwarteter Fehler ist aufgetreten",
+    "sessionExpired": "Sitzung abgelaufen",
+    "sessionExpiredDesc": "Ihr Sicherheitstoken ist abgelaufen oder ungültig. Bitte melden Sie sich erneut über Keycloak an.",
+    "logIn": "Anmelden",
+    "retry": "Wiederholen"
   }
 }
+
