@@ -16,6 +16,9 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 ### System Shell / Telemetry
 - [ ] Add backend endpoint for streaming live container/shell logs directly to the dashboard terminal widget.
 
+### Stale Code
+- [ ] Remove unused `apps/dashboard/frontend/src/shared/providers/ThemeProvider.tsx` since the application relies entirely on `@loeger-os/shared` theme infrastructure.
+
 ## Shopping
 
 ### Household / Pantry Target
