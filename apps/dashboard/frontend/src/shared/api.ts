@@ -50,7 +50,7 @@ function getAuthToken(): string | null {
  * Features automatic Bearer token injection and configurable timeout.
  */
 export const api = ky.create({
-  prefixUrl: BASE_URL,
+  prefix: BASE_URL,
   timeout: 8000,
   hooks: {
     beforeRequest: [
@@ -62,7 +62,7 @@ export const api = ky.create({
       },
     ],
     afterResponse: [
-      async (request, options, response) => {
+      async ({ request, response }) => {
         if (response.status === 401 && typeof window !== "undefined") {
           const keycloak = (window as any).__keycloak_instance__;
           if (keycloak && typeof keycloak.updateToken === "function") {
