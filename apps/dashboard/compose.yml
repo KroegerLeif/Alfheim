@@ -24,6 +24,8 @@ services:
     environment:
       - PORT=8080
       - DATABASE_URL=postgres://postgres:postgres@dashboard-db:5432/dashboard_db?sslmode=disable
+      - KEYCLOAK_BASE_URL=http://keycloak:8080/auth
+      - KEYCLOAK_REALM=loeger-os
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
       interval: 5s

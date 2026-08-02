@@ -15,14 +15,14 @@ import {
   Moon
 } from "lucide-react";
 import { cn } from "../utils";
-import { useTheme } from "next-themes";
+import { useTheme } from "@loeger-os/shared";
 import { useAuth } from "../auth/AuthContext";
 import { useTranslations } from "next-intl";
 
 export function Sidebar() {
   const t = useTranslations("maintenance");
   const { activeNav, setActiveNav, isSidebarCollapsed, setIsSidebarCollapsed } = useLayout();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { mode, setMode, resolvedMode } = useTheme();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
@@ -38,8 +38,7 @@ export function Sidebar() {
     { id: "shopping" as NavOption, label: t("nav.maintenanceShopping"), icon: ShoppingCart },
   ];
 
-  const activeTheme = resolvedTheme || theme;
-  const isDark = activeTheme === "dark";
+  const isDark = resolvedMode === "dark";
 
   return (
     <aside
@@ -146,7 +145,7 @@ export function Sidebar() {
               </span>
             )}
             <button
-              onClick={() => setTheme(isDark ? "light" : "dark")}
+              onClick={() => setMode(isDark ? "light" : "dark")}
               className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] transition-all text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
               aria-label="Toggle visual theme"
             >

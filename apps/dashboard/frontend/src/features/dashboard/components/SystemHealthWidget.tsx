@@ -91,7 +91,14 @@ export function SystemHealthWidget() {
 
       {/* Bento Metrics Grid */}
       {!isCollapsed && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mt-4">
+        <>
+          {isError && (
+            <div className="mt-4 p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-center gap-2.5 shadow-md animate-in fade-in duration-200">
+              <span className="material-symbols-outlined text-base text-amber-400 shrink-0">warning</span>
+              <span>{t('dashboard.telemetry_error_toast')}</span>
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mt-4">
           {/* CPU Load Gauge */}
           <div className="p-4.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex flex-col justify-between min-h-[140px] shadow-sm hover:border-[var(--border-accent)] transition-all duration-200 group">
             <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono mb-2">
@@ -185,6 +192,7 @@ export function SystemHealthWidget() {
             </div>
           </div>
         </div>
+        </>
       )}
     </div>
   );

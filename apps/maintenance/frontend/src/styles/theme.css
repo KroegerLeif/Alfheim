@@ -1,32 +1,24 @@
 :root {
-  /* Light Mode Tokens (Figma Spec) */
-  --background: #f3f4f6;
-  --foreground: #0f172a;
-  
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  
-  --primary: #0284c7;
-  --primary-foreground: #ffffff;
-  
-  --secondary: #e2e8f0;
-  --secondary-foreground: #0f172a;
-  
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  
-  --accent: #06b6d4;
-  --accent-foreground: #ffffff;
-  
-  --destructive: #ef4444;
+  /* Core Variables mapped to Shared Design System */
+  --background: var(--surface-canvas);
+  --foreground: var(--text-main);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-main);
+  --popover: var(--surface-card);
+  --popover-foreground: var(--text-main);
+  --primary: var(--primary-main);
+  --primary-foreground: var(--surface-canvas);
+  --secondary: var(--surface-elevated);
+  --secondary-foreground: var(--primary-main);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--primary-main);
+  --accent-foreground: var(--surface-canvas);
+  --destructive: #f43f5e;
   --destructive-foreground: #ffffff;
-  
-  --border: #e2e8f0;
-  --input: #f8fafc;
-  --ring: #0284c7;
+  --border: var(--border-subtle);
+  --input: var(--surface-elevated);
+  --ring: var(--primary-main);
   
   --radius: 1rem;
   
@@ -58,35 +50,6 @@
 }
 
 .dark {
-  /* Dark Mode Tokens (Figma Spec) */
-  --background: #0b0f19;
-  --foreground: #f8fafc;
-  
-  --card: #131b2e;
-  --card-foreground: #f8fafc;
-  
-  --popover: #0f172a;
-  --popover-foreground: #f8fafc;
-  
-  --primary: #06b6d4;
-  --primary-foreground: #0b0f19;
-  
-  --secondary: #1e293b;
-  --secondary-foreground: #94a3b8;
-  
-  --muted: #1e293b;
-  --muted-foreground: #64748b;
-  
-  --accent: #22d3ee;
-  --accent-foreground: #0b0f19;
-  
-  --destructive: #f43f5e;
-  --destructive-foreground: #ffffff;
-  
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #06b6d4;
-  
   /* Dark Mode Glass Tokens */
   --glass-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
   --glass-border-top: rgba(255, 255, 255, 0.12);

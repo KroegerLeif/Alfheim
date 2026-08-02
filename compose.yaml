@@ -2,6 +2,7 @@ name: loeger-os
 
 include:
   - ./infrastructure/compose.yml
+  - ./infrastructure/traefik/compose.yml
   - ./apps/dashboard/compose.yml
   - ./apps/logging-stack/compose.yml
   - ./apps/maintenance/compose.yml

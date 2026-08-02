@@ -46,10 +46,8 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
-      data-theme="obsidian"
-      data-mode="dark"
-      data-theme-variant="obsidian"
+      className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <link
