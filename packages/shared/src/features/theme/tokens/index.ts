@@ -2,6 +2,7 @@ import { ResolvedMode, ThemeTokens, ThemeVariant } from '../types';
 import obsidianTheme from './themes/obsidian.json';
 import kineticTheme from './themes/kinetic.json';
 import slateTheme from './themes/slate.json';
+import customTheme from './themes/custom.json';
 
 export const DEFAULT_THEME_VARIANT: ThemeVariant = 'obsidian';
 export const DEFAULT_THEME_MODE: ResolvedMode = 'dark';
@@ -10,7 +11,9 @@ export const THEME_TOKENS: Record<ThemeVariant, Record<ResolvedMode, ThemeTokens
   obsidian: obsidianTheme as Record<ResolvedMode, ThemeTokens>,
   kinetic: kineticTheme as Record<ResolvedMode, ThemeTokens>,
   slate: slateTheme as Record<ResolvedMode, ThemeTokens>,
+  custom: customTheme as Record<ResolvedMode, ThemeTokens>,
 };
+
 
 export const CSS_VAR_MAP: Record<keyof ThemeTokens, string> = {
   surfaceCanvas: '--surface-canvas',

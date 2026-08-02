@@ -1,6 +1,17 @@
-export type ThemeVariant = 'obsidian' | 'kinetic' | 'slate';
+export type ThemeVariant = 'obsidian' | 'kinetic' | 'slate' | 'custom';
 export type ThemeMode = 'dark' | 'light' | 'system';
 export type ResolvedMode = 'dark' | 'light';
+
+export interface CustomModeColors {
+  primary: string;
+  canvas: string;
+  accent: string;
+}
+
+export interface CustomColorsConfig {
+  dark: CustomModeColors;
+  light: CustomModeColors;
+}
 
 export interface ThemeTokens {
   surfaceCanvas: string;
@@ -31,4 +42,7 @@ export interface ThemeContextType {
   setMode: (mode: ThemeMode) => void;
   setVariant: (variant: ThemeVariant) => void;
   toggleTheme: () => void;
+  customColors: CustomColorsConfig;
+  setCustomColors: (colors: CustomColorsConfig) => void;
 }
+
