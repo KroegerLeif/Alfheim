@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StatusBadge, useTranslation } from '@loeger-os/shared';
 import { useAppCatalog, AddAppModal, EditAppModal } from '@/features/apps';
 import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
@@ -22,6 +22,13 @@ export default function DashboardPage() {
   const [editingApp, setEditingApp] = useState<AppItem | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Trigger graceful error toast on API load failure
+  useEffect(() => {
+    if (isError) {
+      setToastMessage(t('dashboard.error_load_catalog'));
+    }
+  }, [isError, t]);
 
   const openAddModal = (cat: 'internal' | 'external') => {
     setModalCategory(cat);
@@ -115,8 +122,21 @@ export default function DashboardPage() {
             <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
               {t('dashboard.error_load_catalog')}
             </div>
+          ) : !catalog?.internal || catalog.internal.length === 0 ? (
+            <div className="col-span-3 p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[160px] shadow-lg">
+              <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] animate-pulse">dns</span>
+              <p className="text-xs font-mono text-[var(--text-muted)]">
+                {t('dashboard.empty_catalog_internal')}
+              </p>
+              <button
+                onClick={() => openAddModal('internal')}
+                className="px-3 py-1 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--primary-main)] font-mono text-[10px] font-bold cursor-pointer transition-colors"
+              >
+                {t('dashboard.add_service')}
+              </button>
+            </div>
           ) : (
-            catalog?.internal.map((app) => {
+            catalog.internal.map((app) => {
               const targetUrl = app.status === 'in_progress' || app.status === 'maintenance'
                 ? `/under-construction?app=${encodeURIComponent(app.title || app.name)}`
                 : (app.url || app.app_url);
@@ -211,73 +231,105 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {catalog?.external.map((app) => {
-            const targetUrl = app.status === 'in_progress' || app.status === 'maintenance'
-              ? `/under-construction?app=${encodeURIComponent(app.title || app.name)}`
-              : (app.url || app.app_url);
-
-            const isInternalRoute = targetUrl.startsWith('/');
-
-            return (
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
               <div
-                key={app.id}
-                className="p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/60 transition-all duration-200 flex flex-col justify-between group shadow-lg"
+                key={i}
+                className="h-44 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] animate-pulse p-5 flex flex-col justify-between"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-main)]">
-                      <span className="material-symbols-outlined text-xl">
-                        {app.icon || app.icon_url || 'link'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(app)}
-                        className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
-                        title={t('catalog.edit_app_title')}
-                      >
-                        <span className="material-symbols-outlined text-sm">settings</span>
-                      </button>
-                      <StatusBadge status={app.status} />
-                    </div>
-                  </div>
-
-                  <h3 className="text-base font-bold text-[var(--text-main)]">
-                    {app.title || app.name}
-                  </h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
-                    {app.description}
-                  </p>
-                </div>
-
-                <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
-                    {t('catalog.external_category')}
-                  </span>
-                  {isInternalRoute ? (
-                    <Link
-                      href={targetUrl}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
-                    >
-                      <span>{t('common.open_portal')}</span>
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </Link>
-                  ) : (
-                    <a
-                      href={targetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
-                    >
-                      <span>{t('common.open_portal')}</span>
-                      <span className="material-symbols-outlined text-sm">open_in_new</span>
-                    </a>
-                  )}
+                <div className="w-10 h-10 rounded-lg bg-[var(--surface-elevated)]" />
+                <div className="space-y-2">
+                  <div className="h-4 w-1/2 bg-[var(--surface-elevated)] rounded" />
+                  <div className="h-3 w-3/4 bg-[var(--surface-elevated)] rounded" />
                 </div>
               </div>
-            );
-          })}
+            ))
+          ) : isError ? (
+            <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
+              {t('dashboard.error_load_catalog')}
+            </div>
+          ) : !catalog?.external || catalog.external.length === 0 ? (
+            <div className="col-span-3 p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[160px] shadow-lg">
+              <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] animate-pulse">link</span>
+              <p className="text-xs font-mono text-[var(--text-muted)]">
+                {t('dashboard.empty_catalog_external')}
+              </p>
+              <button
+                onClick={() => openAddModal('external')}
+                className="px-3 py-1 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--primary-main)] font-mono text-[10px] font-bold cursor-pointer transition-colors"
+              >
+                {t('dashboard.add_portal')}
+              </button>
+            </div>
+          ) : (
+            catalog.external.map((app) => {
+              const targetUrl = app.status === 'in_progress' || app.status === 'maintenance'
+                ? `/under-construction?app=${encodeURIComponent(app.title || app.name)}`
+                : (app.url || app.app_url);
+
+              const isInternalRoute = targetUrl.startsWith('/');
+
+              return (
+                <div
+                  key={app.id}
+                  className="p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/60 transition-all duration-200 flex flex-col justify-between group shadow-lg"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-main)]">
+                        <span className="material-symbols-outlined text-xl">
+                          {app.icon || app.icon_url || 'link'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(app)}
+                          className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
+                          title={t('catalog.edit_app_title')}
+                        >
+                          <span className="material-symbols-outlined text-sm">settings</span>
+                        </button>
+                        <StatusBadge status={app.status} />
+                      </div>
+                    </div>
+
+                    <h3 className="text-base font-bold text-[var(--text-main)]">
+                      {app.title || app.name}
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
+                      {app.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
+                      {t('catalog.external_category')}
+                    </span>
+                    {isInternalRoute ? (
+                      <Link
+                        href={targetUrl}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
+                      >
+                        <span>{t('common.open_portal')}</span>
+                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                      </Link>
+                    ) : (
+                      <a
+                        href={targetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
+                      >
+                        <span>{t('common.open_portal')}</span>
+                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
