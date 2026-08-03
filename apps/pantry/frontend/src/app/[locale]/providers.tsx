@@ -83,7 +83,13 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   const handleLogout = () => {
     if (keycloakInstance) {
-      keycloakInstance.logout();
+      sessionStorage.removeItem("token_pantry-frontend");
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+      keycloakInstance.logout({
+        redirectUri: window.location.origin
+      });
     }
   };
 

@@ -17,7 +17,8 @@ export function useKeycloakUser(): KeycloakUserInfo {
     avatarInitials: "U",
     logout: () => {
       if (typeof window !== "undefined") {
-        window.location.href = "http://loeger-os/";
+        sessionStorage.removeItem("token_shopping-frontend");
+        window.location.href = window.location.origin;
       }
     },
   });
@@ -47,10 +48,15 @@ export function useKeycloakUser(): KeycloakUserInfo {
           email,
           avatarInitials: initials || "U",
           logout: () => {
+            if (typeof window !== "undefined") {
+              sessionStorage.removeItem("token_shopping-frontend");
+            }
             if (keycloak && typeof keycloak.logout === "function") {
-              keycloak.logout({ redirectUri: "http://loeger-os/" });
+              keycloak.logout({ redirectUri: window.location.origin });
             } else {
-              window.location.href = "http://loeger-os/";
+              if (typeof window !== "undefined") {
+                window.location.href = window.location.origin;
+              }
             }
           },
         });

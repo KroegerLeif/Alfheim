@@ -111,7 +111,12 @@ export default function Providers({ children }: { children: ReactNode }) {
   const handleLogout = useCallback(() => {
     if (keycloakInstance) {
       sessionStorage.removeItem("token_maintenance-frontend");
-      keycloakInstance.logout();
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+      keycloakInstance.logout({
+        redirectUri: window.location.origin,
+      });
     }
   }, [keycloakInstance]);
 

@@ -20,16 +20,17 @@ services:
     networks:
       - observability-internal
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
-      interval: 5s
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' && nc -z localhost 9000"]
+      interval: 8s
       timeout: 5s
-      retries: 10
-      start_period: 20s
+      retries: 15
+      start_period: 35s
 
   signoz-schema-migrator:
     image: signoz/signoz-schema-migrator:0.102.0
     container_name: signoz-schema-migrator
     command: ["--disable-duration-sort-feature", "--disable-timestamp-sort-feature", "--dsn=tcp://signoz-clickhouse:9000"]
+    restart: on-failure
     networks:
       - observability-internal
     depends_on:

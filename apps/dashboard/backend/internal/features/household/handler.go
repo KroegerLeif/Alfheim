@@ -47,7 +47,7 @@ func (h *Handler) CreateHousehold(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.service.CreateHousehold(r.Context(), claims.Subject, req)
+	res, err := h.service.CreateHousehold(r.Context(), claims, req)
 	if err != nil {
 		if errors.Is(err, ErrHouseholdSlugExists) {
 			http.Error(w, `{"error":"conflict","message":"household slug already in use"}`, http.StatusConflict)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"loeger-os/dashboard/internal/features/household"
+	"loeger-os/dashboard/internal/shared/middleware"
 )
 
 type mockRepository struct {
@@ -24,7 +25,7 @@ func newMockRepository() *mockRepository {
 	}
 }
 
-func (m *mockRepository) CreateHouseholdTx(ctx context.Context, h *household.Household) error {
+func (m *mockRepository) CreateHouseholdTx(ctx context.Context, h *household.Household, ownerEmail, ownerUsername string) error {
 	h.ID = "test-household-id-1"
 	h.CreatedAt = time.Now()
 	h.UpdatedAt = time.Now()
@@ -134,12 +135,17 @@ func TestHouseholdService_CreateAndInvite(t *testing.T) {
 	ctx := context.Background()
 
 	ownerID := "user-owner-123"
+	claims := &middleware.UserClaims{
+		Subject:           ownerID,
+		Email:             "owner@example.com",
+		PreferredUsername: "owner",
+	}
 	createReq := household.CreateHouseholdRequest{
 		Name: "Loeger Family",
 		Slug: "loeger-family",
 	}
 
-	hResp, err := svc.CreateHousehold(ctx, ownerID, createReq)
+	hResp, err := svc.CreateHousehold(ctx, claims, createReq)
 	if err != nil {
 		t.Fatalf("expected no error creating household, got: %v", err)
 	}
