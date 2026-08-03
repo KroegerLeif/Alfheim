@@ -6,6 +6,7 @@ import {
   LanguageSwitcher,
   ThemeToggle,
   AuthControls,
+  HouseholdSwitcher,
 } from "@loeger-os/shared";
 import { useTranslations } from "next-intl";
 import { useLayout, NavOption } from "./LayoutContext";
@@ -47,6 +48,7 @@ export function Header() {
 
       {/* Action Panel */}
       <div className="flex items-center gap-3">
+        <HouseholdSwitcher />
         <LanguageSwitcher variant="dropdown" />
         <ThemeToggle showVariantToggle={true} />
 

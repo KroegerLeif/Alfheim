@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useLayout, NavOption } from "./LayoutContext";
-import { SidebarHouseholdPicker } from "./SidebarHouseholdPicker";
 import { 
   Laptop, 
   Wrench, 
@@ -65,8 +64,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Household Selector */}
-      <SidebarHouseholdPicker />
+
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1.5">
