@@ -1,22 +1,35 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Menu, ShoppingBag } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
-import { LanguageSwitcher } from "./LanguageSwitcher";
+import { Menu, ShoppingBag } from "lucide-react";
+import {
+  BackToDashboard,
+  LanguageSwitcher,
+  ThemeToggle,
+  HouseholdSwitcher,
+  AuthControls,
+} from "@loeger-os/shared";
 import { useSidebar } from "@/app/[locale]/providers";
+import { useKeycloakUser } from "@/lib/useKeycloakUser";
 
 /**
  * Sticky top application bar consolidating system chrome:
  * - Left: [Hamburger Menu Toggle] -> [App Logo / Shopping Name] -> [<- Back to Dashboard]
- * - Right: Language Selector with flag dropdown & Theme Toggle.
+ * - Right: Switcher, Language Selector, Theme Toggle & Auth controls.
  */
 export function Header() {
   const tNav = useTranslations("Navigation");
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
+  const user = useKeycloakUser();
+
+  const authUser = user ? {
+    name: user.name,
+    preferred_username: user.username,
+    email: user.email,
+  } : null;
 
   return (
-    <header className="h-14 border-b border-[var(--border-subtle)] bg-[var(--surface-card)]/80 backdrop-blur-md px-4 md:px-6 flex items-center justify-between shrink-0 select-none z-30 transition-colors duration-200">
+    <header className="h-16 border-b border-[var(--border-subtle)] bg-[var(--surface-card)]/85 px-4 md:px-6 flex items-center justify-between shrink-0 select-none z-30">
       {/* Left side: [Hamburger Menu Toggle] -> [App Logo / Shopping Name] -> [<- Back to Dashboard] */}
       <div className="flex items-center gap-3">
         {!isSidebarOpen && (
@@ -45,21 +58,16 @@ export function Header() {
         </div>
 
         <div className="border-l border-[var(--border-subtle)] pl-3">
-          <a
-            href="http://loeger-os/"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass-inset hover:glass-active text-xs font-mono font-semibold text-muted-foreground hover:text-foreground transition-all duration-200"
-            title={tNav("backToDashboard")}
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline font-bold">loeger-os</span>
-          </a>
+          <BackToDashboard href="http://loeger-os/" />
         </div>
       </div>
 
-      {/* Right side: Language Selector & Theme Toggle */}
-      <div className="flex items-center gap-2.5">
-        <LanguageSwitcher />
-        <ThemeToggle />
+      {/* Right side: Switcher, Language Selector, Theme Toggle & Auth controls */}
+      <div className="flex items-center gap-3">
+        <HouseholdSwitcher />
+        <LanguageSwitcher variant="dropdown" />
+        <ThemeToggle showVariantToggle={true} />
+        <AuthControls user={authUser} onLogout={user.logout} />
       </div>
     </header>
   );
