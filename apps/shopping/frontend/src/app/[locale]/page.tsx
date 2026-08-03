@@ -93,6 +93,23 @@ export default function ShoppingDashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Query households and track active household ID
+  const { data: households = [] } = useHouseholds();
+  const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
+    const handleLocalChange = () => {
+      setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
+    };
+    window.addEventListener("storage", handleLocalChange);
+    window.addEventListener("storage-household-changed", handleLocalChange);
+    return () => {
+      window.removeEventListener("storage", handleLocalChange);
+      window.removeEventListener("storage-household-changed", handleLocalChange);
+    };
+  }, []);
+
   // Metrics calculation
   const items = listDetails?.items || [];
   const total = items.length;
@@ -101,6 +118,28 @@ export default function ShoppingDashboard() {
   const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
   const circumference = 2 * Math.PI * 15; // r=15
   const strokeDash = total > 0 ? `${progress * circumference} ${circumference}` : `0 ${circumference}`;
+
+  // Resolved active list and household display names
+  const activeList = lists.find((l) => l.id === resolvedListId);
+
+  const activeHouseholdName = useMemo(() => {
+    if (!activeHouseholdId || households.length === 0) return "";
+    const activeHh = households.find((h) => h.id === activeHouseholdId);
+    return activeHh ? activeHh.name : "";
+  }, [activeHouseholdId, households]);
+
+  const activeListName = useMemo(() => {
+    if (activeList?.is_personal && user.username) {
+      return navT("personalList", { username: user.username });
+    }
+    if (activeList?.is_default) {
+      const hh = households.find((h) => h.id === activeList.home_id);
+      if (hh) return hh.name;
+    }
+    return activeList?.name || t("title");
+  }, [activeList, user.username, households, navT, t]);
+
+  const displayListName = activeListName;
 
   const handleQuickAdd = (name: string, unit: string) => {
     if (!resolvedListId) return;
@@ -209,44 +248,6 @@ export default function ShoppingDashboard() {
       </div>
     );
   }
-
-  const activeList = lists.find((l) => l.id === resolvedListId);
-
-  // Query households and track active household ID
-  const { data: households = [] } = useHouseholds();
-  const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
-    const handleLocalChange = () => {
-      setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
-    };
-    window.addEventListener("storage", handleLocalChange);
-    window.addEventListener("storage-household-changed", handleLocalChange);
-    return () => {
-      window.removeEventListener("storage", handleLocalChange);
-      window.removeEventListener("storage-household-changed", handleLocalChange);
-    };
-  }, []);
-
-  const activeHouseholdName = useMemo(() => {
-    if (!activeHouseholdId || households.length === 0) return "";
-    const activeHh = households.find((h) => h.id === activeHouseholdId);
-    return activeHh ? activeHh.name : "";
-  }, [activeHouseholdId, households]);
-
-  const activeListName = useMemo(() => {
-    if (activeList?.is_personal && user.username) {
-      return navT("personalList", { username: user.username });
-    }
-    if (activeList?.is_default) {
-      const hh = households.find((h) => h.id === activeList.home_id);
-      if (hh) return hh.name;
-    }
-    return activeList?.name || t("title");
-  }, [activeList, user.username, households, navT, t]);
-
-  const displayListName = activeListName;
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden font-sans relative select-none">
