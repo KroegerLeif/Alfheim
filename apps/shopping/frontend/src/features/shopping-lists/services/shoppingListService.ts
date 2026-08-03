@@ -264,12 +264,17 @@ export function useImportLowStock(listId: string) {
  */
 export function useSyncToPantry(listId: string) {
   const queryClient = useQueryClient();
-  return useMutation<SyncToPantryResponse, Error, void>({
-    mutationFn: () =>
-      shoppingClient
-        .post(`api/v1/shopping-lists/${listId}/sync-to-pantry`)
+  return useMutation<SyncToPantryResponse, Error, { householdId?: string } | undefined>({
+    mutationFn: (variables) => {
+      const headers: Record<string, string> = {};
+      if (variables?.householdId) {
+        headers["X-Household-ID"] = variables.householdId;
+      }
+      return shoppingClient
+        .post(`api/v1/shopping-lists/${listId}/sync-to-pantry`, { headers })
         .json()
-        .then((data) => SyncToPantryResponseSchema.parse(data)),
+        .then((data) => SyncToPantryResponseSchema.parse(data));
+    },
     onSuccess: () => {
       // Clear completed items since they are synced to pantry and deleted from local checklist
       queryClient.invalidateQueries({ queryKey: shoppingKeys.list(listId) });
@@ -286,6 +291,7 @@ export interface PantryProductCreatePayload {
   base_unit: string;
   minimum_stock: number;
   category_id?: string | null;
+  householdId?: string;
 }
 
 /**
@@ -293,11 +299,16 @@ export interface PantryProductCreatePayload {
  */
 export function useCreatePantryProduct() {
   return useMutation<any, Error, PantryProductCreatePayload>({
-    mutationFn: (payload) =>
-      pantryClient
-        .post("api/v1/products", { json: payload })
+    mutationFn: ({ householdId, ...payload }) => {
+      const headers: Record<string, string> = {};
+      if (householdId) {
+        headers["X-Household-ID"] = householdId;
+      }
+      return pantryClient
+        .post("api/v1/products", { json: payload, headers })
         .json()
-        .then((data) => ProductReadSchema.parse(data)),
+        .then((data) => ProductReadSchema.parse(data));
+    },
   });
 }
 

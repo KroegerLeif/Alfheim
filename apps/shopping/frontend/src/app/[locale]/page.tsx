@@ -27,6 +27,7 @@ import {
   useAddShoppingItem,
   useSyncToPantry,
   useDeleteShoppingItem,
+  useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
@@ -111,7 +112,7 @@ export default function ShoppingDashboard() {
   const handleSyncToPantry = async () => {
     if (!resolvedListId) return;
     try {
-      const response = await syncToPantry.mutateAsync();
+      const response = await syncToPantry.mutateAsync({ householdId: activeHouseholdId ?? undefined });
       if (response.status === "partial_success" && response.unrecognized_items.length > 0) {
         setUnrecognizedItems(response.unrecognized_items);
         setShowModal(true);
@@ -212,6 +213,36 @@ export default function ShoppingDashboard() {
     ? `${user.username} - Liste`
     : activeList?.name || t("title");
 
+  // Query households and track active household ID
+  const { data: households = [] } = useHouseholds();
+  const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
+    const handleLocalChange = () => {
+      setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
+    };
+    window.addEventListener("storage", handleLocalChange);
+    window.addEventListener("storage-household-changed", handleLocalChange);
+    return () => {
+      window.removeEventListener("storage", handleLocalChange);
+      window.removeEventListener("storage-household-changed", handleLocalChange);
+    };
+  }, []);
+
+  const activeHouseholdName = useMemo(() => {
+    if (!activeHouseholdId || households.length === 0) return "";
+    const activeHh = households.find((h) => h.id === activeHouseholdId);
+    return activeHh ? activeHh.name : "";
+  }, [activeHouseholdId, households]);
+
+  const displayListName = useMemo(() => {
+    if (activeList?.is_default && activeHouseholdName) {
+      return `${activeListName} — ${activeHouseholdName}`;
+    }
+    return activeListName;
+  }, [activeList, activeListName, activeHouseholdName]);
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden font-sans relative select-none">
       {/* Dynamic Background Depth Ambient Glows */}
@@ -243,7 +274,7 @@ export default function ShoppingDashboard() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <h1 className="font-heading text-xl md:text-2xl font-black uppercase tracking-wide leading-none text-foreground">
-                    {activeListName}
+                    {displayListName}
                   </h1>
 
                   <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 uppercase">

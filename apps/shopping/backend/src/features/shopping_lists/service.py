@@ -394,7 +394,7 @@ class ShoppingListService:
 
         # 2. Query pantry integration
         client = PantryClient()
-        low_stock = await client.fetch_low_stock_items(token=token)
+        low_stock = await client.fetch_low_stock_items(token=token, household_id=home_id)
 
         # 3. Retrieve all currently active (uncompleted) items in the shopping list
         active_items_stmt = select(ShoppingItem).where(
@@ -497,7 +497,7 @@ class ShoppingListService:
 
         # 4. Post to Pantry bulk add
         client = PantryClient()
-        sync_result = await client.bulk_add_items(items=bulk_payload, token=token)
+        sync_result = await client.bulk_add_items(items=bulk_payload, token=token, household_id=home_id)
 
         success_map = {
             uuid.UUID(x["shopping_item_id"]): uuid.UUID(x["product_id"])
