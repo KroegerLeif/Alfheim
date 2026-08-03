@@ -130,11 +130,6 @@ export default function ShoppingDashboard() {
 
   const isPersonalList = (l: { is_personal?: boolean; name: string }) =>
     l.is_personal ||
-    l.name === "NAVIGATION.PERSONAL_LIST" ||
-    l.name === "NAVIGATION.PERSONAL_LISTS" ||
-    l.name === "NAVIGATION.PERSONALLIST" ||
-    l.name.includes("NAVIGATION.PERSONAL") ||
-    l.name.includes("NAVIGATION.") ||
     l.name.endsWith(" - Liste") ||
     l.name.endsWith("'s List") ||
     l.name.startsWith("Lista ");
@@ -142,13 +137,13 @@ export default function ShoppingDashboard() {
   const activeListName = useMemo(() => {
     if (!activeList) return t("title");
     if (isPersonalList(activeList)) {
-      return user.username 
-        ? navT("personalList", { username: user.username }) 
-        : (activeList.name.startsWith("NAVIGATION.") ? navT("personal_list_fallback") : activeList.name);
+      return user.username && user.username !== "User"
+        ? navT("personalList", { username: user.username })
+        : navT("personal_list_fallback");
     }
-    if (activeList.is_default || activeList.name === "NAVIGATION.HOUSEHOLD_LISTS" || activeList.name === "NAVIGATION.HOUSEHOLDLISTS") {
+    if (activeList.is_default) {
       const hh = households.find((h) => h.id === activeList.home_id);
-      return hh ? hh.name : (activeList.name.startsWith("NAVIGATION.") ? navT("household_list_fallback") : activeList.name);
+      return hh ? hh.name : navT("household_list_fallback");
     }
     return activeList.name;
   }, [activeList, user.username, households, navT, t]);

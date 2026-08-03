@@ -163,8 +163,12 @@ class ShoppingListService:
         owner_id: uuid.UUID,
     ) -> ShoppingList:
         """Create a new user-defined shopping list scoped to a home space."""
+        name = payload.name.strip()
+        if name.upper().startswith("NAVIGATION") or "NAVIGATION" in name.upper():
+            name = "Custom List"
+
         db_list = ShoppingList(
-            name=payload.name,
+            name=name,
             home_id=home_id,
             owner_id=owner_id,
             is_default=False,

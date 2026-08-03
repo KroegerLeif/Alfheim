@@ -38,17 +38,7 @@ function setStoredOrder(order: string[]) {
 }
 
 function isProtectedList(list: ShoppingList): boolean {
-  return (
-    list.is_default ||
-    list.is_personal ||
-    list.name === "NAVIGATION.PERSONAL_LIST" ||
-    list.name === "NAVIGATION.PERSONAL_LISTS" ||
-    list.name === "NAVIGATION.PERSONALLIST" ||
-    list.name.includes("NAVIGATION.PERSONAL") ||
-    list.name === "NAVIGATION.HOUSEHOLD_LISTS" ||
-    list.name === "NAVIGATION.HOUSEHOLDLISTS" ||
-    list.name.includes("NAVIGATION.HOUSEHOLD")
-  );
+  return list.is_default || list.is_personal;
 }
 
 /**
@@ -76,11 +66,6 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
   const isPersonalList = (l: ShoppingList) =>
     l.is_personal ||
-    l.name === "NAVIGATION.PERSONAL_LIST" ||
-    l.name === "NAVIGATION.PERSONAL_LISTS" ||
-    l.name === "NAVIGATION.PERSONALLIST" ||
-    l.name.includes("NAVIGATION.PERSONAL") ||
-    l.name.includes("NAVIGATION.") ||
     l.name.endsWith(" - Liste") ||
     l.name.endsWith("'s List") ||
     l.name.startsWith("Lista ");
@@ -90,11 +75,11 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     const persLists: ShoppingList[] = [];
 
     lists.forEach((list) => {
-      if (list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS") {
+      if (list.is_default) {
         const hh = households.find((h) => h.id === list.home_id);
         hhLists.push({
           ...list,
-          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? tNav("household_list_fallback") : list.name),
+          displayName: hh ? hh.name : tNav("household_list_fallback"),
         });
       } else {
         persLists.push(list);
@@ -235,7 +220,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                       )}
                     />
                   )}
-                  {(list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS") && (
+                   {list.is_default && (
                     <Home
                       className={cn(
                         "h-3 w-3 shrink-0",
@@ -246,9 +231,11 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
                   <span>
                     {isPersonalList(list)
-                      ? (user.username ? tNav("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? tNav("personal_list_fallback") : list.name))
-                      : (list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS")
-                      ? (list as any).displayName || (list.name.startsWith("NAVIGATION.") ? tNav("household_list_fallback") : list.name)
+                      ? (user.username && user.username !== "User"
+                          ? tNav("personalList", { username: user.username })
+                          : tNav("personal_list_fallback"))
+                      : list.is_default
+                      ? (list as any).displayName || tNav("household_list_fallback")
                       : list.name}
                   </span>
 

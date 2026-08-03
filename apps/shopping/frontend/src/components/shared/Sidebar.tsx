@@ -76,11 +76,6 @@ export function Sidebar() {
 
   const isPersonalList = (l: ShoppingList) =>
     l.is_personal ||
-    l.name === "NAVIGATION.PERSONAL_LIST" ||
-    l.name === "NAVIGATION.PERSONAL_LISTS" ||
-    l.name === "NAVIGATION.PERSONALLIST" ||
-    l.name.includes("NAVIGATION.PERSONAL") ||
-    l.name.includes("NAVIGATION.") ||
     l.name.endsWith(" - Liste") ||
     l.name.endsWith("'s List") ||
     l.name.startsWith("Lista ");
@@ -90,11 +85,11 @@ export function Sidebar() {
     const persLists: ShoppingList[] = [];
 
     lists.forEach((list) => {
-      if (list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS") {
+      if (list.is_default) {
         const hh = households.find((h) => h.id === list.home_id);
         hhLists.push({
           ...list,
-          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? t("household_list_fallback") : list.name),
+          displayName: hh ? hh.name : t("household_list_fallback"),
         });
       } else {
         persLists.push(list);
@@ -335,7 +330,9 @@ export function Sidebar() {
                     />
 
                     <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
-                      {user.username ? t("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? t("personal_list_fallback") : list.name)}
+                      {user.username && user.username !== "User"
+                        ? t("personalList", { username: user.username })
+                        : t("personal_list_fallback")}
                     </span>
 
                     <span
