@@ -10,19 +10,15 @@ import {
   History, 
   ShoppingCart, 
   ChevronLeft, 
-  ChevronRight,
-  Sun,
-  Moon
+  ChevronRight
 } from "lucide-react";
 import { cn } from "../utils";
-import { useTheme } from "@loeger-os/shared";
 import { useAuth } from "../auth/AuthContext";
 import { useTranslations } from "next-intl";
 
 export function Sidebar() {
   const t = useTranslations("maintenance");
   const { activeNav, setActiveNav, isSidebarCollapsed, setIsSidebarCollapsed } = useLayout();
-  const { mode, setMode, resolvedMode } = useTheme();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
@@ -37,8 +33,6 @@ export function Sidebar() {
     { id: "history" as NavOption, label: t("nav.serviceHistory"), icon: History },
     { id: "shopping" as NavOption, label: t("nav.maintenanceShopping"), icon: ShoppingCart },
   ];
-
-  const isDark = resolvedMode === "dark";
 
   return (
     <aside
@@ -133,28 +127,6 @@ export function Sidebar() {
                 </span>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Theme Toggle Button */}
-        {mounted && (
-          <div className={cn("flex items-center justify-between pt-1", isSidebarCollapsed && "justify-center")}>
-            {!isSidebarCollapsed && (
-              <span className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">
-                Theme Toggle
-              </span>
-            )}
-            <button
-              onClick={() => setMode(isDark ? "light" : "dark")}
-              className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] transition-all text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-              aria-label="Toggle visual theme"
-            >
-              {isDark ? (
-                <Sun className="h-4.5 w-4.5 text-amber-500 transition-transform duration-500 hover:rotate-45" />
-              ) : (
-                <Moon className="h-4.5 w-4.5 text-indigo-500 transition-transform duration-300 hover:-rotate-12" />
-              )}
-            </button>
           </div>
         )}
       </div>

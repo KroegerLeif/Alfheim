@@ -22,7 +22,7 @@ const TableHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <thead 
     ref={ref} 
-    className={cn("[&_tr]:border-b border-border bg-neutral-100", className)} 
+    className={cn("[&_tr]:border-b border-[var(--border-subtle)] bg-[var(--surface-canvas)]", className)} 
     {...props} 
   />
 ))
@@ -47,7 +47,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      "border-t border-border bg-neutral-100 font-medium [&>tr]:last:border-b-0",
+      "border-t border-[var(--border-subtle)] bg-[var(--surface-canvas)] font-medium [&>tr]:last:border-b-0",
       className
     )}
     {...props}
@@ -62,7 +62,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-border transition-colors hover:bg-neutral-50 data-[state=selected]:bg-neutral-100",
+      "border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--surface-elevated)] data-[state=selected]:bg-[var(--surface-elevated)]",
       className
     )}
     {...props}
@@ -92,7 +92,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "p-4 align-middle font-mono text-sm border-r border-dashed border-neutral-200 last:border-r-0",
+      "p-4 align-middle font-mono text-sm border-r border-dashed border-[var(--border-subtle)] last:border-r-0",
       className
     )}
     {...props}

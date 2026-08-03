@@ -204,6 +204,46 @@ export function ThemeProvider({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  // Listen for localStorage changes from other tabs/apps
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        try {
+          const parsed: ThemeOverrideConfig = JSON.parse(e.newValue || '{}');
+          if (parsed.mode && ['dark', 'light', 'system'].includes(parsed.mode)) {
+            setModeState(parsed.mode);
+          }
+          if (parsed.variant && ['obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) {
+            setVariantState(parsed.variant);
+          }
+        } catch {}
+      } else if (e.key === 'loeger_os_custom_theme') {
+        try {
+          const parsed = JSON.parse(e.newValue || '{}');
+          if (parsed.dark || parsed.light) {
+            setCustomColorsState({
+              dark: {
+                primary: parsed.dark?.primary || '#3eb1ff',
+                canvas: parsed.dark?.canvas || '#0b1326',
+                accent: parsed.dark?.accent || '#3eb1ff',
+              },
+              light: {
+                primary: parsed.light?.primary || '#0284c7',
+                canvas: parsed.light?.canvas || '#f4f6fb',
+                accent: parsed.light?.accent || '#0284c7',
+              }
+            });
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Update DOM when variant, resolvedMode, or customColors changes
   useEffect(() => {
     applyThemeToDOM(variant, resolvedMode, customColors);

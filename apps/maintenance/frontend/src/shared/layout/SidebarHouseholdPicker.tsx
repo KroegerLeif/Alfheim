@@ -18,6 +18,12 @@ export function SidebarHouseholdPicker() {
     queryFn: getHouseholds,
   });
 
+  React.useEffect(() => {
+    if (householdId === null && households.length > 0) {
+      setHouseholdId(households[0].id);
+    }
+  }, [householdId, households, setHouseholdId]);
+
   const selectedHousehold = households.find((h) => h.id === householdId);
   const allHouseholdsLabel = t("deviceInventory.otherLocations");
 

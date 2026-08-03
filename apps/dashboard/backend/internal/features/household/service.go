@@ -6,14 +6,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
+	"loeger-os/dashboard/internal/shared/middleware"
 )
 
 // Service defines business logic for household management, authorization, and invitations.
 type Service interface {
-	CreateHousehold(ctx context.Context, userID string, req CreateHouseholdRequest) (*HouseholdResponse, error)
+	CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
 	GetUserHouseholds(ctx context.Context, userID string) ([]HouseholdResponse, error)
 	GetHouseholdDetails(ctx context.Context, requesterID string, householdID string) (*HouseholdResponse, error)
 	CreateInvite(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error)
@@ -35,30 +38,53 @@ func NewService(repo Repository, log *slog.Logger) Service {
 	}
 }
 
-func (s *service) CreateHousehold(ctx context.Context, userID string, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+func formatSlug(s string) string {
+	var res []rune
+	for _, r := range strings.ToLower(s) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			res = append(res, r)
+		} else if r == ' ' || r == '-' || r == '_' {
+			if len(res) > 0 && res[len(res)-1] != '-' {
+				res = append(res, '-')
+			}
+		}
+	}
+	str := string(res)
+	str = strings.Trim(str, "-")
+	return str
+}
+
+func (s *service) CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 	if req.Name == "" {
 		return nil, fmt.Errorf("household name is required")
 	}
-	if req.Slug == "" {
-		return nil, fmt.Errorf("household slug is required")
+
+	slug := req.Slug
+	if slug == "" {
+		slug = req.Name
+	}
+	slug = formatSlug(slug)
+	if slug == "" {
+		return nil, fmt.Errorf("invalid household name for slug generation")
 	}
 
 	h := &Household{
+		ID:      uuid.NewString(),
 		Name:    req.Name,
-		Slug:    req.Slug,
-		OwnerID: userID,
+		Slug:    slug,
+		OwnerID: claims.Subject,
 	}
 
-	if err := s.repo.CreateHouseholdTx(ctx, h); err != nil {
+	if err := s.repo.CreateHouseholdTx(ctx, h, claims.Email, claims.PreferredUsername); err != nil {
 		return nil, err
 	}
 
-	s.log.Info("created household", slog.String("id", h.ID), slog.String("owner_id", userID))
+	s.log.Info("created household", slog.String("id", h.ID), slog.String("owner_id", claims.Subject))
 
 	resp := ToHouseholdResponse(h, string(RoleOwner), []MemberResponse{
 		{
 			HouseholdID: h.ID,
-			UserID:      userID,
+			UserID:      claims.Subject,
 			Role:        string(RoleOwner),
 			JoinedAt:    time.Now(),
 		},

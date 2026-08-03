@@ -13,7 +13,7 @@ import (
 
 // Repository persistence contract for household entities and invitations.
 type Repository interface {
-	CreateHouseholdTx(ctx context.Context, h *Household) error
+	CreateHouseholdTx(ctx context.Context, h *Household, ownerEmail, ownerUsername string) error
 	GetHouseholdByID(ctx context.Context, id string) (*Household, error)
 	GetHouseholdsByUserID(ctx context.Context, userID string) ([]*Household, error)
 	AddMember(ctx context.Context, m *Member) error
@@ -35,19 +35,30 @@ func NewRepository(pool *pgxpool.Pool) Repository {
 	return &repository{pool: pool}
 }
 
-func (r *repository) CreateHouseholdTx(ctx context.Context, h *Household) error {
+func (r *repository) CreateHouseholdTx(ctx context.Context, h *Household, ownerEmail, ownerUsername string) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to start household creation transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	insertHousehold := `
-		INSERT INTO households (name, slug, owner_id)
-		VALUES ($1, $2, $3)
-		RETURNING id, created_at, updated_at
+	// Ensure the user profile exists JIT to prevent foreign key errors on household_members or households
+	ensureUserProfile := `
+		INSERT INTO user_profiles (id, email, username, created_at, updated_at)
+		VALUES ($1, $2, $3, NOW(), NOW())
+		ON CONFLICT (id) DO NOTHING
 	`
-	err = tx.QueryRow(ctx, insertHousehold, h.Name, h.Slug, h.OwnerID).Scan(&h.ID, &h.CreatedAt, &h.UpdatedAt)
+	_, err = tx.Exec(ctx, ensureUserProfile, h.OwnerID, ownerEmail, ownerUsername)
+	if err != nil {
+		return fmt.Errorf("failed to ensure user profile exists in transaction: %w", err)
+	}
+
+	insertHousehold := `
+		INSERT INTO households (id, name, slug, owner_id)
+		VALUES ($1, $2, $3, $4)
+		RETURNING created_at, updated_at
+	`
+	err = tx.QueryRow(ctx, insertHousehold, h.ID, h.Name, h.Slug, h.OwnerID).Scan(&h.CreatedAt, &h.UpdatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Unique violation for slug

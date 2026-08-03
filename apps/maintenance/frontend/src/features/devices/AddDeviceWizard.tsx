@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { createDevice, getHouseholds } from "@/shared/api";
 import { CreateDevicePayload, CreateStepPayload } from "@/shared/types";
@@ -53,6 +53,15 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<number>(
     householdId ?? households[0]?.id ?? 1
   );
+
+  // Synchronize selection dynamically once households load or layout changes
+  useEffect(() => {
+    if (householdId !== null) {
+      setSelectedHouseholdId(householdId);
+    } else if (households.length > 0) {
+      setSelectedHouseholdId(households[0].id);
+    }
+  }, [householdId, households]);
 
   // Dynamic steps array — starts with one empty step
   const [steps, setSteps] = useState<CreateStepPayload[]>([{ ...EMPTY_STEP }]);
