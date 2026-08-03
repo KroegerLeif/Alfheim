@@ -52,7 +52,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans antialiased overflow-hidden selection:bg-primary selection:text-white">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
+          <LanguageProvider defaultLanguage={locale as "de" | "en" | "pl"}>
             <Providers>
               <div className="flex w-full h-screen overflow-hidden">
                 <Sidebar />

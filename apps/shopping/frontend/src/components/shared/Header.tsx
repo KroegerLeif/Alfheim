@@ -4,11 +4,11 @@ import { useTranslations } from "next-intl";
 import { Menu, ShoppingBag } from "lucide-react";
 import {
   BackToDashboard,
-  LanguageSwitcher,
   ThemeToggle,
   HouseholdSwitcher,
   AuthControls,
 } from "@loeger-os/shared";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useSidebar } from "@/app/[locale]/providers";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
 
@@ -65,7 +65,7 @@ export function Header() {
       {/* Right side: Switcher, Language Selector, Theme Toggle & Auth controls */}
       <div className="flex items-center gap-3">
         <HouseholdSwitcher />
-        <LanguageSwitcher variant="dropdown" />
+        <LanguageSwitcher />
         <ThemeToggle showVariantToggle={true} />
         <AuthControls user={authUser} onLogout={user.logout} />
       </div>
