@@ -7,7 +7,9 @@ import {
   useShoppingLists,
   useCreateShoppingList,
   useDeleteShoppingList,
+  useHouseholds,
 } from "../services/shoppingListService";
+import { useKeycloakUser } from "@/lib/useKeycloakUser";
 import { Specular } from "@/components/shared/Specular";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "../types";
@@ -45,7 +47,8 @@ function isProtectedList(list: ShoppingList): boolean {
 export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const tNav = useTranslations("Navigation");
   const tChecklist = useTranslations("Checklist");
-  const { data: lists = [], isLoading } = useShoppingLists();
+  const { data: listsData, isLoading } = useShoppingLists();
+  const lists = listsData || [];
 
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
@@ -54,30 +57,43 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
+  const user = useKeycloakUser();
+  const { data: households = [] } = useHouseholds();
 
   useEffect(() => {
     setCustomOrder(getStoredOrder());
   }, []);
 
   const orderedLists = useMemo(() => {
-    const protectedLists = lists.filter(isProtectedList);
-    const customLists = lists.filter((l) => !isProtectedList(l));
+    const hhLists: (ShoppingList & { displayName: string })[] = [];
+    const persLists: ShoppingList[] = [];
 
-    protectedLists.sort((a, b) => (a.is_default ? -1 : b.is_default ? 1 : 0));
+    lists.forEach((list) => {
+      if (list.is_default) {
+        const hh = households.find((h) => h.id === list.home_id);
+        hhLists.push({
+          ...list,
+          displayName: hh ? hh.name : list.name,
+        });
+      } else {
+        persLists.push(list);
+      }
+    });
 
-    if (customOrder.length > 0) {
-      customLists.sort((a, b) => {
-        const indexA = customOrder.indexOf(a.id);
-        const indexB = customOrder.indexOf(b.id);
-        if (indexA === -1 && indexB === -1) return 0;
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-      });
-    }
+    persLists.sort((a, b) => {
+      if (a.is_personal) return -1;
+      if (b.is_personal) return 1;
 
-    return [...protectedLists, ...customLists];
-  }, [lists, customOrder]);
+      const indexA = customOrder.indexOf(a.id);
+      const indexB = customOrder.indexOf(b.id);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+
+    return [...hhLists, ...persLists];
+  }, [lists, households, customOrder]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedListId(id);
@@ -131,6 +147,14 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     setNewListName("");
   };
 
+  const handleSelect = (list: ShoppingList) => {
+    if (list.is_default || !list.is_personal) {
+      localStorage.setItem("loeger_os_active_household_id", list.home_id);
+      window.dispatchEvent(new Event("storage-household-changed"));
+    }
+    onSelect(list.id);
+  };
+
   if (isLoading) {
     return (
       <div className="flex gap-2 shrink-0">
@@ -168,7 +192,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                 )}
               >
                 <button
-                  onClick={() => onSelect(list.id)}
+                  onClick={() => handleSelect(list)}
                   className={cn(
                     "flex items-center gap-2 h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-300 font-heading text-xs font-extrabold uppercase tracking-wider outline-none group",
                     isActive
@@ -197,7 +221,13 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                     />
                   )}
 
-                  <span>{list.name}</span>
+                  <span>
+                    {list.is_personal && user.username
+                      ? tNav("personalList", { username: user.username })
+                      : list.is_default
+                      ? (list as any).displayName || list.name
+                      : list.name}
+                  </span>
 
                   <span
                     className={cn(
@@ -219,7 +249,8 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                           onSuccess: () => {
                             const remaining = lists.filter((l) => l.id !== list.id);
                             if (remaining.length > 0) {
-                              onSelect(remaining[0].id);
+                              const fallback = remaining[0];
+                              handleSelect(fallback);
                             }
                           },
                         });

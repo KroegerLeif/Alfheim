@@ -13,7 +13,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useSidebar, useActiveList } from "./providers";
+import { useSidebar, useActiveList } from "@/app/[locale]/providers";
 import { ListSelector } from "@/features/shopping-lists/components/ListSelector";
 import { ChecklistContainer } from "@/features/shopping-lists/components/ChecklistContainer";
 import { AddManualItem } from "@/features/shopping-lists/components/AddManualItem";
@@ -52,12 +52,14 @@ export default function ShoppingDashboard() {
 
   // Queries
   const {
-    data: lists = [],
+    data: listsData,
     isLoading: listsLoading,
     isError: listsError,
     error: listsErrObj,
     refetch: refetchLists,
   } = useShoppingLists();
+
+  const lists = listsData || [];
 
   // Compute fallback default list ID (Personal -> Household -> First)
   const defaultListId = useMemo(() => {
@@ -209,9 +211,6 @@ export default function ShoppingDashboard() {
   }
 
   const activeList = lists.find((l) => l.id === resolvedListId);
-  const activeListName = activeList?.is_personal && user.username
-    ? `${user.username} - Liste`
-    : activeList?.name || t("title");
 
   // Query households and track active household ID
   const { data: households = [] } = useHouseholds();
@@ -236,12 +235,18 @@ export default function ShoppingDashboard() {
     return activeHh ? activeHh.name : "";
   }, [activeHouseholdId, households]);
 
-  const displayListName = useMemo(() => {
-    if (activeList?.is_default && activeHouseholdName) {
-      return `${activeListName} — ${activeHouseholdName}`;
+  const activeListName = useMemo(() => {
+    if (activeList?.is_personal && user.username) {
+      return navT("personalList", { username: user.username });
     }
-    return activeListName;
-  }, [activeList, activeListName, activeHouseholdName]);
+    if (activeList?.is_default) {
+      const hh = households.find((h) => h.id === activeList.home_id);
+      if (hh) return hh.name;
+    }
+    return activeList?.name || t("title");
+  }, [activeList, user.username, households, navT, t]);
+
+  const displayListName = activeListName;
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden font-sans relative select-none">
