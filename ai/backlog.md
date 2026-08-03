@@ -27,6 +27,12 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 ### Pantry Sync
 - [ ] Define and implement explicit API contract for unresolved product reconciliation edge cases.
 
+### Middleware & Routing
+- [x] Rename `proxy.ts` → `middleware.ts` so Next.js recognizes the next-intl locale middleware.
+- [x] Fix React Rules of Hooks violation in `page.tsx` — hooks were called after conditional early returns.
+- [x] Add `error.tsx` error boundary in `[locale]` route for graceful crash recovery.
+- [ ] Verify locale negotiation works end-to-end in local dev (without Traefik redirect fallback).
+
 ### Notifications
 - [ ] Replace any remaining UI-only status badges with backend-driven status fields.
 
