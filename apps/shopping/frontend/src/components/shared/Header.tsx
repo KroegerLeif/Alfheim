@@ -6,8 +6,8 @@ import {
   BackToDashboard,
   ThemeToggle,
   AuthControls,
+  LanguageSwitcher,
 } from "@loeger-os/shared";
-import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useSidebar } from "@/app/[locale]/providers";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
 

@@ -10,7 +10,7 @@ import {
   useHouseholds,
 } from "../services/shoppingListService";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
-import { Specular } from "@/components/shared/Specular";
+import { Specular } from "@loeger-os/shared";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "../types";
 
@@ -94,7 +94,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
         const hh = households.find((h) => h.id === list.home_id);
         hhLists.push({
           ...list,
-          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? "Household List" : list.name),
+          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? tNav("household_list_fallback") : list.name),
         });
       } else {
         persLists.push(list);
@@ -246,9 +246,9 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
                   <span>
                     {isPersonalList(list)
-                      ? (user.username ? tNav("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? "Personal List" : list.name))
+                      ? (user.username ? tNav("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? tNav("personal_list_fallback") : list.name))
                       : (list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS")
-                      ? (list as any).displayName || (list.name.startsWith("NAVIGATION.") ? "Household List" : list.name)
+                      ? (list as any).displayName || (list.name.startsWith("NAVIGATION.") ? tNav("household_list_fallback") : list.name)
                       : list.name}
                   </span>
 

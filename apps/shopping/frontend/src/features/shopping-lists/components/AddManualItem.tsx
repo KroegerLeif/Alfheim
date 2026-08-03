@@ -4,9 +4,8 @@ import { useState } from "react";
 import { Plus, ChevronUp, ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
-import { IconPicker } from "@/components/shared/IconPicker";
+import { IconPicker, Specular } from "@loeger-os/shared";
 import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
-import { Specular } from "@/components/shared/Specular";
 import { cn } from "@/lib/utils";
 
 interface AddManualItemProps {

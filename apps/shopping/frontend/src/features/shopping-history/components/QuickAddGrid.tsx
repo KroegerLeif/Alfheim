@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { QuickTile } from "./QuickTile";
 import { useShoppingHistory } from "../services/shoppingHistoryService";
-import { Specular } from "@/components/shared/Specular";
+import { Specular } from "@loeger-os/shared";
 import { cn } from "@/lib/utils";
 
 interface QuickAddGridProps {

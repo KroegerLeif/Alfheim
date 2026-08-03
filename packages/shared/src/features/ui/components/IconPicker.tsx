@@ -2,29 +2,11 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Apple,
-  Banana,
-  Milk,
-  Carrot,
-  Coffee,
-  Egg,
-  Beef,
-  Cookie,
-  Pizza,
-  Wine,
-  Sparkles,
-  ShoppingBag,
-  Package,
-  Box,
-  Tag,
-  Utensils,
-  CupSoda,
-  Flame,
-  Heart,
-  Star,
-  Check,
-  Smile,
+  Apple, Banana, Milk, Carrot, Coffee, Egg, Beef, Cookie, Pizza, Wine,
+  Sparkles, ShoppingBag, Package, Box, Tag, Utensils, CupSoda, Flame,
+  Heart, Star, Check, Smile,
 } from "lucide-react";
+import { useTranslation } from "../../i18n/utils/useTranslation";
 
 export interface IconOption {
   id: string;
@@ -63,6 +45,7 @@ interface IconPickerProps {
 }
 
 export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: IconPickerProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -84,20 +67,20 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: Ico
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="h-10 w-10 rounded-xl glass-inset hover:glass-active border border-border/40 flex items-center justify-center text-primary cursor-pointer transition-all duration-200"
-        title="Select Icon"
-        aria-label="Select Icon"
+        className="h-10 w-10 rounded-xl bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--primary-main)] cursor-pointer transition-all duration-200"
+        title={t('common.select_icon')}
+        aria-label={t('common.select_icon')}
       >
         <CurrentIcon className="h-5 w-5" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-12 w-64 bg-card border border-border/60 rounded-2xl shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">
-            Select Icon
+        <div className="absolute right-0 bottom-12 w-64 bg-[var(--surface-card)]/95 border border-[var(--border-subtle)] rounded-2xl shadow-2xl backdrop-blur-xl p-3 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]/60 mb-2">
+            {t('common.select_icon')}
           </div>
 
-          <div className="grid grid-cols-5 gap-1.5 max-h-48 overflow-y-auto scrollbar-none p-1 bg-background/50 rounded-xl border border-border/30">
+          <div className="grid grid-cols-5 gap-1.5 max-h-48 overflow-y-auto scrollbar-none p-1 bg-[var(--surface-canvas)]/50 rounded-xl border border-[var(--border-subtle)]/30">
             {AVAILABLE_ICONS.map((iconItem) => {
               const IconComp = iconItem.component;
               const isSelected = selectedIconId === iconItem.id;
@@ -112,8 +95,8 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: Ico
                   }}
                   className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-primary text-primary-foreground font-bold shadow-md scale-105"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                      ? "bg-[var(--primary-main)] text-white font-bold shadow-md scale-105"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-elevated)]/40"
                   }`}
                   title={iconItem.name}
                 >

@@ -20,7 +20,7 @@ import {
   useSyncToPantry,
   useHouseholds,
 } from "../services/shoppingListService";
-import { Specular } from "@/components/shared/Specular";
+import { Specular } from "@loeger-os/shared";
 import { cn } from "@/lib/utils";
 
 interface LocalStateItem extends UnrecognizedShoppingItem {
