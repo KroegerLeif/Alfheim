@@ -41,10 +41,13 @@ function isProtectedList(list: ShoppingList): boolean {
   return (
     list.is_default ||
     list.is_personal ||
-    list.name === "NAVIGATION.PERSONALLIST" ||
+    list.name === "NAVIGATION.PERSONAL_LIST" ||
     list.name === "NAVIGATION.PERSONAL_LISTS" ||
+    list.name === "NAVIGATION.PERSONALLIST" ||
+    list.name.includes("NAVIGATION.PERSONAL") ||
     list.name === "NAVIGATION.HOUSEHOLD_LISTS" ||
-    list.name === "NAVIGATION.HOUSEHOLDLISTS"
+    list.name === "NAVIGATION.HOUSEHOLDLISTS" ||
+    list.name.includes("NAVIGATION.HOUSEHOLD")
   );
 }
 
@@ -73,8 +76,11 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
   const isPersonalList = (l: ShoppingList) =>
     l.is_personal ||
-    l.name === "NAVIGATION.PERSONALLIST" ||
+    l.name === "NAVIGATION.PERSONAL_LIST" ||
     l.name === "NAVIGATION.PERSONAL_LISTS" ||
+    l.name === "NAVIGATION.PERSONALLIST" ||
+    l.name.includes("NAVIGATION.PERSONAL") ||
+    l.name.includes("NAVIGATION.") ||
     l.name.endsWith(" - Liste") ||
     l.name.endsWith("'s List") ||
     l.name.startsWith("Lista ");

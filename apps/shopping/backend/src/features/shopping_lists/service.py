@@ -51,6 +51,8 @@ class ShoppingListService:
         The suffix ' - Liste' corresponds to the i18n key shopping.personalListSuffix.
         """
         label = username.strip() if isinstance(username, str) and username.strip() else str(user_id)[:8]
+        if label.startswith("NAVIGATION.") or "NAVIGATION" in label.upper():
+            label = "Personal"
         return f"{label} - Liste"
 
     @staticmethod
@@ -83,6 +85,12 @@ class ShoppingListService:
             session.add(personal)
             await session.commit()
             await session.refresh(personal)
+        else:
+            if personal.name.startswith("NAVIGATION.") or "NAVIGATION" in personal.name.upper():
+                personal.name = ShoppingListService._personal_list_name(username, owner_id)
+                session.add(personal)
+                await session.commit()
+                await session.refresh(personal)
 
         if personal.items is None:
             personal.items = []
@@ -128,6 +136,12 @@ class ShoppingListService:
                 is_default=True,
                 is_personal=False,
             )
+            session.add(household)
+            await session.commit()
+            await session.refresh(household)
+
+        if household.name.startswith("NAVIGATION.") or "NAVIGATION" in household.name.upper():
+            household.name = "Haushalt"
             session.add(household)
             await session.commit()
             await session.refresh(household)

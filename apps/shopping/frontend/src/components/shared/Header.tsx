@@ -5,7 +5,6 @@ import { Menu, ShoppingBag } from "lucide-react";
 import {
   BackToDashboard,
   ThemeToggle,
-  HouseholdSwitcher,
   AuthControls,
 } from "@loeger-os/shared";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
@@ -64,7 +63,6 @@ export function Header() {
 
       {/* Right side: Switcher, Language Selector, Theme Toggle & Auth controls */}
       <div className="flex items-center gap-3">
-        <HouseholdSwitcher />
         <LanguageSwitcher />
         <ThemeToggle showVariantToggle={true} />
         <AuthControls user={authUser} onLogout={user.logout} />

@@ -76,8 +76,11 @@ export function Sidebar() {
 
   const isPersonalList = (l: ShoppingList) =>
     l.is_personal ||
-    l.name === "NAVIGATION.PERSONALLIST" ||
+    l.name === "NAVIGATION.PERSONAL_LIST" ||
     l.name === "NAVIGATION.PERSONAL_LISTS" ||
+    l.name === "NAVIGATION.PERSONALLIST" ||
+    l.name.includes("NAVIGATION.PERSONAL") ||
+    l.name.includes("NAVIGATION.") ||
     l.name.endsWith(" - Liste") ||
     l.name.endsWith("'s List") ||
     l.name.startsWith("Lista ");
