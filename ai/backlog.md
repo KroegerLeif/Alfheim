@@ -22,7 +22,7 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 ## Shopping
 
 ### Household / Pantry Target
-- [ ] Implement backend endpoint `GET /api/v1/households/me` to provide authenticated user's active household targets for checkout storage.
+- [x] Implement backend endpoint `GET /api/v1/households/me` to provide authenticated user's active household targets for checkout storage.
 
 ### Pantry Sync
 - [ ] Define and implement explicit API contract for unresolved product reconciliation edge cases.
