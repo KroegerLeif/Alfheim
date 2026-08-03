@@ -1,7 +1,12 @@
+import os
+import httpx
+import logging
 import uuid
 from typing import Optional, List, Sequence
 from sqlmodel import select, and_, col
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from src.core.exceptions import (
     ShoppingListNotFoundError,
@@ -164,41 +169,70 @@ class ShoppingListService:
         home_id: uuid.UUID,
         owner_id: Optional[uuid.UUID] = None,
         username: Optional[str] = None,
+        token: Optional[str] = None,
     ) -> Sequence[ShoppingList]:
         """Retrieve all shopping lists visible to the caller.
 
         Returns in a guaranteed stable order:
-          [0] Personal List  (caller's private list — always first)
-          [1] Household List (shared default list for home_id)
-          [2+] Additional user-created lists for this household
-
-        Both the Personal List and Household List are auto-provisioned on first call.
+          - Personal List  (caller's private list — always first)
+          - Household Lists (one per enrolled household)
+          - Custom Lists (additional user-created lists for these households)
         """
         effective_owner = owner_id or uuid.UUID("00000000-0000-0000-0000-000000000001")
 
-        # 1. Ensure protected lists exist
+        # 1. Fetch user's enrolled households from dashboard backend
+        households = []
+        if token:
+            dashboard_url = os.getenv("DASHBOARD_BACKEND_URL", "http://dashboard-backend:8080")
+            async with httpx.AsyncClient() as client:
+                try:
+                    response = await client.get(
+                        f"{dashboard_url}/api/v1/households/me",
+                        headers={"Authorization": token},
+                        timeout=5.0
+                    )
+                    if response.status_code == 200:
+                        households = response.json()
+                except Exception as e:
+                    logger.error(f"Failed to fetch user households in get_lists: {e}")
+
+        # If we couldn't fetch households or it's empty, fall back to the active home_id
+        if not households:
+            households = [{"id": str(home_id), "name": "Haushalt"}]
+
+        # 2. Ensure default lists exist for all enrolled households
+        household_lists = []
+        hh_ids = []
+        for hh in households:
+            try:
+                hh_id = uuid.UUID(hh["id"])
+                hh_ids.append(hh_id)
+                hh_list = await ShoppingListService._ensure_household_list(
+                    session, hh_id, effective_owner
+                )
+                household_lists.append(hh_list)
+            except Exception as e:
+                logger.error(f"Error ensuring household list: {e}")
+
+        # 3. Ensure personal list exists
         personal = await ShoppingListService._ensure_personal_list(
             session, home_id, effective_owner, username
         )
-        household = await ShoppingListService._ensure_household_list(
-            session, home_id, effective_owner
-        )
 
-        # 2. Fetch remaining user-created lists for this household
+        # 4. Fetch remaining user-created lists for all enrolled households
         stmt = select(ShoppingList).where(
-            ShoppingList.home_id == home_id,
+            ShoppingList.home_id.in_(hh_ids),
             ShoppingList.is_default == False,  # noqa: E712
-            ShoppingList.is_personal == False,  # noqa: E712
+            col(ShoppingList.is_personal) == False,  # noqa: E712
         )
         result = await session.exec(stmt)
         custom_lists = list(result.all())
 
-        all_lists = [personal, household, *custom_lists]
+        all_lists = [personal, *household_lists, *custom_lists]
         for lst in all_lists:
             if lst.items is None:
                 lst.items = []
 
-        # 3. Return in deterministic order: personal → household → custom
         return all_lists
 
     @staticmethod

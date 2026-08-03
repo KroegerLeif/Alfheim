@@ -81,6 +81,7 @@ async def create_list(
     summary="Retrieve all shopping lists",
 )
 async def get_lists(
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
@@ -89,11 +90,13 @@ async def get_lists(
     Auto-provisions the Personal List (user-bound) and Household List (home-bound)
     on first access. Returns them in stable order: personal → household → custom.
     """
+    token = request.headers.get("Authorization")
     return await ShoppingListService.get_lists(
         session=session,
         home_id=context.home_id,
         owner_id=context.user_id,
         username=context.username,
+        token=token,
     )
 
 
