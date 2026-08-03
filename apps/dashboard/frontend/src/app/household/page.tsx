@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from '@loeger-os/shared';
 import { useHouseholds, useCreateHousehold, useCreateInvite, useJoinHousehold } from '@/features/household';
 import { QRCodeModal } from '@/features/household/components/QRCodeModal';
@@ -26,6 +26,25 @@ export default function HouseholdPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newHouseholdName, setNewHouseholdName] = useState('');
   const [createStatus, setCreateStatus] = useState<string | null>(null);
+
+  const handleHouseholdSelect = (id: string) => {
+    setSelectedHouseholdId(id);
+    localStorage.setItem('loeger_os_active_household_id', id);
+    window.dispatchEvent(new Event('storage-household-changed'));
+  };
+
+  useEffect(() => {
+    if (households && households.length > 0) {
+      const saved = localStorage.getItem('loeger_os_active_household_id');
+      const exists = households.some((h) => h.id === saved);
+      if (saved && exists) {
+        setSelectedHouseholdId(saved);
+      } else {
+        const defaultHh = households[0];
+        handleHouseholdSelect(defaultHh.id);
+      }
+    }
+  }, [households]);
 
   const activeHousehold = households && households.length > 0
     ? households.find((h) => h.id === selectedHouseholdId) || households[0]
@@ -61,7 +80,7 @@ export default function HouseholdPage() {
           setNewHouseholdName('');
           setIsCreateModalOpen(false);
           if (newHh?.id) {
-            setSelectedHouseholdId(newHh.id);
+            handleHouseholdSelect(newHh.id);
           }
         },
         onError: (err) => {
@@ -83,7 +102,7 @@ export default function HouseholdPage() {
           setJoinStatus(t('household.join_success', { name: household.name }));
           setJoinTokenInput('');
           if (household?.id) {
-            setSelectedHouseholdId(household.id);
+            handleHouseholdSelect(household.id);
           }
         },
         onError: (err) => {
@@ -207,7 +226,7 @@ export default function HouseholdPage() {
                 {households.length > 1 && (
                   <select
                     value={activeHousehold.id}
-                    onChange={(e) => setSelectedHouseholdId(e.target.value)}
+                    onChange={(e) => handleHouseholdSelect(e.target.value)}
                     className="px-2.5 py-1 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-main)] cursor-pointer"
                   >
                     {households.map((h) => (
