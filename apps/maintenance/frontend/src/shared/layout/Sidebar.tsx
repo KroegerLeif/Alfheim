@@ -12,13 +12,11 @@ import {
   ChevronRight
 } from "lucide-react";
 import { cn } from "../utils";
-import { useAuth } from "../auth/AuthContext";
 import { useTranslations } from "next-intl";
 
 export function Sidebar() {
   const t = useTranslations("maintenance");
   const { activeNav, setActiveNav, isSidebarCollapsed, setIsSidebarCollapsed } = useLayout();
-  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -91,43 +89,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer Area */}
-      <div className="p-4 border-t border-[var(--border-subtle)] space-y-3">
-        {/* Dynamic Keycloak User Profile Card */}
-        {user ? (
-          <div className={cn("flex items-center gap-3 p-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)]", isSidebarCollapsed && "justify-center p-0 bg-transparent border-0")}>
-            <div className="h-10 w-10 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--primary-main)]/20 flex items-center justify-center text-[var(--primary-main)] font-black text-sm shrink-0">
-              {user.initials}
-            </div>
-            {!isSidebarCollapsed && (
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-[var(--text-main)] truncate">
-                  {user.name}
-                </span>
-                <span className="text-[10px] text-[var(--primary-main)] font-semibold uppercase tracking-wider truncate">
-                  {user.role}
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className={cn("flex items-center gap-3 p-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)]", isSidebarCollapsed && "justify-center p-0 bg-transparent border-0")}>
-            <div className="h-10 w-10 rounded-xl bg-[var(--surface-elevated)] flex items-center justify-center text-[var(--text-muted)] font-bold text-xs shrink-0">
-              --
-            </div>
-            {!isSidebarCollapsed && (
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-[var(--text-main)] truncate">
-                  User Session
-                </span>
-                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider truncate">
-                  Maintenance
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </aside>
   );
 }

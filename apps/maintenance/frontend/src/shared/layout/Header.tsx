@@ -10,6 +10,7 @@ import {
 } from "@loeger-os/shared";
 import { useTranslations } from "next-intl";
 import { useLayout, NavOption } from "./LayoutContext";
+import { useAuth } from "../auth/AuthContext";
 import { Bell, AlertTriangle, Clock, Calendar } from "lucide-react";
 import { cn } from "../utils";
 
@@ -23,7 +24,14 @@ interface NotificationItem {
 export function Header() {
   const t = useTranslations("maintenance");
   const { activeNav } = useLayout();
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+
+  const authUser = user ? {
+    name: user.name,
+    preferred_username: user.username,
+    email: user.email,
+  } : null;
 
   const titleMap: Record<NavOption, string> = {
     devices: t("nav.deviceInventory"),
@@ -126,7 +134,7 @@ export function Header() {
           )}
         </div>
 
-        <AuthControls />
+        <AuthControls user={authUser} onLogout={logout} />
       </div>
     </header>
   );
