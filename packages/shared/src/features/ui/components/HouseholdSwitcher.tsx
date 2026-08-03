@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../../i18n/utils/useTranslation';
 
 const STORAGE_KEY = 'loeger_os_active_household_id';
+const CACHE_KEY = 'loeger_os_cached_households';
 
 interface Household {
   id: string;
@@ -20,6 +21,19 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Load cached households for instant render (stale-while-revalidate)
+    try {
+      const cachedHouseholds = localStorage.getItem(CACHE_KEY);
+      if (cachedHouseholds) {
+        const parsed = JSON.parse(cachedHouseholds);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setHouseholds(parsed);
+        }
+      }
+    } catch {
+      // Ignore malformed cache
+    }
+
     // Load active ID from localStorage
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -43,6 +57,12 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
           const data = await res.json();
           if (Array.isArray(data)) {
             setHouseholds(data);
+            // Cache households for instant render on next mount
+            try {
+              localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            } catch {
+              // Ignore storage quota errors
+            }
             const activeSaved = localStorage.getItem(STORAGE_KEY);
             const exists = data.some(h => h.id === activeSaved);
             if ((!activeSaved || !exists) && data.length > 0) {
