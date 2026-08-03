@@ -13,7 +13,9 @@
     "logout": "Log Out",
     "personalList": "{username}'s List",
     "household_lists": "Household Lists",
-    "personal_lists": "Personal Lists"
+    "personal_lists": "Personal Lists",
+    "household_list_fallback": "Household List",
+    "personal_list_fallback": "Personal List"
   },
   "Checklist": {
     "title": "Shopping Checklist",
@@ -21,7 +23,7 @@
     "open": "open",
     "completed": "completed",
     "empty": "No items in list",
-    "einlagernBtn": "Store Einkauf",
+    "einlagernBtn": "Pantry Transfer",
     "pantryBadge": "Pantry",
     "pantryLegend": "Linked with Pantry app — will be automatically added to stock",
     "share": "Share",

@@ -36,6 +36,13 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 ### Notifications
 - [ ] Replace any remaining UI-only status badges with backend-driven status fields.
 
+### i18n / Hardcoded Strings
+- [ ] Review icon tooltip names in IconPicker (`AVAILABLE_ICONS[].name`) for full i18n localization (currently English proper nouns — acceptable but not fully localized).
+- [ ] Audit `isPersonalList()` heuristic in Sidebar.tsx for legacy name-pattern matching (`endsWith(" - Liste")`, `endsWith("'s List")`, `startsWith("Lista ")`) — fragile across locales.
+
+### Component Consolidation
+- [ ] Evaluate whether Shopping's `PantryBadge` should move to shared (currently only used in Shopping, but Pantry app may want it).
+
 ## Pantry
 
 ### Inventory / Analytics

@@ -13,7 +13,9 @@
     "logout": "Wyloguj",
     "personalList": "Lista {username}",
     "household_lists": "Listy domowe",
-    "personal_lists": "Listy osobiste"
+    "personal_lists": "Listy osobiste",
+    "household_list_fallback": "Lista domowa",
+    "personal_list_fallback": "Lista osobista"
   },
   "Checklist": {
     "title": "Lista zakupów",

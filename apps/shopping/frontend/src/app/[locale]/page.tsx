@@ -19,7 +19,7 @@ import { ChecklistContainer } from "@/features/shopping-lists/components/Checkli
 import { AddManualItem } from "@/features/shopping-lists/components/AddManualItem";
 import { QuickAddGrid } from "@/features/shopping-history/components/QuickAddGrid";
 import { EinlagernModal } from "@/features/shopping-lists/components/EinlagernModal";
-import { Specular } from "@/components/shared/Specular";
+import { Specular } from "@loeger-os/shared";
 import { PantryBadge } from "@/components/shared/PantryBadge";
 import {
   useShoppingLists,
@@ -144,11 +144,11 @@ export default function ShoppingDashboard() {
     if (isPersonalList(activeList)) {
       return user.username 
         ? navT("personalList", { username: user.username }) 
-        : (activeList.name.startsWith("NAVIGATION.") ? "Personal List" : activeList.name);
+        : (activeList.name.startsWith("NAVIGATION.") ? navT("personal_list_fallback") : activeList.name);
     }
     if (activeList.is_default || activeList.name === "NAVIGATION.HOUSEHOLD_LISTS" || activeList.name === "NAVIGATION.HOUSEHOLDLISTS") {
       const hh = households.find((h) => h.id === activeList.home_id);
-      return hh ? hh.name : (activeList.name.startsWith("NAVIGATION.") ? "Household List" : activeList.name);
+      return hh ? hh.name : (activeList.name.startsWith("NAVIGATION.") ? navT("household_list_fallback") : activeList.name);
     }
     return activeList.name;
   }, [activeList, user.username, households, navT, t]);

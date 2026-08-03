@@ -94,7 +94,7 @@ export function Sidebar() {
         const hh = households.find((h) => h.id === list.home_id);
         hhLists.push({
           ...list,
-          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? "Household List" : list.name),
+          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? t("household_list_fallback") : list.name),
         });
       } else {
         persLists.push(list);
@@ -335,7 +335,7 @@ export function Sidebar() {
                     />
 
                     <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
-                      {user.username ? t("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? "Personal List" : list.name)}
+                      {user.username ? t("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? t("personal_list_fallback") : list.name)}
                     </span>
 
                     <span
