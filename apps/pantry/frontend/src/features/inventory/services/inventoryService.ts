@@ -8,16 +8,46 @@ import {
   InventoryLedgerRead
 } from "../types";
 
+import { useState, useEffect } from "react";
+
+function useActiveHouseholdId() {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveId(localStorage.getItem("loeger_os_active_household_id"));
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "loeger_os_active_household_id") {
+        setActiveId(e.newValue);
+      }
+    };
+
+    const handleLocalChange = () => {
+      setActiveId(localStorage.getItem("loeger_os_active_household_id"));
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("storage-household-changed", handleLocalChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("storage-household-changed", handleLocalChange);
+    };
+  }, []);
+
+  return activeId;
+}
+
 export const inventoryKeys = {
-  all: ["inventory"] as const,
-  states: () => [...inventoryKeys.all, "state"] as const,
-  stateFiltered: (productId?: string, locationId?: string) => 
-    [...inventoryKeys.states(), { productId, locationId }] as const,
-  lowStock: () => [...inventoryKeys.all, "low-stock"] as const,
-  expirationSummary: () => [...inventoryKeys.all, "expiration-summary"] as const,
-  ledger: () => [...inventoryKeys.all, "ledger"] as const,
-  ledgerFiltered: (productId?: string, locationId?: string, limit?: number, offset?: number) => 
-    [...inventoryKeys.ledger(), { productId, locationId, limit, offset }] as const,
+  all: (householdId: string | null) => ["inventory", { householdId }] as const,
+  states: (householdId: string | null) => [...inventoryKeys.all(householdId), "state"] as const,
+  stateFiltered: (householdId: string | null, productId?: string, locationId?: string) => 
+    [...inventoryKeys.states(householdId), { productId, locationId }] as const,
+  lowStock: (householdId: string | null) => [...inventoryKeys.all(householdId), "low-stock"] as const,
+  expirationSummary: (householdId: string | null) => [...inventoryKeys.all(householdId), "expiration-summary"] as const,
+  ledger: (householdId: string | null) => [...inventoryKeys.all(householdId), "ledger"] as const,
+  ledgerFiltered: (householdId: string | null, productId?: string, locationId?: string, limit?: number, offset?: number) => 
+    [...inventoryKeys.ledger(householdId), { productId, locationId, limit, offset }] as const,
 };
 
 /**
@@ -25,8 +55,10 @@ export const inventoryKeys = {
  * Retrieves the real-time cached inventory levels, optionally filtered by product and location.
  */
 export function useInventoryState(productId?: string, locationId?: string) {
+  const activeHouseholdId = useActiveHouseholdId();
+
   return useQuery<InventoryStateReadWithRelations[]>({
-    queryKey: inventoryKeys.stateFiltered(productId, locationId),
+    queryKey: inventoryKeys.stateFiltered(activeHouseholdId, productId, locationId),
     queryFn: () => 
       pantryClient
         .get("api/v1/inventory/state", {
@@ -44,8 +76,10 @@ export function useInventoryState(productId?: string, locationId?: string) {
  * Retrieves inventory products that have fallen below their minimum stock thresholds.
  */
 export function useLowStockItems() {
+  const activeHouseholdId = useActiveHouseholdId();
+
   return useQuery<LowStockItem[]>({
-    queryKey: inventoryKeys.lowStock(),
+    queryKey: inventoryKeys.lowStock(activeHouseholdId),
     queryFn: () => 
       pantryClient
         .get("api/v1/inventory/low-stock")
@@ -58,14 +92,17 @@ export function useLowStockItems() {
  * Retrieves summary of inventory items categorized by their expiration status.
  */
 export function useExpirationSummary() {
+  const activeHouseholdId = useActiveHouseholdId();
+
   return useQuery<ExpirationSummary>({
-    queryKey: inventoryKeys.expirationSummary(),
+    queryKey: inventoryKeys.expirationSummary(activeHouseholdId),
     queryFn: () => 
       pantryClient
         .get("api/v1/inventory/expiration-summary")
         .json<ExpirationSummary>(),
   });
 }
+
 
 /**
  * 4. Helper action to push low-stock items to active household Shopping App
@@ -146,7 +183,7 @@ export function useCreateTransaction() {
         .json<InventoryLedgerRead>(),
     onSuccess: () => {
       // Invalidate all inventory queries to refresh states across the app
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
   });
 }
@@ -156,8 +193,10 @@ export function useCreateTransaction() {
  * Retrieves transaction audit ledger history logs.
  */
 export function useLedgerHistory(productId?: string, locationId?: string, limit = 100, offset = 0) {
+  const activeHouseholdId = useActiveHouseholdId();
+
   return useQuery<InventoryLedgerRead[]>({
-    queryKey: inventoryKeys.ledgerFiltered(productId, locationId, limit, offset),
+    queryKey: inventoryKeys.ledgerFiltered(activeHouseholdId, productId, locationId, limit, offset),
     queryFn: () => 
       pantryClient
         .get("api/v1/inventory/transactions", {
