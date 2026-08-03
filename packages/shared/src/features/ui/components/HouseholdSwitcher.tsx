@@ -32,30 +32,41 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
                   sessionStorage.getItem('token_shopping-frontend');
 
     if (token) {
-      fetch('/api/v1/households/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      .then(res => {
-        if (res.ok) return res.json();
-        throw new Error('Failed to fetch households');
-      })
-      .then((data: Household[]) => {
-        if (Array.isArray(data)) {
-          setHouseholds(data);
-          // If no active ID is selected and we have households, set the default or first one
-          if (!saved && data.length > 0) {
-            const defaultHh = data.find(h => h.is_default) || data[0];
-            localStorage.setItem(STORAGE_KEY, defaultHh.id);
-            setActiveId(defaultHh.id);
-            window.dispatchEvent(new Event('storage-household-changed'));
+      const fetchHouseholds = async (url: string): Promise<boolean> => {
+        try {
+          const res = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setHouseholds(data);
+            const activeSaved = localStorage.getItem(STORAGE_KEY);
+            const exists = data.some(h => h.id === activeSaved);
+            if ((!activeSaved || !exists) && data.length > 0) {
+              const defaultHh = data.find(h => h.is_default) || data[0];
+              localStorage.setItem(STORAGE_KEY, defaultHh.id);
+              setActiveId(defaultHh.id);
+              window.dispatchEvent(new Event('storage-household-changed'));
+            }
+            return true;
           }
+        } catch (err) {
+          console.warn(`Failed to fetch households from ${url}:`, err);
         }
-      })
-      .catch(err => {
-        console.error('Error fetching households in switcher:', err);
-      });
+        return false;
+      };
+
+      const runFetch = async () => {
+        const success = await fetchHouseholds('/api/v1/households/me');
+        if (!success) {
+          await fetchHouseholds('http://loeger-os/api/v1/households/me');
+        }
+      };
+
+      runFetch();
     }
 
     // Sync storage events
