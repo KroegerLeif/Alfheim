@@ -10,7 +10,10 @@
     "newList": "Nowa lista",
     "newListPlaceholder": "Nazwa...",
     "noLists": "Brak własnych list",
-    "logout": "Wyloguj"
+    "logout": "Wyloguj",
+    "personalList": "Lista {username}",
+    "household_lists": "Listy domowe",
+    "personal_lists": "Listy osobiste"
   },
   "Checklist": {
     "title": "Lista zakupów",
