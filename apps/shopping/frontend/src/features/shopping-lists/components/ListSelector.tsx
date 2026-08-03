@@ -38,7 +38,14 @@ function setStoredOrder(order: string[]) {
 }
 
 function isProtectedList(list: ShoppingList): boolean {
-  return list.is_default || list.is_personal;
+  return (
+    list.is_default ||
+    list.is_personal ||
+    list.name === "NAVIGATION.PERSONALLIST" ||
+    list.name === "NAVIGATION.PERSONAL_LISTS" ||
+    list.name === "NAVIGATION.HOUSEHOLD_LISTS" ||
+    list.name === "NAVIGATION.HOUSEHOLDLISTS"
+  );
 }
 
 /**
@@ -64,16 +71,24 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     setCustomOrder(getStoredOrder());
   }, []);
 
+  const isPersonalList = (l: ShoppingList) =>
+    l.is_personal ||
+    l.name === "NAVIGATION.PERSONALLIST" ||
+    l.name === "NAVIGATION.PERSONAL_LISTS" ||
+    l.name.endsWith(" - Liste") ||
+    l.name.endsWith("'s List") ||
+    l.name.startsWith("Lista ");
+
   const orderedLists = useMemo(() => {
     const hhLists: (ShoppingList & { displayName: string })[] = [];
     const persLists: ShoppingList[] = [];
 
     lists.forEach((list) => {
-      if (list.is_default) {
+      if (list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS") {
         const hh = households.find((h) => h.id === list.home_id);
         hhLists.push({
           ...list,
-          displayName: hh ? hh.name : list.name,
+          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? "Household List" : list.name),
         });
       } else {
         persLists.push(list);
@@ -81,8 +96,10 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     });
 
     persLists.sort((a, b) => {
-      if (a.is_personal) return -1;
-      if (b.is_personal) return 1;
+      const aIsPers = isPersonalList(a);
+      const bIsPers = isPersonalList(b);
+      if (aIsPers && !bIsPers) return -1;
+      if (!aIsPers && bIsPers) return 1;
 
       const indexA = customOrder.indexOf(a.id);
       const indexB = customOrder.indexOf(b.id);
@@ -204,7 +221,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                     <GripVertical className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground cursor-grab shrink-0 -ml-1" />
                   )}
 
-                  {list.is_personal && (
+                  {isPersonalList(list) && (
                     <User
                       className={cn(
                         "h-3 w-3 shrink-0",
@@ -212,7 +229,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                       )}
                     />
                   )}
-                  {list.is_default && (
+                  {(list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS") && (
                     <Home
                       className={cn(
                         "h-3 w-3 shrink-0",
@@ -222,10 +239,10 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                   )}
 
                   <span>
-                    {list.is_personal && user.username
-                      ? tNav("personalList", { username: user.username })
-                      : list.is_default
-                      ? (list as any).displayName || list.name
+                    {isPersonalList(list)
+                      ? (user.username ? tNav("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? "Personal List" : list.name))
+                      : (list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS")
+                      ? (list as any).displayName || (list.name.startsWith("NAVIGATION.") ? "Household List" : list.name)
                       : list.name}
                   </span>
 

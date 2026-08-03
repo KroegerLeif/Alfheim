@@ -74,26 +74,36 @@ export function Sidebar() {
 
   const { data: households = [] } = useHouseholds();
 
+  const isPersonalList = (l: ShoppingList) =>
+    l.is_personal ||
+    l.name === "NAVIGATION.PERSONALLIST" ||
+    l.name === "NAVIGATION.PERSONAL_LISTS" ||
+    l.name.endsWith(" - Liste") ||
+    l.name.endsWith("'s List") ||
+    l.name.startsWith("Lista ");
+
   const { householdLists, personalLists } = useMemo(() => {
     const hhLists: (ShoppingList & { displayName: string })[] = [];
     const persLists: ShoppingList[] = [];
 
     lists.forEach((list) => {
-      if (list.is_default) {
+      if (list.is_default || list.name === "NAVIGATION.HOUSEHOLD_LISTS" || list.name === "NAVIGATION.HOUSEHOLDLISTS") {
         const hh = households.find((h) => h.id === list.home_id);
         hhLists.push({
           ...list,
-          displayName: hh ? hh.name : list.name,
+          displayName: hh ? hh.name : (list.name.startsWith("NAVIGATION.") ? "Household List" : list.name),
         });
       } else {
         persLists.push(list);
       }
     });
 
-    // Sort personal/custom lists: main is_personal list first, then custom lists by customOrder
+    // Sort personal/custom lists: main personal list first, then custom lists by customOrder
     persLists.sort((a, b) => {
-      if (a.is_personal) return -1;
-      if (b.is_personal) return 1;
+      const aIsPers = isPersonalList(a);
+      const bIsPers = isPersonalList(b);
+      if (aIsPers && !bIsPers) return -1;
+      if (!aIsPers && bIsPers) return 1;
       
       const indexA = customOrder.indexOf(a.id);
       const indexB = customOrder.indexOf(b.id);
@@ -107,7 +117,7 @@ export function Sidebar() {
   }, [lists, households, customOrder]);
 
   const reorderableCustomLists = useMemo(() => {
-    return personalLists.filter((l) => !l.is_personal);
+    return personalLists.filter((l) => !isPersonalList(l));
   }, [personalLists]);
 
   const handleSelectHouseholdList = (list: ShoppingList) => {
@@ -300,7 +310,7 @@ export function Sidebar() {
               const totalCount = list.items.length;
               const isDragging = draggedListId === list.id;
 
-              if (list.is_personal) {
+              if (isPersonalList(list)) {
                 return (
                   <button
                     key={list.id}
@@ -322,7 +332,7 @@ export function Sidebar() {
                     />
 
                     <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
-                      {user.username ? t("personalList", { username: user.username }) : list.name}
+                      {user.username ? t("personalList", { username: user.username }) : (list.name.startsWith("NAVIGATION.") ? "Personal List" : list.name)}
                     </span>
 
                     <span
@@ -448,32 +458,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        <div className="p-3 border-t border-border/40 bg-card/60 shrink-0">
-          <div className="flex items-center justify-between p-2 rounded-xl glass-inset">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-cyan-500 flex items-center justify-center text-white font-mono text-xs font-black shrink-0 border border-white/20 shadow-xs">
-                {user.avatarInitials}
-              </div>
-              <div className="flex flex-col min-w-0 leading-tight">
-                <span className="text-xs font-heading font-black uppercase tracking-wider text-foreground truncate">
-                  {user.name}
-                </span>
-                <span className="text-[10px] font-mono text-muted-foreground/60 truncate">
-                  @{user.username}
-                </span>
-              </div>
-            </div>
 
-            <button
-              onClick={user.logout}
-              className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 cursor-pointer transition-colors shrink-0"
-              aria-label={t("logout")}
-              title={t("logout")}
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       </aside>
     </>
   );

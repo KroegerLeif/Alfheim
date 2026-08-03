@@ -128,15 +128,26 @@ export default function ShoppingDashboard() {
     return activeHh ? activeHh.name : "";
   }, [activeHouseholdId, households]);
 
+  const isPersonalList = (l: { is_personal?: boolean; name: string }) =>
+    l.is_personal ||
+    l.name === "NAVIGATION.PERSONALLIST" ||
+    l.name === "NAVIGATION.PERSONAL_LISTS" ||
+    l.name.endsWith(" - Liste") ||
+    l.name.endsWith("'s List") ||
+    l.name.startsWith("Lista ");
+
   const activeListName = useMemo(() => {
-    if (activeList?.is_personal && user.username) {
-      return navT("personalList", { username: user.username });
+    if (!activeList) return t("title");
+    if (isPersonalList(activeList)) {
+      return user.username 
+        ? navT("personalList", { username: user.username }) 
+        : (activeList.name.startsWith("NAVIGATION.") ? "Personal List" : activeList.name);
     }
-    if (activeList?.is_default) {
+    if (activeList.is_default || activeList.name === "NAVIGATION.HOUSEHOLD_LISTS" || activeList.name === "NAVIGATION.HOUSEHOLDLISTS") {
       const hh = households.find((h) => h.id === activeList.home_id);
-      if (hh) return hh.name;
+      return hh ? hh.name : (activeList.name.startsWith("NAVIGATION.") ? "Household List" : activeList.name);
     }
-    return activeList?.name || t("title");
+    return activeList.name;
   }, [activeList, user.username, households, navT, t]);
 
   const displayListName = activeListName;
