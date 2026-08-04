@@ -23,6 +23,7 @@ type Service interface {
 	JoinHousehold(ctx context.Context, userID string, token string) (*HouseholdResponse, error)
 	RemoveMember(ctx context.Context, requesterID string, householdID string, targetUserID string) error
 	UpdateMemberRole(ctx context.Context, requesterID string, householdID string, targetUserID string, newRole HouseholdRole) error
+	UpdateHouseholdAddress(ctx context.Context, requesterID string, householdID string, req UpdateHouseholdAddressRequest) error
 }
 
 type service struct {
@@ -296,4 +297,17 @@ func (s *service) UpdateMemberRole(ctx context.Context, requesterID string, hous
 	}
 
 	return s.repo.UpdateMemberRole(ctx, householdID, targetUserID, newRole)
+}
+
+func (s *service) UpdateHouseholdAddress(ctx context.Context, requesterID string, householdID string, req UpdateHouseholdAddressRequest) error {
+	role, err := s.repo.GetMemberRole(ctx, householdID, requesterID)
+	if err != nil {
+		return err
+	}
+
+	if role != RoleOwner && role != RoleAdmin {
+		return ErrUnauthorizedHouseholdAccess
+	}
+
+	return s.repo.UpdateHouseholdAddress(ctx, householdID, req.Street, req.Zip, req.City, req.Country, req.Latitude, req.Longitude)
 }

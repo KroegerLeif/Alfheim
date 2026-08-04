@@ -12,6 +12,7 @@ import (
 
 	"github.com/MicahParks/keyfunc/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type contextKey string
@@ -30,6 +31,7 @@ type UserClaims struct {
 	FamilyName        string   `json:"family_name"`
 	Roles             []string `json:"roles"`
 	HouseholdID       string   `json:"household_id"`
+	HouseholdRole     string   `json:"household_role"`
 }
 
 // Authenticator handles OIDC JWT validation via Keycloak JWKS endpoint.
@@ -150,4 +152,40 @@ func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 	}
 
 	return uc
+}
+
+// HouseholdRoleMiddleware queries the database to find the user's role for the active household
+// and injects it into both the request context claims and request headers.
+func HouseholdRoleMiddleware(db *pgxpool.Pool, log *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims, err := GetUserClaims(r.Context())
+			if err != nil {
+				// No claims present, likely unauthenticated route
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			householdID := claims.HouseholdID
+			if householdID == "" {
+				householdID = r.Header.Get("X-Household-ID")
+			}
+
+			if householdID != "" && claims.Subject != "" {
+				var role string
+				query := `SELECT role FROM household_members WHERE household_id = $1 AND user_id = $2`
+				err := db.QueryRow(r.Context(), query, householdID, claims.Subject).Scan(&role)
+				if err == nil {
+					// Add household role to claims
+					claims.HouseholdRole = role
+					// Propagate role header for downstream microservices
+					r.Header.Set("X-Household-Role", role)
+				} else {
+					log.Debug("household role lookup failed", slog.String("household_id", householdID), slog.String("user_id", claims.Subject), slog.String("error", err.Error()))
+				}
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }

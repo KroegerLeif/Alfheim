@@ -128,6 +128,20 @@ func (m *mockRepository) IncrementInviteUses(ctx context.Context, token string) 
 	return nil
 }
 
+func (m *mockRepository) UpdateHouseholdAddress(ctx context.Context, id string, street, zip, city, country string, latitude, longitude *float64) error {
+	h, ok := m.households[id]
+	if !ok {
+		return household.ErrHouseholdNotFound
+	}
+	h.Street = street
+	h.Zip = zip
+	h.City = city
+	h.Country = country
+	h.Latitude = latitude
+	h.Longitude = longitude
+	return nil
+}
+
 func TestHouseholdService_CreateAndInvite(t *testing.T) {
 	repo := newMockRepository()
 	discardLogger := slog.New(slog.NewTextHandler(io.Discard, nil))

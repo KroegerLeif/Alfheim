@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 		r.Post("/api/v1/households/join", h.JoinHousehold)
 		r.Put("/api/v1/households/{id}/members/{userID}/role", h.UpdateMemberRole)
 		r.Delete("/api/v1/households/{id}/members/{userID}", h.RemoveMember)
+		r.Put("/api/v1/households/{id}/address", h.UpdateHouseholdAddress)
 	})
 }
 
@@ -237,4 +238,42 @@ func (h *Handler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "member removed successfully"})
+}
+
+// UpdateHouseholdAddress handles PUT /api/v1/households/{id}/address.
+func (h *Handler) UpdateHouseholdAddress(w http.ResponseWriter, r *http.Request) {
+	claims, err := middleware.GetUserClaims(r.Context())
+	if err != nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	householdID := chi.URLParam(r, "id")
+	if householdID == "" {
+		http.Error(w, `{"error":"bad_request","message":"missing household id"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateHouseholdAddressRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"bad_request","message":"invalid json payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.UpdateHouseholdAddress(r.Context(), claims.Subject, householdID, req)
+	if err != nil {
+		if errors.Is(err, ErrHouseholdNotFound) {
+			http.Error(w, `{"error":"not_found","message":"household not found"}`, http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, ErrUnauthorizedHouseholdAccess) {
+			http.Error(w, `{"error":"forbidden","message":"unauthorized access to household"}`, http.StatusForbidden)
+			return
+		}
+		http.Error(w, `{"error":"internal_server_error","message":"failed to update household address"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "household address updated successfully"})
 }
