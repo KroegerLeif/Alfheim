@@ -13,6 +13,8 @@ import {
   TelemetryMetrics,
   TelemetryLogEntry,
   TelemetryLogsResponse,
+  ContactCategory,
+  Contact,
 } from './types';
 import { getInMemoryToken, setInMemoryToken } from './providers/AuthProvider';
 
@@ -58,6 +60,16 @@ export const api = ky.create({
         const token = getAuthToken();
         if (token) {
           request.headers.set('Authorization', `Bearer ${token}`);
+        }
+        if (typeof window !== "undefined") {
+          const activeHhId = localStorage.getItem("loeger_os_active_household_id");
+          if (activeHhId) {
+            request.headers.set("X-Household-ID", activeHhId);
+          }
+          const activeRole = localStorage.getItem("loeger_os_active_household_role");
+          if (activeRole) {
+            request.headers.set("X-Household-Role", activeRole);
+          }
         }
       },
     ],
@@ -141,4 +153,69 @@ export async function fetchTelemetryLogs(): Promise<TelemetryLogEntry[]> {
   } catch {
     return [];
   }
+}
+
+/* Address API */
+export async function updateHouseholdAddress(
+  id: string,
+  payload: { street: string; zip: string; city: string; country: string; latitude: number | null; longitude: number | null }
+): Promise<any> {
+  return await api.put(`api/v1/households/${id}/address`, { json: payload }).json();
+}
+
+/* Member Management API */
+export async function updateMemberRole(householdId: string, userId: string, role: string): Promise<any> {
+  return await api.put(`api/v1/households/${householdId}/members/${userId}/role`, { json: { role } }).json();
+}
+
+export async function removeMember(householdId: string, userId: string): Promise<any> {
+  return await api.delete(`api/v1/households/${householdId}/members/${userId}`).json();
+}
+
+/* Contact Categories API */
+export async function fetchContactCategories(householdId: string): Promise<ContactCategory[]> {
+  return await api.get(`api/v1/households/${householdId}/contact-categories`).json<ContactCategory[]>();
+}
+
+export async function createContactCategory(
+  householdId: string,
+  payload: { name: string; icon: string; color: string }
+): Promise<ContactCategory> {
+  return await api.post(`api/v1/households/${householdId}/contact-categories`, { json: payload }).json<ContactCategory>();
+}
+
+export async function updateContactCategory(
+  householdId: string,
+  catId: string,
+  payload: { name: string; icon: string; color: string }
+): Promise<ContactCategory> {
+  return await api.put(`api/v1/households/${householdId}/contact-categories/${catId}`, { json: payload }).json<ContactCategory>();
+}
+
+export async function deleteContactCategory(householdId: string, catId: string): Promise<any> {
+  return await api.delete(`api/v1/households/${householdId}/contact-categories/${catId}`).json();
+}
+
+/* Contacts API */
+export async function fetchContacts(householdId: string): Promise<Contact[]> {
+  return await api.get(`api/v1/households/${householdId}/contacts`).json<Contact[]>();
+}
+
+export async function createContact(
+  householdId: string,
+  payload: { category_id: string | null; name: string; phone: string; email: string; address: string; latitude: number | null; longitude: number | null; description: string; links: string[] }
+): Promise<Contact> {
+  return await api.post(`api/v1/households/${householdId}/contacts`, { json: payload }).json<Contact>();
+}
+
+export async function updateContact(
+  householdId: string,
+  contactId: string,
+  payload: { category_id: string | null; name: string; phone: string; email: string; address: string; latitude: number | null; longitude: number | null; description: string; links: string[] }
+): Promise<Contact> {
+  return await api.put(`api/v1/households/${householdId}/contacts/${contactId}`, { json: payload }).json<Contact>();
+}
+
+export async function deleteContact(householdId: string, contactId: string): Promise<any> {
+  return await api.delete(`api/v1/households/${householdId}/contacts/${contactId}`).json();
 }
