@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import 'leaflet/dist/leaflet.css';
 
 // Marker definitions used by the OSM map component.
 export interface MapMarker {
@@ -45,9 +46,8 @@ export function OSMMapViewer({
 
 		const initMap = async () => {
 			// Dynamically import Leaflet to bypass Server-Side Rendering
-			const L = await import('leaflet');
-			// @ts-ignore
-			await import('leaflet/dist/leaflet.css');
+			const LeafletModule = await import('leaflet');
+			const L = LeafletModule.default || LeafletModule;
 
 			if (isCancelled || !mapContainerRef.current) return;
 			leafletRef.current = L;
