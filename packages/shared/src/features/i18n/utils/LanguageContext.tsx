@@ -22,6 +22,11 @@ export function LanguageProvider({
 }: LanguageProviderProps) {
   const [language, setLanguageState] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
+      const match = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
+      const cookieLang = match ? match[1] : null;
+      if (cookieLang && ['de', 'en', 'pl'].includes(cookieLang)) {
+        return cookieLang as Language;
+      }
       const savedLang = localStorage.getItem(STORAGE_KEY) as Language;
       if (savedLang && ['de', 'en', 'pl'].includes(savedLang)) {
         return savedLang;

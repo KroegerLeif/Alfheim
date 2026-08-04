@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslation, OSMMapViewer, AddressAutocomplete } from '@loeger-os/shared';
+import { useTranslation, AddressAutocomplete } from '@loeger-os/shared';
+import dynamic from 'next/dynamic';
+
+const OSMMapViewer = dynamic(
+	() => import('@loeger-os/shared').then((mod) => mod.OSMMapViewer),
+	{ ssr: false }
+);
 import { useHouseholds, useCreateHousehold, useCreateInvite, useJoinHousehold } from '@/features/household';
 import {
 	useContacts,
