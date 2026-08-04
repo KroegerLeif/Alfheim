@@ -8,10 +8,12 @@ import {
   BackToDashboard,
   LanguageSwitcher,
   ThemeToggle,
+  HouseholdSwitcher,
 } from "@loeger-os/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { HeaderAuthControls } from "@/components/shared/HeaderAuthControls";
+
 
 const inter = Inter({
   subsets: ["latin"],
@@ -67,6 +69,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                     <header className="h-16 border-b border-[var(--border-subtle)] bg-[var(--surface-card)] px-6 flex items-center justify-between shrink-0 select-none z-10">
                       <BackToDashboard href="http://loeger-os/" />
                       <div className="flex items-center gap-3">
+                        <HouseholdSwitcher />
                         <LanguageSwitcher variant="dropdown" />
                         <ThemeToggle showVariantToggle={true} />
                         <HeaderAuthControls />

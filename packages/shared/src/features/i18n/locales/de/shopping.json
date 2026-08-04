@@ -10,7 +10,12 @@
     "newList": "Neue Liste",
     "newListPlaceholder": "Name...",
     "noLists": "Keine eigenen Listen",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "personalList": "{username} - Liste",
+    "household_lists": "Haushaltslisten",
+    "personal_lists": "Persönliche Listen",
+    "household_list_fallback": "Haushaltsliste",
+    "personal_list_fallback": "Persönliche Liste"
   },
   "Checklist": {
     "title": "Einkaufszettel",

@@ -58,6 +58,7 @@ export default function Providers({ children }: { children: ReactNode }) {
         onLoad: "login-required",
         checkLoginIframe: false,
         pkceMethod: "S256",
+        responseMode: "query",
       })
       .then((authenticated) => {
         if (authenticated) {

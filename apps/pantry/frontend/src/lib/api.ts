@@ -29,6 +29,10 @@ export const pantryClient = ky.create({
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
+          const activeHhId = localStorage.getItem("loeger_os_active_household_id");
+          if (activeHhId) {
+            request.headers.set("X-Household-ID", activeHhId);
+          }
         }
       },
     ],

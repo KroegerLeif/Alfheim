@@ -10,7 +10,12 @@
     "newList": "Nowa lista",
     "newListPlaceholder": "Nazwa...",
     "noLists": "Brak własnych list",
-    "logout": "Wyloguj"
+    "logout": "Wyloguj",
+    "personalList": "Lista {username}",
+    "household_lists": "Listy domowe",
+    "personal_lists": "Listy osobiste",
+    "household_list_fallback": "Lista domowa",
+    "personal_list_fallback": "Lista osobista"
   },
   "Checklist": {
     "title": "Lista zakupów",

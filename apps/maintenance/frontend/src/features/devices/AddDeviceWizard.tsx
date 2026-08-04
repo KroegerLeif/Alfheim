@@ -56,7 +56,7 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
   // Synchronize selection dynamically once households load or layout changes
   useEffect(() => {
-    if (householdId !== null) {
+    if (householdId !== null && householdId !== undefined) {
       setSelectedHouseholdId(householdId);
     } else if (households.length > 0) {
       setSelectedHouseholdId(households[0].id);

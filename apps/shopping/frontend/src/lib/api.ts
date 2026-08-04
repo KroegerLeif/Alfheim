@@ -56,6 +56,10 @@ export const shoppingClient = ky.create({
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
+          const activeHhId = localStorage.getItem("loeger_os_active_household_id");
+          if (activeHhId) {
+            request.headers.set("X-Household-ID", activeHhId);
+          }
         }
       },
     ],
@@ -99,6 +103,10 @@ export const pantryClient = ky.create({
           const token = sessionStorage.getItem("token_shopping-frontend");
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
+          }
+          const activeHhId = localStorage.getItem("loeger_os_active_household_id");
+          if (activeHhId) {
+            request.headers.set("X-Household-ID", activeHhId);
           }
         }
       },

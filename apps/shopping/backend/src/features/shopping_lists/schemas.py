@@ -105,3 +105,10 @@ class SyncToPantryResponse(BaseModel):
         default_factory=list,
         description="List of items requiring manual classification or ignore options."
     )
+
+
+class HouseholdRead(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: str
+

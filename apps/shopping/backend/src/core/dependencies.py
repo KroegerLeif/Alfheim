@@ -95,7 +95,7 @@ async def get_current_user_and_home(request: Request) -> UserHomeContext:
     except ValueError:
         user_id = uuid.uuid5(uuid.NAMESPACE_DNS, sub)
 
-    hh_str = payload.get("household_id") or payload.get("active_household_id") or request.headers.get("X-Household-ID")
+    hh_str = request.headers.get("X-Household-ID") or payload.get("household_id") or payload.get("active_household_id")
     if hh_str:
         try:
             home_id = uuid.UUID(hh_str)

@@ -1,3 +1,5 @@
+import os
+import httpx
 import uuid
 from typing import List, Sequence
 from fastapi import APIRouter, Depends, Request, status
@@ -14,10 +16,43 @@ from src.features.shopping_lists.schemas import (
     ShoppingItemRead,
     PushItemPayload,
     SyncToPantryResponse,
+    HouseholdRead,
 )
 
 router = APIRouter(prefix="/api/v1/shopping-lists", tags=["shopping-lists"])
 items_router = APIRouter(prefix="/api/v1/shopping/items", tags=["shopping-items"])
+households_router = APIRouter(prefix="/api/v1/households", tags=["households"])
+
+
+@households_router.get(
+    "/me",
+    response_model=List[HouseholdRead],
+    summary="Retrieve user households",
+)
+async def get_my_households(
+    request: Request,
+):
+    """Proxy request to central dashboard backend to retrieve user households."""
+    token = request.headers.get("Authorization")
+    headers = {}
+    if token:
+        headers["Authorization"] = token
+
+    dashboard_url = os.getenv("DASHBOARD_BACKEND_URL", "http://dashboard-backend:8080")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{dashboard_url}/api/v1/households/me",
+                headers=headers,
+                timeout=5.0
+            )
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            # Silently fallback to empty list on network or parse failures
+            return []
+
 
 
 @router.post(
@@ -46,6 +81,7 @@ async def create_list(
     summary="Retrieve all shopping lists",
 )
 async def get_lists(
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
@@ -54,11 +90,13 @@ async def get_lists(
     Auto-provisions the Personal List (user-bound) and Household List (home-bound)
     on first access. Returns them in stable order: personal → household → custom.
     """
+    token = request.headers.get("Authorization")
     return await ShoppingListService.get_lists(
         session=session,
         home_id=context.home_id,
         owner_id=context.user_id,
         username=context.username,
+        token=token,
     )
 
 

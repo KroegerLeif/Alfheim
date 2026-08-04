@@ -30,7 +30,8 @@
     "open_portal": "Open Portal",
     "search_placeholder": "Search system, devices, rules...",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "select_icon": "Select Icon"
   },
   "nav": {
     "dashboard": "Dashboard",

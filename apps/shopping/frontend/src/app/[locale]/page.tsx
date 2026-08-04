@@ -13,13 +13,13 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useSidebar, useActiveList } from "./providers";
+import { useSidebar, useActiveList } from "@/app/[locale]/providers";
 import { ListSelector } from "@/features/shopping-lists/components/ListSelector";
 import { ChecklistContainer } from "@/features/shopping-lists/components/ChecklistContainer";
 import { AddManualItem } from "@/features/shopping-lists/components/AddManualItem";
 import { QuickAddGrid } from "@/features/shopping-history/components/QuickAddGrid";
 import { EinlagernModal } from "@/features/shopping-lists/components/EinlagernModal";
-import { Specular } from "@/components/shared/Specular";
+import { Specular } from "@loeger-os/shared";
 import { PantryBadge } from "@/components/shared/PantryBadge";
 import {
   useShoppingLists,
@@ -27,6 +27,7 @@ import {
   useAddShoppingItem,
   useSyncToPantry,
   useDeleteShoppingItem,
+  useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
@@ -51,12 +52,14 @@ export default function ShoppingDashboard() {
 
   // Queries
   const {
-    data: lists = [],
+    data: listsData,
     isLoading: listsLoading,
     isError: listsError,
     error: listsErrObj,
     refetch: refetchLists,
   } = useShoppingLists();
+
+  const lists = listsData || [];
 
   // Compute fallback default list ID (Personal -> Household -> First)
   const defaultListId = useMemo(() => {
@@ -90,6 +93,23 @@ export default function ShoppingDashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Query households and track active household ID
+  const { data: households = [] } = useHouseholds();
+  const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
+    const handleLocalChange = () => {
+      setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
+    };
+    window.addEventListener("storage", handleLocalChange);
+    window.addEventListener("storage-household-changed", handleLocalChange);
+    return () => {
+      window.removeEventListener("storage", handleLocalChange);
+      window.removeEventListener("storage-household-changed", handleLocalChange);
+    };
+  }, []);
+
   // Metrics calculation
   const items = listDetails?.items || [];
   const total = items.length;
@@ -98,6 +118,37 @@ export default function ShoppingDashboard() {
   const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
   const circumference = 2 * Math.PI * 15; // r=15
   const strokeDash = total > 0 ? `${progress * circumference} ${circumference}` : `0 ${circumference}`;
+
+  // Resolved active list and household display names
+  const activeList = lists.find((l) => l.id === resolvedListId);
+
+  const activeHouseholdName = useMemo(() => {
+    if (!activeHouseholdId || households.length === 0) return "";
+    const activeHh = households.find((h) => h.id === activeHouseholdId);
+    return activeHh ? activeHh.name : "";
+  }, [activeHouseholdId, households]);
+
+  const isPersonalList = (l: { is_personal?: boolean; name: string }) =>
+    l.is_personal ||
+    l.name.endsWith(" - Liste") ||
+    l.name.endsWith("'s List") ||
+    l.name.startsWith("Lista ");
+
+  const activeListName = useMemo(() => {
+    if (!activeList) return t("title");
+    if (isPersonalList(activeList)) {
+      return user.username && user.username !== "User"
+        ? navT("personalList", { username: user.username })
+        : navT("personal_list_fallback");
+    }
+    if (activeList.is_default) {
+      const hh = households.find((h) => h.id === activeList.home_id);
+      return hh ? hh.name : navT("household_list_fallback");
+    }
+    return activeList.name;
+  }, [activeList, user.username, households, navT, t]);
+
+  const displayListName = activeListName;
 
   const handleQuickAdd = (name: string, unit: string) => {
     if (!resolvedListId) return;
@@ -111,7 +162,7 @@ export default function ShoppingDashboard() {
   const handleSyncToPantry = async () => {
     if (!resolvedListId) return;
     try {
-      const response = await syncToPantry.mutateAsync();
+      const response = await syncToPantry.mutateAsync({ householdId: activeHouseholdId ?? undefined });
       if (response.status === "partial_success" && response.unrecognized_items.length > 0) {
         setUnrecognizedItems(response.unrecognized_items);
         setShowModal(true);
@@ -207,11 +258,6 @@ export default function ShoppingDashboard() {
     );
   }
 
-  const activeList = lists.find((l) => l.id === resolvedListId);
-  const activeListName = activeList?.is_personal && user.username
-    ? `${user.username} - Liste`
-    : activeList?.name || t("title");
-
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden font-sans relative select-none">
       {/* Dynamic Background Depth Ambient Glows */}
@@ -243,7 +289,7 @@ export default function ShoppingDashboard() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <h1 className="font-heading text-xl md:text-2xl font-black uppercase tracking-wide leading-none text-foreground">
-                    {activeListName}
+                    {displayListName}
                   </h1>
 
                   <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 uppercase">

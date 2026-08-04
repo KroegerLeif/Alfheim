@@ -20,7 +20,7 @@ import {
   useSyncToPantry,
   useHouseholds,
 } from "../services/shoppingListService";
-import { Specular } from "@/components/shared/Specular";
+import { Specular } from "@loeger-os/shared";
 import { cn } from "@/lib/utils";
 
 interface LocalStateItem extends UnrecognizedShoppingItem {
@@ -50,7 +50,9 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
 
   useEffect(() => {
     if (households.length > 0 && !selectedHouseholdId) {
-      setSelectedHouseholdId(households[0].id);
+      const activeHhId = localStorage.getItem("loeger_os_active_household_id");
+      const matched = households.find((h) => h.id === activeHhId);
+      setSelectedHouseholdId(matched ? matched.id : households[0].id);
     }
   }, [households, selectedHouseholdId]);
 
@@ -123,6 +125,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
         name: catalogInput.trim(),
         base_unit: baseUnit,
         minimum_stock: 0.0,
+        householdId: selectedHouseholdId,
       });
 
       setItems((prev) =>
@@ -157,7 +160,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
 
   const handleFinish = async () => {
     try {
-      await syncToPantry.mutateAsync();
+      await syncToPantry.mutateAsync({ householdId: selectedHouseholdId });
       onClose();
     } catch {
       onClose();

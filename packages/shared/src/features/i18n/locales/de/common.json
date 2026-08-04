@@ -30,7 +30,8 @@
     "open_portal": "Portal öffnen",
     "search_placeholder": "System, Geräte, Regeln suchen...",
     "edit": "Bearbeiten",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "select_icon": "Symbol wählen"
   },
   "nav": {
     "dashboard": "Dashboard",

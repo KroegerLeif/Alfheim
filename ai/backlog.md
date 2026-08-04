@@ -22,13 +22,26 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 ## Shopping
 
 ### Household / Pantry Target
-- [ ] Implement backend endpoint `GET /api/v1/households/me` to provide authenticated user's active household targets for checkout storage.
+- [x] Implement backend endpoint `GET /api/v1/households/me` to provide authenticated user's active household targets for checkout storage.
 
 ### Pantry Sync
 - [ ] Define and implement explicit API contract for unresolved product reconciliation edge cases.
 
+### Middleware & Routing
+- [x] Rename `proxy.ts` → `middleware.ts` so Next.js recognizes the next-intl locale middleware.
+- [x] Fix React Rules of Hooks violation in `page.tsx` — hooks were called after conditional early returns.
+- [x] Add `error.tsx` error boundary in `[locale]` route for graceful crash recovery.
+- [ ] Verify locale negotiation works end-to-end in local dev (without Traefik redirect fallback).
+
 ### Notifications
 - [ ] Replace any remaining UI-only status badges with backend-driven status fields.
+
+### i18n / Hardcoded Strings
+- [ ] Review icon tooltip names in IconPicker (`AVAILABLE_ICONS[].name`) for full i18n localization (currently English proper nouns — acceptable but not fully localized).
+- [ ] Audit `isPersonalList()` heuristic in Sidebar.tsx for legacy name-pattern matching (`endsWith(" - Liste")`, `endsWith("'s List")`, `startsWith("Lista ")`) — fragile across locales.
+
+### Component Consolidation
+- [ ] Evaluate whether Shopping's `PantryBadge` should move to shared (currently only used in Shopping, but Pantry app may want it).
 
 ## Pantry
 

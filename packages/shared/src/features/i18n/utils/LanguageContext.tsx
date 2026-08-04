@@ -34,14 +34,18 @@ export function LanguageProvider({
     setLanguageState(lang);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, lang);
+      document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000; SameSite=Lax`;
     }
   };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedLang = localStorage.getItem(STORAGE_KEY) as Language;
-      if (savedLang && ['de', 'en', 'pl'].includes(savedLang) && savedLang !== language) {
-        setLanguageState(savedLang);
+      if (savedLang && ['de', 'en', 'pl'].includes(savedLang)) {
+        if (savedLang !== language) {
+          setLanguageState(savedLang);
+        }
+        document.cookie = `NEXT_LOCALE=${savedLang}; path=/; max-age=31536000; SameSite=Lax`;
       }
     }
   }, []);

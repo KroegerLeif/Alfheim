@@ -19,12 +19,12 @@ export function SidebarHouseholdPicker() {
   });
 
   React.useEffect(() => {
-    if (householdId === null && households.length > 0) {
+    if (householdId === undefined && households.length > 0) {
       setHouseholdId(households[0].id);
     }
   }, [householdId, households, setHouseholdId]);
 
-  const selectedHousehold = households.find((h) => h.id === householdId);
+  const selectedHousehold = households.find((h) => h.id.toString() === householdId?.toString());
   const allHouseholdsLabel = t("deviceInventory.otherLocations");
 
   return (
@@ -67,13 +67,13 @@ export function SidebarHouseholdPicker() {
                   }}
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all cursor-pointer",
-                    householdId === null
+                    (householdId === null || householdId === undefined)
                       ? "bg-[var(--primary-main)]/10 text-[var(--primary-main)] font-bold"
                       : "text-[var(--text-muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--text-main)]"
                   )}
                 >
                   <span>{allHouseholdsLabel}</span>
-                  {householdId === null && <Check className="h-3.5 w-3.5" />}
+                  {(householdId === null || householdId === undefined) && <Check className="h-3.5 w-3.5" />}
                 </button>
                 {households.map((h) => (
                   <button
@@ -84,13 +84,13 @@ export function SidebarHouseholdPicker() {
                     }}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all cursor-pointer",
-                      householdId === h.id
+                      (householdId?.toString() === h.id.toString())
                         ? "bg-[var(--primary-main)]/10 text-[var(--primary-main)] font-bold"
                         : "text-[var(--text-muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--text-main)]"
                     )}
                   >
                     <span className="truncate">{h.name}</span>
-                    {householdId === h.id && <Check className="h-3.5 w-3.5" />}
+                    {(householdId?.toString() === h.id.toString()) && <Check className="h-3.5 w-3.5" />}
                   </button>
                 ))}
               </div>

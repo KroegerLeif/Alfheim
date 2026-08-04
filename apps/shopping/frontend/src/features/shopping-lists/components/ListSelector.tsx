@@ -7,8 +7,10 @@ import {
   useShoppingLists,
   useCreateShoppingList,
   useDeleteShoppingList,
+  useHouseholds,
 } from "../services/shoppingListService";
-import { Specular } from "@/components/shared/Specular";
+import { useKeycloakUser } from "@/lib/useKeycloakUser";
+import { Specular } from "@loeger-os/shared";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "../types";
 
@@ -45,7 +47,8 @@ function isProtectedList(list: ShoppingList): boolean {
 export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const tNav = useTranslations("Navigation");
   const tChecklist = useTranslations("Checklist");
-  const { data: lists = [], isLoading } = useShoppingLists();
+  const { data: listsData, isLoading } = useShoppingLists();
+  const lists = listsData || [];
 
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
@@ -54,30 +57,51 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
+  const user = useKeycloakUser();
+  const { data: households = [] } = useHouseholds();
 
   useEffect(() => {
     setCustomOrder(getStoredOrder());
   }, []);
 
+  const isPersonalList = (l: ShoppingList) =>
+    l.is_personal ||
+    l.name.endsWith(" - Liste") ||
+    l.name.endsWith("'s List") ||
+    l.name.startsWith("Lista ");
+
   const orderedLists = useMemo(() => {
-    const protectedLists = lists.filter(isProtectedList);
-    const customLists = lists.filter((l) => !isProtectedList(l));
+    const hhLists: (ShoppingList & { displayName: string })[] = [];
+    const persLists: ShoppingList[] = [];
 
-    protectedLists.sort((a, b) => (a.is_default ? -1 : b.is_default ? 1 : 0));
+    lists.forEach((list) => {
+      if (list.is_default) {
+        const hh = households.find((h) => h.id === list.home_id);
+        hhLists.push({
+          ...list,
+          displayName: hh ? hh.name : tNav("household_list_fallback"),
+        });
+      } else {
+        persLists.push(list);
+      }
+    });
 
-    if (customOrder.length > 0) {
-      customLists.sort((a, b) => {
-        const indexA = customOrder.indexOf(a.id);
-        const indexB = customOrder.indexOf(b.id);
-        if (indexA === -1 && indexB === -1) return 0;
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-      });
-    }
+    persLists.sort((a, b) => {
+      const aIsPers = isPersonalList(a);
+      const bIsPers = isPersonalList(b);
+      if (aIsPers && !bIsPers) return -1;
+      if (!aIsPers && bIsPers) return 1;
 
-    return [...protectedLists, ...customLists];
-  }, [lists, customOrder]);
+      const indexA = customOrder.indexOf(a.id);
+      const indexB = customOrder.indexOf(b.id);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+
+    return [...hhLists, ...persLists];
+  }, [lists, households, customOrder]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedListId(id);
@@ -131,6 +155,14 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     setNewListName("");
   };
 
+  const handleSelect = (list: ShoppingList) => {
+    if (list.is_default || !list.is_personal) {
+      localStorage.setItem("loeger_os_active_household_id", list.home_id);
+      window.dispatchEvent(new Event("storage-household-changed"));
+    }
+    onSelect(list.id);
+  };
+
   if (isLoading) {
     return (
       <div className="flex gap-2 shrink-0">
@@ -168,7 +200,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                 )}
               >
                 <button
-                  onClick={() => onSelect(list.id)}
+                  onClick={() => handleSelect(list)}
                   className={cn(
                     "flex items-center gap-2 h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-300 font-heading text-xs font-extrabold uppercase tracking-wider outline-none group",
                     isActive
@@ -180,7 +212,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                     <GripVertical className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground cursor-grab shrink-0 -ml-1" />
                   )}
 
-                  {list.is_personal && (
+                  {isPersonalList(list) && (
                     <User
                       className={cn(
                         "h-3 w-3 shrink-0",
@@ -188,7 +220,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                       )}
                     />
                   )}
-                  {list.is_default && (
+                   {list.is_default && (
                     <Home
                       className={cn(
                         "h-3 w-3 shrink-0",
@@ -197,7 +229,15 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                     />
                   )}
 
-                  <span>{list.name}</span>
+                  <span>
+                    {isPersonalList(list)
+                      ? (user.username && user.username !== "User"
+                          ? tNav("personalList", { username: user.username })
+                          : tNav("personal_list_fallback"))
+                      : list.is_default
+                      ? (list as any).displayName || tNav("household_list_fallback")
+                      : list.name}
+                  </span>
 
                   <span
                     className={cn(
@@ -219,7 +259,8 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                           onSuccess: () => {
                             const remaining = lists.filter((l) => l.id !== list.id);
                             if (remaining.length > 0) {
-                              onSelect(remaining[0].id);
+                              const fallback = remaining[0];
+                              handleSelect(fallback);
                             }
                           },
                         });

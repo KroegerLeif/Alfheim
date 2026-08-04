@@ -5,7 +5,7 @@ import {
   Apple, Milk, Carrot, Fish, Coffee, Wheat, Citrus,
   Egg, Cookie, Droplets, Leaf, ShoppingCart
 } from "lucide-react";
-import { Specular } from "@/components/shared/Specular";
+import { Specular } from "@loeger-os/shared";
 import { cn } from "@/lib/utils";
 
 // Icon mapping configuration

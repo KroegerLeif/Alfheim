@@ -230,6 +230,124 @@ wait_one_shot() {
 }
 
 # ---------------------------------------------------------------------------
+# wait_healthy_soft — soft version of wait_healthy that logs warnings instead of exiting
+# ---------------------------------------------------------------------------
+wait_healthy_soft() {
+  local container="$1"
+  local label="$2"
+  local timeout="${3:-120}"
+  local elapsed=0
+  local status=""
+
+  spin_start "Waiting for ${label} …"
+
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
+    status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null || echo "missing")
+
+    case "${status}" in
+      healthy)
+        spin_stop
+        ok "${label} is healthy"
+        return 0
+        ;;
+      unhealthy)
+        spin_stop
+        warn "${label} reported UNHEALTHY"
+        return 1
+        ;;
+      missing)
+        spin_stop
+        warn "Container '${container}' not found."
+        return 1
+        ;;
+    esac
+
+    sleep 3
+    elapsed=$(( elapsed + 3 ))
+  done
+
+  spin_stop
+  warn "Timed out after ${timeout}s waiting for ${label} to become healthy."
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# wait_running_soft — soft version of wait_running
+# ---------------------------------------------------------------------------
+wait_running_soft() {
+  local container="$1"
+  local label="$2"
+  local timeout="${3:-60}"
+  local elapsed=0
+  local state=""
+
+  spin_start "Waiting for ${label} to start …"
+
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
+
+    case "${state}" in
+      running)
+        spin_stop
+        ok "${label} is running"
+        return 0
+        ;;
+      exited|dead)
+        spin_stop
+        warn "${label} exited unexpectedly"
+        return 1
+        ;;
+      missing)
+        # Container may not be created yet; keep waiting
+        ;;
+    esac
+
+    sleep 2
+    elapsed=$(( elapsed + 2 ))
+  done
+
+  spin_stop
+  warn "Timed out after ${timeout}s waiting for ${label} to start."
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# wait_one_shot_soft — soft version of wait_one_shot
+# ---------------------------------------------------------------------------
+wait_one_shot_soft() {
+  local container="$1"
+  local label="$2"
+  local timeout="${3:-120}"
+  local elapsed=0
+  local state="" exit_code=""
+
+  spin_start "Waiting for ${label} to complete …"
+
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
+
+    if [[ "${state}" == "exited" ]]; then
+      spin_stop
+      exit_code=$(docker inspect --format='{{.State.ExitCode}}' "${container}" 2>/dev/null || echo "1")
+      if [[ "${exit_code}" == "0" ]]; then
+        ok "${label} completed successfully"
+        return 0
+      else
+        warn "${label} exited with code ${exit_code}"
+        return 1
+      fi
+    fi
+
+    sleep 3
+    elapsed=$(( elapsed + 3 ))
+  done
+
+  spin_stop
+  warn "Timed out after ${timeout}s waiting for ${label} to complete."
+  return 1
+}
+
+# ---------------------------------------------------------------------------
 # dc — run docker compose scoped to the root compose file
 # ---------------------------------------------------------------------------
 dc() {
@@ -380,21 +498,29 @@ else
   step "STAGE 6 · Observability  (ClickHouse · SigNoz · Vector)"
 
   info "Starting ClickHouse …"
-  dc up ${BUILD_FLAG} -d signoz-clickhouse
-  wait_healthy "signoz-clickhouse" "ClickHouse" 120
+  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-clickhouse; then
+    wait_healthy_soft "signoz-clickhouse" "ClickHouse" 120
+  else
+    warn "Failed to launch ClickHouse container"
+  fi
 
   info "Running SigNoz schema migrator (one-shot job) …"
-  dc up ${BUILD_FLAG} -d signoz-schema-migrator
-  wait_one_shot "signoz-schema-migrator" "schema-migrator" 120
+  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-schema-migrator; then
+    wait_one_shot_soft "signoz-schema-migrator" "schema-migrator" 120
+  else
+    warn "Failed to launch SigNoz schema migrator container"
+  fi
 
   info "Starting SigNoz UI, OTEL collector, and Vector log shipper …"
-  dc up ${BUILD_FLAG} -d signoz-otel-collector signoz vector
+  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-otel-collector signoz vector; then
+    wait_running_soft "signoz-otel-collector" "otel-collector" 30 || true
+    wait_running_soft "signoz-ui"             "SigNoz UI"      30 || true
+    wait_running_soft "vector-shipper"        "Vector"         30 || true
+  else
+    warn "Failed to launch SigNoz UI, OTEL collector, or Vector containers"
+  fi
 
-  wait_running "signoz-otel-collector" "otel-collector" 30
-  wait_running "signoz-ui"             "SigNoz UI"      30
-  wait_running "vector-shipper"        "Vector"         30
-
-  notice "🟢 Observability Stack Ready"
+  notice "🟢 Observability Stack (Soft Load Complete)"
 fi
 
 # =============================================================================

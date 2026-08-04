@@ -18,31 +18,49 @@ import plMaintenance from '../locales/pl/maintenance.json';
 
 import { Language } from './types';
 
-export const deMessages = {
-  ...deCommon,
-  ...deDashboard,
-  ...deShopping,
-  ...dePantry,
-  ...deMaintenance,
-};
+function deepMerge(target: any, source: any): any {
+  const output = { ...target };
+  if (target && typeof target === 'object' && source && typeof source === 'object') {
+    Object.keys(source).forEach((key) => {
+      if (source[key] && typeof source[key] === 'object') {
+        if (!(key in target)) {
+          Object.assign(output, { [key]: source[key] });
+        } else {
+          output[key] = deepMerge(target[key], source[key]);
+        }
+      } else {
+        Object.assign(output, { [key]: source[key] });
+      }
+    });
+  }
+  return output;
+}
 
-export const enMessages = {
-  ...enCommon,
-  ...enDashboard,
-  ...enShopping,
-  ...enPantry,
-  ...enMaintenance,
-};
+export const deMessages = [
+  deCommon,
+  deDashboard,
+  deShopping,
+  dePantry,
+  deMaintenance,
+].reduce((acc, curr) => deepMerge(acc, curr), {});
 
-export const plMessages = {
-  ...plCommon,
-  ...plDashboard,
-  ...plShopping,
-  ...plPantry,
-  ...plMaintenance,
-};
+export const enMessages = [
+  enCommon,
+  enDashboard,
+  enShopping,
+  enPantry,
+  enMaintenance,
+].reduce((acc, curr) => deepMerge(acc, curr), {});
 
-export const messages: Record<Language, typeof deMessages> = {
+export const plMessages = [
+  plCommon,
+  plDashboard,
+  plShopping,
+  plPantry,
+  plMaintenance,
+].reduce((acc, curr) => deepMerge(acc, curr), {});
+
+export const messages: Record<Language, any> = {
   de: deMessages,
   en: enMessages,
   pl: plMessages,
@@ -51,3 +69,4 @@ export const messages: Record<Language, typeof deMessages> = {
 export function getSharedMessages(locale: Language) {
   return messages[locale] || messages.de;
 }
+
