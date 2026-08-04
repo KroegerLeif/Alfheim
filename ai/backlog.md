@@ -9,6 +9,9 @@ Living backlog for missing endpoints, cross-app gaps, and pending integration ta
 
 ### Household
 - [ ] Add endpoint-level contract documentation for invite code generation/join error states.
+- [ ] Resolve Leaflet map marker rendering issue in Next.js (uses custom divIcon or CDN assets to bypass package resolution issues).
+- [ ] Implement debouncing and User-Agent header rules for OSM Nominatim geocoding to prevent rate-limiting or 403 blocks.
+- [ ] Ensure SSR compatibility for Leaflet map component via client-only wrapper logic or dynamic Next.js imports.
 
 ### Notifications
 - [ ] Add real-time SSE/WebSocket backend endpoint for notification stream and header unread badge counter.
