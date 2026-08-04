@@ -7,6 +7,7 @@ import { Sidebar } from '@/shared/components/Sidebar';
 import { Header } from '@/shared/components/Header';
 import { BottomNavBar } from '@/shared/components/BottomNavBar';
 import { AuthProvider } from '@/shared/providers/AuthProvider';
+import { Suspense } from 'react';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -41,24 +42,35 @@ export default function RootLayout({
         />
       </head>
       <body className="h-full bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
-        <AuthProvider>
-          <LanguageProvider defaultLanguage="de">
-            <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
-              <QueryProvider>
-                <div className="flex h-screen w-full overflow-hidden">
-                  <Sidebar />
-                  <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative">
-                    <Header />
-                    <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-8 stitch-grid">
-                      {children}
-                    </main>
-                    <BottomNavBar />
+        <Suspense fallback={
+          <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
+            <div className="text-center space-y-4">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--primary-main)] border-t-transparent mx-auto"></div>
+              <p className="text-sm font-mono tracking-wide text-[var(--text-muted)]">
+                Initializing platform shell...
+              </p>
+            </div>
+          </div>
+        }>
+          <AuthProvider>
+            <LanguageProvider defaultLanguage="de">
+              <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
+                <QueryProvider>
+                  <div className="flex h-screen w-full overflow-hidden">
+                    <Sidebar />
+                    <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative">
+                      <Header />
+                      <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-8 stitch-grid">
+                        {children}
+                      </main>
+                      <BottomNavBar />
+                    </div>
                   </div>
-                </div>
-              </QueryProvider>
-            </ThemeProvider>
-          </LanguageProvider>
-        </AuthProvider>
+                </QueryProvider>
+              </ThemeProvider>
+            </LanguageProvider>
+          </AuthProvider>
+        </Suspense>
       </body>
     </html>
   );

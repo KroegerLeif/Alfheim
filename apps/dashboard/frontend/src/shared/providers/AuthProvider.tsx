@@ -102,6 +102,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userClaims);
           setIsAuthenticated(true);
 
+          // Clean query parameters from URL to leave a pristine path
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            let hasParams = false;
+            ['state', 'session_state', 'code', 'iss'].forEach((param) => {
+              if (url.searchParams.has(param)) {
+                url.searchParams.delete(param);
+                hasParams = true;
+              }
+            });
+            if (hasParams) {
+              window.history.replaceState({}, document.title, url.pathname + url.search);
+            }
+          }
+
           // Setup automatic token refresh in memory
           const interval = setInterval(() => {
             keycloak
