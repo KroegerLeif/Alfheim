@@ -83,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         onLoad: 'login-required',
         checkLoginIframe: false,
         pkceMethod: 'S256',
+        responseMode: 'query',
       })
       .then((authenticated) => {
         if (authenticated && keycloak.token && keycloak.tokenParsed) {
