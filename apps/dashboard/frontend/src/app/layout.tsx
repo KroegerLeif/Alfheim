@@ -34,6 +34,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
       data-theme="obsidian"
+      suppressHydrationWarning
     >
       <head>
         <link
@@ -41,7 +42,10 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
       </head>
-      <body className="h-full bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
+      <body 
+        className="h-full bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black"
+        suppressHydrationWarning
+      >
         <Suspense fallback={
           <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
             <div className="text-center space-y-4">

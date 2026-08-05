@@ -7,10 +7,7 @@ import {
   fetchContactCategories,
   createContactCategory,
   updateContactCategory,
-  deleteContactCategory,
-  updateHouseholdAddress,
-  updateMemberRole,
-  removeMember
+  deleteContactCategory
 } from '@/shared/api';
 import { Contact, ContactCategory } from '@/shared/types';
 
@@ -111,41 +108,3 @@ export function useDeleteCategory(householdId: string) {
   });
 }
 
-export function useUpdateHouseholdAddress() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ householdId, payload }: { householdId: string; payload: any }) => {
-      if (!householdId) throw new Error("Missing active household selection");
-      return updateHouseholdAddress(householdId, payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['households', 'me'] });
-    },
-  });
-}
-
-export function useUpdateMemberRole(householdId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) => {
-      if (!householdId) throw new Error("Missing active household selection");
-      return updateMemberRole(householdId, userId, role);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['households', 'me'] });
-    },
-  });
-}
-
-export function useRemoveMember(householdId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (userId: string) => {
-      if (!householdId) throw new Error("Missing active household selection");
-      return removeMember(householdId, userId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['households', 'me'] });
-    },
-  });
-}
