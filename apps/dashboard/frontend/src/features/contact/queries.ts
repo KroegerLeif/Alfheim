@@ -28,7 +28,10 @@ export function useContacts(householdId: string) {
 export function useCreateContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => createContact(householdId, payload),
+    mutationFn: (payload: any) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return createContact(householdId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONTACTS_KEY(householdId) });
     },
@@ -38,8 +41,10 @@ export function useCreateContact(householdId: string) {
 export function useUpdateContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ contactId, payload }: { contactId: string; payload: any }) =>
-      updateContact(householdId, contactId, payload),
+    mutationFn: ({ contactId, payload }: { contactId: string; payload: any }) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return updateContact(householdId, contactId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONTACTS_KEY(householdId) });
     },
@@ -49,7 +54,10 @@ export function useUpdateContact(householdId: string) {
 export function useDeleteContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (contactId: string) => deleteContact(householdId, contactId),
+    mutationFn: (contactId: string) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return deleteContact(householdId, contactId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONTACTS_KEY(householdId) });
     },
@@ -67,7 +75,10 @@ export function useCategories(householdId: string) {
 export function useCreateCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => createContactCategory(householdId, payload),
+    mutationFn: (payload: any) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return createContactCategory(householdId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY(householdId) });
     },
@@ -77,8 +88,10 @@ export function useCreateCategory(householdId: string) {
 export function useUpdateCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ catId, payload }: { catId: string; payload: any }) =>
-      updateContactCategory(householdId, catId, payload),
+    mutationFn: ({ catId, payload }: { catId: string; payload: any }) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return updateContactCategory(householdId, catId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY(householdId) });
     },
@@ -88,7 +101,10 @@ export function useUpdateCategory(householdId: string) {
 export function useDeleteCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (catId: string) => deleteContactCategory(householdId, catId),
+    mutationFn: (catId: string) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return deleteContactCategory(householdId, catId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY(householdId) });
     },
@@ -98,8 +114,10 @@ export function useDeleteCategory(householdId: string) {
 export function useUpdateHouseholdAddress() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ householdId, payload }: { householdId: string; payload: any }) =>
-      updateHouseholdAddress(householdId, payload),
+    mutationFn: ({ householdId, payload }: { householdId: string; payload: any }) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return updateHouseholdAddress(householdId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households', 'me'] });
     },
@@ -109,8 +127,10 @@ export function useUpdateHouseholdAddress() {
 export function useUpdateMemberRole(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
-      updateMemberRole(householdId, userId, role),
+    mutationFn: ({ userId, role }: { userId: string; role: string }) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return updateMemberRole(householdId, userId, role);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households', 'me'] });
     },
@@ -120,7 +140,10 @@ export function useUpdateMemberRole(householdId: string) {
 export function useRemoveMember(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => removeMember(householdId, userId),
+    mutationFn: (userId: string) => {
+      if (!householdId) throw new Error("Missing active household selection");
+      return removeMember(householdId, userId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households', 'me'] });
     },
