@@ -35,6 +35,59 @@ export function OSMMapViewer({
 	const markersGroupRef = useRef<any>(null);
 	const [isMounted, setIsMounted] = useState(false);
 
+	// Refs to avoid dynamic closure race conditions during async Leaflet load
+	const centerRef = useRef(center);
+	const zoomRef = useRef(zoom);
+	const markersRef = useRef(markers);
+
+	centerRef.current = center;
+	zoomRef.current = zoom;
+	markersRef.current = markers;
+
+	const syncMarkers = (map: any, L: any, group: any, markersList: MapMarker[]) => {
+		if (!map || !L || !group) return;
+
+		// Clear existing layers in group
+		group.clearLayers();
+
+		markersList.forEach((m) => {
+			let markerOptions: any = {};
+
+			// If a custom color is defined, create a DivIcon with CSS styling
+			if (m.color) {
+				markerOptions.icon = L.divIcon({
+					className: 'custom-leaflet-marker',
+					html: `<div style="
+						background-color: ${m.color};
+						width: 14px;
+						height: 14px;
+						border-radius: 50%;
+						border: 2px solid #ffffff;
+						box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+						transform: translate(-1px, -1px);
+					"></div>`,
+					iconSize: [14, 14],
+					iconAnchor: [7, 7],
+				});
+			}
+
+			const marker = L.marker([m.lat, m.lng], markerOptions);
+			if (m.popupContent) {
+				marker.bindPopup(`<div style="font-family: inherit; font-size: 11px; color: #1e293b;">${m.popupContent}</div>`);
+			}
+			group.addLayer(marker);
+		});
+
+		// Auto fit bounds if there are multiple markers to map
+		if (markersList.length > 1) {
+			try {
+				map.fitBounds(group.getBounds(), { padding: [30, 30] });
+			} catch (e) {
+				// Prevent bounds crashes on identical coords
+			}
+		}
+	};
+
 	useEffect(() => {
 		setIsMounted(true);
 	}, []);
@@ -67,8 +120,8 @@ export function OSMMapViewer({
 			}
 
 			const map = L.map(mapContainerRef.current, {
-				center: center,
-				zoom: zoom,
+				center: centerRef.current,
+				zoom: zoomRef.current,
 				zoomControl: interactive,
 				dragging: interactive,
 				doubleClickZoom: interactive,
@@ -93,6 +146,9 @@ export function OSMMapViewer({
 					onMapClick(e.latlng.lat, e.latlng.lng);
 				});
 			}
+
+			// Perform initial marker synchronization using latest props
+			syncMarkers(map, L, markersGroup, markersRef.current);
 		};
 
 		initMap();
@@ -107,7 +163,7 @@ export function OSMMapViewer({
 		};
 	}, [isMounted]);
 
-	// Update Map Center and Zoom
+	// Update Map Center and Zoom dynamically
 	useEffect(() => {
 		const map = mapRef.current;
 		if (map) {
@@ -115,54 +171,10 @@ export function OSMMapViewer({
 		}
 	}, [center]);
 
-	// Sync Markers
+	// Sync Markers dynamically
 	useEffect(() => {
-		const map = mapRef.current;
-		const L = leafletRef.current;
-		const group = markersGroupRef.current;
-
-		if (!map || !L || !group) return;
-
-		// Clear existing layers in group
-		group.clearLayers();
-
-		markers.forEach((m) => {
-			let markerOptions: any = {};
-
-			// If a custom color is defined, create a DivIcon with CSS styling
-			if (m.color) {
-				markerOptions.icon = L.divIcon({
-					className: 'custom-leaflet-marker',
-					html: `<div style="
-						background-color: ${m.color};
-						width: 14px;
-						height: 14px;
-						border-radius: 50%;
-						border: 2px solid #ffffff;
-						box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-						transform: translate(-1px, -1px);
-					"></div>`,
-					iconSize: [14, 14],
-					iconAnchor: [7, 7],
-				});
-			}
-
-			const marker = L.marker([m.lat, m.lng], markerOptions);
-			if (m.popupContent) {
-				marker.bindPopup(`<div style="font-family: inherit; font-size: 11px; color: #1e293b;">${m.popupContent}</div>`);
-			}
-			group.addLayer(marker);
-		});
-
-		// Auto fit bounds if there are multiple markers to map
-		if (markers.length > 1) {
-			try {
-				map.fitBounds(group.getBounds(), { padding: [30, 30] });
-			} catch (e) {
-				// Prevent bounds crashes on identical coords
-			}
-		}
-	}, [markers, center]);
+		syncMarkers(mapRef.current, leafletRef.current, markersGroupRef.current, markers);
+	}, [markers]);
 
 	return (
 		<div style={{ position: 'relative', width: '100%', height: '100%' }}>
