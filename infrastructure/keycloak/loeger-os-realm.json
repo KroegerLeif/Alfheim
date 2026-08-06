@@ -572,7 +572,8 @@
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
         "http://loeger-os/chores/*",
-        "http://localhost/chores/*"
+        "http://localhost/chores/*",
+        "http://loeger-os/*"
       ],
       "webOrigins": [
         "*"
