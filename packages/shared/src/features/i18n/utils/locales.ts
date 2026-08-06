@@ -3,18 +3,21 @@ import deDashboard from '../locales/de/dashboard.json';
 import deShopping from '../locales/de/shopping.json';
 import dePantry from '../locales/de/pantry.json';
 import deMaintenance from '../locales/de/maintenance.json';
+import deChores from '../locales/de/chores.json';
 
 import enCommon from '../locales/en/common.json';
 import enDashboard from '../locales/en/dashboard.json';
 import enShopping from '../locales/en/shopping.json';
 import enPantry from '../locales/en/pantry.json';
 import enMaintenance from '../locales/en/maintenance.json';
+import enChores from '../locales/en/chores.json';
 
 import plCommon from '../locales/pl/common.json';
 import plDashboard from '../locales/pl/dashboard.json';
 import plShopping from '../locales/pl/shopping.json';
 import plPantry from '../locales/pl/pantry.json';
 import plMaintenance from '../locales/pl/maintenance.json';
+import plChores from '../locales/pl/chores.json';
 
 import { Language } from './types';
 
@@ -42,6 +45,7 @@ export const deMessages = [
   deShopping,
   dePantry,
   deMaintenance,
+  deChores,
 ].reduce((acc, curr) => deepMerge(acc, curr), {});
 
 export const enMessages = [
@@ -50,6 +54,7 @@ export const enMessages = [
   enShopping,
   enPantry,
   enMaintenance,
+  enChores,
 ].reduce((acc, curr) => deepMerge(acc, curr), {});
 
 export const plMessages = [
@@ -58,6 +63,7 @@ export const plMessages = [
   plShopping,
   plPantry,
   plMaintenance,
+  plChores,
 ].reduce((acc, curr) => deepMerge(acc, curr), {});
 
 export const messages: Record<Language, any> = {

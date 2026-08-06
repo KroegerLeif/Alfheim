@@ -1,0 +1,17 @@
+{
+  "chores": {
+    "title": "Chores Tracker",
+    "dashboard": "Panel główny",
+    "board": "Tablica zadań",
+    "insights": "Wspólne cele",
+    "wizard": "Kreator zadań",
+    "systemBrand": "Chores Tracker",
+    "systemVersion": "v1.0.0",
+    "systemAlerts": "Alerty",
+    "todaysChores": "Dzisiejsze zadania",
+    "completed": "Zakończone",
+    "pending": "W toku",
+    "missed": "Pominięte",
+    "pts": "pkt"
+  }
+}
