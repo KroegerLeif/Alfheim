@@ -1,19 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  X,
-  Save,
-  AlertCircle,
-  SkipForward,
-  Edit2,
-  Trash2,
-  Check,
-  Building2,
-  ChevronDown,
-} from "lucide-react";
+import { useState, useMemo } from "react";
+import { X, Building2, ChevronDown, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { UnrecognizedShoppingItem } from "../types";
+import type { UnrecognizedShoppingItem } from "../types";
 import {
   useCreatePantryProduct,
   useDeleteShoppingItem,
@@ -21,15 +11,7 @@ import {
   useHouseholds,
 } from "../services/shoppingListService";
 import { Specular } from "@loeger-os/shared";
-import { cn } from "@/lib/utils";
-
-interface LocalStateItem extends UnrecognizedShoppingItem {
-  resolved: "pending" | "saved" | "ignored" | "skipped";
-  name: string;
-  quantity: number;
-  unit: string;
-  catalogName?: string;
-}
+import { EinlagernItemRow, LocalStateItem } from "./EinlagernItemRow";
 
 interface EinlagernModalProps {
   listId: string;
@@ -41,24 +23,25 @@ interface EinlagernModalProps {
  * Scan & Sync checkout wizard modal supporting multi-household target selection
  * and item-level editing, skipping, deleting, or catalog registering actions.
  */
-export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModalProps) {
+export function EinlagernModal({ listId, initialItems = [], onClose }: EinlagernModalProps) {
   const t = useTranslations("Modal");
 
   // Query available households
-  const { data: households = [] } = useHouseholds();
+  const { data: householdsData } = useHouseholds();
+  const households = useMemo(() => householdsData ?? [], [householdsData]);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>("");
 
-  useEffect(() => {
-    if (households.length > 0 && !selectedHouseholdId) {
-      const activeHhId = localStorage.getItem("loeger_os_active_household_id");
-      const matched = households.find((h) => h.id === activeHhId);
-      setSelectedHouseholdId(matched ? matched.id : households[0].id);
-    }
-  }, [households, selectedHouseholdId]);
+  const resolvedHouseholdId = useMemo(() => {
+    if (selectedHouseholdId) return selectedHouseholdId;
+    if (households.length === 0) return "";
+    const activeHhId = typeof window !== "undefined" ? localStorage.getItem("loeger_os_active_household_id") : null;
+    const matched = households.find((h) => h.id === activeHhId);
+    return matched ? matched.id : households[0].id;
+  }, [selectedHouseholdId, households]);
 
   // Local State representing items being resolved/individualized
-  const [items, setItems] = useState<LocalStateItem[]>(
-    initialItems.map((i) => ({
+  const [items, setItems] = useState<LocalStateItem[]>(() =>
+    (initialItems ?? []).map((i) => ({
       ...i,
       name: i.name,
       quantity: i.quantity,
@@ -67,14 +50,6 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
     }))
   );
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editQty, setEditQty] = useState("1");
-  const [editUnit, setEditUnit] = useState("Stk");
-
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [catalogInput, setCatalogInput] = useState("");
-
   const createProduct = useCreatePantryProduct();
   const deleteItem = useDeleteShoppingItem(listId);
   const syncToPantry = useSyncToPantry(listId);
@@ -82,66 +57,39 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
   const pending = items.filter((i) => i.resolved === "pending");
   const allDone = pending.length === 0;
 
-  const startEdit = (item: LocalStateItem) => {
-    setEditingId(item.shopping_item_id);
-    setEditName(item.name);
-    setEditQty(String(item.quantity));
-    setEditUnit(item.unit);
-  };
-
-  const confirmEdit = (id: string) => {
-    const trimmed = editName.trim();
-    if (!trimmed) return;
+  const handleEditItem = (id: string, name: string, quantity: number, unit: string) => {
     setItems((prev) =>
       prev.map((i) =>
         i.shopping_item_id === id
-          ? {
-              ...i,
-              name: trimmed,
-              quantity: parseFloat(editQty) || 1,
-              unit: editUnit,
-            }
+          ? { ...i, name, quantity, unit }
           : i
       )
     );
-    setEditingId(null);
   };
 
-  const startSave = (id: string, currentName: string) => {
-    setSavingId(id);
-    setCatalogInput(currentName);
+  const handleSaveCatalog = async (id: string, catalogName: string, unit: string) => {
+    let baseUnit = "piece";
+    const u = unit.toLowerCase();
+    if (u === "g" || u === "kg") baseUnit = "g";
+    else if (u === "ml" || u === "l") baseUnit = "ml";
+
+    await createProduct.mutateAsync({
+      name: catalogName,
+      base_unit: baseUnit,
+      minimum_stock: 0.0,
+      householdId: resolvedHouseholdId,
+    });
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.shopping_item_id === id
+          ? { ...i, resolved: "saved", catalogName }
+          : i
+      )
+    );
   };
 
-  const confirmSave = async (id: string, unit: string) => {
-    if (!catalogInput.trim()) return;
-
-    try {
-      let baseUnit = "piece";
-      const u = unit.toLowerCase();
-      if (u === "g" || u === "kg") baseUnit = "g";
-      else if (u === "ml" || u === "l") baseUnit = "ml";
-
-      await createProduct.mutateAsync({
-        name: catalogInput.trim(),
-        base_unit: baseUnit,
-        minimum_stock: 0.0,
-        householdId: selectedHouseholdId,
-      });
-
-      setItems((prev) =>
-        prev.map((i) =>
-          i.shopping_item_id === id
-            ? { ...i, resolved: "saved", catalogName: catalogInput.trim() }
-            : i
-        )
-      );
-      setSavingId(null);
-    } catch (err) {
-      console.error("Failed to register catalog item:", err);
-    }
-  };
-
-  const skipItem = (id: string) => {
+  const handleSkipItem = (id: string) => {
     setItems((prev) =>
       prev.map((i) =>
         i.shopping_item_id === id ? { ...i, resolved: "skipped" } : i
@@ -149,7 +97,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
     );
   };
 
-  const removeItem = (id: string) => {
+  const handleRemoveItem = (id: string) => {
     deleteItem.mutate(id);
     setItems((prev) =>
       prev.map((i) =>
@@ -160,14 +108,14 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
 
   const handleFinish = async () => {
     try {
-      await syncToPantry.mutateAsync({ householdId: selectedHouseholdId });
+      await syncToPantry.mutateAsync({ householdId: resolvedHouseholdId });
       onClose();
     } catch {
       onClose();
     }
   };
 
-  const selectedHousehold = households.find((h) => h.id === selectedHouseholdId) || households[0];
+  const selectedHousehold = households.find((h) => h.id === resolvedHouseholdId) || households[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
@@ -210,7 +158,7 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
             {households.length > 1 ? (
               <div className="relative">
                 <select
-                  value={selectedHouseholdId}
+                  value={resolvedHouseholdId}
                   onChange={(e) => setSelectedHouseholdId(e.target.value)}
                   className="appearance-none bg-card border border-border/60 rounded-lg px-3 py-1.5 pr-8 text-xs font-mono font-bold text-foreground outline-none cursor-pointer"
                 >
@@ -232,135 +180,17 @@ export function EinlagernModal({ listId, initialItems, onClose }: EinlagernModal
           {/* Unresolved / Batch Items List */}
           {!allDone && (
             <div className="space-y-2.5 max-h-[280px] overflow-y-auto scrollbar-none pr-1">
-              {items.map((item) => {
-                const isCurrentSaving = savingId === item.shopping_item_id;
-                const isCurrentEditing = editingId === item.shopping_item_id;
-
-                return (
-                  <div
-                    key={item.shopping_item_id}
-                    className={cn(
-                      "rounded-xl p-3.5 transition-all border",
-                      item.resolved === "pending"
-                        ? "glass-inset border-border/20"
-                        : "bg-white/2 dark:bg-white/[0.01] border-transparent opacity-40"
-                    )}
-                  >
-                    <div className="flex justify-between items-center gap-3">
-                      {isCurrentEditing ? (
-                        <div className="flex-1 flex gap-2 items-center">
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="flex-1 h-8 px-2 rounded bg-card border border-border/60 text-xs font-heading font-bold uppercase text-foreground outline-none min-w-0"
-                          />
-                          <input
-                            type="text"
-                            value={editQty}
-                            onChange={(e) => setEditQty(e.target.value)}
-                            className="w-12 h-8 px-2 rounded bg-card border border-border/60 text-xs font-mono font-bold text-foreground text-center outline-none"
-                          />
-                          <button
-                            onClick={() => confirmEdit(item.shopping_item_id)}
-                            className="h-8 px-2.5 rounded bg-emerald-500 text-white font-bold text-xs cursor-pointer flex items-center justify-center"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="min-w-0 flex-1">
-                          <div className="font-heading text-sm font-bold uppercase tracking-wider text-foreground truncate">
-                            {item.name}
-                          </div>
-                          <div className="font-mono text-[10px] text-muted-foreground/60 mt-0.5">
-                            {item.quantity} {item.unit}
-                            {item.resolved === "saved" && (
-                              <span className="text-cyan-600 dark:text-cyan-400 font-bold ml-2">
-                                {t("savedLabel", { catalogName: item.catalogName ?? "" })}
-                              </span>
-                            )}
-                            {item.resolved === "skipped" && (
-                              <span className="text-amber-500 font-bold ml-2">
-                                {t("skippedLabel")}
-                              </span>
-                            )}
-                            {item.resolved === "ignored" && (
-                              <span className="text-muted-foreground/40 font-bold ml-2">
-                                {t("ignoredLabel")}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {item.resolved === "pending" && !isCurrentSaving && !isCurrentEditing && (
-                        <div className="flex gap-1 shrink-0 select-none">
-                          <button
-                            onClick={() => startEdit(item)}
-                            className="p-1.5 rounded-lg glass-inset hover:glass-active text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                            title={t("editItem")}
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => startSave(item.shopping_item_id, item.name)}
-                            className="h-8 px-2.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer glass-active font-heading text-[10px] font-black uppercase tracking-wider text-blue-500 dark:text-blue-400"
-                            title={t("saveToCatalog")}
-                          >
-                            <Save className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-                            <span>{t("catalogBtn")}</span>
-                          </button>
-
-                          <button
-                            onClick={() => skipItem(item.shopping_item_id)}
-                            className="p-1.5 rounded-lg glass-inset hover:glass-active text-muted-foreground hover:text-amber-400 cursor-pointer transition-colors"
-                            title={t("skipItem")}
-                          >
-                            <SkipForward className="h-3.5 w-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => removeItem(item.shopping_item_id)}
-                            className="p-1.5 rounded-lg glass-inset hover:bg-red-500/10 text-muted-foreground hover:text-red-400 cursor-pointer transition-colors"
-                            title={t("ignoreBtn")}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {isCurrentSaving && (
-                      <div className="mt-3 pt-2.5 border-t border-border/10 flex flex-col gap-2 select-none">
-                        <label className="font-mono text-[8px] font-bold text-blue-500 uppercase tracking-widest leading-none">
-                          {t("catalogBlueprintName")}
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            value={catalogInput}
-                            onChange={(e) => setCatalogInput(e.target.value)}
-                            onKeyDown={(e) =>
-                              e.key === "Enter" && confirmSave(item.shopping_item_id, item.unit)
-                            }
-                            autoFocus
-                            disabled={createProduct.isPending}
-                            className="flex-1 h-8 px-3 rounded-lg bg-white/5 border border-border/30 outline-none font-heading text-xs font-semibold tracking-wide text-foreground min-w-0"
-                          />
-                          <button
-                            onClick={() => confirmSave(item.shopping_item_id, item.unit)}
-                            disabled={createProduct.isPending || !catalogInput.trim()}
-                            className="h-8 px-3 rounded-lg flex items-center justify-center font-heading text-xs font-black uppercase tracking-wider text-white bg-gradient-to-br from-blue-400 to-blue-800 disabled:opacity-40 shrink-0 border border-blue-900 shadow-sm cursor-pointer"
-                          >
-                            {createProduct.isPending ? "..." : t("saveBtn")}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {items.map((item) => (
+                <EinlagernItemRow
+                  key={item.shopping_item_id}
+                  item={item}
+                  onEdit={(name, qty, unit) => handleEditItem(item.shopping_item_id, name, qty, unit)}
+                  onSaveCatalog={(catalogName, unit) => handleSaveCatalog(item.shopping_item_id, catalogName, unit)}
+                  onSkip={() => handleSkipItem(item.shopping_item_id)}
+                  onRemove={() => handleRemoveItem(item.shopping_item_id)}
+                  isCreateProductPending={createProduct.isPending}
+                />
+              ))}
             </div>
           )}
 

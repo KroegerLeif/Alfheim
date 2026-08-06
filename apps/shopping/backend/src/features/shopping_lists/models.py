@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
-from sqlalchemy import Column, DateTime, Boolean
+from sqlalchemy import Column, DateTime, Boolean, Integer
 from sqlmodel import Field, SQLModel, Relationship, func
 
 
@@ -48,6 +48,11 @@ class ShoppingList(SQLModel, table=True):
         default=False,
         sa_column=Column(Boolean, nullable=False, server_default="false"),
         description="True for the user's persistent Personal List (non-deletable, user-bound).",
+    )
+    position: int = Field(
+        default=0,
+        sa_column=Column(Integer, nullable=False, server_default="0"),
+        description="Display position index for custom list reordering.",
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

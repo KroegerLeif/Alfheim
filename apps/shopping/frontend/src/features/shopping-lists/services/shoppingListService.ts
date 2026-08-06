@@ -98,6 +98,22 @@ export function useDeleteShoppingList() {
 }
 
 /**
+ * Hook to reorder shopping lists by display position index on the backend.
+ */
+export function useReorderShoppingLists() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string[]>({
+    mutationFn: (listIds) =>
+      shoppingClient
+        .patch("api/v1/shopping-lists/reorder", { json: { list_ids: listIds } })
+        .then(() => {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shoppingKeys.lists() });
+    },
+  });
+}
+
+/**
  * Hook to add a new shopping item with optimistic updates.
  */
 export function useAddShoppingItem(listId: string) {

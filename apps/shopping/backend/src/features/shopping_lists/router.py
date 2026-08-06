@@ -17,6 +17,7 @@ from src.features.shopping_lists.schemas import (
     PushItemPayload,
     SyncToPantryResponse,
     HouseholdRead,
+    ReorderListsPayload,
 )
 
 router = APIRouter(prefix="/api/v1/shopping-lists", tags=["shopping-lists"])
@@ -97,6 +98,24 @@ async def get_lists(
         owner_id=context.user_id,
         username=context.username,
         token=token,
+    )
+
+
+@router.patch(
+    "/reorder",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Update display position indices of shopping lists",
+)
+async def reorder_lists(
+    payload: ReorderListsPayload,
+    session: AsyncSession = Depends(get_db_session),
+    context: UserHomeContext = Depends(get_current_user_and_home),
+):
+    """Update display position indices for multiple user-defined shopping lists in bulk."""
+    await ShoppingListService.reorder_lists(
+        session=session,
+        list_ids=payload.list_ids,
+        home_id=context.home_id,
     )
 
 

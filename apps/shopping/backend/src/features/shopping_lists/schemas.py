@@ -60,6 +60,10 @@ class ShoppingListCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255, description="Name of the shopping list.")
 
 
+class ReorderListsPayload(BaseModel):
+    list_ids: List[uuid.UUID] = Field(description="Ordered list of Shopping List UUIDs.")
+
+
 class ShoppingListRead(BaseModel):
     id: uuid.UUID
     name: str
@@ -67,6 +71,7 @@ class ShoppingListRead(BaseModel):
     owner_id: uuid.UUID
     is_default: bool
     is_personal: bool
+    position: int
     created_at: datetime
     updated_at: datetime
     items: List[ShoppingItemRead] = Field(default_factory=list)
