@@ -16,8 +16,10 @@
 #                      [live at http://loeger-os/pantry after this stage]
 #   5. Maintenance   — maintenance-db  →  maintenance-backend  →  maintenance-frontend
 #                      [live at http://loeger-os/maintenance after this stage]
-#   6. Observability — signoz-clickhouse  →  signoz-otel-collector  →  signoz-ui  →  vector-shipper
-#   7. Summary       — print accessible URLs with green checkmarks
+#   6. Chores        — chores-db  →  chores-backend
+#                      [live at http://loeger-os/api/v1/chores after this stage]
+#   7. Observability — signoz-clickhouse  →  signoz-otel-collector  →  signoz-ui  →  vector-shipper
+#   8. Summary       — print accessible URLs with green checkmarks
 #
 # Usage:
 #   ./scripts/up.sh              # start stack (use cached images — no build)
@@ -490,12 +492,27 @@ wait_healthy "maintenance-frontend" "maintenance-frontend" 240
 notice "🟢 Maintenance App is live at http://loeger-os/maintenance"
 
 # =============================================================================
-# STAGE 6 — Observability  (ClickHouse · SigNoz · Vector)
+# STAGE 6 — Chores App Slice  (chores-db → chores-backend)
+# =============================================================================
+step "STAGE 6 · Chores App Slice  (database · backend)"
+
+info "Starting chores-db …"
+dc up ${BUILD_FLAG} -d chores-db
+wait_healthy "chores-db" "chores-db" 60
+
+info "Starting chores-backend …"
+dc up ${BUILD_FLAG} -d chores-backend
+wait_healthy "chores-backend" "chores-backend" 180
+
+notice "🟢 Chores Backend is live at http://loeger-os/api/v1/chores"
+
+# =============================================================================
+# STAGE 7 — Observability  (ClickHouse · SigNoz · Vector)
 # =============================================================================
 if [[ "${SKIP_OBS}" == "true" ]]; then
   warn "Skipping observability stack (--skip-obs flag set)"
 else
-  step "STAGE 6 · Observability  (ClickHouse · SigNoz · Vector)"
+  step "STAGE 7 · Observability  (ClickHouse · SigNoz · Vector)"
 
   info "Starting ClickHouse …"
   if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-clickhouse; then
@@ -524,9 +541,9 @@ else
 fi
 
 # =============================================================================
-# STAGE 7 — Summary
+# STAGE 8 — Summary
 # =============================================================================
-step "STAGE 7 · Stack fully operational 🚀"
+step "STAGE 8 · Stack fully operational 🚀"
 
 echo ""
 echo -e "  ${BOLD}${GREEN}✔  Loeger-OS is running!${RESET}"
@@ -536,6 +553,7 @@ echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://loeger-os/${RESE
 echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://loeger-os/shopping${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://loeger-os/pantry${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://loeger-os/maintenance${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chores API   →  ${BOLD}http://loeger-os/api/v1/chores${RESET}"
 echo ""
 echo -e "  ${DIM}Infrastructure:${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://loeger-os/auth${RESET}"
