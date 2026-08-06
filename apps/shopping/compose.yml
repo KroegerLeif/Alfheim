@@ -112,6 +112,7 @@ networks:
     external: true
   shopping-internal:
     name: shopping-internal
+    external: true
   observability-internal:
     name: observability-internal
     external: true

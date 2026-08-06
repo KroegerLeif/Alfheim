@@ -44,6 +44,7 @@ async def init_db() -> None:
     statements = [
         "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE",
         "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE shopping_lists ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0",
     ]
     for stmt in statements:
         try:

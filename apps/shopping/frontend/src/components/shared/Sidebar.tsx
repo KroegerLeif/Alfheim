@@ -6,83 +6,46 @@ import {
   useShoppingLists,
   useCreateShoppingList,
   useDeleteShoppingList,
+  useReorderShoppingLists,
   useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
-import {
-  ChevronLeft,
-  ShoppingCart,
-  Plus,
-  Check,
-  X,
-  Home,
-  User,
-  LogOut,
-  Sparkles,
-  Trash2,
-  GripVertical,
-} from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { ChevronLeft, Home, User, Sparkles } from "lucide-react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "@/features/shopping-lists/types";
-
-const DND_STORAGE_KEY = "loeger_os_shopping_list_order";
-
-function getStoredOrder(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(DND_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function setStoredOrder(order: string[]) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(DND_STORAGE_KEY, JSON.stringify(order));
-  }
-}
+import { SidebarItem } from "./sidebar/SidebarItem";
+import { SidebarCustomItem } from "./sidebar/SidebarCustomItem";
+import { CreateListForm } from "./sidebar/CreateListForm";
 
 /**
  * Sidepanel navigation featuring:
  * - Brand header
  * - Protected System Lists
- * - Drag-and-Drop reorderable Custom Lists
+ * - Drag-and-Drop reorderable Custom Lists via backend position indexes
  * - User Profile Footer
  */
 export function Sidebar() {
   const t = useTranslations("Navigation");
-  const tChecklist = useTranslations("Checklist");
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const { activeListId, setActiveListId } = useActiveList();
   const user = useKeycloakUser();
 
   const { data: listsData, isLoading } = useShoppingLists();
-  const lists = listsData || [];
+  const lists = useMemo(() => listsData ?? [], [listsData]);
+  
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
+  const reorderLists = useReorderShoppingLists();
 
-  const [isCreating, setIsCreating] = useState(false);
-  const [newListName, setNewListName] = useState("");
-  const [customOrder, setCustomOrder] = useState<string[]>([]);
   const [draggedListId, setDraggedListId] = useState<string | null>(null);
+  const { data: householdsData } = useHouseholds();
+  const households = useMemo(() => householdsData ?? [], [householdsData]);
 
-  useEffect(() => {
-    setCustomOrder(getStoredOrder());
-  }, []);
-
-  const { data: households = [] } = useHouseholds();
-
-  const isPersonalList = (l: ShoppingList) =>
-    l.is_personal ||
-    l.name.endsWith(" - Liste") ||
-    l.name.endsWith("'s List") ||
-    l.name.startsWith("Lista ");
-
-  const { householdLists, personalLists } = useMemo(() => {
+  const { householdLists, personalList, customLists } = useMemo(() => {
     const hhLists: (ShoppingList & { displayName: string })[] = [];
-    const persLists: ShoppingList[] = [];
+    let persList: ShoppingList | null = null;
+    const custLists: ShoppingList[] = [];
 
     lists.forEach((list) => {
       if (list.is_default) {
@@ -91,32 +54,15 @@ export function Sidebar() {
           ...list,
           displayName: hh ? hh.name : t("household_list_fallback"),
         });
+      } else if (list.is_personal) {
+        persList = list;
       } else {
-        persLists.push(list);
+        custLists.push(list);
       }
     });
 
-    // Sort personal/custom lists: main personal list first, then custom lists by customOrder
-    persLists.sort((a, b) => {
-      const aIsPers = isPersonalList(a);
-      const bIsPers = isPersonalList(b);
-      if (aIsPers && !bIsPers) return -1;
-      if (!aIsPers && bIsPers) return 1;
-      
-      const indexA = customOrder.indexOf(a.id);
-      const indexB = customOrder.indexOf(b.id);
-      if (indexA === -1 && indexB === -1) return 0;
-      if (indexA === -1) return 1;
-      if (indexB === -1) return -1;
-      return indexA - indexB;
-    });
-
-    return { householdLists: hhLists, personalLists: persLists };
-  }, [lists, households, customOrder]);
-
-  const reorderableCustomLists = useMemo(() => {
-    return personalLists.filter((l) => !isPersonalList(l));
-  }, [personalLists]);
+    return { householdLists: hhLists, personalList: persList, customLists: custLists };
+  }, [lists, households, t]);
 
   const handleSelectHouseholdList = (list: ShoppingList) => {
     localStorage.setItem("loeger_os_active_household_id", list.home_id);
@@ -146,7 +92,7 @@ export function Sidebar() {
     e.preventDefault();
     if (!draggedListId || draggedListId === targetId) return;
 
-    const currentIds = reorderableCustomLists.map((l) => l.id);
+    const currentIds = customLists.map((l) => l.id);
     const fromIndex = currentIds.indexOf(draggedListId);
     const toIndex = currentIds.indexOf(targetId);
 
@@ -155,34 +101,21 @@ export function Sidebar() {
       const [moved] = updated.splice(fromIndex, 1);
       updated.splice(toIndex, 0, moved);
 
-      setCustomOrder(updated);
-      setStoredOrder(updated);
+      // Save order changes directly to the database
+      reorderLists.mutate(updated);
     }
     setDraggedListId(null);
   };
 
-  const handleCreate = () => {
-    const trimmed = newListName.trim();
-    if (!trimmed) return;
-
+  const handleCreate = (name: string) => {
     createList.mutate(
-      { name: trimmed },
+      { name },
       {
         onSuccess: (newList) => {
-          setIsCreating(false);
-          setNewListName("");
           setActiveListId(newList.id);
-          const updated = [...customOrder, newList.id];
-          setCustomOrder(updated);
-          setStoredOrder(updated);
         },
       }
     );
-  };
-
-  const handleCancel = () => {
-    setIsCreating(false);
-    setNewListName("");
   };
 
   if (!isSidebarOpen) return null;
@@ -242,44 +175,28 @@ export function Sidebar() {
             ) : (
               householdLists.map((list) => {
                 const isActive = activeListId === list.id;
-                const completedCount = list.items.filter((i) => i.is_completed).length;
-                const totalCount = list.items.length;
+                const completedCount = (list.items ?? []).filter((i) => i.is_completed).length;
+                const totalCount = (list.items ?? []).length;
 
                 return (
-                  <button
+                  <SidebarItem
                     key={list.id}
+                    isActive={isActive}
                     onClick={() => handleSelectHouseholdList(list)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer text-left group",
-                      isActive
-                        ? "glass-active border-blue-500/30 text-foreground font-bold shadow-xs"
-                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                    )}
-                  >
-                    <Home
-                      className={cn(
-                        "h-4 w-4 shrink-0 transition-colors",
-                        isActive
-                          ? "text-emerald-500 dark:text-emerald-400"
-                          : "text-muted-foreground/60 group-hover:text-emerald-500"
-                      )}
-                    />
-
-                    <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
-                      {list.displayName}
-                    </span>
-
-                    <span
-                      className={cn(
-                        "font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border leading-none shrink-0 transition-colors",
-                        isActive
-                          ? "bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20"
-                          : "bg-muted/50 text-muted-foreground/60 border-border/40"
-                      )}
-                    >
-                      {completedCount}/{totalCount}
-                    </span>
-                  </button>
+                    icon={
+                      <Home
+                        className={cn(
+                          "h-4 w-4 shrink-0 transition-colors",
+                          isActive
+                            ? "text-emerald-500 dark:text-emerald-400"
+                            : "text-muted-foreground/60 group-hover:text-emerald-500"
+                        )}
+                      />
+                    }
+                    label={list.displayName}
+                    completedCount={completedCount}
+                    totalCount={totalCount}
+                  />
                 );
               })
             )}
@@ -292,173 +209,80 @@ export function Sidebar() {
                 {t("personal_lists")}
               </span>
               <span className="text-[10px] font-mono text-muted-foreground/40">
-                {personalLists.length}
+                {lists.filter(l => !l.is_default).length}
               </span>
             </div>
 
-            {personalLists.length === 0 && !isLoading && (
+            {lists.length === 0 && !isLoading && (
               <div className="px-3 py-3 text-center text-[11px] font-mono text-muted-foreground/40 italic">
                 {t("noLists")}
               </div>
             )}
 
-            {!isLoading && personalLists.map((list) => {
-              const isActive = activeListId === list.id;
-              const completedCount = list.items.filter((i) => i.is_completed).length;
-              const totalCount = list.items.length;
-              const isDragging = draggedListId === list.id;
-
-              if (isPersonalList(list)) {
-                return (
-                  <button
-                    key={list.id}
-                    onClick={() => handleSelectPersonalOrCustomList(list)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer text-left group",
-                      isActive
-                        ? "glass-active border-blue-500/30 text-foreground font-bold shadow-xs"
-                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                    )}
-                  >
-                    <User
-                      className={cn(
-                        "h-4 w-4 shrink-0 transition-colors",
-                        isActive
-                          ? "text-blue-500 dark:text-blue-400"
-                          : "text-muted-foreground/60 group-hover:text-blue-500"
-                      )}
-                    />
-
-                    <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
-                      {user.username && user.username !== "User"
-                        ? t("personalList", { username: user.username })
-                        : t("personal_list_fallback")}
-                    </span>
-
-                    <span
-                      className={cn(
-                        "font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border leading-none shrink-0 transition-colors",
-                        isActive
-                          ? "bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20"
-                          : "bg-muted/50 text-muted-foreground/60 border-border/40"
-                      )}
-                    >
-                      {completedCount}/{totalCount}
-                    </span>
-                  </button>
-                );
-              }
-
-              return (
-                <div
-                  key={list.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, list.id)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, list.id)}
-                  onDragEnd={() => setDraggedListId(null)}
-                  className={cn(
-                    "flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-all duration-200 cursor-pointer group select-none",
-                    isActive
-                      ? "glass-active border-blue-500/30 text-foreground font-bold shadow-xs"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40",
-                    isDragging ? "opacity-30 scale-95 border-dashed border-blue-400" : ""
-                  )}
-                  onClick={() => handleSelectPersonalOrCustomList(list)}
-                >
-                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing shrink-0" />
-
-                  <ShoppingCart
+            {!isLoading && personalList && (
+              <SidebarItem
+                isActive={activeListId === (personalList as ShoppingList).id}
+                onClick={() => handleSelectPersonalOrCustomList(personalList as ShoppingList)}
+                icon={
+                  <User
                     className={cn(
                       "h-4 w-4 shrink-0 transition-colors",
-                      isActive ? "text-primary" : "text-muted-foreground/60 group-hover:text-primary"
+                      activeListId === (personalList as ShoppingList).id
+                        ? "text-blue-500 dark:text-blue-400"
+                        : "text-muted-foreground/60 group-hover:text-blue-500"
                     )}
                   />
+                }
+                label={
+                  user.username && user.username !== "User"
+                    ? t("personalList", { username: user.username })
+                    : t("personal_list_fallback")
+                }
+                completedCount={((personalList as ShoppingList).items ?? []).filter((i) => i.is_completed).length}
+                totalCount={((personalList as ShoppingList).items ?? []).length}
+              />
+            )}
 
-                  <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
-                    {list.name}
-                  </span>
+            {!isLoading &&
+              customLists.map((list) => {
+                const isActive = activeListId === list.id;
+                const completedCount = (list.items ?? []).filter((i) => i.is_completed).length;
+                const totalCount = (list.items ?? []).length;
+                const isDragging = draggedListId === list.id;
 
-                  <span
-                    className={cn(
-                      "font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border leading-none shrink-0",
-                      isActive
-                        ? "bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20"
-                        : "bg-muted/50 text-muted-foreground/60 border-border/40"
-                    )}
-                  >
-                    {completedCount}/{totalCount}
-                  </span>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(tChecklist("deleteListConfirm", { name: list.name }))) {
-                        deleteList.mutate(list.id, {
-                          onSuccess: () => {
-                            if (isActive) {
-                              const fallback = householdLists[0] || personalLists[0];
-                              if (fallback) {
-                                setActiveListId(fallback.id);
-                              }
+                return (
+                  <SidebarCustomItem
+                    key={list.id}
+                    name={list.name}
+                    isActive={isActive}
+                    isDragging={isDragging}
+                    completedCount={completedCount}
+                    totalCount={totalCount}
+                    onSelect={() => handleSelectPersonalOrCustomList(list)}
+                    onDelete={() => {
+                      deleteList.mutate(list.id, {
+                        onSuccess: () => {
+                          if (isActive) {
+                            const fallback = householdLists[0] || personalList;
+                            if (fallback) {
+                              setActiveListId(fallback.id);
                             }
-                          },
-                        });
-                      }
+                          }
+                        },
+                      });
                     }}
-                    disabled={deleteList.isPending}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-red-400 transition-opacity cursor-pointer"
-                    title={tChecklist("deleteList")}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              );
-            })}
-
-            <div className="pt-2">
-              {isCreating ? (
-                <div className="flex items-center gap-1.5 px-3 h-10 rounded-xl border border-border/60 glass-inset">
-                  <input
-                    type="text"
-                    value={newListName}
-                    onChange={(e) => setNewListName(e.target.value)}
-                    placeholder={t("newListPlaceholder")}
-                    className="flex-1 bg-transparent border-none outline-none text-xs font-heading font-bold uppercase tracking-wider text-foreground placeholder:text-muted-foreground/40 min-w-0"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreate();
-                      if (e.key === "Escape") handleCancel();
-                    }}
+                    onDragStart={(e) => handleDragStart(e, list.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, list.id)}
+                    onDragEnd={() => setDraggedListId(null)}
+                    isPendingDelete={deleteList.isPending}
                   />
-                  <button
-                    onClick={handleCreate}
-                    disabled={!newListName.trim() || createList.isPending}
-                    className="text-emerald-500 hover:text-emerald-400 p-1 cursor-pointer disabled:opacity-40 transition-colors"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="text-red-500 hover:text-red-400 p-1 cursor-pointer transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsCreating(true)}
-                  className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-dashed border-border/60 text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-200 cursor-pointer text-xs font-heading font-bold uppercase tracking-wider"
-                >
-                  <Plus className="h-4 w-4" />
-                  {t("newList")}
-                </button>
-              )}
-            </div>
+                );
+              })}
+
+            <CreateListForm onSave={handleCreate} isPending={createList.isPending} />
           </div>
         </div>
-
-
       </aside>
     </>
   );

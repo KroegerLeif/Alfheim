@@ -50,6 +50,7 @@ export function AddManualItem({ listId }: AddManualItemProps) {
         name: trimmed,
         quantity: parseFloat(qty) || 1,
         unit,
+        icon: selectedIconId,
       },
       {
         onSuccess: () => {
@@ -63,8 +64,10 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   const isInvalid = !name.trim() || addItem.isPending;
 
   return (
-    <div className="glass-card rounded-2xl p-5 relative overflow-hidden shrink-0 select-none">
-      <Specular opacityClassName="via-white/20 dark:via-white/10" />
+    <div className="glass-card rounded-2xl p-5 relative shrink-0 select-none">
+      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none z-0">
+        <Specular opacityClassName="via-white/20 dark:via-white/10" />
+      </div>
 
       <div className="relative z-10 flex flex-col gap-3">
         <h3 className="font-mono text-[9px] font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400 leading-none">
@@ -73,7 +76,7 @@ export function AddManualItem({ listId }: AddManualItemProps) {
 
         {/* Text Input & Icon Picker Row */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-3 h-11 px-4 rounded-xl glass-inset min-w-0">
+          <div className="flex-1 flex items-center gap-3 h-11 pl-4 pr-1.5 rounded-xl glass-inset min-w-0">
             <Search className="h-4 w-4 text-muted-foreground/40 shrink-0" />
             <input
               value={name}
@@ -83,12 +86,11 @@ export function AddManualItem({ listId }: AddManualItemProps) {
               className="flex-1 bg-transparent border-none outline-none font-heading text-sm font-semibold tracking-wide text-foreground placeholder:text-muted-foreground/35 min-w-0"
               disabled={addItem.isPending}
             />
+            <IconPicker
+              selectedIconId={selectedIconId}
+              onSelectIcon={setSelectedIconId}
+            />
           </div>
-
-          <IconPicker
-            selectedIconId={selectedIconId}
-            onSelectIcon={setSelectedIconId}
-          />
         </div>
 
         {/* Stepper + Unit Selector + Submit Row */}

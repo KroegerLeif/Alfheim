@@ -295,3 +295,49 @@ async def test_unauthorized_access(client: AsyncClient):
             response = await client.get("/api/v1/shopping-lists", headers={})
             assert response.status_code == 401
             assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()
+
+
+@pytest.mark.asyncio
+async def test_reorder_shopping_lists(client: AsyncClient, db_session: AsyncSession):
+    # 1. Create three custom lists
+    list_a_payload = {"name": "List A"}
+    list_b_payload = {"name": "List B"}
+    list_c_payload = {"name": "List C"}
+
+    res_a = await client.post("/api/v1/shopping-lists", json=list_a_payload)
+    res_b = await client.post("/api/v1/shopping-lists", json=list_b_payload)
+    res_c = await client.post("/api/v1/shopping-lists", json=list_c_payload)
+
+    assert res_a.status_code == 201
+    assert res_b.status_code == 201
+    assert res_c.status_code == 201
+
+    id_a = res_a.json()["id"]
+    id_b = res_b.json()["id"]
+    id_c = res_c.json()["id"]
+
+    # 2. Verify initial stable ordering: custom lists should be List A, List B, List C (based on default position=0 and created_at order)
+    res = await client.get("/api/v1/shopping-lists")
+    assert res.status_code == 200
+    lists = res.json()
+    custom_lists = [l for l in lists if not l["is_default"] and not l["is_personal"]]
+    assert len(custom_lists) == 3
+    assert custom_lists[0]["id"] == id_a
+    assert custom_lists[1]["id"] == id_b
+    assert custom_lists[2]["id"] == id_c
+
+    # 3. Patch the positions (reverse the order: C, B, A)
+    reorder_payload = {"list_ids": [id_c, id_b, id_a]}
+    reorder_res = await client.patch("/api/v1/shopping-lists/reorder", json=reorder_payload)
+    assert reorder_res.status_code == 204
+
+    # 4. Verify new custom list order (C, B, A)
+    res_ordered = await client.get("/api/v1/shopping-lists")
+    assert res_ordered.status_code == 200
+    ordered_lists = res_ordered.json()
+    custom_ordered = [l for l in ordered_lists if not l["is_default"] and not l["is_personal"]]
+    assert len(custom_ordered) == 3
+    assert custom_ordered[0]["id"] == id_c
+    assert custom_ordered[1]["id"] == id_b
+    assert custom_ordered[2]["id"] == id_a
+

@@ -47,6 +47,7 @@ interface IconPickerProps {
 export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: IconPickerProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const currentIconObj = AVAILABLE_ICONS.find((i) => i.id === selectedIconId) || AVAILABLE_ICONS[0];
@@ -62,6 +63,10 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: Ico
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const filteredIcons = AVAILABLE_ICONS.filter((icon) =>
+    icon.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className={`relative inline-block ${className}`} ref={dropdownRef}>
       <button
@@ -75,13 +80,23 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: Ico
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-12 w-64 bg-[var(--surface-card)]/95 border border-[var(--border-subtle)] rounded-2xl shadow-2xl backdrop-blur-xl p-3 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-slate-900/95 border border-white/10 rounded-xl shadow-2xl backdrop-blur-md p-3 z-[9999] animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]/60 mb-2">
             {t('common.select_icon')}
           </div>
 
-          <div className="grid grid-cols-5 gap-1.5 max-h-48 overflow-y-auto scrollbar-none p-1 bg-[var(--surface-canvas)]/50 rounded-xl border border-[var(--border-subtle)]/30">
-            {AVAILABLE_ICONS.map((iconItem) => {
+          <div className="mb-2">
+            <input
+              type="text"
+              placeholder="Search icon..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-8 px-2.5 rounded-lg bg-[var(--surface-canvas)]/80 border border-[var(--border-subtle)]/40 text-xs text-white placeholder:text-slate-400/50 outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-5 gap-2 max-h-56 overflow-y-auto scrollbar-none p-1 bg-[var(--surface-canvas)]/50 rounded-xl border border-[var(--border-subtle)]/30">
+            {filteredIcons.map((iconItem) => {
               const IconComp = iconItem.component;
               const isSelected = selectedIconId === iconItem.id;
 
@@ -95,8 +110,8 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: Ico
                   }}
                   className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-[var(--primary-main)] text-white font-bold shadow-md scale-105"
-                      : "text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-elevated)]/40"
+                      ? "bg-blue-500/20 border border-blue-500 text-blue-400 scale-105 shadow-md"
+                      : "text-[var(--text-muted)] hover:text-white hover:bg-[var(--surface-elevated)]/40"
                   }`}
                   title={iconItem.name}
                 >
@@ -104,6 +119,12 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: Ico
                 </button>
               );
             })}
+
+            {filteredIcons.length === 0 && (
+              <div className="col-span-5 text-center py-4 text-xs text-[var(--text-muted)]/50 italic">
+                No icons found
+              </div>
+            )}
           </div>
         </div>
       )}

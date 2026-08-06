@@ -237,12 +237,12 @@ class ShoppingListService:
             session, home_id, effective_owner, username
         )
 
-        # 4. Fetch remaining user-created lists for all enrolled households
+        # 4. Fetch remaining user-created lists for all enrolled households ordered by position
         stmt = select(ShoppingList).where(
             ShoppingList.home_id.in_(hh_ids),
             ShoppingList.is_default == False,  # noqa: E712
             col(ShoppingList.is_personal) == False,  # noqa: E712
-        )
+        ).order_by(ShoppingList.position.asc(), ShoppingList.created_at.asc())
         result = await session.exec(stmt)
         custom_lists = list(result.all())
 
@@ -300,6 +300,28 @@ class ShoppingListService:
             )
 
         await session.delete(db_list)
+        await session.commit()
+        return True
+
+    @staticmethod
+    async def reorder_lists(
+        session: AsyncSession,
+        list_ids: List[uuid.UUID],
+        home_id: uuid.UUID,
+    ) -> bool:
+        """Update the position index of multiple user-defined shopping lists."""
+        for index, list_id in enumerate(list_ids):
+            stmt = select(ShoppingList).where(
+                ShoppingList.id == list_id,
+                ShoppingList.home_id == home_id,
+                ShoppingList.is_default == False,  # noqa: E712
+                col(ShoppingList.is_personal) == False,  # noqa: E712
+            )
+            res = await session.exec(stmt)
+            db_list = res.first()
+            if db_list:
+                db_list.position = index
+                session.add(db_list)
         await session.commit()
         return True
 

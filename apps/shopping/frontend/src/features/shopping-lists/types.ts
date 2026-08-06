@@ -21,6 +21,7 @@ export interface ShoppingItemCreatePayload {
   barcode?: string | null;
   quantity: number;
   unit: string;
+  icon?: string | null;
 }
 
 export interface ShoppingItemUpdatePayload {

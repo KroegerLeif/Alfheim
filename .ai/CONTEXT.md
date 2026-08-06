@@ -9,7 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`docs(context): refactor .ai architecture for token efficiency and strict separation`** (Active)
+* **`docs(context): update context map and add app READMEs for reordering`** (Active)
+* **`refactor(shopping): apply FDD, component splitting, and backend-driven reordering`**
+  - Split monolithic page, sidebar, and modals into clean single-responsibility subcomponents.
+  - Added backend-driven reordering endpoint and list `position` column.
+  - Replaced frontend localStorage sorting hacks with backend mutation updates.
+* **`docs(context): refactor .ai architecture for token efficiency and strict separation`**
 * **`refactor(pantry): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`**
   - Migrated pantry frontend components to centralized translations in `@loeger-os/shared`.
   - Replaced fake database fetches with `pantryClient` calls.
@@ -62,6 +67,7 @@ All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`)
 * **`owner_id`** (UUID, NOT NULL, INDEX) - Creator/Owner
 * **`is_default`** (BOOLEAN, NOT NULL, Default `false`) - **Protected** Household List (max 1 per `home_id`)
 * **`is_personal`** (BOOLEAN, NOT NULL, Default `false`) - **Protected** Personal List (max 1 per `owner_id`)
+* **`position`** (INTEGER, NOT NULL, Default `0`) - Display position ordering index
 * **`created_at`** / **`updated_at`** (TIMESTAMPTZ, NOT NULL)
 
 #### Invariant Rules:
