@@ -1,0 +1,1 @@
+# Keep public directory tracked in git so the Docker build COPY command doesn't fail.

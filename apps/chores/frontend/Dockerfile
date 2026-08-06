@@ -26,7 +26,7 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 WORKDIR /app/apps/chores/frontend
-RUN pnpm run build
+RUN mkdir -p public && pnpm run build
 
 # Stage 3: Runner
 FROM node:22-alpine AS runner
