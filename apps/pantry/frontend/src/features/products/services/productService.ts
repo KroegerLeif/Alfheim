@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { pantryClient } from "@/lib/api";
-import { ProductRead, ProductCreate } from "@/features/inventory/types";
+import { pantryClient } from "@/core/api";
+import { ProductRead, ProductCreate } from "@/features/products/types";
 
 export const productKeys = {
   all: ["products"] as const,

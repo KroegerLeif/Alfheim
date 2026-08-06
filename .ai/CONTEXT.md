@@ -9,7 +9,22 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`docs(context): update context map and add app READMEs for reordering`** (Active)
+* **`docs(pantry): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`** (Active)
+* **`refactor(pantry): split monolithic views into FDD-compliant SRP subcomponents (<200 lines each) and apply ?? null-safety fallbacks`**
+  - StockActionModal (675→90 lines) → ProductSearchStep, QuickProductForm, QuickCategoryForm, TransactionForm
+  - DashboardView (344→85 lines) → MetricSummaryCards, AlertsFeed, ShoppingSyncPanel
+  - InventoryTableView (274→90 lines) → InventoryFilterBar, InventoryTableRow
+  - LedgerHistoryView (230→75 lines) → LedgerFilterBar, LedgerTableRow
+  - ProductCatalogView (382→55 lines) → ProductList, ProductCreateForm
+  - LocationsGridView (298→70 lines) → LocationCard, LocationCreateForm
+  - AnalyticsView (229→75 lines) → ConsumptionChart, CategoryStockChart
+  - All 35 Vitest tests pass.
+* **`refactor(pantry): migrate src/lib to src/core, split domain types, add barrel index files, fix Vitest localStorage mock`**
+  - Core migration: `src/lib/ → src/core/` (api.ts, authContext.tsx, utils.ts)
+  - Domain types isolated into `features/{products,locations,categories}/types.ts`
+  - Barrel `index.ts` created for all 5 feature domains
+  - Fixed Vitest JSDOM `localStorage` mock in `src/tests/setup.ts`
+* **`docs(context): update context map and add app READMEs for reordering`**
 * **`refactor(shopping): apply FDD, component splitting, and backend-driven reordering`**
   - Split monolithic page, sidebar, and modals into clean single-responsibility subcomponents.
   - Added backend-driven reordering endpoint and list `position` column.
@@ -74,6 +89,35 @@ All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`)
 1. Max **one** `is_default=true` row per `home_id` (enforced in service layer).
 2. Max **one** `is_personal=true` row per `owner_id` (enforced in service layer).
 3. **Never** allow deletion of protected lists (`is_default` or `is_personal`) via API.
+
+---
+
+## 🗄️ Database Schema Invariants (Pantry Service)
+
+### Table: `inventory_states` (live stock cache)
+* **`id`** (UUID, PK)
+* **`product_id`** (UUID, FK → `products.id`)
+* **`location_id`** (UUID, FK → `locations.id`)
+* **`household_id`** (UUID, NOT NULL, INDEX)
+* **`quantity`** (FLOAT, NOT NULL) — current stock level
+* **`batch_code`** (VARCHAR, NULLABLE) — lot/batch identifier
+* **`expiration_date`** (DATE, NULLABLE)
+
+### Table: `inventory_transactions` (immutable ledger)
+* **`id`** (UUID, PK)
+* **`product_id`** / **`location_id`** / **`household_id`** (UUID, FK)
+* **`transaction_type`** (ENUM: `in`, `out`, `waste`, `reconciliation`)
+* **`quantity`** (FLOAT, signed — negative for OUT/WASTE)
+* **`unit_input`** (VARCHAR) — raw user unit before Pint normalization
+* **`batch_code`** / **`expiration_date`** / **`notes`** (NULLABLE)
+* **`created_at`** (TIMESTAMPTZ, NOT NULL)
+
+#### Invariant Rules:
+1. Transactions are **immutable** — never updated or deleted.
+2. Products with a valid EAN/UPC barcode are promoted to `is_global = True` (shared across households).
+3. The `Backlog` system location (`is_system = True`) cannot be renamed or deleted.
+4. Unit normalization via Pint is applied before writing `quantity` to both tables.
+5. Write-locks (`SELECT FOR UPDATE`) guard `inventory_states` against concurrent write races.
 
 ---
 

@@ -1,11 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useSearchProducts, useProductByBarcode, useProducts, useCreateProduct, productKeys } from '../productService'
 import { createQueryWrapper } from '@/tests/utils'
-import { pantryClient } from '@/lib/api'
+import { pantryClient } from '@/core/api'
 import { vi } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/core/api', () => ({
   pantryClient: {
     get: vi.fn(),
     post: vi.fn(),

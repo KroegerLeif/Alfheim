@@ -2,7 +2,7 @@
 
 import { useTranslation } from "@loeger-os/shared";
 import { Link, usePathname } from "@/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/core/utils";
 import { 
   LayoutDashboard, 
   Archive, 

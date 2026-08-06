@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthControls } from "@loeger-os/shared";
-import { useAuth } from "@/lib/authContext";
+import { useAuth } from "@/core/authContext";
 
 export function HeaderAuthControls() {
   const { user, logout } = useAuth();

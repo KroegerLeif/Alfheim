@@ -1,28 +1,5 @@
-export interface ProductRead {
-  id: string;
-  name: string;
-  brand: string | null;
-  barcode: string | null;
-  image_url: string | null;
-  base_unit: string;
-  minimum_stock: number;
-  category_id: string | null;
-  is_global: boolean;
-  home_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface LocationRead {
-  id: string;
-  name: string;
-  description: string | null;
-  is_system: boolean;
-  owner_id: string | null;
-  home_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { ProductRead } from "@/features/products/types";
+import { LocationRead } from "@/features/locations/types";
 
 export interface InventoryStateReadWithRelations {
   id: string;
@@ -74,48 +51,3 @@ export interface InventoryLedgerRead {
   notes: string | null;
   created_at: string;
 }
-
-export interface CategoryRead {
-  id: string;
-  name: string;
-  description: string | null;
-  is_global: boolean;
-  owner_id: string | null;
-  home_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ProductNutritionCreate {
-  calories?: number | null;
-  fat?: number | null;
-  saturated_fat?: number | null;
-  carbohydrates?: number | null;
-  sugars?: number | null;
-  protein?: number | null;
-  salt?: number | null;
-}
-
-export interface ProductCreate {
-  name: string;
-  brand?: string | null;
-  barcode?: string | null;
-  image_url?: string | null;
-  base_unit: string;
-  minimum_stock: number;
-  category_id?: string | null;
-  nutrition?: ProductNutritionCreate | null;
-}
-
-export interface LocationCreate {
-  name: string;
-  description?: string | null;
-}
-
-export interface CategoryCreate {
-  name: string;
-  description?: string | null;
-}
-
-
-
