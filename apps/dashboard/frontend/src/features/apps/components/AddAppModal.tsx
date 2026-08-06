@@ -16,6 +16,7 @@ const PRESET_ICONS = [
   { name: 'shopping_cart', label: 'Shopping' },
   { name: 'build', label: 'Tools' },
   { name: 'checklist', label: 'Tasks' },
+  { name: 'cleaning_services', label: 'Chores' },
   { name: 'home', label: 'Home Automation' },
   { name: 'movie', label: 'Media Stream' },
   { name: 'cloud', label: 'Storage' },

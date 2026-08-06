@@ -59,7 +59,16 @@ done
 
 step "Tearing down Loeger-OS Stack"
 
-info "Stopping container stack …"
+info "Gracefully stopping frontends & backends …"
+docker compose -f "${COMPOSE_FILE}" stop chores-frontend maintenance-frontend pantry-frontend shopping-frontend dashboard-frontend chores-backend maintenance-backend pantry-backend shopping-backend dashboard-backend || true
+
+info "Gracefully stopping Keycloak IAM …"
+docker compose -f "${COMPOSE_FILE}" stop keycloak postgres-iam || true
+
+info "Gracefully stopping databases …"
+docker compose -f "${COMPOSE_FILE}" stop chores-db maintenance-db pantry-db shopping-db dashboard-db || true
+
+info "Tearing down container stack and cleaning resources …"
 docker compose -f "${COMPOSE_FILE}" down ${REMOVE_VOLUMES} --remove-orphans
 
 if [[ "${PURGE_NETWORKS}" == "true" ]]; then

@@ -16,6 +16,7 @@ services:
       retries: 5
     networks:
       - maintenance-internal
+    stop_grace_period: 10s
 
   maintenance-backend:
     build:

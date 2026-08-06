@@ -194,10 +194,6 @@ func (r *repository) SeedDefaultApps(ctx context.Context) error {
 		return fmt.Errorf("failed to count app catalog rows: %w", err)
 	}
 
-	if count > 0 {
-		return nil // Already seeded
-	}
-
 	defaultApps := []struct {
 		Name         string
 		Slug         string
@@ -214,15 +210,17 @@ func (r *repository) SeedDefaultApps(ctx context.Context) error {
 		{"Digital Pantry", "pantry", "Manage household food inventory, recipes, and expiration dates.", "kitchen", "/pantry", "internal", "MEMBER", false, "active", true, 1},
 		{"Smart Shopping", "shopping", "Automated shopping list generator and store price aggregator.", "shopping_cart", "/shopping", "internal", "MEMBER", false, "active", true, 2},
 		{"Maintenance Hub", "maintenance", "Schedule device maintenance and home repairs.", "build", "/maintenance", "internal", "MEMBER", false, "active", true, 3},
-		{"Task Tracker (TODO)", "todo", "Manage personal and household tasks and reminders.", "checklist", "/under-construction?app=TODO", "internal", "MEMBER", false, "in_progress", true, 4},
-		{"Home Assistant", "home-assistant", "Smart home automation, climate control, and security dashboard.", "home", "http://homeassistant.local", "external", "MEMBER", true, "active", true, 5},
-		{"Plex Media Server", "plex", "Stream movies, TV shows, and personal media across devices.", "movie", "/under-construction?app=Plex", "external", "MEMBER", true, "in_progress", true, 6},
-		{"Nextcloud Storage", "nextcloud", "Private cloud storage, photos, and document synchronization.", "cloud", "/under-construction?app=Nextcloud", "external", "MEMBER", true, "in_progress", true, 7},
+		{"Chores Tracker", "chores", "Haushaltsroutinen, Daily Resets & Streaks", "cleaning_services", "/chores", "internal", "MEMBER", false, "active", true, 4},
+		{"Task Tracker (TODO)", "todo", "Manage personal and household tasks and reminders.", "checklist", "/under-construction?app=TODO", "internal", "MEMBER", false, "in_progress", true, 5},
+		{"Home Assistant", "home-assistant", "Smart home automation, climate control, and security dashboard.", "home", "http://homeassistant.local", "external", "MEMBER", true, "active", true, 6},
+		{"Plex Media Server", "plex", "Stream movies, TV shows, and personal media across devices.", "movie", "/under-construction?app=Plex", "external", "MEMBER", true, "in_progress", true, 7},
+		{"Nextcloud Storage", "nextcloud", "Private cloud storage, photos, and document synchronization.", "cloud", "/under-construction?app=Nextcloud", "external", "MEMBER", true, "in_progress", true, 8},
 	}
 
 	insertQuery := `
 		INSERT INTO app_catalog (name, slug, description, icon_url, app_url, category, required_role, is_active, is_external, status, is_default, display_order)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, $10, $11)
+		ON CONFLICT (slug) DO NOTHING
 	`
 
 	for _, app := range defaultApps {
