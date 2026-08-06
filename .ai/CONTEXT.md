@@ -9,7 +9,14 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`docs(pantry): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`** (Active)
+* **`docs(maintenance): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`** (Active)
+* **`refactor(maintenance): apply Feature-Driven Design, split monolithic components (<200 lines each), and ensure null-safety guards`**
+  - AddDeviceWizard (420→110 lines) → DeviceDetailsForm, MaintenanceStepsForm
+  - MaintenanceMode (409→125 lines) → ManualsPanel, WizardStepContent, SuppliesPanel
+  - MaintenanceView (302→95 lines) → MaintenanceMetrics, DeviceMaintenanceList
+  - DeviceDetailPanel (245→65 lines) → OverviewTab, StepsTab, TimelineTab
+  - ScheduledTaskItem (205→105 lines) → ScheduledTaskItemDetails
+* **`docs(pantry): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`**
 * **`refactor(pantry): split monolithic views into FDD-compliant SRP subcomponents (<200 lines each) and apply ?? null-safety fallbacks`**
   - StockActionModal (675→90 lines) → ProductSearchStep, QuickProductForm, QuickCategoryForm, TransactionForm
   - DashboardView (344→85 lines) → MetricSummaryCards, AlertsFeed, ShoppingSyncPanel
@@ -118,6 +125,35 @@ All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`)
 3. The `Backlog` system location (`is_system = True`) cannot be renamed or deleted.
 4. Unit normalization via Pint is applied before writing `quantity` to both tables.
 5. Write-locks (`SELECT FOR UPDATE`) guard `inventory_states` against concurrent write races.
+
+---
+
+## 🗄️ Database Schema Invariants (Maintenance Service)
+
+### Table: `device`
+* **`id`** (Integer, PK)
+* **`name`** / **`model`** / **`serial`** / **`category`** / **`location`** (VARCHAR, NOT NULL)
+* **`status`** (VARCHAR, NOT NULL) — active, maintenance, inactive
+* **`service_interval_months`** (INTEGER, NULLABLE)
+* **`household_id`** (INTEGER, FK → `household.id`)
+
+### Table: `maintenancestep`
+* **`id`** (Integer, PK)
+* **`title`** (VARCHAR, NOT NULL)
+* **`description`** (VARCHAR, NULLABLE)
+* **`recurrence`** (INTEGER, NOT NULL) — interval in months
+* **`supply_item`** (VARCHAR, NULLABLE)
+* **`supply_needed_date`** (VARCHAR, NULLABLE)
+* **`last_completed`** (VARCHAR, NULLABLE)
+* **`device_id`** (INTEGER, FK → `device.id`)
+
+### Table: `servicehistoryevent`
+* **`id`** (Integer, PK)
+* **`date`** (VARCHAR, NOT NULL)
+* **`performer`** (VARCHAR, NOT NULL)
+* **`notes`** (VARCHAR, NULLABLE)
+* **`completed_steps`** (JSON, NULLABLE) — list of completed step titles
+* **`device_id`** (INTEGER, FK → `device.id`)
 
 ---
 
