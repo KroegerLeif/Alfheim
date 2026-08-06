@@ -50,6 +50,7 @@ export function AddManualItem({ listId }: AddManualItemProps) {
         name: trimmed,
         quantity: parseFloat(qty) || 1,
         unit,
+        icon: selectedIconId,
       },
       {
         onSuccess: () => {
