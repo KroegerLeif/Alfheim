@@ -9,7 +9,9 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`docs(maintenance): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`** (Active)
+* **`docs(chores): update CONTEXT.md and add chores-backend architecture details`** (Active)
+* **`feat(chores): scaffold and implement chores-backend microservice with SQLModel and FastMCP`**
+* **`docs(maintenance): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`**
 * **`refactor(maintenance): apply Feature-Driven Design, split monolithic components (<200 lines each), and ensure null-safety guards`**
   - AddDeviceWizard (420→110 lines) → DeviceDetailsForm, MaintenanceStepsForm
   - MaintenanceMode (409→125 lines) → ManualsPanel, WizardStepContent, SuppliesPanel
@@ -61,6 +63,7 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/pantry`** | FastAPI, Next.js, OIDC | `/pantry` / `/api/v1/pantry` | `pantry-db` (Port `5432` in dev) |
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `/shopping` / `/api/v1/shopping` | `shopping-db` (Port `5433` in dev) |
 | **`apps/maintenance`** | FastAPI, Next.js, OIDC | `/maintenance` / `/api/v1/maintenance` | `maintenance-db` |
+| **`apps/chores`** | FastAPI, OIDC | `/api/v1/chores` | `chores-db` (Port `5435` in dev) |
 | **`apps/logging-stack`**| SigNoz (Otel / ClickHouse) | `/signoz` | Clickhouse |
 | **`infrastructure`** | Keycloak, Traefik | `/auth` (OIDC provider) | `postgres-iam` |
 
@@ -157,6 +160,42 @@ All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`)
 
 ---
 
+## 🗄️ Database Schema Invariants (Chores Service)
+
+### Table: `chore_templates`
+* **`id`** (UUID, PK)
+* **`home_id`** (UUID, NOT NULL, INDEX) - Active household
+* **`name`** (VARCHAR(150), NOT NULL)
+* **`description`** (VARCHAR(500), NULLABLE)
+* **`points`** (INTEGER, NOT NULL, Default `10`)
+* **`is_non_cumulative`** (BOOLEAN, NOT NULL, Default `true`)
+
+### Table: `chore_instances`
+* **`id`** (UUID, PK)
+* **`template_id`** (UUID, FK → `chore_templates.id`, NOT NULL)
+* **`home_id`** (UUID, NOT NULL, INDEX)
+* **`assigned_to`** (UUID, NULLABLE)
+* **`completed_by`** (UUID, NULLABLE)
+* **`completed_at`** (TIMESTAMPTZ, NULLABLE)
+* **`due_date`** (DATE, NOT NULL, INDEX)
+* **`status`** (VARCHAR(20), NOT NULL, Default `"pending"`) - Enum: pending, completed, missed
+* **`points_awarded`** (INTEGER, NOT NULL, Default `0`)
+
+### Table: `household_streaks`
+* **`id`** (UUID, PK)
+* **`home_id`** (UUID, NOT NULL, UNIQUE, INDEX)
+* **`current_streak`** (INTEGER, NOT NULL, Default `0`)
+* **`longest_streak`** (INTEGER, NOT NULL, Default `0`)
+* **`last_completed_date`** (DATE, NULLABLE)
+
+#### Invariant Rules:
+1. **Name Uniqueness**: Chore template names must be unique within a household (enforced via index uq_chore_template_name_per_home).
+2. **Instance Uniqueness**: Only one instance per chore template can be scheduled for a given date (enforced via index uq_chore_instance_template_per_date).
+3. **Streak Integrity**: Streaks are incremented if all scheduled chores for a day are completed. If any chore is left uncompleted, it is marked as "missed" and the streak resets to 0 during the daily reset.
+4. **Self-Healing Reset**: If the system is offline, the daily reset runs retroactively on the first access of a household's chores list for that day.
+
+---
+
 ## ⚙️ Active Feature Flags
 * **`OTEL_ENABLED`**: Enforces OpenTelemetry collection on FastAPI backends.
 * **`TESTING`**: Set to `true` to bypass JWT verification in backend pytest suites.
@@ -170,5 +209,6 @@ All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`)
 * Pantry: `http://loeger-os/pantry`
 * Shopping: `http://loeger-os/shopping`
 * Maintenance: `http://loeger-os/maintenance`
+* Chores API: `http://loeger-os/api/v1/chores`
 * Keycloak Admin: `http://loeger-os/auth/admin`
 * Traefik Admin: `http://localhost:8080`
