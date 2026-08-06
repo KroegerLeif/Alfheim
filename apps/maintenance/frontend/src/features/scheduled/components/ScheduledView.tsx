@@ -2,14 +2,13 @@
 
 import React, { useState } from "react";
 import { useLayout } from "@/shared/layout/LayoutContext";
-import { useQuery } from "@tanstack/react-query";
-import { getDevices } from "@/shared/api";
 import { Device, MaintenanceStep } from "@/shared/types";
 import { ScheduledTaskItem } from "./ScheduledTaskItem";
 import { CalendarRange, Info, Loader2 } from "lucide-react";
-import { cn } from "@/shared/utils";
-import { daysUntil } from "@/shared/utils";
+import { cn } from "@/core/utils";
+import { daysUntil } from "@/core/utils";
 import { useTranslations } from "next-intl";
+import { useDevices } from "@/features/devices";
 
 interface FlattenedTask {
   step: MaintenanceStep;
@@ -21,11 +20,8 @@ export function ScheduledView() {
   const { householdId } = useLayout();
   const [filter, setFilter] = useState<"upcoming" | "all">("upcoming");
 
-  // Fetch devices dynamically
-  const { data: devices = [], isLoading } = useQuery({
-    queryKey: ["devices", householdId],
-    queryFn: () => getDevices(householdId),
-  });
+  // Fetch devices using hook from devices barrel export
+  const { data: devices = [], isLoading } = useDevices(householdId);
 
   if (isLoading) {
     return (
@@ -35,14 +31,15 @@ export function ScheduledView() {
     );
   }
 
-  // Flatten steps from all filtered devices
+  // Flatten steps from all filtered devices, ensuring array safety
   const allTasks: FlattenedTask[] = [];
-  devices.forEach((device) => {
-    if (device.steps) {
-      device.steps.forEach((step) => {
-        allTasks.push({ step, device });
-      });
-    }
+  const deviceList = devices ?? [];
+  
+  deviceList.forEach((device) => {
+    const steps = device.steps ?? [];
+    steps.forEach((step) => {
+      allTasks.push({ step, device });
+    });
   });
 
   // Sort them chronologically by supply_needed_date (null or undefined last)

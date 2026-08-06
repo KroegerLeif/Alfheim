@@ -2,15 +2,14 @@
 
 import React, { useState } from "react";
 import { useLayout } from "@/shared/layout/LayoutContext";
-import { useQuery } from "@tanstack/react-query";
-import { getDevices, getHouseholds } from "@/shared/api";
 import { CATEGORY_ICONS } from "@/shared/data";
 import { Device } from "@/shared/types";
 import { DeviceDetailPanel } from "./DeviceDetailPanel";
 import { AddDeviceWizard } from "./AddDeviceWizard";
-import { Info, MapPin, Loader2, Plus } from "lucide-react";
-import { cn } from "@/shared/utils";
+import { Info, Loader2, Plus } from "lucide-react";
+import { cn } from "@/core/utils";
 import { useTranslations } from "next-intl";
+import { useHouseholds, useDevices } from "../hooks/useDevices";
 
 interface DevicesViewProps {
   onStartMaintenance?: (device: Device) => void;
@@ -22,16 +21,9 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showWizard, setShowWizard] = useState(false);
 
-  // Fetch households and devices
-  const { data: households = [] } = useQuery({
-    queryKey: ["households"],
-    queryFn: getHouseholds,
-  });
-
-  const { data: devices = [], isLoading } = useQuery({
-    queryKey: ["devices", householdId],
-    queryFn: () => getDevices(householdId),
-  });
+  // Fetch households and devices using custom FDD hooks
+  const { data: households = [] } = useHouseholds();
+  const { data: devices = [], isLoading } = useDevices(householdId);
 
   if (isLoading) {
     return (
@@ -42,16 +34,19 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   }
 
   // Group devices by household
-  const groupedDevices = households.reduce<{ household: any; devices: Device[] }[]>((acc, h) => {
-    const devicesInHousehold = devices.filter((d) => d.household_id === h.id);
+  const householdList = households ?? [];
+  const deviceList = devices ?? [];
+
+  const groupedDevices = householdList.reduce<{ household: any; devices: Device[] }[]>((acc, h) => {
+    const devicesInHousehold = deviceList.filter((d) => d.household_id === h.id);
     if (devicesInHousehold.length > 0) {
       acc.push({ household: h, devices: devicesInHousehold });
     }
     return acc;
   }, []);
 
-  const orphans = devices.filter(
-    (d) => !households.some((h) => h.id === d.household_id)
+  const orphans = deviceList.filter(
+    (d) => !householdList.some((h) => h.id === d.household_id)
   );
   if (orphans.length > 0) {
     groupedDevices.push({
@@ -118,7 +113,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
 
             {/* Devices Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {devices.map((device) => {
+              {(devices ?? []).map((device) => {
                 const IconComponent = CATEGORY_ICONS[device.category as keyof typeof CATEGORY_ICONS] || Info;
 
                 return (
@@ -141,26 +136,21 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
                         </span>
                       </div>
 
-                      {/* Device Meta */}
-                      <div className="space-y-1">
-                        <h3 className="text-base font-bold text-[var(--text-main)] group-hover:text-[var(--primary-main)] transition-colors truncate">
+                      {/* Device Info */}
+                      <div>
+                        <h3 className="text-base font-black uppercase text-[var(--text-main)] tracking-wide group-hover:text-[var(--primary-main)] transition-colors truncate">
                           {device.name}
                         </h3>
-                        <p className="text-xs text-[var(--text-muted)] font-medium font-mono truncate">
-                          {t("deviceInventory.model")} {device.model}
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5 font-semibold uppercase tracking-wider">
+                          {device.location}
                         </p>
                       </div>
                     </div>
 
-                    {/* Bottom Row: Location & Serial */}
-                    <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-muted)] font-semibold uppercase tracking-wide relative z-10">
-                      <div className="flex items-center gap-1 text-[var(--text-muted)] truncate max-w-[60%]">
-                        <MapPin className="h-3.5 w-3.5 text-[var(--primary-main)] shrink-0" />
-                        <span className="truncate">{device.location}</span>
-                      </div>
-                      <span className="font-mono text-[10px] text-[var(--text-muted)] truncate max-w-[40%]">
-                        {device.serial}
-                      </span>
+                    {/* Bottom Attributes Block */}
+                    <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)] relative z-10">
+                      <span>{t("deviceInventory.fields.model")}: {device.model}</span>
+                      <span>{t("deviceInventory.fields.steps")}: {device.steps?.length ?? 0}</span>
                     </div>
                   </div>
                 );
@@ -179,7 +169,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
         />
       )}
 
-      {/* Add Device Wizard Overlay */}
+      {/* Register Device Wizard Overlay */}
       {showWizard && (
         <AddDeviceWizard onClose={() => setShowWizard(false)} />
       )}

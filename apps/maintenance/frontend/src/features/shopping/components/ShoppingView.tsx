@@ -8,7 +8,7 @@ import {
   Trash2, 
   CheckCircle2 
 } from "lucide-react";
-import { cn } from "@/shared/utils";
+import { cn } from "@/core/utils";
 import { useTranslations } from "next-intl";
 
 export function ShoppingView() {
@@ -46,9 +46,10 @@ export function ShoppingView() {
   };
 
   const handleExport = () => {
-    if (cart.length === 0) return;
+    const cartList = cart ?? [];
+    if (cartList.length === 0) return;
     const headers = ["Part Name", "Status"];
-    const rows = cart.map((item) => [item, "Required"]);
+    const rows = cartList.map((item) => [item, "Required"]);
     const csvContent = [headers.join(","), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -70,6 +71,8 @@ export function ShoppingView() {
     }, 2000);
   };
 
+  const cartList = cart ?? [];
+
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans text-[var(--text-main)]">
       
@@ -82,7 +85,7 @@ export function ShoppingView() {
           </span>
         </div>
 
-        {cart.length > 0 && (
+        {cartList.length > 0 && (
           <div className="flex items-center gap-2">
             <button
               onClick={handleClear}
@@ -103,7 +106,7 @@ export function ShoppingView() {
       </div>
 
       {/* Main Cart Layout */}
-      {cart.length === 0 ? (
+      {cartList.length === 0 ? (
         <div className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl border p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
           <ShoppingCart className="h-10 w-10 text-[var(--primary-main)] mx-auto" />
           <h3 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wide">
@@ -117,7 +120,7 @@ export function ShoppingView() {
         <div className="space-y-6">
           {/* Cart Items List */}
           <div className="space-y-3">
-            {cart.map((item) => (
+            {cartList.map((item) => (
               <div
                 key={item}
                 className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl p-4 border hover:border-[var(--border-accent)] transition-colors flex items-center justify-between gap-4 shadow-sm"

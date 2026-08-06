@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect, useCallback } from "react";
 import Keycloak from "keycloak-js";
 import { LayoutProvider } from "@/shared/layout/LayoutContext";
-import { AuthContext, UserProfile } from "@/shared/auth/AuthContext";
+import { AuthContext, UserProfile } from "@/core/auth/AuthContext";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(

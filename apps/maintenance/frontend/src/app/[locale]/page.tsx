@@ -3,12 +3,11 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLayout } from "@/shared/layout/LayoutContext";
-import { DevicesView } from "@/features/devices/DevicesView";
-import { MaintenanceView } from "@/features/maintenance/MaintenanceView";
-import { MaintenanceMode } from "@/features/maintenance/MaintenanceMode";
-import { ScheduledView } from "@/features/scheduled/ScheduledView";
-import { HistoryView } from "@/features/history/HistoryView";
-import { ShoppingView } from "@/features/shopping/ShoppingView";
+import { DevicesView } from "@/features/devices";
+import { MaintenanceView, MaintenanceMode } from "@/features/maintenance";
+import { ScheduledView } from "@/features/scheduled";
+import { HistoryView } from "@/features/history";
+import { ShoppingView } from "@/features/shopping";
 import { Device } from "@/shared/types";
 import { Wrench } from "lucide-react";
 

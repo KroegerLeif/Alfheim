@@ -11,7 +11,7 @@ import {
   ChevronLeft, 
   ChevronRight
 } from "lucide-react";
-import { cn } from "../utils";
+import { cn } from "@/core/utils";
 import { useTranslations } from "next-intl";
 
 export function Sidebar() {
