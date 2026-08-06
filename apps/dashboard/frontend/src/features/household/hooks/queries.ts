@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchHouseholds,
+  fetchHousehold,
   createHousehold,
   createHouseholdInvite,
   joinHousehold,
   updateHouseholdAddress,
   updateMemberRole,
   removeMember,
-} from '@/shared/api';
+} from '../api/household';
 import {
   Household,
   CreateHouseholdRequest,
@@ -17,9 +18,10 @@ import {
 } from '@/shared/types';
 
 export const HOUSEHOLDS_QUERY_KEY = ['households', 'me'];
+export const HOUSEHOLD_QUERY_KEY = (id: string) => ['household', id];
 
 /**
- * Query hook to fetch households associated with current user via GET /api/v1/households/me.
+ * Query hook to fetch households associated with the current user.
  */
 export function useHouseholds() {
   return useQuery<Household[]>({
@@ -29,7 +31,18 @@ export function useHouseholds() {
 }
 
 /**
- * Mutation hook to create a new household via POST /api/v1/households.
+ * Query hook to fetch details of a single household by ID.
+ */
+export function useHousehold(id: string) {
+  return useQuery<Household, Error>({
+    queryKey: HOUSEHOLD_QUERY_KEY(id),
+    queryFn: () => fetchHousehold(id),
+    enabled: !!id,
+  });
+}
+
+/**
+ * Mutation hook to create a new household.
  */
 export function useCreateHousehold() {
   const queryClient = useQueryClient();
@@ -43,7 +56,7 @@ export function useCreateHousehold() {
 }
 
 /**
- * Mutation hook to create an invite code / token via POST /api/v1/households/invite.
+ * Mutation hook to create an invite code / token.
  */
 export function useCreateInvite() {
   return useMutation<InviteCodeResponse, Error, CreateInviteRequest>({
@@ -52,7 +65,7 @@ export function useCreateInvite() {
 }
 
 /**
- * Mutation hook to join a household using an invite token via POST /api/v1/households/join.
+ * Mutation hook to join a household using an invite token.
  */
 export function useJoinHousehold() {
   const queryClient = useQueryClient();
@@ -75,8 +88,9 @@ export function useUpdateHouseholdAddress() {
       if (!householdId) throw new Error("Missing active household selection");
       return updateHouseholdAddress(householdId, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: HOUSEHOLDS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: HOUSEHOLD_QUERY_KEY(variables.householdId) });
     },
   });
 }
@@ -93,6 +107,7 @@ export function useUpdateMemberRole(householdId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: HOUSEHOLDS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: HOUSEHOLD_QUERY_KEY(householdId) });
     },
   });
 }
@@ -109,7 +124,7 @@ export function useRemoveMember(householdId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: HOUSEHOLDS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: HOUSEHOLD_QUERY_KEY(householdId) });
     },
   });
 }
-

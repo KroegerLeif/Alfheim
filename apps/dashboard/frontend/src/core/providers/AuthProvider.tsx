@@ -58,7 +58,6 @@ export function parseInMemoryTokenClaims(): UserIdentityClaims | null {
   }
 }
 
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserIdentityClaims | null>(null);
   const [token, setToken] = useState<string | null>(null);

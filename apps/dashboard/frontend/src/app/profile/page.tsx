@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@loeger-os/shared';
 import { useUserProfile, useUpdateProfile } from '@/features/profile';
-import { useAuth } from '@/shared/providers/AuthProvider';
+import { useAuth } from '@/core/providers';
 
 /**
  * Profile Page View.

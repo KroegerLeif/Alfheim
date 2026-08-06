@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { LanguageProvider, ThemeProvider } from '@loeger-os/shared';
-import { QueryProvider } from '@/shared/providers/QueryProvider';
+import { LanguageProvider, ThemeProvider, QueryProvider, AuthProvider } from '@/core/providers';
 import { Sidebar } from '@/shared/components/Sidebar';
 import { Header } from '@/shared/components/Header';
 import { BottomNavBar } from '@/shared/components/BottomNavBar';
-import { AuthProvider } from '@/shared/providers/AuthProvider';
 import { Suspense } from 'react';
 
 const geistSans = Geist({

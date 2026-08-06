@@ -4,16 +4,16 @@ import { useState } from 'react';
 import { useTranslation } from '@loeger-os/shared';
 import { InviteCodeResponse } from '@/shared/types';
 
-interface QRCodeModalProps {
+interface InviteModalProps {
   invite: InviteCodeResponse;
   onClose: () => void;
 }
 
 /**
- * QR Code Access Generator component.
- * Renders stylized vector matrix QR code and instant copy controls for household invite tokens.
+ * Invite Modal component.
+ * Renders stylized vector matrix QR code and copy controls for household invite tokens.
  */
-export function QRCodeModal({ invite, onClose }: QRCodeModalProps) {
+export function InviteModal({ invite, onClose }: InviteModalProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
@@ -120,4 +120,3 @@ export function QRCodeModal({ invite, onClose }: QRCodeModalProps) {
     </div>
   );
 }
-

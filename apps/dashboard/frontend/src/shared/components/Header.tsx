@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { LanguageSwitcher, ThemeToggle, useTranslation } from '@loeger-os/shared';
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from '@/core/providers';
 
 /**
  * Top Header component featuring a global search bar, notification trigger,

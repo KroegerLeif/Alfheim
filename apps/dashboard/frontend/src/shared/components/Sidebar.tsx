@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '@loeger-os/shared';
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from '@/core/providers';
 
 interface NavItemConfig {
   key: string;

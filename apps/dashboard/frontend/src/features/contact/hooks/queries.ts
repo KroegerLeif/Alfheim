@@ -7,13 +7,16 @@ import {
   fetchContactCategories,
   createContactCategory,
   updateContactCategory,
-  deleteContactCategory
-} from '@/shared/api';
+  deleteContactCategory,
+} from '../api/contact';
 import { Contact, ContactCategory } from '@/shared/types';
 
 export const CONTACTS_KEY = (householdId: string) => ['contacts', householdId];
 export const CATEGORIES_KEY = (householdId: string) => ['contact-categories', householdId];
 
+/**
+ * Query hook to fetch contacts for a given household ID.
+ */
 export function useContacts(householdId: string) {
   return useQuery<Contact[]>({
     queryKey: CONTACTS_KEY(householdId),
@@ -22,6 +25,9 @@ export function useContacts(householdId: string) {
   });
 }
 
+/**
+ * Mutation hook to create a contact.
+ */
 export function useCreateContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -35,6 +41,9 @@ export function useCreateContact(householdId: string) {
   });
 }
 
+/**
+ * Mutation hook to update a contact.
+ */
 export function useUpdateContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -48,6 +57,9 @@ export function useUpdateContact(householdId: string) {
   });
 }
 
+/**
+ * Mutation hook to delete a contact.
+ */
 export function useDeleteContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -61,6 +73,9 @@ export function useDeleteContact(householdId: string) {
   });
 }
 
+/**
+ * Query hook to fetch contact categories for a given household ID.
+ */
 export function useCategories(householdId: string) {
   return useQuery<ContactCategory[]>({
     queryKey: CATEGORIES_KEY(householdId),
@@ -69,6 +84,9 @@ export function useCategories(householdId: string) {
   });
 }
 
+/**
+ * Mutation hook to create a contact category.
+ */
 export function useCreateCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -82,6 +100,9 @@ export function useCreateCategory(householdId: string) {
   });
 }
 
+/**
+ * Mutation hook to update a contact category.
+ */
 export function useUpdateCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -95,6 +116,9 @@ export function useUpdateCategory(householdId: string) {
   });
 }
 
+/**
+ * Mutation hook to delete a contact category.
+ */
 export function useDeleteCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -107,4 +131,3 @@ export function useDeleteCategory(householdId: string) {
     },
   });
 }
-
