@@ -98,13 +98,13 @@ export function InviteModal({ invite, onClose }: InviteModalProps) {
         </div>
 
         {/* Token Code Display & Copy Action */}
-        <div className="w-full p-3 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between font-mono mb-4">
-          <span className="text-sm font-bold text-[var(--primary-main)] tracking-wider">
+        <div className="w-full p-3 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between font-mono mb-4 overflow-hidden gap-2">
+          <span className="text-sm font-bold text-[var(--primary-main)] tracking-wider truncate overflow-hidden min-w-0 flex-1 text-left">
             {invite.token}
           </span>
           <button
             onClick={handleCopy}
-            className="px-2.5 py-1 rounded bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] cursor-pointer transition-all duration-150 flex items-center gap-1"
+            className="px-2.5 py-1 rounded bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] cursor-pointer transition-all duration-150 flex items-center gap-1 shrink-0"
           >
             <span className="material-symbols-outlined text-sm">
               {copied ? 'check' : 'content_copy'}

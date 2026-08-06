@@ -18,4 +18,6 @@ type CreateContactRequest struct {
 	Longitude   *float64 `json:"longitude"`
 	Description string   `json:"description"`
 	Links       []string `json:"links"`
+	Icon        string   `json:"icon"`
+	AvatarURL   string   `json:"avatar_url"`
 }

@@ -144,6 +144,8 @@ func (s *service) CreateContact(ctx context.Context, requesterID, householdID st
 		Longitude:   req.Longitude,
 		Description: req.Description,
 		Links:       req.Links,
+		Icon:        req.Icon,
+		AvatarURL:   req.AvatarURL,
 	}
 	if c.Links == nil {
 		c.Links = []string{}
@@ -195,6 +197,8 @@ func (s *service) UpdateContact(ctx context.Context, requesterID, householdID, c
 	c.Longitude = req.Longitude
 	c.Description = req.Description
 	c.Links = req.Links
+	c.Icon = req.Icon
+	c.AvatarURL = req.AvatarURL
 	if c.Links == nil {
 		c.Links = []string{}
 	}

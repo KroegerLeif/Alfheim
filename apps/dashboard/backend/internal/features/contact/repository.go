@@ -114,8 +114,8 @@ func (r *repository) DeleteCategory(ctx context.Context, id string) error {
 
 func (r *repository) CreateContact(ctx context.Context, c *Contact) error {
 	query := `
-		INSERT INTO contacts (id, household_id, category_id, name, phone, email, address, latitude, longitude, description, links, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+		INSERT INTO contacts (id, household_id, category_id, name, phone, email, address, latitude, longitude, description, links, icon, avatar_url, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
 		RETURNING created_at, updated_at
 	`
 	linksJSON, err := json.Marshal(c.Links)
@@ -126,12 +126,13 @@ func (r *repository) CreateContact(ctx context.Context, c *Contact) error {
 	return r.pool.QueryRow(ctx, query,
 		c.ID, c.HouseholdID, c.CategoryID, c.Name, c.Phone, c.Email,
 		c.Address, c.Latitude, c.Longitude, c.Description, linksJSON,
+		c.Icon, c.AvatarURL,
 	).Scan(&c.CreatedAt, &c.UpdatedAt)
 }
 
 func (r *repository) GetContacts(ctx context.Context, householdID string) ([]*Contact, error) {
 	query := `
-		SELECT id, household_id, category_id, name, phone, email, address, latitude, longitude, description, links, created_at, updated_at
+		SELECT id, household_id, category_id, name, phone, email, address, latitude, longitude, description, links, icon, avatar_url, created_at, updated_at
 		FROM contacts
 		WHERE household_id = $1
 		ORDER BY name ASC
@@ -149,7 +150,7 @@ func (r *repository) GetContacts(ctx context.Context, householdID string) ([]*Co
 		err := rows.Scan(
 			&c.ID, &c.HouseholdID, &c.CategoryID, &c.Name, &c.Phone, &c.Email,
 			&c.Address, &c.Latitude, &c.Longitude, &c.Description, &linksBytes,
-			&c.CreatedAt, &c.UpdatedAt,
+			&c.Icon, &c.AvatarURL, &c.CreatedAt, &c.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan contact: %w", err)
@@ -168,7 +169,7 @@ func (r *repository) GetContacts(ctx context.Context, householdID string) ([]*Co
 
 func (r *repository) GetContactByID(ctx context.Context, id string) (*Contact, error) {
 	query := `
-		SELECT id, household_id, category_id, name, phone, email, address, latitude, longitude, description, links, created_at, updated_at
+		SELECT id, household_id, category_id, name, phone, email, address, latitude, longitude, description, links, icon, avatar_url, created_at, updated_at
 		FROM contacts
 		WHERE id = $1
 	`
@@ -177,7 +178,7 @@ func (r *repository) GetContactByID(ctx context.Context, id string) (*Contact, e
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&c.ID, &c.HouseholdID, &c.CategoryID, &c.Name, &c.Phone, &c.Email,
 		&c.Address, &c.Latitude, &c.Longitude, &c.Description, &linksBytes,
-		&c.CreatedAt, &c.UpdatedAt,
+		&c.Icon, &c.AvatarURL, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -198,8 +199,8 @@ func (r *repository) GetContactByID(ctx context.Context, id string) (*Contact, e
 func (r *repository) UpdateContact(ctx context.Context, c *Contact) error {
 	query := `
 		UPDATE contacts
-		SET category_id = $1, name = $2, phone = $3, email = $4, address = $5, latitude = $6, longitude = $7, description = $8, links = $9, updated_at = NOW()
-		WHERE id = $10
+		SET category_id = $1, name = $2, phone = $3, email = $4, address = $5, latitude = $6, longitude = $7, description = $8, links = $9, icon = $10, avatar_url = $11, updated_at = NOW()
+		WHERE id = $12
 	`
 	linksJSON, err := json.Marshal(c.Links)
 	if err != nil {
@@ -208,7 +209,7 @@ func (r *repository) UpdateContact(ctx context.Context, c *Contact) error {
 
 	cmd, err := r.pool.Exec(ctx, query,
 		c.CategoryID, c.Name, c.Phone, c.Email, c.Address,
-		c.Latitude, c.Longitude, c.Description, linksJSON, c.ID,
+		c.Latitude, c.Longitude, c.Description, linksJSON, c.Icon, c.AvatarURL, c.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update contact: %w", err)

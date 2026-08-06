@@ -26,6 +26,8 @@ type Contact struct {
 	Longitude   *float64  `json:"longitude"`
 	Description string    `json:"description"`
 	Links       []string  `json:"links"`
+	Icon        string    `json:"icon"`
+	AvatarURL   string    `json:"avatar_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

@@ -18,6 +18,8 @@ interface ContactModalProps {
     longitude: number | null;
     description: string;
     links: string[];
+    icon: string;
+    avatar_url: string;
   }) => void;
 }
 
@@ -41,6 +43,8 @@ export function ContactModal({
   const [contactDesc, setContactDesc] = useState('');
   const [contactLinks, setContactLinks] = useState('');
   const [contactCatId, setContactCatId] = useState('');
+  const [contactIcon, setContactIcon] = useState('person');
+  const [contactAvatarUrl, setContactAvatarUrl] = useState('');
 
   useEffect(() => {
     if (editingContact) {
@@ -53,6 +57,8 @@ export function ContactModal({
       setContactDesc(editingContact.description);
       setContactLinks((editingContact.links ?? []).join('\n'));
       setContactCatId(editingContact.category_id || '');
+      setContactIcon(editingContact.icon || 'person');
+      setContactAvatarUrl(editingContact.avatar_url || '');
     } else {
       setContactName('');
       setContactPhone('');
@@ -63,6 +69,8 @@ export function ContactModal({
       setContactDesc('');
       setContactLinks('');
       setContactCatId('');
+      setContactIcon('person');
+      setContactAvatarUrl('');
     }
   }, [editingContact]);
 
@@ -83,6 +91,8 @@ export function ContactModal({
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean),
+      icon: contactIcon,
+      avatar_url: contactAvatarUrl.trim(),
     });
   };
 
@@ -182,6 +192,39 @@ export function ContactModal({
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+                Icon
+              </label>
+              <select
+                value={contactIcon}
+                onChange={(e) => setContactIcon(e.target.value)}
+                className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] cursor-pointer"
+              >
+                <option value="person">Person</option>
+                <option value="call">Call / Phone</option>
+                <option value="local_police">Police / Safety</option>
+                <option value="medical_services">Medical / Doctor</option>
+                <option value="handyman">Handyman / Service</option>
+                <option value="business">Business</option>
+                <option value="star">Important</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+                Avatar Image URL
+              </label>
+              <input
+                type="url"
+                value={contactAvatarUrl}
+                onChange={(e) => setContactAvatarUrl(e.target.value)}
+                placeholder="e.g. https://domain.com/image.jpg"
+                className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
               {t('household.description')}
@@ -220,7 +263,7 @@ export function ContactModal({
               type="submit"
               className="px-4 py-2 rounded bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer"
             >
-              {editingContact ? t('common.edit') : t('household.create_household')}
+              {t('household.save_contact')}
             </button>
           </div>
         </form>

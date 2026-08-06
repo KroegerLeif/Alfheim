@@ -61,47 +61,74 @@ export function ContactCards({
         contactList.map((c) => {
           const cat = categories.find((cat) => cat.id === c.category_id);
           const links = c.links ?? [];
+          const avatar = c.avatar_url;
+          const icon = c.icon || cat?.icon || 'person';
+
           return (
             <div
               key={c.id}
               className="p-3.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
             >
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-[var(--text-main)] text-sm">{c.name}</span>
-                  {cat && (
-                    <span
-                      className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase border"
-                      style={{
-                        borderColor: `${cat.color}40`,
-                        backgroundColor: `${cat.color}10`,
-                        color: cat.color,
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                {/* Visual Avatar / Icon Badge */}
+                <div className="w-10 h-10 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 overflow-hidden">
+                  {avatar ? (
+                    <img
+                      src={avatar}
+                      alt={c.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Hide broken image to let fallback show or display default icon
+                        (e.target as HTMLElement).style.display = 'none';
                       }}
+                    />
+                  ) : (
+                    <span
+                      className="material-symbols-outlined text-lg"
+                      style={{ color: cat?.color || 'var(--text-muted)' }}
                     >
-                      {cat.name}
+                      {icon}
                     </span>
                   )}
                 </div>
-                <p className="text-[var(--text-muted)] font-sans">{c.description}</p>
-                <div className="text-[10px] font-mono text-[var(--text-muted)] flex flex-wrap gap-x-3 gap-y-1">
-                  {c.phone && (
-                    <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-xs">phone</span>
-                      {c.phone}
-                    </span>
-                  )}
-                  {c.email && (
-                    <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-xs">mail</span>
-                      {c.email}
-                    </span>
-                  )}
-                  {c.address && (
-                    <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-xs">map</span>
-                      {c.address}
-                    </span>
-                  )}
+
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-[var(--text-main)] text-sm truncate">{c.name}</span>
+                    {cat && (
+                      <span
+                        className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase border"
+                        style={{
+                          borderColor: `${cat.color}40`,
+                          backgroundColor: `${cat.color}10`,
+                          color: cat.color,
+                        }}
+                      >
+                        {cat.name}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[var(--text-muted)] font-sans">{c.description}</p>
+                  <div className="text-[10px] font-mono text-[var(--text-muted)] flex flex-wrap gap-x-3 gap-y-1">
+                    {c.phone && (
+                      <span className="flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-xs">phone</span>
+                        {c.phone}
+                      </span>
+                    )}
+                    {c.email && (
+                      <span className="flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-xs">mail</span>
+                        {c.email}
+                      </span>
+                    )}
+                    {c.address && (
+                      <span className="flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-xs">map</span>
+                        {c.address}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

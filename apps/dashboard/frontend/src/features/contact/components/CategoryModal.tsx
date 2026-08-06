@@ -122,7 +122,7 @@ export function CategoryModal({
               type="submit"
               className="px-4 py-2 rounded bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer"
             >
-              {editingCategory ? t('common.edit') : t('household.create_household')}
+              {editingCategory ? t('household.edit_category') : t('household.add_category')}
             </button>
           </div>
         </form>
