@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { pantryClient } from "@/lib/api";
+import { pantryClient } from "@/core/api";
 import { ProductRead, ProductCreate } from "@/features/inventory/types";
 
 export const productKeys = {

@@ -8,10 +8,10 @@ import {
   exportLowStockShoppingList 
 } from '../inventoryService'
 import { createQueryWrapper } from '@/tests/utils'
-import { pantryClient } from '@/lib/api'
+import { pantryClient } from '@/core/api'
 import { vi } from 'vitest'
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/core/api', () => ({
   pantryClient: {
     get: vi.fn(),
     post: vi.fn(),

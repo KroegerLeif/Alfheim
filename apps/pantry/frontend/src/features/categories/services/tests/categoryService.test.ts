@@ -1,10 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCategories } from '../categoryService'
 import { createQueryWrapper } from '@/tests/utils'
-import { pantryClient } from '@/lib/api'
+import { pantryClient } from '@/core/api'
 import { vi } from 'vitest'
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/core/api', () => ({
   pantryClient: {
     get: vi.fn(),
   },

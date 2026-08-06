@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect } from "react";
 import Keycloak from "keycloak-js";
-import { AuthContext } from "@/lib/authContext";
+import { AuthContext } from "@/core/authContext";
 import { UserIdentity } from "@loeger-os/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {

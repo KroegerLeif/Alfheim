@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { pantryClient } from "@/lib/api";
+import { pantryClient } from "@/core/api";
 import { LocationRead, LocationCreate } from "@/features/inventory/types";
 
 /**

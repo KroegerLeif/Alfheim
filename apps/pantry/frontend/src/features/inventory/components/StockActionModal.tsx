@@ -15,7 +15,7 @@ import { useLocations } from "@/features/locations/services/locationService";
 import { useSearchProducts, useCreateProduct } from "@/features/products/services/productService";
 import { useCategories, useCreateCategory } from "@/features/categories/services/categoryService";
 import { useCreateTransaction } from "@/features/inventory/services/inventoryService";
-import { pantryClient } from "@/lib/api";
+import { pantryClient } from "@/core/api";
 import { ProductRead } from "@/features/inventory/types";
 import { Search, Barcode, Plus, Minus, Check, Loader2, AlertCircle, PackagePlus } from "lucide-react";
 
