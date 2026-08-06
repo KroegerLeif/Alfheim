@@ -1,14 +1,14 @@
-# Go Architectural Guide (`ai/stacks/golang.md`)
+# Go Architectural Guide (`.ai/stacks/golang.md`)
 
-> **Note for AI Agents**: Always read [ai/CORE.md](file:///Users/leifkroeger/Dev/loeger-os/ai/CORE.md) first.
+> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/rules/core.md) first.
 
 ---
 
 ## 1. Overview & Stack Specifications
 
-- **Language / Version**: Go 1.22+
-- **Target Use Case**: High-Performance Microservices, Background Workers, and Infrastructure Services
-- **Standard Library Priority**: Prefer standard library packages (`net/http`, `context`, `encoding/json`) or light idiomatic drivers.
+* **Language / Version**: Go 1.22+
+* **Target Use Case**: High-Performance Microservices, Background Workers, and Infrastructure Services
+* **Standard Library Priority**: Prefer standard library packages (`net/http`, `context`, `encoding/json`) or light idiomatic drivers.
 
 ---
 
@@ -36,17 +36,17 @@ internal/
 
 ## 3. Coding & Naming Conventions
 
-- **File & Package Names**: Use lower_case or single-word package names (`package pantry`, `package shopping`).
-- **Interfaces**: Define interfaces where they are consumed, not where they are implemented.
-- **Explicit Error Handling**: Always check errors explicitly (`if err != nil`). Never ignore errors using `_` unless explicitly justified.
-- **Context Passing**: Pass `ctx context.Context` as the first parameter of any function performing I/O or database queries.
+* **File & Package Names**: Use lower_case or single-word package names (`package pantry`, `package shopping`).
+* **Interfaces**: Define interfaces where they are consumed, not where they are implemented.
+* **Explicit Error Handling**: Always check errors explicitly (`if err != nil`). Never ignore errors using `_` unless explicitly justified.
+* **Context Passing**: Pass `ctx context.Context` as the first parameter of any function performing I/O or database queries.
 
 ---
 
 ## 4. Service Layer & Decoupling Rules
 
-- **Handler Thinness**: HTTP handlers in `handler.go` parse JSON requests into DTOs, invoke methods on `service.go`, and serialize responses.
-- **Service Purity**: `service.go` contains pure Go logic, depends on repository interfaces, and is agnostic of HTTP transport.
+* **Handler Thinness**: HTTP handlers in `handler.go` parse JSON requests into DTOs, invoke methods on `service.go`, and serialize responses.
+* **Service Purity**: `service.go` contains pure Go logic, depends on repository interfaces, and is agnostic of HTTP transport.
 
 ---
 

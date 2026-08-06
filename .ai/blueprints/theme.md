@@ -1,6 +1,6 @@
-# Theme Creation & Customization Guideline
+# Blueprint: Theme Creation & Customization (`.ai/blueprints/theme.md`)
 
-This document outlines the standard developer blueprint for defining, adding, and testing design themes within the **Loeger OS** monorepo (`packages/shared`).
+This blueprint outlines the standard developer guidelines for defining, registering, and testing design themes inside the `@loeger-os/shared` workspace package.
 
 ---
 
@@ -8,7 +8,7 @@ This document outlines the standard developer blueprint for defining, adding, an
 
 Theme token definitions reside in `packages/shared/src/styles/themes/`. Every theme must be created as a JSON/YAML file specifying **BOTH** a `dark` and a `light` variant mode pair.
 
-```
+```text
 packages/shared/
  └── src/
       ├── styles/
@@ -92,13 +92,13 @@ Each theme definition file (e.g. `emerald.json`) MUST contain explicit `dark` an
 
 2. **Register the `ThemeVariant` Type**:
    In `packages/shared/src/theme/types.ts`, update the `ThemeVariant` union type:
-   ```ts
+   ```typescript
    export type ThemeVariant = 'obsidian' | 'kinetic' | 'slate' | '<theme_name>';
    ```
 
 3. **Export and Map Tokens**:
    In `packages/shared/src/theme/tokens.ts`, import the new JSON definition and register it under `THEME_TOKENS`:
-   ```ts
+   ```typescript
    import newTheme from '../styles/themes/<theme_name>.json';
 
    export const THEME_TOKENS: Record<ThemeVariant, Record<ResolvedMode, ThemeTokens>> = {
@@ -111,12 +111,12 @@ Each theme definition file (e.g. `emerald.json`) MUST contain explicit `dark` an
 
 4. **Update Theme Context Storage Validation**:
    In `packages/shared/src/theme/ThemeContext.tsx`, add the new theme name to the allowed list in `localStorage` checks:
-   ```ts
+   ```typescript
    if (parsed.variant && ['obsidian', 'kinetic', 'slate', '<theme_name>'].includes(parsed.variant)) { ... }
    ```
 
 5. **Register in Shared `ThemeToggle` Dropdown**:
-   In `packages/shared/src/components/ThemeToggle.tsx`, add the theme option to the UI menu array.
+   In `packages/shared/src/components/ThemeToggle.tsx` (or `packages/shared/src/features/theme/components/ThemeToggle.tsx`), add the theme option to the UI menu array.
 
 ---
 

@@ -1,14 +1,14 @@
-# Java Spring Boot Architectural Guide (`ai/stacks/java-spring.md`)
+# Java Spring Boot Architectural Guide (`.ai/stacks/java_spring.md`)
 
-> **Note for AI Agents**: Always read [ai/CORE.md](file:///Users/leifkroeger/Dev/loeger-os/ai/CORE.md) first.
+> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/rules/core.md) first.
 
 ---
 
 ## 1. Overview & Stack Specifications
 
-- **Language / Runtime**: Java 21+ (LTS)
-- **Framework**: Spring Boot 3.x
-- **Target Use Case**: Enterprise Microservices, Complex Domain Workflows
+* **Language / Runtime**: Java 21+ (LTS)
+* **Framework**: Spring Boot 3.x
+* **Target Use Case**: Enterprise Microservices, Complex Domain Workflows
 
 ---
 
@@ -40,17 +40,17 @@ src/main/java/com/loeger/os/
 
 ## 3. Coding & Naming Conventions
 
-- **Java 21 Records**: Use Java `record` types for all immutable DTOs and value objects.
-- **Dependency Injection**: Use constructor injection (via `@RequiredArgsConstructor` or explicit constructors). Avoid `@Autowired` on fields.
-- **Exception Handling**: Use custom domain exceptions mapped to standard HTTP response entities using `@ControllerAdvice` or `@ExceptionHandler`.
-- **Validation**: Enforce DTO validation with `@Valid` and Jakarta Validation annotations (`@NotNull`, `@NotBlank`, `@Size`).
+* **Java 21 Records**: Use Java `record` types for all immutable DTOs and value objects.
+* **Dependency Injection**: Use constructor injection (via `@RequiredArgsConstructor` or explicit constructors). Avoid `@Autowired` on fields.
+* **Exception Handling**: Use custom domain exceptions mapped to standard HTTP response entities using `@ControllerAdvice` or `@ExceptionHandler`.
+* **Validation**: Enforce DTO validation with `@Valid` and Jakarta Validation annotations (`@NotNull`, `@NotBlank`, `@Size`).
 
 ---
 
 ## 4. Service Layer & Decoupling Rules
 
-- **Controllers**: Controllers (`@RestController`) are responsible solely for HTTP mapping, path variables, and validation. They delegate all processing to `@Service` interfaces.
-- **Service Layer**: Business logic lives strictly in `@Service` implementation classes.
+* **Controllers**: Controllers (`@RestController`) are responsible solely for HTTP mapping, path variables, and validation. They delegate all processing to `@Service` interfaces.
+* **Service Layer**: Business logic lives strictly in `@Service` implementation classes.
 
 ---
 
