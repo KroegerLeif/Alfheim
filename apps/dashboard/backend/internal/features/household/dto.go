@@ -14,10 +14,26 @@ type HouseholdResponse struct {
 	Name      string           `json:"name"`
 	Slug      string           `json:"slug"`
 	OwnerID   string           `json:"owner_id"`
+	Street    string           `json:"street"`
+	Zip       string           `json:"zip"`
+	City      string           `json:"city"`
+	Country   string           `json:"country"`
+	Latitude  *float64         `json:"latitude,omitempty"`
+	Longitude *float64         `json:"longitude,omitempty"`
 	Role      string           `json:"role,omitempty"`
 	Members   []MemberResponse `json:"members,omitempty"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
+}
+
+// UpdateHouseholdAddressRequest DTO for updating a household's address.
+type UpdateHouseholdAddressRequest struct {
+	Street    string   `json:"street"`
+	Zip       string   `json:"zip"`
+	City      string   `json:"city"`
+	Country   string   `json:"country"`
+	Latitude  *float64 `json:"latitude"`
+	Longitude *float64 `json:"longitude"`
 }
 
 // MemberResponse DTO for member representation.
@@ -68,6 +84,12 @@ func ToHouseholdResponse(h *Household, role string, members []MemberResponse) Ho
 		Name:      h.Name,
 		Slug:      h.Slug,
 		OwnerID:   h.OwnerID,
+		Street:    h.Street,
+		Zip:       h.Zip,
+		City:      h.City,
+		Country:   h.Country,
+		Latitude:  h.Latitude,
+		Longitude: h.Longitude,
 		Role:      role,
 		Members:   members,
 		CreatedAt: h.CreatedAt,

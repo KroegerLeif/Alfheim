@@ -24,6 +24,7 @@ type Repository interface {
 	CreateInvite(ctx context.Context, invite *Invite) error
 	GetInviteByToken(ctx context.Context, token string) (*Invite, error)
 	IncrementInviteUses(ctx context.Context, token string) error
+	UpdateHouseholdAddress(ctx context.Context, id string, street, zip, city, country string, latitude, longitude *float64) error
 }
 
 type repository struct {
@@ -85,12 +86,16 @@ func (r *repository) CreateHouseholdTx(ctx context.Context, h *Household, ownerE
 
 func (r *repository) GetHouseholdByID(ctx context.Context, id string) (*Household, error) {
 	query := `
-		SELECT id, name, slug, owner_id, created_at, updated_at
+		SELECT id, name, slug, owner_id, street, zip, city, country, latitude, longitude, created_at, updated_at
 		FROM households
 		WHERE id = $1
 	`
 	h := &Household{}
-	err := r.pool.QueryRow(ctx, query, id).Scan(&h.ID, &h.Name, &h.Slug, &h.OwnerID, &h.CreatedAt, &h.UpdatedAt)
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&h.ID, &h.Name, &h.Slug, &h.OwnerID,
+		&h.Street, &h.Zip, &h.City, &h.Country, &h.Latitude, &h.Longitude,
+		&h.CreatedAt, &h.UpdatedAt,
+	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrHouseholdNotFound
@@ -102,7 +107,7 @@ func (r *repository) GetHouseholdByID(ctx context.Context, id string) (*Househol
 
 func (r *repository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*Household, error) {
 	query := `
-		SELECT h.id, h.name, h.slug, h.owner_id, h.created_at, h.updated_at
+		SELECT h.id, h.name, h.slug, h.owner_id, h.street, h.zip, h.city, h.country, h.latitude, h.longitude, h.created_at, h.updated_at
 		FROM households h
 		INNER JOIN household_members hm ON h.id = hm.household_id
 		WHERE hm.user_id = $1
@@ -117,7 +122,12 @@ func (r *repository) GetHouseholdsByUserID(ctx context.Context, userID string) (
 	var results []*Household
 	for rows.Next() {
 		h := &Household{}
-		if err := rows.Scan(&h.ID, &h.Name, &h.Slug, &h.OwnerID, &h.CreatedAt, &h.UpdatedAt); err != nil {
+		err := rows.Scan(
+			&h.ID, &h.Name, &h.Slug, &h.OwnerID,
+			&h.Street, &h.Zip, &h.City, &h.Country, &h.Latitude, &h.Longitude,
+			&h.CreatedAt, &h.UpdatedAt,
+		)
+		if err != nil {
 			return nil, fmt.Errorf("failed to scan household row: %w", err)
 		}
 		results = append(results, h)
@@ -293,6 +303,22 @@ func (r *repository) IncrementInviteUses(ctx context.Context, token string) erro
 	_, err := r.pool.Exec(ctx, query, token)
 	if err != nil {
 		return fmt.Errorf("failed to increment invite uses: %w", err)
+	}
+	return nil
+}
+
+func (r *repository) UpdateHouseholdAddress(ctx context.Context, id string, street, zip, city, country string, latitude, longitude *float64) error {
+	query := `
+		UPDATE households
+		SET street = $1, zip = $2, city = $3, country = $4, latitude = $5, longitude = $6, updated_at = NOW()
+		WHERE id = $7
+	`
+	cmd, err := r.pool.Exec(ctx, query, street, zip, city, country, latitude, longitude, id)
+	if err != nil {
+		return fmt.Errorf("failed to update household address: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrHouseholdNotFound
 	}
 	return nil
 }

@@ -18,6 +18,7 @@ import (
 
 	"loeger-os/dashboard/config"
 	"loeger-os/dashboard/internal/features/apps"
+	"loeger-os/dashboard/internal/features/contact"
 	"loeger-os/dashboard/internal/features/household"
 	"loeger-os/dashboard/internal/features/profile"
 	"loeger-os/dashboard/internal/features/telemetry"
@@ -69,17 +70,20 @@ func main() {
 	profileRepo := profile.NewRepository(dbClient.Pool)
 	householdRepo := household.NewRepository(dbClient.Pool)
 	appsRepo := apps.NewRepository(dbClient.Pool)
+	contactRepo := contact.NewRepository(dbClient.Pool)
 
 	// Initialize Services
 	profileService := profile.NewService(profileRepo, kcClient, log)
 	householdService := household.NewService(householdRepo, log)
 	appsService := apps.NewService(appsRepo, log)
+	contactService := contact.NewService(contactRepo, householdRepo, log)
 	telemetryService := telemetry.NewService("", log)
 
 	// Initialize Handlers
 	profileHandler := profile.NewHandler(profileService)
 	householdHandler := household.NewHandler(householdService)
 	appsHandler := apps.NewHandler(appsService)
+	contactHandler := contact.NewHandler(contactService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
 
 	// Router Setup
@@ -108,16 +112,22 @@ func main() {
 
 	// Auth Middleware fallback for optional validation in dev
 	var authMw func(http.Handler) http.Handler
+	roleMw := middleware.HouseholdRoleMiddleware(dbClient.Pool, log)
 	if auth != nil {
-		authMw = auth.AuthenticateMiddleware
+		authMw = func(next http.Handler) http.Handler {
+			return auth.AuthenticateMiddleware(roleMw(next))
+		}
 	} else {
-		authMw = func(next http.Handler) http.Handler { return next }
+		authMw = func(next http.Handler) http.Handler {
+			return roleMw(next)
+		}
 	}
 
 	// Register Feature Domain Routes
 	profileHandler.RegisterRoutes(r, authMw)
 	householdHandler.RegisterRoutes(r, authMw)
 	appsHandler.RegisterRoutes(r, authMw)
+	contactHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
 
 	// HTTP Server & Graceful Shutdown

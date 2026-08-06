@@ -76,8 +76,42 @@ export interface Household {
   name: string;
   slug: string;
   owner_id: string;
+  street: string;
+  zip: string;
+  city: string;
+  country: string;
+  latitude?: number;
+  longitude?: number;
   role?: string;
   members?: HouseholdMember[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactCategory {
+  id: string;
+  household_id: string;
+  name: string;
+  icon: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Contact {
+  id: string;
+  household_id: string;
+  category_id?: string | null;
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  description: string;
+  links: string[];
+  icon?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }

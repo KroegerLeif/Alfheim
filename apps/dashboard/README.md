@@ -1,192 +1,80 @@
 # Loeger OS Dashboard Micro-Service (`apps/dashboard`)
 
-The Dashboard is the central control plane, authentication entrypoint, and telemetry interface for the `loeger-os` platform. It consists of a React/Next.js frontend and a Go control plane backend.
+The Dashboard is the central control plane, authentication entrypoint, and telemetry interface for the `loeger-os` platform. It comprises a Go control plane backend and a React/Next.js frontend.
 
 ---
 
-## 🛠 Tech Stack
-* **Frontend**: Next.js 15+ (App Router, Standalone Build), TanStack React Query, Ky HTTP Client, Tailwind CSS.
-* **Backend**: Go 1.22+, Chi HTTP router, pgx PostgreSQL driver, golang-jwt validator.
-* **Database**: PostgreSQL 16.
+## 🏗️ Architecture & Network Communication (Traefik)
 
----
+The frontend and backend services are decoupled and run in isolated Docker containers, coordinated by Traefik as the reverse proxy. 
 
-## 🔑 Authentication
-All backend API routes under `/api/v1/...` (except `/healthz` and `/readyz`) require authentication.
-Requests must include a valid OpenID Connect (OIDC) JWT token issued by Keycloak in the headers:
-```http
-Authorization: Bearer <Keycloak_JWT_Token>
+```mermaid
+graph TD
+    Client[Web Browser Client] -->|HTTP Host: loeger-os| Traefik[Traefik Reverse Proxy]
+    Traefik -->|PathPrefix: /api/v1/...| GoBackend[Go Backend Control Plane :8080]
+    Traefik -->|PathPrefix: / (Fallback)| NextFrontend[Next.js Frontend :3000]
+    GoBackend -->|SQL| Postgres[(PostgreSQL DB)]
+    GoBackend -->|OIDC Token Validation| Keycloak[Keycloak OIDC]
 ```
 
----
-
-## 📡 API Specification
-
-### 1. Application Catalog Endpoints
-
-#### `GET /api/v1/apps`
-Retrieve permitted applications from the catalog for the current user based on their roles and household permissions.
-* **Authentication**: Required (OIDC user bearer token)
-* **Headers**:
-  * `X-Household-Role` (Optional): `ADMIN` | `MEMBER`. Defaults to `MEMBER` if not supplied.
-* **Response (200 OK)**:
-  ```json
-  {
-    "internal": [
-      {
-        "id": "uuid-string",
-        "name": "pantry",
-        "title": "Pantry Manager",
-        "description": "Stock management and inventory tool",
-        "url": "/pantry",
-        "icon": "inventory",
-        "status": "healthy",
-        "required_role": "MEMBER",
-        "category": "internal"
-      }
-    ],
-    "external": [
-      {
-        "id": "uuid-string",
-        "name": "nas-admin",
-        "title": "NAS Admin Panel",
-        "description": "External storage administration",
-        "url": "http://nas.local/admin",
-        "icon": "settings",
-        "status": "healthy",
-        "required_role": "ADMIN",
-        "category": "external"
-      }
-    ]
-  }
-  ```
-
-#### `POST /api/v1/apps`
-Register a new application in the catalog.
-* **Authentication**: Required (OIDC admin token)
-* **Request Body DTO**:
-  ```json
-  {
-    "name": "shopping",
-    "title": "Shopping List",
-    "description": "Collaborative list management",
-    "url": "/shopping",
-    "icon": "shopping_cart",
-    "status": "healthy",
-    "required_role": "MEMBER",
-    "is_external": false
-  }
-  ```
-* **Response (201 Created)**: Created application object.
-
-#### `PUT /api/v1/apps/{id}`
-Update an existing application configuration.
-* **Authentication**: Required (OIDC admin token)
-* **Request Body DTO**: Partial fields from creation request payload.
-* **Response (200 OK)**: Updated application object.
+### Routing Rules (Ingress vs. Application)
+- **Ingress Gateway (Traefik)**: Routes top-level hosts and path prefixes. Traefik routes `/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to the Go backend, and delegates all other requests under `/` to the Next.js frontend container.
+- **Application Page Routing (Next.js)**: Handles all internal route paths (e.g., `/household`, `/household/[id]`, `/profile`, `/settings`) and dynamic parameter evaluation. Next.js does not rely on Traefik routing rules for internal sub-routing.
 
 ---
 
-### 2. Telemetry Endpoints
+## 📦 Monorepo Separation of Concerns & FDD
 
-#### `GET /api/v1/telemetry/metrics` (alias `/api/v1/telemetry`)
-Retrieve system health telemetry (CPU, memory, network, uptime). Queries SigNoz cluster if present, otherwise returns simulated local metrics.
-* **Authentication**: Required
-* **Response (200 OK)**:
-  ```json
-  {
-    "cpu_percent": 14.2,
-    "memory_percent": 42.8,
-    "memory_used_gb": 6.8,
-    "memory_total_gb": 16.0,
-    "network_rx_mbps": 2.4,
-    "network_tx_mbps": 1.8,
-    "uptime_seconds": 432100,
-    "active_containers": 6
-  }
-  ```
+Components and libraries are strictly separated to maintain clean architectures and prevent circular dependencies:
 
-#### `GET /api/v1/telemetry/logs`
-Retrieve recent system events and telemetry logs.
-* **Authentication**: Required
-* **Response (200 OK)**:
-  ```json
-  {
-    "logs": [
-      {
-        "id": "log-170000000",
-        "timestamp": "10:15:23.001",
-        "level": "INFO",
-        "service": "dashboard-go",
-        "message": "Token validation succeeded for sub=kc-user-oidc",
-        "time": "2026-08-02T10:15:23.001Z"
-      }
-    ],
-    "total": 1
-  }
-  ```
+### 1. `@loeger-os/shared` UI Library (Workspace Package)
+- Located in [`packages/shared/`](file:///Users/leifkroeger/Dev/loeger-os/packages/shared).
+- Statically agnostic UI widgets (`Sidebar`, `Header`, `BottomNavBar`), localization (`LanguageProvider`), and presentation components (`OSMMapViewer`, `AddressAutocomplete`).
+
+### 2. Core Engine Layer (`apps/dashboard/frontend/src/core/`)
+- Contains global core logic that is application-wide but domain-agnostic, such as the centralized HTTP `ky` instance [`client.ts`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/api/client.ts) and global state provider contexts [`src/core/providers/`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/providers/).
+
+### 3. Local Feature Modules (`apps/dashboard/frontend/src/features/`)
+- Organized around business capability folders (e.g. `household`, `contact`, `profile`, `apps`).
+- Each feature folder contains its own queries, API calls, and components (e.g. `src/features/household/api/`, `src/features/household/hooks/`, `src/features/household/components/`).
+- Feature boundaries are strict; files must not import from internal files of other feature modules.
 
 ---
 
-### 3. User Profile Endpoints
+## 🎨 Stacking Contexts & Z-Index Layer Standards
 
-#### `GET /api/v1/profile/me`
-Retrieve user profile details. Automatically provisions a local profile using JWT claims if it doesn't exist yet.
-* **Authentication**: Required
-* **Response (200 OK)**:
-  ```json
-  {
-    "id": "user-sub-uuid",
-    "username": "user",
-    "email": "user@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "avatar_url": "https://avatar.url"
-  }
-  ```
-
-#### `PUT /api/v1/profile/me`
-Update the logged-in user profile details (synchronized to database and Keycloak Admin API).
-* **Request Body DTO**:
-  ```json
-  {
-    "first_name": "Jane",
-    "last_name": "Doe",
-    "avatar_url": "https://avatar-new.url"
-  }
-  ```
-* **Response (200 OK)**: Updated profile object.
+To prevent visual overlapping conflicts with complex map renders like Leaflet (`z-index: 400`):
+- **Map Isolation**: Wrap map elements in parent containers using Tailwind's `relative z-0 isolate overflow-hidden` to isolate the leaflet stacking context.
+- **Modal Backdrops**: All full-screen overlays and modal containers must use `z-[9999]` and absolute/fixed positioning to always float above the map layer.
 
 ---
 
-### 4. Health Check Routes
+## 🎯 Single Responsibility Layout Refactoring Strategy
 
-#### `GET /healthz`
-Liveness probe.
-* **Authentication**: None
-* **Response (200 OK)**:
-  ```json
-  {"status":"healthy","service":"dashboard-backend"}
-  ```
+Currently, the frontend suffers from monolithic page designs that violate the **Single Responsibility Principle (SRP)**. Specifically:
+- [`src/app/household/page.tsx`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/app/household/page.tsx) is a single massive file (1,084 lines, ~45KB) managing household selection, creation, joins, address edits, members list, category management, and contact logs.
+### Clean Architecture Layout:
+We have refactored the monolithic page to a clean Next.js App Router sub-routing design:
 
-#### `GET /readyz`
-Readiness probe. Verifies PostgreSQL DB database pool connection.
-* **Authentication**: None
-* **Response (200 OK)**:
-  ```json
-  {"status":"ready","database":"connected"}
-  ```
+```
+src/app/
+├── household/
+│   ├── page.tsx                     # Main Selection Selector / zero-state list / creation page
+│   └── [id]/
+│       └── page.tsx                 # SRP: Household Detail Overview, Map Banner, Member registry list, and Contacts Directory
+```
+
+### Benefits of the Refactoring:
+1. **Route-based Isolation**: Each view only loads the state and queries required for its specific task.
+2. **Simplified Components**: Reduced file sizes and removed nested modal conditional rendering.
+3. **Decoupled API Hooks**: Moved member role, address, and deletion mutations out of the contact module and into the household domain features folder where they belong.
+4. **Pruning Shared Imports**: Decoupled routes allow clean dynamic imports of heavy modules like Leaflet `OSMMapViewer` to prevent bundler pollution on simple listing pages.
 
 ---
 
-## 🐳 Environment Variables Setup
-The backend parses the following configuration environment variables:
+## 📑 System Documentation
 
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `PORT` | `8080` | Port the Go server listens on |
-| `DATABASE_URL` | `postgres://postgres:postgres@localhost:5432/dashboard_db?sslmode=disable` | Database connection string |
-| `KEYCLOAK_BASE_URL` | `http://localhost:8080` | Root URL for internal Keycloak service |
-| `KEYCLOAK_REALM` | `loeger-os` | Realm identifier |
-| `KEYCLOAK_CLIENT_ID` | `dashboard-backend` | Service account client ID |
-| `KEYCLOAK_JWKS_URL` | *(derived)* | Specific Cert endpoint (`BaseURL/realms/Realm/protocol/openid-connect/certs`) |
+For detailed analysis and specifications, please refer to:
+- [Go Backend Audit & Schema README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/README.md)
+- [React/Next.js Frontend Audit README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/README.md)
+
