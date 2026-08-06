@@ -32,8 +32,9 @@ export function ContactCards({
   onDeleteContact,
 }: ContactCardsProps) {
   const { t } = useTranslation();
+  const contactList = contacts ?? [];
 
-  const contactMarkers = contacts
+  const contactMarkers = contactList
     .filter((c) => c.latitude && c.longitude)
     .map((c) => {
       const cat = categories.find((cat) => cat.id === c.category_id);
@@ -56,9 +57,10 @@ export function ContactCards({
 
   return (
     <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
-      {contacts.length > 0 ? (
-        contacts.map((c) => {
+      {contactList.length > 0 ? (
+        contactList.map((c) => {
           const cat = categories.find((cat) => cat.id === c.category_id);
+          const links = c.links ?? [];
           return (
             <div
               key={c.id}
@@ -120,9 +122,9 @@ export function ContactCards({
                     <span className="material-symbols-outlined text-sm">mail</span>
                   </a>
                 )}
-                {c.links && c.links.length > 0 && (
+                {links.length > 0 && (
                   <a
-                    href={c.links[0]}
+                    href={links[0]}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] cursor-pointer inline-flex items-center"

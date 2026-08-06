@@ -20,6 +20,7 @@ export function MemberGrid({
   onRemoveMember,
 }: MemberGridProps) {
   const { t } = useTranslation();
+  const members = household?.members ?? [];
 
   const getMemberDisplayName = (m: HouseholdMember) => {
     if (m.first_name || m.last_name) {
@@ -49,13 +50,13 @@ export function MemberGrid({
           {t('household.registry_and_members')}
         </h2>
         <span className="text-xs font-mono text-[var(--text-muted)] bg-[var(--surface-canvas)] px-2 py-0.5 rounded border border-[var(--border-subtle)]">
-          {t('household.enrolled_count', { count: household.members?.length || 0 })}
+          {t('household.enrolled_count', { count: members.length })}
         </span>
       </div>
 
       <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
-        {household.members && household.members.length > 0 ? (
-          household.members.map((member) => (
+        {members.length > 0 ? (
+          members.map((member) => (
             <div
               key={member.user_id}
               className="p-3.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs hover:border-[var(--border-accent)] transition-colors duration-150"

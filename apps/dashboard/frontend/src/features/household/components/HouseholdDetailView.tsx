@@ -49,8 +49,11 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
 
   // Queries
   const { data: household, isLoading: isHhLoading } = useHousehold(householdId);
-  const { data: contacts = [], isLoading: isContactsLoading } = useContacts(householdId);
-  const { data: categories = [] } = useCategories(householdId);
+  const { data: contactsData, isLoading: isContactsLoading } = useContacts(householdId);
+  const { data: categoriesData } = useCategories(householdId);
+
+  const contacts = contactsData ?? [];
+  const categories = categoriesData ?? [];
 
   // Household mutations
   const createInviteMutation = useCreateInvite();

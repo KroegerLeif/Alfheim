@@ -51,7 +51,7 @@ export function ContactModal({
       setContactLat(editingContact.latitude || null);
       setContactLng(editingContact.longitude || null);
       setContactDesc(editingContact.description);
-      setContactLinks(editingContact.links.join('\n'));
+      setContactLinks((editingContact.links ?? []).join('\n'));
       setContactCatId(editingContact.category_id || '');
     } else {
       setContactName('');
@@ -126,7 +126,7 @@ export function ContactModal({
                 className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] cursor-pointer"
               >
                 <option value="">{t('household.none')}</option>
-                {categories.map((c) => (
+                {(categories ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>

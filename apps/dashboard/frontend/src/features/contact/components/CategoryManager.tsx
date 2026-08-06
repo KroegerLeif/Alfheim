@@ -18,13 +18,15 @@ export function CategoryManager({
   onEditCategory,
   onDeleteCategory,
 }: CategoryManagerProps) {
-  if (categories.length === 0 || isGuest) {
+  const categoryList = categories ?? [];
+
+  if (categoryList.length === 0 || isGuest) {
     return null;
   }
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap pb-2 border-b border-[var(--border-subtle)] mb-2">
-      {categories.map((cat) => (
+      {categoryList.map((cat) => (
         <div
           key={cat.id}
           className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-medium border cursor-default"
