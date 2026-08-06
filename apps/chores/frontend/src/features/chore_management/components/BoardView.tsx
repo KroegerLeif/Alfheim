@@ -59,21 +59,26 @@ export function BoardView() {
         <div className="h-60 flex items-center justify-center">
           <div className="h-6.5 w-6.5 animate-spin rounded-full border-2 border-[var(--primary-main)] border-t-transparent"></div>
         </div>
-      ) : error ? (
-        <div className="p-5 border border-red-800/40 bg-red-950/10 text-red-400 rounded-lg font-mono text-xs">
-          Error: Failed to load chore templates. Please refresh the page.
-        </div>
       ) : filteredTemplates.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-12 text-center bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg">
           <Layers className="h-8 w-8 text-[var(--text-muted)] mb-3" />
           <p className="text-[var(--text-main)] font-semibold uppercase font-mono text-sm">
-            No blueprints found
+            {searchQuery ? "No blueprints found" : "No tasks configured yet"}
           </p>
           <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xs">
             {searchQuery
               ? "No templates match your active filters or query. Try adjusting values."
               : "Set up task blueprints to schedule recurring household chores automatically."}
           </p>
+          {!searchQuery && (
+            <Link
+              href="/wizard"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_12px_var(--accent-glow)] cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Create Task</span>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">

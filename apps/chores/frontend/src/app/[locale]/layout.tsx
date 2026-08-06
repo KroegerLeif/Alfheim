@@ -5,14 +5,10 @@ import { getMessages } from "next-intl/server";
 import {
   LanguageProvider,
   ThemeProvider,
-  BackToDashboard,
-  LanguageSwitcher,
-  ThemeToggle,
-  HouseholdSwitcher,
-  GlobalHeader,
 } from "@loeger-os/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
+import { ClientHeader } from "@/components/shared/ClientHeader";
 
 const hankenGrotesk = Hanken_Grotesk({
   subsets: ["latin"],
@@ -56,19 +52,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                   <Sidebar />
                   <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
                     {/* Reuse shared layout shell from @loeger-os/shared */}
-                    <GlobalHeader
-                      brandTitle="Chores Tracker"
-                      brandSubtitle="Gamified Habits"
-                      showBackToDashboard={true}
-                      backToDashboardHref="http://loeger-os/"
-                      showLanguageSwitcher={true}
-                      showThemeToggle={true}
-                      showAuthControls={true}
-                    >
-                      <div className="ml-4 pl-4 border-l border-[var(--border-subtle)] hidden sm:block">
-                        <HouseholdSwitcher />
-                      </div>
-                    </GlobalHeader>
+                    <ClientHeader />
 
                     <main className="flex-1 p-6">
                       {children}

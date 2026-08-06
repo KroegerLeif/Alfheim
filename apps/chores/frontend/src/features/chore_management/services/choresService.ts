@@ -51,7 +51,7 @@ export function useChoreTemplates() {
     queryKey: choreKeys.templates(activeHouseholdId),
     queryFn: () => 
       choresClient
-        .get("api/v1/chores/templates")
+        .get("templates")
         .json<ChoreTemplateRead[]>(),
   });
 }
@@ -63,7 +63,7 @@ export function useTodayChores(dueDate?: string) {
     queryKey: choreKeys.today(activeHouseholdId, dueDate),
     queryFn: () => 
       choresClient
-        .get("api/v1/chores/today", {
+        .get("today", {
           searchParams: dueDate ? { due_date: dueDate } : {},
         })
         .json<ChoreInstanceRead[]>(),
@@ -77,7 +77,7 @@ export function useChoreSummary() {
     queryKey: choreKeys.summary(activeHouseholdId),
     queryFn: () => 
       choresClient
-        .get("api/v1/chores/integrations/summary")
+        .get("integrations/summary")
         .json<ChoreIntegrationSummary>(),
   });
 }
@@ -89,7 +89,7 @@ export function useCreateChoreTemplate() {
   return useMutation<ChoreTemplateRead, Error, ChoreTemplateCreate>({
     mutationFn: (payload) =>
       choresClient
-        .post("api/v1/chores/templates", { json: payload })
+        .post("templates", { json: payload })
         .json<ChoreTemplateRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: choreKeys.templates(activeHouseholdId) });
@@ -104,7 +104,7 @@ export function useAssignChoreInstance() {
   return useMutation<ChoreInstanceRead, Error, { id: string; assignedTo: string | null; dueDate?: string }, any>({
     mutationFn: ({ id, assignedTo }) =>
       choresClient
-        .post(`api/v1/chores/instances/${id}/assign`, { json: { assigned_to: assignedTo } })
+        .post(`instances/${id}/assign`, { json: { assigned_to: assignedTo } })
         .json<ChoreInstanceRead>(),
     onMutate: async ({ id, assignedTo, dueDate }) => {
       await queryClient.cancelQueries({ queryKey: ["chores"] });
@@ -141,7 +141,7 @@ export function useCompleteChoreInstance() {
   return useMutation<ChoreInstanceRead, Error, { id: string; dueDate?: string }, any>({
     mutationFn: ({ id }) =>
       choresClient
-        .post(`api/v1/chores/instances/${id}/complete`)
+        .post(`instances/${id}/complete`)
         .json<ChoreInstanceRead>(),
     onMutate: async ({ id, dueDate }) => {
       await queryClient.cancelQueries({ queryKey: ["chores"] });
@@ -178,7 +178,7 @@ export function useDeleteChoreTemplate() {
   return useMutation<void, Error, string>({
     mutationFn: (id) =>
       choresClient
-        .delete(`api/v1/chores/templates/${id}`)
+        .delete(`templates/${id}`)
         .json<void>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: choreKeys.templates(activeHouseholdId) });
