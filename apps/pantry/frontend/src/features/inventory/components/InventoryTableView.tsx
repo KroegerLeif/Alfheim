@@ -11,7 +11,7 @@ import { InventoryTableRow } from "./InventoryTableRow";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import { ProductRead } from "@/features/inventory/types";
+import { ProductRead } from "@/features/products/types";
 
 /**
  * InventoryTableView

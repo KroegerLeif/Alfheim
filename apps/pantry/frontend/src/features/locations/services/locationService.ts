@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pantryClient } from "@/core/api";
-import { LocationRead, LocationCreate } from "@/features/inventory/types";
+import { LocationRead, LocationCreate } from "@/features/locations/types";
 
 /**
  * Hook to retrieve the list of physical storage locations from the backend.
