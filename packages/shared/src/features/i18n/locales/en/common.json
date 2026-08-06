@@ -77,6 +77,12 @@
   },
   "household": {
     "title": "Household",
+    "invite_member": "Invite Member",
+    "select_household": "Select Household",
+    "select_household_desc": "Choose an existing household or create a new one.",
+    "no_address": "No address configured",
+    "not_found": "Household not found",
+    "back_to_list": "Back to list",
     "no_household": "No Enrolled Household",
     "no_household_desc": "You are currently not enrolled in any household. Create a new household or join an existing one.",
     "create_household": "Create Household",

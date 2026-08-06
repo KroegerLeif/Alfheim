@@ -77,6 +77,12 @@
   },
   "household": {
     "title": "Haushalt",
+    "invite_member": "Mitglied einladen",
+    "select_household": "Haushalt auswählen",
+    "select_household_desc": "Wählen Sie einen bestehenden Haushalt oder erstellen Sie einen neuen.",
+    "no_address": "Keine Adresse hinterlegt",
+    "not_found": "Haushalt nicht gefunden",
+    "back_to_list": "Zurück zur Liste",
     "no_household": "Kein Haushalt zugewiesen",
     "no_household_desc": "Sie sind derzeit keinem Haushalt zugewiesen. Erstellen Sie einen neuen Haushalt oder treten Sie einem bestehenden bei.",
     "create_household": "Haushalt erstellen",

@@ -49,7 +49,7 @@ export function ContactCards({
 
   if (isMapView) {
     return (
-      <div className="h-[400px] w-full rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+      <div className="h-[400px] w-full rounded-xl border border-[var(--border-subtle)] relative z-0 isolate overflow-hidden">
         <OSMMapViewer center={mapCenter} zoom={14} markers={contactMarkers} interactive={true} />
       </div>
     );

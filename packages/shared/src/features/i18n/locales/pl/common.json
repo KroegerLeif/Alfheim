@@ -77,6 +77,12 @@
   },
   "household": {
     "title": "Gospodarstwo domowe",
+    "invite_member": "Zaproś członka",
+    "select_household": "Wybierz gospodarstwo domowe",
+    "select_household_desc": "Wybierz istniejące gospodarstwo domowe lub utwórz nowe.",
+    "no_address": "Brak skonfigurowanego adresu",
+    "not_found": "Gospodarstwo domowe nie znalezione",
+    "back_to_list": "Powrót do listy",
     "no_household": "Brak przypisanego gospodarstwa",
     "no_household_desc": "Nie jesteś obecnie przypisany do żadnego gospodarstwa domowego. Utwórz nowe gospodarstwo lub dołącz do istniejącego.",
     "create_household": "Utwórz gospodarstwo",

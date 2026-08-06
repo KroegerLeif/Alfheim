@@ -24,7 +24,7 @@ export function InviteModal({ invite, onClose }: InviteModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-sm rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] p-6 shadow-2xl relative flex flex-col items-center text-center">
         {/* Close Button */}
         <button
