@@ -492,9 +492,9 @@ wait_healthy "maintenance-frontend" "maintenance-frontend" 240
 notice "🟢 Maintenance App is live at http://loeger-os/maintenance"
 
 # =============================================================================
-# STAGE 6 — Chores App Slice  (chores-db → chores-backend)
+# STAGE 6 — Chores App Slice  (chores-db → chores-backend → chores-frontend)
 # =============================================================================
-step "STAGE 6 · Chores App Slice  (database · backend)"
+step "STAGE 6 · Chores App Slice  (database · backend · frontend)"
 
 info "Starting chores-db …"
 dc up ${BUILD_FLAG} -d chores-db
@@ -504,7 +504,11 @@ info "Starting chores-backend …"
 dc up ${BUILD_FLAG} -d chores-backend
 wait_healthy "chores-backend" "chores-backend" 180
 
-notice "🟢 Chores Backend is live at http://loeger-os/api/v1/chores"
+info "Starting chores-frontend …"
+dc up ${BUILD_FLAG} -d chores-frontend
+wait_healthy "chores-frontend" "chores-frontend" 240
+
+notice "🟢 Chores App is live at http://loeger-os/chores"
 
 # =============================================================================
 # STAGE 7 — Observability  (ClickHouse · SigNoz · Vector)
@@ -553,7 +557,7 @@ echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://loeger-os/${RESE
 echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://loeger-os/shopping${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://loeger-os/pantry${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://loeger-os/maintenance${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chores API   →  ${BOLD}http://loeger-os/api/v1/chores${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://loeger-os/chores${RESET}"
 echo ""
 echo -e "  ${DIM}Infrastructure:${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://loeger-os/auth${RESET}"

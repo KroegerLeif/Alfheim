@@ -54,6 +54,46 @@ services:
       - "traefik.http.middlewares.chores-api-replace.replacepathregex.replacement=/api/v1/$$2"
       - "traefik.http.services.chores-backend-service.loadbalancer.server.port=8000"
 
+  chores-frontend:
+    build:
+      context: ../..
+      dockerfile: apps/chores/frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/chores}
+    container_name: chores-frontend
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      chores-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/chores/en || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - public-ingress
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chores-frontend.rule=Host(`loeger-os`) && PathPrefix(`/chores`)"
+      - "traefik.http.routers.chores-frontend.entrypoints=web"
+      - "traefik.http.routers.chores-frontend.service=chores-frontend-service"
+      
+      - "traefik.http.routers.chores-exact.rule=Host(`loeger-os`) && (Path(`/chores`) || Path(`/chores/`))"
+      - "traefik.http.routers.chores-exact.entrypoints=web"
+      - "traefik.http.routers.chores-exact.service=chores-frontend-service"
+      - "traefik.http.routers.chores-exact.middlewares=chores-redirect-en"
+      
+      - "traefik.http.middlewares.chores-redirect-en.redirectregex.regex=^(https?://[^/]+)/chores/?$$"
+      - "traefik.http.middlewares.chores-redirect-en.redirectregex.replacement=$${1}/chores/en"
+      - "traefik.http.middlewares.chores-redirect-en.redirectregex.permanent=false"
+      
+      - "traefik.http.services.chores-frontend-service.loadbalancer.server.port=3000"
+
 volumes:
   postgres_data_chores:
 
