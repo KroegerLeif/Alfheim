@@ -24,17 +24,20 @@ When invoked on any task within the `loeger-os` repository, you **MUST** adhere 
 
 ```text
 ai/
-├── README.md              # Entry point & AI agent directory map (this file)
-├── CORE.md                # Repository-wide universal architectural standards
-├── ARCHITECTURE.md        # Monorepo layout, Docker services, Traefik routing, JWT claims
-├── CONTEXT.md             # Sprint state, completed commits, DB invariants, feature flags
-├── new-app-guideline.md   # Blueprint & checklist for creating new apps in apps/
-└── stacks/                # Technology-specific architectural guidelines
-    ├── _template.md       # Standardized blueprint for documentation of new stacks
-    ├── python-fastapi.md  # Python FastAPI & FastMCP architectural guide
-    ├── nextjs-tailwind.md # Next.js & Tailwind CSS v4 architectural guide
-    ├── golang.md          # Go microservices architectural guide
-    └── java-spring.md     # Java Spring Boot architectural guide
+├── README.md                 # Entry point & AI agent directory map (this file)
+├── CORE.md                   # Repository-wide universal architectural standards
+├── ARCHITECTURE.md           # Monorepo layout, Docker services, Traefik routing, JWT claims
+├── CONTEXT.md                # Sprint state, completed commits, DB invariants, feature flags
+├── architecture_rules.md     # Monorepo stacking rules, route delegation, and safety guards
+├── workflow_app_audit.md     # App architecture review & audit checklist workflow
+├── workflow_app_creation.md  # New app blueprint validation & execution gate workflow
+├── new-app-guideline.md      # Blueprint & checklist for creating new apps in apps/
+└── stacks/                   # Technology-specific architectural guidelines
+    ├── _template.md          # Standardized blueprint for documentation of new stacks
+    ├── python-fastapi.md     # Python FastAPI & FastMCP architectural guide
+    ├── nextjs-tailwind.md    # Next.js & Tailwind CSS v4 architectural guide
+    ├── golang.md             # Go microservices architectural guide
+    └── java-spring.md        # Java Spring Boot architectural guide
 ```
 
 ---

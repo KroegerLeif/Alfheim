@@ -17,24 +17,35 @@ graph TD
     GoBackend -->|OIDC Token Validation| Keycloak[Keycloak OIDC]
 ```
 
-### Routing Rules (Ingress)
-- **Go Backend (`dashboard-backend`)**: Listens internally on port `8080`. Traefik routes requests matching host `loeger-os` with path prefixes `/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to this service.
-- **Next.js Frontend (`dashboard-frontend`)**: Listens internally on port `3000`. Traefik delegates all other requests under `/` to the Next.js container (e.g. `/household`, `/profile`, `/settings`) with a fallback priority of `1`.
+### Routing Rules (Ingress vs. Application)
+- **Ingress Gateway (Traefik)**: Routes top-level hosts and path prefixes. Traefik routes `/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to the Go backend, and delegates all other requests under `/` to the Next.js frontend container.
+- **Application Page Routing (Next.js)**: Handles all internal route paths (e.g., `/household`, `/household/[id]`, `/profile`, `/settings`) and dynamic parameter evaluation. Next.js does not rely on Traefik routing rules for internal sub-routing.
 
 ---
 
-## 📦 Monorepo Separation of Concerns
+## 📦 Monorepo Separation of Concerns & FDD
 
-To keep code clean and maintainable, components are separated between local application spaces and shared workspaces:
+Components and libraries are strictly separated to maintain clean architectures and prevent circular dependencies:
 
 ### 1. `@loeger-os/shared` UI Library (Workspace Package)
 - Located in [`packages/shared/`](file:///Users/leifkroeger/Dev/loeger-os/packages/shared).
-- Contains stateless layout widgets (`Sidebar`, `Header`, `BottomNavBar`), multi-language localization utilities (`LanguageProvider`, `LanguageContext`), dynamic CSS variables theming engines (`ThemeProvider`, `ThemeContext`), and reusable complex components like `OSMMapViewer` and `AddressAutocomplete`.
-- **Constraint**: Must remain agnostic of dashboard-specific API endpoints and focus entirely on presentation, token systems, and platform-wide states.
+- Statically agnostic UI widgets (`Sidebar`, `Header`, `BottomNavBar`), localization (`LanguageProvider`), and presentation components (`OSMMapViewer`, `AddressAutocomplete`).
 
-### 2. Local Features (`apps/dashboard/frontend/src/features`)
-- Houses dashboard-specific query hooks, mutations, and domain modals (e.g., `AddAppModal`, `EditAppModal`).
-- Integrates the business logic of the dashboard (e.g. mapping the user's active household to contact endpoints).
+### 2. Core Engine Layer (`apps/dashboard/frontend/src/core/`)
+- Contains global core logic that is application-wide but domain-agnostic, such as the centralized HTTP `ky` instance [`client.ts`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/api/client.ts) and global state provider contexts [`src/core/providers/`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/providers/).
+
+### 3. Local Feature Modules (`apps/dashboard/frontend/src/features/`)
+- Organized around business capability folders (e.g. `household`, `contact`, `profile`, `apps`).
+- Each feature folder contains its own queries, API calls, and components (e.g. `src/features/household/api/`, `src/features/household/hooks/`, `src/features/household/components/`).
+- Feature boundaries are strict; files must not import from internal files of other feature modules.
+
+---
+
+## 🎨 Stacking Contexts & Z-Index Layer Standards
+
+To prevent visual overlapping conflicts with complex map renders like Leaflet (`z-index: 400`):
+- **Map Isolation**: Wrap map elements in parent containers using Tailwind's `relative z-0 isolate overflow-hidden` to isolate the leaflet stacking context.
+- **Modal Backdrops**: All full-screen overlays and modal containers must use `z-[9999]` and absolute/fixed positioning to always float above the map layer.
 
 ---
 

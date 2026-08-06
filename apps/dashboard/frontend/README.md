@@ -2,44 +2,42 @@
 
 This document captures the audited state of the Next.js App Router frontend application.
 
-## 📁 Directory Structure & Feature Folders
+### 📁 Directory Structure & Feature Folders
 
 ```
 src/
-├── app/                           # Next.js Page router endpoints
-│   ├── globals.css                # Custom global CSS custom variables
-│   ├── layout.tsx                 # Root layout wrapper (loads all state providers)
+├── app/                           # Next.js App Router route components
+│   ├── globals.css                # Custom global CSS styles
+│   ├── layout.tsx                 # Root layout wrapper (injects global providers)
 │   ├── page.tsx                   # Main Dashboard landing page (/)
-│   ├── household/                 # Household management route
-│   │   ├── page.tsx               # Selector & Zero-state dashboard list / creation page
-│   │   └── [id]/                  # Household sub-routes
-│   │       └── page.tsx           # SRP: Detailed overview, address map, members registry & contacts book
-│   ├── profile/                   # Profile page (/profile)
-│   │   └── page.tsx               # Renders OIDC synced user profile form
-│   ├── settings/                  # Settings page (/settings)
-│   │   └── page.tsx               # Theme and general preferences controls
-│   └── under-construction/           # Construction state warning banner
-│       └── page.tsx
+│   └── household/                 # Household management route
+│       ├── page.tsx               # Selector & Zero-state dashboard list / creation page
+│       └── [id]/                  # Household detail dynamic sub-route
+│           └── page.tsx           # SRP: Async server wrapper unwrapping dynamic param promise
+├── core/                          # Core engine layer (domain-agnostic global setups)
+│   ├── api/
+│   │   └── client.ts              # Centralized ky instance with auth & refresh handling
+│   └── providers/                 # Relocated global providers (Auth, Query, Theme, Language)
 ├── features/                      # Business domain features (local components & hooks)
 │   ├── apps/                      # Apps catalog components and hooks
 │   │   ├── components/            # AddAppModal, EditAppModal components
-│   │   ├── index.ts               # Feature exports
 │   │   └── queries.ts             # Catalog query & mutation hooks
-│   ├── contact/                   # Contacts management features
-│   │   └── queries.ts             # Contact hooks (includes household members & address mutations!)
+│   ├── contact/                   # Contacts management domain
+│   │   ├── api/                   # Contacts & Categories HTTP client endpoints
+│   │   ├── hooks/                 # Custom TanStack hooks (useContacts, useCategories)
+│   │   └── components/            # ContactCards, CategoryManager, ContactModal, CategoryModal
 │   ├── dashboard/                 # System landing feature components
 │   │   └── components/            # SystemHealthWidget, SystemShellLogs components
-│   ├── household/                 # Household specific local components
-│   │   ├── components/            # QRCodeModal, InviteManager components
-│   │   ├── index.ts
-│   │   └── queries.ts             # Household fetch, create, join queries
+│   ├── household/                 # Household management domain
+│   │   ├── api/                   # Household REST endpoints
+│   │   ├── hooks/                 # Custom TanStack hooks (useHousehold, useHouseholds, etc.)
+│   │   └── components/            # HouseholdDetailView, MemberGrid, MapAddressBanner, InviteModal
 │   └── profile/                   # Profile features
 ├── middleware.ts                  # Handles locale path rewrites (e.g. /de/household -> /household)
-└── shared/                        # Shared utility folder
-    ├── api.ts                     # REST client endpoint wrapping Ky HTTP client
-    ├── components/                # Framework layout (Header, Sidebar, BottomNavBar)
-    ├── providers/                 # State context providers (AuthProvider, QueryProvider)
-    └── types.ts                   # Domain typescript structures
+└── shared/                        # Shared UI components and types
+    ├── api.ts                     # Generic REST endpoints (profile, app catalog, telemetry)
+    ├── components/                # Presentation layout wrappers (Header, Sidebar, BottomNavBar)
+    └── types.ts                   # Unified monorepo DTO type contracts
 ```
 
 ---
