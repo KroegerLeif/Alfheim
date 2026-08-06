@@ -9,7 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`docs(chores): update CONTEXT.md and add chores-backend architecture details`** (Active)
+* **`docs(chores): finalize 3-README system and update CONTEXT.md`** (Active)
+* **`feat(chores): update chores-frontend Traefik routing and healthcheck to German locale fallback`**
+* **`feat(chores): register chores-frontend container service and configure up.sh staged pipeline`**
+* **`feat(chores): implement chores-frontend Next.js 16 app with keycloak, tailwind v4, and react query`**
+* **`docs(chores): update CONTEXT.md and add chores-backend architecture details`**
 * **`feat(chores): scaffold and implement chores-backend microservice with SQLModel and FastMCP`**
 * **`docs(maintenance): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`**
 * **`refactor(maintenance): apply Feature-Driven Design, split monolithic components (<200 lines each), and ensure null-safety guards`**
@@ -209,6 +213,7 @@ All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`)
 * Pantry: `http://loeger-os/pantry`
 * Shopping: `http://loeger-os/shopping`
 * Maintenance: `http://loeger-os/maintenance`
+* Chores: `http://loeger-os/chores` (Redirects to `/chores/de`)
 * Chores API: `http://loeger-os/api/v1/chores`
 * Keycloak Admin: `http://loeger-os/auth/admin`
 * Traefik Admin: `http://localhost:8080`
