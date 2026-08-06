@@ -10,6 +10,7 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
 
 ### Completed Commits (Recent first):
 * **`docs(chores): finalize 3-README system and update CONTEXT.md`** (Active)
+* **`feat(chores): configure keycloak client, traefik routing priority, stop grace periods, and dashboard portal integration`**
 * **`feat(chores): update chores-frontend Traefik routing and healthcheck to German locale fallback`**
 * **`feat(chores): register chores-frontend container service and configure up.sh staged pipeline`**
 * **`feat(chores): implement chores-frontend Next.js 16 app with keycloak, tailwind v4, and react query`**
@@ -67,7 +68,7 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/pantry`** | FastAPI, Next.js, OIDC | `/pantry` / `/api/v1/pantry` | `pantry-db` (Port `5432` in dev) |
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `/shopping` / `/api/v1/shopping` | `shopping-db` (Port `5433` in dev) |
 | **`apps/maintenance`** | FastAPI, Next.js, OIDC | `/maintenance` / `/api/v1/maintenance` | `maintenance-db` |
-| **`apps/chores`** | FastAPI, OIDC | `/api/v1/chores` | `chores-db` (Port `5435` in dev) |
+| **`apps/chores`** | FastAPI, Next.js, OIDC | `/chores` / `/api/v1/chores` | `chores-db` (Port `5435` in dev) |
 | **`apps/logging-stack`**| SigNoz (Otel / ClickHouse) | `/signoz` | Clickhouse |
 | **`infrastructure`** | Keycloak, Traefik | `/auth` (OIDC provider) | `postgres-iam` |
 

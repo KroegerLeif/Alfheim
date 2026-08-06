@@ -18,7 +18,7 @@ graph TD
 ```
 
 ### Routing Rules (Ingress vs. Application)
-- **Ingress Gateway (Traefik)**: Routes top-level hosts and path prefixes. Traefik routes `/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to the Go backend, and delegates all other requests under `/` to the Next.js frontend container.
+- **Ingress Gateway (Traefik)**: Routes top-level hosts and path prefixes. Traefik routes `/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to the Go backend, `/api/v1/chores` to the chores-backend, `/chores` to the chores-frontend (with default language redirect `/chores` ➔ `/chores/de`), and delegates all other requests under `/` to the Next.js dashboard-frontend container.
 - **Application Page Routing (Next.js)**: Handles all internal route paths (e.g., `/household`, `/household/[id]`, `/profile`, `/settings`) and dynamic parameter evaluation. Next.js does not rely on Traefik routing rules for internal sub-routing.
 
 ---
