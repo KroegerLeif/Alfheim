@@ -1,24 +1,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { submitMaintenance } from "@/shared/api";
 import { Device, MaintenanceSubmitPayload } from "@/shared/types";
 import { 
   X, 
-  Check, 
   ArrowLeft, 
   ArrowRight, 
-  ShoppingCart, 
   AlertCircle,
-  FileText,
-  PackagePlus,
-  PackageMinus,
+  Check,
   Loader2
 } from "lucide-react";
-import { cn } from "@/shared/utils";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { cn } from "@/core/utils";
+import { useAuth } from "@/core/auth/AuthContext";
 import { useTranslations } from "next-intl";
+import { useSubmitMaintenance } from "../hooks/useMaintenance";
+import { ManualsPanel } from "./ManualsPanel";
+import { WizardStepContent } from "./WizardStepContent";
+import { SuppliesPanel } from "./SuppliesPanel";
 
 interface MaintenanceModeProps {
   device: Device;
@@ -28,7 +26,7 @@ interface MaintenanceModeProps {
 export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   const t = useTranslations("maintenance");
   const { user } = useAuth();
-  const steps = device.steps || [];
+  const steps = device.steps ?? [];
   const totalSteps = steps.length;
   
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -37,7 +35,6 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   const [cart, setCart] = useState<string[]>([]);
 
   const activeStep = steps[currentStepIndex];
-  const queryClient = useQueryClient();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -53,7 +50,6 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
     }
   }, []);
 
-  // Save cart to localStorage
   const updateCart = (newCart: string[]) => {
     setCart(newCart);
     if (typeof window !== "undefined") {
@@ -61,24 +57,16 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
     }
   };
 
-  // Submit mutation
-  const submissionMutation = useMutation({
-    mutationFn: submitMaintenance,
-    onSuccess: () => {
-      // Invalidate the query key to refresh list
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
-      
-      // Clear shopping cart if items were successfully sent
-      updateCart([]);
-      
-      onClose();
-    },
+  // Submit mutation hook
+  const submissionMutation = useSubmitMaintenance(() => {
+    updateCart([]);
+    onClose();
   });
 
   if (totalSteps === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6 font-sans">
-        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] max-w-md w-full p-8 rounded-2xl shadow-2xl text-center space-y-6">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-6 font-sans">
+        <div className="bg-[var(--surface-card)] border-[var(--border-subtle)] max-w-md w-full p-8 rounded-2xl shadow-2xl text-center space-y-6">
           <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
           <div className="space-y-2">
             <h3 className="text-lg font-black uppercase text-[var(--text-main)] tracking-wide">
@@ -146,8 +134,6 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
 
   const handleFinishWizard = () => {
     const completedStepIds = Array.from(doneSteps);
-    
-    // Aggregate notes from stepNotes dictionary
     const notesArray = Object.entries(stepNotes)
       .map(([id, note]) => {
         const stepTitle = steps.find(s => s.id === Number(id))?.title || "Step";
@@ -168,7 +154,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--surface-canvas)] backdrop-blur-md font-sans text-[var(--text-main)]">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-[var(--surface-canvas)] backdrop-blur-md font-sans text-[var(--text-main)]">
       {/* Top Wizard Bar */}
       <div className="h-16 border-b border-[var(--border-subtle)] px-6 flex items-center justify-between bg-[var(--surface-card)]">
         <div className="flex items-center gap-4">
@@ -215,93 +201,20 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
 
       {/* Main Grid View */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
-        
-        {/* Left Side Column: Manuals Panel (3 cols) */}
-        <div className="hidden lg:flex lg:col-span-3 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex-col space-y-4 overflow-y-auto">
-          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)] text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-            <FileText className="h-4 w-4 text-[var(--text-muted)]" />
-            <span>{t("wizardMode.directManuals")}</span>
-          </div>
-          
-          {/* Manuals Empty State */}
-          <div className="space-y-2">
-            <p className="text-xs text-[var(--text-muted)] text-center py-6">
-              {t("deviceInventory.fields.noManuals")}
-            </p>
-          </div>
-        </div>
+        <ManualsPanel />
 
         {/* Center Section: Active Wizard Step (6 cols) */}
         <div className="col-span-1 lg:col-span-6 flex flex-col justify-between p-6 md:p-8 overflow-y-auto bg-[var(--surface-canvas)]">
-          
-          {/* Step Header */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-[var(--text-muted)]">
-                {t("wizardMode.stepCounter", { current: currentStepIndex + 1, total: totalSteps })}
-              </span>
-              {activeStep && (
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[var(--primary-main)]/10 text-[var(--primary-main)]">
-                  {t("wizardMode.intervalTag", { recurrence: activeStep.recurrence })}
-                </span>
-              )}
-            </div>
-
-            {activeStep && (
-              <div className="space-y-4">
-                <h3 className="text-2xl font-black uppercase text-[var(--text-main)] tracking-wide">
-                  {activeStep.title}
-                </h3>
-                {activeStep.description && (
-                  <p className="text-[var(--text-muted)] text-sm leading-relaxed">
-                    {activeStep.description}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Checkbox completion */}
-            {activeStep && (
-              <div className="pt-4">
-                <button
-                  onClick={() => handleToggleStepDone(activeStep.id)}
-                  className={cn(
-                    "w-full flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer font-semibold text-sm",
-                    doneSteps.has(activeStep.id)
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                      : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
-                  )}
-                  disabled={submissionMutation.isPending}
-                >
-                  <span>{t("wizardMode.markCompleted")}</span>
-                  <div className={cn(
-                    "h-6 w-6 rounded-lg border flex items-center justify-center transition-all",
-                    doneSteps.has(activeStep.id)
-                      ? "bg-emerald-500 border-emerald-500 text-black"
-                      : "border-[var(--border-subtle)]"
-                  )}>
-                    {doneSteps.has(activeStep.id) && <Check className="h-4 w-4 stroke-[3]" />}
-                  </div>
-                </button>
-              </div>
-            )}
-
-            {/* Step specific notes */}
-            {activeStep && (
-              <div className="space-y-2 pt-4">
-                <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] block">
-                  {t("wizardMode.operationNotes")}
-                </span>
-                <textarea
-                  value={stepNotes[activeStep.id] || ""}
-                  onChange={(e) => handleNoteChange(e.target.value)}
-                  placeholder={t("wizardMode.notesPlaceholder")}
-                  className="w-full h-32 p-3 bg-[var(--surface-card)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-xs focus:outline-none resize-none transition-all placeholder:text-[var(--text-muted)]/50 font-mono"
-                  disabled={submissionMutation.isPending}
-                />
-              </div>
-            )}
-          </div>
+          <WizardStepContent
+            activeStep={activeStep}
+            currentStepIndex={currentStepIndex}
+            totalSteps={totalSteps}
+            doneSteps={doneSteps}
+            stepNotes={stepNotes}
+            handleToggleStepDone={handleToggleStepDone}
+            handleNoteChange={handleNoteChange}
+            isPending={submissionMutation.isPending}
+          />
 
           {/* Navigation Controls */}
           <div className="flex items-center justify-between gap-4 pt-8 mt-auto">
@@ -331,15 +244,9 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
                 )}
               >
                 {submissionMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t("wizardMode.saving")}
-                  </>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> {t("wizardMode.saving")}</>
                 ) : (
-                  <>
-                    <Check className="h-4 w-4 stroke-[3]" />
-                    {t("wizardMode.finishAndSave")}
-                  </>
+                  <><Check className="h-4 w-4 stroke-[3]" /> {t("wizardMode.finishAndSave")}</>
                 )}
               </button>
             ) : (
@@ -355,54 +262,12 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
           </div>
         </div>
 
-        {/* Right Side Column: Buy Parts Panel (3 cols) */}
-        <div className="hidden lg:flex lg:col-span-3 border-l border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex-col space-y-4 overflow-y-auto">
-          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)] text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-            <ShoppingCart className="h-4 w-4 text-[var(--text-muted)]" />
-            <span>{t("shopping.associatedSupplies")}</span>
-          </div>
-
-          {currentSupplyItem ? (
-            <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] space-y-4">
-              <div className="space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-[var(--primary-main)] block">
-                  {t("shopping.requiredPart")}
-                </span>
-                <p className="text-xs font-bold text-[var(--text-main)] leading-tight">{currentSupplyItem}</p>
-              </div>
-
-              <button
-                onClick={toggleCartPart}
-                disabled={submissionMutation.isPending}
-                className={cn(
-                  "w-full py-2.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                  isPartInCart
-                    ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20"
-                    : "bg-[var(--primary-main)] hover:opacity-90 text-black border-transparent shadow-lg shadow-[var(--primary-main)]/5"
-                )}
-              >
-                {isPartInCart ? (
-                  <>
-                    <PackageMinus className="h-4 w-4" />
-                    {t("shopping.removeFromList")}
-                  </>
-                ) : (
-                  <>
-                    <PackagePlus className="h-4 w-4" />
-                    {t("shopping.selectForCart")}
-                  </>
-                )}
-              </button>
-            </div>
-          ) : (
-            <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-center">
-              <p className="text-xs text-[var(--text-muted)]">
-                {t("shopping.cartEmpty")}
-              </p>
-            </div>
-          )}
-        </div>
-
+        <SuppliesPanel
+          currentSupplyItem={currentSupplyItem}
+          isPartInCart={isPartInCart}
+          toggleCartPart={toggleCartPart}
+          isPending={submissionMutation.isPending}
+        />
       </div>
     </div>
   );

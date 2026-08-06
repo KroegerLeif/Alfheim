@@ -10,9 +10,9 @@ import {
 } from "@loeger-os/shared";
 import { useTranslations } from "next-intl";
 import { useLayout, NavOption } from "./LayoutContext";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "@/core/auth/AuthContext";
 import { Bell, AlertTriangle, Clock, Calendar } from "lucide-react";
-import { cn } from "../utils";
+import { cn } from "@/core/utils";
 
 interface NotificationItem {
   id: string;

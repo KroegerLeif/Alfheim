@@ -2,10 +2,9 @@
 
 import React, { useState } from "react";
 import { useLayout } from "./LayoutContext";
-import { useQuery } from "@tanstack/react-query";
-import { getHouseholds } from "../api";
+import { useHouseholds } from "@/features/devices";
 import { ChevronDown, Home, Check } from "lucide-react";
-import { cn } from "../utils";
+import { cn } from "@/core/utils";
 import { useTranslations } from "next-intl";
 
 export function SidebarHouseholdPicker() {
@@ -13,18 +12,18 @@ export function SidebarHouseholdPicker() {
   const { householdId, setHouseholdId, isSidebarCollapsed } = useLayout();
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: households = [] } = useQuery({
-    queryKey: ["households"],
-    queryFn: getHouseholds,
-  });
+  // Fetch households using FDD hook
+  const { data: households = [] } = useHouseholds();
 
   React.useEffect(() => {
-    if (householdId === undefined && households.length > 0) {
-      setHouseholdId(households[0].id);
+    const list = households ?? [];
+    if (householdId === undefined && list.length > 0) {
+      setHouseholdId(list[0].id);
     }
   }, [householdId, households, setHouseholdId]);
 
-  const selectedHousehold = households.find((h) => h.id.toString() === householdId?.toString());
+  const list = households ?? [];
+  const selectedHousehold = list.find((h) => h.id.toString() === householdId?.toString());
   const allHouseholdsLabel = t("deviceInventory.otherLocations");
 
   return (
@@ -75,7 +74,7 @@ export function SidebarHouseholdPicker() {
                   <span>{allHouseholdsLabel}</span>
                   {(householdId === null || householdId === undefined) && <Check className="h-3.5 w-3.5" />}
                 </button>
-                {households.map((h) => (
+                {list.map((h) => (
                   <button
                     key={h.id}
                     onClick={() => {
