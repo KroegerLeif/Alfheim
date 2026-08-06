@@ -75,7 +75,7 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = "" }: Ico
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-12 w-64 bg-[var(--surface-card)]/95 border border-[var(--border-subtle)] rounded-2xl shadow-2xl backdrop-blur-xl p-3 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-64 bg-[var(--surface-card)]/95 border border-[var(--border-subtle)] rounded-2xl shadow-2xl backdrop-blur-xl p-3 z-[9999] animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]/60 mb-2">
             {t('common.select_icon')}
           </div>
