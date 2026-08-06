@@ -1,3 +1,29 @@
+# Pantry Backend — How the API Works
+
+> **This README answers HOW the backend is implemented.** For the business rationale, see the [app-level README](../README.md). For the frontend implementation, see [`../frontend/README.md`](../frontend/README.md).
+
+---
+
+## REST API Endpoints (v1)
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/products` | List all products (global + household) |
+| `POST` | `/api/v1/products` | Create a new product blueprint |
+| `GET` | `/api/v1/products/search?q=` | Full-text search products |
+| `GET` | `/api/v1/products/barcode/{code}` | Lookup product by EAN/UPC barcode |
+| `GET` | `/api/v1/categories` | List all categories |
+| `POST` | `/api/v1/categories` | Create a new category |
+| `GET` | `/api/v1/locations` | List all storage locations |
+| `POST` | `/api/v1/locations` | Provision a new location |
+| `GET` | `/api/v1/inventory/state` | Current stock state (live cache) |
+| `GET` | `/api/v1/inventory/ledger` | Immutable transaction audit log |
+| `POST` | `/api/v1/inventory/transactions` | Record a new IN/OUT/WASTE transaction |
+| `GET` | `/api/v1/inventory/low-stock` | Products below minimum stock quota |
+| `GET` | `/api/v1/inventory/expiration` | Expired + valid batches summary |
+
+---
+
 # Digital Pantry Backend
 
 This directory houses the backend microservice for the `loeger-os` Digital Pantry application. Built with FastAPI, SQLModel (SQLAlchemy), and FastMCP, the service acts as a multi-tenant pantry inventory manager that exposes standard REST API endpoints for user interfaces alongside a Model Context Protocol (MCP) server layer for integration with AI/LLM clients.
