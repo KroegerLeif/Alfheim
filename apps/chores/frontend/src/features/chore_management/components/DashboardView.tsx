@@ -1,6 +1,7 @@
 "use client";
 
 import { useTodayChores, useChoreTemplates, useChoreSummary } from "../services/choresService";
+import { useShoppingIntegration, useMaintenanceIntegration } from "../services/integrationService";
 import { ChoresList } from "./ChoresList";
 import { GoalProgress } from "./GoalProgress";
 import { ClipboardList, ShoppingCart, ShieldAlert, Calendar } from "lucide-react";
@@ -16,6 +17,9 @@ export function DashboardView() {
   const { data: chores = [], isLoading: choresLoading } = useTodayChores(selectedDate);
   const { data: templates = [], isLoading: templatesLoading } = useChoreTemplates();
   const { data: summary } = useChoreSummary();
+
+  const { data: shoppingData, isLoading: shoppingLoading } = useShoppingIntegration();
+  const { data: maintenanceData, isLoading: maintenanceLoading } = useMaintenanceIntegration();
 
   const handleDateChange = (daysOffset: number) => {
     const d = new Date();
@@ -101,12 +105,22 @@ export function DashboardView() {
                   {t("chores.shoppingSync")}
                 </span>
               </div>
-              <span className="text-[10px] font-mono bg-emerald-950/20 border border-emerald-800/40 text-emerald-400 px-2 py-0.5 rounded">
-                {t("chores.connected")}
-              </span>
+              {shoppingLoading ? (
+                <span className="text-[10px] font-mono bg-emerald-950/20 border border-emerald-800/40 text-emerald-400 px-2 py-0.5 rounded animate-pulse">
+                  ...
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono bg-emerald-950/20 border border-emerald-800/40 text-emerald-400 px-2 py-0.5 rounded font-bold">
+                  {shoppingData?.pendingCount !== undefined ? `${shoppingData.pendingCount} OFFEN` : t("chores.connected")}
+                </span>
+              )}
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2">
-              {t("chores.shoppingSyncDesc")}
+              {shoppingLoading
+                ? "Lade Einkaufsdaten..."
+                : shoppingData
+                ? `${shoppingData.pendingCount} offene Artikel auf ${shoppingData.totalLists} Einkaufslisten.`
+                : t("chores.shoppingSyncDesc")}
             </p>
           </div>
 
@@ -119,12 +133,30 @@ export function DashboardView() {
                   {t("chores.deviceMaintenance")}
                 </span>
               </div>
-              <span className="text-[10px] font-mono bg-amber-950/20 border border-amber-800/40 text-amber-400 px-2 py-0.5 rounded">
-                {t("chores.secured")}
-              </span>
+              {maintenanceLoading ? (
+                <span className="text-[10px] font-mono bg-amber-950/20 border border-amber-800/40 text-amber-400 px-2 py-0.5 rounded animate-pulse">
+                  ...
+                </span>
+              ) : (
+                <span
+                  className={`text-[10px] font-mono border px-2 py-0.5 rounded font-bold ${
+                    (maintenanceData?.dueCount || 0) > 0
+                      ? "bg-amber-950/20 border-amber-800/40 text-amber-400"
+                      : "bg-emerald-950/20 border-emerald-800/40 text-emerald-400"
+                  }`}
+                >
+                  {(maintenanceData?.dueCount || 0) > 0
+                    ? `! ${maintenanceData?.dueCount} FÄLLIG`
+                    : t("chores.secured")}
+                </span>
+              )}
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2">
-              {t("chores.deviceMaintenanceDesc")}
+              {maintenanceLoading
+                ? "Lade Wartungsdaten..."
+                : maintenanceData
+                ? `${maintenanceData.dueCount} fällige Wartungen bei ${maintenanceData.totalDevices} überwachten Geräten.`
+                : t("chores.deviceMaintenanceDesc")}
             </p>
           </div>
         </div>
