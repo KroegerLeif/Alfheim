@@ -41,7 +41,8 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
     }
 
     // Fetch households from central dashboard backend using active frontend auth tokens
-    const token = sessionStorage.getItem('token_maintenance-frontend') ||
+    const token = sessionStorage.getItem('token_chores-frontend') ||
+                  sessionStorage.getItem('token_maintenance-frontend') ||
                   sessionStorage.getItem('token_pantry-frontend') ||
                   sessionStorage.getItem('token_shopping-frontend');
 
