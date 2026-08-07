@@ -32,7 +32,12 @@ async def init_db() -> None:
     Imports all models to ensure they register with SQLModel.metadata.
     """
     # Import models to register them on SQLModel.metadata
-    from src.features.chore_management.models import ChoreTemplate, ChoreInstance, HouseholdStreak  # noqa: F401
+    from src.features.chore_management.models import (
+        ChoreTemplate,
+        ChoreInstance,
+        HouseholdStreak,
+        ChoreCompletionHistory,
+    )  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
