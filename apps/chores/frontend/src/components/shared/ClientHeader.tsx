@@ -18,7 +18,7 @@ export function ClientHeader() {
       user={user}
       onLogout={logout}
     >
-      <div className="ml-4 pl-4 border-l border-[var(--border-subtle)] hidden sm:block">
+      <div className="ml-2 pl-3 border-l border-[var(--border-subtle)] flex items-center">
         <HouseholdSwitcher />
       </div>
     </GlobalHeader>
