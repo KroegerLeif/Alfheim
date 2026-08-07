@@ -37,10 +37,10 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
       <div className="flex flex-col items-center justify-center p-8 text-center bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg">
         <RefreshCw className="h-8 w-8 text-[var(--text-muted)] animate-spin mb-3" />
         <p className="text-[var(--text-main)] font-semibold uppercase font-mono text-sm">
-          No chores scheduled for today
+          {t("chores.noChoresToday")}
         </p>
         <p className="text-xs text-[var(--text-muted)] mt-1">
-          Create templates in the Task Creator Wizard to get started.
+          {t("chores.noChoresTodaySubtitle")}
         </p>
       </div>
     );
@@ -89,7 +89,7 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
               {/* Award Points Badge */}
               <div className="flex items-center gap-1 text-xs font-mono bg-[var(--surface-elevated)] px-2.5 py-1 border border-[var(--border-subtle)] text-[var(--text-main)] rounded">
                 <Award className="h-3.5 w-3.5 text-amber-500" />
-                <span>{points} pts</span>
+                <span>{points} {t("chores.pts")}</span>
               </div>
 
               {/* Assignment Avatar Trigger */}
@@ -104,7 +104,7 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
               >
                 <User2 className="h-3.5 w-3.5" />
                 <span className="font-mono">
-                  {chore.assigned_to ? "Assigned" : "Claim"}
+                  {chore.assigned_to ? t("chores.assigned") : t("chores.claim")}
                 </span>
               </button>
             </div>

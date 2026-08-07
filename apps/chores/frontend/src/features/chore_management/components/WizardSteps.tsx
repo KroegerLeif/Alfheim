@@ -6,18 +6,20 @@ import { useRouter } from "@/navigation";
 import { ClipboardList, Award, RefreshCw, UserCheck, ArrowRight, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { WizardStepContent } from "./WizardStepContent";
-
-const choreFormSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  description: z.string().max(500, "Description must be less than 500 characters").optional(),
-  points: z.number().min(1).max(100),
-  isNonCumulative: z.boolean(),
-});
+import { useTranslation } from "@loeger-os/shared";
 
 export function WizardSteps() {
+  const { t } = useTranslation();
   const router = useRouter();
   const createMutation = useCreateChoreTemplate();
   const [currentStep, setCurrentStep] = useState(1);
+
+  const choreFormSchema = z.object({
+    name: z.string().min(1, t("chores.nameRequired")).max(100, t("chores.nameMaxLength")),
+    description: z.string().max(500, t("chores.descMaxLength")).optional(),
+    points: z.number().min(1).max(100),
+    isNonCumulative: z.boolean(),
+  });
 
   // Form states
   const [name, setName] = useState("");
@@ -32,7 +34,7 @@ export function WizardSteps() {
 
   const handleNext = () => {
     if (currentStep === 1) {
-      const result = z.string().min(1, "Name is required").safeParse(name);
+      const result = z.string().min(1, t("chores.nameRequired")).safeParse(name);
       if (!result.success) {
         setErrors({ name: result.error.errors[0].message });
         return;
@@ -83,7 +85,7 @@ export function WizardSteps() {
           router.push("/board");
         },
         onError: (err) => {
-          setSubmitError(`Failed to create chore template: ${err.message}`);
+          setSubmitError(`${t("chores.creationFailed")}: ${err.message}`);
         },
       }
     );
@@ -101,12 +103,11 @@ export function WizardSteps() {
       {/* Step Progress indicators */}
       <div className="flex items-center justify-between mb-8 select-none font-mono text-xs text-[var(--text-muted)]">
         {[
-          { step: 1, label: "Details", icon: ClipboardList },
-          { step: 2, label: "Points", icon: Award },
-          { step: 3, label: "Reset", icon: RefreshCw },
-          { step: 4, label: "Assign", icon: UserCheck },
+          { step: 1, label: t("chores.details"), icon: ClipboardList },
+          { step: 2, label: t("chores.points"), icon: Award },
+          { step: 3, label: t("chores.reset"), icon: RefreshCw },
+          { step: 4, label: t("chores.assign"), icon: UserCheck },
         ].map((s) => {
-          const Icon = s.icon;
           const isActive = currentStep >= s.step;
           return (
             <div key={s.step} className="flex items-center gap-2">
@@ -155,7 +156,7 @@ export function WizardSteps() {
           }`}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back
+          {t("chores.back")}
         </button>
 
         {currentStep < 4 ? (
@@ -163,7 +164,7 @@ export function WizardSteps() {
             onClick={handleNext}
             className="flex items-center gap-1.5 px-5 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-bold rounded-md cursor-pointer text-xs uppercase"
           >
-            Next
+            {t("chores.next")}
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         ) : (
@@ -172,7 +173,7 @@ export function WizardSteps() {
             disabled={createMutation.isPending}
             className="flex items-center gap-1.5 px-6 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-bold rounded-md cursor-pointer text-xs uppercase tracking-wider"
           >
-            {createMutation.isPending ? "Creating..." : "Finish & Save"}
+            {createMutation.isPending ? t("chores.creating") : t("chores.finishSave")}
           </button>
         )}
       </div>

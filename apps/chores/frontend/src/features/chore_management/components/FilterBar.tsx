@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import { useTranslation } from "@loeger-os/shared";
 
 interface FilterBarProps {
   searchQuery: string;
@@ -15,6 +16,18 @@ export function FilterBar({
   selectedFilter,
   setSelectedFilter,
 }: FilterBarProps) {
+  const { t } = useTranslation();
+
+  const getFilterLabel = (filterKey: string) => {
+    switch (filterKey) {
+      case "all": return t("chores.all");
+      case "high": return t("chores.high");
+      case "medium": return t("chores.medium");
+      case "standard": return t("chores.standard");
+      default: return filterKey;
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
       {/* Search Input Box */}
@@ -26,7 +39,7 @@ export function FilterBar({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search chores..."
+          placeholder={t("chores.searchPlaceholder")}
           className="w-full pl-9 pr-4 py-2 text-sm bg-[var(--surface-card)] border border-[var(--border-subtle)] focus:border-[var(--border-accent)] focus:outline-none text-[var(--text-main)] rounded-lg font-sans"
         />
       </div>
@@ -43,7 +56,7 @@ export function FilterBar({
                 : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}
           >
-            {filter}
+            {getFilterLabel(filter)}
           </button>
         ))}
       </div>

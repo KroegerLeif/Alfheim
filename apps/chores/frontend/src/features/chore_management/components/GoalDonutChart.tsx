@@ -1,13 +1,16 @@
 "use client";
 
 import { ChoreInstanceRead } from "../types";
-import { PieChart, ListFilter } from "lucide-react";
+import { PieChart } from "lucide-react";
+import { useTranslation } from "@loeger-os/shared";
 
 interface GoalDonutChartProps {
   chores: ChoreInstanceRead[];
 }
 
 export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
+  const { t } = useTranslation();
+
   // Calculate distribution by simple naming heuristcs for demo purposes
   // Since we don't have explicit category fields in template (just mock groupings)
   const distribution = chores.reduce(
@@ -28,10 +31,10 @@ export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
   const total = Object.values(distribution).reduce((a, b) => a + b, 0);
 
   const chartData = [
-    { label: "Kitchen", count: distribution["Kitchen"], color: "#004ac6" },
-    { label: "Plants & Garden", count: distribution["Plants & Garden"], color: "#10b981" },
-    { label: "Pets", count: distribution["Pets"], color: "#f59e0b" },
-    { label: "Living Room", count: distribution["Living Room"], color: "#8b5cf6" },
+    { label: t("chores.kitchen"), count: distribution["Kitchen"], color: "#004ac6" },
+    { label: t("chores.plantsGarden"), count: distribution["Plants & Garden"], color: "#10b981" },
+    { label: t("chores.pets"), count: distribution["Pets"], color: "#f59e0b" },
+    { label: t("chores.livingRoom"), count: distribution["Living Room"], color: "#8b5cf6" },
   ].filter((d) => d.count > 0 || total === 0);
 
   // SVG parameters
@@ -48,7 +51,7 @@ export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
       <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-3 mb-4 select-none">
         <PieChart className="h-4 w-4 text-[var(--primary-main)]" />
         <span className="font-mono text-xs uppercase font-bold text-[var(--text-main)]">
-          Category Distribution
+          {t("chores.categoryDistribution")}
         </span>
       </div>
 
@@ -57,7 +60,7 @@ export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
         <div className="relative h-[120px] w-[120px] shrink-0">
           {total === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center border border-[var(--border-subtle)] bg-[var(--surface-elevated)] rounded-full">
-              <span className="text-[10px] font-mono text-[var(--text-muted)]">EMPTY</span>
+              <span className="text-[10px] font-mono text-[var(--text-muted)]">{t("chores.empty")}</span>
             </div>
           ) : (
             <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>

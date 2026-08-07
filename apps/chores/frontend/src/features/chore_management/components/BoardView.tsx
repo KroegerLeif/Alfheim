@@ -3,12 +3,14 @@
 import { useChoreTemplates } from "../services/choresService";
 import { TaskCard } from "./TaskCard";
 import { FilterBar } from "./FilterBar";
-import { Plus, RefreshCw, Layers } from "lucide-react";
+import { Plus, Layers } from "lucide-react";
 import { Link } from "@/navigation";
 import { useState } from "react";
+import { useTranslation } from "@loeger-os/shared";
 
 export function BoardView() {
-  const { data: templates = [], isLoading, error } = useChoreTemplates();
+  const { t } = useTranslation();
+  const { data: templates = [], isLoading } = useChoreTemplates();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
@@ -29,10 +31,10 @@ export function BoardView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
         <div>
           <h1 className="font-heading text-3xl font-extrabold text-[var(--text-main)] uppercase tracking-wide">
-            Task Board
+            {t("chores.boardTitle")}
           </h1>
           <p className="text-xs text-[var(--text-muted)] font-mono uppercase mt-1">
-            Configure chore blueprints scheduled in your household
+            {t("chores.boardSubtitle")}
           </p>
         </div>
 
@@ -42,7 +44,7 @@ export function BoardView() {
           className="flex items-center gap-1.5 px-4 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_12px_var(--accent-glow)] cursor-pointer"
         >
           <Plus className="h-4 w-4 shrink-0" />
-          <span>Create Task</span>
+          <span>{t("chores.createTask")}</span>
         </Link>
       </div>
 
@@ -63,20 +65,20 @@ export function BoardView() {
         <div className="flex flex-col items-center justify-center p-12 text-center bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg">
           <Layers className="h-8 w-8 text-[var(--text-muted)] mb-3" />
           <p className="text-[var(--text-main)] font-semibold uppercase font-mono text-sm">
-            {searchQuery ? "No blueprints found" : "No tasks configured yet"}
+            {searchQuery ? t("chores.noBlueprintsFound") : t("chores.noTasksConfigured")}
           </p>
           <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xs">
             {searchQuery
-              ? "No templates match your active filters or query. Try adjusting values."
-              : "Set up task blueprints to schedule recurring household chores automatically."}
+              ? t("chores.noBlueprintsFoundSub")
+              : t("chores.noTasksConfiguredSub")}
           </p>
           {!searchQuery && (
             <Link
               href="/wizard"
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_12px_var(--accent-glow)] cursor-pointer"
+              className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_12px_var(--accent-glow)] cursor-pointer"
             >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Create Task</span>
+              <Plus className="h-4 w-4" />
+              <span>{t("chores.createTask")}</span>
             </Link>
           )}
         </div>

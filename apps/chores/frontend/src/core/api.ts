@@ -1,5 +1,10 @@
 import ky from "ky";
 
+export interface ApiError {
+  status?: number;
+  message: string;
+}
+
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
   let resolved = url || defaultFallback;
   if (resolved.startsWith("/")) {
@@ -13,6 +18,21 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
 };
 
 const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://loeger-os/api/v1/chores/");
+
+const handleResponseError = async (response: Response) => {
+  let message = "chores.error.unrecognized_error";
+  try {
+    const data = await response.json();
+    message = data?.detail || data?.message || message;
+  } catch {
+    message = response.statusText || message;
+  }
+
+  throw {
+    status: response.status,
+    message,
+  } as ApiError;
+};
 
 export const choresClient = ky.create({
   prefixUrl: BASE_URL,
@@ -35,6 +55,14 @@ export const choresClient = ky.create({
         }
       },
     ],
+    afterResponse: [
+      async (request, options, response) => {
+        if (!response.ok) {
+          await handleResponseError(response);
+        }
+      },
+    ],
   },
 });
 export type apiClientType = typeof choresClient;
+

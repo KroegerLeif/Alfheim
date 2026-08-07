@@ -1,13 +1,15 @@
 "use client";
 
 import { ChoreIntegrationSummary } from "../types";
-import { Award, Flame, CheckCircle } from "lucide-react";
+import { Flame, CheckCircle } from "lucide-react";
+import { useTranslation } from "@loeger-os/shared";
 
 interface GoalProgressProps {
   summary: ChoreIntegrationSummary | undefined;
 }
 
 export function GoalProgress({ summary }: GoalProgressProps) {
+  const { t } = useTranslation();
   if (!summary) return null;
 
   return (
@@ -16,13 +18,13 @@ export function GoalProgress({ summary }: GoalProgressProps) {
       <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-5 flex items-center justify-between rounded-lg">
         <div>
           <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider block">
-            Household Streak
+            {t("chores.householdStreak")}
           </span>
           <span className="font-heading text-3xl font-extrabold text-[var(--text-main)] block mt-1">
-            {summary.current_streak} Days
+            {summary.current_streak} {t("chores.days")}
           </span>
           <span className="text-xs text-[var(--text-muted)] block mt-1 font-mono">
-            Longest Record: {summary.longest_streak} Days
+            {t("chores.longestStreak")}: {summary.longest_streak} {t("chores.days")}
           </span>
         </div>
         <div className="h-12 w-12 bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center rounded-lg">
@@ -34,7 +36,7 @@ export function GoalProgress({ summary }: GoalProgressProps) {
       <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-5 flex flex-col justify-between rounded-lg">
         <div className="flex items-center justify-between">
           <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider">
-            Daily Goal Progress
+            {t("chores.dailyGoalProgress")}
           </span>
           <span className="text-xs font-mono font-bold text-[var(--primary-main)]">
             {summary.completion_rate}%
@@ -47,7 +49,7 @@ export function GoalProgress({ summary }: GoalProgressProps) {
           />
         </div>
         <span className="text-xs text-[var(--text-muted)] block mt-2 font-mono">
-          {summary.today_completed_count} of {summary.today_total_count} tasks completed
+          {t("chores.tasksCompletedCount", { completed: summary.today_completed_count, total: summary.today_total_count })}
         </span>
       </div>
 
@@ -55,13 +57,13 @@ export function GoalProgress({ summary }: GoalProgressProps) {
       <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-5 flex items-center justify-between rounded-lg">
         <div>
           <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider block">
-            Outstanding Chores
+            {t("chores.outstandingChores")}
           </span>
           <span className="font-heading text-3xl font-extrabold text-[var(--text-main)] block mt-1">
-            {summary.today_pending_count} Left
+            {summary.today_pending_count} {t("chores.left")}
           </span>
           <span className="text-xs text-[var(--text-muted)] block mt-1 font-mono">
-            Focus points: {summary.today_pending_count * 10} potential pts
+            {summary.today_pending_count * 10} {t("chores.potentialPts")}
           </span>
         </div>
         <div className="h-12 w-12 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center rounded-lg">

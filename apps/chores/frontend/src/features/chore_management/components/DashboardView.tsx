@@ -3,11 +3,13 @@
 import { useTodayChores, useChoreTemplates, useChoreSummary } from "../services/choresService";
 import { ChoresList } from "./ChoresList";
 import { GoalProgress } from "./GoalProgress";
-import { ClipboardList, ShoppingCart, ShieldAlert, Award, Calendar } from "lucide-react";
+import { ClipboardList, ShoppingCart, ShieldAlert, Calendar } from "lucide-react";
 import { formatDate } from "@/core/utils";
 import { useState } from "react";
+import { useTranslation } from "@loeger-os/shared";
 
 export function DashboardView() {
+  const { t } = useTranslation();
   const todayStr = formatDate(new Date());
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
@@ -27,10 +29,10 @@ export function DashboardView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-3xl font-extrabold text-[var(--text-main)] uppercase tracking-wide">
-            Chore Dashboard
+            {t("chores.dashboardTitle")}
           </h1>
           <p className="text-xs text-[var(--text-muted)] font-mono uppercase mt-1">
-            Complete daily tasks to maintain streaks and reward points
+            {t("chores.dashboardSubtitle")}
           </p>
         </div>
 
@@ -44,7 +46,7 @@ export function DashboardView() {
                 : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}
           >
-            Today
+            {t("chores.today")}
           </button>
           <button
             onClick={() => handleDateChange(1)}
@@ -54,7 +56,7 @@ export function DashboardView() {
                 : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}
           >
-            Tomorrow
+            {t("chores.tomorrow")}
           </button>
         </div>
       </div>
@@ -68,7 +70,7 @@ export function DashboardView() {
           <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-3 select-none">
             <ClipboardList className="h-4 w-4 text-[var(--primary-main)]" />
             <span className="font-mono text-xs uppercase font-bold text-[var(--text-main)]">
-              Scheduled Chores
+              {t("chores.scheduledChores")}
             </span>
           </div>
 
@@ -86,7 +88,7 @@ export function DashboardView() {
           <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-3 select-none">
             <Calendar className="h-4 w-4 text-[var(--primary-main)]" />
             <span className="font-mono text-xs uppercase font-bold text-[var(--text-main)]">
-              System Integrations
+              {t("chores.systemIntegrations")}
             </span>
           </div>
 
@@ -96,15 +98,15 @@ export function DashboardView() {
               <div className="flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4 text-emerald-500" />
                 <span className="text-xs font-semibold text-[var(--text-main)] uppercase tracking-wider">
-                  Shopping Sync
+                  {t("chores.shoppingSync")}
                 </span>
               </div>
               <span className="text-[10px] font-mono bg-emerald-950/20 border border-emerald-800/40 text-emerald-400 px-2 py-0.5 rounded">
-                CONNECTED
+                {t("chores.connected")}
               </span>
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2">
-              Sync and purchase groceries directly within the household list when stock is low.
+              {t("chores.shoppingSyncDesc")}
             </p>
           </div>
 
@@ -114,15 +116,15 @@ export function DashboardView() {
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-amber-500" />
                 <span className="text-xs font-semibold text-[var(--text-main)] uppercase tracking-wider">
-                  Device Maintenance
+                  {t("chores.deviceMaintenance")}
                 </span>
               </div>
               <span className="text-[10px] font-mono bg-amber-950/20 border border-amber-800/40 text-amber-400 px-2 py-0.5 rounded">
-                SECURED
+                {t("chores.secured")}
               </span>
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2">
-              Device service tasks sync to daily schedules to prevent failure alarms.
+              {t("chores.deviceMaintenanceDesc")}
             </p>
           </div>
         </div>
