@@ -4,7 +4,7 @@
 FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-RUN corepack enable pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared ./packages/shared
@@ -17,7 +17,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 # Stage 2: Builder
 FROM node:22-alpine AS builder
 WORKDIR /app
-RUN corepack enable pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 COPY --from=deps /app ./
 COPY apps/chores/frontend ./apps/chores/frontend
