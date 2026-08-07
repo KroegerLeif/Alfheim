@@ -87,7 +87,7 @@ services:
       
       - "traefik.http.routers.chores-exact.rule=Host(`loeger-os`) && (Path(`/chores`) || Path(`/chores/`))"
       - "traefik.http.routers.chores-exact.entrypoints=web"
-      - "traefik.http.routers.chores-exact.priority=100"
+      - "traefik.http.routers.chores-exact.priority=110"
       - "traefik.http.routers.chores-exact.service=chores-frontend-service"
       - "traefik.http.routers.chores-exact.middlewares=chores-redirect-de"
       
