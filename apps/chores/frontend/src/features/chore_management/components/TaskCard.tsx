@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { ChoreTemplateRead } from "../types";
 import { useDeleteChoreTemplate } from "../services/choresService";
-import { Award, RefreshCw, Trash2, Calendar, Check, X } from "lucide-react";
+import { Award, RefreshCw, Trash2, Calendar, Check, X, History } from "lucide-react";
 import { useTranslation } from "@loeger-os/shared";
+import { TaskTimelineModal } from "./TaskTimelineModal";
 
 interface TaskCardProps {
   template: ChoreTemplateRead;
@@ -14,6 +15,7 @@ export function TaskCard({ template }: TaskCardProps) {
   const { t } = useTranslation();
   const deleteMutation = useDeleteChoreTemplate();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   const handleDelete = () => {
     deleteMutation.mutate(template.id);
@@ -26,39 +28,49 @@ export function TaskCard({ template }: TaskCardProps) {
   };
 
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-all p-5 flex flex-col justify-between min-h-[160px] rounded-lg">
-      <div>
-        <div className="flex items-start justify-between">
-          <h3 className="font-heading text-lg font-bold text-[var(--text-main)] truncate max-w-[180px]">
-            {template.name}
-          </h3>
-          {showConfirmDelete ? (
+    <>
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-all p-5 flex flex-col justify-between min-h-[160px] rounded-lg">
+        <div>
+          <div className="flex items-start justify-between">
+            <h3 className="font-heading text-lg font-bold text-[var(--text-main)] truncate max-w-[180px]">
+              {template.name}
+            </h3>
             <div className="flex items-center gap-1">
               <button
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
-                title={t("chores.deleteTemplate")}
+                onClick={() => setShowTimeline(true)}
+                className="text-[var(--text-muted)] hover:text-[var(--primary-main)] cursor-pointer p-1 transition-colors"
+                title={t("chores.timeline") || "Completion History"}
               >
-                <Check className="h-4 w-4" />
+                <History className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => setShowConfirmDelete(false)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              {showConfirmDelete ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
+                    title={t("chores.deleteTemplate")}
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowConfirmDelete(false)}
+                    className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowConfirmDelete(true)}
+                  className="text-[var(--text-muted)] hover:text-red-500 cursor-pointer p-1 transition-colors"
+                  title={t("chores.deleteTemplate")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          ) : (
-            <button
-              onClick={() => setShowConfirmDelete(true)}
-              className="text-[var(--text-muted)] hover:text-red-500 cursor-pointer p-1 transition-colors"
-              title={t("chores.deleteTemplate")}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+          </div>
 
         {template.description ? (
           <p className="text-xs text-[var(--text-muted)] mt-2 line-clamp-2">
@@ -91,5 +103,14 @@ export function TaskCard({ template }: TaskCardProps) {
         </div>
       </div>
     </div>
+
+      {showTimeline && (
+        <TaskTimelineModal
+          template={template}
+          onClose={() => setShowTimeline(false)}
+        />
+      )}
+    </>
   );
 }
+

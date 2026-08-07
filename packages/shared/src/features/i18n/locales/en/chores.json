@@ -109,6 +109,10 @@
     "nameRequired": "Name is required",
     "nameMaxLength": "Name must be less than 100 characters",
     "descMaxLength": "Description must be less than 500 characters",
-    "creationFailed": "Failed to create chore template"
+    "creationFailed": "Failed to create chore template",
+    "timeline": "Completion History",
+    "timelineTitle": "Completion History Audit",
+    "noHistory": "No completion history yet",
+    "noHistorySub": "Complete this chore on the dashboard to record your first timeline log."
   }
 }

@@ -109,6 +109,10 @@
     "nameRequired": "Nazwa jest wymagana",
     "nameMaxLength": "Nazwa musi mieć mniej niż 100 znaków",
     "descMaxLength": "Opis musi mieć mniej niż 500 znaków",
-    "creationFailed": "Nie udało się utworzyć szablonu zadania"
+    "creationFailed": "Nie udało się utworzyć szablonu zadania",
+    "timeline": "Historia",
+    "timelineTitle": "Historia Wykonania Zadań",
+    "noHistory": "Brak historii wykonania",
+    "noHistorySub": "Ukończ to zadanie na pulpicie, aby zarejestrować pierwszy wpis w historii."
   }
 }

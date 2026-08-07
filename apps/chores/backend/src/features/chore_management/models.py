@@ -212,3 +212,55 @@ class HouseholdStreak(SQLModel, table=True):
         ),
         description="Timestamp of last update in UTC.",
     )
+
+
+class ChoreCompletionHistory(SQLModel, table=True):
+    """The database table model recording historical chore task completion events."""
+
+    __tablename__ = "chore_completion_history"
+
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+        nullable=False,
+        description="Unique identifier for the history entry.",
+    )
+    template_id: uuid.UUID = Field(
+        nullable=False,
+        foreign_key="chore_templates.id",
+        index=True,
+        description="Reference to the originating ChoreTemplate.",
+    )
+    instance_id: uuid.UUID = Field(
+        nullable=False,
+        foreign_key="chore_instances.id",
+        description="Reference to the completed ChoreInstance.",
+    )
+    home_id: uuid.UUID = Field(
+        index=True,
+        nullable=False,
+        description="UUID of the household context.",
+    )
+    completed_by: uuid.UUID = Field(
+        nullable=False,
+        description="UUID of the user who completed the chore.",
+    )
+    completed_by_name: Optional[str] = Field(
+        default=None,
+        max_length=150,
+        nullable=True,
+        description="Display name or username of the executing user.",
+    )
+    completed_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+        ),
+        description="Timestamp when the completion was recorded in UTC.",
+    )
+    points_awarded: int = Field(
+        default=0,
+        description="Points awarded for this completion event.",
+    )
+

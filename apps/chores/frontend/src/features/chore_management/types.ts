@@ -59,3 +59,15 @@ export interface ChoreIntegrationSummary {
   completion_rate: number;
   today_chores: ChoreInstanceRead[];
 }
+
+export interface ChoreTimelineRead {
+  id: string;
+  template_id: string;
+  instance_id: string;
+  home_id: string;
+  completed_by: string;
+  completed_by_name: string | null;
+  completed_at: string;
+  points_awarded: number;
+}
+

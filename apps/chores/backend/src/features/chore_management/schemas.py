@@ -59,6 +59,18 @@ class ChoreAssignRequest(BaseModel):
 
 class ChoreCompleteRequest(BaseModel):
     completed_by: Optional[uuid.UUID] = None
+    completed_by_name: Optional[str] = None
+
+
+class ChoreTimelineRead(BaseModel):
+    id: uuid.UUID
+    template_id: uuid.UUID
+    instance_id: uuid.UUID
+    home_id: uuid.UUID
+    completed_by: uuid.UUID
+    completed_by_name: Optional[str] = None
+    completed_at: datetime
+    points_awarded: int
 
 
 class ChoreIntegrationSummary(BaseModel):
@@ -70,3 +82,4 @@ class ChoreIntegrationSummary(BaseModel):
     today_total_count: int
     completion_rate: float
     today_chores: list[ChoreInstanceRead] = Field(default_factory=list)
+

@@ -18,6 +18,7 @@ The **Chores App** (`apps/chores`) is the household chore tracking and habit-bui
 | Chores stack up when neglected | A `non_cumulative` reset engine that expires missed tasks nightly |
 | Lack of incentive to clean | Points-based reward system with real-time feedback loops |
 | Household consistency is hard to keep | Streak counters tracking consecutive days of full chore completion |
+| Lack of completion audit history | Immutable completion history timeline tracking task executions |
 | Intermittent task visibility | Dynamic status dashboards with real-time metric widgets |
 
 ---
@@ -26,7 +27,7 @@ The **Chores App** (`apps/chores`) is the household chore tracking and habit-bui
 
 ```
 apps/chores/
-├── backend/          # FastAPI service (chore templates, instances, streaks, reset scheduler)
+├── backend/          # FastAPI service (chore templates, instances, streaks, reset scheduler, completion audit history)
 └── compose.yml       # Service orchestration (backend, postgres, traefik rules)
 ```
 
@@ -46,4 +47,6 @@ The app follows the **Feature-Driven Design (FDD)** pattern defined in `.ai/rule
 
 - **Chore Template** (`chore_templates`): The blueprint config for a chore (name, instructions, points, recurrence properties).
 - **Chore Instance** (`chore_instances`): A scheduled copy of a chore assigned to a specific day, tracking execution status.
+- **Chore Completion History Audit** (`chore_completion_history`): Immutable audit timeline recording every instance completion event (timestamp, user, points awarded).
 - **Household Streak** (`household_streaks`): Cumulative day counter incremented upon completing all scheduled chores by midnight.
+

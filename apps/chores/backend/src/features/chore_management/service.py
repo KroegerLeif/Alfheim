@@ -6,7 +6,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, or_
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.features.chore_management.models import ChoreTemplate, ChoreInstance, HouseholdStreak
+from src.features.chore_management.models import (
+    ChoreTemplate,
+    ChoreInstance,
+    HouseholdStreak,
+    ChoreCompletionHistory,
+)
 from src.features.chore_management.schemas import ChoreTemplateCreate, ChoreTemplateUpdate, ChoreAssignRequest
 from src.features.chore_management.exceptions import (
     ChoreTemplateNotFoundError,
@@ -271,8 +276,9 @@ class ChoreService:
         instance_id: uuid.UUID,
         completed_by: uuid.UUID,
         home_id: uuid.UUID,
+        completed_by_name: Optional[str] = None,
     ) -> ChoreInstance:
-        """Mark a chore instance as completed, awarding points and evaluating immediate streak extensions."""
+        """Mark a chore instance as completed, awarding points, logging timeline audit record and evaluating streak extensions."""
         stmt = select(ChoreInstance).where(
             ChoreInstance.id == instance_id,
             ChoreInstance.home_id == home_id,
@@ -291,12 +297,25 @@ class ChoreService:
         template = t_res.first()
         points = template.points if template else 10
 
+        completed_timestamp = datetime.now(timezone.utc)
         instance.status = "completed"
         instance.completed_by = completed_by
-        instance.completed_at = datetime.now(timezone.utc)
+        instance.completed_at = completed_timestamp
         instance.points_awarded = points
-        instance.updated_at = datetime.now(timezone.utc)
+        instance.updated_at = completed_timestamp
         session.add(instance)
+
+        # Write timeline audit entry to ChoreCompletionHistory
+        history_entry = ChoreCompletionHistory(
+            template_id=instance.template_id,
+            instance_id=instance.id,
+            home_id=home_id,
+            completed_by=completed_by,
+            completed_by_name=completed_by_name,
+            completed_at=completed_timestamp,
+            points_awarded=points,
+        )
+        session.add(history_entry)
 
         # Check if this completes all chores of the day to immediately increment the streak
         today_date = instance.due_date
@@ -320,6 +339,33 @@ class ChoreService:
         await session.commit()
         await session.refresh(instance)
         return instance
+
+    @staticmethod
+    async def get_task_timeline(
+        session: AsyncSession,
+        template_id: uuid.UUID,
+        home_id: uuid.UUID,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Sequence[ChoreCompletionHistory]:
+        """Retrieve the historical completion timeline for a specific task template."""
+        template = await ChoreService.get_chore_template(session, template_id, home_id)
+        if not template:
+            raise ChoreTemplateNotFoundError(f"Chore template with ID {template_id} not found.")
+
+        stmt = (
+            select(ChoreCompletionHistory)
+            .where(
+                ChoreCompletionHistory.template_id == template_id,
+                ChoreCompletionHistory.home_id == home_id,
+            )
+            .order_by(ChoreCompletionHistory.completed_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        res = await session.exec(stmt)
+        return res.all()
+
 
     @staticmethod
     async def get_integrations_summary(

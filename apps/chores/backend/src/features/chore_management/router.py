@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, list
+from typing import Optional
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -16,6 +16,7 @@ from src.features.chore_management.schemas import (
     ChoreInstanceRead,
     ChoreAssignRequest,
     ChoreCompleteRequest,
+    ChoreTimelineRead,
     ChoreIntegrationSummary,
 )
 from src.features.chore_management.service import ChoreService
@@ -47,6 +48,24 @@ async def list_chore_templates(
     """List all chore templates registered in the household."""
     return await ChoreService.list_chore_templates(
         session=session,
+        home_id=context.home_id,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/templates/{template_id}/timeline", response_model=list[ChoreTimelineRead])
+async def get_task_timeline(
+    template_id: uuid.UUID,
+    limit: int = 100,
+    offset: int = 0,
+    session: AsyncSession = Depends(get_db_session),
+    context: UserHomeContext = Depends(get_current_user_and_home),
+):
+    """Retrieve completion history timeline for a specific chore template."""
+    return await ChoreService.get_task_timeline(
+        session=session,
+        template_id=template_id,
         home_id=context.home_id,
         limit=limit,
         offset=offset,
@@ -142,11 +161,16 @@ async def complete_chore_instance(
 ):
     """Mark a chore instance as completed."""
     completed_by = payload.completed_by if payload and payload.completed_by else context.user_id
+    completed_by_name = (
+        payload.completed_by_name if payload and payload.completed_by_name
+        else (context.username or context.email or "User")
+    )
     return await ChoreService.complete_chore_instance(
         session=session,
         instance_id=id,
         completed_by=completed_by,
         home_id=context.home_id,
+        completed_by_name=completed_by_name,
     )
 
 

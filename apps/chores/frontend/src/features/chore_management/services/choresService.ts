@@ -5,7 +5,8 @@ import {
   ChoreTemplateCreate, 
   ChoreTemplateUpdate, 
   ChoreInstanceRead, 
-  ChoreIntegrationSummary 
+  ChoreIntegrationSummary,
+  ChoreTimelineRead
 } from "../types";
 import { useState, useEffect } from "react";
 
@@ -186,3 +187,17 @@ export function useDeleteChoreTemplate() {
     },
   });
 }
+
+export function useTaskTimeline(templateId: string) {
+  const activeHouseholdId = useActiveHouseholdId();
+
+  return useQuery<ChoreTimelineRead[]>({
+    queryKey: [...choreKeys.templates(activeHouseholdId), templateId, "timeline"],
+    queryFn: () =>
+      choresClient
+        .get(`templates/${templateId}/timeline`)
+        .json<ChoreTimelineRead[]>(),
+    enabled: !!templateId && !!activeHouseholdId,
+  });
+}
+

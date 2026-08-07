@@ -109,6 +109,10 @@
     "nameRequired": "Name ist erforderlich",
     "nameMaxLength": "Name darf höchstens 100 Zeichen lang sein",
     "descMaxLength": "Beschreibung darf höchstens 500 Zeichen lang sein",
-    "creationFailed": "Fehler beim Erstellen der Aufgabenvorlage"
+    "creationFailed": "Fehler beim Erstellen der Aufgabenvorlage",
+    "timeline": "Verlauf",
+    "timelineTitle": "Aufgaben-Verlauf Audit",
+    "noHistory": "Noch kein Erledigungsverlauf vorhanden",
+    "noHistorySub": "Erledigen Sie diese Aufgabe im Dashboard, um den ersten Verlaufseintrag zu erstellen."
   }
 }
