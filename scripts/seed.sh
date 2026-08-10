@@ -37,6 +37,23 @@ cd "${REPO_ROOT}"
 
 step "Seeding Presentation Demo Data"
 
+# 0. Dashboard App Catalog Seeding
+info "Seeding Dashboard Catalog (default apps & portals) …"
+docker exec -i dashboard-db psql -U postgres -d dashboard_db << 'EOF' >/dev/null 2>&1 || true
+INSERT INTO app_catalog (name, slug, description, icon_url, app_url, category, required_role, is_active, is_external, status, is_default, display_order)
+VALUES
+('Digital Pantry', 'pantry', 'Manage household food inventory, recipes, and expiration dates.', 'kitchen', '/pantry', 'internal', 'MEMBER', TRUE, FALSE, 'active', TRUE, 1),
+('Smart Shopping', 'shopping', 'Automated shopping list generator and store price aggregator.', 'shopping_cart', '/shopping', 'internal', 'MEMBER', TRUE, FALSE, 'active', TRUE, 2),
+('Maintenance Hub', 'maintenance', 'Schedule device maintenance and home repairs.', 'build', '/maintenance', 'internal', 'MEMBER', TRUE, FALSE, 'active', TRUE, 3),
+('Chores Tracker', 'chores', 'Haushaltsroutinen, Daily Resets & Streaks', 'cleaning_services', '/chores/de', 'internal', 'MEMBER', TRUE, FALSE, 'active', TRUE, 4),
+('Task Tracker (TODO)', 'todo', 'Manage personal and household tasks and reminders.', 'checklist', '/under-construction?app=TODO', 'internal', 'MEMBER', TRUE, FALSE, 'in_progress', TRUE, 5),
+('Home Assistant', 'home-assistant', 'Smart home automation, climate control, and security dashboard.', 'home', 'http://homeassistant.local', 'external', 'MEMBER', TRUE, TRUE, 'active', TRUE, 6),
+('Plex Media Server', 'plex', 'Stream movies, TV shows, and personal media across devices.', 'movie', '/under-construction?app=Plex', 'external', 'MEMBER', TRUE, TRUE, 'in_progress', TRUE, 7),
+('Nextcloud Storage', 'nextcloud', 'Private cloud storage, photos, and document synchronization.', 'cloud', '/under-construction?app=Nextcloud', 'external', 'MEMBER', TRUE, TRUE, 'in_progress', TRUE, 8)
+ON CONFLICT (slug) DO UPDATE SET app_url = EXCLUDED.app_url;
+EOF
+ok "Dashboard catalog apps & portals ready"
+
 # 1. Maintenance App Seeding
 info "Seeding Maintenance Hub (devices & maintenance tasks) …"
 docker exec maintenance-backend python -c "
