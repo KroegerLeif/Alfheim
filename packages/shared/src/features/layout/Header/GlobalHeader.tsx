@@ -54,14 +54,17 @@ export function GlobalHeader({
         </div>
 
         {showBackToDashboard && (
-          <div className="ml-2 pl-3 border-l border-[var(--border-subtle)]">
+          <div className="ml-2 pl-3 border-l border-[var(--border-subtle)] flex items-center gap-3">
             <BackToDashboard href={backToDashboardHref} />
           </div>
         )}
-      </div>
 
-      {/* Custom Children or Center slot */}
-      {children && <div className="hidden md:flex items-center flex-1 mx-4">{children}</div>}
+        {children && (
+          <div className="flex items-center">
+            {children}
+          </div>
+        )}
+      </div>
 
       {/* Control Tools */}
       <div className="flex items-center gap-2 sm:gap-3">

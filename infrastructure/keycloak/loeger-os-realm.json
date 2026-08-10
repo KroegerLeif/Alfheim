@@ -562,6 +562,51 @@
       ]
     },
     {
+      "id": "chores-frontend-client",
+      "clientId": "chores-frontend",
+      "name": "Chores Frontend",
+      "rootUrl": "http://loeger-os/chores",
+      "baseUrl": "/chores/",
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "http://loeger-os/chores/*",
+        "http://localhost/chores/*",
+        "http://loeger-os/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "http://loeger-os/chores/*",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
       "id": "shopping-frontend-client",
       "clientId": "shopping-frontend",
       "name": "Shopping Frontend",

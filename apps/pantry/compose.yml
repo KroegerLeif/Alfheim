@@ -18,6 +18,7 @@ services:
       retries: 5
     networks:
       - pantry-internal
+    stop_grace_period: 10s
 
   pantry-backend:
     build:

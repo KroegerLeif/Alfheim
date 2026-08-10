@@ -1,0 +1,108 @@
+services:
+  chores-db:
+    image: postgres:16-alpine
+    container_name: chores-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chores
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data_chores:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chores"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chores-internal
+    stop_grace_period: 10s
+
+  chores-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chores-backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@chores-db:5432/chores
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=chores-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      chores-db:
+        condition: service_healthy
+    networks:
+      - public-ingress
+      - chores-internal
+      - observability-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chores-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/chores`)"
+      - "traefik.http.routers.chores-backend.entrypoints=web"
+      - "traefik.http.routers.chores-backend.service=chores-backend-service"
+      - "traefik.http.services.chores-backend-service.loadbalancer.server.port=8000"
+
+  chores-frontend:
+    build:
+      context: ../..
+      dockerfile: apps/chores/frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/chores}
+    container_name: chores-frontend
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      chores-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/chores/de || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - public-ingress
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chores-frontend.rule=Host(`loeger-os`) && PathPrefix(`/chores`)"
+      - "traefik.http.routers.chores-frontend.entrypoints=web"
+      - "traefik.http.routers.chores-frontend.priority=100"
+      - "traefik.http.routers.chores-frontend.service=chores-frontend-service"
+      
+      - "traefik.http.routers.chores-exact.rule=Host(`loeger-os`) && (Path(`/chores`) || Path(`/chores/`))"
+      - "traefik.http.routers.chores-exact.entrypoints=web"
+      - "traefik.http.routers.chores-exact.priority=110"
+      - "traefik.http.routers.chores-exact.service=chores-frontend-service"
+      - "traefik.http.routers.chores-exact.middlewares=chores-redirect-de"
+      
+      - "traefik.http.middlewares.chores-redirect-de.redirectregex.regex=^(https?://[^/]+)/chores/?$$"
+      - "traefik.http.middlewares.chores-redirect-de.redirectregex.replacement=$${1}/chores/de"
+      - "traefik.http.middlewares.chores-redirect-de.redirectregex.permanent=false"
+      
+      - "traefik.http.services.chores-frontend-service.loadbalancer.server.port=3000"
+
+volumes:
+  postgres_data_chores:
+
+networks:
+  public-ingress:
+    name: public-ingress
+    external: true
+  chores-internal:
+    name: chores-internal
+  observability-internal:
+    name: observability-internal
+    external: true

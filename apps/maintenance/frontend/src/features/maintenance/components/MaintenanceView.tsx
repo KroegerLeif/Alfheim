@@ -4,9 +4,8 @@ import React, { useState } from "react";
 import { useLayout } from "@/shared/layout/LayoutContext";
 import { Device } from "@/shared/types";
 import { daysUntil } from "@/core/utils";
-import { DeviceDetailPanel } from "@/features/devices/components/DeviceDetailPanel";
+import { DeviceDetailPanel, useDevices } from "@/features/devices";
 import { Loader2 } from "lucide-react";
-import { useDevices } from "@/features/devices/hooks/useDevices";
 import { MaintenanceMetrics } from "./MaintenanceMetrics";
 import { DeviceMaintenanceList } from "./DeviceMaintenanceList";
 

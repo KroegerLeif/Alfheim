@@ -8,6 +8,7 @@ include:
   - ./apps/maintenance/compose.yml
   - ./apps/pantry/compose.yml
   - ./apps/shopping/compose.yml
+  - ./apps/chores/compose.yml
 
 networks:
   public-ingress:
@@ -18,6 +19,9 @@ networks:
     driver: bridge
   shopping-internal:
     name: shopping-internal
+    driver: bridge
+  chores-internal:
+    name: chores-internal
     driver: bridge
   observability-internal:
     name: observability-internal
