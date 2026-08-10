@@ -40,7 +40,7 @@ services:
       - dashboard-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard-backend.rule=Host(`alfheim`) && (PathPrefix(`/api/v1/apps`) || PathPrefix(`/api/v1/profile`) || PathPrefix(`/api/v1/households`) || PathPrefix(`/api/v1/telemetry`))"
+      - "traefik.http.routers.dashboard-backend.rule=(Host(`alfheim`) || Host(`localhost`)) && (PathPrefix(`/api/v1/apps`) || PathPrefix(`/api/v1/profile`) || PathPrefix(`/api/v1/households`) || PathPrefix(`/api/v1/telemetry`))"
       - "traefik.http.routers.dashboard-backend.entrypoints=web"
       - "traefik.http.routers.dashboard-backend.service=dashboard-backend"
       - "traefik.http.services.dashboard-backend.loadbalancer.server.port=8080"
@@ -69,7 +69,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Route all frontend sub-paths on alfheim to dashboard-frontend with fallback priority
-      - "traefik.http.routers.dashboard-frontend.rule=Host(`alfheim`) && PathPrefix(`/`)"
+      - "traefik.http.routers.dashboard-frontend.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/`)"
       - "traefik.http.routers.dashboard-frontend.entrypoints=web"
       - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend"
       - "traefik.http.routers.dashboard-frontend.priority=1"

@@ -78,7 +78,7 @@ services:
       - public-ingress
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.signoz.rule=Host(`alfheim`) && PathPrefix(`/signoz`)"
+      - "traefik.http.routers.signoz.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/signoz`)"
       - "traefik.http.routers.signoz.entrypoints=web"
       - "traefik.http.routers.signoz.service=signoz-service"
       - "traefik.http.services.signoz-service.loadbalancer.server.port=8080"

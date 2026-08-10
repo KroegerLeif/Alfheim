@@ -49,7 +49,7 @@ services:
     stop_grace_period: 10s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.keycloak.rule=Host(`alfheim`) && PathPrefix(`/auth`)"
+      - "traefik.http.routers.keycloak.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/auth`)"
       - "traefik.http.routers.keycloak.entrypoints=web"
       - "traefik.http.routers.keycloak.service=keycloak-service"
       - "traefik.http.services.keycloak-service.loadbalancer.server.port=8080"
