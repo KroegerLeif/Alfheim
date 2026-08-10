@@ -1,7 +1,7 @@
 {
   "Dashboard": {
     "title": "Spiżarnia",
-    "subtitle": "Zarządzanie zapasami fizycznymi loeger-os",
+    "subtitle": "Zarządzanie zapasami fizycznymi alfheim",
     "lowStock": "Niski stan magazynowy",
     "expiration": "Status ważności",
     "exportList": "Wyślij do aplikacji Zakupy",
@@ -10,7 +10,7 @@
     "itemsUntracked": "Nieśledzone"
   },
   "Navigation": {
-    "title": "loeger-os",
+    "title": "alfheim",
     "subtitle": "Spiżarnia",
     "dashboard": "Pulpit",
     "inventory": "Stan magazynowy",
@@ -86,7 +86,7 @@
   },
   "pantry": {
     "title": "Cyfrowa Spiżarnia",
-    "subtitle": "Zarządzanie zapasami fizycznymi loeger-os",
+    "subtitle": "Zarządzanie zapasami fizycznymi alfheim",
     "systemAlerts": "Alerty systemowe",
     "lowStock": "Niski stan magazynowy",
     "lowStockLines": "Pozycje o niskim stanie",
@@ -235,7 +235,7 @@
     "scaleMax": "Skala: Maks {max}",
     "metricStock": "Metryka: Zapasy [Norm. Jednostka Bazowa]",
     "sortedHighToLow": "Posortowane: Od najwyższych",
-    "systemBrand": "LOEGER // OS",
+    "systemBrand": "ALFHEIM // OS",
     "systemVersion": "System Spiżarni v1.0"
   }
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"loeger-os/dashboard/internal/features/apps"
+	"alfheim/dashboard/internal/features/apps"
 )
 
 type mockAppRepository struct {
@@ -45,8 +45,8 @@ func newMockAppRepository() *mockAppRepository {
 				Description:  "Smart Home Control",
 				IconURL:      "/icons/ha.svg",
 				Icon:         "/icons/ha.svg",
-				AppURL:       "https://ha.loeger.local",
-				URL:          "https://ha.loeger.local",
+				AppURL:       "https://ha.alfheim.local",
+				URL:          "https://ha.alfheim.local",
 				Category:     apps.CategoryExternal,
 				RequiredRole: apps.RoleAdmin,
 				IsActive:     true,
@@ -156,7 +156,7 @@ func TestAppService_RoleFilteringAndGrouping(t *testing.T) {
 	}
 
 	// 4. Test Realm Admin override
-	resRealmAdmin, err := svc.GetPermittedApps(ctx, []string{"loeger_admin"}, "MEMBER")
+	resRealmAdmin, err := svc.GetPermittedApps(ctx, []string{"alfheim_admin"}, "MEMBER")
 	if err != nil {
 		t.Fatalf("expected no error for realm admin query, got: %v", err)
 	}

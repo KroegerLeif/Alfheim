@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
-	"loeger-os/dashboard/internal/shared/middleware"
+	"alfheim/dashboard/internal/shared/middleware"
 )
 
 // Service defines business logic for household management, authorization, and invitations.

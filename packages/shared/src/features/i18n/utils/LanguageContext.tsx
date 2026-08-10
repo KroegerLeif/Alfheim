@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Language, LanguageContextType } from './types';
 
-const STORAGE_KEY = 'loeger_os_language';
+const STORAGE_KEY = 'alfheim_language';
 const DEFAULT_LANGUAGE: Language = 'de';
 
 export const LanguageContext = createContext<LanguageContextType>({

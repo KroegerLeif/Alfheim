@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useEffect, useMemo, useState } from 
 import { CSS_VAR_MAP, DEFAULT_THEME_MODE, DEFAULT_THEME_VARIANT, THEME_TOKENS } from '../tokens';
 import { ResolvedMode, ThemeContextType, ThemeMode, ThemeOverrideConfig, ThemeTokens, ThemeVariant, CustomColorsConfig } from '../types';
 
-const STORAGE_KEY = 'loeger_os_theme_override';
+const STORAGE_KEY = 'alfheim_theme_override';
 const LEGACY_STORAGE_KEY = 'stitch-theme';
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -151,7 +151,7 @@ export function ThemeProvider({
   const [customColors, setCustomColorsState] = useState<CustomColorsConfig>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('loeger_os_custom_theme');
+        const saved = localStorage.getItem('alfheim_custom_theme');
         if (saved) {
           const parsed = JSON.parse(saved);
           return {
@@ -219,7 +219,7 @@ export function ThemeProvider({
             setVariantState(parsed.variant);
           }
         } catch {}
-      } else if (e.key === 'loeger_os_custom_theme') {
+      } else if (e.key === 'alfheim_custom_theme') {
         try {
           const parsed = JSON.parse(e.newValue || '{}');
           if (parsed.dark || parsed.light) {
@@ -276,7 +276,7 @@ export function ThemeProvider({
   const setCustomColors = useCallback((newColors: CustomColorsConfig) => {
     setCustomColorsState(newColors);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('loeger_os_custom_theme', JSON.stringify(newColors));
+      localStorage.setItem('alfheim_custom_theme', JSON.stringify(newColors));
     }
   }, []);
 

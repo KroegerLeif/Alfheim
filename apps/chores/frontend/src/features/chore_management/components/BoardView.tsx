@@ -6,7 +6,7 @@ import { FilterBar } from "./FilterBar";
 import { Plus, Layers } from "lucide-react";
 import { Link } from "@/navigation";
 import { useState } from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 export function BoardView() {
   const { t } = useTranslation();

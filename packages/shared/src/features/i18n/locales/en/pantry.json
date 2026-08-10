@@ -1,7 +1,7 @@
 {
   "Dashboard": {
     "title": "Pantry System",
-    "subtitle": "loeger-os physical inventory management",
+    "subtitle": "alfheim physical inventory management",
     "lowStock": "Low Stock Items",
     "expiration": "Expiration Status",
     "exportList": "Export Shopping List",
@@ -10,7 +10,7 @@
     "itemsUntracked": "Untracked"
   },
   "Navigation": {
-    "title": "loeger-os",
+    "title": "alfheim",
     "subtitle": "Pantry System",
     "dashboard": "Dashboard",
     "inventory": "Inventory",
@@ -86,7 +86,7 @@
   },
   "pantry": {
     "title": "Digital Pantry",
-    "subtitle": "loeger-os physical inventory management",
+    "subtitle": "alfheim physical inventory management",
     "systemAlerts": "System Alerts",
     "lowStock": "Low Stock Items",
     "lowStockLines": "Low Stock Lines",
@@ -235,7 +235,7 @@
     "scaleMax": "Scale: Max {max}",
     "metricStock": "Metric: Stock [Norm. Base Unit]",
     "sortedHighToLow": "Sorted: High-to-Low",
-    "systemBrand": "LOEGER // OS",
+    "systemBrand": "ALFHEIM // OS",
     "systemVersion": "Pantry System v1.0"
   }
 }

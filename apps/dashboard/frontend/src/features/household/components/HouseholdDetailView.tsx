@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useTranslation, AddressAutocomplete } from '@loeger-os/shared';
+import { useTranslation, AddressAutocomplete } from '@alfheim/shared';
 import { useAuth } from '@/core/providers';
 
 // Subcomponents
@@ -83,9 +83,9 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
   // Synchronize dynamic household headers & storage context
   useEffect(() => {
     if (householdId) {
-      localStorage.setItem('loeger_os_active_household_id', householdId);
+      localStorage.setItem('alfheim_active_household_id', householdId);
       if (household) {
-        localStorage.setItem('loeger_os_active_household_role', household.role || 'MEMBER');
+        localStorage.setItem('alfheim_active_household_role', household.role || 'MEMBER');
       }
       window.dispatchEvent(new Event('storage-household-changed'));
     }

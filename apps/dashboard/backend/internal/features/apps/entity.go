@@ -20,7 +20,7 @@ const (
 	RoleMember AppRole = "MEMBER"
 )
 
-// AppItem represents an application entry registered in the loeger-os control plane catalog.
+// AppItem represents an application entry registered in the alfheim control plane catalog.
 type AppItem struct {
 	ID           string      `json:"id"`
 	Name         string      `json:"name"`

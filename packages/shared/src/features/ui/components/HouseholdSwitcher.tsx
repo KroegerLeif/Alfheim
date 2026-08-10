@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../../i18n/utils/useTranslation';
 
-const STORAGE_KEY = 'loeger_os_active_household_id';
-const CACHE_KEY = 'loeger_os_cached_households';
+const STORAGE_KEY = 'alfheim_active_household_id';
+const CACHE_KEY = 'alfheim_cached_households';
 
 interface Household {
   id: string;
@@ -83,7 +83,7 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
       const runFetch = async () => {
         const success = await fetchHouseholds('/api/v1/households/me');
         if (!success) {
-          await fetchHouseholds('http://loeger-os/api/v1/households/me');
+          await fetchHouseholds('http://alfheim/api/v1/households/me');
         }
       };
 

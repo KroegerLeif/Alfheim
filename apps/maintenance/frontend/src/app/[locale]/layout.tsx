@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { LanguageProvider, ThemeProvider } from "@loeger-os/shared";
+import { LanguageProvider, ThemeProvider } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Header } from "@/shared/layout/Header";

@@ -19,12 +19,12 @@ Before writing any codebase changes, the AI agent must perform a design audit an
 * Map the directory structure separating global layers (`src/core/` or `src/shared/`) from domain modules (`src/features/<domain>/`).
 
 ### 2. Ingress & Routing Invariant Check
-* Map the Traefik router path prefixes to ensure they do not clash with existing monorepo ingress routes (Refer to [rules/architecture.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/rules/architecture.md)).
+* Map the Traefik router path prefixes to ensure they do not clash with existing monorepo ingress routes (Refer to [rules/architecture.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/architecture.md)).
 * Confirm Next.js is designated to handle all internal sub-routing.
 
 ### 3. Risk Assessment & Bottlenecks
 * Flag potential z-index issues (e.g., if using maps or overlays).
-* Analyze data models for potentially null array structures and specify how they will be guarded (Refer to [rules/safety.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/rules/safety.md)).
+* Analyze data models for potentially null array structures and specify how they will be guarded (Refer to [rules/safety.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/safety.md)).
 * Highlight Next.js 15+ routing parameter unwrapping requirements.
 
 ---

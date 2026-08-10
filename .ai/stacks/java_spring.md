@@ -1,6 +1,6 @@
 # Java Spring Boot Architectural Guide (`.ai/stacks/java_spring.md`)
 
-> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/rules/core.md) first.
+> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/core.md) first.
 
 ---
 
@@ -14,10 +14,10 @@
 
 ## 2. Feature Directory Architecture
 
-Java microservices are structured by feature package under `com.loeger.os.<domain>`:
+Java microservices are structured by feature package under `com.alfheim.os.<domain>`:
 
 ```text
-src/main/java/com/loeger/os/
+src/main/java/com/alfheim/os/
 ├── <domain>/                     # Feature domain package (e.g. pantry, shopping)
 │   ├── model/                    # JPA Entities / Domain Records
 │   │   └── ItemEntity.java

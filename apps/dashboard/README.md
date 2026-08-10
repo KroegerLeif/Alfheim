@@ -1,6 +1,6 @@
-# Loeger OS Dashboard Micro-Service (`apps/dashboard`)
+# Alfheim OS Dashboard Micro-Service (`apps/dashboard`)
 
-The Dashboard is the central control plane, authentication entrypoint, and telemetry interface for the `loeger-os` platform. It comprises a Go control plane backend and a React/Next.js frontend.
+The Dashboard is the central control plane, authentication entrypoint, and telemetry interface for the `alfheim` platform. It comprises a Go control plane backend and a React/Next.js frontend.
 
 ---
 
@@ -10,7 +10,7 @@ The frontend and backend services are decoupled and run in isolated Docker conta
 
 ```mermaid
 graph TD
-    Client[Web Browser Client] -->|HTTP Host: loeger-os| Traefik[Traefik Reverse Proxy]
+    Client[Web Browser Client] -->|HTTP Host: alfheim| Traefik[Traefik Reverse Proxy]
     Traefik -->|PathPrefix: /api/v1/...| GoBackend[Go Backend Control Plane :8080]
     Traefik -->|PathPrefix: / (Fallback)| NextFrontend[Next.js Frontend :3000]
     GoBackend -->|SQL| Postgres[(PostgreSQL DB)]
@@ -27,12 +27,12 @@ graph TD
 
 Components and libraries are strictly separated to maintain clean architectures and prevent circular dependencies:
 
-### 1. `@loeger-os/shared` UI Library (Workspace Package)
-- Located in [`packages/shared/`](file:///Users/leifkroeger/Dev/loeger-os/packages/shared).
+### 1. `@alfheim/shared` UI Library (Workspace Package)
+- Located in [`packages/shared/`](file:///Users/leifkroeger/Dev/alfheim/packages/shared).
 - Statically agnostic UI widgets (`Sidebar`, `Header`, `BottomNavBar`), localization (`LanguageProvider`), and presentation components (`OSMMapViewer`, `AddressAutocomplete`).
 
 ### 2. Core Engine Layer (`apps/dashboard/frontend/src/core/`)
-- Contains global core logic that is application-wide but domain-agnostic, such as the centralized HTTP `ky` instance [`client.ts`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/api/client.ts) and global state provider contexts [`src/core/providers/`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/providers/).
+- Contains global core logic that is application-wide but domain-agnostic, such as the centralized HTTP `ky` instance [`client.ts`](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/src/core/api/client.ts) and global state provider contexts [`src/core/providers/`](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/src/core/providers/).
 
 ### 3. Local Feature Modules (`apps/dashboard/frontend/src/features/`)
 - Organized around business capability folders (e.g. `household`, `contact`, `profile`, `apps`).
@@ -52,7 +52,7 @@ To prevent visual overlapping conflicts with complex map renders like Leaflet (`
 ## 🎯 Single Responsibility Layout Refactoring Strategy
 
 Currently, the frontend suffers from monolithic page designs that violate the **Single Responsibility Principle (SRP)**. Specifically:
-- [`src/app/household/page.tsx`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/app/household/page.tsx) is a single massive file (1,084 lines, ~45KB) managing household selection, creation, joins, address edits, members list, category management, and contact logs.
+- [`src/app/household/page.tsx`](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/src/app/household/page.tsx) is a single massive file (1,084 lines, ~45KB) managing household selection, creation, joins, address edits, members list, category management, and contact logs.
 ### Clean Architecture Layout:
 We have refactored the monolithic page to a clean Next.js App Router sub-routing design:
 
@@ -75,6 +75,6 @@ src/app/
 ## 📑 System Documentation
 
 For detailed analysis and specifications, please refer to:
-- [Go Backend Audit & Schema README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/README.md)
-- [React/Next.js Frontend Audit README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/README.md)
+- [Go Backend Audit & Schema README](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/backend/README.md)
+- [React/Next.js Frontend Audit README](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/README.md)
 

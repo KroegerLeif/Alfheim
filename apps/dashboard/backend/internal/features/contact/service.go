@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"loeger-os/dashboard/internal/features/household"
+	"alfheim/dashboard/internal/features/household"
 )
 
 // Service coordinates business actions on contacts and contact categories.

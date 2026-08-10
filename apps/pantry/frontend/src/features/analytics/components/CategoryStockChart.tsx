@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { PieChart } from "lucide-react";
 
 interface CategoryData { name: string; value: number; }

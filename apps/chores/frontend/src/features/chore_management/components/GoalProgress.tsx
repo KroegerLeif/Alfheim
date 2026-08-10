@@ -2,7 +2,7 @@
 
 import { ChoreIntegrationSummary } from "../types";
 import { Flame, CheckCircle } from "lucide-react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 interface GoalProgressProps {
   summary: ChoreIntegrationSummary | undefined;

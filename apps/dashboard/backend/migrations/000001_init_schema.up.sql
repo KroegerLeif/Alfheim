@@ -1,4 +1,4 @@
--- Initial schema for loeger-os dashboard backend
+-- Initial schema for alfheim dashboard backend
 
 CREATE TABLE IF NOT EXISTS user_profiles (
     id VARCHAR(64) PRIMARY KEY, -- Keycloak sub UUID

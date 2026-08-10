@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { Link, usePathname } from "@/navigation";
 import { cn } from "@/core/utils";
 import { 
@@ -20,7 +20,7 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("loeger_os_chores_sidebar_collapsed");
+    const saved = localStorage.getItem("alfheim_chores_sidebar_collapsed");
     if (saved !== null) {
       setIsCollapsed(saved === "true");
     }
@@ -29,7 +29,7 @@ export function Sidebar() {
   const toggleCollapse = () => {
     setIsCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem("loeger_os_chores_sidebar_collapsed", String(next));
+      localStorage.setItem("alfheim_chores_sidebar_collapsed", String(next));
       return next;
     });
   };

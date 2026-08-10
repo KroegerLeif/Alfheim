@@ -10,7 +10,7 @@ import {
   useDeleteShoppingItem,
 } from "../services/shoppingListService";
 import { getCategoryKeyForItem } from "../utils/category";
-import { Specular } from "@loeger-os/shared";
+import { Specular } from "@alfheim/shared";
 
 interface ChecklistContainerProps {
   listId: string;

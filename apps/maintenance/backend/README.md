@@ -1,6 +1,6 @@
 # Maintenance Backend Architecture — HOW (`apps/maintenance/backend/`)
 
-This directory houses the **FastAPI & SQLModel** backend microservice for the `loeger-os` Maintenance application. It manages the relational database persistence, schema constraints, Keycloak auth context verification, and exposes Model Context Protocol (MCP) tools.
+This directory houses the **FastAPI & SQLModel** backend microservice for the `alfheim` Maintenance application. It manages the relational database persistence, schema constraints, Keycloak auth context verification, and exposes Model Context Protocol (MCP) tools.
 
 ---
 

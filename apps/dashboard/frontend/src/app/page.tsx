@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { StatusBadge, useTranslation } from '@loeger-os/shared';
+import { StatusBadge, useTranslation } from '@alfheim/shared';
 import { useAppCatalog, AddAppModal, EditAppModal } from '@/features/apps';
 import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
 import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';

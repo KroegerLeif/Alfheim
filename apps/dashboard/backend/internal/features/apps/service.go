@@ -217,7 +217,7 @@ func (s *service) UpdateApp(ctx context.Context, id string, req UpdateAppRequest
 func hasPermission(requiredRole AppRole, realmRoles []string, householdRole string) bool {
 	// Realm admins always bypass app role checks
 	for _, r := range realmRoles {
-		if strings.EqualFold(r, "admin") || strings.EqualFold(r, "loeger_admin") {
+		if strings.EqualFold(r, "admin") || strings.EqualFold(r, "alfheim_admin") {
 			return true
 		}
 	}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LanguageSwitcher, ThemeToggle, useTranslation } from '@loeger-os/shared';
+import { LanguageSwitcher, ThemeToggle, useTranslation } from '@alfheim/shared';
 import { useAuth } from '@/core/providers';
 
 /**

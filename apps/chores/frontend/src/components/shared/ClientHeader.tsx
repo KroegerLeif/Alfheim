@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/core/authContext";
-import { GlobalHeader, HouseholdSwitcher } from "@loeger-os/shared";
+import { GlobalHeader, HouseholdSwitcher } from "@alfheim/shared";
 
 export function ClientHeader() {
   const { user, logout } = useAuth();
@@ -11,7 +11,7 @@ export function ClientHeader() {
       brandTitle="Chores Tracker"
       brandSubtitle="Gamified Habits"
       showBackToDashboard={true}
-      backToDashboardHref="http://loeger-os/"
+      backToDashboardHref="http://alfheim/"
       showLanguageSwitcher={true}
       showThemeToggle={true}
       showAuthControls={true}

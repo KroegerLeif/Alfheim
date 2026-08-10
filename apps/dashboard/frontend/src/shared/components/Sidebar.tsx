@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import { useAuth } from '@/core/providers';
 
 interface NavItemConfig {
@@ -38,7 +38,7 @@ export function Sidebar() {
         </div>
         <div className="flex flex-col">
           <span className="font-bold text-sm tracking-wider uppercase text-[var(--text-main)]">
-            Loeger OS
+            Alfheim OS
           </span>
           <span className="text-[11px] text-[var(--text-muted)] font-mono">
             Obsidian Flux v1.0

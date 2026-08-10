@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"loeger-os/dashboard/internal/features/household"
-	"loeger-os/dashboard/internal/shared/middleware"
+	"alfheim/dashboard/internal/features/household"
+	"alfheim/dashboard/internal/shared/middleware"
 )
 
 // Handler manages contact and category API requests.

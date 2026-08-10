@@ -1,6 +1,6 @@
 # Blueprint: New Application Setup & Routing (`.ai/blueprints/new_app.md`)
 
-This blueprint defines the mandatory architecture, directory layout, core configurations, and integration workflows required to introduce a new application or service into the `loeger-os` monorepo.
+This blueprint defines the mandatory architecture, directory layout, core configurations, and integration workflows required to introduce a new application or service into the `alfheim` monorepo.
 
 ---
 
@@ -38,11 +38,11 @@ apps/<app-name>/
     ├── Dockerfile                     # Containerization setup for standalone Next.js build
     ├── package.json                   # Frontend dependencies (pnpm workspace member)
     ├── tsconfig.json                  # Strict TypeScript configuration
-    ├── next.config.ts                 # Next.js config (basePath, transpilePackages: ["@loeger-os/shared"], output: standalone)
+    ├── next.config.ts                 # Next.js config (basePath, transpilePackages: ["@alfheim/shared"], output: standalone)
     ├── postcss.config.mjs             # PostCSS / Tailwind CSS setup
     └── src/
         ├── proxy.ts                   # Next.js 16 proxy convention for routing & auth (replaces middleware.ts)
-        ├── i18n.ts                    # next-intl configuration merging shared locales from @loeger-os/shared
+        ├── i18n.ts                    # next-intl configuration merging shared locales from @alfheim/shared
         ├── navigation.ts              # Locale navigation helpers (de, en, pl)
         ├── app/
         │   └── [locale]/              # Localized pages & layouts (de, en, pl)
@@ -78,10 +78,10 @@ When initializing a new app, the following files **MUST** be explicitly created 
 
 ### Frontend Core
 * **`frontend/Dockerfile`**: Standalone build configuration matching `"standalone"` output mode.
-* **`frontend/package.json`**: Set with `"@loeger-os/shared": "workspace:*"` dependency.
-* **`frontend/next.config.ts`**: Configured with `basePath: '/<app-name>'`, standalone build output, and `@loeger-os/shared` transpiling.
+* **`frontend/package.json`**: Set with `"@alfheim/shared": "workspace:*"` dependency.
+* **`frontend/next.config.ts`**: Configured with `basePath: '/<app-name>'`, standalone build output, and `@alfheim/shared` transpiling.
 * **`frontend/src/proxy.ts`**: Next.js 16 proxy file for localized path routing.
-* **`frontend/src/i18n.ts`**: Merges global locales from `@loeger-os/shared` via `getSharedMessages(locale)`.
+* **`frontend/src/i18n.ts`**: Merges global locales from `@alfheim/shared` via `getSharedMessages(locale)`.
 * **`frontend/src/lib/api.ts`**: Typed `ky` HTTP client configured for API requests.
 
 ---
@@ -108,13 +108,13 @@ Apply path-regex rewrites to strip the path namespace prefix before forwarding r
 ```yaml
 services:
   app-backend:
-    image: loeger-os/app-backend:latest
+    image: alfheim/app-backend:latest
     networks:
       - public-ingress
       - app-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/app-name`)"
+      - "traefik.http.routers.app-backend.rule=Host(`alfheim`) && PathPrefix(`/api/v1/app-name`)"
       - "traefik.http.routers.app-backend.entrypoints=web"
       - "traefik.http.routers.app-backend.service=app-backend-service"
       - "traefik.http.routers.app-backend.middlewares=app-backend-regex"
@@ -128,16 +128,16 @@ Direct root and slash queries to the localized page (`/de` or `/en`) to prevent 
 ```yaml
 services:
   app-frontend:
-    image: loeger-os/app-frontend:latest
+    image: alfheim/app-frontend:latest
     networks:
       - public-ingress
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app-frontend.rule=Host(`loeger-os`) && PathPrefix(`/app-name`)"
+      - "traefik.http.routers.app-frontend.rule=Host(`alfheim`) && PathPrefix(`/app-name`)"
       - "traefik.http.routers.app-frontend.entrypoints=web"
       - "traefik.http.routers.app-frontend.service=app-frontend-service"
       
-      - "traefik.http.routers.app-exact.rule=Host(`loeger-os`) && (Path(`/app-name`) || Path(`/app-name/`))"
+      - "traefik.http.routers.app-exact.rule=Host(`alfheim`) && (Path(`/app-name`) || Path(`/app-name/`))"
       - "traefik.http.routers.app-exact.entrypoints=web"
       - "traefik.http.routers.app-exact.service=app-frontend-service"
       - "traefik.http.routers.app-exact.middlewares=app-redirect-locale"
@@ -153,7 +153,7 @@ For external portals, integrations, or services that cannot be directly declared
 http:
   routers:
     external-service-router:
-      rule: "Host(`loeger-os`) && PathPrefix(`/external-path`)"
+      rule: "Host(`alfheim`) && PathPrefix(`/external-path`)"
       service: external-service
       entryPoints:
         - web
@@ -172,18 +172,18 @@ http:
 ## 4. Keycloak & Auth Integration
 
 1. **Frontend Registration**:
-   * Create a client named `<app-name>-frontend` inside the `loeger-os` realm.
+   * Create a client named `<app-name>-frontend` inside the `alfheim` realm.
    * Access Type: `Public` (Standard Authorization Flow, PKCE enabled).
-   * Valid Redirect URIs: `http://loeger-os/<app-name>/*`
+   * Valid Redirect URIs: `http://alfheim/<app-name>/*`
    * Web Origins: `*`
 2. **Backend JWT Verification**:
    * Set configuration values in environment variables:
      ```env
      KEYCLOAK_BASE_URL=http://keycloak:8080/auth
-     KEYCLOAK_REALM=loeger-os
+     KEYCLOAK_REALM=alfheim
      ```
    * JWKS verification coordinates with Keycloak certs route:
-     `http://keycloak:8080/auth/realms/loeger-os/protocol/openid-connect/certs`
+     `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
 
 ---
 
@@ -204,12 +204,12 @@ http:
 ## 6. Centralized i18n & Shared Theme Engine Integration
 
 ### 6.1 Centralized i18n System
-* Translate all strings inside `@loeger-os/shared` locales: `packages/shared/src/i18n/locales/{de,en,pl}/<app-name>.json`.
+* Translate all strings inside `@alfheim/shared` locales: `packages/shared/src/i18n/locales/{de,en,pl}/<app-name>.json`.
 * Register the translation files in `packages/shared/src/i18n/locales.ts` to include them in the `getSharedMessages(locale)` builder.
 * All three supported locales (**German (`de`)**, **English (`en`)**, **Polish (`pl`)**) must be populated. German acts as the canonical fallback.
 
 ### 6.2 Design System Compliance
-* Components MUST consume design tokens from `@loeger-os/shared` CSS variables (e.g. `var(--primary-main)`, `var(--surface-canvas)`). Never hardcode hex values.
+* Components MUST consume design tokens from `@alfheim/shared` CSS variables (e.g. `var(--primary-main)`, `var(--surface-canvas)`). Never hardcode hex values.
 * Mount `ThemeProvider` at the root layout and import the shared `Header` / `ThemeToggle` elements.
 
 ---
@@ -238,13 +238,13 @@ info "Starting <app-name>-frontend …"
 dc up ${BUILD_FLAG} -d <app-name>-frontend
 wait_healthy "<app-name>-frontend" "<app-name>-frontend" 240
 
-notice "🟢 <App-Name> App is live at http://loeger-os/<app-name>"
+notice "🟢 <App-Name> App is live at http://alfheim/<app-name>"
 ```
 
 ### 7.2 Insertion Point
 Insert immediately **before** the `STAGE 6 · Observability` block, updating subsequent stage numbers accordingly. Add summary logs to `STAGE 7 · Summary`:
 ```bash
-echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://loeger-os/<app-name>${RESET}"
+echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim/<app-name>${RESET}"
 ```
 
 ---
@@ -253,7 +253,7 @@ echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://loeger-os/<app-na
 
 - [ ] **Scaffold folders** according to FDD boundaries under `apps/<app-name>/`.
 - [ ] **Implement Backend**: Dockerfile, pyproject.toml/go.mod, main router, config engine, database module, auth verification contexts, and `/api/v1/health` endpoint.
-- [ ] **Implement Frontend**: tsconfig/package configs, `next.config.ts` (standalone mode, transpile `@loeger-os/shared`), proxy setup (`src/proxy.ts`), i18n setup, API client, layout, and first page views.
-- [ ] **Populate i18n**: Add translations in all 3 language JSON files under `@loeger-os/shared`.
+- [ ] **Implement Frontend**: tsconfig/package configs, `next.config.ts` (standalone mode, transpile `@alfheim/shared`), proxy setup (`src/proxy.ts`), i18n setup, API client, layout, and first page views.
+- [ ] **Populate i18n**: Add translations in all 3 language JSON files under `@alfheim/shared`.
 - [ ] **Register Orchestration**: Create compose.yml, add to root compose.yaml, add stage to scripts/up.sh.
 - [ ] **Quality checks**: Run TypeScript verification, check no dummy stubs or `@ts-ignore` statements exist.

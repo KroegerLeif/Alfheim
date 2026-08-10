@@ -56,9 +56,9 @@ src/
 
 ## 🔑 Session & Authentication
 
-Authentication is verified on mount in [`providers.tsx`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/frontend/src/app/[locale]/providers.tsx):
+Authentication is verified on mount in [`providers.tsx`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/frontend/src/app/[locale]/providers.tsx):
 1. Secure session initialization checks Keycloak status.
-2. Interceptors in [`src/lib/api.ts`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/frontend/src/lib/api.ts) inject the Bearer token into every API call.
+2. Interceptors in [`src/lib/api.ts`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/frontend/src/lib/api.ts) inject the Bearer token into every API call.
 3. Automatically sets the `X-Household-ID` header corresponding to the active selection.
 
 ---

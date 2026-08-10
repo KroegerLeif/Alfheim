@@ -2,7 +2,7 @@
 
 import { ChoreInstanceRead } from "../types";
 import { PieChart } from "lucide-react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 interface GoalDonutChartProps {
   chores: ChoreInstanceRead[];

@@ -6,7 +6,7 @@
 
 ## 🎯 Purpose
 
-The **Chores App** (`apps/chores`) is the household chore tracking and habit-building service for the Loeger-OS monorepo. It solves the problem of **household maintenance asymmetry and chore friction** — where cleaning, organizing, and daily house tasks are neglected, unassigned, or lead to arguments — with a structured, points-based gamified approach.
+The **Chores App** (`apps/chores`) is the household chore tracking and habit-building service for the Alfheim monorepo. It solves the problem of **household maintenance asymmetry and chore friction** — where cleaning, organizing, and daily house tasks are neglected, unassigned, or lead to arguments — with a structured, points-based gamified approach.
 
 ---
 

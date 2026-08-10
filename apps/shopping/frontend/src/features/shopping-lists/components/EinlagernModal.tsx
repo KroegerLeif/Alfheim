@@ -10,7 +10,7 @@ import {
   useSyncToPantry,
   useHouseholds,
 } from "../services/shoppingListService";
-import { Specular } from "@loeger-os/shared";
+import { Specular } from "@alfheim/shared";
 import { EinlagernItemRow, LocalStateItem } from "./EinlagernItemRow";
 
 interface EinlagernModalProps {
@@ -34,7 +34,7 @@ export function EinlagernModal({ listId, initialItems = [], onClose }: Einlagern
   const resolvedHouseholdId = useMemo(() => {
     if (selectedHouseholdId) return selectedHouseholdId;
     if (households.length === 0) return "";
-    const activeHhId = typeof window !== "undefined" ? localStorage.getItem("loeger_os_active_household_id") : null;
+    const activeHhId = typeof window !== "undefined" ? localStorage.getItem("alfheim_active_household_id") : null;
     const matched = households.find((h) => h.id === activeHhId);
     return matched ? matched.id : households[0].id;
   }, [selectedHouseholdId, households]);

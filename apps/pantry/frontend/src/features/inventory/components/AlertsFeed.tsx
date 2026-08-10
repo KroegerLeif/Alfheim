@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { Badge } from "@/components/ui/badge";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
 

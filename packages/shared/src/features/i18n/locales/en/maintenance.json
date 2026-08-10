@@ -1,7 +1,7 @@
 {
   "maintenance": {
     "title": "Maintenance & Infrastructure Management",
-    "subtitle": "loeger-os system diagnostics, device monitoring, and maintenance tasks",
+    "subtitle": "alfheim system diagnostics, device monitoring, and maintenance tasks",
     "devices": "Devices",
     "tasks": "Maintenance Tasks",
     "schedule": "Maintenance Schedule",

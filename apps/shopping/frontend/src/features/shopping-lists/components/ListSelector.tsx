@@ -11,7 +11,7 @@ import {
   useHouseholds,
 } from "../services/shoppingListService";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
-import { Specular } from "@loeger-os/shared";
+import { Specular } from "@alfheim/shared";
 import type { ShoppingList } from "../types";
 import { ListTab } from "./ListTab";
 
@@ -127,7 +127,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
   const handleSelect = (list: ShoppingList) => {
     if (list.is_default || !list.is_personal) {
-      localStorage.setItem("loeger_os_active_household_id", list.home_id);
+      localStorage.setItem("alfheim_active_household_id", list.home_id);
       window.dispatchEvent(new Event("storage-household-changed"));
     }
     onSelect(list.id);

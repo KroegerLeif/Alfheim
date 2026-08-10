@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"loeger-os/dashboard/internal/features/household"
-	"loeger-os/dashboard/internal/shared/middleware"
+	"alfheim/dashboard/internal/features/household"
+	"alfheim/dashboard/internal/shared/middleware"
 )
 
 type mockRepository struct {
@@ -155,16 +155,16 @@ func TestHouseholdService_CreateAndInvite(t *testing.T) {
 		PreferredUsername: "owner",
 	}
 	createReq := household.CreateHouseholdRequest{
-		Name: "Loeger Family",
-		Slug: "loeger-family",
+		Name: "Alfheim Family",
+		Slug: "alfheim-family",
 	}
 
 	hResp, err := svc.CreateHousehold(ctx, claims, createReq)
 	if err != nil {
 		t.Fatalf("expected no error creating household, got: %v", err)
 	}
-	if hResp.Name != "Loeger Family" {
-		t.Errorf("expected name 'Loeger Family', got '%s'", hResp.Name)
+	if hResp.Name != "Alfheim Family" {
+		t.Errorf("expected name 'Alfheim Family', got '%s'", hResp.Name)
 	}
 
 	// Create Invite

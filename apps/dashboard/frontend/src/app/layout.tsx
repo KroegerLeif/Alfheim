@@ -18,8 +18,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Loeger OS | Dashboard',
-  description: 'Central management dashboard for Loeger OS platform micro-services.',
+  title: 'Alfheim OS | Dashboard',
+  description: 'Central management dashboard for Alfheim OS platform micro-services.',
 };
 
 export default function RootLayout({

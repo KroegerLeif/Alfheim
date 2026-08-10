@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"loeger-os/dashboard/internal/features/telemetry"
+	"alfheim/dashboard/internal/features/telemetry"
 )
 
 func TestTelemetryService_GetMetricsFallback(t *testing.T) {

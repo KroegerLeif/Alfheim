@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { useProducts, useSearchProducts } from "../services/productService";
 import { useCategories } from "@/features/categories/services/categoryService";
 import { Search } from "lucide-react";

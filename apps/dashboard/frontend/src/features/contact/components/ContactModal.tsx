@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslation, AddressAutocomplete } from '@loeger-os/shared';
+import { useTranslation, AddressAutocomplete } from '@alfheim/shared';
 import { Contact, ContactCategory } from '@/shared/types';
 
 interface ContactModalProps {

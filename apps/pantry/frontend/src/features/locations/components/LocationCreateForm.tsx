@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { useCreateLocation } from "../services/locationService";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, AlertCircle } from "lucide-react";

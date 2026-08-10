@@ -1,11 +1,11 @@
 'use client';
 
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import dynamic from 'next/dynamic';
 import { Household } from '@/shared/types';
 
 const OSMMapViewer = dynamic(
-  () => import('@loeger-os/shared').then((mod) => mod.OSMMapViewer),
+  () => import('@alfheim/shared').then((mod) => mod.OSMMapViewer),
   { ssr: false }
 );
 

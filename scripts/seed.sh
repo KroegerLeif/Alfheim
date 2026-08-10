@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# scripts/seed.sh — Loeger-OS demo data seeding orchestrator
+# scripts/seed.sh — Alfheim demo data seeding orchestrator
 #
 # Populates presentation demo data across Pantry, Shopping, and Maintenance apps.
 #

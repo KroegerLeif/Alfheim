@@ -1,4 +1,4 @@
--- Down migration for loeger-os dashboard backend
+-- Down migration for alfheim dashboard backend
 
 DROP INDEX IF EXISTS idx_contact_categories_household;
 DROP INDEX IF EXISTS idx_contacts_household;

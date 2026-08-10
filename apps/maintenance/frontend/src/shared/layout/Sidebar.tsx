@@ -43,7 +43,7 @@ export function Sidebar() {
         {!isSidebarCollapsed && (
           <div className="flex flex-col gap-1">
             <span className="font-heading text-2xl font-black uppercase tracking-wide leading-none text-[var(--text-main)]">
-              LOEGER // OS
+              ALFHEIM // OS
             </span>
             <span className="text-[9px] text-[var(--primary-main)] font-semibold uppercase tracking-widest leading-none">
               Maintenance v1.0

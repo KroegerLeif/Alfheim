@@ -1,4 +1,4 @@
-module loeger-os/dashboard
+module alfheim/dashboard
 
 go 1.22.0
 

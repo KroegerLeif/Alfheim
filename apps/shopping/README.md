@@ -1,6 +1,6 @@
 # Shopping Checklist Application (`apps/shopping/`)
 
-This directory houses the digital **Shopping Checklist Application** for the `loeger-os` smart home ecosystem. It consists of a FastAPI backend and a Next.js frontend, integrated with Keycloak for identity management and the Pantry service for stock synchronization.
+This directory houses the digital **Shopping Checklist Application** for the `alfheim` smart home ecosystem. It consists of a FastAPI backend and a Next.js frontend, integrated with Keycloak for identity management and the Pantry service for stock synchronization.
 
 ---
 
@@ -11,7 +11,7 @@ The Shopping app is built around the **Feature-Driven Design (FDD)** paradigm. I
 ```mermaid
 graph TD
   A["Next.js Frontend (Port 3010)"] <-->|REST API + JWT Auth| B["FastAPI Backend (Port 8000)"]
-  A <-->|OIDC Sessions| C["Keycloak IAM (loeger-os/auth)"]
+  A <-->|OIDC Sessions| C["Keycloak IAM (alfheim/auth)"]
   B <-->|PostgreSQL (Port 5433)| D["shopping-db"]
   B <-->|REST Integration| E["Pantry Service (api/v1/inventory)"]
   B <-->|OIDC Token Check| C
@@ -32,9 +32,9 @@ To enable custom list arrangements without client-side state discrepancy, list p
 
 ## 🗂️ Directory Layout
 
-* [`/backend`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/backend) — FastAPI service handling database models, auto-provisioning rules, and integration endpoints.
-* [`/frontend`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/frontend) — Standalone Next.js 15 application utilizing tailwind styling and TanStack query caching.
-* [`compose.yml`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/compose.yml) — Docker container configurations mapping Traefik ingress proxy rules.
+* [`/backend`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/backend) — FastAPI service handling database models, auto-provisioning rules, and integration endpoints.
+* [`/frontend`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/frontend) — Standalone Next.js 15 application utilizing tailwind styling and TanStack query caching.
+* [`compose.yml`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/compose.yml) — Docker container configurations mapping Traefik ingress proxy rules.
 
 ---
 

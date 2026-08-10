@@ -9,7 +9,7 @@ import {
   LanguageSwitcher,
   ThemeToggle,
   HouseholdSwitcher,
-} from "@loeger-os/shared";
+} from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { HeaderAuthControls } from "@/components/shared/HeaderAuthControls";
@@ -67,7 +67,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                   <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
                     {/* Top Navigation & Controls Header Bar */}
                     <header className="h-16 border-b border-[var(--border-subtle)] bg-[var(--surface-card)] px-6 flex items-center justify-between shrink-0 select-none z-10">
-                      <BackToDashboard href="http://loeger-os/" />
+                      <BackToDashboard href="http://alfheim/" />
                       <div className="flex items-center gap-3">
                         <HouseholdSwitcher />
                         <LanguageSwitcher variant="dropdown" />

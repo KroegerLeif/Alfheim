@@ -1,7 +1,7 @@
 [project]
 name = "shopping-backend"
 version = "0.1.0"
-description = "Backend microservice for the loeger-os Shopping application"
+description = "Backend microservice for the alfheim Shopping application"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

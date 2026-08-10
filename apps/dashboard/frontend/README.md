@@ -60,8 +60,8 @@ In `apps/dashboard/compose.yml`, Traefik delegates incoming traffic to the front
 ```yaml
 labels:
   - "traefik.enable=true"
-  # Match host 'loeger-os' and root sub-paths
-  - "traefik.http.routers.dashboard-frontend.rule=Host(`loeger-os`) && PathPrefix(`/`)"
+  # Match host 'alfheim' and root sub-paths
+  - "traefik.http.routers.dashboard-frontend.rule=Host(`alfheim`) && PathPrefix(`/`)"
   - "traefik.http.routers.dashboard-frontend.entrypoints=web"
   - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend"
   # Low priority fallback to prevent frontend overriding specific backend api route prefixes
@@ -76,8 +76,8 @@ labels:
 ### 🔑 State Providers
 - **`AuthProvider`** (`src/shared/providers/AuthProvider.tsx`): Integrates `keycloak-js` to enforce session logins, handle client-side token exchanges via PKCE, and execute silent token refreshes (every 60s).
 - **`QueryProvider`** (`src/shared/providers/QueryProvider.tsx`): Wraps TanStack Query clients for caching server requests.
-- **`ThemeProvider`** (`@loeger-os/shared` component library): Configures the active system visual theme (e.g. `obsidian`, `kinetic`, `slate`, `custom`), sets corresponding class values (`.dark` / `.light`) for Tailwind, and injects customized raw CSS variable values.
-- **`LanguageProvider`** (`@loeger-os/shared` component library): Resolves preferred locales (`de`, `en`, `pl`) from cookies or localStorage and provisions appropriate translations.
+- **`ThemeProvider`** (`@alfheim/shared` component library): Configures the active system visual theme (e.g. `obsidian`, `kinetic`, `slate`, `custom`), sets corresponding class values (`.dark` / `.light`) for Tailwind, and injects customized raw CSS variable values.
+- **`LanguageProvider`** (`@alfheim/shared` component library): Resolves preferred locales (`de`, `en`, `pl`) from cookies or localStorage and provisions appropriate translations.
 
 ### 🪝 API Query Hooks
 - **`useAppCatalog`** (`features/apps/queries.ts`): Queries `GET /api/v1/apps`.
@@ -106,16 +106,16 @@ labels:
 
 ### 🌍 OSM Map Viewer
 The OpenStreetMap (OSM) leaflet integration resides in the shared library:
-[`packages/shared/src/features/ui/components/OSMMapViewer.tsx`](file:///Users/leifkroeger/Dev/loeger-os/packages/shared/src/features/ui/components/OSMMapViewer.tsx).
+[`packages/shared/src/features/ui/components/OSMMapViewer.tsx`](file:///Users/leifkroeger/Dev/alfheim/packages/shared/src/features/ui/components/OSMMapViewer.tsx).
 - Renders custom HTML markers and binds interactive popups containing contact address info.
 - It is imported dynamically inside the household view to disable server-side pre-rendering (since Leaflet relies heavily on DOM globals):
   ```typescript
   const OSMMapViewer = dynamic(
-    () => import('@loeger-os/shared').then((mod) => mod.OSMMapViewer),
+    () => import('@alfheim/shared').then((mod) => mod.OSMMapViewer),
     { ssr: false }
   );
   ```
-- **Shared Library Bottleneck**: Because `@loeger-os/shared` exposes exports via a central index file (`packages/shared/src/index.ts`), importing *any* module from this library (such as providers or translators in `layout.tsx`) implicitly imports the entire shared bundle on the server. This executes top-level imports in `OSMMapViewer.tsx` (like `leaflet/dist/leaflet.css`), which can disrupt server rendering or bloat server bundles.
+- **Shared Library Bottleneck**: Because `@alfheim/shared` exposes exports via a central index file (`packages/shared/src/index.ts`), importing *any* module from this library (such as providers or translators in `layout.tsx`) implicitly imports the entire shared bundle on the server. This executes top-level imports in `OSMMapViewer.tsx` (like `leaflet/dist/leaflet.css`), which can disrupt server rendering or bloat server bundles.
 
 ---
 
@@ -131,6 +131,6 @@ Extra attributes from the server: data-theme, class
 
 ### Cause of Mismatch:
 1. **Server Rendering (SSR)**: Next.js pre-renders HTML using defaults. On the server side, `typeof window` is undefined, meaning `ThemeProvider` and `LanguageProvider` state initializations fall back to static presets (`dark` mode, German `de` locale, and `obsidian` theme variant).
-2. **Client Hydration**: When the bundle runs in the browser, `window` becomes available. The providers read settings previously configured by the user stored in client-side cookies (`NEXT_LOCALE`) and `localStorage` (`loeger_os_theme_override`).
+2. **Client Hydration**: When the bundle runs in the browser, `window` becomes available. The providers read settings previously configured by the user stored in client-side cookies (`NEXT_LOCALE`) and `localStorage` (`alfheim_theme_override`).
 3. If the user had previously selected Light mode or English language, the client immediately updates the HTML attributes during page loading. Since this rendered outcome differs from the pre-generated server HTML, React throws a hydration mismatch error.
 4. **Missing Fix**: The root element inside `src/app/layout.tsx` is missing the `suppressHydrationWarning` attribute on the `<html>` and `<body>` tags, which is necessary when structural CSS/class injection occurs based on browser-only local storage data.

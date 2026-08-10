@@ -88,14 +88,14 @@ export default function ShoppingDashboard() {
   const households = useMemo(() => householdsData ?? [], [householdsData]);
   const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("loeger_os_active_household_id");
+      return localStorage.getItem("alfheim_active_household_id");
     }
     return null;
   });
 
   useEffect(() => {
     const handleLocalChange = () => {
-      setActiveHouseholdId(localStorage.getItem("loeger_os_active_household_id"));
+      setActiveHouseholdId(localStorage.getItem("alfheim_active_household_id"));
     };
     window.addEventListener("storage", handleLocalChange);
     window.addEventListener("storage-household-changed", handleLocalChange);

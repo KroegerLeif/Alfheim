@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # =============================================================================
-# scripts/up.sh — Loeger-OS staged stack boot orchestrator
+# scripts/up.sh — Alfheim staged stack boot orchestrator
 #
-# Starts the full loeger-os monorepo stack in a controlled, strictly sequential
+# Starts the full alfheim monorepo stack in a controlled, strictly sequential
 # pipeline instead of a brute-force parallel bring-up that saturates the CPU.
 #
 # Pipeline stages:
 #   0. Pre-flight    — validate Docker network prerequisites
 #   1. IAM Core      — postgres-iam  →  keycloak  →  traefik
 #   2. Dashboard     — dashboard-db  →  dashboard-backend  →  dashboard-frontend
-#                      [live at http://loeger-os/ after this stage]
+#                      [live at http://alfheim/ after this stage]
 #   3. Shopping      — shopping-db  →  shopping-backend  →  shopping-frontend
-#                      [live at http://loeger-os/shopping after this stage]
+#                      [live at http://alfheim/shopping after this stage]
 #   4. Pantry        — pantry-db  →  pantry-backend  →  pantry-frontend
-#                      [live at http://loeger-os/pantry after this stage]
+#                      [live at http://alfheim/pantry after this stage]
 #   5. Maintenance   — maintenance-db  →  maintenance-backend  →  maintenance-frontend
-#                      [live at http://loeger-os/maintenance after this stage]
+#                      [live at http://alfheim/maintenance after this stage]
 #   6. Chores        — chores-db  →  chores-backend
-#                      [live at http://loeger-os/api/v1/chores after this stage]
+#                      [live at http://alfheim/api/v1/chores after this stage]
 #   7. Observability — signoz-clickhouse  →  signoz-otel-collector  →  signoz-ui  →  vector-shipper
 #   8. Summary       — print accessible URLs with green checkmarks
 #
@@ -403,15 +403,15 @@ step "STAGE 1 · IAM Core  (postgres-iam · keycloak · traefik)"
 
 info "Starting postgres-iam …"
 dc up ${BUILD_FLAG} -d postgres-iam
-wait_healthy "loeger_postgres_iam" "postgres-iam" 60
+wait_healthy "alfheim_postgres_iam" "postgres-iam" 60
 
 info "Starting keycloak (realm import may take up to 90 s on first boot) …"
 dc up ${BUILD_FLAG} -d keycloak
-wait_healthy "loeger_keycloak" "keycloak" 180
+wait_healthy "alfheim_keycloak" "keycloak" 180
 
 info "Starting traefik …"
 dc up ${BUILD_FLAG} -d traefik
-wait_running "loeger_traefik" "traefik" 30
+wait_running "alfheim_traefik" "traefik" 30
 
 notice "🟢 IAM Core Ready"
 
@@ -432,7 +432,7 @@ info "Starting dashboard-frontend …"
 dc up ${BUILD_FLAG} -d dashboard-frontend
 wait_healthy "dashboard-frontend" "dashboard-frontend" 240
 
-notice "🟢 Dashboard is live at http://loeger-os/"
+notice "🟢 Dashboard is live at http://alfheim/"
 
 # =============================================================================
 # STAGE 3 — Shopping App Slice  (shopping-db → shopping-backend → shopping-frontend)
@@ -451,7 +451,7 @@ info "Starting shopping-frontend …"
 dc up ${BUILD_FLAG} -d shopping-frontend
 wait_healthy "shopping-frontend" "shopping-frontend" 240
 
-notice "🟢 Shopping App is live at http://loeger-os/shopping"
+notice "🟢 Shopping App is live at http://alfheim/shopping"
 
 # =============================================================================
 # STAGE 4 — Pantry App Slice  (pantry-db → pantry-backend → pantry-frontend)
@@ -470,7 +470,7 @@ info "Starting pantry-frontend …"
 dc up ${BUILD_FLAG} -d pantry-frontend
 wait_healthy "pantry-frontend" "pantry-frontend" 240
 
-notice "🟢 Pantry App is live at http://loeger-os/pantry"
+notice "🟢 Pantry App is live at http://alfheim/pantry"
 
 # =============================================================================
 # STAGE 5 — Maintenance App Slice  (maintenance-db → maintenance-backend → maintenance-frontend)
@@ -489,7 +489,7 @@ info "Starting maintenance-frontend …"
 dc up ${BUILD_FLAG} -d maintenance-frontend
 wait_healthy "maintenance-frontend" "maintenance-frontend" 240
 
-notice "🟢 Maintenance App is live at http://loeger-os/maintenance"
+notice "🟢 Maintenance App is live at http://alfheim/maintenance"
 
 # =============================================================================
 # STAGE 6 — Chores App Slice  (chores-db → chores-backend → chores-frontend)
@@ -508,7 +508,7 @@ info "Starting chores-frontend …"
 dc up ${BUILD_FLAG} -d chores-frontend
 wait_healthy "chores-frontend" "chores-frontend" 240
 
-notice "🟢 Chores App is live at http://loeger-os/chores"
+notice "🟢 Chores App is live at http://alfheim/chores"
 
 # =============================================================================
 # STAGE 7 — Observability  (ClickHouse · SigNoz · Vector)
@@ -550,20 +550,20 @@ fi
 step "STAGE 8 · Stack fully operational 🚀"
 
 echo ""
-echo -e "  ${BOLD}${GREEN}✔  Loeger-OS is running!${RESET}"
+echo -e "  ${BOLD}${GREEN}✔  Alfheim is running!${RESET}"
 echo ""
 echo -e "  ${DIM}Applications:${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://loeger-os/${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://loeger-os/shopping${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://loeger-os/pantry${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://loeger-os/maintenance${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://loeger-os/chores${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://alfheim/${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim/shopping${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim/pantry${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim/maintenance${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim/chores${RESET}"
 echo ""
 echo -e "  ${DIM}Infrastructure:${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://loeger-os/auth${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://alfheim/auth${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Traefik dashboard  →  ${BOLD}http://localhost:8080${RESET}"
 if [[ "${SKIP_OBS}" != "true" ]]; then
-  echo -e "  ${GREEN}✔${RESET}  SigNoz             →  ${BOLD}http://loeger-os/signoz${RESET}"
+  echo -e "  ${GREEN}✔${RESET}  SigNoz             →  ${BOLD}http://alfheim/signoz${RESET}"
 fi
 echo ""
 echo -e "  ${DIM}Useful commands:${RESET}"

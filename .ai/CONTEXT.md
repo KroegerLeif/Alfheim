@@ -1,4 +1,4 @@
-# Loeger-OS — Sprint Context (`.ai/CONTEXT.md`)
+# Alfheim — Sprint Context (`.ai/CONTEXT.md`)
 
 > **READ THIS FIRST.** This is the single source of truth for the AI agent's memory (Active Sprint, Active Apps Index, DB Schema Invariants).
 
@@ -47,14 +47,14 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Replaced frontend localStorage sorting hacks with backend mutation updates.
 * **`docs(context): refactor .ai architecture for token efficiency and strict separation`**
 * **`refactor(pantry): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`**
-  - Migrated pantry frontend components to centralized translations in `@loeger-os/shared`.
+  - Migrated pantry frontend components to centralized translations in `@alfheim/shared`.
   - Replaced fake database fetches with `pantryClient` calls.
 * **`refactor(shopping): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`**
   - Hooked up `shoppingListService.ts` to real database endpoints, deprecating mock lists.
 * **`refactor(dashboard): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`**
   - Replaced fake telemetry/shell log generators with empty states; registered backend tasks in backlog.
 * **`refactor(shared): feature-driven shared architecture and centralized locale domains`**
-  - Organised `@loeger-os/shared` into `features/{i18n,theme,layout,ui}` structure.
+  - Organised `@alfheim/shared` into `features/{i18n,theme,layout,ui}` structure.
 * **`refactor(infra): enforce granular vertical up.sh pipeline and sync new-app guidelines`**
   - Split `scripts/up.sh` boot sequence into standalone sequential stages (DB -> Backend -> Frontend) per app to limit resources.
 
@@ -83,7 +83,7 @@ This index maps the active applications and services running inside the monorepo
 ---
 
 ## 🔑 Keycloak JWT Invariants
-All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`).
+All backends validate bearer tokens issued by Keycloak (`http://alfheim/auth`).
 * **`sub`**: Injected as user UUID.
 * **`preferred_username`**: Used for Personal List naming.
 * **`household_id` / `active_household_id`**: Active household identifier (falls back to `X-Household-ID` header, then mock UUID).
@@ -211,12 +211,12 @@ All backends validate bearer tokens issued by Keycloak (`http://loeger-os/auth`)
 
 ---
 
-## 🔗 Local URLs (Requires `/etc/hosts` resolution of `loeger-os` to `127.0.0.1`)
-* Dashboard: `http://loeger-os/`
-* Pantry: `http://loeger-os/pantry`
-* Shopping: `http://loeger-os/shopping`
-* Maintenance: `http://loeger-os/maintenance`
-* Chores: `http://loeger-os/chores/de` (Direct portal link; `/chores` redirects to `/chores/de`)
-* Chores API: `http://loeger-os/api/v1/chores`
-* Keycloak Admin: `http://loeger-os/auth/admin`
+## 🔗 Local URLs (Requires `/etc/hosts` resolution of `alfheim` to `127.0.0.1`)
+* Dashboard: `http://alfheim/`
+* Pantry: `http://alfheim/pantry`
+* Shopping: `http://alfheim/shopping`
+* Maintenance: `http://alfheim/maintenance`
+* Chores: `http://alfheim/chores/de` (Direct portal link; `/chores` redirects to `/chores/de`)
+* Chores API: `http://alfheim/api/v1/chores`
+* Keycloak Admin: `http://alfheim/auth/admin`
 * Traefik Admin: `http://localhost:8080`

@@ -7,7 +7,7 @@ import { GoalProgress } from "./GoalProgress";
 import { ClipboardList, ShoppingCart, ShieldAlert, Calendar } from "lucide-react";
 import { formatDate } from "@/core/utils";
 import { useState } from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 export function DashboardView() {
   const { t } = useTranslation();

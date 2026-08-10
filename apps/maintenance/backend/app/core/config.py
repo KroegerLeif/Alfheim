@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Keycloak OIDC Configuration
     KEYCLOAK_URL: str = "http://localhost:8080/auth"
-    KEYCLOAK_REALM: str = "loeger-os"
+    KEYCLOAK_REALM: str = "alfheim"
     KEYCLOAK_JWKS_URL: str = ""
 
     @property

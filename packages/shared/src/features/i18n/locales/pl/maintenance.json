@@ -1,7 +1,7 @@
 {
   "maintenance": {
     "title": "Zarządzanie konserwacją i infrastrukturą",
-    "subtitle": "Diagnostyka systemu loeger-os, monitorowanie urządzeń i zadania konserwacyjne",
+    "subtitle": "Diagnostyka systemu alfheim, monitorowanie urządzeń i zadania konserwacyjne",
     "devices": "Urządzenia",
     "tasks": "Zadania konserwacyjne",
     "schedule": "Harmonogram konserwacji",

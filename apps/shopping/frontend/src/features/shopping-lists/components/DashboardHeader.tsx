@@ -11,7 +11,7 @@ import {
   Printer,
   Trash2,
 } from "lucide-react";
-import { Specular } from "@loeger-os/shared";
+import { Specular } from "@alfheim/shared";
 import type { ShoppingList } from "../types";
 import type { Household } from "../services/shoppingListService";
 

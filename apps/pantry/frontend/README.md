@@ -12,7 +12,7 @@
 | Language | TypeScript (strict mode) |
 | State / Fetching | TanStack Query v5 |
 | Styling | Tailwind CSS (via CSS variables design tokens) |
-| i18n | `@loeger-os/shared` / `react-i18next` |
+| i18n | `@alfheim/shared` / `react-i18next` |
 | Testing | Vitest + Testing Library (35 tests, 100% passing) |
 | HTTP Client | `ky` (via `src/core/api.ts` — `pantryClient`) |
 

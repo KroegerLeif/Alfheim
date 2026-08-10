@@ -1,6 +1,6 @@
 # Go Architectural Guide (`.ai/stacks/golang.md`)
 
-> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/rules/core.md) first.
+> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/core.md) first.
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## 2. Feature Directory Architecture
 
-Go microservices within `loeger-os` follow Feature-Driven Design isolated under `internal/features/`:
+Go microservices within `alfheim` follow Feature-Driven Design isolated under `internal/features/`:
 
 ```text
 cmd/

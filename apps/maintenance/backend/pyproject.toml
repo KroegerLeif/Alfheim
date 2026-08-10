@@ -1,7 +1,7 @@
 [project]
 name = "maintenance-backend"
 version = "0.1.0"
-description = "Backend microservice for the loeger-os Maintenance application"
+description = "Backend microservice for the alfheim Maintenance application"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

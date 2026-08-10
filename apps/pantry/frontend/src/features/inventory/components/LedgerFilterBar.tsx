@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { LocationRead } from "@/features/locations/types";
 import { ProductRead } from "@/features/products/types";
 

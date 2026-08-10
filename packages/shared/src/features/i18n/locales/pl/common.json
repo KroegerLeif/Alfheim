@@ -1,6 +1,6 @@
 {
   "Navigation": {
-    "title": "loeger-os",
+    "title": "alfheim",
     "subtitle": "Zarządzanie listą zakupów",
     "systemLists": "Listy systemowe",
     "customLists": "Własne listy",
@@ -98,7 +98,7 @@
     "enrolled_count": "{count} Zapisanych",
     "member_user": "Użytkownik",
     "joined_date": "Dołączono: {date}",
-    "household_security_note": "Identyfikatory gospodarstwa i uprawnienia członków są weryfikowane kryptograficznie w mikrousługach Loeger OS.",
+    "household_security_note": "Identyfikatory gospodarstwa i uprawnienia członków są weryfikowane kryptograficznie w mikrousługach Alfheim OS.",
     "qr_code_title": "Kod QR dostępu do gospodarstwa",
     "qr_code_desc": "Zeskanuj aparatem lub skopiuj token, aby dołączyć.",
     "copied": "Skopiowano!",
@@ -161,7 +161,7 @@
     "telemetry_stream_desc": "Wysyłaj dane telemetryczne CPU/RAM do kolektora SigNoz.",
     "system_update": "Aktualizacja systemu",
     "platform_up_to_date": "Platforma jest aktualna",
-    "platform_release": "Wydanie platformy Loeger OS",
+    "platform_release": "Wydanie platformy Alfheim OS",
     "current_version": "Aktualna wersja",
     "build_target": "Cel kompilacji"
   },

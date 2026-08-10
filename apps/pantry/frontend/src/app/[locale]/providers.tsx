@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect } from "react";
 import Keycloak from "keycloak-js";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity } from "@loeger-os/shared";
+import { UserIdentity } from "@alfheim/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -30,8 +30,8 @@ export default function Providers({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     const keycloak = new Keycloak({
-      url: "http://loeger-os/auth",
-      realm: "loeger-os",
+      url: "http://alfheim/auth",
+      realm: "alfheim",
       clientId: "pantry-frontend",
     });
 

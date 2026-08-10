@@ -26,7 +26,7 @@ services:
       - PORT=8080
       - DATABASE_URL=postgres://postgres:postgres@dashboard-db:5432/dashboard_db?sslmode=disable
       - KEYCLOAK_BASE_URL=http://keycloak:8080/auth
-      - KEYCLOAK_REALM=loeger-os
+      - KEYCLOAK_REALM=alfheim
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
       interval: 5s
@@ -40,7 +40,7 @@ services:
       - dashboard-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard-backend.rule=Host(`loeger-os`) && (PathPrefix(`/api/v1/apps`) || PathPrefix(`/api/v1/profile`) || PathPrefix(`/api/v1/households`) || PathPrefix(`/api/v1/telemetry`))"
+      - "traefik.http.routers.dashboard-backend.rule=Host(`alfheim`) && (PathPrefix(`/api/v1/apps`) || PathPrefix(`/api/v1/profile`) || PathPrefix(`/api/v1/households`) || PathPrefix(`/api/v1/telemetry`))"
       - "traefik.http.routers.dashboard-backend.entrypoints=web"
       - "traefik.http.routers.dashboard-backend.service=dashboard-backend"
       - "traefik.http.services.dashboard-backend.loadbalancer.server.port=8080"
@@ -68,8 +68,8 @@ services:
       - public-ingress
     labels:
       - "traefik.enable=true"
-      # Route all frontend sub-paths on loeger-os to dashboard-frontend with fallback priority
-      - "traefik.http.routers.dashboard-frontend.rule=Host(`loeger-os`) && PathPrefix(`/`)"
+      # Route all frontend sub-paths on alfheim to dashboard-frontend with fallback priority
+      - "traefik.http.routers.dashboard-frontend.rule=Host(`alfheim`) && PathPrefix(`/`)"
       - "traefik.http.routers.dashboard-frontend.entrypoints=web"
       - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend"
       - "traefik.http.routers.dashboard-frontend.priority=1"

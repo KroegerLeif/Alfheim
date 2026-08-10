@@ -1,6 +1,6 @@
-# `@loeger-os/shared`
+# `@alfheim/shared`
 
-Shared frontend package for reusable cross-app features in Loeger-OS.
+Shared frontend package for reusable cross-app features in Alfheim.
 
 ## Feature-Driven Structure
 
@@ -41,7 +41,7 @@ import {
   ThemeToggle,
   LanguageSwitcher,
   getSharedMessages,
-} from '@loeger-os/shared';
+} from '@alfheim/shared';
 ```
 
 ## i18n Rules

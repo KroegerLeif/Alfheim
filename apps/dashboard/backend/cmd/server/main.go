@@ -1,4 +1,4 @@
-// Package main is the entry point for the loeger-os dashboard-backend service.
+// Package main is the entry point for the alfheim dashboard-backend service.
 package main
 
 import (
@@ -16,16 +16,16 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/sync/errgroup"
 
-	"loeger-os/dashboard/config"
-	"loeger-os/dashboard/internal/features/apps"
-	"loeger-os/dashboard/internal/features/contact"
-	"loeger-os/dashboard/internal/features/household"
-	"loeger-os/dashboard/internal/features/profile"
-	"loeger-os/dashboard/internal/features/telemetry"
-	"loeger-os/dashboard/internal/shared/db"
-	"loeger-os/dashboard/internal/shared/keycloak"
-	"loeger-os/dashboard/internal/shared/logger"
-	"loeger-os/dashboard/internal/shared/middleware"
+	"alfheim/dashboard/config"
+	"alfheim/dashboard/internal/features/apps"
+	"alfheim/dashboard/internal/features/contact"
+	"alfheim/dashboard/internal/features/household"
+	"alfheim/dashboard/internal/features/profile"
+	"alfheim/dashboard/internal/features/telemetry"
+	"alfheim/dashboard/internal/shared/db"
+	"alfheim/dashboard/internal/shared/keycloak"
+	"alfheim/dashboard/internal/shared/logger"
+	"alfheim/dashboard/internal/shared/middleware"
 )
 
 func main() {

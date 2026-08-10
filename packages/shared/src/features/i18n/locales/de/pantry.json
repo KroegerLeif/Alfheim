@@ -1,7 +1,7 @@
 {
   "Dashboard": {
     "title": "Vorratsschrank",
-    "subtitle": "loeger-os physische Bestandsverwaltung",
+    "subtitle": "alfheim physische Bestandsverwaltung",
     "lowStock": "Niedriger Bestand",
     "expiration": "Ablaufstatus",
     "exportList": "Einkaufsliste exportieren",
@@ -10,7 +10,7 @@
     "itemsUntracked": "Unüberwacht"
   },
   "Navigation": {
-    "title": "loeger-os",
+    "title": "alfheim",
     "subtitle": "Vorratsschrank",
     "dashboard": "Dashboard",
     "inventory": "Bestand",
@@ -86,7 +86,7 @@
   },
   "pantry": {
     "title": "Digitale Vorratskammer",
-    "subtitle": "loeger-os Physische Bestandsverwaltung",
+    "subtitle": "alfheim Physische Bestandsverwaltung",
     "systemAlerts": "Systemwarnungen",
     "lowStock": "Knappe Bestände",
     "lowStockLines": "Knappe Bestandspositionen",
@@ -235,7 +235,7 @@
     "scaleMax": "Skala: Max {max}",
     "metricStock": "Metrik: Bestand [Norm. Basiseinheit]",
     "sortedHighToLow": "Sortiert: Hoch-zu-Niedrig",
-    "systemBrand": "LOEGER // OS",
+    "systemBrand": "ALFHEIM // OS",
     "systemVersion": "Vorratsschrank System v1.0"
   }
 }

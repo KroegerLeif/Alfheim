@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata = {
   title: "Maintenance Management",
-  description: "loeger-os Maintenance Management App",
+  description: "alfheim Maintenance Management App",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

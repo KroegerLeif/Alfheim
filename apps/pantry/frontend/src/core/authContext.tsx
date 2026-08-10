@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext } from "react";
-import { UserIdentity } from "@loeger-os/shared";
+import { UserIdentity } from "@alfheim/shared";
 
 export interface AuthContextType {
   user: UserIdentity | null;

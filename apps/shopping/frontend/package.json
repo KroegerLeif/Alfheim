@@ -11,7 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@loeger-os/shared": "workspace:*",
+    "@alfheim/shared": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.18",
     "@radix-ui/react-popover": "^1.1.2",
     "@radix-ui/react-progress": "^1.1.11",

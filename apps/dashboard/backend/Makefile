@@ -25,4 +25,4 @@ clean:
 
 docker-build:
 	@echo "Building docker image..."
-	@docker build -t loeger-os/$(APP_NAME):latest .
+	@docker build -t alfheim/$(APP_NAME):latest .

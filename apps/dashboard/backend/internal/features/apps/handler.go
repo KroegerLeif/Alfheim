@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"loeger-os/dashboard/internal/shared/middleware"
+	"alfheim/dashboard/internal/shared/middleware"
 )
 
 // Handler manages app catalog HTTP endpoints.

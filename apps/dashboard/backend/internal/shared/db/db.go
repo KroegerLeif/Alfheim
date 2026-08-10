@@ -12,7 +12,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"loeger-os/dashboard/config"
+	"alfheim/dashboard/config"
 )
 
 // Client holds the connection pool reference and manages database operations.

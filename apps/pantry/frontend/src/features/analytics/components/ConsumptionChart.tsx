@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { BarChart2 } from "lucide-react";
 
 interface MonthData { label: string; value: number; }

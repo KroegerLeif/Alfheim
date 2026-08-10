@@ -50,7 +50,7 @@ services:
       - observability-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pantry-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/pantry`)"
+      - "traefik.http.routers.pantry-backend.rule=Host(`alfheim`) && PathPrefix(`/api/v1/pantry`)"
       - "traefik.http.routers.pantry-backend.entrypoints=web"
       - "traefik.http.routers.pantry-backend.middlewares=pantry-api-replace"
       - "traefik.http.routers.pantry-backend.service=pantry-backend-service"
@@ -84,12 +84,12 @@ services:
     labels:
       - "traefik.enable=true"
       # Catch-all router for standard subpath asset routing (e.g., /pantry/en, /pantry/_next/...)
-      - "traefik.http.routers.pantry-frontend.rule=Host(`loeger-os`) && PathPrefix(`/pantry`)"
+      - "traefik.http.routers.pantry-frontend.rule=Host(`alfheim`) && PathPrefix(`/pantry`)"
       - "traefik.http.routers.pantry-frontend.entrypoints=web"
       - "traefik.http.routers.pantry-frontend.service=pantry-frontend-service"
       
       # Explicit router for root/basePath direct hits
-      - "traefik.http.routers.pantry-exact.rule=Host(`loeger-os`) && (Path(`/pantry`) || Path(`/pantry/`))"
+      - "traefik.http.routers.pantry-exact.rule=Host(`alfheim`) && (Path(`/pantry`) || Path(`/pantry/`))"
       - "traefik.http.routers.pantry-exact.entrypoints=web"
       - "traefik.http.routers.pantry-exact.middlewares=pantry-redirect-en"
       - "traefik.http.routers.pantry-exact.service=pantry-frontend-service"
