@@ -48,6 +48,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
 from src.core.telemetry import setup_telemetry
 setup_telemetry(app)
