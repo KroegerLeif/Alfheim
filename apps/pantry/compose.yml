@@ -63,7 +63,7 @@ services:
       context: ../..
       dockerfile: apps/pantry/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/pantry}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_PANTRY_API_URL:-/api/v1/pantry}
     container_name: pantry-frontend
     restart: always
     env_file:

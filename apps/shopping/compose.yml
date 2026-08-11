@@ -52,7 +52,7 @@ services:
       - observability-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.shopping-backend.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/api/v1/shopping`)"
+      - "traefik.http.routers.shopping-backend.rule=(Host(`alfheim`) || Host(`localhost`)) && (PathPrefix(`/api/v1/shopping`) || PathPrefix(`/api/v1/shopping-lists`) || PathPrefix(`/api/v1/shopping-history`))"
       - "traefik.http.routers.shopping-backend.entrypoints=web"
       - "traefik.http.routers.shopping-backend.middlewares=shopping-api-replace"
       - "traefik.http.routers.shopping-backend.service=shopping-backend-service"
@@ -65,7 +65,7 @@ services:
       context: ../..
       dockerfile: apps/shopping/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/shopping}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_SHOPPING_API_URL:-/api/v1/shopping}
         - NEXT_PUBLIC_PANTRY_API_URL=${NEXT_PUBLIC_PANTRY_API_URL:-/api/v1/pantry}
     container_name: shopping-frontend
     restart: always
