@@ -1,6 +1,6 @@
 # AI Context & Standards Folder (`.ai/`)
 
-Welcome to the `loeger-os` AI architectural configuration folder. This folder is structured to guide AI agents (e.g. Antigravity, Claude, Copilot) when they operate on this codebase, while ensuring human developers understand the governance standards.
+Welcome to the `alfheim` AI architectural configuration folder. This folder is structured to guide AI agents (e.g. Antigravity, Claude, Copilot) when they operate on this codebase, while ensuring human developers understand the governance standards.
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 interface FilterBarProps {
   searchQuery: string;

@@ -16,7 +16,7 @@
     "empty_notifications": "Brak powiadomień",
     "authenticated_user": "Uwierzytelniony użytkownik",
     "under_construction_title": "{name} jest w trakcie budowy",
-    "under_construction_desc": "Żądana mikrousługa lub portal jest obecnie wdrażany w ramach wydania platformy Loeger OS.",
+    "under_construction_desc": "Żądana mikrousługa lub portal jest obecnie wdrażany w ramach wydania platformy Alfheim OS.",
     "return_to_dashboard": "Powrót do pulpitu",
     "status_in_progress": "STATUS: W TRAKCIE",
     "telemetry_title": "Telemetria stanu systemu",
@@ -40,7 +40,7 @@
     "shell_exec": "WYKONAJ",
     "shell_input_placeholder": "Wpisz polecenie (np. status, help, ping, clear)...",
     "shell_help_response": "Dostępne polecenia: help, status, apps, clear, ping, uptime",
-    "shell_status_response": "Platforma Loeger OS: 6/6 Kontenerów sprawnych. Wszystkie trasy proxy powiązane.",
+    "shell_status_response": "Platforma Alfheim OS: 6/6 Kontenerów sprawnych. Wszystkie trasy proxy powiązane.",
     "shell_ping_response": "pong (opóźnienie: 1.2ms)",
     "shell_unknown_response": "Polecenie \"{cmd}\" wykonane. Wpisz \"help\", aby zobaczyć dostępne polecenia."
   }

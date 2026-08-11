@@ -46,7 +46,7 @@ services:
       - observability-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.maintenance-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/maintenance`)"
+      - "traefik.http.routers.maintenance-backend.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/api/v1/maintenance`)"
       - "traefik.http.routers.maintenance-backend.entrypoints=web"
       - "traefik.http.routers.maintenance-backend.middlewares=maintenance-api-replace"
       - "traefik.http.routers.maintenance-backend.service=maintenance-backend-service"
@@ -59,7 +59,7 @@ services:
       context: ../..
       dockerfile: apps/maintenance/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/maintenance}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_MAINTENANCE_API_URL:-/api/v1/maintenance}
     container_name: maintenance-frontend
     restart: always
     environment:
@@ -80,12 +80,12 @@ services:
       - "traefik.enable=true"
 
       # --- Catch-all router: handles /maintenance/en/*, /maintenance/_next/*, etc. ---
-      - "traefik.http.routers.maintenance-frontend.rule=Host(`loeger-os`) && PathPrefix(`/maintenance`)"
+      - "traefik.http.routers.maintenance-frontend.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/maintenance`)"
       - "traefik.http.routers.maintenance-frontend.entrypoints=web"
       - "traefik.http.routers.maintenance-frontend.service=maintenance-frontend-service"
 
       # --- Exact router: catches /maintenance and /maintenance/ and redirects to /en ---
-      - "traefik.http.routers.maintenance-exact.rule=Host(`loeger-os`) && (Path(`/maintenance`) || Path(`/maintenance/`))"
+      - "traefik.http.routers.maintenance-exact.rule=(Host(`alfheim`) || Host(`localhost`)) && (Path(`/maintenance`) || Path(`/maintenance/`))"
       - "traefik.http.routers.maintenance-exact.entrypoints=web"
       - "traefik.http.routers.maintenance-exact.middlewares=maintenance-redirect-en"
       - "traefik.http.routers.maintenance-exact.service=maintenance-frontend-service"

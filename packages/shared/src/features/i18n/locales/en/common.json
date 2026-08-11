@@ -1,6 +1,6 @@
 {
   "Navigation": {
-    "title": "loeger-os",
+    "title": "alfheim",
     "subtitle": "Shopping List Management",
     "systemLists": "System Lists",
     "customLists": "Custom Lists",
@@ -98,7 +98,7 @@
     "enrolled_count": "{count} Enrolled",
     "member_user": "Member User",
     "joined_date": "Joined: {date}",
-    "household_security_note": "Household IDs and membership permissions are cryptographically verified downstream across Loeger OS microservices.",
+    "household_security_note": "Household IDs and membership permissions are cryptographically verified downstream across Alfheim OS microservices.",
     "qr_code_title": "Household Access QR Code",
     "qr_code_desc": "Scan with mobile camera or copy token to join.",
     "copied": "Copied!",
@@ -161,7 +161,7 @@
     "telemetry_stream_desc": "Push live CPU/RAM telemetry logs to SigNoz collector.",
     "system_update": "System Update",
     "platform_up_to_date": "Platform Up to Date",
-    "platform_release": "Loeger OS Platform Release",
+    "platform_release": "Alfheim OS Platform Release",
     "current_version": "Current Version",
     "build_target": "Build Target"
   },

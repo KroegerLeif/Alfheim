@@ -6,7 +6,7 @@
 
 ## 🥫 Purpose
 
-The **Pantry App** (`apps/pantry`) is the household inventory management service for the Loeger-OS monorepo. It solves the problem of **household stock blindness** — the inability to know what you have, what's expiring, and what you need to restock — with a structured, data-driven approach.
+The **Pantry App** (`apps/pantry`) is the household inventory management service for the Alfheim monorepo. It solves the problem of **household stock blindness** — the inability to know what you have, what's expiring, and what you need to restock — with a structured, data-driven approach.
 
 ---
 

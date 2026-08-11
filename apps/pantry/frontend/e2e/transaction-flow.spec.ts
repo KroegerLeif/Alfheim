@@ -10,7 +10,7 @@ test.describe('Pantry Frontend E2E Flow', () => {
     expect(url).toMatch(/http:\/\/localhost:\d+(\/de|\/en|\/)?/)
 
     // Verify presence of brand header in sidebar
-    const brandHeader = page.locator('text="LOEGER // OS"')
+    const brandHeader = page.locator('text="ALFHEIM // OS"')
     await expect(brandHeader).toBeVisible()
 
     // Verify navigation sidebar exists

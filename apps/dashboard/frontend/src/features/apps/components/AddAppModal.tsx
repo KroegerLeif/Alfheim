@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import { useCreateApp } from '../queries';
 
 interface AddAppModalProps {
@@ -188,7 +188,7 @@ export function AddAppModal({
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder={isExternal ? 'https://grafana.loeger.local' : '/grafana'}
+              placeholder={isExternal ? 'https://grafana.alfheim.local' : '/grafana'}
               required
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />

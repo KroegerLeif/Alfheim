@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, ChevronUp, ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
-import { IconPicker, Specular } from "@loeger-os/shared";
+import { IconPicker, Specular } from "@alfheim/shared";
 import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
 import { cn } from "@/lib/utils";
 

@@ -1,4 +1,4 @@
-# Blueprint: Adding a Shared Component (`@loeger-os/shared`)
+# Blueprint: Adding a Shared Component (`@alfheim/shared`)
 
 Follow this checklist whenever you add a reusable component to the shared workspace package.
 
@@ -30,7 +30,7 @@ Identify the purpose of your component and place it in the appropriate subdirect
 ### 4) Use theme tokens
 * Consume CSS custom properties from the shared design system (`var(--surface-canvas)`, `var(--text-main)`, `var(--primary-main)`).
 * Do **NOT** use hardcoded hexadecimal or RGB color strings in component styling.
-* If a new theme token is required, refer to [blueprints/theme.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/blueprints/theme.md) to register it correctly.
+* If a new theme token is required, refer to [blueprints/theme.md](file:///Users/leifkroeger/Dev/alfheim/.ai/blueprints/theme.md) to register it correctly.
 
 ### 5) Register exports
 * Export the component from the feature's local `index.ts`.
@@ -40,7 +40,7 @@ Identify the purpose of your component and place it in the appropriate subdirect
 ### 6) Validate
 Verify typechecks compile cleanly across the shared package:
 ```bash
-pnpm --filter @loeger-os/shared exec tsc --noEmit
+pnpm --filter @alfheim/shared exec tsc --noEmit
 ```
 
 ### 7) Missing Backend / API fallbacks

@@ -5,7 +5,7 @@ const getApiUrl = (path: string) => {
   if (typeof window !== "undefined") {
     return window.location.origin + path;
   }
-  return "http://loeger-os" + path;
+  return "http://alfheim" + path;
 };
 
 export interface ShoppingIntegrationData {

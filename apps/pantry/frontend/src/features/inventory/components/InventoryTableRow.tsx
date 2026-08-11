@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { Button } from "@/components/ui/button";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Plus, Minus, AlertTriangle } from "lucide-react";

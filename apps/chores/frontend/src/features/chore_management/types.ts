@@ -1,4 +1,4 @@
-import { Language } from "@loeger-os/shared";
+import { Language } from "@alfheim/shared";
 
 export interface ChoreTemplateRead {
   id: string;

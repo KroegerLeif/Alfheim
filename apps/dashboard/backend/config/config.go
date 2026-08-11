@@ -46,7 +46,7 @@ func Load() (*Config, error) {
 	migrationsDir := getEnv("MIGRATIONS_DIR", "migrations")
 
 	keycloakBaseURL := getEnv("KEYCLOAK_BASE_URL", "http://localhost:8080")
-	keycloakRealm := getEnv("KEYCLOAK_REALM", "loeger-os")
+	keycloakRealm := getEnv("KEYCLOAK_REALM", "alfheim")
 	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "dashboard-backend")
 	keycloakClientSecret := getEnv("KEYCLOAK_CLIENT_SECRET", "")
 	keycloakJWKSURL := getEnv("KEYCLOAK_JWKS_URL", fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakBaseURL, keycloakRealm))

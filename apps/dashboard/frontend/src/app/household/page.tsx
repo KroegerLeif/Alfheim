@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import { useHouseholds, useCreateHousehold, useJoinHousehold } from '@/features/household';
 
 export default function HouseholdSelectorPage() {
@@ -21,8 +21,8 @@ export default function HouseholdSelectorPage() {
   const [createStatus, setCreateStatus] = useState<string | null>(null);
 
   const handleHouseholdSelect = (id: string, role: string) => {
-    localStorage.setItem('loeger_os_active_household_id', id);
-    localStorage.setItem('loeger_os_active_household_role', role);
+    localStorage.setItem('alfheim_active_household_id', id);
+    localStorage.setItem('alfheim_active_household_role', role);
     window.dispatchEvent(new Event('storage-household-changed'));
     router.push(`/household/${id}`);
   };

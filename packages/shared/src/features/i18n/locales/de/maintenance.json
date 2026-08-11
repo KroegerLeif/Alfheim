@@ -1,7 +1,7 @@
 {
   "maintenance": {
     "title": "Wartungs- & Infrastrukturverwaltung",
-    "subtitle": "loeger-os Systemdiagnose, Geräteüberwachung und Wartungsaufgaben",
+    "subtitle": "alfheim Systemdiagnose, Geräteüberwachung und Wartungsaufgaben",
     "devices": "Geräte",
     "tasks": "Wartungsaufgaben",
     "schedule": "Wartungsplan",

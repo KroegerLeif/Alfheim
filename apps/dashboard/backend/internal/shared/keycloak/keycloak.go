@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"loeger-os/dashboard/config"
+	"alfheim/dashboard/config"
 )
 
 // Client wraps the gocloak client and manages service-account admin tokens.

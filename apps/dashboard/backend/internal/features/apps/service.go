@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"regexp"
 	"strings"
-
-	"golang.org/x/sync/errgroup"
 )
 
 // Service defines domain logic contract for the application catalog and permission routing.
@@ -32,30 +30,13 @@ func NewService(repo Repository, log *slog.Logger) Service {
 }
 
 func (s *service) GetPermittedApps(ctx context.Context, userRealmRoles []string, householdRole string) (*AppCatalogResponse, error) {
-	var activeApps []*AppItem
+	if err := s.repo.SeedDefaultApps(ctx); err != nil {
+		s.log.Debug("seed default apps notice", slog.String("error", err.Error()))
+	}
 
-	g, gCtx := errgroup.WithContext(ctx)
-
-	// Fetch active apps from repository
-	g.Go(func() error {
-		var err error
-		activeApps, err = s.repo.GetActiveApps(gCtx)
-		if err != nil {
-			return fmt.Errorf("failed to fetch active apps: %w", err)
-		}
-		return nil
-	})
-
-	// Concurrently attempt to seed default apps if catalog is unpopulated
-	g.Go(func() error {
-		if err := s.repo.SeedDefaultApps(gCtx); err != nil {
-			s.log.Debug("seed default apps notice", slog.String("error", err.Error()))
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		return nil, err
+	activeApps, err := s.repo.GetActiveApps(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch active apps: %w", err)
 	}
 
 	response := &AppCatalogResponse{
@@ -217,7 +198,7 @@ func (s *service) UpdateApp(ctx context.Context, id string, req UpdateAppRequest
 func hasPermission(requiredRole AppRole, realmRoles []string, householdRole string) bool {
 	// Realm admins always bypass app role checks
 	for _, r := range realmRoles {
-		if strings.EqualFold(r, "admin") || strings.EqualFold(r, "loeger_admin") {
+		if strings.EqualFold(r, "admin") || strings.EqualFold(r, "alfheim_admin") {
 			return true
 		}
 	}

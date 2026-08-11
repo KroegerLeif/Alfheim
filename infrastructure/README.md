@@ -1,6 +1,6 @@
 # Infrastructure - Identity and Access Management (IAM)
 
-This directory contains the foundational infrastructure for the IAM of `loeger-os`, following a Feature-Driven Design (FDD) approach. 
+This directory contains the foundational infrastructure for the IAM of `alfheim`, following a Feature-Driven Design (FDD) approach. 
 
 We utilize a "Database per Service" architecture. Keycloak is isolated with its own dedicated PostgreSQL instance to minimize blast radius and ensure loose coupling.
 

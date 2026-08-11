@@ -1,7 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { locales } from "./navigation";
-import { getSharedMessages, Language } from "@loeger-os/shared";
+import { getSharedMessages, Language } from "@alfheim/shared";
 
 export default getRequestConfig(async ({ requestLocale }) => {
   const locale = await requestLocale;

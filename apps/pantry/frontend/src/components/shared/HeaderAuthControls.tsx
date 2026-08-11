@@ -1,6 +1,6 @@
 "use client";
 
-import { AuthControls } from "@loeger-os/shared";
+import { AuthControls } from "@alfheim/shared";
 import { useAuth } from "@/core/authContext";
 
 export function HeaderAuthControls() {

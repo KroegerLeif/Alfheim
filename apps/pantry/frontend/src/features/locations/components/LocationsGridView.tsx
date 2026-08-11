@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { useLocations } from "../services/locationService";
 import { useInventoryState, useLowStockItems } from "@/features/inventory/services/inventoryService";
 import { Button } from "@/components/ui/button";

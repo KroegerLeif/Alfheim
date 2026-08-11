@@ -1,12 +1,12 @@
 # Universal Core AI Guidelines (`.ai/rules/core.md`)
 
-This document defines the non-negotiable architectural principles, quality standards, and development practices that apply universally across all repositories, services, and languages in the `loeger-os` monorepo.
+This document defines the non-negotiable architectural principles, quality standards, and development practices that apply universally across all repositories, services, and languages in the `alfheim` monorepo.
 
 ---
 
 ## 1. Feature-Driven Design (FDD)
 All codebase architectures must be organized around **business domains (features)** rather than technical layers.
-* **Feature Isolation**: Place code relating to a specific domain inside `features/<domain>/` (e.g., `internal/features/<domain>` in Go or `com.loeger.os.<domain>` in Java).
+* **Feature Isolation**: Place code relating to a specific domain inside `features/<domain>/` (e.g., `internal/features/<domain>` in Go or `com.alfheim.os.<domain>` in Java).
 * **Cohesion & Encapsulation**: A feature module encapsulates its own models, schemas/DTOs, domain logic, data access, and API handlers.
 * **Shared Utilities (`shared/` / `core/`)**: Only place code in `shared/` or `core/` if it is strictly domain-agnostic (e.g., HTTP clients, base logger, generic UI primitives). Never put feature-specific business logic in global shared directories.
 

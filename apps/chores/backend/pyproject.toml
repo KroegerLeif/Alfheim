@@ -1,7 +1,7 @@
 [project]
 name = "chores-backend"
 version = "0.1.0"
-description = "Chores microservice backend for loeger-os"
+description = "Chores microservice backend for alfheim"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

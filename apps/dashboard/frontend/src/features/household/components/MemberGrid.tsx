@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import { Household, HouseholdMember } from '@/shared/types';
 
 interface MemberGridProps {

@@ -8,7 +8,7 @@ const sanitizeBaseUrl = (url: string | undefined, defaultFallback: string) => {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = "http://loeger-os" + resolved;
+      resolved = "http://alfheim" + resolved;
     }
   }
   if (resolved.endsWith("/")) {
@@ -45,11 +45,11 @@ export const api = ky.create({
           request.headers.set('Authorization', `Bearer ${token}`);
         }
         if (typeof window !== "undefined") {
-          const activeHhId = localStorage.getItem("loeger_os_active_household_id");
+          const activeHhId = localStorage.getItem("alfheim_active_household_id");
           if (activeHhId) {
             request.headers.set("X-Household-ID", activeHhId);
           }
-          const activeRole = localStorage.getItem("loeger_os_active_household_role");
+          const activeRole = localStorage.getItem("alfheim_active_household_role");
           if (activeRole) {
             request.headers.set("X-Household-Role", activeRole);
           }

@@ -1,6 +1,6 @@
 # Blueprint: Theme Creation & Customization (`.ai/blueprints/theme.md`)
 
-This blueprint outlines the standard developer guidelines for defining, registering, and testing design themes inside the `@loeger-os/shared` workspace package.
+This blueprint outlines the standard developer guidelines for defining, registering, and testing design themes inside the `@alfheim/shared` workspace package.
 
 ---
 

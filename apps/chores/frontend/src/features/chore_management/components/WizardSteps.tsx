@@ -6,7 +6,7 @@ import { useRouter } from "@/navigation";
 import { ClipboardList, Award, RefreshCw, UserCheck, ArrowRight, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { WizardStepContent } from "./WizardStepContent";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 export function WizardSteps() {
   const { t } = useTranslation();

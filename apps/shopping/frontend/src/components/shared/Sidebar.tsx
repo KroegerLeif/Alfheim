@@ -65,14 +65,14 @@ export function Sidebar() {
   }, [lists, households, t]);
 
   const handleSelectHouseholdList = (list: ShoppingList) => {
-    localStorage.setItem("loeger_os_active_household_id", list.home_id);
+    localStorage.setItem("alfheim_active_household_id", list.home_id);
     setActiveListId(list.id);
     window.dispatchEvent(new Event("storage-household-changed"));
   };
 
   const handleSelectPersonalOrCustomList = (list: ShoppingList) => {
     if (!list.is_personal) {
-      localStorage.setItem("loeger_os_active_household_id", list.home_id);
+      localStorage.setItem("alfheim_active_household_id", list.home_id);
       window.dispatchEvent(new Event("storage-household-changed"));
     }
     setActiveListId(list.id);

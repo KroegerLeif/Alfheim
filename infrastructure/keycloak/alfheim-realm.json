@@ -1,6 +1,6 @@
 {
   "id": "6cf4072a-78c2-4cfe-abab-0cad8d940fe7",
-  "realm": "loeger-os",
+  "realm": "alfheim",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
@@ -48,7 +48,7 @@
     "realm": [
       {
         "id": "be7d2eb8-c263-48f0-b1e7-36b9f4c34b3b",
-        "name": "default-roles-loeger-os",
+        "name": "default-roles-alfheim",
         "description": "${role_default-roles}",
         "composite": true,
         "composites": {
@@ -406,7 +406,7 @@
   "groups": [],
   "defaultRole": {
     "id": "be7d2eb8-c263-48f0-b1e7-36b9f4c34b3b",
-    "name": "default-roles-loeger-os",
+    "name": "default-roles-alfheim",
     "description": "${role_default-roles}",
     "composite": true,
     "clientRole": false,
@@ -478,13 +478,13 @@
       "id": "dashboard-frontend-client",
       "clientId": "dashboard-frontend",
       "name": "Dashboard Frontend",
-      "rootUrl": "http://loeger-os",
+      "rootUrl": "http://alfheim",
       "baseUrl": "/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://loeger-os/*",
+        "http://alfheim/*",
         "http://localhost:3000/*"
       ],
       "webOrigins": [
@@ -501,7 +501,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://loeger-os/*",
+        "post.logout.redirect.uris": "http://alfheim/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -522,13 +522,13 @@
       "id": "pantry-frontend-client",
       "clientId": "pantry-frontend",
       "name": "Pantry Frontend",
-      "rootUrl": "http://loeger-os/pantry",
+      "rootUrl": "http://alfheim/pantry",
       "baseUrl": "/pantry/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://loeger-os/pantry/*"
+        "http://alfheim/pantry/*"
       ],
       "webOrigins": [
         "*"
@@ -544,7 +544,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://loeger-os/pantry/*",
+        "post.logout.redirect.uris": "http://alfheim/pantry/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -565,15 +565,15 @@
       "id": "chores-frontend-client",
       "clientId": "chores-frontend",
       "name": "Chores Frontend",
-      "rootUrl": "http://loeger-os/chores",
+      "rootUrl": "http://alfheim/chores",
       "baseUrl": "/chores/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://loeger-os/chores/*",
+        "http://alfheim/chores/*",
         "http://localhost/chores/*",
-        "http://loeger-os/*"
+        "http://alfheim/*"
       ],
       "webOrigins": [
         "*"
@@ -589,7 +589,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://loeger-os/chores/*",
+        "post.logout.redirect.uris": "http://alfheim/chores/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -610,13 +610,13 @@
       "id": "shopping-frontend-client",
       "clientId": "shopping-frontend",
       "name": "Shopping Frontend",
-      "rootUrl": "http://loeger-os/shopping",
+      "rootUrl": "http://alfheim/shopping",
       "baseUrl": "/shopping/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://loeger-os/shopping/*"
+        "http://alfheim/shopping/*"
       ],
       "webOrigins": [
         "*"
@@ -632,7 +632,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://loeger-os/shopping/*",
+        "post.logout.redirect.uris": "http://alfheim/shopping/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -653,13 +653,13 @@
       "id": "maintenance-frontend-client",
       "clientId": "maintenance-frontend",
       "name": "Maintenance Frontend",
-      "rootUrl": "http://loeger-os/maintenance",
+      "rootUrl": "http://alfheim/maintenance",
       "baseUrl": "/maintenance/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://loeger-os/maintenance/*"
+        "http://alfheim/maintenance/*"
       ],
       "webOrigins": [
         "*"
@@ -675,7 +675,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://loeger-os/maintenance/*",
+        "post.logout.redirect.uris": "http://alfheim/maintenance/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -697,13 +697,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/loeger-os/account/",
+      "baseUrl": "/realms/alfheim/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/loeger-os/account/*"
+        "/realms/alfheim/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -741,13 +741,13 @@
       "clientId": "account-console",
       "name": "${client_account-console}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/loeger-os/account/",
+      "baseUrl": "/realms/alfheim/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/loeger-os/account/*"
+        "/realms/alfheim/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -910,13 +910,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/loeger-os/console/",
+      "baseUrl": "/admin/alfheim/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/loeger-os/console/*"
+        "/admin/alfheim/console/*"
       ],
       "webOrigins": [
         "+"

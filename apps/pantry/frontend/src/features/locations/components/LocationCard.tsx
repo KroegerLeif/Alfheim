@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { MapPin, Clock, AlertTriangle } from "lucide-react";
 import { LocationRead } from "@/features/locations/types";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { Search } from "lucide-react";
 import { LocationRead } from "@/features/locations/types";
 import { CategoryRead } from "@/features/categories/types";

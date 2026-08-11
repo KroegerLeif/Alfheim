@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import { ContactCategory } from '@/shared/types';
 
 interface CategoryModalProps {

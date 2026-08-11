@@ -26,7 +26,7 @@
 
 # Digital Pantry Backend
 
-This directory houses the backend microservice for the `loeger-os` Digital Pantry application. Built with FastAPI, SQLModel (SQLAlchemy), and FastMCP, the service acts as a multi-tenant pantry inventory manager that exposes standard REST API endpoints for user interfaces alongside a Model Context Protocol (MCP) server layer for integration with AI/LLM clients.
+This directory houses the backend microservice for the `alfheim` Digital Pantry application. Built with FastAPI, SQLModel (SQLAlchemy), and FastMCP, the service acts as a multi-tenant pantry inventory manager that exposes standard REST API endpoints for user interfaces alongside a Model Context Protocol (MCP) server layer for integration with AI/LLM clients.
 
 ---
 
@@ -162,10 +162,10 @@ graph TD
 ## 3. Module & File Breakdown
 
 ### 3.1 Core Utilities (`src/core/`)
-*   [config.py](file:///Users/leifkroeger/Dev/loeger-os/apps/pantry/backend/src/core/config.py): Employs `pydantic-settings` to configure database credentials, telemetry variables, and debug settings loaded from `.env` files.
-*   [database.py](file:///Users/leifkroeger/Dev/loeger-os/apps/pantry/backend/src/core/database.py): Establishes the asynchronous SQLAlchemy engine, the connection pool (`async_session_factory`), and the `init_db` logic that registers tables on startup.
-*   [dependencies.py](file:///Users/leifkroeger/Dev/loeger-os/apps/pantry/backend/src/core/dependencies.py): Houses `UserHomeContext` and dependencies mock-injecting user authorization contexts (`MOCK_USER_ID`, `MOCK_HOME_ID`). In production, this layer will parse JWT cookies or headers.
-*   [telemetry.py](file:///Users/leifkroeger/Dev/loeger-os/apps/pantry/backend/src/core/telemetry.py): Initializes OpenTelemetry hooks, collecting logs, traces, and metrics from FastAPI and SQLAlchemy, routing them to the OTLP Collector.
+*   [config.py](file:///Users/leifkroeger/Dev/alfheim/apps/pantry/backend/src/core/config.py): Employs `pydantic-settings` to configure database credentials, telemetry variables, and debug settings loaded from `.env` files.
+*   [database.py](file:///Users/leifkroeger/Dev/alfheim/apps/pantry/backend/src/core/database.py): Establishes the asynchronous SQLAlchemy engine, the connection pool (`async_session_factory`), and the `init_db` logic that registers tables on startup.
+*   [dependencies.py](file:///Users/leifkroeger/Dev/alfheim/apps/pantry/backend/src/core/dependencies.py): Houses `UserHomeContext` and dependencies mock-injecting user authorization contexts (`MOCK_USER_ID`, `MOCK_HOME_ID`). In production, this layer will parse JWT cookies or headers.
+*   [telemetry.py](file:///Users/leifkroeger/Dev/alfheim/apps/pantry/backend/src/core/telemetry.py): Initializes OpenTelemetry hooks, collecting logs, traces, and metrics from FastAPI and SQLAlchemy, routing them to the OTLP Collector.
 
 ### 3.2 Features (`src/features/`)
 *   **Locations**: Storage places for commodities. Ensures standard system fallbacks (like `Backlog`) cannot be renamed or deleted. Deleting a custom location transparently reassigns stored stock to `Backlog`.
@@ -179,7 +179,7 @@ graph TD
     *   *ACID Safety*: Acquires write-locks (`SELECT FOR UPDATE`) on consolidated cache rows to prevent write races.
 
 ### 3.3 FastMCP AI Hub (`src/mcp/`)
-*   [server.py](file:///Users/leifkroeger/Dev/loeger-os/apps/pantry/backend/src/mcp/server.py): Defines the `FastMCP` server instance and houses the dynamic loader `discover_and_import_mcp_tools`.
+*   [server.py](file:///Users/leifkroeger/Dev/alfheim/apps/pantry/backend/src/mcp/server.py): Defines the `FastMCP` server instance and houses the dynamic loader `discover_and_import_mcp_tools`.
 *   **Dynamic Discovery**: To keep feature domains decoupled (Open-Closed Principle), any file named `mcp_tools.py` under the `src/features/` folder is auto-imported at startup, dynamically mounting its tools onto the central FastMCP hub.
 
 ---

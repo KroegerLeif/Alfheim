@@ -22,7 +22,7 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
 
   // Load from localStorage on mount
   React.useEffect(() => {
-    const saved = localStorage.getItem("loeger_os_active_household_id");
+    const saved = localStorage.getItem("alfheim_active_household_id");
     if (saved !== null) {
       setHouseholdIdState(saved);
     } else {
@@ -32,9 +32,9 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
 
   const setHouseholdId = (id: number | null) => {
     if (id === null) {
-      localStorage.removeItem("loeger_os_active_household_id");
+      localStorage.removeItem("alfheim_active_household_id");
     } else {
-      localStorage.setItem("loeger_os_active_household_id", id.toString());
+      localStorage.setItem("alfheim_active_household_id", id.toString());
     }
     setHouseholdIdState(id);
     window.dispatchEvent(new Event("storage-household-changed"));

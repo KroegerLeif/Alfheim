@@ -1,6 +1,6 @@
 # Maintenance Frontend Architecture — HOW (`apps/maintenance/frontend/`)
 
-This directory houses the **Next.js & React Query** frontend web application for `loeger-os` Maintenance. It provides user interfaces for browsing device lists, configuring maintenance checklists, registering devices, and checking overdue tasks.
+This directory houses the **Next.js & React Query** frontend web application for `alfheim` Maintenance. It provides user interfaces for browsing device lists, configuring maintenance checklists, registering devices, and checking overdue tasks.
 
 ---
 

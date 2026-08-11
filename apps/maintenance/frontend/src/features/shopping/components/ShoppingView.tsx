@@ -56,7 +56,7 @@ export function ShoppingView() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "loeger-os-shopping.csv");
+    link.setAttribute("download", "alfheim-shopping.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();

@@ -3,7 +3,7 @@
 import { useTodayChores, useChoreSummary } from "../services/choresService";
 import { GoalDonutChart } from "./GoalDonutChart";
 import { Award, TrendingUp, Info } from "lucide-react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 export function InsightsView() {
   const { t } = useTranslation();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTheme, useTranslation } from '@loeger-os/shared';
+import { useTheme, useTranslation } from '@alfheim/shared';
 
 interface ColorPickerProps {
   label: string;
@@ -93,7 +93,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('loeger_os_custom_presets');
+        const saved = localStorage.getItem('alfheim_custom_presets');
         if (saved) {
           setPresets(JSON.parse(saved));
         } else {
@@ -116,7 +116,7 @@ export default function SettingsPage() {
             }
           ];
           setPresets(defaults);
-          localStorage.setItem('loeger_os_custom_presets', JSON.stringify(defaults));
+          localStorage.setItem('alfheim_custom_presets', JSON.stringify(defaults));
         }
       } catch {}
     }
@@ -142,7 +142,7 @@ export default function SettingsPage() {
 
     const updated = [...presets, newPreset];
     setPresets(updated);
-    localStorage.setItem('loeger_os_custom_presets', JSON.stringify(updated));
+    localStorage.setItem('alfheim_custom_presets', JSON.stringify(updated));
     setNewPresetName('');
     setPresetError(null);
   };
@@ -151,7 +151,7 @@ export default function SettingsPage() {
     e.stopPropagation();
     const updated = presets.filter(p => p.id !== id);
     setPresets(updated);
-    localStorage.setItem('loeger_os_custom_presets', JSON.stringify(updated));
+    localStorage.setItem('alfheim_custom_presets', JSON.stringify(updated));
   };
 
   const handleApplyPreset = (preset: CustomPreset) => {

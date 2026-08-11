@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# scripts/down.sh — Loeger-OS stack teardown orchestrator
+# scripts/down.sh — Alfheim stack teardown orchestrator
 #
-# Stops the full loeger-os monorepo stack cleanly.
+# Stops the full alfheim monorepo stack cleanly.
 #
 # Usage:
 #   ./scripts/down.sh [--volumes|-v]
@@ -57,7 +57,7 @@ for arg in "$@"; do
   esac
 done
 
-step "Tearing down Loeger-OS Stack"
+step "Tearing down Alfheim Stack"
 
 info "Gracefully stopping frontends & backends …"
 docker compose -f "${COMPOSE_FILE}" stop chores-frontend maintenance-frontend pantry-frontend shopping-frontend dashboard-frontend chores-backend maintenance-backend pantry-backend shopping-backend dashboard-backend || true
@@ -79,4 +79,4 @@ if [[ "${PURGE_NETWORKS}" == "true" ]]; then
   fi
 fi
 
-ok "Loeger-OS stack teardown complete."
+ok "Alfheim stack teardown complete."

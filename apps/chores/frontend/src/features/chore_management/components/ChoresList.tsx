@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { ChoreInstanceRead, ChoreTemplateRead } from "../types";
 import { useCompleteChoreInstance, useAssignChoreInstance } from "../services/choresService";
 import { CheckCircle2, Circle, User2, Award, RefreshCw, History } from "lucide-react";

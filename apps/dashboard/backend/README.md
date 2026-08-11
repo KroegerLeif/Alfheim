@@ -178,7 +178,7 @@ CREATE INDEX idx_app_catalog_external_status ON app_catalog(is_external, status)
 | `DB_MAX_CONN_LIFETIME_MINUTES` | `30` | Lifespan before individual connections get recycled. |
 | `MIGRATIONS_DIR` | `migrations` | Disk path to Go SQL migration files. |
 | `KEYCLOAK_BASE_URL` | `http://localhost:8080` | Keycloak server base address. |
-| `KEYCLOAK_REALM` | `loeger-os` | Keycloak realm name. |
+| `KEYCLOAK_REALM` | `alfheim` | Keycloak realm name. |
 | `KEYCLOAK_CLIENT_ID` | `dashboard-backend` | App OAuth Client identity. |
 | `KEYCLOAK_CLIENT_SECRET` | *empty* | OAuth Client password credentials (if required). |
 | `KEYCLOAK_JWKS_URL` | `BaseURL/realms/Realm/protocol/openid-connect/certs` | JWKS JSON keys retrieval URI. |

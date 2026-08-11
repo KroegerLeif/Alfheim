@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 
 function UnderConstructionContent() {
   const { t } = useTranslation();

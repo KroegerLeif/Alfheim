@@ -7,7 +7,7 @@ import {
   ThemeToggle,
   AuthControls,
   LanguageSwitcher,
-} from "@loeger-os/shared";
+} from "@alfheim/shared";
 import { useSidebar } from "@/app/[locale]/providers";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
 
@@ -57,7 +57,7 @@ export function Header() {
         </div>
 
         <div className="border-l border-[var(--border-subtle)] pl-3">
-          <BackToDashboard href="http://loeger-os/" />
+          <BackToDashboard href="http://alfheim/" />
         </div>
       </div>
 

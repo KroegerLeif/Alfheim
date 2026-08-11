@@ -62,8 +62,8 @@ export default function Providers({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     const keycloak = new Keycloak({
-      url: "http://loeger-os/auth",
-      realm: "loeger-os",
+      url: "http://alfheim/auth",
+      realm: "alfheim",
       clientId: "maintenance-frontend",
     });
 

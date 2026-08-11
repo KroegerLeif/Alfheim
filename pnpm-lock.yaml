@@ -10,7 +10,7 @@ importers:
 
   apps/chores/frontend:
     dependencies:
-      '@loeger-os/shared':
+      '@alfheim/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
       '@radix-ui/react-dialog':
@@ -107,7 +107,7 @@ importers:
 
   apps/dashboard/frontend:
     dependencies:
-      '@loeger-os/shared':
+      '@alfheim/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
       '@tanstack/react-query':
@@ -162,7 +162,7 @@ importers:
 
   apps/maintenance/frontend:
     dependencies:
-      '@loeger-os/shared':
+      '@alfheim/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
       '@radix-ui/react-dialog':
@@ -265,7 +265,7 @@ importers:
 
   apps/pantry/frontend:
     dependencies:
-      '@loeger-os/shared':
+      '@alfheim/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
       '@radix-ui/react-dialog':
@@ -359,7 +359,7 @@ importers:
 
   apps/shopping/frontend:
     dependencies:
-      '@loeger-os/shared':
+      '@alfheim/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
       '@radix-ui/react-dialog':

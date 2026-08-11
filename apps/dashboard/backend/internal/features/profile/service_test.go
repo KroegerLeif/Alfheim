@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"loeger-os/dashboard/internal/features/profile"
-	"loeger-os/dashboard/internal/shared/middleware"
+	"alfheim/dashboard/internal/features/profile"
+	"alfheim/dashboard/internal/shared/middleware"
 )
 
 type mockProfileRepository struct {

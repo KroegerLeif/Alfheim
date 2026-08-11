@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import { InviteCodeResponse } from '@/shared/types';
 
 interface InviteModalProps {

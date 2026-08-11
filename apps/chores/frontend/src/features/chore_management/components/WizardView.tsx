@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { WizardSteps } from "./WizardSteps";
 
 export function WizardView() {

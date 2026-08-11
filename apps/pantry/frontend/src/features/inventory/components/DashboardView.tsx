@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { Plus, Minus } from "lucide-react";
 import { useInventoryState, useLowStockItems, useExpirationSummary } from "@/features/inventory/services/inventoryService";
 import { StockActionModal } from "./StockActionModal";

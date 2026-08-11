@@ -16,7 +16,7 @@
     "empty_notifications": "Keine Benachrichtigungen",
     "authenticated_user": "Authentifizierter Benutzer",
     "under_construction_title": "{name} befindet sich im Aufbau",
-    "under_construction_desc": "Der angeforderte Microservice oder das Portal wird derzeit als Teil des Loeger OS Platform Releases bereitgestellt.",
+    "under_construction_desc": "Der angeforderte Microservice oder das Portal wird derzeit als Teil des Alfheim OS Platform Releases bereitgestellt.",
     "return_to_dashboard": "Zurück zum Dashboard",
     "status_in_progress": "STATUS: IN BEARBEITUNG",
     "telemetry_title": "Systemgesundheit & Telemetrie",
@@ -40,7 +40,7 @@
     "shell_exec": "AUSFÜHREN",
     "shell_input_placeholder": "Befehl eingeben (z.B. status, help, ping, clear)...",
     "shell_help_response": "Verfügbare Befehle: help, status, apps, clear, ping, uptime",
-    "shell_status_response": "Loeger OS Plattform: 6/6 Container gesund. Alle Proxy-Routen gebunden.",
+    "shell_status_response": "Alfheim OS Plattform: 6/6 Container gesund. Alle Proxy-Routen gebunden.",
     "shell_ping_response": "pong (Latenz: 1.2ms)",
     "shell_unknown_response": "Befehl \"{cmd}\" ausgeführt. Geben Sie \"help\" für verfügbare Befehle ein."
   }

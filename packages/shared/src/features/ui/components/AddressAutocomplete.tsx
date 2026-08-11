@@ -66,7 +66,7 @@ export function AddressAutocomplete({
 					`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`,
 					{
 						headers: {
-							'User-Agent': 'loeger-os-app'
+							'User-Agent': 'alfheim-app'
 						}
 					}
 				);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { Link, usePathname } from "@/navigation";
 import { cn } from "@/core/utils";
 import { 

@@ -21,7 +21,7 @@ export interface GlobalHeaderProps {
 }
 
 export function GlobalHeader({
-  brandTitle = 'Loeger OS',
+  brandTitle = 'Alfheim OS',
   brandSubtitle = 'Obsidian Flux',
   showBackToDashboard = true,
   backToDashboardHref = '/',

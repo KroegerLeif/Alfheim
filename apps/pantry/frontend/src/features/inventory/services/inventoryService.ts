@@ -14,16 +14,16 @@ function useActiveHouseholdId() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
-    setActiveId(localStorage.getItem("loeger_os_active_household_id"));
+    setActiveId(localStorage.getItem("alfheim_active_household_id"));
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "loeger_os_active_household_id") {
+      if (e.key === "alfheim_active_household_id") {
         setActiveId(e.newValue);
       }
     };
 
     const handleLocalChange = () => {
-      setActiveId(localStorage.getItem("loeger_os_active_household_id"));
+      setActiveId(localStorage.getItem("alfheim_active_household_id"));
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -143,7 +143,7 @@ export async function pushLowStockToShoppingApp(): Promise<{ success: boolean; p
     try {
       const targetUrl = typeof window !== "undefined"
         ? `${window.location.origin}/api/v1/shopping/items`
-        : "http://loeger-os/api/v1/shopping/items";
+        : "http://alfheim/api/v1/shopping/items";
 
       const res = await fetch(targetUrl, {
         method: "POST",

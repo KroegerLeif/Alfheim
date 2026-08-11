@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@loeger-os/shared": ["../../../packages/shared/src/index.ts"]
+      "@alfheim/shared": ["../../../packages/shared/src/index.ts"]
     }
   },
   "include": [

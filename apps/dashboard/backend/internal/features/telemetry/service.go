@@ -166,8 +166,8 @@ func (s *service) getLocalSystemLogs() *LogsResponse {
 		service string
 		message string
 	}{
-		{-10 * time.Minute, "INFO", "gateway", "Nginx edge proxy listening on 0.0.0.0:80 [loeger-os.local]"},
-		{-8 * time.Minute, "SUCCESS", "auth-keycloak", "Identity realm \"loeger-os\" initialized with OIDC discovery enabled"},
+		{-10 * time.Minute, "INFO", "gateway", "Nginx edge proxy listening on 0.0.0.0:80 [alfheim.local]"},
+		{-8 * time.Minute, "SUCCESS", "auth-keycloak", "Identity realm \"alfheim\" initialized with OIDC discovery enabled"},
 		{-6 * time.Minute, "INFO", "pantry-backend", "FastAPI service connected to PostgreSQL database (pool_size=10)"},
 		{-5 * time.Minute, "INFO", "dashboard-go", "Go Chi HTTP router listening on :8080 (App Catalog ready)"},
 		{-3 * time.Minute, "WARN", "telemetry", "SigNoz query service operating with proc metrics fallback"},

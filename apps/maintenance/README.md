@@ -1,6 +1,6 @@
 # Maintenance App Architecture — WHY (`apps/maintenance/`)
 
-This directory houses the **Maintenance & Device Inventory Service** for the `loeger-os` monorepo. It manages the registration of household devices, coordinates recurring maintenance schedules, runs interactive guided maintenance checklists, and tracks historical service events.
+This directory houses the **Maintenance & Device Inventory Service** for the `alfheim` monorepo. It manages the registration of household devices, coordinates recurring maintenance schedules, runs interactive guided maintenance checklists, and tracks historical service events.
 
 ---
 

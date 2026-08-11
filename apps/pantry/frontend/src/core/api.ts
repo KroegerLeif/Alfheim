@@ -7,13 +7,13 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = "http://loeger-os" + resolved;
+      resolved = "http://alfheim" + resolved;
     }
   }
   return resolved.endsWith("/") ? resolved : resolved + "/";
 };
 
-const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://loeger-os/api/v1/pantry/");
+const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://alfheim/api/v1/pantry/");
 
 export const pantryClient = ky.create({
   prefixUrl: BASE_URL,
@@ -29,7 +29,7 @@ export const pantryClient = ky.create({
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
-          const activeHhId = localStorage.getItem("loeger_os_active_household_id");
+          const activeHhId = localStorage.getItem("alfheim_active_household_id");
           if (activeHhId) {
             request.headers.set("X-Household-ID", activeHhId);
           }

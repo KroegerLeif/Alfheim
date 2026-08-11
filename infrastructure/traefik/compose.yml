@@ -1,7 +1,7 @@
 services:
   traefik:
     image: traefik:v3.6.1
-    container_name: loeger_traefik
+    container_name: alfheim_traefik
     restart: unless-stopped
     command:
       - "--api.insecure=true"

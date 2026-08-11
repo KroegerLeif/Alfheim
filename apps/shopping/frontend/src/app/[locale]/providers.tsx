@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider as SharedThemeProvider } from "@loeger-os/shared";
+import { ThemeProvider as SharedThemeProvider } from "@alfheim/shared";
 import { ReactNode, useState, useEffect, createContext, useContext } from "react";
 import Keycloak from "keycloak-js";
 
@@ -48,8 +48,8 @@ export default function Providers({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     const keycloak = new Keycloak({
-      url: "http://loeger-os/auth",
-      realm: "loeger-os",
+      url: "http://alfheim/auth",
+      realm: "alfheim",
       clientId: "shopping-frontend",
     });
 

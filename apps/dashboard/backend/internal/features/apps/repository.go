@@ -193,6 +193,9 @@ func (r *repository) SeedDefaultApps(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to count app catalog rows: %w", err)
 	}
+	if count > 0 {
+		return nil
+	}
 
 	defaultApps := []struct {
 		Name         string

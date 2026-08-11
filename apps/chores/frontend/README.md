@@ -12,7 +12,7 @@
 | Language | TypeScript (strict mode) |
 | State / Fetching | TanStack Query v5 |
 | Styling | Tailwind CSS v4 (via CSS variables design tokens) |
-| i18n | `@loeger-os/shared` / `next-intl` |
+| i18n | `@alfheim/shared` / `next-intl` |
 | HTTP Client | `ky` (via `src/core/api.ts` — `choresClient`) |
 
 ---

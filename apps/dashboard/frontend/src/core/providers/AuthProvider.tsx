@@ -69,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return;
 
     const keycloak = new Keycloak({
-      url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://loeger-os/auth',
-      realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'loeger-os',
+      url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://alfheim/auth',
+      realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'alfheim',
       clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'dashboard-frontend',
     });
 

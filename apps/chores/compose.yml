@@ -47,7 +47,7 @@ services:
       - observability-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.chores-backend.rule=Host(`loeger-os`) && PathPrefix(`/api/v1/chores`)"
+      - "traefik.http.routers.chores-backend.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/api/v1/chores`)"
       - "traefik.http.routers.chores-backend.entrypoints=web"
       - "traefik.http.routers.chores-backend.service=chores-backend-service"
       - "traefik.http.services.chores-backend-service.loadbalancer.server.port=8000"
@@ -57,7 +57,7 @@ services:
       context: ../..
       dockerfile: apps/chores/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1/chores}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_CHORES_API_URL:-/api/v1/chores}
     container_name: chores-frontend
     restart: always
     env_file:
@@ -77,12 +77,12 @@ services:
       - public-ingress
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.chores-frontend.rule=Host(`loeger-os`) && PathPrefix(`/chores`)"
+      - "traefik.http.routers.chores-frontend.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/chores`)"
       - "traefik.http.routers.chores-frontend.entrypoints=web"
       - "traefik.http.routers.chores-frontend.priority=100"
       - "traefik.http.routers.chores-frontend.service=chores-frontend-service"
       
-      - "traefik.http.routers.chores-exact.rule=Host(`loeger-os`) && (Path(`/chores`) || Path(`/chores/`))"
+      - "traefik.http.routers.chores-exact.rule=(Host(`alfheim`) || Host(`localhost`)) && (Path(`/chores`) || Path(`/chores/`))"
       - "traefik.http.routers.chores-exact.entrypoints=web"
       - "traefik.http.routers.chores-exact.priority=110"
       - "traefik.http.routers.chores-exact.service=chores-frontend-service"

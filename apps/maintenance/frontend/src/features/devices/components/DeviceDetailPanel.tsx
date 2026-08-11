@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Device } from "@/shared/types";
-import { SidePanel } from "@loeger-os/shared";
+import { SidePanel } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { cn } from "@/core/utils";
 import { OverviewTab } from "./OverviewTab";

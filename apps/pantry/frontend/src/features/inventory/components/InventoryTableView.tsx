@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { useInventoryState } from "@/features/inventory/services/inventoryService";
 import { useLocations } from "@/features/locations/services/locationService";
 import { useCategories } from "@/features/categories/services/categoryService";

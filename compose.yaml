@@ -1,4 +1,4 @@
-name: loeger-os
+name: alfheim
 
 include:
   - ./infrastructure/compose.yml

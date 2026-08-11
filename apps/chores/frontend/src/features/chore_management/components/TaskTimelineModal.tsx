@@ -3,7 +3,7 @@
 import { ChoreTemplateRead } from "../types";
 import { useTaskTimeline } from "../services/choresService";
 import { X, History, Award, User, Clock } from "lucide-react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 
 interface TaskTimelineModalProps {
   template: ChoreTemplateRead | null;

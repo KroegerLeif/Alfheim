@@ -7,8 +7,8 @@ import (
 
 	"github.com/Nerzal/gocloak/v13"
 	"golang.org/x/sync/errgroup"
-	"loeger-os/dashboard/internal/shared/keycloak"
-	"loeger-os/dashboard/internal/shared/middleware"
+	"alfheim/dashboard/internal/shared/keycloak"
+	"alfheim/dashboard/internal/shared/middleware"
 )
 
 // Service defines domain logic for user profile syncing and management.

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTranslation } from '@loeger-os/shared';
+import { useTranslation } from '@alfheim/shared';
 import { useTelemetryLogs } from '../queries';
 
 interface LogEntry {
@@ -147,7 +147,7 @@ export function SystemShellLogs() {
             <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
           </div>
           <span className="ml-2 text-xs font-mono text-[var(--text-muted)] truncate">
-            shell@loeger-os:~# {t('dashboard.shell_title')}
+            shell@alfheim:~# {t('dashboard.shell_title')}
           </span>
         </div>
 

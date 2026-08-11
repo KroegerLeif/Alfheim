@@ -5,7 +5,7 @@ import { getMessages } from "next-intl/server";
 import {
   LanguageProvider,
   ThemeProvider,
-} from "@loeger-os/shared";
+} from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ClientHeader } from "@/components/shared/ClientHeader";
@@ -51,7 +51,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                 <div className="flex w-full min-h-screen">
                   <Sidebar />
                   <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-                    {/* Reuse shared layout shell from @loeger-os/shared */}
+                    {/* Reuse shared layout shell from @alfheim/shared */}
                     <ClientHeader />
 
                     <main className="flex-1 p-6">

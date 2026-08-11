@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChoreTemplateRead } from "../types";
 import { useDeleteChoreTemplate } from "../services/choresService";
 import { Award, RefreshCw, Trash2, Calendar, Check, X, History } from "lucide-react";
-import { useTranslation } from "@loeger-os/shared";
+import { useTranslation } from "@alfheim/shared";
 import { TaskTimelineModal } from "./TaskTimelineModal";
 
 interface TaskCardProps {
