@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@alfheim/shared';
-import { useUpdateApp } from '../queries';
+import { useUpdateUserLink, useDeleteUserLink } from '../queries';
 import { AppItem } from '@/shared/types';
 
 interface EditAppModalProps {
@@ -13,24 +13,23 @@ interface EditAppModalProps {
 }
 
 const PRESET_ICONS = [
-  { name: 'kitchen', label: 'Pantry' },
-  { name: 'shopping_cart', label: 'Shopping' },
-  { name: 'build', label: 'Tools' },
-  { name: 'checklist', label: 'Tasks' },
-  { name: 'cleaning_services', label: 'Chores' },
-  { name: 'home', label: 'Home Automation' },
-  { name: 'movie', label: 'Media Stream' },
-  { name: 'cloud', label: 'Storage' },
-  { name: 'link', label: 'Portal Link' },
-  { name: 'language', label: 'Web Service' },
-  { name: 'search', label: 'Search Engine' },
+  { name: 'link', label: 'Bookmark Link' },
+  { name: 'folder', label: 'Folder / Storage' },
+  { name: 'cloud', label: 'Cloud Drive' },
+  { name: 'home', label: 'Home System' },
+  { name: 'language', label: 'Web Portal' },
   { name: 'dashboard', label: 'Analytics' },
-  { name: 'security', label: 'IAM Access' },
+  { name: 'movie', label: 'Media Streaming' },
+  { name: 'code', label: 'Developer Tool' },
+  { name: 'terminal', label: 'Console Tool' },
+  { name: 'psychology', label: 'AI Assistant' },
+  { name: 'security', label: 'Vault Access' },
+  { name: 'checklist', label: 'Task List' },
 ];
 
 /**
- * Interactive Edit App / Service Link Modal Component.
- * Enables editing an existing app catalog item's title, description, url, icon, is_external, and status.
+ * Interactive Edit Tier 3 User Link Modal Component.
+ * Enables editing or deleting an existing user custom link/bookmark.
  */
 export function EditAppModal({
   app,
@@ -39,25 +38,24 @@ export function EditAppModal({
   onSuccess,
 }: EditAppModalProps) {
   const { t } = useTranslation();
-  const updateAppMutation = useUpdateApp();
+  const updateLinkMutation = useUpdateUserLink();
+  const deleteLinkMutation = useDeleteUserLink();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('grid_view');
-  const [isExternal, setIsExternal] = useState(false);
-  const [status, setStatus] = useState<'active' | 'in_progress' | 'maintenance'>('active');
+  const [selectedIcon, setSelectedIcon] = useState('link');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (app) {
       setTitle(app.title || app.name || '');
       setDescription(app.description || '');
       setUrl(app.url || app.app_url || '');
-      setSelectedIcon(app.icon || app.icon_url || 'grid_view');
-      setIsExternal(Boolean(app.is_external || app.category === 'external'));
-      setStatus((app.status as 'active' | 'in_progress' | 'maintenance') || 'active');
+      setSelectedIcon(app.icon || app.icon_url || 'link');
       setErrorMessage(null);
+      setConfirmDelete(false);
     }
   }, [app]);
 
@@ -71,15 +69,15 @@ export function EditAppModal({
     const trimmedUrl = url.trim();
 
     if (!trimmedTitle) {
-      setErrorMessage(t('catalog.title_required_error'));
+      setErrorMessage('Title is required');
       return;
     }
     if (!trimmedUrl) {
-      setErrorMessage(t('catalog.url_required_error'));
+      setErrorMessage('URL is required');
       return;
     }
 
-    updateAppMutation.mutate(
+    updateLinkMutation.mutate(
       {
         id: app.id,
         payload: {
@@ -87,23 +85,34 @@ export function EditAppModal({
           description: description.trim(),
           icon: selectedIcon,
           url: trimmedUrl,
-          is_external: isExternal,
-          category: isExternal ? 'external' : 'internal',
-          status,
         },
       },
       {
-        onSuccess: (updatedApp) => {
+        onSuccess: (updatedItem) => {
           if (onSuccess) {
-            onSuccess(updatedApp.title || updatedApp.name);
+            onSuccess(updatedItem.title || updatedItem.name || trimmedTitle);
           }
           onClose();
         },
         onError: (err) => {
-          setErrorMessage(err.message || t('catalog.update_failed_error'));
+          setErrorMessage(err.message || 'Failed to update user link');
         },
       }
     );
+  };
+
+  const handleDelete = () => {
+    deleteLinkMutation.mutate(app.id, {
+      onSuccess: () => {
+        if (onSuccess) {
+          onSuccess(`Deleted link "${app.title || app.name}"`);
+        }
+        onClose();
+      },
+      onError: (err) => {
+        setErrorMessage(err.message || 'Failed to delete user link');
+      },
+    });
   };
 
   return (
@@ -114,13 +123,13 @@ export function EditAppModal({
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">edit_square</span>
             <h2 className="text-base font-bold text-[var(--text-main)]">
-              {t('catalog.edit_app_title')} ({app.title || app.name})
+              Edit Personal Link
             </h2>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+            className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
@@ -136,14 +145,29 @@ export function EditAppModal({
           {/* Title */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.app_name')}
+              Link Title *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Nextcloud Storage"
+              placeholder="e.g. My Google Drive"
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+              required
+            />
+          </div>
+
+          {/* URL */}
+          <div>
+            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
+              Target URL *
+            </label>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://drive.google.com"
+              className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
               required
             />
           </div>
@@ -151,36 +175,21 @@ export function EditAppModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.description')}
+              Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief summary of service capabilities..."
+              placeholder="Brief description..."
               rows={2}
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-            />
-          </div>
-
-          {/* URL */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.app_url')}
-            </label>
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="e.g. /pantry or http://homeassistant.local"
-              className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-              required
             />
           </div>
 
           {/* Icon Picker */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.icon')}
+              Icon
             </label>
             <div className="grid grid-cols-6 gap-2 max-h-28 overflow-y-auto p-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
               {PRESET_ICONS.map((ic) => (
@@ -189,7 +198,7 @@ export function EditAppModal({
                   type="button"
                   onClick={() => setSelectedIcon(ic.name)}
                   title={ic.label}
-                  className={`p-2 rounded-lg flex flex-col items-center justify-center transition-all ${
+                  className={`p-2 rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer ${
                     selectedIcon === ic.name
                       ? 'bg-[var(--primary-main)]/20 border border-[var(--primary-main)] text-[var(--primary-main)]'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-elevated)]'
@@ -201,54 +210,54 @@ export function EditAppModal({
             </div>
           </div>
 
-          {/* Type & Status Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-                {t('catalog.category')}
-              </label>
-              <select
-                value={isExternal ? 'external' : 'internal'}
-                onChange={(e) => setIsExternal(e.target.value === 'external')}
-                className="w-full px-3 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-              >
-                <option value="internal">{t('catalog.internal_category')}</option>
-                <option value="external">{t('catalog.external_category')}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-                {t('catalog.status')}
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as 'active' | 'in_progress' | 'maintenance')}
-                className="w-full px-3 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-              >
-                <option value="active">{t('common.active')}</option>
-                <option value="in_progress">{t('common.in_progress')}</option>
-                <option value="maintenance">{t('common.maintenance')}</option>
-              </select>
-            </div>
-          </div>
-
           {/* Footer Actions */}
-          <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)]"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={updateAppMutation.isPending}
-              className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50 transition-all shadow-md"
-            >
-              {updateAppMutation.isPending ? t('common.loading') : t('common.save_changes')}
-            </button>
+          <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-rose-400 font-mono">Delete link?</span>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleteLinkMutation.isPending}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer"
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="px-3 py-1.5 rounded-lg bg-rose-950/40 border border-rose-800/40 text-rose-400 font-mono text-xs hover:bg-rose-900/40 cursor-pointer flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-sm">delete</span>
+                <span>Delete Link</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={updateLinkMutation.isPending}
+                className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50 transition-all shadow-md"
+              >
+                {updateLinkMutation.isPending ? t('common.loading') : t('common.save_changes')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

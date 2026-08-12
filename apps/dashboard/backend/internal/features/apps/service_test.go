@@ -5,221 +5,183 @@ import (
 	"io"
 	"log/slog"
 	"testing"
-	"time"
 
 	"alfheim/dashboard/internal/features/apps"
 )
 
-type mockAppRepository struct {
-	items []*apps.AppItem
+type mockRepository struct {
+	preferences *apps.UserPreferences
+	links       []*apps.UserLink
 }
 
-func newMockAppRepository() *mockAppRepository {
-	return &mockAppRepository{
-		items: []*apps.AppItem{
+func newMockRepository() *mockRepository {
+	return &mockRepository{
+		preferences: &apps.UserPreferences{
+			UserID:       "user-1",
+			HiddenAppIDs: []string{"todo"},
+		},
+		links: []*apps.UserLink{
 			{
-				ID:           "app-1",
-				Name:         "Pantry",
-				Title:        "Pantry",
-				Slug:         "pantry",
-				Description:  "Pantry Inventory",
-				IconURL:      "/icons/pantry.svg",
-				Icon:         "/icons/pantry.svg",
-				AppURL:       "/pantry",
-				URL:          "/pantry",
-				Category:     apps.CategoryInternal,
-				RequiredRole: apps.RoleMember,
-				IsActive:     true,
-				IsExternal:   false,
-				Status:       "active",
-				IsDefault:    true,
-				DisplayOrder: 1,
-				CreatedAt:    time.Now(),
-				UpdatedAt:    time.Now(),
-			},
-			{
-				ID:           "app-2",
-				Name:         "Home Assistant",
-				Title:        "Home Assistant",
-				Slug:         "home-assistant",
-				Description:  "Smart Home Control",
-				IconURL:      "/icons/ha.svg",
-				Icon:         "/icons/ha.svg",
-				AppURL:       "https://ha.alfheim.local",
-				URL:          "https://ha.alfheim.local",
-				Category:     apps.CategoryExternal,
-				RequiredRole: apps.RoleAdmin,
-				IsActive:     true,
-				IsExternal:   true,
-				Status:       "active",
-				IsDefault:    true,
-				DisplayOrder: 2,
-				CreatedAt:    time.Now(),
-				UpdatedAt:    time.Now(),
-			},
-			{
-				ID:           "app-3",
-				Name:         "Admin Console",
-				Title:        "Admin Console",
-				Slug:         "admin-console",
-				Description:  "Household Admin Management",
-				IconURL:      "/icons/admin.svg",
-				Icon:         "/icons/admin.svg",
-				AppURL:       "/admin",
-				URL:          "/admin",
-				Category:     apps.CategoryInternal,
-				RequiredRole: apps.RoleOwner,
-				IsActive:     true,
-				IsExternal:   false,
-				Status:       "active",
-				IsDefault:    true,
-				DisplayOrder: 3,
-				CreatedAt:    time.Now(),
-				UpdatedAt:    time.Now(),
+				ID:          "link-1",
+				UserID:      "user-1",
+				Title:       "Google Drive",
+				URL:         "https://drive.google.com",
+				Icon:        "cloud",
+				Category:    "user",
+				Description: "Personal Cloud Drive",
 			},
 		},
 	}
 }
 
-func (m *mockAppRepository) GetActiveApps(ctx context.Context) ([]*apps.AppItem, error) {
-	return m.items, nil
+func (m *mockRepository) GetUserPreferences(ctx context.Context, userID string) (*apps.UserPreferences, error) {
+	if m.preferences != nil && m.preferences.UserID == userID {
+		return m.preferences, nil
+	}
+	return &apps.UserPreferences{UserID: userID, HiddenAppIDs: []string{}}, nil
 }
 
-func (m *mockAppRepository) GetAppByID(ctx context.Context, id string) (*apps.AppItem, error) {
-	for _, item := range m.items {
-		if item.ID == id {
-			return item, nil
+func (m *mockRepository) UpdateUserPreferences(ctx context.Context, userID string, hiddenAppIDs []string) (*apps.UserPreferences, error) {
+	m.preferences = &apps.UserPreferences{UserID: userID, HiddenAppIDs: hiddenAppIDs}
+	return m.preferences, nil
+}
+
+func (m *mockRepository) GetUserLinks(ctx context.Context, userID string) ([]*apps.UserLink, error) {
+	var userLinks []*apps.UserLink
+	for _, l := range m.links {
+		if l.UserID == userID {
+			userLinks = append(userLinks, l)
 		}
 	}
-	return nil, apps.ErrAppNotFound
+	return userLinks, nil
 }
 
-func (m *mockAppRepository) CreateApp(ctx context.Context, app *apps.AppItem) error {
-	app.ID = "app-created-1"
-	app.CreatedAt = time.Now()
-	app.UpdatedAt = time.Now()
-	m.items = append(m.items, app)
+func (m *mockRepository) GetUserLinkByID(ctx context.Context, id string, userID string) (*apps.UserLink, error) {
+	for _, l := range m.links {
+		if l.ID == id && l.UserID == userID {
+			return l, nil
+		}
+	}
+	return nil, apps.ErrLinkNotFound
+}
+
+func (m *mockRepository) CreateUserLink(ctx context.Context, link *apps.UserLink) error {
+	link.ID = "link-created-1"
+	m.links = append(m.links, link)
 	return nil
 }
 
-func (m *mockAppRepository) UpdateApp(ctx context.Context, app *apps.AppItem) error {
-	for i, item := range m.items {
-		if item.ID == app.ID {
-			m.items[i] = app
+func (m *mockRepository) UpdateUserLink(ctx context.Context, link *apps.UserLink) error {
+	for i, l := range m.links {
+		if l.ID == link.ID && l.UserID == link.UserID {
+			m.links[i] = link
 			return nil
 		}
 	}
-	return apps.ErrAppNotFound
+	return apps.ErrLinkNotFound
 }
 
-func (m *mockAppRepository) SeedDefaultApps(ctx context.Context) error {
-	return nil
+func (m *mockRepository) DeleteUserLink(ctx context.Context, id string, userID string) error {
+	for i, l := range m.links {
+		if l.ID == id && l.UserID == userID {
+			m.links = append(m.links[:i], m.links[i+1:]...)
+			return nil
+		}
+	}
+	return apps.ErrLinkNotFound
 }
 
-func TestAppService_RoleFilteringAndGrouping(t *testing.T) {
-	repo := newMockAppRepository()
+type mockStackLoader struct {
+	apps []apps.StackAppConfig
+}
+
+func (m *mockStackLoader) LoadStackApps() ([]apps.StackAppConfig, error) {
+	return m.apps, nil
+}
+
+func Test3TierAppService_GetDashboardApps(t *testing.T) {
+	repo := newMockRepository()
+	stackLoader := &mockStackLoader{
+		apps: []apps.StackAppConfig{
+			{
+				ID:            "home-assistant",
+				Title:         "Home Assistant",
+				Slug:          "home-assistant",
+				Description:   "Smart home control",
+				Icon:          "home",
+				URL:           "http://homeassistant.local",
+				Category:      "external",
+				RequiredRoles: []string{},
+				Status:        "active",
+			},
+			{
+				ID:            "plex",
+				Title:         "Plex Media Server",
+				Slug:          "plex",
+				Description:   "Media server",
+				Icon:          "movie",
+				URL:           "http://plex.local",
+				Category:      "external",
+				RequiredRoles: []string{"admin"},
+				Status:        "in_progress",
+			},
+		},
+	}
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, logger)
+	svc := apps.NewService(repo, stackLoader, logger)
 	ctx := context.Background()
 
-	// 1. Test MEMBER role (should see only MEMBER apps)
-	resMember, err := svc.GetPermittedApps(ctx, []string{}, "MEMBER")
+	// 1. Query for standard user (roles: []) -> should get non-hidden Core apps (4), Stack apps (1: Home Assistant), User links (1)
+	resUser, err := svc.GetDashboardApps(ctx, "user-1", []string{})
 	if err != nil {
-		t.Fatalf("expected no error for member query, got: %v", err)
-	}
-	if resMember.Total != 1 {
-		t.Errorf("expected 1 permitted app for MEMBER, got %d", resMember.Total)
-	}
-	if len(resMember.Internal) != 1 || resMember.Internal[0].Slug != "pantry" {
-		t.Errorf("expected internal app 'pantry', got %v", resMember.Internal)
+		t.Fatalf("expected no error querying dashboard apps, got: %v", err)
 	}
 
-	// 2. Test ADMIN role (should see MEMBER and ADMIN apps)
-	resAdmin, err := svc.GetPermittedApps(ctx, []string{}, "ADMIN")
+	if len(resUser.Core) != 4 {
+		t.Errorf("expected 4 visible Core apps (todo is hidden), got %d", len(resUser.Core))
+	}
+	if len(resUser.Stack) != 1 || resUser.Stack[0].ID != "home-assistant" {
+		t.Errorf("expected 1 permitted stack app (home-assistant), got %v", resUser.Stack)
+	}
+	if len(resUser.User) != 1 || resUser.User[0].Title != "Google Drive" {
+		t.Errorf("expected 1 user link (Google Drive), got %v", resUser.User)
+	}
+
+	// 2. Query for admin user (roles: ["admin"]) -> should also see Plex stack app
+	resAdmin, err := svc.GetDashboardApps(ctx, "user-1", []string{"admin"})
 	if err != nil {
 		t.Fatalf("expected no error for admin query, got: %v", err)
 	}
-	if resAdmin.Total != 2 {
-		t.Errorf("expected 2 permitted apps for ADMIN, got %d", resAdmin.Total)
-	}
-	if len(resAdmin.External) != 1 || resAdmin.External[0].Slug != "home-assistant" {
-		t.Errorf("expected external app 'home-assistant', got %v", resAdmin.External)
-	}
 
-	// 3. Test OWNER role (should see MEMBER, ADMIN, and OWNER apps)
-	resOwner, err := svc.GetPermittedApps(ctx, []string{}, "OWNER")
-	if err != nil {
-		t.Fatalf("expected no error for owner query, got: %v", err)
-	}
-	if resOwner.Total != 3 {
-		t.Errorf("expected 3 permitted apps for OWNER, got %d", resOwner.Total)
-	}
-
-	// 4. Test Realm Admin override
-	resRealmAdmin, err := svc.GetPermittedApps(ctx, []string{"alfheim_admin"}, "MEMBER")
-	if err != nil {
-		t.Fatalf("expected no error for realm admin query, got: %v", err)
-	}
-	if resRealmAdmin.Total != 3 {
-		t.Errorf("expected realm admin bypass to permit all 3 apps, got %d", resRealmAdmin.Total)
+	if len(resAdmin.Stack) != 2 {
+		t.Errorf("expected 2 permitted stack apps for admin, got %d", len(resAdmin.Stack))
 	}
 }
 
-func TestAppService_CreateApp(t *testing.T) {
-	repo := newMockAppRepository()
+func Test3TierAppService_UserLinkCRUD(t *testing.T) {
+	repo := newMockRepository()
+	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, logger)
+	svc := apps.NewService(repo, stackLoader, logger)
 	ctx := context.Background()
 
-	// Test invalid request (missing title)
-	_, err := svc.CreateApp(ctx, apps.CreateAppRequest{URL: "http://example.com"})
-	if err == nil {
-		t.Error("expected error for missing title, got nil")
-	}
-
-	// Test valid creation
-	created, err := svc.CreateApp(ctx, apps.CreateAppRequest{
-		Title:       "Custom Service",
-		Description: "Custom service description",
-		Icon:        "star",
-		URL:         "http://custom.local",
-		IsExternal:  true,
+	// Test link creation
+	created, err := svc.CreateUserLink(ctx, "user-1", apps.CreateUserLinkRequest{
+		Title: "GitHub Repo",
+		URL:   "https://github.com",
+		Icon:  "code",
 	})
 	if err != nil {
-		t.Fatalf("expected no error creating app, got: %v", err)
+		t.Fatalf("expected no error creating link, got: %v", err)
+	}
+	if created.Title != "GitHub Repo" || created.Tier != apps.TierUser {
+		t.Errorf("unexpected created link DTO: %+v", created)
 	}
 
-	if created.Title != "Custom Service" || !created.IsExternal || created.Category != "external" {
-		t.Errorf("unexpected created DTO content: %+v", created)
-	}
-}
-
-func TestAppService_UpdateApp(t *testing.T) {
-	repo := newMockAppRepository()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, logger)
-	ctx := context.Background()
-
-	// Test non-existent app
-	_, err := svc.UpdateApp(ctx, "app-non-existent", apps.UpdateAppRequest{Title: "Updated Title"})
-	if err == nil {
-		t.Error("expected error for non-existent app update, got nil")
-	}
-
-	// Test updating existing app
-	updated, err := svc.UpdateApp(ctx, "app-1", apps.UpdateAppRequest{
-		Title:       "Updated Pantry",
-		Description: "Updated description",
-		URL:         "/pantry-v2",
-		Icon:        "kitchen",
-		IsExternal:  false,
-		Status:      "active",
-	})
+	// Test link deletion
+	err = svc.DeleteUserLink(ctx, "user-1", "link-1")
 	if err != nil {
-		t.Fatalf("expected no error updating app-1, got: %v", err)
-	}
-
-	if updated.Title != "Updated Pantry" || updated.Description != "Updated description" || updated.URL != "/pantry-v2" {
-		t.Errorf("unexpected updated DTO fields: %+v", updated)
+		t.Fatalf("expected no error deleting link-1, got: %v", err)
 	}
 }

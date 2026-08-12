@@ -14,6 +14,7 @@ type Config struct {
 	Port        string
 	Database    DatabaseConfig
 	Keycloak    KeycloakConfig
+	StackAppsPath string
 }
 
 // DatabaseConfig holds PostgreSQL connection configuration settings.
@@ -50,10 +51,12 @@ func Load() (*Config, error) {
 	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "dashboard-backend")
 	keycloakClientSecret := getEnv("KEYCLOAK_CLIENT_SECRET", "")
 	keycloakJWKSURL := getEnv("KEYCLOAK_JWKS_URL", fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakBaseURL, keycloakRealm))
+	stackAppsPath := getEnv("STACK_APPS_PATH", "deploy/stack-apps.yaml")
 
 	cfg := &Config{
 		Environment: env,
 		Port:        port,
+		StackAppsPath: stackAppsPath,
 		Database: DatabaseConfig{
 			URL:             dbURL,
 			MaxConns:        maxConns,

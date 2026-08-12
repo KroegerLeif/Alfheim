@@ -9,228 +9,219 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Repository database access contract for app catalog.
+// Repository database access contract for user preferences and user custom links.
 type Repository interface {
-	GetActiveApps(ctx context.Context) ([]*AppItem, error)
-	GetAppByID(ctx context.Context, id string) (*AppItem, error)
-	CreateApp(ctx context.Context, app *AppItem) error
-	UpdateApp(ctx context.Context, app *AppItem) error
-	SeedDefaultApps(ctx context.Context) error
+	GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error)
+	UpdateUserPreferences(ctx context.Context, userID string, hiddenAppIDs []string) (*UserPreferences, error)
+	GetUserLinks(ctx context.Context, userID string) ([]*UserLink, error)
+	GetUserLinkByID(ctx context.Context, id string, userID string) (*UserLink, error)
+	CreateUserLink(ctx context.Context, link *UserLink) error
+	UpdateUserLink(ctx context.Context, link *UserLink) error
+	DeleteUserLink(ctx context.Context, id string, userID string) error
 }
 
 type repository struct {
 	pool *pgxpool.Pool
 }
 
-// NewRepository initializes PostgreSQL repository for app catalog.
+// NewRepository initializes PostgreSQL repository for 3-tier user preferences & user links.
 func NewRepository(pool *pgxpool.Pool) Repository {
 	return &repository{pool: pool}
 }
 
-func (r *repository) GetActiveApps(ctx context.Context) ([]*AppItem, error) {
+func (r *repository) GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error) {
 	query := `
-		SELECT id, name, slug, description, icon_url, app_url, category, required_role, is_active,
-		       COALESCE(is_external, FALSE) as is_external,
-		       COALESCE(status, 'active') as status,
-		       COALESCE(is_default, TRUE) as is_default,
-		       display_order, created_at, updated_at
-		FROM app_catalog
-		WHERE is_active = TRUE
-		ORDER BY display_order ASC, name ASC
+		SELECT user_id, hidden_app_ids, created_at, updated_at
+		FROM user_preferences
+		WHERE user_id = $1
 	`
 
-	rows, err := r.pool.Query(ctx, query)
+	pref := &UserPreferences{
+		UserID:       userID,
+		HiddenAppIDs: []string{},
+	}
+
+	err := r.pool.QueryRow(ctx, query, userID).Scan(
+		&pref.UserID,
+		&pref.HiddenAppIDs,
+		&pref.CreatedAt,
+		&pref.UpdatedAt,
+	)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to query active apps: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			// Return default empty preferences when none exist yet
+			return pref, nil
+		}
+		return nil, fmt.Errorf("failed to query user preferences for user %s: %w", userID, err)
+	}
+
+	return pref, nil
+}
+
+func (r *repository) UpdateUserPreferences(ctx context.Context, userID string, hiddenAppIDs []string) (*UserPreferences, error) {
+	if hiddenAppIDs == nil {
+		hiddenAppIDs = []string{}
+	}
+
+	query := `
+		INSERT INTO user_preferences (user_id, hidden_app_ids, updated_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (user_id) DO UPDATE SET
+			hidden_app_ids = EXCLUDED.hidden_app_ids,
+			updated_at = NOW()
+		RETURNING user_id, hidden_app_ids, created_at, updated_at
+	`
+
+	pref := &UserPreferences{}
+	err := r.pool.QueryRow(ctx, query, userID, hiddenAppIDs).Scan(
+		&pref.UserID,
+		&pref.HiddenAppIDs,
+		&pref.CreatedAt,
+		&pref.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to upsert user preferences for user %s: %w", userID, err)
+	}
+
+	return pref, nil
+}
+
+func (r *repository) GetUserLinks(ctx context.Context, userID string) ([]*UserLink, error) {
+	query := `
+		SELECT id, user_id, title, url, COALESCE(icon, 'link'), COALESCE(category, 'user'), COALESCE(description, ''), display_order, created_at, updated_at
+		FROM user_links
+		WHERE user_id = $1
+		ORDER BY display_order ASC, title ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user links for user %s: %w", userID, err)
 	}
 	defer rows.Close()
 
-	var result []*AppItem
+	var result []*UserLink
 	for rows.Next() {
-		app := &AppItem{}
-		var catStr, roleStr string
+		link := &UserLink{}
 		if err := rows.Scan(
-			&app.ID,
-			&app.Name,
-			&app.Slug,
-			&app.Description,
-			&app.IconURL,
-			&app.AppURL,
-			&catStr,
-			&roleStr,
-			&app.IsActive,
-			&app.IsExternal,
-			&app.Status,
-			&app.IsDefault,
-			&app.DisplayOrder,
-			&app.CreatedAt,
-			&app.UpdatedAt,
+			&link.ID,
+			&link.UserID,
+			&link.Title,
+			&link.URL,
+			&link.Icon,
+			&link.Category,
+			&link.Description,
+			&link.DisplayOrder,
+			&link.CreatedAt,
+			&link.UpdatedAt,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan app row: %w", err)
+			return nil, fmt.Errorf("failed to scan user link row: %w", err)
 		}
-		app.Title = app.Name
-		app.Icon = app.IconURL
-		app.URL = app.AppURL
-		app.Category = AppCategory(catStr)
-		app.RequiredRole = AppRole(roleStr)
-		result = append(result, app)
+		result = append(result, link)
 	}
 
 	return result, nil
 }
 
-func (r *repository) CreateApp(ctx context.Context, app *AppItem) error {
+func (r *repository) GetUserLinkByID(ctx context.Context, id string, userID string) (*UserLink, error) {
 	query := `
-		INSERT INTO app_catalog (name, slug, description, icon_url, app_url, category, required_role, is_active, is_external, status, is_default, display_order)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, $10, $11)
+		SELECT id, user_id, title, url, COALESCE(icon, 'link'), COALESCE(category, 'user'), COALESCE(description, ''), display_order, created_at, updated_at
+		FROM user_links
+		WHERE id = $1 AND user_id = $2
+	`
+
+	link := &UserLink{}
+	err := r.pool.QueryRow(ctx, query, id, userID).Scan(
+		&link.ID,
+		&link.UserID,
+		&link.Title,
+		&link.URL,
+		&link.Icon,
+		&link.Category,
+		&link.Description,
+		&link.DisplayOrder,
+		&link.CreatedAt,
+		&link.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrLinkNotFound
+		}
+		return nil, fmt.Errorf("failed to query user link %s: %w", id, err)
+	}
+
+	return link, nil
+}
+
+func (r *repository) CreateUserLink(ctx context.Context, link *UserLink) error {
+	query := `
+		INSERT INTO user_links (user_id, title, url, icon, category, description, display_order)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at, updated_at
 	`
 
 	err := r.pool.QueryRow(
 		ctx,
 		query,
-		app.Name,
-		app.Slug,
-		app.Description,
-		app.IconURL,
-		app.AppURL,
-		string(app.Category),
-		string(app.RequiredRole),
-		app.IsExternal,
-		app.Status,
-		app.IsDefault,
-		app.DisplayOrder,
-	).Scan(&app.ID, &app.CreatedAt, &app.UpdatedAt)
+		link.UserID,
+		link.Title,
+		link.URL,
+		link.Icon,
+		link.Category,
+		link.Description,
+		link.DisplayOrder,
+	).Scan(&link.ID, &link.CreatedAt, &link.UpdatedAt)
 
 	if err != nil {
-		return fmt.Errorf("failed to insert new app catalog item: %w", err)
+		return fmt.Errorf("failed to insert user link: %w", err)
 	}
 
-	app.Title = app.Name
-	app.Icon = app.IconURL
-	app.URL = app.AppURL
-	app.IsActive = true
 	return nil
 }
 
-func (r *repository) GetAppByID(ctx context.Context, id string) (*AppItem, error) {
+func (r *repository) UpdateUserLink(ctx context.Context, link *UserLink) error {
 	query := `
-		SELECT id, name, slug, description, icon_url, app_url, category, required_role, is_active,
-		       COALESCE(is_external, FALSE) as is_external,
-		       COALESCE(status, 'active') as status,
-		       COALESCE(is_default, TRUE) as is_default,
-		       display_order, created_at, updated_at
-		FROM app_catalog
-		WHERE id = $1
-	`
-
-	app := &AppItem{}
-	var catStr, roleStr string
-	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&app.ID,
-		&app.Name,
-		&app.Slug,
-		&app.Description,
-		&app.IconURL,
-		&app.AppURL,
-		&catStr,
-		&roleStr,
-		&app.IsActive,
-		&app.IsExternal,
-		&app.Status,
-		&app.IsDefault,
-		&app.DisplayOrder,
-		&app.CreatedAt,
-		&app.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrAppNotFound
-		}
-		return nil, fmt.Errorf("failed to query app by id %s: %w", id, err)
-	}
-
-	app.Title = app.Name
-	app.Icon = app.IconURL
-	app.URL = app.AppURL
-	app.Category = AppCategory(catStr)
-	app.RequiredRole = AppRole(roleStr)
-	return app, nil
-}
-
-func (r *repository) UpdateApp(ctx context.Context, app *AppItem) error {
-	query := `
-		UPDATE app_catalog
-		SET name = $1, slug = $2, description = $3, icon_url = $4, app_url = $5, category = $6, is_external = $7, status = $8, updated_at = NOW()
-		WHERE id = $9
+		UPDATE user_links
+		SET title = $1, url = $2, icon = $3, category = $4, description = $5, updated_at = NOW()
+		WHERE id = $6 AND user_id = $7
 	`
 
 	tag, err := r.pool.Exec(
 		ctx,
 		query,
-		app.Name,
-		app.Slug,
-		app.Description,
-		app.IconURL,
-		app.AppURL,
-		string(app.Category),
-		app.IsExternal,
-		app.Status,
-		app.ID,
+		link.Title,
+		link.URL,
+		link.Icon,
+		link.Category,
+		link.Description,
+		link.ID,
+		link.UserID,
 	)
+
 	if err != nil {
-		return fmt.Errorf("failed to update app catalog item %s: %w", app.ID, err)
+		return fmt.Errorf("failed to update user link %s: %w", link.ID, err)
 	}
+
 	if tag.RowsAffected() == 0 {
-		return ErrAppNotFound
+		return ErrLinkNotFound
 	}
+
 	return nil
 }
 
-func (r *repository) SeedDefaultApps(ctx context.Context) error {
-	var count int
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM app_catalog").Scan(&count)
+func (r *repository) DeleteUserLink(ctx context.Context, id string, userID string) error {
+	query := `DELETE FROM user_links WHERE id = $1 AND user_id = $2`
+
+	tag, err := r.pool.Exec(ctx, query, id, userID)
 	if err != nil {
-		return fmt.Errorf("failed to count app catalog rows: %w", err)
-	}
-	if count > 0 {
-		return nil
+		return fmt.Errorf("failed to delete user link %s: %w", id, err)
 	}
 
-	defaultApps := []struct {
-		Name         string
-		Slug         string
-		Description  string
-		IconURL      string
-		AppURL       string
-		Category     string
-		RequiredRole string
-		IsExternal   bool
-		Status       string
-		IsDefault    bool
-		DisplayOrder int
-	}{
-		{"Digital Pantry", "pantry", "Manage household food inventory, recipes, and expiration dates.", "kitchen", "/pantry", "internal", "MEMBER", false, "active", true, 1},
-		{"Smart Shopping", "shopping", "Automated shopping list generator and store price aggregator.", "shopping_cart", "/shopping", "internal", "MEMBER", false, "active", true, 2},
-		{"Maintenance Hub", "maintenance", "Schedule device maintenance and home repairs.", "build", "/maintenance", "internal", "MEMBER", false, "active", true, 3},
-		{"Chores Tracker", "chores", "Haushaltsroutinen, Daily Resets & Streaks", "cleaning_services", "/chores/de", "internal", "MEMBER", false, "active", true, 4},
-		{"Task Tracker (TODO)", "todo", "Manage personal and household tasks and reminders.", "checklist", "/under-construction?app=TODO", "internal", "MEMBER", false, "in_progress", true, 5},
-		{"Home Assistant", "home-assistant", "Smart home automation, climate control, and security dashboard.", "home", "http://homeassistant.local", "external", "MEMBER", true, "active", true, 6},
-		{"Plex Media Server", "plex", "Stream movies, TV shows, and personal media across devices.", "movie", "/under-construction?app=Plex", "external", "MEMBER", true, "in_progress", true, 7},
-		{"Nextcloud Storage", "nextcloud", "Private cloud storage, photos, and document synchronization.", "cloud", "/under-construction?app=Nextcloud", "external", "MEMBER", true, "in_progress", true, 8},
-	}
-
-	insertQuery := `
-		INSERT INTO app_catalog (name, slug, description, icon_url, app_url, category, required_role, is_active, is_external, status, is_default, display_order)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, $10, $11)
-		ON CONFLICT (slug) DO UPDATE SET app_url = EXCLUDED.app_url
-	`
-
-	for _, app := range defaultApps {
-		_, err := r.pool.Exec(ctx, insertQuery, app.Name, app.Slug, app.Description, app.IconURL, app.AppURL, app.Category, app.RequiredRole, app.IsExternal, app.Status, app.IsDefault, app.DisplayOrder)
-		if err != nil {
-			return fmt.Errorf("failed to seed app %s: %w", app.Name, err)
-		}
+	if tag.RowsAffected() == 0 {
+		return ErrLinkNotFound
 	}
 
 	return nil

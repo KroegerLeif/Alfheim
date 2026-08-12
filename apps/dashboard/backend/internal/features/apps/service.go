@@ -2,218 +2,272 @@ package apps
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"strings"
 )
 
-// Service defines domain logic contract for the application catalog and permission routing.
+// Service defines domain logic contract for the 3-tier app & dashboard management architecture.
 type Service interface {
-	GetPermittedApps(ctx context.Context, userRealmRoles []string, householdRole string) (*AppCatalogResponse, error)
-	CreateApp(ctx context.Context, req CreateAppRequest) (*AppDTO, error)
-	UpdateApp(ctx context.Context, id string, req UpdateAppRequest) (*AppDTO, error)
+	GetDashboardApps(ctx context.Context, userID string, userRoles []string) (*DashboardAppsResponse, error)
+	GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error)
+	UpdateUserPreferences(ctx context.Context, userID string, hiddenAppIDs []string) (*UserPreferences, error)
+	CreateUserLink(ctx context.Context, userID string, req CreateUserLinkRequest) (*AppItem, error)
+	UpdateUserLink(ctx context.Context, userID string, id string, req UpdateUserLinkRequest) (*AppItem, error)
+	DeleteUserLink(ctx context.Context, userID string, id string) error
 }
 
 type service struct {
-	repo Repository
-	log  *slog.Logger
+	repo        Repository
+	stackLoader StackAppsLoader
+	log         *slog.Logger
 }
 
-// NewService initializes app catalog service.
-func NewService(repo Repository, log *slog.Logger) Service {
+// NewService initializes 3-tier app service.
+func NewService(repo Repository, stackLoader StackAppsLoader, log *slog.Logger) Service {
 	return &service{
-		repo: repo,
-		log:  log,
+		repo:        repo,
+		stackLoader: stackLoader,
+		log:         log,
 	}
 }
 
-func (s *service) GetPermittedApps(ctx context.Context, userRealmRoles []string, householdRole string) (*AppCatalogResponse, error) {
-	if err := s.repo.SeedDefaultApps(ctx); err != nil {
-		s.log.Debug("seed default apps notice", slog.String("error", err.Error()))
-	}
-
-	activeApps, err := s.repo.GetActiveApps(ctx)
+func (s *service) GetDashboardApps(ctx context.Context, userID string, userRoles []string) (*DashboardAppsResponse, error) {
+	// 1. Fetch user preferences (hidden Core Apps)
+	prefs, err := s.repo.GetUserPreferences(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch active apps: %w", err)
+		s.log.Warn("failed to fetch user preferences, falling back to empty preferences",
+			slog.String("user_id", userID),
+			slog.String("error", err.Error()),
+		)
+		prefs = &UserPreferences{UserID: userID, HiddenAppIDs: []string{}}
 	}
 
-	response := &AppCatalogResponse{
-		Internal: make([]AppDTO, 0),
-		External: make([]AppDTO, 0),
+	hiddenMap := make(map[string]bool)
+	for _, id := range prefs.HiddenAppIDs {
+		hiddenMap[strings.ToLower(id)] = true
 	}
 
-	for _, item := range activeApps {
-		if hasPermission(item.RequiredRole, userRealmRoles, householdRole) {
-			dto := ToDTO(item)
-			if item.IsExternal || item.Category == CategoryExternal {
-				response.External = append(response.External, dto)
-			} else {
-				response.Internal = append(response.Internal, dto)
-			}
-			response.Total++
+	// 2. Resolve Tier 1 Core Apps
+	visibleCore := make([]AppItem, 0)
+	allCore := make([]AppItem, 0, len(CoreApps))
+
+	for _, app := range CoreApps {
+		appCopy := app
+		isHidden := hiddenMap[strings.ToLower(app.ID)] || hiddenMap[strings.ToLower(app.Slug)]
+		appCopy.IsHidden = isHidden
+		allCore = append(allCore, appCopy)
+
+		if !isHidden {
+			visibleCore = append(visibleCore, appCopy)
 		}
 	}
 
-	return response, nil
+	// 3. Resolve Tier 2 Stack Apps from YAML loader
+	stackYamlApps, err := s.stackLoader.LoadStackApps()
+	if err != nil {
+		s.log.Error("failed to load stack apps configuration", slog.String("error", err.Error()))
+		stackYamlApps = []StackAppConfig{}
+	}
+
+	permittedStack := make([]AppItem, 0)
+	for _, sa := range stackYamlApps {
+		if hasStackPermission(sa.RequiredRoles, userRoles) {
+			item := AppItem{
+				ID:            sa.ID,
+				Slug:          sa.Slug,
+				Title:         sa.Title,
+				Name:          sa.Title,
+				Description:   sa.Description,
+				Icon:          sa.Icon,
+				IconURL:       sa.Icon,
+				URL:           sa.URL,
+				AppURL:        sa.URL,
+				Category:      sa.Category,
+				Tier:          TierStack,
+				Status:        sa.Status,
+				RequiredRoles: sa.RequiredRoles,
+				DisplayOrder:  sa.DisplayOrder,
+			}
+			permittedStack = append(permittedStack, item)
+		}
+	}
+
+	// 4. Resolve Tier 3 User Links from database
+	dbUserLinks, err := s.repo.GetUserLinks(ctx, userID)
+	if err != nil {
+		s.log.Error("failed to load user links from database", slog.String("user_id", userID), slog.String("error", err.Error()))
+		dbUserLinks = []*UserLink{}
+	}
+
+	userItems := make([]AppItem, 0, len(dbUserLinks))
+	for _, ul := range dbUserLinks {
+		item := AppItem{
+			ID:           ul.ID,
+			Slug:         ul.ID,
+			Title:        ul.Title,
+			Name:         ul.Title,
+			Description:  ul.Description,
+			Icon:         ul.Icon,
+			IconURL:      ul.Icon,
+			URL:          ul.URL,
+			AppURL:       ul.URL,
+			Category:     ul.Category,
+			Tier:         TierUser,
+			Status:       "active",
+			IsCustom:     true,
+			DisplayOrder: ul.DisplayOrder,
+			CreatedAt:    ul.CreatedAt,
+			UpdatedAt:    ul.UpdatedAt,
+		}
+		userItems = append(userItems, item)
+	}
+
+	total := len(visibleCore) + len(permittedStack) + len(userItems)
+
+	return &DashboardAppsResponse{
+		Core:        visibleCore,
+		Stack:       permittedStack,
+		User:        userItems,
+		AllCore:     allCore,
+		Preferences: *prefs,
+		Total:       total,
+	}, nil
 }
 
-func (s *service) CreateApp(ctx context.Context, req CreateAppRequest) (*AppDTO, error) {
+func (s *service) GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error) {
+	return s.repo.GetUserPreferences(ctx, userID)
+}
+
+func (s *service) UpdateUserPreferences(ctx context.Context, userID string, hiddenAppIDs []string) (*UserPreferences, error) {
+	return s.repo.UpdateUserPreferences(ctx, userID, hiddenAppIDs)
+}
+
+func (s *service) CreateUserLink(ctx context.Context, userID string, req CreateUserLinkRequest) (*AppItem, error) {
 	title := strings.TrimSpace(req.Title)
-	if title == "" {
-		title = strings.TrimSpace(req.Name)
-	}
-
 	url := strings.TrimSpace(req.URL)
-	if url == "" {
-		url = strings.TrimSpace(req.AppURL)
-	}
 
-	if title == "" {
-		return nil, errors.New("app title or name is required")
-	}
-	if url == "" {
-		return nil, errors.New("app url is required")
+	if title == "" || url == "" {
+		return nil, ErrInvalidLinkInputs
 	}
 
 	icon := strings.TrimSpace(req.Icon)
 	if icon == "" {
-		icon = strings.TrimSpace(req.IconURL)
-	}
-	if icon == "" {
-		icon = "grid_view"
+		icon = "link"
 	}
 
-	category := strings.ToLower(strings.TrimSpace(req.Category))
+	category := strings.TrimSpace(req.Category)
 	if category == "" {
-		if req.IsExternal {
-			category = "external"
-		} else {
-			category = "internal"
-		}
+		category = "user"
 	}
 
-	status := strings.ToLower(strings.TrimSpace(req.Status))
-	if status == "" {
-		status = "active"
-	}
-
-	role := strings.ToUpper(strings.TrimSpace(req.RequiredRole))
-	if role == "" {
-		role = "MEMBER"
-	}
-
-	reg := regexp.MustCompile("[^a-z0-9]+")
-	slug := strings.Trim(reg.ReplaceAllString(strings.ToLower(title), "-"), "-")
-
-	item := &AppItem{
-		Name:         title,
+	link := &UserLink{
+		UserID:       userID,
 		Title:        title,
-		Slug:         slug,
-		Description:  req.Description,
-		IconURL:      icon,
-		Icon:         icon,
-		AppURL:       url,
 		URL:          url,
-		Category:     AppCategory(category),
-		RequiredRole: AppRole(role),
-		IsActive:     true,
-		IsExternal:   req.IsExternal || category == "external",
-		Status:       status,
-		IsDefault:    false,
+		Icon:         icon,
+		Category:     category,
+		Description:  strings.TrimSpace(req.Description),
 		DisplayOrder: 99,
 	}
 
-	if err := s.repo.CreateApp(ctx, item); err != nil {
-		return nil, fmt.Errorf("failed to create catalog app: %w", err)
+	if err := s.repo.CreateUserLink(ctx, link); err != nil {
+		return nil, fmt.Errorf("failed to create user link: %w", err)
 	}
 
-	dto := ToDTO(item)
-	return &dto, nil
+	item := &AppItem{
+		ID:          link.ID,
+		Slug:        link.ID,
+		Title:       link.Title,
+		Name:        link.Title,
+		Description: link.Description,
+		Icon:        link.Icon,
+		IconURL:     link.Icon,
+		URL:         link.URL,
+		AppURL:      link.URL,
+		Category:    link.Category,
+		Tier:        TierUser,
+		Status:      "active",
+		IsCustom:    true,
+		CreatedAt:   link.CreatedAt,
+		UpdatedAt:   link.UpdatedAt,
+	}
+
+	return item, nil
 }
 
-func (s *service) UpdateApp(ctx context.Context, id string, req UpdateAppRequest) (*AppDTO, error) {
-	if strings.TrimSpace(id) == "" {
-		return nil, errors.New("app id is required")
-	}
-
-	app, err := s.repo.GetAppByID(ctx, id)
+func (s *service) UpdateUserLink(ctx context.Context, userID string, id string, req UpdateUserLinkRequest) (*AppItem, error) {
+	link, err := s.repo.GetUserLinkByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	title := strings.TrimSpace(req.Title)
-	if title == "" {
-		title = strings.TrimSpace(req.Name)
+	if title := strings.TrimSpace(req.Title); title != "" {
+		link.Title = title
 	}
-	if title != "" {
-		app.Name = title
-		app.Title = title
-		reg := regexp.MustCompile("[^a-z0-9]+")
-		app.Slug = strings.Trim(reg.ReplaceAllString(strings.ToLower(title), "-"), "-")
+	if url := strings.TrimSpace(req.URL); url != "" {
+		link.URL = url
 	}
-
+	if icon := strings.TrimSpace(req.Icon); icon != "" {
+		link.Icon = icon
+	}
+	if category := strings.TrimSpace(req.Category); category != "" {
+		link.Category = category
+	}
 	if req.Description != "" {
-		app.Description = req.Description
+		link.Description = strings.TrimSpace(req.Description)
 	}
 
-	url := strings.TrimSpace(req.URL)
-	if url == "" {
-		url = strings.TrimSpace(req.AppURL)
-	}
-	if url != "" {
-		app.AppURL = url
-		app.URL = url
+	if err := s.repo.UpdateUserLink(ctx, link); err != nil {
+		return nil, fmt.Errorf("failed to update user link %s: %w", id, err)
 	}
 
-	icon := strings.TrimSpace(req.Icon)
-	if icon == "" {
-		icon = strings.TrimSpace(req.IconURL)
-	}
-	if icon != "" {
-		app.IconURL = icon
-		app.Icon = icon
-	}
-
-	app.IsExternal = req.IsExternal
-	if req.IsExternal {
-		app.Category = CategoryExternal
-	} else {
-		app.Category = CategoryInternal
-	}
-
-	if req.Status != "" {
-		app.Status = strings.ToLower(strings.TrimSpace(req.Status))
+	item := &AppItem{
+		ID:          link.ID,
+		Slug:        link.ID,
+		Title:       link.Title,
+		Name:        link.Title,
+		Description: link.Description,
+		Icon:        link.Icon,
+		IconURL:     link.Icon,
+		URL:         link.URL,
+		AppURL:      link.URL,
+		Category:    link.Category,
+		Tier:        TierUser,
+		Status:      "active",
+		IsCustom:    true,
+		CreatedAt:   link.CreatedAt,
+		UpdatedAt:   link.UpdatedAt,
 	}
 
-	if err := s.repo.UpdateApp(ctx, app); err != nil {
-		return nil, fmt.Errorf("failed to update catalog app %s: %w", id, err)
-	}
-
-	dto := ToDTO(app)
-	return &dto, nil
+	return item, nil
 }
 
-func hasPermission(requiredRole AppRole, realmRoles []string, householdRole string) bool {
-	// Realm admins always bypass app role checks
-	for _, r := range realmRoles {
-		if strings.EqualFold(r, "admin") || strings.EqualFold(r, "alfheim_admin") {
+func (s *service) DeleteUserLink(ctx context.Context, userID string, id string) error {
+	return s.repo.DeleteUserLink(ctx, id, userID)
+}
+
+func hasStackPermission(requiredRoles []string, userRoles []string) bool {
+	// If no required roles specified, visible to all authenticated users
+	if len(requiredRoles) == 0 {
+		return true
+	}
+
+	// Realm admins bypass role checks
+	for _, ur := range userRoles {
+		if strings.EqualFold(ur, "admin") || strings.EqualFold(ur, "alfheim_admin") {
 			return true
 		}
 	}
 
-	req := strings.ToUpper(string(requiredRole))
-	hhRole := strings.ToUpper(householdRole)
-
-	switch req {
-	case "OWNER":
-		return hhRole == "OWNER"
-	case "ADMIN":
-		return hhRole == "ADMIN" || hhRole == "OWNER"
-	case "MEMBER", "":
-		return true
-	default:
-		return true
+	// Match user roles with required roles
+	for _, req := range requiredRoles {
+		for _, ur := range userRoles {
+			if strings.EqualFold(req, ur) {
+				return true
+			}
+		}
 	}
+
+	return false
 }

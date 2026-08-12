@@ -2,50 +2,48 @@
 
 import { useState } from 'react';
 import { useTranslation } from '@alfheim/shared';
-import { useCreateApp } from '../queries';
+import { useCreateUserLink } from '../queries';
 
 interface AddAppModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (appName: string) => void;
-  initialCategory?: 'internal' | 'external';
+  initialCategory?: string;
 }
 
 const PRESET_ICONS = [
-  { name: 'kitchen', label: 'Pantry' },
-  { name: 'shopping_cart', label: 'Shopping' },
-  { name: 'build', label: 'Tools' },
-  { name: 'checklist', label: 'Tasks' },
-  { name: 'cleaning_services', label: 'Chores' },
-  { name: 'home', label: 'Home Automation' },
-  { name: 'movie', label: 'Media Stream' },
-  { name: 'cloud', label: 'Storage' },
-  { name: 'link', label: 'Portal Link' },
-  { name: 'language', label: 'Web Service' },
-  { name: 'search', label: 'Search Engine' },
+  { name: 'link', label: 'Bookmark Link' },
+  { name: 'folder', label: 'Folder / Storage' },
+  { name: 'cloud', label: 'Cloud Drive' },
+  { name: 'home', label: 'Home System' },
+  { name: 'language', label: 'Web Portal' },
   { name: 'dashboard', label: 'Analytics' },
-  { name: 'security', label: 'IAM Access' },
+  { name: 'movie', label: 'Media Streaming' },
+  { name: 'code', label: 'Developer Tool' },
+  { name: 'terminal', label: 'Console Tool' },
+  { name: 'psychology', label: 'AI Assistant' },
+  { name: 'security', label: 'Vault Access' },
+  { name: 'checklist', label: 'Task List' },
 ];
 
 /**
- * Interactive Add App / Service Link Modal Component.
- * Features Material icon picker, URL format validation, internal vs external toggle, and initial status selection.
+ * Interactive Add Tier 3 User Link Modal Component.
+ * Registers user-specific custom links and bookmarks bound to user_id.
  */
 export function AddAppModal({
   isOpen,
   onClose,
   onSuccess,
-  initialCategory = 'internal',
+  initialCategory = 'user',
 }: AddAppModalProps) {
   const { t } = useTranslation();
-  const createAppMutation = useCreateApp();
+  const createLinkMutation = useCreateUserLink();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('grid_view');
-  const [isExternal, setIsExternal] = useState(initialCategory === 'external');
-  const [status, setStatus] = useState<'active' | 'in_progress' | 'maintenance'>('active');
+  const [selectedIcon, setSelectedIcon] = useState('link');
+  const [category, setCategory] = useState(initialCategory);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -58,39 +56,36 @@ export function AddAppModal({
     const trimmedUrl = url.trim();
 
     if (!trimmedTitle) {
-      setErrorMessage(t('catalog.title_required_error'));
+      setErrorMessage(t('catalog.title_required_error') || 'Title is required');
       return;
     }
     if (!trimmedUrl) {
-      setErrorMessage(t('catalog.url_required_error'));
+      setErrorMessage(t('catalog.url_required_error') || 'URL is required');
       return;
     }
 
-    createAppMutation.mutate(
+    createLinkMutation.mutate(
       {
         title: trimmedTitle,
         description: description.trim(),
         icon: selectedIcon,
         url: trimmedUrl,
-        is_external: isExternal,
-        category: isExternal ? 'external' : 'internal',
-        status,
+        category: category.trim() || 'user',
       },
       {
-        onSuccess: (newApp) => {
+        onSuccess: (newLink) => {
           if (onSuccess) {
-            onSuccess(newApp.title || newApp.name);
+            onSuccess(newLink.title || newLink.name || trimmedTitle);
           }
           setTitle('');
           setDescription('');
           setUrl('');
-          setSelectedIcon('grid_view');
-          setIsExternal(false);
-          setStatus('active');
+          setSelectedIcon('link');
+          setCategory('user');
           onClose();
         },
         onError: (err) => {
-          setErrorMessage(err.message || t('catalog.register_failed_error'));
+          setErrorMessage(err.message || t('catalog.register_failed_error') || 'Failed to save user link');
         },
       }
     );
@@ -103,12 +98,12 @@ export function AddAppModal({
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]">
-              <span className="material-symbols-outlined text-xl">add_box</span>
+              <span className="material-symbols-outlined text-xl">bookmark_add</span>
             </div>
             <div>
-              <h3 className="text-base font-bold text-[var(--text-main)]">{t('catalog.register_new_service')}</h3>
+              <h3 className="text-base font-bold text-[var(--text-main)]">Add Personal Link</h3>
               <p className="text-xs text-[var(--text-muted)] font-mono">
-                {t('catalog.register_subtitle')}
+                Create a custom bookmark visible exclusively to your account.
               </p>
             </div>
           </div>
@@ -131,49 +126,16 @@ export function AddAppModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Internal vs External Segmented Switch */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.service_type')}
-            </label>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
-              <button
-                type="button"
-                onClick={() => setIsExternal(false)}
-                className={`py-2 text-xs font-semibold rounded-lg font-mono transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  !isExternal
-                    ? 'bg-[var(--primary-main)] text-slate-950 shadow-md font-bold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                }`}
-              >
-                <span className="material-symbols-outlined text-sm">apps</span>
-                <span>{t('catalog.internal_category')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsExternal(true)}
-                className={`py-2 text-xs font-semibold rounded-lg font-mono transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  isExternal
-                    ? 'bg-[var(--primary-main)] text-slate-950 shadow-md font-bold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                }`}
-              >
-                <span className="material-symbols-outlined text-sm">open_in_new</span>
-                <span>{t('catalog.external_category')}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Service Title Input */}
+          {/* Link Title Input */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              {t('catalog.service_title_req')}
+              Link Title *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Grafana Dashboards"
+              placeholder="e.g. My Google Drive"
               required
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
@@ -182,13 +144,13 @@ export function AddAppModal({
           {/* Target URL Input */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              {t('catalog.target_url_req')}
+              Target URL *
             </label>
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder={isExternal ? 'https://grafana.alfheim.local' : '/grafana'}
+              placeholder="https://drive.google.com"
               required
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
@@ -197,37 +159,21 @@ export function AddAppModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              {t('catalog.description')}
+              Description (Optional)
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('catalog.short_summary_placeholder')}
+              placeholder="Short note or bookmark summary..."
               rows={2}
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
           </div>
 
-          {/* Initial Status Selector */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              {t('catalog.deployment_status')}
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as 'active' | 'in_progress' | 'maintenance')}
-              className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-            >
-              <option value="active">{t('catalog.status_active_opt')}</option>
-              <option value="in_progress">{t('catalog.status_in_progress_opt')}</option>
-              <option value="maintenance">{t('catalog.status_maintenance_opt')}</option>
-            </select>
-          </div>
-
           {/* Icon Selection Grid */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
-              {t('catalog.select_icon')}
+              Select Icon
             </label>
             <div className="grid grid-cols-6 gap-2 p-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] max-h-36 overflow-y-auto">
               {PRESET_ICONS.map((item) => (
@@ -259,18 +205,18 @@ export function AddAppModal({
             </button>
             <button
               type="submit"
-              disabled={createAppMutation.isPending}
+              disabled={createLinkMutation.isPending}
               className="px-5 py-2.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
             >
-              {createAppMutation.isPending ? (
+              {createLinkMutation.isPending ? (
                 <>
                   <span className="w-3 h-3 rounded-full border-2 border-slate-950 border-t-transparent animate-spin" />
-                  <span>{t('catalog.registering')}</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold">check</span>
-                  <span>{t('catalog.register_service')}</span>
+                  <span>Save Bookmark</span>
                 </>
               )}
             </button>
@@ -280,4 +226,3 @@ export function AddAppModal({
     </div>
   );
 }
-

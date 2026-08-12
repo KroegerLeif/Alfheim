@@ -2,35 +2,56 @@
  * DTO contracts matching Go backend models for apps, profile, and household services.
  */
 
+export type TierType = 'core' | 'stack' | 'user';
+
 export interface AppItem {
   id: string;
-  name: string;
-  title?: string;
   slug: string;
-  description: string;
-  icon_url: string;
-  icon?: string;
-  app_url: string;
-  url?: string;
-  category: 'internal' | 'external' | string;
-  required_role: string;
-  is_external?: boolean;
-  status?: 'active' | 'in_progress' | 'maintenance' | string;
-  is_default?: boolean;
-  display_order: number;
-}
-
-export interface CreateAppRequest {
   title: string;
-  description?: string;
-  icon?: string;
+  name?: string;
+  description: string;
+  icon: string;
+  icon_url?: string;
   url: string;
-  is_external?: boolean;
-  category?: 'internal' | 'external' | string;
+  app_url?: string;
+  category: 'internal' | 'external' | 'user' | string;
+  tier: TierType;
   status?: 'active' | 'in_progress' | 'maintenance' | string;
-  required_role?: string;
+  is_hidden?: boolean;
+  is_custom?: boolean;
+  required_roles?: string[];
+  display_order?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
+export interface UserPreferences {
+  user_id: string;
+  hidden_app_ids: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DashboardAppsResponse {
+  core: AppItem[];
+  stack: AppItem[];
+  user: AppItem[];
+  all_core?: AppItem[];
+  preferences: UserPreferences;
+  total: number;
+}
+
+export interface CreateUserLinkRequest {
+  title: string;
+  url: string;
+  icon?: string;
+  description?: string;
+  category?: string;
+}
+
+export type CreateAppRequest = CreateUserLinkRequest;
+
+// Backward-compatibility interface for legacy catalog references
 export interface AppCatalogResponse {
   internal: AppItem[];
   external: AppItem[];
