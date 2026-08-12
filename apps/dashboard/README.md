@@ -4,9 +4,55 @@ The Dashboard is the central control plane, authentication entrypoint, and telem
 
 ---
 
+## 🏛️ 3-Tier Application & Link Architecture
+
+The platform organizes applications, portals, and bookmarks into three distinct architectural tiers:
+
+```mermaid
+flowchart TD
+    subgraph Tier 1: Core Apps
+        T1[Native Microservices e.g., pantry, shopping, maintenance, chores]
+        T1 -->|Pre-built in Go| T1_Reg[tier1_core_registry.go]
+        T1_Reg -->|User Toggle| T1_Pref[user_preferences DB Table]
+    end
+
+    subgraph Tier 2: Stack Integrations
+        T2[Server Integrations e.g., Home Assistant, LibreChat, Plex]
+        T2 -->|Loaded at Boot| T2_Yaml[deploy/stack-apps.yaml]
+        T2_Yaml -->|Filtered by| Keycloak[Keycloak OIDC Roles]
+    end
+
+    subgraph Tier 3: Personal User Links
+        T3[Custom Bookmarks e.g., Google Drive, Docs]
+        T3 -->|Stored in DB| T3_DB[user_links DB Table]
+        T3_DB -->|User CRUD| T3_API[REST API /api/v1/user/links]
+    end
+
+    T1 --> UnifiedAPI[GET /api/v1/apps/dashboard]
+    T2 --> UnifiedAPI
+    T3 --> UnifiedAPI
+```
+
+1. **Tier 1 (Core Apps):**
+   - Pre-defined natively in Go backend code ([`tier1_core_registry.go`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/internal/features/apps/tier1_core_registry.go)).
+   - Visible to all authenticated users by default.
+   - Users can hide/show specific Core Apps in their personal settings modal, stored in PostgreSQL `user_preferences`.
+
+2. **Tier 2 (Stack Apps / Integrations):**
+   - Configured via server-level YAML file ([`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml)).
+   - Loaded into memory at backend startup.
+   - Filtered dynamically based on Keycloak OIDC roles (`required_roles`).
+   - Read-only for standard users (managed via server deployment config).
+
+3. **Tier 3 (User Links):**
+   - Stored in PostgreSQL `user_links` table linked to `user_id` (Keycloak `sub`).
+   - Fully CRUD-capable per user (`GET/POST/PUT/DELETE /api/v1/user/links`).
+
+---
+
 ## 🏗️ Architecture & Network Communication (Traefik)
 
-The frontend and backend services are decoupled and run in isolated Docker containers, coordinated by Traefik as the reverse proxy. 
+The frontend and backend services run in isolated Docker containers, coordinated by Traefik as the reverse proxy:
 
 ```mermaid
 graph TD
@@ -18,63 +64,35 @@ graph TD
 ```
 
 ### Routing Rules (Ingress vs. Application)
-- **Ingress Gateway (Traefik)**: Routes top-level hosts and path prefixes. Traefik routes `/api/v1/apps`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to the Go backend, `/api/v1/chores` to the chores-backend, `/chores` to the chores-frontend (with default language redirect `/chores` ➔ `/chores/de`), and delegates all other requests under `/` to the Next.js dashboard-frontend container.
-- **Application Page Routing (Next.js)**: Handles all internal route paths (e.g., `/household`, `/household/[id]`, `/profile`, `/settings`) and dynamic parameter evaluation. Next.js does not rely on Traefik routing rules for internal sub-routing.
+- **Ingress Gateway (Traefik)**: Routes top-level hosts and path prefixes `/api/v1/apps/dashboard`, `/api/v1/user/preferences`, `/api/v1/user/links`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to the Go backend.
+- **Application Page Routing (Next.js)**: Handles all internal route paths (`/`, `/household`, `/profile`, `/settings`).
 
 ---
 
 ## 📦 Monorepo Separation of Concerns & FDD
 
-Components and libraries are strictly separated to maintain clean architectures and prevent circular dependencies:
-
 ### 1. `@alfheim/shared` UI Library (Workspace Package)
-- Located in [`packages/shared/`](file:///Users/leifkroeger/Dev/alfheim/packages/shared).
-- Statically agnostic UI widgets (`Sidebar`, `Header`, `BottomNavBar`), localization (`LanguageProvider`), and presentation components (`OSMMapViewer`, `AddressAutocomplete`).
+- Located in [`packages/shared/`](file:///Users/leifkroeger/Dev/loeger-os/packages/shared).
+- Statically agnostic UI widgets (`Sidebar`, `Header`, `BottomNavBar`), localization, and presentation components.
 
 ### 2. Core Engine Layer (`apps/dashboard/frontend/src/core/`)
-- Contains global core logic that is application-wide but domain-agnostic, such as the centralized HTTP `ky` instance [`client.ts`](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/src/core/api/client.ts) and global state provider contexts [`src/core/providers/`](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/src/core/providers/).
+- Global core logic such as centralized HTTP `ky` instance [`client.ts`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/api/client.ts) and state providers.
 
 ### 3. Local Feature Modules (`apps/dashboard/frontend/src/features/`)
-- Organized around business capability folders (e.g. `household`, `contact`, `profile`, `apps`).
-- Each feature folder contains its own queries, API calls, and components (e.g. `src/features/household/api/`, `src/features/household/hooks/`, `src/features/household/components/`).
-- Feature boundaries are strict; files must not import from internal files of other feature modules.
+- Business capability folders (`apps`, `household`, `contact`, `profile`).
+- Strict FDD boundaries; feature modules export clean contracts via barrel `index.ts`.
 
 ---
 
 ## 🎨 Stacking Contexts & Z-Index Layer Standards
 
-To prevent visual overlapping conflicts with complex map renders like Leaflet (`z-index: 400`):
-- **Map Isolation**: Wrap map elements in parent containers using Tailwind's `relative z-0 isolate overflow-hidden` to isolate the leaflet stacking context.
-- **Modal Backdrops**: All full-screen overlays and modal containers must use `z-[9999]` and absolute/fixed positioning to always float above the map layer.
-
----
-
-## 🎯 Single Responsibility Layout Refactoring Strategy
-
-Currently, the frontend suffers from monolithic page designs that violate the **Single Responsibility Principle (SRP)**. Specifically:
-- [`src/app/household/page.tsx`](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/src/app/household/page.tsx) is a single massive file (1,084 lines, ~45KB) managing household selection, creation, joins, address edits, members list, category management, and contact logs.
-### Clean Architecture Layout:
-We have refactored the monolithic page to a clean Next.js App Router sub-routing design:
-
-```
-src/app/
-├── household/
-│   ├── page.tsx                     # Main Selection Selector / zero-state list / creation page
-│   └── [id]/
-│       └── page.tsx                 # SRP: Household Detail Overview, Map Banner, Member registry list, and Contacts Directory
-```
-
-### Benefits of the Refactoring:
-1. **Route-based Isolation**: Each view only loads the state and queries required for its specific task.
-2. **Simplified Components**: Reduced file sizes and removed nested modal conditional rendering.
-3. **Decoupled API Hooks**: Moved member role, address, and deletion mutations out of the contact module and into the household domain features folder where they belong.
-4. **Pruning Shared Imports**: Decoupled routes allow clean dynamic imports of heavy modules like Leaflet `OSMMapViewer` to prevent bundler pollution on simple listing pages.
+- **Map Isolation**: Wrap map elements in parent containers using `relative z-0 isolate overflow-hidden`.
+- **Modal Backdrops**: All full-screen overlays use `z-[9999]` and fixed positioning.
 
 ---
 
 ## 📑 System Documentation
 
 For detailed analysis and specifications, please refer to:
-- [Go Backend Audit & Schema README](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/backend/README.md)
-- [React/Next.js Frontend Audit README](file:///Users/leifkroeger/Dev/alfheim/apps/dashboard/frontend/README.md)
-
+- [Go Backend Architecture README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/README.md)
+- [React/Next.js Frontend Architecture README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/README.md)

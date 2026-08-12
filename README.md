@@ -66,11 +66,11 @@ Prior to starting the platform, configure the required environment variables:
    * **Keycloak**: `cp infrastructure/keycloak/.env.example infrastructure/keycloak/.env`
    * **Pantry Module**: `cp apps/pantry/.env.example apps/pantry/.env`
 
-### Headless Server Deployment Details
-For headless, remote, or automated environments (CI/CD, local servers):
-* **Backend JWT Validation**: The pantry backend validates authorization headers directly against Keycloak. Configure `KEYCLOAK_URL` in `apps/pantry/.env` to point to `http://alfheim.local/auth`. If your headless deployment lacks external DNS, you can configure it to use the Docker internal service endpoint `http://keycloak:8080/auth` to bypass host DNS resolution.
-* **Frontend Relative Routing**: The `pantry-frontend` container resolves API routes relatively via `NEXT_PUBLIC_API_URL=/pantry/api`. This allows the frontend to work seamlessly out-of-the-box regardless of whether it is accessed via `http://localhost/pantry` or `http://alfheim.local/pantry`.
-* **Keycloak Trust**: Keycloak is pre-configured with `KC_PROXY=edge` and `KC_HOSTNAME_STRICT=false`. This ensures it trusts headers passed by the gateway and accepts tokens generated under different DNS bindings (e.g. `localhost` vs `alfheim.local`).
+### Stack Apps & Integrations (`deploy/stack-apps.yaml`)
+Server-level Tier 2 applications and external portals are configured in [`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml). The dashboard control plane loads this file on startup and dynamically filters entries by Keycloak OIDC roles:
+* **Core Apps (Tier 1)**: Native microservices (`pantry`, `shopping`, `maintenance`, `chores`). Toggleable per user.
+* **Stack Apps (Tier 2)**: Configured in `deploy/stack-apps.yaml` (`home-assistant`, `librechat`, `plex`). Role-filtered via Keycloak.
+* **User Links (Tier 3)**: Personal bookmarks stored per-user in PostgreSQL.
 
 ---
 

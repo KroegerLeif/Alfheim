@@ -72,10 +72,13 @@ func main() {
 	appsRepo := apps.NewRepository(dbClient.Pool)
 	contactRepo := contact.NewRepository(dbClient.Pool)
 
+	// Initialize Stack Apps Loader for Tier 2 integrations
+	stackLoader := apps.NewStackAppsLoader(cfg.StackAppsPath, log)
+
 	// Initialize Services
 	profileService := profile.NewService(profileRepo, kcClient, log)
 	householdService := household.NewService(householdRepo, log)
-	appsService := apps.NewService(appsRepo, log)
+	appsService := apps.NewService(appsRepo, stackLoader, log)
 	contactService := contact.NewService(contactRepo, householdRepo, log)
 	telemetryService := telemetry.NewService("", log)
 

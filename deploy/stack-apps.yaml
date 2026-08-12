@@ -1,0 +1,48 @@
+# deploy/stack-apps.yaml
+# Server-level Tier 2 Stack Applications & External Integrations
+# Loaded by backend at startup and filtered dynamically by Keycloak OIDC roles.
+
+apps:
+  - id: "home-assistant"
+    title: "Home Assistant"
+    slug: "home-assistant"
+    description: "Smart home automation, climate control, and security dashboard."
+    icon: "home"
+    url: "http://homeassistant.local"
+    category: "external"
+    required_roles: []
+    status: "active"
+    display_order: 1
+
+  - id: "librechat"
+    title: "LibreChat AI"
+    slug: "librechat"
+    description: "Unified AI conversational interface with LLM provider routing."
+    icon: "psychology"
+    url: "http://alfheim.local/chat"
+    category: "external"
+    required_roles: []
+    status: "active"
+    display_order: 2
+
+  - id: "plex"
+    title: "Plex Media Server"
+    slug: "plex"
+    description: "Stream movies, TV shows, and personal media across devices."
+    icon: "movie"
+    url: "/under-construction?app=Plex"
+    category: "external"
+    required_roles: ["admin"]
+    status: "in_progress"
+    display_order: 3
+
+  - id: "nextcloud"
+    title: "Nextcloud Storage"
+    slug: "nextcloud"
+    description: "Private cloud storage, photos, and document synchronization."
+    icon: "cloud"
+    url: "/under-construction?app=Nextcloud"
+    category: "external"
+    required_roles: []
+    status: "in_progress"
+    display_order: 4

@@ -9,7 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`docs(chores): update CONTEXT.md with final operational route configurations`** (Active)
+* **`refactor(dashboard): implement 3-tier app & link architecture`** (Active)
+  - Tier 1 (Core Apps): Pre-defined in `tier1_core_registry.go`, default visible, toggleable via `user_preferences` table.
+  - Tier 2 (Stack Apps): Loaded from `deploy/stack-apps.yaml` on startup, dynamically role-filtered via Keycloak.
+  - Tier 3 (User Links): Stored per-user in PostgreSQL `user_links` table with full REST CRUD API.
+* **`docs(chores): update CONTEXT.md with final operational route configurations`**
 * **`fix(dashboard): update chores portal target URL to include locale fallback (/chores/de)`**
 * **`docs(chores): finalize 3-README system and update CONTEXT.md`**
 * **`feat(chores): configure keycloak client, traefik routing priority, stop grace periods, and dashboard portal integration`**

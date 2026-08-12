@@ -1,8 +1,9 @@
 import { api } from '@/core/api/client';
 import {
-  AppCatalogResponse,
   AppItem,
-  CreateAppRequest,
+  DashboardAppsResponse,
+  UserPreferences,
+  CreateUserLinkRequest,
   UserProfile,
   UpdateProfileRequest,
   TelemetryMetrics,
@@ -10,17 +11,42 @@ import {
   TelemetryLogsResponse,
 } from './types';
 
-/* App Catalog API */
-export async function fetchAppCatalog(): Promise<AppCatalogResponse> {
-  return await api.get('api/v1/apps').json<AppCatalogResponse>();
+/* 3-Tier Dashboard & Apps API */
+export async function fetchDashboardApps(): Promise<DashboardAppsResponse> {
+  return await api.get('api/v1/apps/dashboard').json<DashboardAppsResponse>();
 }
 
-export async function createApp(payload: CreateAppRequest): Promise<AppItem> {
-  return await api.post('api/v1/apps', { json: payload }).json<AppItem>();
+export async function fetchUserPreferences(): Promise<UserPreferences> {
+  return await api.get('api/v1/user/preferences').json<UserPreferences>();
 }
 
-export async function updateApp(id: string, payload: Partial<CreateAppRequest>): Promise<AppItem> {
-  return await api.put(`api/v1/apps/${id}`, { json: payload }).json<AppItem>();
+export async function updateUserPreferences(hiddenAppIds: string[]): Promise<UserPreferences> {
+  return await api.put('api/v1/user/preferences', { json: { hidden_app_ids: hiddenAppIds } }).json<UserPreferences>();
+}
+
+export async function createUserLink(payload: CreateUserLinkRequest): Promise<AppItem> {
+  return await api.post('api/v1/user/links', { json: payload }).json<AppItem>();
+}
+
+export async function updateUserLink(id: string, payload: Partial<CreateUserLinkRequest>): Promise<AppItem> {
+  return await api.put(`api/v1/user/links/${id}`, { json: payload }).json<AppItem>();
+}
+
+export async function deleteUserLink(id: string): Promise<void> {
+  await api.delete(`api/v1/user/links/${id}`);
+}
+
+/* Backward-compatibility wrappers */
+export async function fetchAppCatalog(): Promise<DashboardAppsResponse> {
+  return fetchDashboardApps();
+}
+
+export async function createApp(payload: CreateUserLinkRequest): Promise<AppItem> {
+  return createUserLink(payload);
+}
+
+export async function updateApp(id: string, payload: Partial<CreateUserLinkRequest>): Promise<AppItem> {
+  return updateUserLink(id, payload);
 }
 
 /* User Profile API */
@@ -37,7 +63,6 @@ export async function fetchTelemetryMetrics(): Promise<TelemetryMetrics> {
   try {
     return await api.get('api/v1/telemetry/metrics').json<TelemetryMetrics>();
   } catch {
-    // Attempt backward compatibility endpoint
     return await api.get('api/v1/telemetry').json<TelemetryMetrics>();
   }
 }
