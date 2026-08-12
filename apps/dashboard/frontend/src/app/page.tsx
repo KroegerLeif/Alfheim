@@ -305,9 +305,9 @@ export default function DashboardPage() {
             </span>
             <button
               onClick={openAddModal}
-              className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold font-mono text-xs flex items-center gap-1.5 cursor-pointer hover:bg-[var(--primary-hover)] transition-all duration-150 shadow-[0_0_12px_var(--accent-glow)]"
+              className="px-3.5 py-1.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold font-mono text-xs inline-flex items-center gap-1.5 cursor-pointer hover:bg-[var(--primary-hover)] transition-all duration-150 shadow-[0_0_12px_var(--accent-glow)]"
             >
-              <span className="material-symbols-outlined text-sm font-bold">add_bookmark</span>
+              <span className="material-symbols-outlined text-base">add</span>
               <span>Add Bookmark</span>
             </button>
           </div>

@@ -255,5 +255,8 @@ echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim/<app-name
 - [ ] **Implement Backend**: Dockerfile, pyproject.toml/go.mod, main router, config engine, database module, auth verification contexts, and `/api/v1/health` endpoint.
 - [ ] **Implement Frontend**: tsconfig/package configs, `next.config.ts` (standalone mode, transpile `@alfheim/shared`), proxy setup (`src/proxy.ts`), i18n setup, API client, layout, and first page views.
 - [ ] **Populate i18n**: Add translations in all 3 language JSON files under `@alfheim/shared`.
+- [ ] **Register 3-Tier Dashboard Entry**:
+  - For Tier 1 Core Apps: Register entry in [`tier1_core_registry.go`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/internal/features/apps/tier1_core_registry.go).
+  - For Tier 2 Stack Integrations: Register entry in [`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml).
 - [ ] **Register Orchestration**: Create compose.yml, add to root compose.yaml, add stage to scripts/up.sh.
-- [ ] **Quality checks**: Run TypeScript verification, check no dummy stubs or `@ts-ignore` statements exist.
+- [ ] **Quality checks**: Run TypeScript verification (`pnpm build`), check no dummy stubs or `@ts-ignore` statements exist.
