@@ -546,10 +546,10 @@ export default function SettingsPage() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Traefik Card */}
+          {/* Caddy Card */}
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex flex-col justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">Traefik Ingress Routing</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">Caddy Reverse Proxy Gateway</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
                 Dynamic edge routing and HTTPS TLS termination.
               </div>

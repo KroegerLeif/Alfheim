@@ -1,0 +1,92 @@
+# Global options
+{
+	admin off
+	auto_https off
+}
+
+# =============================================================================
+# 1. FRONTEND DOMAIN (alfheim.loegien.de & local development)
+# =============================================================================
+http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
+	# Exact locale redirects for bare base paths
+	redir /pantry /pantry/en 302
+	redir /pantry/ /pantry/en 302
+	redir /shopping /shopping/en 302
+	redir /shopping/ /shopping/en 302
+	redir /maintenance /maintenance/en 302
+	redir /maintenance/ /maintenance/en 302
+	redir /chores /chores/de 302
+	redir /chores/ /chores/de 302
+
+	# Microfrontend proxies (keep basePath prefix intact for Next.js apps)
+	handle /pantry* {
+		reverse_proxy pantry-frontend:3000
+	}
+	handle /shopping* {
+		reverse_proxy shopping-frontend:3010
+	}
+	handle /maintenance* {
+		reverse_proxy maintenance-frontend:3000
+	}
+	handle /chores* {
+		reverse_proxy chores-frontend:3000
+	}
+
+	# Dashboard Frontend Catch-all (Root)
+	handle {
+		reverse_proxy dashboard-frontend:3000
+	}
+}
+
+# =============================================================================
+# 2. CENTRAL API GATEWAY (api.alfheim.loegien.de & local development)
+# =============================================================================
+http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.alfheim {
+	# Global CORS Headers for API Gateway
+	@options method OPTIONS
+	handle @options {
+		header Access-Control-Allow-Origin "*"
+		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		header Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
+		header Access-Control-Allow-Credentials "true"
+		respond 204
+	}
+
+	header Access-Control-Allow-Origin "*"
+	header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+	header Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
+
+	# Keycloak IAM (Native subpath /auth - NO path stripping)
+	handle /auth* {
+		reverse_proxy keycloak:8080
+	}
+
+	# Feature APIs with Path Stripping (FastAPI backends expect /api/v1/...)
+	handle_path /pantry* {
+		reverse_proxy pantry-backend:8000
+	}
+	handle_path /shopping* {
+		reverse_proxy shopping-backend:8000
+	}
+	handle_path /maintenance* {
+		reverse_proxy maintenance-backend:8000
+	}
+
+	# Chores API (NO stripping - expects /api/v1/chores/*)
+	handle /api/v1/chores* {
+		reverse_proxy chores-backend:8000
+	}
+	handle /chores* {
+		reverse_proxy chores-backend:8000
+	}
+
+	# Dashboard Backend (NO stripping - Go backend expects /api/v1/apps, /profile, /households, /telemetry)
+	handle /api/v1/* {
+		reverse_proxy dashboard-backend:8080
+	}
+
+	# Observability UI
+	handle_path /signoz* {
+		reverse_proxy signoz-ui:8080
+	}
+}
