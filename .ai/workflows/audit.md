@@ -32,8 +32,8 @@ Execute this checklist whenever evaluating an application's layout, performing c
 * [ ] **Verify Null Protection**: Flag conditional chains like `members && members.length > 0` as unsafe if `members` can return `null` from the database.
 
 ### 🌐 Phase 5: Ingress vs. App Routing Boundary
-* [ ] **Check Ingress Definitions**: Inspect the `compose.yml` Docker labels. Verify that Traefik only handles top-level routing (path prefix mapping to containers).
-* [ ] **Verify App Routing**: Ensure all sub-routes and dynamic slug parameters are delegated entirely to the Next.js router. No regex path manipulations at the Traefik level.
+* [ ] **Check Ingress Definitions**: Inspect `infrastructure/caddy/Caddyfile`. Verify that Caddy only handles top-level gateway routing and domain dispatch.
+* [ ] **Verify App Routing**: Ensure all sub-routes and dynamic slug parameters are delegated entirely to the Next.js router. No unnecessary path manipulations at the gateway level.
 
 ### 🎨 Phase 6: Stacking Context & Map Layering
 * [ ] **Identify Map Instances**: Locate all usages of `<OSMMapViewer />` or Leaflet bindings.
