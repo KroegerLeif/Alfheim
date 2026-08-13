@@ -63,3 +63,25 @@ To prevent 401 Unauthorized errors caused by host issuer mismatches:
 * **Browser OIDC Operations**: Frontend clients interact with Keycloak via the external API Gateway URL (`http://api.alfheim.loegien.localhost/auth`).
 * **Backend JWKS Key Fetching**: Microservice backends fetch Keycloak public certificates via the internal Docker network (`http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`).
 * **Token Issuer Verification**: Backend JWT verification routines MUST decouple signature verification from host-string constraints so tokens issued externally via Caddy pass internal container validation seamlessly.
+
+---
+
+## 🌐 Rule 5: Multi-Zone Docker Network Segmentation
+
+To prevent security leaks and internal cross-talk between isolated application databases:
+* **`gateway-net`**: Reserved exclusively for Caddy reverse proxy ingress traffic to frontends, Keycloak OIDC, RustFS S3, and API backend routes.
+* **`infra-net`**: Connects core infrastructure services (Keycloak, `postgres-iam`, RustFS S3).
+* **`core-net`**: Connects control plane services (`dashboard-backend` ↔ `dashboard-db`).
+* **`app-<name>-net`**: Strictly isolates application backends to their dedicated database containers (e.g., `app-pantry-net`, `app-shopping-net`). Microservice backends must **NEVER** join another microservice's internal DB network.
+* **Inter-Service API Calls**: Cross-application backend communications MUST take place via `gateway-net` (or public API routes), not by mounting third-party DB networks.
+
+---
+
+## 🗄️ Rule 6: Centralized RustFS S3 Object Storage & Tenant Isolation
+
+All binary media assets (product photos, PDFs, avatar images, device manuals) MUST be stored centrally in RustFS (S3-compatible object storage):
+* **No Direct File Storage**: Microservices must not store binary upload blobs directly on local container filesystems or inside PostgreSQL databases.
+* **Tenant-Isolated Path Convention**:
+  * Shared Household Assets: `households/{household_id}/{app_name}/{filename}`
+  * Private User Assets: `users/{user_id}/{app_name}/{filename}`
+* **Presigned URLs**: Microservices generate short-lived presigned PUT/GET URLs via `aioboto3` / `src/core/storage.py` and pass them to frontends for direct client-to-RustFS uploads and downloads via Caddy (`http://api.alfheim.loegien.localhost/storage/`).

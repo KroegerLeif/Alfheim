@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - shopping-internal
+      - app-shopping-net
     stop_grace_period: 10s
 
   shopping-backend:
@@ -47,8 +47,8 @@ services:
       shopping-db:
         condition: service_healthy
     networks:
-      - public-ingress
-      - shopping-internal
+      - gateway-net
+      - app-shopping-net
       - observability-internal
 
   shopping-frontend:
@@ -76,18 +76,19 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - public-ingress
+      - gateway-net
 
 volumes:
   postgres_data_shopping:
 
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     external: true
-  shopping-internal:
-    name: shopping-internal
+  app-shopping-net:
+    name: app-shopping-net
     external: true
   observability-internal:
     name: observability-internal
     external: true
+

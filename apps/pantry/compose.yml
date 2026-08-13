@@ -10,14 +10,14 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pantry_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d pantry"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - pantry-internal
+      - app-pantry-net
     stop_grace_period: 10s
 
   pantry-backend:
@@ -44,9 +44,8 @@ services:
       pantry-db:
         condition: service_healthy
     networks:
-      - public-ingress
-      - pantry-internal
-      - shopping-internal
+      - gateway-net
+      - app-pantry-net
       - observability-internal
 
   pantry-frontend:
@@ -73,19 +72,19 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - public-ingress
+      - gateway-net
 
 volumes:
-  postgres_data:
+  pantry_postgres_data:
 
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     external: true
-  pantry-internal:
-    name: pantry-internal
-  shopping-internal:
-    name: shopping-internal
+  app-pantry-net:
+    name: app-pantry-net
+    external: true
   observability-internal:
     name: observability-internal
     external: true
+

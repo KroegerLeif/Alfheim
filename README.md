@@ -15,12 +15,12 @@ alfheim/
 ├── README.md                   # Platform setup and verification guide
 ├── infrastructure/             # Platform Infrastructure Services
 │   ├── caddy/                  # Central Caddy Reverse Proxy & Ingress Gateway
-│   │   ├── compose.yml        # Caddy container definition
-│   │   └── Caddyfile          # Dual-domain routing, CORS, and path stripping rules
 │   ├── keycloak/               # Keycloak config & realm import files
-│   └── postgres-iam/           # IAM postgres database config files
+│   ├── postgres-iam/           # IAM postgres database config files
+│   └── rustfs/                 # RustFS S3-compatible central object storage
+├── core/
+│   └── dashboard/              # Central Dashboard Module (Go control plane & Next.js frontend)
 └── apps/
-    ├── dashboard/              # Central Dashboard Module
     ├── pantry/                 # Digital Pantry Module
     ├── shopping/               # Shopping List Module
     ├── maintenance/            # Home Maintenance Tracker Module
@@ -43,10 +43,13 @@ To resolve these local domains on your development machine, add the following li
 127.0.0.1 api.alfheim.loegien.localhost
 ```
 
-### B. Network Topology
-All services communicating across domain bounds join a unified Docker bridge network named `public-ingress`.
-* **Zero Host Port Exposure**: Application containers do not expose internal high ports (3000, 8000, 8080) directly to the host machine.
-* **Caddy Ingress Gateway**: Caddy listens on port `80` and `443`, proxying host requests to internal Docker containers using service names.
+### B. Network Topology & Multi-Zone Segmentation
+The platform enforces strict multi-zone network isolation across Docker bridge networks:
+* **`gateway-net`**: Connects Caddy ingress gateway to frontends, Keycloak, RustFS S3, and backend API endpoints.
+* **`infra-net`**: Isolated infrastructure bridge connecting Keycloak, `postgres-iam`, and RustFS S3 backend ports.
+* **`core-net`**: Dedicated control plane network for `dashboard-backend` and `dashboard-db`.
+* **`app-<name>-net`**: App-isolated networks connecting microservice backends to their dedicated database containers (e.g. `app-pantry-net`, `app-shopping-net`).
+* **`observability-internal`**: Dedicated telemetry bridge connecting app backends to the SigNoz OpenTelemetry Collector.
 
 ### C. Routing Matrix (Central Caddy Gateway)
 
@@ -65,6 +68,7 @@ All services communicating across domain bounds join a unified Docker bridge net
 | Public URL | Destination Service | Internal Destination URL | Path Stripping & CORS Notes |
 | :--- | :--- | :--- | :--- |
 | `http://api.alfheim.loegien.localhost/auth` | `keycloak` | `http://keycloak:8080/auth` | OIDC IAM provider. Native subpath (no stripping). |
+| `http://api.alfheim.loegien.localhost/storage/` | `rustfs` | `http://rustfs:9000/` | Central S3 object storage & presigned URLs. Strips `/storage` prefix. |
 | `http://api.alfheim.loegien.localhost/pantry/api/v1/` | `pantry-backend` | `http://pantry-backend:8000/api/v1/` | Strips `/pantry` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |

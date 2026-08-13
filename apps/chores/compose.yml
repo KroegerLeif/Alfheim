@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - chores-internal
+      - app-chores-net
     stop_grace_period: 10s
 
   chores-backend:
@@ -42,8 +42,8 @@ services:
       chores-db:
         condition: service_healthy
     networks:
-      - public-ingress
-      - chores-internal
+      - gateway-net
+      - app-chores-net
       - observability-internal
 
   chores-frontend:
@@ -70,17 +70,19 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - public-ingress
+      - gateway-net
 
 volumes:
   postgres_data_chores:
 
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     external: true
-  chores-internal:
-    name: chores-internal
+  app-chores-net:
+    name: app-chores-net
+    external: true
   observability-internal:
     name: observability-internal
     external: true
+
