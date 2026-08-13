@@ -32,6 +32,11 @@ class Settings(BaseSettings):
         return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
 
     @property
+    def expected_issuer(self) -> str:
+        base = self.KEYCLOAK_PUBLIC_URL.rstrip("/")
+        return f"{base}/realms/{self.KEYCLOAK_REALM}"
+
+    @property
     def jwks_fallback_urls(self) -> list[str]:
         urls = [self.jwks_url]
         for base_url in [

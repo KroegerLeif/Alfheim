@@ -44,7 +44,7 @@ export const choresClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_chores-frontend");
+          const token = sessionStorage.getItem("token_chores-frontend") || sessionStorage.getItem("alfheim_access_token");
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
@@ -57,6 +57,22 @@ export const choresClient = ky.create({
     ],
     afterResponse: [
       async (request, options, response) => {
+        if (response.status === 401 && typeof window !== "undefined") {
+          const keycloak = (window as any).__keycloak_instance__;
+          if (keycloak && typeof keycloak.updateToken === "function") {
+            try {
+              const refreshed = await keycloak.updateToken(30);
+              if (refreshed && keycloak.token) {
+                sessionStorage.setItem("token_chores-frontend", keycloak.token);
+                sessionStorage.setItem("alfheim_access_token", keycloak.token);
+                request.headers.set("Authorization", `Bearer ${keycloak.token}`);
+                return ky(request, options);
+              }
+            } catch (err) {
+              console.warn("Keycloak token refresh failed on 401:", err);
+            }
+          }
+        }
         if (!response.ok) {
           await handleResponseError(response);
         }

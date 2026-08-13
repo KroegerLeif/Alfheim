@@ -45,7 +45,8 @@ def decode_keycloak_token(token: str) -> dict:
                 token,
                 signing_key.key,
                 algorithms=["RS256", "HS256"],
-                options={"verify_aud": False, "verify_iss": False},
+                issuer=settings.expected_issuer,
+                options={"verify_aud": False, "verify_iss": True},
             )
         except HTTPException:
             raise

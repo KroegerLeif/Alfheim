@@ -52,15 +52,35 @@ export const maintenanceClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_maintenance-frontend");
+          const token = sessionStorage.getItem("token_maintenance-frontend") || sessionStorage.getItem("alfheim_access_token");
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
+          }
+          const activeHhId = localStorage.getItem("alfheim_active_household_id");
+          if (activeHhId) {
+            request.headers.set("X-Household-ID", activeHhId);
           }
         }
       },
     ],
     afterResponse: [
       async (request, options, response) => {
+        if (response.status === 401 && typeof window !== "undefined") {
+          const keycloak = (window as any).__keycloak_instance__;
+          if (keycloak && typeof keycloak.updateToken === "function") {
+            try {
+              const refreshed = await keycloak.updateToken(30);
+              if (refreshed && keycloak.token) {
+                sessionStorage.setItem("token_maintenance-frontend", keycloak.token);
+                sessionStorage.setItem("alfheim_access_token", keycloak.token);
+                request.headers.set("Authorization", `Bearer ${keycloak.token}`);
+                return ky(request, options);
+              }
+            } catch (err) {
+              console.warn("Keycloak token refresh failed on 401:", err);
+            }
+          }
+        }
         if (!response.ok) {
           await handleResponseError(response);
         }

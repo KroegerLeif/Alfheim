@@ -52,7 +52,7 @@ export const shoppingClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_shopping-frontend");
+          const token = sessionStorage.getItem("token_shopping-frontend") || sessionStorage.getItem("alfheim_access_token");
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
@@ -100,7 +100,7 @@ export const pantryClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_shopping-frontend");
+          const token = sessionStorage.getItem("token_shopping-frontend") || sessionStorage.getItem("alfheim_access_token");
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }

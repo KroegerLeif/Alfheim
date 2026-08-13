@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider as SharedThemeProvider } from "@alfheim/shared";
-import { ReactNode, useState, useEffect, createContext, useContext } from "react";
+import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
 import Keycloak from "keycloak-js";
 
 export const SidebarContext = createContext<{
@@ -43,15 +43,34 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeListId, setActiveListId] = useState<string | null>(null);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
     const keycloak = new Keycloak({
       url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://api.alfheim.loegien.localhost/auth",
       realm: "alfheim",
       clientId: "shopping-frontend",
     });
+
+    const cleanQueryParams = () => {
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        let hasParams = false;
+        ["state", "session_state", "code", "iss"].forEach((param) => {
+          if (url.searchParams.has(param)) {
+            url.searchParams.delete(param);
+            hasParams = true;
+          }
+        });
+        if (hasParams) {
+          window.history.replaceState({}, document.title, url.pathname + url.search);
+        }
+      }
+    };
 
     keycloak
       .init({
@@ -61,19 +80,25 @@ export default function Providers({ children }: { children: ReactNode }) {
         responseMode: "query",
       })
       .then((authenticated) => {
-        if (authenticated) {
+        cleanQueryParams();
+        if (authenticated && keycloak.token) {
           setIsAuthenticated(true);
           (window as any).__keycloak_instance__ = keycloak;
           sessionStorage.setItem("token_shopping-frontend", keycloak.token || "");
+          sessionStorage.setItem("alfheim_access_token", keycloak.token || "");
 
           // Set up token auto-refresh
           const interval = setInterval(() => {
             keycloak
               .updateToken(70)
               .then((refreshed) => {
-                if (refreshed) {
+                if (refreshed && keycloak.token) {
                   sessionStorage.setItem(
                     "token_shopping-frontend",
+                    keycloak.token || ""
+                  );
+                  sessionStorage.setItem(
+                    "alfheim_access_token",
                     keycloak.token || ""
                   );
                 }
@@ -84,10 +109,13 @@ export default function Providers({ children }: { children: ReactNode }) {
           }, 60000);
 
           return () => clearInterval(interval);
+        } else {
+          setIsAuthenticated(false);
         }
       })
       .catch((err) => {
         console.error("Keycloak initialization failed", err);
+        cleanQueryParams();
         setAuthError("Failed to connect to Keycloak auth service.");
       });
   }, []);

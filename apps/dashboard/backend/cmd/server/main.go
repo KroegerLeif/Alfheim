@@ -59,7 +59,7 @@ func main() {
 
 	// Keycloak Admin client & Authenticator
 	kcClient := keycloak.NewClient(cfg.Keycloak, log)
-	auth, err := middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, log)
+	auth, err := middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
 	if err != nil {
 		log.Warn("failed to initialize oidc jwks authenticator; requests will require valid jwks endpoint",
 			slog.String("error", err.Error()),
