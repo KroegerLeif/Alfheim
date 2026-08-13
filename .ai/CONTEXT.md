@@ -9,7 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`refactor(dashboard): implement 3-tier app & link architecture`** (Active)
+* **`fix(auth): resolve Keycloak OIDC issuer matching, strict mode init, and backend token verification`** (Active)
+  - Pinned Keycloak `KC_HOSTNAME` & `KC_HOSTNAME_URL` to `http://api.alfheim.loegien.localhost/auth`.
+  - Fixed React 18 strict mode double-initialization using `initializedRef` across all 5 microfrontends.
+  - Added URL parameter cleanup (`code`, `state`, `session_state`, `iss`) immediately post code exchange.
+  - Unified token persistence in `sessionStorage` (`token_<app>` + `alfheim_access_token`).
+  - Added strict issuer signature verification (`http://api.alfheim.loegien.localhost/auth/realms/alfheim`) to Go and Python FastAPI backend auth middlewares.
+* **`refactor(dashboard): implement 3-tier app & link architecture`**
   - Tier 1 (Core Apps): Pre-defined in `tier1_core_registry.go`, default visible, toggleable via `user_preferences` table.
   - Tier 2 (Stack Apps): Loaded from `deploy/stack-apps.yaml` on startup, dynamically role-filtered via Keycloak.
   - Tier 3 (User Links): Stored per-user in PostgreSQL `user_links` table with full REST CRUD API.

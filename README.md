@@ -119,3 +119,12 @@ Verify HTTP routing and responses using browser or `curl`:
 
 4. **Keycloak IAM Landing Page**:
    Access `http://api.alfheim.loegien.localhost/auth/` in your browser.
+
+---
+
+## 5. Security & Keycloak OIDC Token Verification
+
+* **Public Issuer URL**: `http://api.alfheim.loegien.localhost/auth/realms/alfheim`
+* **Internal Docker JWKS**: `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
+* **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `http://api.alfheim.loegien.localhost/auth/realms/alfheim`.
+
