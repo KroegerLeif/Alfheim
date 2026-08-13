@@ -54,6 +54,8 @@ services:
     image: rustfs/rustfs:latest
     container_name: alfheim_rustfs
     restart: unless-stopped
+    env_file:
+      - ./rustfs/.env
     environment:
       RUSTFS_ACCESS_KEY: ${S3_ROOT_USER:-minioadmin}
       RUSTFS_SECRET_KEY: ${S3_ROOT_PASSWORD:-minioadmin}

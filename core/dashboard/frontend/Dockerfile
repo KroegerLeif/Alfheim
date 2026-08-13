@@ -6,7 +6,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared ./packages/shared
-COPY apps/dashboard/frontend/package.json ./apps/dashboard/frontend/
+COPY core/dashboard/frontend/package.json ./core/dashboard/frontend/
 
 # Use BuildKit pnpm store cache mount so downloaded packages are reused across rebuilds.
 # The shared cache id=pnpm is intentionally shared with other frontend builds in this monorepo.
@@ -19,7 +19,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 COPY --from=deps /app ./
-COPY apps/dashboard/frontend ./apps/dashboard/frontend
+COPY core/dashboard/frontend ./core/dashboard/frontend
 
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
@@ -28,7 +28,7 @@ ENV NEXT_PUBLIC_KEYCLOAK_URL=$NEXT_PUBLIC_KEYCLOAK_URL
 ARG NEXT_PUBLIC_FRONTEND_URL
 ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
 
-WORKDIR /app/apps/dashboard/frontend
+WORKDIR /app/core/dashboard/frontend
 RUN pnpm run build
 
 # Stage 3: Runner
@@ -42,12 +42,12 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/apps/dashboard/frontend/public ./apps/dashboard/frontend/public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/dashboard/frontend/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/dashboard/frontend/.next/static ./apps/dashboard/frontend/.next/static
+COPY --from=builder /app/core/dashboard/frontend/public ./core/dashboard/frontend/public
+COPY --from=builder --chown=nextjs:nodejs /app/core/dashboard/frontend/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/core/dashboard/frontend/.next/static ./core/dashboard/frontend/.next/static
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "apps/dashboard/frontend/server.js"]
+CMD ["node", "core/dashboard/frontend/server.js"]

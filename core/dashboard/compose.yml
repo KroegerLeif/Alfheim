@@ -43,7 +43,7 @@ services:
 
   dashboard-frontend:
     build:
-      context: ../../..
+      context: ../..
       dockerfile: core/dashboard/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_DASHBOARD_API_URL:-http://api.alfheim.loegien.localhost/api/v1}
