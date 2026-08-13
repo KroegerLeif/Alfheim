@@ -7,13 +7,15 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: dashboard_db
+    volumes:
+      - dashboard_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d dashboard_db"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - dashboard-internal
+      - core-net
     stop_grace_period: 10s
 
   dashboard-backend:
@@ -36,13 +38,13 @@ services:
       dashboard-db:
         condition: service_healthy
     networks:
-      - public-ingress
-      - dashboard-internal
+      - gateway-net
+      - core-net
 
   dashboard-frontend:
     build:
-      context: ../..
-      dockerfile: apps/dashboard/frontend/Dockerfile
+      context: ../../..
+      dockerfile: core/dashboard/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_DASHBOARD_API_URL:-http://api.alfheim.loegien.localhost/api/v1}
         - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
@@ -61,11 +63,16 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - public-ingress
+      - gateway-net
+
+volumes:
+  dashboard_postgres_data:
 
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     external: true
-  dashboard-internal:
-    name: dashboard-internal
+  core-net:
+    name: core-net
+    external: true
+
