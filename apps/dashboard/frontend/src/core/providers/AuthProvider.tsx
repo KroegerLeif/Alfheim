@@ -32,11 +32,22 @@ const AuthContext = createContext<AuthContextType>({
 let inMemoryToken: string | null = null;
 
 export function getInMemoryToken(): string | null {
-  return inMemoryToken;
+  if (inMemoryToken) return inMemoryToken;
+  if (typeof window !== "undefined") {
+    return sessionStorage.getItem("token_dashboard-frontend");
+  }
+  return null;
 }
 
 export function setInMemoryToken(token: string | null) {
   inMemoryToken = token;
+  if (typeof window !== "undefined") {
+    if (token) {
+      sessionStorage.setItem("token_dashboard-frontend", token);
+    } else {
+      sessionStorage.removeItem("token_dashboard-frontend");
+    }
+  }
 }
 
 export function parseInMemoryTokenClaims(): UserIdentityClaims | null {
