@@ -478,12 +478,14 @@
       "id": "dashboard-frontend-client",
       "clientId": "dashboard-frontend",
       "name": "Dashboard Frontend",
-      "rootUrl": "http://alfheim",
+      "rootUrl": "http://alfheim.loegien.localhost",
       "baseUrl": "/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "http://alfheim.loegien.localhost/*",
+        "http://alfheim.loegien.de/*",
         "http://alfheim/*",
         "http://localhost:3000/*"
       ],
@@ -501,7 +503,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim/*",
+        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -522,12 +524,14 @@
       "id": "pantry-frontend-client",
       "clientId": "pantry-frontend",
       "name": "Pantry Frontend",
-      "rootUrl": "http://alfheim/pantry",
+      "rootUrl": "http://alfheim.loegien.localhost/pantry",
       "baseUrl": "/pantry/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "http://alfheim.loegien.localhost/pantry/*",
+        "http://alfheim.loegien.de/pantry/*",
         "http://alfheim/pantry/*"
       ],
       "webOrigins": [
@@ -544,7 +548,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim/pantry/*",
+        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/pantry/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -565,15 +569,16 @@
       "id": "chores-frontend-client",
       "clientId": "chores-frontend",
       "name": "Chores Frontend",
-      "rootUrl": "http://alfheim/chores",
+      "rootUrl": "http://alfheim.loegien.localhost/chores",
       "baseUrl": "/chores/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "http://alfheim.loegien.localhost/chores/*",
+        "http://alfheim.loegien.de/chores/*",
         "http://alfheim/chores/*",
-        "http://localhost/chores/*",
-        "http://alfheim/*"
+        "http://localhost/chores/*"
       ],
       "webOrigins": [
         "*"
@@ -589,7 +594,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim/chores/*",
+        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/chores/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -610,12 +615,14 @@
       "id": "shopping-frontend-client",
       "clientId": "shopping-frontend",
       "name": "Shopping Frontend",
-      "rootUrl": "http://alfheim/shopping",
+      "rootUrl": "http://alfheim.loegien.localhost/shopping",
       "baseUrl": "/shopping/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "http://alfheim.loegien.localhost/shopping/*",
+        "http://alfheim.loegien.de/shopping/*",
         "http://alfheim/shopping/*"
       ],
       "webOrigins": [
@@ -632,7 +639,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim/shopping/*",
+        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/shopping/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -653,12 +660,14 @@
       "id": "maintenance-frontend-client",
       "clientId": "maintenance-frontend",
       "name": "Maintenance Frontend",
-      "rootUrl": "http://alfheim/maintenance",
+      "rootUrl": "http://alfheim.loegien.localhost/maintenance",
       "baseUrl": "/maintenance/",
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "http://alfheim.loegien.localhost/maintenance/*",
+        "http://alfheim.loegien.de/maintenance/*",
         "http://alfheim/maintenance/*"
       ],
       "webOrigins": [
@@ -675,7 +684,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim/maintenance/*",
+        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/maintenance/*",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [

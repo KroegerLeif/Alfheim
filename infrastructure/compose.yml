@@ -30,12 +30,14 @@ services:
     environment:
       KC_HTTP_RELATIVE_PATH: "/auth"
       KC_PROXY: "edge"
+      KC_HOSTNAME_URL: "http://api.alfheim.loegien.localhost/auth"
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
       interval: 5s
-      timeout: 5s
       retries: 15
       start_period: 45s
     volumes:
@@ -47,12 +49,7 @@ services:
       - iam_network
       - public-ingress
     stop_grace_period: 10s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.keycloak.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/auth`)"
-      - "traefik.http.routers.keycloak.entrypoints=web"
-      - "traefik.http.routers.keycloak.service=keycloak-service"
-      - "traefik.http.services.keycloak-service.loadbalancer.server.port=8080"
+
 
 
 networks:

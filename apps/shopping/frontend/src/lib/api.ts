@@ -12,14 +12,20 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = "http://alfheim" + resolved;
+      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
     }
   }
-  return resolved.endsWith("/") ? resolved : resolved + "/";
+  if (resolved.endsWith("/")) {
+    resolved = resolved.slice(0, -1);
+  }
+  if (resolved.endsWith("/api/v1")) {
+    resolved = resolved.slice(0, -7);
+  }
+  return resolved + "/";
 };
 
-const SHOPPING_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://alfheim/api/v1/shopping/");
-const PANTRY_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_PANTRY_API_URL, "http://alfheim/api/v1/pantry/");
+const SHOPPING_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://api.alfheim.loegien.localhost/shopping/api/v1");
+const PANTRY_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_PANTRY_API_URL, "http://api.alfheim.loegien.localhost/pantry/api/v1");
 
 /**
  * Normalizes HTTP error payloads from FastAPI and throws custom ApiError objects.
@@ -52,7 +58,7 @@ export const shoppingClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_shopping-frontend");
+          const token = sessionStorage.getItem("token_shopping-frontend") || sessionStorage.getItem("alfheim_access_token");
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
@@ -100,7 +106,7 @@ export const pantryClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_shopping-frontend");
+          const token = sessionStorage.getItem("token_shopping-frontend") || sessionStorage.getItem("alfheim_access_token");
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }

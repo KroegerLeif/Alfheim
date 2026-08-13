@@ -48,7 +48,7 @@ export function Header() {
     <header className="h-16 border-b border-[var(--border-subtle)] bg-[var(--surface-card)] px-6 flex items-center justify-between select-none relative shrink-0 transition-colors duration-200">
       {/* Back to Portal Link & Dynamic Title */}
       <div className="flex items-center gap-4">
-        <BackToDashboard href="http://alfheim/" />
+        <BackToDashboard href={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"} />
         <h1 className="text-lg font-black text-[var(--text-main)] tracking-wide uppercase">
           {titleMap[activeNav]}
         </h1>

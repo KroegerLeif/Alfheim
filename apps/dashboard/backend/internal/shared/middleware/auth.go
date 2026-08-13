@@ -36,12 +36,13 @@ type UserClaims struct {
 
 // Authenticator handles OIDC JWT validation via Keycloak JWKS endpoint.
 type Authenticator struct {
-	jwks *keyfunc.JWKS
-	log  *slog.Logger
+	jwks           *keyfunc.JWKS
+	expectedIssuer string
+	log            *slog.Logger
 }
 
 // NewAuthenticator creates an Authenticator instance that fetches and caches JWKS.
-func NewAuthenticator(jwksURL string, log *slog.Logger) (*Authenticator, error) {
+func NewAuthenticator(jwksURL string, expectedIssuer string, log *slog.Logger) (*Authenticator, error) {
 	options := keyfunc.Options{
 		RefreshInterval: time.Hour,
 		RefreshTimeout:  time.Second * 10,
@@ -55,9 +56,14 @@ func NewAuthenticator(jwksURL string, log *slog.Logger) (*Authenticator, error) 
 		return nil, fmt.Errorf("failed to create keyfunc JWKS from url %s: %w", jwksURL, err)
 	}
 
+	if expectedIssuer == "" {
+		expectedIssuer = "http://api.alfheim.loegien.localhost/auth/realms/alfheim"
+	}
+
 	return &Authenticator{
-		jwks: jwks,
-		log:  log,
+		jwks:           jwks,
+		expectedIssuer: expectedIssuer,
+		log:            log,
 	}, nil
 }
 
@@ -82,9 +88,14 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 
 		rawToken := parts[1]
 
-		token, err := jwt.Parse(rawToken, a.jwks.Keyfunc)
+		var parseOpts []jwt.ParserOption
+		if a.expectedIssuer != "" {
+			parseOpts = append(parseOpts, jwt.WithIssuer(a.expectedIssuer))
+		}
+
+		token, err := jwt.Parse(rawToken, a.jwks.Keyfunc, parseOpts...)
 		if err != nil || !token.Valid {
-			a.log.Warn("invalid jwt bearer token received", slog.String("error", err.Error()))
+			a.log.Warn("invalid jwt bearer token received", slog.String("error", fmt.Sprintf("%v", err)))
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write([]byte(`{"error":"unauthorized","message":"invalid or expired token"}`))

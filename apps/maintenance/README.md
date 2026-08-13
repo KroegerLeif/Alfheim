@@ -6,21 +6,21 @@ This directory houses the **Maintenance & Device Inventory Service** for the `al
 
 ## 🛠️ System Overview & Architecture
 
-The application is split into two major FDD-structured tiers served through the Traefik proxy gateway:
+The application is split into two major FDD-structured tiers served through the Caddy gateway proxy:
 
 ```mermaid
 graph TD
-    User([User Agent]) -->|/maintenance| Ingress[Traefik Ingress Proxy]
-    User -->|/api/v1/maintenance| Ingress
+    User([User Agent]) -->|alfheim.loegien.localhost/maintenance| Ingress[Caddy Ingress Gateway]
+    User -->|api.alfheim.loegien.localhost/maintenance/api/v1| Ingress
     Ingress -->|Port 3000| Frontend[Next.js Frontend Container]
     Ingress -->|Port 8000| Backend[FastAPI Backend Container]
     Backend -->|Port 5432| DB[(PostgreSQL maintenance-db)]
     Backend -->|OIDC Token Check| IAM[Keycloak Service]
 ```
 
-### 1. Ingress Mapping (Traefik Gateway)
-* **Frontend**: Mapped to host URL prefix `/maintenance`.
-* **Backend**: Mapped to host URL prefix `/api/v1/maintenance`. Traefik strips the prefix route and rewrites requests to `/api/v1/...` at the FastAPI level.
+### 1. Ingress Mapping (Caddy Gateway)
+* **Frontend**: Mapped to frontend host domain under subpath `http://alfheim.loegien.localhost/maintenance`.
+* **Backend**: Mapped to API gateway domain under `http://api.alfheim.loegien.localhost/maintenance/api/v1`. Caddy strips the `/maintenance` prefix via `handle_path` and forwards `/api/v1/...` to the FastAPI backend.
 
 ### 2. Dependency Services
 * **Database**: Runs on PostgreSQL (`maintenance-db`). Managed using SQLModel (SQLAlchemy) async sessions.

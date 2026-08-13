@@ -65,7 +65,7 @@ services:
     restart: unless-stopped
     environment:
       - ClickHouseUrl=tcp://signoz-clickhouse:9000?database=signoz_traces
-      - SIGNOZ_GLOBAL_EXTERNAL__URL=http://alfheim/signoz
+      - SIGNOZ_GLOBAL_EXTERNAL__URL=http://api.alfheim.loegien.localhost/signoz
     volumes:
       - signoz_sqlite_data:/var/lib/signoz
     deploy:
@@ -76,12 +76,6 @@ services:
     networks:
       - observability-internal
       - public-ingress
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.signoz.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/signoz`)"
-      - "traefik.http.routers.signoz.entrypoints=web"
-      - "traefik.http.routers.signoz.service=signoz-service"
-      - "traefik.http.services.signoz-service.loadbalancer.server.port=8080"
     depends_on:
       signoz-clickhouse:
         condition: service_healthy

@@ -8,7 +8,7 @@ const sanitizeBaseUrl = (url: string | undefined, defaultFallback: string) => {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = "http://alfheim" + resolved;
+      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
     }
   }
   if (resolved.endsWith("/")) {
@@ -21,7 +21,7 @@ const sanitizeBaseUrl = (url: string | undefined, defaultFallback: string) => {
   return resolved + "/";
 };
 
-const BASE_URL = sanitizeBaseUrl(process.env.NEXT_PUBLIC_API_URL, 'http://localhost:8080');
+const BASE_URL = sanitizeBaseUrl(process.env.NEXT_PUBLIC_API_URL, 'http://api.alfheim.loegien.localhost/api/v1');
 
 /**
  * Get Bearer auth token dynamically from in-memory AuthProvider state.

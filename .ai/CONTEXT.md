@@ -9,7 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`refactor(dashboard): implement 3-tier app & link architecture`** (Active)
+* **`fix(auth): resolve Keycloak OIDC issuer matching, strict mode init, and backend token verification`** (Active)
+  - Pinned Keycloak `KC_HOSTNAME` & `KC_HOSTNAME_URL` to `http://api.alfheim.loegien.localhost/auth`.
+  - Fixed React 18 strict mode double-initialization using `initializedRef` across all 5 microfrontends.
+  - Added URL parameter cleanup (`code`, `state`, `session_state`, `iss`) immediately post code exchange.
+  - Unified token persistence in `sessionStorage` (`token_<app>` + `alfheim_access_token`).
+  - Added strict issuer signature verification (`http://api.alfheim.loegien.localhost/auth/realms/alfheim`) to Go and Python FastAPI backend auth middlewares.
+* **`refactor(dashboard): implement 3-tier app & link architecture`**
   - Tier 1 (Core Apps): Pre-defined in `tier1_core_registry.go`, default visible, toggleable via `user_preferences` table.
   - Tier 2 (Stack Apps): Loaded from `deploy/stack-apps.yaml` on startup, dynamically role-filtered via Keycloak.
   - Tier 3 (User Links): Stored per-user in PostgreSQL `user_links` table with full REST CRUD API.
@@ -68,18 +74,18 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
 
 This index maps the active applications and services running inside the monorepo.
 
-| Application / Folder | Tech Stack | Ingress Route (Traefik) | Database (Postgres) |
+| Application / Folder | Tech Stack | Ingress Route (Caddy Gateway) | Database (Postgres) |
 | :--- | :--- | :--- | :--- |
-| **`apps/dashboard`** | Go, Next.js, OIDC | `/` (Catch-all) | `dashboard-db` |
-| **`apps/pantry`** | FastAPI, Next.js, OIDC | `/pantry` / `/api/v1/pantry` | `pantry-db` (Port `5432` in dev) |
-| **`apps/shopping`** | FastAPI, Next.js, OIDC | `/shopping` / `/api/v1/shopping` | `shopping-db` (Port `5433` in dev) |
-| **`apps/maintenance`** | FastAPI, Next.js, OIDC | `/maintenance` / `/api/v1/maintenance` | `maintenance-db` |
-| **`apps/chores`** | FastAPI, Next.js, OIDC | `/chores` / `/api/v1/chores` | `chores-db` (Port `5435` in dev) |
-| **`apps/logging-stack`**| SigNoz (Otel / ClickHouse) | `/signoz` | Clickhouse |
-| **`infrastructure`** | Keycloak, Traefik | `/auth` (OIDC provider) | `postgres-iam` |
+| **`apps/dashboard`** | Go, Next.js, OIDC | `alfheim.loegien.de/` (Catch-all) | `dashboard-db` |
+| **`apps/pantry`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/pantry` / `api.alfheim.loegien.de/pantry` | `pantry-db` (Port `5432` in dev) |
+| **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (Port `5433` in dev) |
+| **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` |
+| **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (Port `5435` in dev) |
+| **`apps/logging-stack`**| SigNoz (Otel / ClickHouse) | `api.alfheim.loegien.de/signoz` | Clickhouse |
+| **`infrastructure`** | Keycloak, Caddy | `api.alfheim.loegien.de/auth` (OIDC provider) | `postgres-iam` |
 
 ### Docker Network Map:
-* **`public-ingress`** (External, owned by `infrastructure`): Connects Traefik gateway to frontends and keycloak.
+* **`public-ingress`** (External, owned by `infrastructure`): Connects Caddy gateway to frontends and keycloak.
 * **`iam_network`** (Owned by `infrastructure`): Keycloak ↔ `postgres-iam` database.
 * **`observability-internal`** (External, pre-created in `up.sh`): Backends ↔ Otel Collector ↔ ClickHouse.
 * **`<app-name>-internal`** (Owned by each app's `compose.yml`): Backend ↔ DB container (isolated, not external).
@@ -87,7 +93,7 @@ This index maps the active applications and services running inside the monorepo
 ---
 
 ## 🔑 Keycloak JWT Invariants
-All backends validate bearer tokens issued by Keycloak (`http://alfheim/auth`).
+All backends validate bearer tokens issued by Keycloak (External: `http://api.alfheim.loegien.localhost/auth`, Internal Docker JWKS: `http://keycloak:8080/auth`).
 * **`sub`**: Injected as user UUID.
 * **`preferred_username`**: Used for Personal List naming.
 * **`household_id` / `active_household_id`**: Active household identifier (falls back to `X-Household-ID` header, then mock UUID).
@@ -215,12 +221,12 @@ All backends validate bearer tokens issued by Keycloak (`http://alfheim/auth`).
 
 ---
 
-## 🔗 Local URLs (Requires `/etc/hosts` resolution of `alfheim` to `127.0.0.1`)
-* Dashboard: `http://alfheim/`
-* Pantry: `http://alfheim/pantry`
-* Shopping: `http://alfheim/shopping`
-* Maintenance: `http://alfheim/maintenance`
-* Chores: `http://alfheim/chores/de` (Direct portal link; `/chores` redirects to `/chores/de`)
-* Chores API: `http://alfheim/api/v1/chores`
-* Keycloak Admin: `http://alfheim/auth/admin`
-* Traefik Admin: `http://localhost:8080`
+## 🔗 Local URLs (Requires `/etc/hosts` resolution of `127.0.0.1 alfheim.loegien.localhost api.alfheim.loegien.localhost`)
+* Dashboard: `http://alfheim.loegien.localhost/`
+* Pantry: `http://alfheim.loegien.localhost/pantry`
+* Shopping: `http://alfheim.loegien.localhost/shopping`
+* Maintenance: `http://alfheim.loegien.localhost/maintenance`
+* Chores: `http://alfheim.loegien.localhost/chores`
+* Central API Gateway: `http://api.alfheim.loegien.localhost/api/v1`
+* Keycloak IAM: `http://api.alfheim.loegien.localhost/auth`
+* SigNoz Observability UI: `http://api.alfheim.loegien.localhost/signoz`

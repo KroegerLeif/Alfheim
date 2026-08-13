@@ -141,9 +141,9 @@ export async function pushLowStockToShoppingApp(): Promise<{ success: boolean; p
     };
 
     try {
-      const targetUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/api/v1/shopping/items`
-        : "http://alfheim/api/v1/shopping/items";
+      const targetUrl = process.env.NEXT_PUBLIC_SHOPPING_API_URL
+        ? `${process.env.NEXT_PUBLIC_SHOPPING_API_URL}/items`
+        : "http://api.alfheim.loegien.localhost/shopping/api/v1/items";
 
       const res = await fetch(targetUrl, {
         method: "POST",

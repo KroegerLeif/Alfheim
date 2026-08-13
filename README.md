@@ -1,6 +1,6 @@
 # alfheim: Platform Architecture & Orchestration
 
-This is the central orchestration repository for `alfheim`, managing common infrastructure (identity provider, gateway proxy, databases) and micro-applications (such as the Digital Pantry module).
+This is the central orchestration repository for `alfheim`, managing common infrastructure (identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
 ---
 
@@ -14,16 +14,17 @@ alfheim/
 ├── .env.example                # Central environment configuration template
 ├── README.md                   # Platform setup and verification guide
 ├── infrastructure/             # Platform Infrastructure Services
-│   ├── compose.yml            # Keycloak IAM, database, and Nginx gateway
-│   ├── gateway/
-│   │   └── nginx.conf         # Central Nginx gateway configuration
-│   ├── keycloak/               # Keycloak config files
+│   ├── caddy/                  # Central Caddy Reverse Proxy & Ingress Gateway
+│   │   ├── compose.yml        # Caddy container definition
+│   │   └── Caddyfile          # Dual-domain routing, CORS, and path stripping rules
+│   ├── keycloak/               # Keycloak config & realm import files
 │   └── postgres-iam/           # IAM postgres database config files
 └── apps/
-    └── pantry/                 # Completed Digital Pantry Module
-        ├── compose.yml        # Pantry frontend, backend, and pantry database
-        ├── frontend/           # Next.js standalone container
-        └── backend/            # FastAPI application
+    ├── dashboard/              # Central Dashboard Module
+    ├── pantry/                 # Digital Pantry Module
+    ├── shopping/               # Shopping List Module
+    ├── maintenance/            # Home Maintenance Tracker Module
+    └── chores/                 # Household Chores Module
 ```
 
 ---
@@ -31,29 +32,48 @@ alfheim/
 ## 2. Network & Proxy Routing Architecture
 
 ### A. Local Domain Resolution
-We utilize a local domain strategy (`alfheim.local`) for platform routing. To resolve this domain on your development machine, add the following line to your local hosts file (e.g. `/etc/hosts` on MacOS/Linux, or `C:\Windows\System32\drivers\etc\hosts` on Windows):
+We utilize a dual-domain strategy for platform routing:
+* **Frontend Domain**: `alfheim.loegien.de` (Development alias: `alfheim.loegien.localhost`)
+* **API Gateway Domain**: `api.alfheim.loegien.de` (Development alias: `api.alfheim.loegien.localhost`)
+
+To resolve these local domains on your development machine, add the following lines to your local hosts file (e.g., `/etc/hosts` on MacOS/Linux, or `C:\Windows\System32\drivers\etc\hosts` on Windows):
 
 ```hosts
-127.0.0.1 alfheim.local
+127.0.0.1 alfheim.loegien.localhost
+127.0.0.1 api.alfheim.loegien.localhost
 ```
 
 ### B. Network Topology
-All services communicating across domain bounds join a unified Docker bridge network named `alfheim-network`.
-* **Zero Port Exposure**: Application containers (`pantry-frontend`, `pantry-backend`, `keycloak`) do not expose high ports (3000, 8000, 8080) to the host machine.
-* **Internal Resolution**: Services securely resolve each other internally using service names (e.g. `http://keycloak:8080/auth`).
+All services communicating across domain bounds join a unified Docker bridge network named `public-ingress`.
+* **Zero Host Port Exposure**: Application containers do not expose internal high ports (3000, 8000, 8080) directly to the host machine.
+* **Caddy Ingress Gateway**: Caddy listens on port `80` and `443`, proxying host requests to internal Docker containers using service names.
 
-### C. Routing Matrix (Central Nginx Gateway)
-The `gateway` service runs Nginx on port `80` and acts as the central router for the host machine:
+### C. Routing Matrix (Central Caddy Gateway)
+
+#### 1. Frontend Domain (`alfheim.loegien.localhost` / `alfheim.loegien.de`)
 
 | Public URL | Destination Service | Internal Destination URL | Notes |
 | :--- | :--- | :--- | :--- |
-| `http://alfheim.local/pantry` | `pantry-frontend` | `http://pantry-frontend:3000` | Served on `/pantry` basePath, rewrites root to `/pantry/en` |
-| `http://alfheim.local/pantry/api/` | `pantry-backend` | `http://pantry-backend:8000/` | Proxies API endpoints & docs |
-| `http://alfheim.local/auth/` | `keycloak` | `http://keycloak:8080/auth/` | Central IAM provider |
+| `http://alfheim.loegien.localhost/` | `dashboard-frontend` | `http://dashboard-frontend:3000` | Root landing page and control plane |
+| `http://alfheim.loegien.localhost/pantry` | `pantry-frontend` | `http://pantry-frontend:3000` | Served on `/pantry` basePath, 302 redirects bare path to `/pantry/en` |
+| `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `http://shopping-frontend:3010` | Served on `/shopping` basePath, 302 redirects bare path to `/shopping/en` |
+| `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `http://maintenance-frontend:3000`| Served on `/maintenance` basePath, 302 redirects bare path to `/maintenance/en` |
+| `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `http://chores-frontend:3000` | Served on `/chores` basePath, 302 redirects bare path to `/chores/de` |
+
+#### 2. API Gateway Domain (`api.alfheim.loegien.localhost` / `api.alfheim.loegien.de`)
+
+| Public URL | Destination Service | Internal Destination URL | Path Stripping & CORS Notes |
+| :--- | :--- | :--- | :--- |
+| `http://api.alfheim.loegien.localhost/auth` | `keycloak` | `http://keycloak:8080/auth` | OIDC IAM provider. Native subpath (no stripping). |
+| `http://api.alfheim.loegien.localhost/pantry/api/v1/` | `pantry-backend` | `http://pantry-backend:8000/api/v1/` | Strips `/pantry` prefix via Caddy `handle_path`. |
+| `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
+| `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |
+| `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `http://chores-backend:8000/api/v1/chores` | Native API route (no stripping). |
+| `http://api.alfheim.loegien.localhost/api/v1/apps` | `dashboard-backend` | `http://dashboard-backend:8080/api/v1/apps` | Native Go API route (no stripping). |
 
 ---
 
-## 3. Environment Variable & Headless Server Token Configuration
+## 3. Environment Variable Configuration
 
 Prior to starting the platform, configure the required environment variables:
 
@@ -61,40 +81,14 @@ Prior to starting the platform, configure the required environment variables:
    ```bash
    cp .env.example .env
    ```
-2. **Module Configurations**: Make sure the local configurations for individual components are copied and initialized:
-   * **PostgreSQL IAM**: `cp infrastructure/postgres-iam/.env.example infrastructure/postgres-iam/.env`
-   * **Keycloak**: `cp infrastructure/keycloak/.env.example infrastructure/keycloak/.env`
-   * **Pantry Module**: `cp apps/pantry/.env.example apps/pantry/.env`
-
-### Stack Apps & Integrations (`deploy/stack-apps.yaml`)
-Server-level Tier 2 applications and external portals are configured in [`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml). The dashboard control plane loads this file on startup and dynamically filters entries by Keycloak OIDC roles:
-* **Core Apps (Tier 1)**: Native microservices (`pantry`, `shopping`, `maintenance`, `chores`). Toggleable per user.
-* **Stack Apps (Tier 2)**: Configured in `deploy/stack-apps.yaml` (`home-assistant`, `librechat`, `plex`). Role-filtered via Keycloak.
-* **User Links (Tier 3)**: Personal bookmarks stored per-user in PostgreSQL.
+2. **Staged Boot**: Run the automated staged boot script to start all infrastructure and microservices:
+   ```bash
+   ./scripts/up.sh -b
+   ```
 
 ---
 
-## 4. Spin Up the System
-
-To build and spin up all containers (infrastructure + applications) in detached mode, run from the repository root:
-
-```bash
-docker compose up --build -d
-```
-
-To tear down the cluster and preserve database volumes:
-```bash
-docker compose down
-```
-
-To tear down the cluster and clean up all volumes:
-```bash
-docker compose down -v
-```
-
----
-
-## 5. Verification Guide
+## 4. Verification Guide
 
 Once the system is running, check the state of the cluster with these steps:
 
@@ -103,33 +97,34 @@ Run the following command to check if all containers are healthy:
 ```bash
 docker compose ps
 ```
-You should see:
-* `alfheim_gateway` - Up (healthy)
-* `alfheim_keycloak` - Up (healthy)
-* `alfheim_postgres_iam` - Up (healthy)
-* `pantry-frontend` - Up (healthy)
-* `pantry-backend` - Up (healthy)
-* `pantry-db` - Up (healthy)
+You should see `alfheim_caddy`, `alfheim_keycloak`, `alfheim_postgres_iam`, and all module databases and application backends/frontends running cleanly.
 
-### B. Verify Endpoints (Host Machine)
-Verify HTTP routing and responses using browser or `curl` (ensure you have mapped `alfheim.local` in your hosts file):
+### B. Verify Routing Endpoints
+Verify HTTP routing and responses using browser or `curl`:
 
-1. **Frontend Landing Page**:
+1. **Frontend Locale Redirect**:
    ```bash
-   curl -I http://alfheim.local/pantry
+   curl -I http://alfheim.loegien.localhost/pantry
    ```
-   *Expected*: HTTP `301 Moved Permanently` to `http://alfheim.local/pantry/en` (`200 OK`).
+   *Expected*: HTTP `302 Found` with `Location: /pantry/en`.
 
-2. **Backend API Health Check**:
+2. **Backend API Health Check (Path Stripped)**:
    ```bash
-   curl http://alfheim.local/pantry/api/health
+   curl http://api.alfheim.loegien.localhost/pantry/api/v1/health
    ```
    *Expected*: `{"status":"ok","project":"Digital Pantry"}`.
 
 3. **Backend Swagger API Documentation**:
-   Access `http://alfheim.local/pantry/api/docs` in your browser.
-   *Expected*: FastAPI Swagger UI dashboard displaying all available endpoints.
+   Access `http://api.alfheim.loegien.localhost/pantry/docs` in your browser.
 
 4. **Keycloak IAM Landing Page**:
-   Access `http://alfheim.local/auth/` in your browser.
-   *Expected*: Keycloak welcome screen where you can click "Administration Console".
+   Access `http://api.alfheim.loegien.localhost/auth/` in your browser.
+
+---
+
+## 5. Security & Keycloak OIDC Token Verification
+
+* **Public Issuer URL**: `http://api.alfheim.loegien.localhost/auth/realms/alfheim`
+* **Internal Docker JWKS**: `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
+* **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `http://api.alfheim.loegien.localhost/auth/realms/alfheim`.
+

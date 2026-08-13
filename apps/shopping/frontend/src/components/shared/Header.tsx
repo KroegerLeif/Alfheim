@@ -57,7 +57,7 @@ export function Header() {
         </div>
 
         <div className="border-l border-[var(--border-subtle)] pl-3">
-          <BackToDashboard href="http://alfheim/" />
+          <BackToDashboard href={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"} />
         </div>
       </div>
 

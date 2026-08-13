@@ -397,9 +397,9 @@ fi
 ok "Docker networks are ready"
 
 # =============================================================================
-# STAGE 1 — IAM Core  (postgres-iam → keycloak → traefik)
+# STAGE 1 — IAM Core & Ingress Gateway  (postgres-iam → keycloak → caddy)
 # =============================================================================
-step "STAGE 1 · IAM Core  (postgres-iam · keycloak · traefik)"
+step "STAGE 1 · IAM Core & Ingress Gateway  (postgres-iam · keycloak · caddy)"
 
 info "Starting postgres-iam …"
 dc up ${BUILD_FLAG} -d postgres-iam
@@ -409,11 +409,11 @@ info "Starting keycloak (realm import may take up to 90 s on first boot) …"
 dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "alfheim_keycloak" "keycloak" 180
 
-info "Starting traefik …"
-dc up ${BUILD_FLAG} -d traefik
-wait_running "alfheim_traefik" "traefik" 30
+info "Starting caddy reverse proxy gateway …"
+dc up ${BUILD_FLAG} -d caddy
+wait_running "alfheim_caddy" "caddy" 30
 
-notice "🟢 IAM Core Ready"
+notice "🟢 IAM Core & Caddy Ingress Gateway Ready"
 
 # =============================================================================
 # STAGE 2 — Dashboard App Slice  (dashboard-db → dashboard-backend → dashboard-frontend)
@@ -508,7 +508,7 @@ info "Starting chores-frontend …"
 dc up ${BUILD_FLAG} -d chores-frontend
 wait_healthy "chores-frontend" "chores-frontend" 240
 
-notice "🟢 Chores App is live at http://alfheim/chores"
+notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
 
 # =============================================================================
 # STAGE 7 — Observability  (ClickHouse · SigNoz · Vector)
@@ -519,21 +519,21 @@ else
   step "STAGE 7 · Observability  (ClickHouse · SigNoz · Vector)"
 
   info "Starting ClickHouse …"
-  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-clickhouse; then
+  if dc up ${BUILD_FLAG} -d signoz-clickhouse; then
     wait_healthy_soft "signoz-clickhouse" "ClickHouse" 120
   else
     warn "Failed to launch ClickHouse container"
   fi
 
   info "Running SigNoz schema migrator (one-shot job) …"
-  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-schema-migrator; then
+  if dc up ${BUILD_FLAG} -d signoz-schema-migrator; then
     wait_one_shot_soft "signoz-schema-migrator" "schema-migrator" 120
   else
     warn "Failed to launch SigNoz schema migrator container"
   fi
 
   info "Starting SigNoz UI, OTEL collector, and Vector log shipper …"
-  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-otel-collector signoz vector; then
+  if dc up ${BUILD_FLAG} -d signoz-otel-collector signoz vector; then
     wait_running_soft "signoz-otel-collector" "otel-collector" 30 || true
     wait_running_soft "signoz-ui"             "SigNoz UI"      30 || true
     wait_running_soft "vector-shipper"        "Vector"         30 || true
@@ -552,18 +552,18 @@ step "STAGE 8 · Stack fully operational 🚀"
 echo ""
 echo -e "  ${BOLD}${GREEN}✔  Alfheim is running!${RESET}"
 echo ""
-echo -e "  ${DIM}Applications:${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://alfheim/${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim/shopping${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim/pantry${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim/maintenance${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim/chores${RESET}"
+echo -e "  ${DIM}Applications (Frontend Domain):${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://alfheim.loegien.localhost/${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim.loegien.localhost/shopping${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim.loegien.localhost/pantry${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim.loegien.localhost/maintenance${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim.loegien.localhost/chores${RESET}"
 echo ""
-echo -e "  ${DIM}Infrastructure:${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://alfheim/auth${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Traefik dashboard  →  ${BOLD}http://localhost:8080${RESET}"
+echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://api.alfheim.loegien.localhost/auth${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
 if [[ "${SKIP_OBS}" != "true" ]]; then
-  echo -e "  ${GREEN}✔${RESET}  SigNoz             →  ${BOLD}http://alfheim/signoz${RESET}"
+  echo -e "  ${GREEN}✔${RESET}  SigNoz             →  ${BOLD}http://api.alfheim.loegien.localhost/signoz${RESET}"
 fi
 echo ""
 echo -e "  ${DIM}Useful commands:${RESET}"

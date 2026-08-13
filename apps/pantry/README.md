@@ -28,7 +28,7 @@ The **Pantry App** (`apps/pantry`) is the household inventory management service
 apps/pantry/
 ├── backend/          # FastAPI service (inventory state, transactions, products, locations)
 ├── frontend/         # Next.js 15 App Router (inventory table, dashboard, analytics)
-└── compose.yml       # Service orchestration (backend, frontend, postgres, traefik labels)
+└── compose.yml       # Service orchestration (backend, frontend, postgres)
 ```
 
 The app follows the **Feature-Driven Design (FDD)** pattern defined in `.ai/rules/architecture.md`.
@@ -37,9 +37,9 @@ The app follows the **Feature-Driven Design (FDD)** pattern defined in `.ai/rule
 
 ## 🔗 Integration Points
 
-- **Keycloak OIDC**: JWT authentication. `household_id` claim scopes all data to the active household.
+- **Keycloak OIDC**: JWT authentication (`api.alfheim.loegien.localhost/auth`). `household_id` claim scopes all data to the active household.
 - **Shopping App**: Low-stock items are exported cross-service via `pushLowStockToShoppingApp()`.
-- **Traefik**: Ingress at `/pantry` (frontend) and `/api/v1/pantry` (backend).
+- **Caddy Gateway**: Ingress at `alfheim.loegien.localhost/pantry` (frontend) and `api.alfheim.loegien.localhost/pantry/api/v1` (backend, path-stripped via `handle_path`).
 
 ---
 

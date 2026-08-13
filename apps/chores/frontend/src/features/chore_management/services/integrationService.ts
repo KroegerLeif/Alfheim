@@ -5,7 +5,7 @@ const getApiUrl = (path: string) => {
   if (typeof window !== "undefined") {
     return window.location.origin + path;
   }
-  return "http://alfheim" + path;
+  return (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + path;
 };
 
 export interface ShoppingIntegrationData {

@@ -11,7 +11,7 @@ export function ClientHeader() {
       brandTitle="Chores Tracker"
       brandSubtitle="Gamified Habits"
       showBackToDashboard={true}
-      backToDashboardHref="http://alfheim/"
+      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
       showLanguageSwitcher={true}
       showThemeToggle={true}
       showAuthControls={true}

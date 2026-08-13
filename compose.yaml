@@ -2,7 +2,7 @@ name: alfheim
 
 include:
   - ./infrastructure/compose.yml
-  - ./infrastructure/traefik/compose.yml
+  - ./infrastructure/caddy/compose.yml
   - ./apps/dashboard/compose.yml
   - ./apps/logging-stack/compose.yml
   - ./apps/maintenance/compose.yml
@@ -25,4 +25,4 @@ networks:
     driver: bridge
   observability-internal:
     name: observability-internal
-    driver: bridge
+    external: true

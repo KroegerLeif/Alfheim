@@ -38,19 +38,15 @@ services:
     networks:
       - public-ingress
       - dashboard-internal
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dashboard-backend.rule=(Host(`alfheim`) || Host(`localhost`)) && (PathPrefix(`/api/v1/apps`) || PathPrefix(`/api/v1/profile`) || PathPrefix(`/api/v1/households`) || PathPrefix(`/api/v1/telemetry`))"
-      - "traefik.http.routers.dashboard-backend.entrypoints=web"
-      - "traefik.http.routers.dashboard-backend.service=dashboard-backend"
-      - "traefik.http.services.dashboard-backend.loadbalancer.server.port=8080"
 
   dashboard-frontend:
     build:
       context: ../..
       dockerfile: apps/dashboard/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_DASHBOARD_API_URL:-/api/v1}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_DASHBOARD_API_URL:-http://api.alfheim.loegien.localhost/api/v1}
+        - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+        - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: dashboard-frontend
     restart: always
     depends_on:
@@ -66,14 +62,6 @@ services:
       retries: 5
     networks:
       - public-ingress
-    labels:
-      - "traefik.enable=true"
-      # Route all frontend sub-paths on alfheim to dashboard-frontend with fallback priority
-      - "traefik.http.routers.dashboard-frontend.rule=(Host(`alfheim`) || Host(`localhost`)) && PathPrefix(`/`)"
-      - "traefik.http.routers.dashboard-frontend.entrypoints=web"
-      - "traefik.http.routers.dashboard-frontend.service=dashboard-frontend"
-      - "traefik.http.routers.dashboard-frontend.priority=1"
-      - "traefik.http.services.dashboard-frontend.loadbalancer.server.port=3000"
 
 networks:
   public-ingress:

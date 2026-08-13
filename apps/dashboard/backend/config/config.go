@@ -28,11 +28,12 @@ type DatabaseConfig struct {
 
 // KeycloakConfig holds Keycloak OIDC and Admin API settings.
 type KeycloakConfig struct {
-	BaseURL      string
-	Realm        string
-	ClientID     string
-	ClientSecret string
-	JWKSURL      string
+	BaseURL        string
+	Realm          string
+	ClientID       string
+	ClientSecret   string
+	JWKSURL        string
+	ExpectedIssuer string
 }
 
 // Load fetches configurations from environment variables with sensible defaults.
@@ -46,11 +47,12 @@ func Load() (*Config, error) {
 	maxConnLifetimeMinutes := getEnvAsInt32("DB_MAX_CONN_LIFETIME_MINUTES", 30)
 	migrationsDir := getEnv("MIGRATIONS_DIR", "migrations")
 
-	keycloakBaseURL := getEnv("KEYCLOAK_BASE_URL", "http://localhost:8080")
+	keycloakBaseURL := getEnv("KEYCLOAK_BASE_URL", "http://keycloak:8080/auth")
 	keycloakRealm := getEnv("KEYCLOAK_REALM", "alfheim")
 	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "dashboard-backend")
 	keycloakClientSecret := getEnv("KEYCLOAK_CLIENT_SECRET", "")
 	keycloakJWKSURL := getEnv("KEYCLOAK_JWKS_URL", fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakBaseURL, keycloakRealm))
+	expectedIssuer := getEnv("KEYCLOAK_PUBLIC_ISSUER", fmt.Sprintf("http://api.alfheim.loegien.localhost/auth/realms/%s", keycloakRealm))
 	stackAppsPath := getEnv("STACK_APPS_PATH", "deploy/stack-apps.yaml")
 
 	cfg := &Config{
@@ -65,11 +67,12 @@ func Load() (*Config, error) {
 			MigrationsDir:   migrationsDir,
 		},
 		Keycloak: KeycloakConfig{
-			BaseURL:      keycloakBaseURL,
-			Realm:        keycloakRealm,
-			ClientID:     keycloakClientID,
-			ClientSecret: keycloakClientSecret,
-			JWKSURL:      keycloakJWKSURL,
+			BaseURL:        keycloakBaseURL,
+			Realm:          keycloakRealm,
+			ClientID:       keycloakClientID,
+			ClientSecret:   keycloakClientSecret,
+			JWKSURL:        keycloakJWKSURL,
+			ExpectedIssuer: expectedIssuer,
 		},
 	}
 

@@ -50,21 +50,22 @@ flowchart TD
 
 ---
 
-## 🏗️ Architecture & Network Communication (Traefik)
+## 🏗️ Architecture & Network Communication (Caddy Gateway)
 
-The frontend and backend services run in isolated Docker containers, coordinated by Traefik as the reverse proxy:
+The frontend and backend services run in isolated Docker containers, coordinated by Caddy as the central ingress reverse proxy:
 
 ```mermaid
 graph TD
-    Client[Web Browser Client] -->|HTTP Host: alfheim| Traefik[Traefik Reverse Proxy]
-    Traefik -->|PathPrefix: /api/v1/...| GoBackend[Go Backend Control Plane :8080]
-    Traefik -->|PathPrefix: / (Fallback)| NextFrontend[Next.js Frontend :3000]
+    Client[Web Browser Client] -->|Frontend Host: alfheim.loegien.localhost| Caddy[Caddy Reverse Proxy]
+    Client -->|API Host: api.alfheim.loegien.localhost| Caddy
+    Caddy -->|/api/v1/apps| GoBackend[Go Backend Control Plane :8080]
+    Caddy -->|/ (Fallback)| NextFrontend[Next.js Frontend :3000]
     GoBackend -->|SQL| Postgres[(PostgreSQL DB)]
     GoBackend -->|OIDC Token Validation| Keycloak[Keycloak OIDC]
 ```
 
 ### Routing Rules (Ingress vs. Application)
-- **Ingress Gateway (Traefik)**: Routes top-level hosts and path prefixes `/api/v1/apps/dashboard`, `/api/v1/user/preferences`, `/api/v1/user/links`, `/api/v1/profile`, `/api/v1/households`, or `/api/v1/telemetry` to the Go backend.
+- **Ingress Gateway (Caddy)**: Routes domain requests across `alfheim.loegien.localhost` (frontends) and `api.alfheim.loegien.localhost` (backends). Routes Go backend endpoints (`/api/v1/apps`, `/api/v1/user/preferences`, `/api/v1/user/links`, `/profile`, `/households`, `/telemetry`) to `dashboard-backend:8080`.
 - **Application Page Routing (Next.js)**: Handles all internal route paths (`/`, `/household`, `/profile`, `/settings`).
 
 ---

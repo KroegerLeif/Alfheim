@@ -67,7 +67,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                   <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
                     {/* Top Navigation & Controls Header Bar */}
                     <header className="h-16 border-b border-[var(--border-subtle)] bg-[var(--surface-card)] px-6 flex items-center justify-between shrink-0 select-none z-10">
-                      <BackToDashboard href="http://alfheim/" />
+                      <BackToDashboard href={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"} />
                       <div className="flex items-center gap-3">
                         <HouseholdSwitcher />
                         <LanguageSwitcher variant="dropdown" />

@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5433/maintenance"
 
     # Keycloak OIDC Configuration
-    KEYCLOAK_URL: str = "http://localhost:8080/auth"
+    KEYCLOAK_URL: str = "http://keycloak:8080/auth"
+    KEYCLOAK_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/auth"
     KEYCLOAK_REALM: str = "alfheim"
     KEYCLOAK_JWKS_URL: str = ""
 
@@ -26,6 +27,25 @@ class Settings(BaseSettings):
             return self.KEYCLOAK_JWKS_URL
         base = self.KEYCLOAK_URL.rstrip("/")
         return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+
+    @property
+    def expected_issuer(self) -> str:
+        base = self.KEYCLOAK_PUBLIC_URL.rstrip("/")
+        return f"{base}/realms/{self.KEYCLOAK_REALM}"
+
+    @property
+    def jwks_fallback_urls(self) -> list[str]:
+        urls = [self.jwks_url]
+        for base_url in [
+            "http://keycloak:8080/auth",
+            "http://alfheim_keycloak:8080/auth",
+            "http://api.alfheim.loegien.localhost/auth",
+            "http://localhost:8080/auth",
+        ]:
+            url = f"{base_url.rstrip('/')}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+            if url not in urls:
+                urls.append(url)
+        return urls
 
     # OpenTelemetry Configuration
     OTEL_ENABLED: bool = False

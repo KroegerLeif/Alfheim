@@ -101,58 +101,31 @@ networks:
     name: app-internal
 ```
 
-### 3.2 Traefik v3 Routing Labels in `compose.yml`
+### 3.2 Caddy Ingress Gateway Rules in `infrastructure/caddy/Caddyfile`
 
-#### Backend Services (Exposed on `/api/v1/<app-name>`)
-Apply path-regex rewrites to strip the path namespace prefix before forwarding requests to the container:
-```yaml
-services:
-  app-backend:
-    image: alfheim/app-backend:latest
-    networks:
-      - public-ingress
-      - app-internal
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.app-backend.rule=Host(`alfheim`) && PathPrefix(`/api/v1/app-name`)"
-      - "traefik.http.routers.app-backend.entrypoints=web"
-      - "traefik.http.routers.app-backend.service=app-backend-service"
-      - "traefik.http.routers.app-backend.middlewares=app-backend-regex"
-      - "traefik.http.middlewares.app-backend-regex.replacepathregex.regex=^/api/v1/app-name/(api/v1/)?(.*)"
-      - "traefik.http.middlewares.app-backend-regex.replacepathregex.replacement=/api/v1/$$2"
-      - "traefik.http.services.app-backend-service.loadbalancer.server.port=8080"
+Register the new microservice inside `infrastructure/caddy/Caddyfile`:
+
+#### Frontend Services (Exposed on `alfheim.loegien.de/<app-name>`)
+```caddy
+http://alfheim.loegien.de, http://alfheim.loegien.localhost {
+	redir /app-name /app-name/en 302
+	redir /app-name/ /app-name/en 302
+
+	handle /app-name* {
+		reverse_proxy app-frontend:3000
+	}
+}
 ```
 
-#### Frontend Services (Exposed on `/<app-name>`)
-Direct root and slash queries to the localized page (`/de` or `/en`) to prevent 404 responses:
-```yaml
-services:
-  app-frontend:
-    image: alfheim/app-frontend:latest
-    networks:
-      - public-ingress
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.app-frontend.rule=Host(`alfheim`) && PathPrefix(`/app-name`)"
-      - "traefik.http.routers.app-frontend.entrypoints=web"
-      - "traefik.http.routers.app-frontend.service=app-frontend-service"
-      
-      - "traefik.http.routers.app-exact.rule=Host(`alfheim`) && (Path(`/app-name`) || Path(`/app-name/`))"
-      - "traefik.http.routers.app-exact.entrypoints=web"
-      - "traefik.http.routers.app-exact.service=app-frontend-service"
-      - "traefik.http.routers.app-exact.middlewares=app-redirect-locale"
-      - "traefik.http.middlewares.app-redirect-locale.redirectregex.regex=^(https?://[^/]+)/app-name/?$$"
-      - "traefik.http.middlewares.app-redirect-locale.redirectregex.replacement=$${1}/app-name/de"
-      - "traefik.http.middlewares.app-redirect-locale.redirectregex.permanent=false"
-      - "traefik.http.services.app-frontend-service.loadbalancer.server.port=3000"
+#### Backend Services (Exposed on `api.alfheim.loegien.de/<app-name>/api/v1`)
+If the backend requires path stripping so FastAPI receives `/api/v1/...`, use `handle_path`:
+```caddy
+http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
+	handle_path /app-name* {
+		reverse_proxy app-backend:8000
+	}
+}
 ```
-
-### 3.3 Dynamic File Provider Integration (`dynamic.yml`)
-For external portals, integrations, or services that cannot be directly declared with container labels, define custom routing rules inside the Traefik dynamic configuration file `infrastructure/traefik/dynamic/dynamic.yml`:
-```yaml
-http:
-  routers:
-    external-service-router:
       rule: "Host(`alfheim`) && PathPrefix(`/external-path`)"
       service: external-service
       entryPoints:
@@ -174,12 +147,13 @@ http:
 1. **Frontend Registration**:
    * Create a client named `<app-name>-frontend` inside the `alfheim` realm.
    * Access Type: `Public` (Standard Authorization Flow, PKCE enabled).
-   * Valid Redirect URIs: `http://alfheim/<app-name>/*`
+   * Valid Redirect URIs: `http://alfheim.loegien.localhost/<app-name>/*`, `http://alfheim.loegien.de/<app-name>/*`
    * Web Origins: `*`
 2. **Backend JWT Verification**:
    * Set configuration values in environment variables:
      ```env
      KEYCLOAK_BASE_URL=http://keycloak:8080/auth
+     KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
      KEYCLOAK_REALM=alfheim
      ```
    * JWKS verification coordinates with Keycloak certs route:
@@ -238,13 +212,13 @@ info "Starting <app-name>-frontend …"
 dc up ${BUILD_FLAG} -d <app-name>-frontend
 wait_healthy "<app-name>-frontend" "<app-name>-frontend" 240
 
-notice "🟢 <App-Name> App is live at http://alfheim/<app-name>"
+notice "🟢 <App-Name> App is live at http://alfheim.loegien.localhost/<app-name>"
 ```
 
 ### 7.2 Insertion Point
-Insert immediately **before** the `STAGE 6 · Observability` block, updating subsequent stage numbers accordingly. Add summary logs to `STAGE 7 · Summary`:
+Insert immediately **before** the `STAGE 7 · Observability` block, updating subsequent stage numbers accordingly. Add summary logs to `STAGE 8 · Summary`:
 ```bash
-echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim/<app-name>${RESET}"
+echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim.loegien.localhost/<app-name>${RESET}"
 ```
 
 ---
