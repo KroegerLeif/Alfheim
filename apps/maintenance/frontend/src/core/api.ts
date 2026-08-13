@@ -15,7 +15,13 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
       resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
     }
   }
-  return resolved.endsWith("/") ? resolved : resolved + "/";
+  if (resolved.endsWith("/")) {
+    resolved = resolved.slice(0, -1);
+  }
+  if (resolved.endsWith("/api/v1")) {
+    resolved = resolved.slice(0, -7);
+  }
+  return resolved + "/";
 };
 
 const MAINTENANCE_API_URL = sanitizeUrl(
