@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - maintenance-internal
+      - app-maintenance-net
     stop_grace_period: 10s
 
   maintenance-backend:
@@ -41,8 +41,8 @@ services:
       maintenance-db:
         condition: service_healthy
     networks:
-      - public-ingress
-      - maintenance-internal
+      - gateway-net
+      - app-maintenance-net
       - observability-internal
 
   maintenance-frontend:
@@ -67,18 +67,20 @@ services:
       maintenance-backend:
         condition: service_healthy
     networks:
-      - public-ingress
+      - gateway-net
       - observability-internal
 
 volumes:
   maintenance_postgres_data:
 
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     external: true
-  maintenance-internal:
-    name: maintenance-internal
+  app-maintenance-net:
+    name: app-maintenance-net
+    external: true
   observability-internal:
     name: observability-internal
     external: true
+

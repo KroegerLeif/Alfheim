@@ -3,7 +3,7 @@ name: alfheim
 include:
   - ./infrastructure/compose.yml
   - ./infrastructure/caddy/compose.yml
-  - ./apps/dashboard/compose.yml
+  - ./core/dashboard/compose.yml
   - ./apps/logging-stack/compose.yml
   - ./apps/maintenance/compose.yml
   - ./apps/pantry/compose.yml
@@ -11,18 +11,28 @@ include:
   - ./apps/chores/compose.yml
 
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     driver: bridge
-  pantry-internal:
-    name: pantry-internal
+  infra-net:
+    name: infra-net
     driver: bridge
-  shopping-internal:
-    name: shopping-internal
+  core-net:
+    name: core-net
     driver: bridge
-  chores-internal:
-    name: chores-internal
+  app-pantry-net:
+    name: app-pantry-net
+    driver: bridge
+  app-shopping-net:
+    name: app-shopping-net
+    driver: bridge
+  app-chores-net:
+    name: app-chores-net
+    driver: bridge
+  app-maintenance-net:
+    name: app-maintenance-net
     driver: bridge
   observability-internal:
     name: observability-internal
     external: true
+

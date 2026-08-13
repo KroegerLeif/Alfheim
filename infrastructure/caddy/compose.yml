@@ -11,13 +11,14 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks:
-      - public-ingress
+      - gateway-net
 
 volumes:
   caddy_data:
   caddy_config:
 
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     external: true
+
