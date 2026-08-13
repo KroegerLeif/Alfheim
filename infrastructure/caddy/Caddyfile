@@ -42,21 +42,30 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 # 2. CENTRAL API GATEWAY (api.alfheim.loegien.de & local development)
 # =============================================================================
 http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.alfheim {
-	# Global CORS Headers for API Gateway
-	@options method OPTIONS
-	handle @options {
-		header Access-Control-Allow-Origin "*"
+	# Dynamic Origin matching for CORS (Excluding /auth* - Keycloak manages its own CORS)
+	@cors_origin {
+		not path /auth*
+		header Origin *
+	}
+	@cors_options {
+		not path /auth*
+		method OPTIONS
+	}
+
+	handle @cors_options {
+		header @cors_origin Access-Control-Allow-Origin "{http.request.header.Origin}"
 		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 		header Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
 		header Access-Control-Allow-Credentials "true"
 		respond 204
 	}
 
-	header Access-Control-Allow-Origin "*"
-	header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-	header Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
+	header @cors_origin ?Access-Control-Allow-Origin "{http.request.header.Origin}"
+	header @cors_origin ?Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+	header @cors_origin ?Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
+	header @cors_origin ?Access-Control-Allow-Credentials "true"
 
-	# Keycloak IAM (Native subpath /auth - NO path stripping)
+	# Keycloak IAM (Native subpath /auth - NO path stripping, Keycloak handles CORS via Web Origins)
 	handle /auth* {
 		reverse_proxy keycloak:8080
 	}
