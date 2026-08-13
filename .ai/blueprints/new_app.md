@@ -22,10 +22,11 @@ apps/<app-name>/
 │   ├── README.md                      # Backend documentation & API contracts
 │   └── src/                           # Source root
 │       ├── main.py / main.go          # Application entrypoint & HTTP server
-│       ├── core/                      # Global infrastructure (DB, auth, config, logger)
+│       ├── core/                      # Global infrastructure (DB, auth, config, logger, storage)
 │       │   ├── config.py              # Environment settings (Pydantic / Viper)
 │       │   ├── database.py            # Async DB engine & session factory
-│       │   └── dependencies.py        # Auth context & common dependencies
+│       │   ├── dependencies.py        # Auth context & common dependencies
+│       │   └── storage.py             # RustFS S3 async client & presigned URL helper
 │       ├── features/                  # Feature-Driven Modules (FDD)
 │       │   └── <feature_name>/        # Business domain module (e.g., items, categories)
 │       │       ├── router.py          # API route definitions & HTTP handlers
@@ -89,16 +90,16 @@ When initializing a new app, the following files **MUST** be explicitly created 
 ## 3. Network & Ingress Routing
 
 ### 3.1 Network Architecture
-All microservices and frontends needing external exposure must connect to the global `public-ingress` Docker bridge network.
-App-internal networks (e.g. database connections) are owned by the local compose stack.
+All microservices and frontends connect to `gateway-net` for Caddy proxy ingress. Databases connect strictly via isolated `app-<name>-net` networks.
 
 ```yaml
 networks:
-  public-ingress:
-    name: public-ingress
+  gateway-net:
+    name: gateway-net
     external: true
-  app-internal:
-    name: app-internal
+  app-<name>-net:
+    name: app-<name>-net
+    external: true
 ```
 
 ### 3.2 Caddy Ingress Gateway Rules in `infrastructure/caddy/Caddyfile`

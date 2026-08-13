@@ -29,7 +29,7 @@ Before writing any codebase changes, the AI agent must perform a design audit an
 
 ### 4. 3-Tier Application Registration Classification
 Determine which tier the new app belongs to:
-* **Tier 1 (Core Native App):** Register entry in [`tier1_core_registry.go`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/internal/features/apps/tier1_core_registry.go).
+* **Tier 1 (Core Native App):** Register entry in [`tier1_core_registry.go`](file:///Users/leifkroeger/Dev/loeger-os/core/dashboard/backend/internal/features/apps/tier1_core_registry.go).
 * **Tier 2 (Stack Integration / External Portal):** Add configuration entry to [`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml) (with required Keycloak roles).
 * **Tier 3 (User Bookmark / Custom Link):** Created at runtime by end-users via `/api/v1/user/links`.
 

@@ -9,64 +9,27 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`fix(auth): resolve Keycloak OIDC issuer matching, strict mode init, and backend token verification`** (Active)
+* **`feat(storage): deploy rustfs s3 container and implement fastapi tenant storage helper`** (Active)
+  - Deployed `rustfs` (MinIO/S3 API) container in `infrastructure/compose.yml` with persistent volume `rustfs_data`.
+  - Added Caddy `/storage*` reverse proxy route pointing to `rustfs:9000`.
+  - Added `aioboto3` to dependencies across all Python microservice backends (`pantry`, `shopping`, `maintenance`, `chores`).
+  - Implemented reusable S3 storage helper `src/core/storage.py` supporting tenant-isolated paths (`households/{id}/{app}/` and `users/{id}/{app}/`) and presigned PUT/GET URLs.
+* **`feat(network): enforce multi-zone docker network segmentation`**
+  - Segmented Docker networks into `gateway-net`, `infra-net`, `core-net`, and per-app networks (`app-<name>-net`).
+  - Removed direct DB network coupling between Pantry and Shopping (Pantry calls Shopping over `gateway-net`).
+* **`refactor(core): relocate dashboard to core/dashboard and update orchestrator scripts`**
+  - Moved `apps/dashboard` to `core/dashboard` (`core/dashboard/backend` & `core/dashboard/frontend`).
+  - Updated Go path loader in `tier2_stack_loader.go` with 3-level parent fallback.
+  - Updated `pnpm-workspace.yaml`, `scripts/up.sh`, `scripts/down.sh`, and `compose.yaml`.
+* **`fix(db): add persistent volume for dashboard-db and rename pantry volume`**
+  - Added persistent volume `dashboard_postgres_data` for `dashboard-db`.
+  - Renamed generic `postgres_data` volume in Pantry to `pantry_postgres_data`.
+* **`fix(auth): resolve Keycloak OIDC issuer matching, strict mode init, and backend token verification`**
   - Pinned Keycloak `KC_HOSTNAME` & `KC_HOSTNAME_URL` to `http://api.alfheim.loegien.localhost/auth`.
   - Fixed React 18 strict mode double-initialization using `initializedRef` across all 5 microfrontends.
   - Added URL parameter cleanup (`code`, `state`, `session_state`, `iss`) immediately post code exchange.
   - Unified token persistence in `sessionStorage` (`token_<app>` + `alfheim_access_token`).
   - Added strict issuer signature verification (`http://api.alfheim.loegien.localhost/auth/realms/alfheim`) to Go and Python FastAPI backend auth middlewares.
-* **`refactor(dashboard): implement 3-tier app & link architecture`**
-  - Tier 1 (Core Apps): Pre-defined in `tier1_core_registry.go`, default visible, toggleable via `user_preferences` table.
-  - Tier 2 (Stack Apps): Loaded from `deploy/stack-apps.yaml` on startup, dynamically role-filtered via Keycloak.
-  - Tier 3 (User Links): Stored per-user in PostgreSQL `user_links` table with full REST CRUD API.
-* **`docs(chores): update CONTEXT.md with final operational route configurations`**
-* **`fix(dashboard): update chores portal target URL to include locale fallback (/chores/de)`**
-* **`docs(chores): finalize 3-README system and update CONTEXT.md`**
-* **`feat(chores): configure keycloak client, traefik routing priority, stop grace periods, and dashboard portal integration`**
-* **`feat(chores): update chores-frontend Traefik routing and healthcheck to German locale fallback`**
-* **`feat(chores): register chores-frontend container service and configure up.sh staged pipeline`**
-* **`feat(chores): implement chores-frontend Next.js 16 app with keycloak, tailwind v4, and react query`**
-* **`docs(chores): update CONTEXT.md and add chores-backend architecture details`**
-* **`feat(chores): scaffold and implement chores-backend microservice with SQLModel and FastMCP`**
-* **`docs(maintenance): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`**
-* **`refactor(maintenance): apply Feature-Driven Design, split monolithic components (<200 lines each), and ensure null-safety guards`**
-  - AddDeviceWizard (420→110 lines) → DeviceDetailsForm, MaintenanceStepsForm
-  - MaintenanceMode (409→125 lines) → ManualsPanel, WizardStepContent, SuppliesPanel
-  - MaintenanceView (302→95 lines) → MaintenanceMetrics, DeviceMaintenanceList
-  - DeviceDetailPanel (245→65 lines) → OverviewTab, StepsTab, TimelineTab
-  - ScheduledTaskItem (205→105 lines) → ScheduledTaskItemDetails
-* **`docs(pantry): create 3-README system (WHY/HOW app/frontend/backend) and update CONTEXT.md`**
-* **`refactor(pantry): split monolithic views into FDD-compliant SRP subcomponents (<200 lines each) and apply ?? null-safety fallbacks`**
-  - StockActionModal (675→90 lines) → ProductSearchStep, QuickProductForm, QuickCategoryForm, TransactionForm
-  - DashboardView (344→85 lines) → MetricSummaryCards, AlertsFeed, ShoppingSyncPanel
-  - InventoryTableView (274→90 lines) → InventoryFilterBar, InventoryTableRow
-  - LedgerHistoryView (230→75 lines) → LedgerFilterBar, LedgerTableRow
-  - ProductCatalogView (382→55 lines) → ProductList, ProductCreateForm
-  - LocationsGridView (298→70 lines) → LocationCard, LocationCreateForm
-  - AnalyticsView (229→75 lines) → ConsumptionChart, CategoryStockChart
-  - All 35 Vitest tests pass.
-* **`refactor(pantry): migrate src/lib to src/core, split domain types, add barrel index files, fix Vitest localStorage mock`**
-  - Core migration: `src/lib/ → src/core/` (api.ts, authContext.tsx, utils.ts)
-  - Domain types isolated into `features/{products,locations,categories}/types.ts`
-  - Barrel `index.ts` created for all 5 feature domains
-  - Fixed Vitest JSDOM `localStorage` mock in `src/tests/setup.ts`
-* **`docs(context): update context map and add app READMEs for reordering`**
-* **`refactor(shopping): apply FDD, component splitting, and backend-driven reordering`**
-  - Split monolithic page, sidebar, and modals into clean single-responsibility subcomponents.
-  - Added backend-driven reordering endpoint and list `position` column.
-  - Replaced frontend localStorage sorting hacks with backend mutation updates.
-* **`docs(context): refactor .ai architecture for token efficiency and strict separation`**
-* **`refactor(pantry): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`**
-  - Migrated pantry frontend components to centralized translations in `@alfheim/shared`.
-  - Replaced fake database fetches with `pantryClient` calls.
-* **`refactor(shopping): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`**
-  - Hooked up `shoppingListService.ts` to real database endpoints, deprecating mock lists.
-* **`refactor(dashboard): Apply Shared FDD Architecture, Enforce Zero-Hardcoding & Connect Real Data`**
-  - Replaced fake telemetry/shell log generators with empty states; registered backend tasks in backlog.
-* **`refactor(shared): feature-driven shared architecture and centralized locale domains`**
-  - Organised `@alfheim/shared` into `features/{i18n,theme,layout,ui}` structure.
-* **`refactor(infra): enforce granular vertical up.sh pipeline and sync new-app guidelines`**
-  - Split `scripts/up.sh` boot sequence into standalone sequential stages (DB -> Backend -> Frontend) per app to limit resources.
 
 ---
 
@@ -74,21 +37,22 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
 
 This index maps the active applications and services running inside the monorepo.
 
-| Application / Folder | Tech Stack | Ingress Route (Caddy Gateway) | Database (Postgres) |
+| Application / Folder | Tech Stack | Ingress Route (Caddy Gateway) | Database / Storage |
 | :--- | :--- | :--- | :--- |
-| **`apps/dashboard`** | Go, Next.js, OIDC | `alfheim.loegien.de/` (Catch-all) | `dashboard-db` |
-| **`apps/pantry`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/pantry` / `api.alfheim.loegien.de/pantry` | `pantry-db` (Port `5432` in dev) |
-| **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (Port `5433` in dev) |
-| **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` |
-| **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (Port `5435` in dev) |
+| **`core/dashboard`** | Go, Next.js, OIDC | `alfheim.loegien.de/` (Catch-all) | `dashboard-db` (`dashboard_postgres_data`) |
+| **`apps/pantry`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/pantry` / `api.alfheim.loegien.de/pantry` | `pantry-db` (`pantry_postgres_data`, Port `5432`) |
+| **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |
+| **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` (`maintenance_postgres_data`) |
+| **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
 | **`apps/logging-stack`**| SigNoz (Otel / ClickHouse) | `api.alfheim.loegien.de/signoz` | Clickhouse |
-| **`infrastructure`** | Keycloak, Caddy | `api.alfheim.loegien.de/auth` (OIDC provider) | `postgres-iam` |
+| **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
 
 ### Docker Network Map:
-* **`public-ingress`** (External, owned by `infrastructure`): Connects Caddy gateway to frontends and keycloak.
-* **`iam_network`** (Owned by `infrastructure`): Keycloak ↔ `postgres-iam` database.
+* **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Keycloak, RustFS S3, and API Backends.
+* **`infra-net`** (Bridge, pre-created in `up.sh`): Keycloak ↔ `postgres-iam` database ↔ RustFS S3 backend.
+* **`core-net`** (Bridge, pre-created in `up.sh`): Control plane `dashboard-backend` ↔ `dashboard-db`.
+* **`app-<name>-net`** (Bridge, pre-created in `up.sh`): Isolated per-app database network (e.g. `app-pantry-net`, `app-shopping-net`).
 * **`observability-internal`** (External, pre-created in `up.sh`): Backends ↔ Otel Collector ↔ ClickHouse.
-* **`<app-name>-internal`** (Owned by each app's `compose.yml`): Backend ↔ DB container (isolated, not external).
 
 ---
 
