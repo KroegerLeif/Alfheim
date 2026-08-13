@@ -14,7 +14,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@alfheim/shared": ["../../packages/shared/src/index.ts"]
+      "@alfheim/shared": ["../../packages/shared/src/index.ts"],
+      "@alfheim/shared/assets": ["../../packages/shared/src/assets/index.ts"],
+      "@alfheim/shared/assets/*": ["../../packages/shared/src/assets/*"]
     }
   },
   "include": ["src"]

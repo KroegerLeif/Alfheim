@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <defs>
+    <radialGradient id="alfi-glow-idle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3eb1ff" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#0b1326" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="body-grad-idle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#182542" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="visor-grad-idle" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00d2ff" />
+      <stop offset="100%" stop-color="#3eb1ff" />
+    </linearGradient>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#alfi-glow-idle)" />
+  <ellipse cx="120" cy="120" rx="105" ry="38" stroke="#3eb1ff" stroke-width="2" stroke-dasharray="6 8" stroke-opacity="0.6" transform="rotate(-15 120 120)" />
+  <line x1="120" y1="42" x2="120" y2="70" stroke="#3eb1ff" stroke-width="3" stroke-linecap="round" />
+  <circle cx="120" cy="38" r="7" fill="#60beff" />
+  <rect x="65" y="68" width="110" height="100" rx="36" fill="url(#body-grad-idle)" stroke="#3eb1ff" stroke-width="3" stroke-opacity="0.8" />
+  <rect x="80" y="92" width="80" height="42" rx="16" fill="#080e1e" stroke="rgba(62, 177, 255, 0.4)" stroke-width="1.5" />
+  <rect x="94" y="104" width="18" height="16" rx="5" fill="url(#visor-grad-idle)" />
+  <rect x="128" y="104" width="18" height="16" rx="5" fill="url(#visor-grad-idle)" />
+  <circle cx="106" cy="108" r="2.5" fill="#ffffff" />
+  <circle cx="140" cy="108" r="2.5" fill="#ffffff" />
+  <rect x="52" y="98" width="14" height="30" rx="6" fill="#182542" stroke="#3eb1ff" stroke-width="2" />
+  <rect x="174" y="98" width="14" height="30" rx="6" fill="#182542" stroke="#3eb1ff" stroke-width="2" />
+  <path d="M102 168 L120 188 L138 168 Z" fill="#182542" stroke="#3eb1ff" stroke-width="2" />
+</svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <defs>
+    <radialGradient id="alfi-glow-sleeping" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#0b1326" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="body-grad-sleeping" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#131b2e" />
+      <stop offset="100%" stop-color="#090e1a" />
+    </linearGradient>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#alfi-glow-sleeping)" />
+  <ellipse cx="120" cy="120" rx="100" ry="34" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" stroke-opacity="0.4" transform="rotate(-5 120 120)" />
+  <line x1="120" y1="46" x2="120" y2="70" stroke="#334155" stroke-width="3" stroke-linecap="round" />
+  <circle cx="120" cy="42" r="6" fill="#475569" />
+  <rect x="65" y="68" width="110" height="100" rx="36" fill="url(#body-grad-sleeping)" stroke="#334155" stroke-width="2.5" stroke-opacity="0.6" />
+  <rect x="80" y="92" width="80" height="42" rx="16" fill="#060913" stroke="rgba(51, 65, 85, 0.4)" stroke-width="1.5" />
+  
+  <!-- Sleeping Curved Eyes -->
+  <path d="M94 114 Q103 120 112 114" stroke="#3eb1ff" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7" />
+  <path d="M128 114 Q137 120 146 114" stroke="#3eb1ff" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7" />
+  
+  <!-- Sleep Zzz particles -->
+  <text x="175" y="65" fill="#3eb1ff" font-family="monospace" font-size="14" font-weight="bold" opacity="0.6">z</text>
+  <text x="188" y="50" fill="#60beff" font-family="monospace" font-size="18" font-weight="bold" opacity="0.8">Z</text>
+  
+  <rect x="52" y="98" width="14" height="30" rx="6" fill="#131b2e" stroke="#334155" stroke-width="2" />
+  <rect x="174" y="98" width="14" height="30" rx="6" fill="#131b2e" stroke="#334155" stroke-width="2" />
+  <path d="M102 168 L120 188 L138 168 Z" fill="#131b2e" stroke="#334155" stroke-width="2" />
+</svg>

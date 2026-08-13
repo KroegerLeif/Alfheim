@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@alfheim/shared/assets': path.resolve(__dirname, '../../packages/shared/src/assets'),
       '@alfheim/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
     },
   },

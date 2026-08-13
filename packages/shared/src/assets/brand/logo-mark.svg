@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="alfheim-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60beff" />
+      <stop offset="100%" stop-color="#0077cc" />
+    </linearGradient>
+  </defs>
+  <polygon points="50,6 90,28 90,72 50,94 10,72 10,28" stroke="url(#alfheim-grad)" stroke-width="4" fill="#111b33" fill-opacity="0.8" />
+  <path d="M50 20 L76 68 L24 68 Z" stroke="#3eb1ff" stroke-width="4.5" stroke-linejoin="round" fill="none" />
+  <circle cx="50" cy="52" r="8" fill="url(#alfheim-grad)" />
+  <line x1="50" y1="20" x2="50" y2="44" stroke="#60beff" stroke-width="3.5" stroke-linecap="round" />
+</svg>
