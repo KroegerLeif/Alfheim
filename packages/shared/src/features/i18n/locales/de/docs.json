@@ -1,0 +1,112 @@
+{
+  "docs": {
+    "nav": {
+      "home": "Startseite",
+      "modules": "Module",
+      "architecture": "Architektur",
+      "alfi": "Über ALFI",
+      "quickstart": "Schnellstart",
+      "status": "Enklave Online",
+      "vpnProtected": "VPN Geschützt"
+    },
+    "hero": {
+      "badge": "Alfheim Sovereign OS",
+      "title": "Private Souveräne Micro-App Cloud",
+      "subtitle": "Self-hosted, mandantenfähige Hausautomation, Bestandsverwaltung, Aufgaben und Telemetrie abgesichert durch Zero-Trust IAM und WireGuard/Tailscale VPN.",
+      "exploreModules": "Module erkunden",
+      "readArchitecture": "Architektur-Spezifikation",
+      "githubRepo": "GitHub Repository"
+    },
+    "vpnNotice": {
+      "badge": "Sicherheits-Perimeter",
+      "title": "Hinweis zum privaten Netzwerkzugriff",
+      "description": "Produktions-Apps (Dashboard, Vorratskammer, Einkaufsliste, Aufgaben, Wartung) laufen innerhalb einer isolierten WireGuard/Tailscale-Enklave. Der Direktzugriff erfordert einen aktiven VPN-Tunnel.",
+      "gatewayInfo": "Öffentlicher Datenverkehr wird über das Caddy Gateway mit TLS-Terminierung geroutet."
+    },
+    "modules": {
+      "badge": "Microservices",
+      "title": "Integrierte Plattform-Module",
+      "subtitle": "Containerisierte Microservices entwickelt mit Python FastAPI, Go und Next.js, isoliert über dedizierte Docker-Bridge-Netzwerke.",
+      "pantry": {
+        "name": "Digitale Vorratskammer",
+        "tagline": "Bestands- & Vorratsverwaltung",
+        "description": "Echtzeit-Lagerbestände, Barcode-Suche via OpenFoodFacts, Lagerortverwaltung und unveränderliches Transaktionsbuch.",
+        "badge": "FastAPI + Next.js",
+        "route": "/pantry"
+      },
+      "shopping": {
+        "name": "Einkaufslisten",
+        "tagline": "Kollaborative Echtzeit-Listen",
+        "description": "Mandantenfähige Haushalts- und persönliche Einkaufslisten mit automatischem Abgleich von Vorratsdefiziten.",
+        "badge": "FastAPI + Next.js",
+        "route": "/shopping"
+      },
+      "maintenance": {
+        "name": "Hauswartung",
+        "tagline": "Geräte- & Wartungszyklus",
+        "description": "Präventive Wartungspläne, Garantiebelege in RustFS S3, wiederkehrende Benachrichtigungen und Anlagenverwaltung.",
+        "badge": "FastAPI + Next.js",
+        "route": "/maintenance"
+      },
+      "chores": {
+        "name": "Haushaltsaufgaben",
+        "tagline": "Gamifizierter Gewohnheitstracker",
+        "description": "Wiederkehrende Aufgabenrotation, Streak-Belohnungen, Punktesystem und faire Lastenverteilung.",
+        "badge": "FastAPI + Next.js",
+        "route": "/chores"
+      },
+      "dashboard": {
+        "name": "Control Plane",
+        "tagline": "Zentralverwaltung & Ingress",
+        "description": "Zentrale OIDC-Authentifizierung, Live-Telemetrie-Streaming, App-Katalog und Caddy-Proxy-Routing.",
+        "badge": "Go + Next.js",
+        "route": "/"
+      }
+    },
+    "alfi": {
+      "badge": "Autonomer Begleiter",
+      "title": "Lerne ALFI kennen: Dein Ambient-Haushaltsbegleiter",
+      "description": "ALFI bildet die intelligente Orchestrierungsschicht für Alfheim. Über natürliche Sprache und Model Context Protocol (MCP) Tools steuert ALFI Vorräte, plant Wartungen und verteilt Aufgaben.",
+      "capabilitiesTitle": "KI-Kernkompetenzen",
+      "cap1": "Proaktive Nachbestellempfehlungen und Erkennung von Vorratsmängeln",
+      "cap2": "Rezeptvorschläge in natürlicher Sprache basierend auf Vorräten",
+      "cap3": "Automatische Wartungsplanung und Garantiebeleg-Archivierung",
+      "cap4": "Faire Aufgabenverteilung und Streak-Erinnerungen"
+    },
+    "architecture": {
+      "badge": "Topologie & Sicherheit",
+      "title": "Architektonisches Fundament",
+      "subtitle": "Sicherheitsfokussierte Multi-Zonen-Netzwerksegmentierung mit einheitlichem Keycloak-Identitätsmanagement.",
+      "pillars": {
+        "iam": {
+          "title": "Zero-Trust IAM",
+          "desc": "Zentrales Keycloak OIDC mit kurzlebigen RS256 JWT Tokens, validiert von allen Microservice-Backends."
+        },
+        "storage": {
+          "title": "Mandanten-S3-Speicher",
+          "desc": "RustFS S3-Objektspeicher mit isolierten Buckets und signierten PUT/GET-URLs."
+        },
+        "proxy": {
+          "title": "Caddy Reverse Proxy",
+          "desc": "Zentrales Ingress-Gateway für pfadbasiertes Routing, Header-Injektion und automatische HTTPS-Zertifikate."
+        },
+        "observability": {
+          "title": "OpenTelemetry & SigNoz",
+          "desc": "Vollständiges Tracing, strukturierte Logs und Live-Telemetrie über alle Container."
+        }
+      }
+    },
+    "techStack": {
+      "title": "Technologie-Stack",
+      "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
+      "backend": "Backend: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
+      "database": "Datenbanken: PostgreSQL 16 (dedizierte Instanzen je App), ClickHouse",
+      "infra": "Infrastruktur: Docker Compose, Caddy 2, Keycloak 24, RustFS (S3-kompatibel)"
+    },
+    "footer": {
+      "copyright": "© 2026 Alfheim Sovereign OS. Alle Rechte vorbehalten.",
+      "license": "Lizenziert unter MIT",
+      "builtWith": "Erstellt mit React 19, Vite und Tailwind CSS v4."
+    }
+  }
+}

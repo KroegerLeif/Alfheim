@@ -1,0 +1,112 @@
+{
+  "docs": {
+    "nav": {
+      "home": "Home",
+      "modules": "Modules",
+      "architecture": "Architecture",
+      "alfi": "Meet ALFI",
+      "quickstart": "Quickstart",
+      "status": "Enclave Online",
+      "vpnProtected": "VPN Protected"
+    },
+    "hero": {
+      "badge": "Alfheim Sovereign OS",
+      "title": "Private Sovereign Micro-App Cloud",
+      "subtitle": "Self-hosted, multi-tenant home automation, inventory management, chores, and telemetry secured behind zero-trust IAM and WireGuard/Tailscale VPN.",
+      "exploreModules": "Explore Modules",
+      "readArchitecture": "Architecture Specs",
+      "githubRepo": "GitHub Repository"
+    },
+    "vpnNotice": {
+      "badge": "Security Perimeter",
+      "title": "Private Network Access Notice",
+      "description": "Production apps (Dashboard, Pantry, Shopping, Chores, Maintenance) run within an isolated WireGuard/Tailscale enclave. Direct access to live instances requires active VPN tunnel authorization.",
+      "gatewayInfo": "Public traffic is routed via Caddy Gateway with TLS termination."
+    },
+    "modules": {
+      "badge": "Microservices",
+      "title": "Integrated Platform Modules",
+      "subtitle": "Containerized microservices built with Python FastAPI, Go, and Next.js isolated across dedicated Docker bridge networks.",
+      "pantry": {
+        "name": "Digital Pantry",
+        "tagline": "Inventory & Stock Lifecycle",
+        "description": "Live stock tracking, barcode lookup via OpenFoodFacts, storage location management, and an immutable inventory transaction ledger.",
+        "badge": "FastAPI + Next.js",
+        "route": "/pantry"
+      },
+      "shopping": {
+        "name": "Shopping Lists",
+        "tagline": "Collaborative Realtime Lists",
+        "description": "Multi-tenant household and personal shopping lists with auto-sync from pantry deficits and category sorting.",
+        "badge": "FastAPI + Next.js",
+        "route": "/shopping"
+      },
+      "maintenance": {
+        "name": "Home Maintenance",
+        "tagline": "Asset & Task Lifecycle",
+        "description": "Preventative maintenance scheduling, warranty storage in RustFS S3, recurring alerts, and household equipment tracking.",
+        "badge": "FastAPI + Next.js",
+        "route": "/maintenance"
+      },
+      "chores": {
+        "name": "Household Chores",
+        "tagline": "Gamified Habit Tracker",
+        "description": "Recurring chore rotation, streak rewards, points system, and fair household member workload distribution.",
+        "badge": "FastAPI + Next.js",
+        "route": "/chores"
+      },
+      "dashboard": {
+        "name": "Control Plane",
+        "tagline": "Central Management & Ingress",
+        "description": "Unified OIDC authentication brokering, live telemetry streaming, catalog management, and Caddy reverse proxy routing.",
+        "badge": "Go + Next.js",
+        "route": "/"
+      }
+    },
+    "alfi": {
+      "badge": "Autonomous Companion",
+      "title": "Meet ALFI: Your Ambient Household Companion",
+      "description": "ALFI is the intelligent orchestration layer for Alfheim. Interacting through natural language and Model Context Protocol (MCP) tools, ALFI proactively manages groceries, schedules maintenance, and distributes chores.",
+      "capabilitiesTitle": "Core AI Capabilities",
+      "cap1": "Proactive inventory restocking & deficit detection",
+      "cap2": "Natural language recipe suggestions from available pantry items",
+      "cap3": "Automated maintenance scheduling & warranty ingestion",
+      "cap4": "Fair chore allocation & streak preservation reminders"
+    },
+    "architecture": {
+      "badge": "Topology & Security",
+      "title": "Architectural Foundation",
+      "subtitle": "Security-first multi-zone network segmentation with unified Keycloak identity brokering.",
+      "pillars": {
+        "iam": {
+          "title": "Zero-Trust IAM",
+          "desc": "Centralized Keycloak OIDC authentication issuing short-lived RS256 JWT tokens verified by all microservice backends."
+        },
+        "storage": {
+          "title": "Tenant S3 Storage",
+          "desc": "RustFS high-performance S3 object storage with tenant-isolated buckets and presigned PUT/GET URLs."
+        },
+        "proxy": {
+          "title": "Caddy Reverse Proxy",
+          "desc": "Central ingress gateway performing path-based routing, header injection, and HTTPS certificate management."
+        },
+        "observability": {
+          "title": "OpenTelemetry & SigNoz",
+          "desc": "Full distributed tracing, structured logging, and real-time CPU/memory/traffic telemetry across all containers."
+        }
+      }
+    },
+    "techStack": {
+      "title": "Technology Stack",
+      "frontend": "Frontends: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
+      "backend": "Backends: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
+      "database": "Databases: PostgreSQL 16 (dedicated instances per app), ClickHouse",
+      "infra": "Infra: Docker Compose, Caddy 2, Keycloak 24, RustFS (S3-compatible)"
+    },
+    "footer": {
+      "copyright": "© 2026 Alfheim Sovereign OS. All rights reserved.",
+      "license": "Licensed under MIT",
+      "builtWith": "Built with React 19, Vite, and Tailwind CSS v4."
+    }
+  }
+}

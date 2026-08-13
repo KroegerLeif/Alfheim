@@ -1,0 +1,112 @@
+{
+  "docs": {
+    "nav": {
+      "home": "Strona główna",
+      "modules": "Moduły",
+      "architecture": "Architektura",
+      "alfi": "O ALFI",
+      "quickstart": "Szybki start",
+      "status": "Enklawa Online",
+      "vpnProtected": "Chronione przez VPN"
+    },
+    "hero": {
+      "badge": "Alfheim Sovereign OS",
+      "title": "Prywatna Suwerenna Chmura Mikroaplikacji",
+      "subtitle": "Self-hosted, wielolokalowa automatyka domowa, spiżarnia, obowiązki domowe i telemetria zabezpieczone przez Zero-Trust IAM i WireGuard/Tailscale VPN.",
+      "exploreModules": "Przeglądaj moduły",
+      "readArchitecture": "Specyfikacja architektury",
+      "githubRepo": "Repozytorium GitHub"
+    },
+    "vpnNotice": {
+      "badge": "Obwód bezpieczeństwa",
+      "title": "Dostęp do sieci prywatnej",
+      "description": "Aplikacje produkcyjne (Dashboard, Spiżarnia, Zakupy, Obowiązki, Konserwacja) działają w izolowanej enklawie VPN. Bezpośredni dostęp wymaga aktywnego tunelu WireGuard/Tailscale.",
+      "gatewayInfo": "Ruch publiczny jest kierowany przez bramę Caddy z terminacją TLS."
+    },
+    "modules": {
+      "badge": "Mikrousługi",
+      "title": "Zintegrowane moduły platformy",
+      "subtitle": "Konteneryzowane mikrousługi stworzone w Python FastAPI, Go i Next.js, odizolowane przez dedykowane sieci Docker bridge.",
+      "pantry": {
+        "name": "Cyfrowa Spiżarnia",
+        "tagline": "Zarządzanie zapasami",
+        "description": "Śledzenie zapasów w czasie rzeczywistym, wyszukiwanie kodów kreskowych przez OpenFoodFacts i niezmienna księga transakcji.",
+        "badge": "FastAPI + Next.js",
+        "route": "/pantry"
+      },
+      "shopping": {
+        "name": "Listy Zakupów",
+        "tagline": "Współdzielone listy w czasie rzeczywistym",
+        "description": "Wspólne listy zakupów domowych i prywatnych z automatyczną synchronizacją braków w spiżarni.",
+        "badge": "FastAPI + Next.js",
+        "route": "/shopping"
+      },
+      "maintenance": {
+        "name": "Konserwacja Domu",
+        "tagline": "Zarządzanie sprzętem i zadaniami",
+        "description": "Harmonogram konserwacji zapobiegawczej, przechowywanie gwarancji w RustFS S3 i ewidencja urządzeń.",
+        "badge": "FastAPI + Next.js",
+        "route": "/maintenance"
+      },
+      "chores": {
+        "name": "Obowiązki Domowe",
+        "tagline": "Grywalizacja nawyków domowych",
+        "description": "Cykliczna rotacja obowiązków, nagrody za serie (streak), system punktowy i sprawiedliwy podział pracy.",
+        "badge": "FastAPI + Next.js",
+        "route": "/chores"
+      },
+      "dashboard": {
+        "name": "Panel Główny",
+        "tagline": "Zarządzanie i punkt wejścia",
+        "description": "Centralne uwierzytelnianie OIDC przez Keycloak, strumieniowanie telemetrii i routing Caddy proxy.",
+        "badge": "Go + Next.js",
+        "route": "/"
+      }
+    },
+    "alfi": {
+      "badge": "Autonomiczny Asystent",
+      "title": "Poznaj ALFI: Twojego inteligentnego asystenta domowego",
+      "description": "ALFI to inteligentna warstwa orkiestracji Alfheim. Wykorzystując język naturalny i protokół MCP, ALFI zarządza zapasami, planuje konserwacje i rozdziela obowiązki.",
+      "capabilitiesTitle": "Główne możliwości AI",
+      "cap1": "Proaktywne uzupełnianie zapasów i wykrywanie braków",
+      "cap2": "Sugestie przepisów na podstawie dostępnych składników",
+      "cap3": "Automatyczne planowanie przeglądów i archiwizacja gwarancji",
+      "cap4": "Sprawiedliwy podział obowiązków i przypomnienia o seriach"
+    },
+    "architecture": {
+      "badge": "Topologia i bezpieczeństwo",
+      "title": "Fundament Architektury",
+      "subtitle": "Segmentacja sieci wielostrefowej nastawiona na bezpieczeństwo ze zintegrowaną tożsamością Keycloak.",
+      "pillars": {
+        "iam": {
+          "title": "Zero-Trust IAM",
+          "desc": "Keycloak OIDC z krótkoterminowymi tokenami RS256 JWT weryfikowanymi przez wszystkie usługi backendu."
+        },
+        "storage": {
+          "title": "Pamięć S3",
+          "desc": "Magazyn obiektowy RustFS S3 z izolowanymi bucketami i podpisanymi adresami URL."
+        },
+        "proxy": {
+          "title": "Caddy Reverse Proxy",
+          "desc": "Centralna brama ingress realizująca routing ścieżkowy, wstrzykiwanie nagłówków i certyfikaty HTTPS."
+        },
+        "observability": {
+          "title": "OpenTelemetry & SigNoz",
+          "desc": "Pełne rozproszone śledzenie żądań, ustrukturyzowane logi i telemetria na żywo."
+        }
+      }
+    },
+    "techStack": {
+      "title": "Stos Technologiczny",
+      "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
+      "backend": "Backend: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
+      "database": "Bazy danych: PostgreSQL 16 (dedykowane instancje dla każdej aplikacji), ClickHouse",
+      "infra": "Infrastruktura: Docker Compose, Caddy 2, Keycloak 24, RustFS (zgodny z S3)"
+    },
+    "footer": {
+      "copyright": "© 2026 Alfheim Sovereign OS. Wszelkie prawa zastrzeżone.",
+      "license": "Licencja MIT",
+      "builtWith": "Zbudowano z użyciem React 19, Vite i Tailwind CSS v4."
+    }
+  }
+}
