@@ -9,8 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`feat(docs): create react vite documentation site and github pages deployment workflow`** (Active)
-  - Created `websites/docs` with React 19, TypeScript, Vite 6, Tailwind CSS v4, and Lucide React.
+* **`feat(shared): establish shared vector asset pipeline for brand emblems and alfi mascot states`** (Active)
+  - Created structured asset directories `brand/`, `alfi/`, `fonts/` in `packages/shared/src/assets/`.
+  - Added standalone SVGs: `logo-mark.svg`, `logo-full-dark.svg`, `favicon.svg`, and 5 ALFI mascot states (`alfi-idle`, `alfi-thinking`, `alfi-loading`, `alfi-sleeping`, `alfi-curious`).
+  - Exported asset definitions and path helpers via `@alfheim/shared` and `@alfheim/shared/assets`.
+  - Wired interactive ALFI mascot states and brand emblems into `websites/docs`.
+* **`feat(docs): create react vite documentation site and github pages deployment workflow`**
+  - Created `websites/docs` with React 19, TypeScript, Vite 8, Tailwind CSS v4, and Lucide React.
   - Configured `base: './'` for 404-free asset loading on GitHub Pages.
   - Integrated localized documentation strings (`docs.json` for `de`, `en`, `pl`) in `@alfheim/shared`.
   - Added automated GitHub Actions deployment workflow `.github/workflows/deploy-docs.yml`.

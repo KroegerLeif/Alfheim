@@ -9,14 +9,14 @@ This is the public-facing static documentation portal and landing site for **Alf
 The documentation site provides a clean, responsive, and localized introduction to the Alfheim ecosystem, its containerized microservice modules, zero-trust security architecture, and the ambient AI companion **ALFI**.
 
 ### Key Highlights
-* **Tech Stack**: React 19, TypeScript, Vite 6+, Tailwind CSS v4, Lucide React.
+* **Tech Stack**: React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide React.
 * **Shared Localization**: Native multi-language support (English, German, Polish) backed by `@alfheim/shared` locales (`packages/shared/src/features/i18n/locales/{de,en,pl}/docs.json`).
 * **Design Aesthetic**: Obsidian / Nordic Dark theme (`#0b1326` canvas, `#111b33` frosted glass cards, `#3eb1ff` ice-cyan accents).
 * **Automated CI/CD**: Seamless GitHub Pages continuous deployment via `.github/workflows/deploy-docs.yml`.
 
 ---
 
-## 2. Project Structure
+## 2. Project Structure & Shared Assets
 
 ```text
 websites/docs/
@@ -33,8 +33,23 @@ websites/docs/
 ├── index.html              # HTML entry template
 ├── package.json            # Dependencies & workspace script definitions
 ├── tsconfig.json           # Strict TypeScript configuration
-└── vite.config.ts          # Vite build config with relative asset base
+└── vite.config.ts          # Vite build config with relative asset base & shared aliases
 ```
+
+### Shared Asset Pipeline (`@alfheim/shared/assets`)
+Vector emblems and mascot states are centralized in `packages/shared/src/assets/`:
+- **Brand Emblems** (`packages/shared/src/assets/brand/`):
+  - `logo-mark.svg`: Hexagonal shield brand mark.
+  - `logo-full-dark.svg`: Full logo with typographic wordmark for dark surfaces.
+  - `favicon.svg`: High-contrast application icon.
+- **ALFI Mascot States** (`packages/shared/src/assets/alfi/`):
+  - `alfi-idle.svg`: Ambient idle state with floating orbit.
+  - `alfi-thinking.svg`: Violet analytical state with rotated orbit.
+  - `alfi-loading.svg`: Cyan dual-orbit data synchronization state.
+  - `alfi-sleeping.svg`: Low-power standby state with sleep indicators.
+  - `alfi-curious.svg`: Amber inquisitive state with asymmetric optics.
+- **Local Fonts** (`packages/shared/src/assets/fonts/`):
+  - Directory placeholder for self-hosted typography assets.
 
 ---
 
