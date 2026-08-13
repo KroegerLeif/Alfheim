@@ -7,13 +7,13 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = "http://alfheim" + resolved;
+      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
     }
   }
   return resolved.endsWith("/") ? resolved : resolved + "/";
 };
 
-const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://alfheim/api/v1/pantry/");
+const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://api.alfheim.loegien.localhost/pantry/api/v1");
 
 export const pantryClient = ky.create({
   prefixUrl: BASE_URL,

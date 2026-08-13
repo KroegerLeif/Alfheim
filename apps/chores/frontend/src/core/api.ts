@@ -11,13 +11,13 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = "http://alfheim" + resolved;
+      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
     }
   }
   return resolved.endsWith("/") ? resolved : resolved + "/";
 };
 
-const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://alfheim/api/v1/chores/");
+const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://api.alfheim.loegien.localhost/api/v1/chores");
 
 const handleResponseError = async (response: Response) => {
   let message = "chores.error.unrecognized_error";

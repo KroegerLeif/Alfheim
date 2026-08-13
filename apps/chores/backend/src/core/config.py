@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Keycloak OIDC Configuration
     KEYCLOAK_URL: str = "http://keycloak:8080/auth"
-    KEYCLOAK_PUBLIC_URL: str = "http://alfheim/auth"
+    KEYCLOAK_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/auth"
     KEYCLOAK_REALM: str = "alfheim"
     KEYCLOAK_JWKS_URL: str = ""
 
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
         for base_url in [
             "http://keycloak:8080/auth",
             "http://alfheim_keycloak:8080/auth",
-            "http://alfheim/auth",
+            "http://api.alfheim.loegien.localhost/auth",
             "http://localhost:8080/auth",
         ]:
             url = f"{base_url.rstrip('/')}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"

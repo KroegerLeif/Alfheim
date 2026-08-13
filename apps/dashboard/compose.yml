@@ -45,6 +45,8 @@ services:
       dockerfile: apps/dashboard/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_DASHBOARD_API_URL:-http://api.alfheim.loegien.localhost/api/v1}
+        - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+        - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: dashboard-frontend
     restart: always
     depends_on:

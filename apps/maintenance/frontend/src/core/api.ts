@@ -12,7 +12,7 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = "http://alfheim" + resolved;
+      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
     }
   }
   return resolved.endsWith("/") ? resolved : resolved + "/";
@@ -20,7 +20,7 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
 
 const MAINTENANCE_API_URL = sanitizeUrl(
   process.env.NEXT_PUBLIC_API_URL,
-  "http://alfheim/api/v1/maintenance/"
+  "http://api.alfheim.loegien.localhost/maintenance/api/v1"
 );
 
 /**

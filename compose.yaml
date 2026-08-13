@@ -25,4 +25,4 @@ networks:
     driver: bridge
   observability-internal:
     name: observability-internal
-    driver: bridge
+    external: true

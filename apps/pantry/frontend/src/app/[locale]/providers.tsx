@@ -30,7 +30,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     const keycloak = new Keycloak({
-      url: "http://alfheim/auth",
+      url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://api.alfheim.loegien.localhost/auth",
       realm: "alfheim",
       clientId: "pantry-frontend",
     });

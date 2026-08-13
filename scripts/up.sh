@@ -508,7 +508,7 @@ info "Starting chores-frontend …"
 dc up ${BUILD_FLAG} -d chores-frontend
 wait_healthy "chores-frontend" "chores-frontend" 240
 
-notice "🟢 Chores App is live at http://alfheim/chores"
+notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
 
 # =============================================================================
 # STAGE 7 — Observability  (ClickHouse · SigNoz · Vector)
@@ -519,21 +519,21 @@ else
   step "STAGE 7 · Observability  (ClickHouse · SigNoz · Vector)"
 
   info "Starting ClickHouse …"
-  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-clickhouse; then
+  if dc up ${BUILD_FLAG} -d signoz-clickhouse; then
     wait_healthy_soft "signoz-clickhouse" "ClickHouse" 120
   else
     warn "Failed to launch ClickHouse container"
   fi
 
   info "Running SigNoz schema migrator (one-shot job) …"
-  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-schema-migrator; then
+  if dc up ${BUILD_FLAG} -d signoz-schema-migrator; then
     wait_one_shot_soft "signoz-schema-migrator" "schema-migrator" 120
   else
     warn "Failed to launch SigNoz schema migrator container"
   fi
 
   info "Starting SigNoz UI, OTEL collector, and Vector log shipper …"
-  if docker compose -f apps/logging-stack/compose.yml up ${BUILD_FLAG} -d signoz-otel-collector signoz vector; then
+  if dc up ${BUILD_FLAG} -d signoz-otel-collector signoz vector; then
     wait_running_soft "signoz-otel-collector" "otel-collector" 30 || true
     wait_running_soft "signoz-ui"             "SigNoz UI"      30 || true
     wait_running_soft "vector-shipper"        "Vector"         30 || true
