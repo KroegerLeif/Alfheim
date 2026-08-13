@@ -30,7 +30,6 @@ services:
     environment:
       KC_HTTP_RELATIVE_PATH: "/auth"
       KC_PROXY: "edge"
-      KC_HOSTNAME: "http://api.alfheim.loegien.localhost/auth"
       KC_HOSTNAME_URL: "http://api.alfheim.loegien.localhost/auth"
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
