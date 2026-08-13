@@ -94,6 +94,11 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy dashboard-backend:8080
 	}
 
+	# RustFS S3 Storage Ingress Gateway & Presigned URL Handler
+	handle_path /storage* {
+		reverse_proxy rustfs:9000
+	}
+
 	# Observability UI
 	handle_path /signoz* {
 		reverse_proxy signoz-ui:8080

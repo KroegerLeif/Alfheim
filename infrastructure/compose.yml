@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - iam_network
+      - infra-net
     stop_grace_period: 10s
 
   keycloak:
@@ -46,19 +46,40 @@ services:
       postgres-iam:
         condition: service_healthy
     networks:
-      - iam_network
-      - public-ingress
+      - infra-net
+      - gateway-net
     stop_grace_period: 10s
 
+  rustfs:
+    image: minio/minio:RELEASE.2024-03-26T22-10-48Z
+    container_name: alfheim_rustfs
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - infra-net
+      - gateway-net
+    stop_grace_period: 10s
 
+volumes:
+  rustfs_data:
 
 networks:
-  iam_network:
-    driver: bridge
-  # public-ingress is owned by this compose — all other stacks reference it as external
-  public-ingress:
-    name: public-ingress
-  # observability-internal is owned by the logging-stack — declare as external to prevent accidental teardown
+  infra-net:
+    name: infra-net
+    external: true
+  gateway-net:
+    name: gateway-net
+    external: true
   observability-internal:
     name: observability-internal
     external: true
