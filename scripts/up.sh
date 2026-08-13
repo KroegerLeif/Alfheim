@@ -386,20 +386,19 @@ step "STAGE 0 · Pre-flight"
 docker info > /dev/null 2>&1 || fail "Docker daemon is not running. Start Docker Desktop and retry."
 ok "Docker daemon is reachable"
 
-# The observability-internal network is declared external: true across ALL
-# sub-compose files, so no Compose project owns it — we must create it manually
-# before any 'dc up' call.  All other networks are owned by a Compose file and
-# will be created automatically with the correct project labels.
-if ! docker network inspect observability-internal > /dev/null 2>&1; then
-  info "Creating external Docker network: observability-internal"
-  docker network create observability-internal
-fi
+# Pre-create all multi-zone external networks if not already present
+for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net observability-internal; do
+  if ! docker network inspect "$net" > /dev/null 2>&1; then
+    info "Creating external Docker network: $net"
+    docker network create "$net"
+  fi
+done
 ok "Docker networks are ready"
 
 # =============================================================================
-# STAGE 1 — IAM Core & Ingress Gateway  (postgres-iam → keycloak → caddy)
+# STAGE 1 — IAM Core, S3 Storage & Ingress Gateway  (postgres-iam → keycloak → rustfs → caddy)
 # =============================================================================
-step "STAGE 1 · IAM Core & Ingress Gateway  (postgres-iam · keycloak · caddy)"
+step "STAGE 1 · IAM Core, S3 Storage & Ingress Gateway  (postgres-iam · keycloak · rustfs · caddy)"
 
 info "Starting postgres-iam …"
 dc up ${BUILD_FLAG} -d postgres-iam
@@ -409,11 +408,15 @@ info "Starting keycloak (realm import may take up to 90 s on first boot) …"
 dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "alfheim_keycloak" "keycloak" 180
 
+info "Starting rustfs S3 object storage …"
+dc up ${BUILD_FLAG} -d rustfs
+wait_healthy "alfheim_rustfs" "rustfs" 60
+
 info "Starting caddy reverse proxy gateway …"
 dc up ${BUILD_FLAG} -d caddy
 wait_running "alfheim_caddy" "caddy" 30
 
-notice "🟢 IAM Core & Caddy Ingress Gateway Ready"
+notice "🟢 IAM Core, RustFS Storage & Caddy Ingress Gateway Ready"
 
 # =============================================================================
 # STAGE 2 — Dashboard App Slice  (dashboard-db → dashboard-backend → dashboard-frontend)

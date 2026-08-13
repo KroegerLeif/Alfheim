@@ -34,6 +34,7 @@ func (l *stackAppsLoader) LoadStackApps() ([]StackAppConfig, error) {
 		filepath.Join(".", l.filePath),
 		filepath.Join("..", l.filePath),
 		filepath.Join("..", "..", l.filePath),
+		filepath.Join("..", "..", "..", l.filePath),
 	}
 
 	var data []byte
