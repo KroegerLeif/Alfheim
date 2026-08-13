@@ -54,3 +54,12 @@ Leaflet maps use high default z-indexes (`z-index: 400+`), which cause map eleme
   ```html
   <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm">
   ```
+
+---
+
+## 🔒 Rule 4: OIDC Token Validation & Docker Network Backchannel Isolation
+
+To prevent 401 Unauthorized errors caused by host issuer mismatches:
+* **Browser OIDC Operations**: Frontend clients interact with Keycloak via the external API Gateway URL (`http://api.alfheim.loegien.localhost/auth`).
+* **Backend JWKS Key Fetching**: Microservice backends fetch Keycloak public certificates via the internal Docker network (`http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`).
+* **Token Issuer Verification**: Backend JWT verification routines MUST decouple signature verification from host-string constraints so tokens issued externally via Caddy pass internal container validation seamlessly.

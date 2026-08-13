@@ -87,7 +87,7 @@ This index maps the active applications and services running inside the monorepo
 ---
 
 ## 🔑 Keycloak JWT Invariants
-All backends validate bearer tokens issued by Keycloak (`http://alfheim/auth`).
+All backends validate bearer tokens issued by Keycloak (External: `http://api.alfheim.loegien.localhost/auth`, Internal Docker JWKS: `http://keycloak:8080/auth`).
 * **`sub`**: Injected as user UUID.
 * **`preferred_username`**: Used for Personal List naming.
 * **`household_id` / `active_household_id`**: Active household identifier (falls back to `X-Household-ID` header, then mock UUID).
