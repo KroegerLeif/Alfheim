@@ -9,7 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`feat(storage): deploy rustfs s3 container and implement fastapi tenant storage helper`** (Active)
+* **`feat(docs): create react vite documentation site and github pages deployment workflow`** (Active)
+  - Created `websites/docs` with React 19, TypeScript, Vite 6, Tailwind CSS v4, and Lucide React.
+  - Configured `base: './'` for 404-free asset loading on GitHub Pages.
+  - Integrated localized documentation strings (`docs.json` for `de`, `en`, `pl`) in `@alfheim/shared`.
+  - Added automated GitHub Actions deployment workflow `.github/workflows/deploy-docs.yml`.
+  - Registered `websites/*` in `pnpm-workspace.yaml`.
+* **`feat(storage): deploy rustfs s3 container and implement fastapi tenant storage helper`**
   - Deployed `rustfs` (MinIO/S3 API) container in `infrastructure/compose.yml` with persistent volume `rustfs_data`.
   - Added Caddy `/storage*` reverse proxy route pointing to `rustfs:9000`.
   - Added `aioboto3` to dependencies across all Python microservice backends (`pantry`, `shopping`, `maintenance`, `chores`).
@@ -39,6 +45,7 @@ This index maps the active applications and services running inside the monorepo
 
 | Application / Folder | Tech Stack | Ingress Route (Caddy Gateway) | Database / Storage |
 | :--- | :--- | :--- | :--- |
+| **`websites/docs`** | React 19, Vite, Tailwind v4 | GitHub Pages / Static Docs | N/A (Static SPA) |
 | **`core/dashboard`** | Go, Next.js, OIDC | `alfheim.loegien.de/` (Catch-all) | `dashboard-db` (`dashboard_postgres_data`) |
 | **`apps/pantry`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/pantry` / `api.alfheim.loegien.de/pantry` | `pantry-db` (`pantry_postgres_data`, Port `5432`) |
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |
