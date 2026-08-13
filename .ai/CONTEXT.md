@@ -215,12 +215,12 @@ All backends validate bearer tokens issued by Keycloak (`http://alfheim/auth`).
 
 ---
 
-## 🔗 Local URLs (Requires `/etc/hosts` resolution of `alfheim` to `127.0.0.1`)
-* Dashboard: `http://alfheim/`
-* Pantry: `http://alfheim/pantry`
-* Shopping: `http://alfheim/shopping`
-* Maintenance: `http://alfheim/maintenance`
-* Chores: `http://alfheim/chores/de` (Direct portal link; `/chores` redirects to `/chores/de`)
-* Chores API: `http://alfheim/api/v1/chores`
-* Keycloak Admin: `http://alfheim/auth/admin`
-* Traefik Admin: `http://localhost:8080`
+## 🔗 Local URLs (Requires `/etc/hosts` resolution of `127.0.0.1 alfheim.loegien.localhost api.alfheim.loegien.localhost`)
+* Dashboard: `http://alfheim.loegien.localhost/`
+* Pantry: `http://alfheim.loegien.localhost/pantry`
+* Shopping: `http://alfheim.loegien.localhost/shopping`
+* Maintenance: `http://alfheim.loegien.localhost/maintenance`
+* Chores: `http://alfheim.loegien.localhost/chores`
+* Central API Gateway: `http://api.alfheim.loegien.localhost/api/v1`
+* Keycloak IAM: `http://api.alfheim.loegien.localhost/auth`
+* SigNoz Observability UI: `http://api.alfheim.loegien.localhost/signoz`

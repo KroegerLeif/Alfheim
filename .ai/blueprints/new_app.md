@@ -147,12 +147,13 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
 1. **Frontend Registration**:
    * Create a client named `<app-name>-frontend` inside the `alfheim` realm.
    * Access Type: `Public` (Standard Authorization Flow, PKCE enabled).
-   * Valid Redirect URIs: `http://alfheim/<app-name>/*`
+   * Valid Redirect URIs: `http://alfheim.loegien.localhost/<app-name>/*`, `http://alfheim.loegien.de/<app-name>/*`
    * Web Origins: `*`
 2. **Backend JWT Verification**:
    * Set configuration values in environment variables:
      ```env
      KEYCLOAK_BASE_URL=http://keycloak:8080/auth
+     KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
      KEYCLOAK_REALM=alfheim
      ```
    * JWKS verification coordinates with Keycloak certs route:
@@ -211,13 +212,13 @@ info "Starting <app-name>-frontend …"
 dc up ${BUILD_FLAG} -d <app-name>-frontend
 wait_healthy "<app-name>-frontend" "<app-name>-frontend" 240
 
-notice "🟢 <App-Name> App is live at http://alfheim/<app-name>"
+notice "🟢 <App-Name> App is live at http://alfheim.loegien.localhost/<app-name>"
 ```
 
 ### 7.2 Insertion Point
-Insert immediately **before** the `STAGE 6 · Observability` block, updating subsequent stage numbers accordingly. Add summary logs to `STAGE 7 · Summary`:
+Insert immediately **before** the `STAGE 7 · Observability` block, updating subsequent stage numbers accordingly. Add summary logs to `STAGE 8 · Summary`:
 ```bash
-echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim/<app-name>${RESET}"
+echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim.loegien.localhost/<app-name>${RESET}"
 ```
 
 ---

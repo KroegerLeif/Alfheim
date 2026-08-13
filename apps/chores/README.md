@@ -28,7 +28,7 @@ The **Chores App** (`apps/chores`) is the household chore tracking and habit-bui
 ```
 apps/chores/
 ├── backend/          # FastAPI service (chore templates, instances, streaks, reset scheduler, completion audit history)
-└── compose.yml       # Service orchestration (backend, postgres, traefik rules)
+└── compose.yml       # Service orchestration (backend, postgres, caddy ingress rules)
 ```
 
 The app follows the **Feature-Driven Design (FDD)** pattern defined in `.ai/rules/architecture.md`.
@@ -37,8 +37,8 @@ The app follows the **Feature-Driven Design (FDD)** pattern defined in `.ai/rule
 
 ## 🔗 Integration Points
 
-- **Keycloak OIDC**: JWT authentication. `household_id` claim scopes all chores and streaks to the active household.
-- **Traefik**: Ingress at `/api/v1/chores` (backend).
+- **Keycloak OIDC**: JWT authentication (`api.alfheim.loegien.localhost/auth`). `household_id` claim scopes all chores and streaks to the active household.
+- **Caddy Ingress**: Gateway routing at `api.alfheim.loegien.localhost/api/v1/chores` (backend) and `alfheim.loegien.localhost/chores` (frontend).
 - **FastMCP**: AI agent integration toolset for chat interfaces.
 
 ---

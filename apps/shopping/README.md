@@ -32,15 +32,15 @@ To enable custom list arrangements without client-side state discrepancy, list p
 
 ## 🗂️ Directory Layout
 
-* [`/backend`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/backend) — FastAPI service handling database models, auto-provisioning rules, and integration endpoints.
-* [`/frontend`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/frontend) — Standalone Next.js 15 application utilizing tailwind styling and TanStack query caching.
-* [`compose.yml`](file:///Users/leifkroeger/Dev/alfheim/apps/shopping/compose.yml) — Docker container configurations mapping Traefik ingress proxy rules.
+* [`/backend`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/backend) — FastAPI service handling database models, auto-provisioning rules, and integration endpoints.
+* [`/frontend`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/frontend) — Standalone Next.js 15 application utilizing tailwind styling and TanStack query caching.
+* [`compose.yml`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/compose.yml) — Docker container configurations for service orchestration.
 
 ---
 
-## 🌐 Ingress Routing
+## 🌐 Ingress Routing (Caddy Gateway)
 
-Traefik acts as the top-level reverse proxy:
-* **Frontend**: Accessible externally under the `/shopping` subpath.
-* **Backend**: Accessible under `/api/v1/shopping`, rewriting prefixes to match backend router layouts.
-* **Locale Handling**: Traefik intercepts raw `/shopping` hits and redirects to `/shopping/en` to enforce clean localization paths.
+Caddy acts as the central ingress reverse proxy:
+* **Frontend**: Accessible under `http://alfheim.loegien.localhost/shopping` (with bare path redirects to `/shopping/en`).
+* **Backend**: Accessible under `http://api.alfheim.loegien.localhost/shopping/api/v1`, with path stripping managed by Caddy `handle_path`.
+* **Authentication**: OIDC Sessions via `http://api.alfheim.loegien.localhost/auth`.

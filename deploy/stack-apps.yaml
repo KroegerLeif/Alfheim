@@ -19,7 +19,7 @@ apps:
     slug: "librechat"
     description: "Unified AI conversational interface with LLM provider routing."
     icon: "psychology"
-    url: "http://alfheim.local/chat"
+    url: "http://alfheim.loegien.localhost/chat"
     category: "external"
     required_roles: []
     status: "active"
