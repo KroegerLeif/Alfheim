@@ -199,3 +199,88 @@ func TestHouseholdService_CreateAndInvite(t *testing.T) {
 		t.Errorf("expected ErrCannotRemoveOwner, got %v", err)
 	}
 }
+
+func TestHouseholdService_GetUserHouseholds(t *testing.T) {
+	repo := newMockRepository()
+	discardLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := household.NewService(repo, discardLogger)
+	ctx := context.Background()
+
+	userID := "user-multi-hh"
+
+	// manually seed repo for the test
+	hh1 := &household.Household{ID: "hh-1", Name: "First", OwnerID: userID}
+	repo.households[hh1.ID] = hh1
+	repo.members[hh1.ID] = map[string]household.HouseholdRole{userID: household.RoleOwner}
+
+	hh2 := &household.Household{ID: "hh-2", Name: "Second", OwnerID: "some-other-owner"}
+	repo.households[hh2.ID] = hh2
+	repo.members[hh2.ID] = map[string]household.HouseholdRole{userID: household.RoleMember}
+
+	list, err := svc.GetUserHouseholds(ctx, userID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 households, got %d", len(list))
+	}
+}
+
+func TestHouseholdService_UpdateMemberRole(t *testing.T) {
+	repo := newMockRepository()
+	discardLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := household.NewService(repo, discardLogger)
+	ctx := context.Background()
+
+	ownerID := "owner"
+	targetID := "member"
+	hhID := "hh-role-test"
+
+	repo.households[hhID] = &household.Household{ID: hhID, OwnerID: ownerID}
+	repo.members[hhID] = map[string]household.HouseholdRole{
+		ownerID: household.RoleOwner,
+		targetID: household.RoleMember,
+	}
+
+	err := svc.UpdateMemberRole(ctx, ownerID, hhID, targetID, household.RoleAdmin)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	role, _ := repo.GetMemberRole(ctx, hhID, targetID)
+	if role != household.RoleAdmin {
+		t.Errorf("expected admin, got %s", role)
+	}
+}
+
+func TestHouseholdService_UpdateHouseholdAddress(t *testing.T) {
+	repo := newMockRepository()
+	discardLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := household.NewService(repo, discardLogger)
+	ctx := context.Background()
+
+	ownerID := "owner"
+	hhID := "hh-address-test"
+
+	repo.households[hhID] = &household.Household{ID: hhID, OwnerID: ownerID}
+	repo.members[hhID] = map[string]household.HouseholdRole{ownerID: household.RoleOwner}
+
+	lat := 47.3769
+	lon := 8.5417
+	req := household.UpdateHouseholdAddressRequest{
+		Street: "Bahnhofstrasse",
+		Zip: "8001",
+		City: "Zurich",
+		Country: "Switzerland",
+		Latitude: &lat,
+		Longitude: &lon,
+	}
+
+	err := svc.UpdateHouseholdAddress(ctx, ownerID, hhID, req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if repo.households[hhID].City != "Zurich" {
+		t.Errorf("expected Zurich, got %s", repo.households[hhID].City)
+	}
+}

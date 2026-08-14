@@ -1,4 +1,4 @@
-from pint import UnitRegistry, UndefinedUnitError
+from pint import UnitRegistry
 
 # Initialize the UnitRegistry singleton
 ureg = UnitRegistry()

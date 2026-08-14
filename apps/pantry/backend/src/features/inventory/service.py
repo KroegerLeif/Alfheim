@@ -322,7 +322,7 @@ class InventoryService:
 
         # 1. Fetch system fallback location 'Backlog' for this home space
         fallback_stmt = select(Location).where(
-            Location.home_id == home_id, Location.is_system == True
+            Location.home_id == home_id, Location.is_system
         )
         fallback_res = await session.exec(fallback_stmt)
         backlog_location = fallback_res.first()
@@ -364,7 +364,7 @@ class InventoryService:
                 name_query = item.name.strip().lower()
                 stmt = select(Product).where(
                     func.lower(Product.name) == name_query,
-                    or_(Product.is_global == True, Product.home_id == home_id),
+                    or_(Product.is_global, Product.home_id == home_id),
                 )
                 res = await session.exec(stmt)
                 product = res.first()

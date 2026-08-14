@@ -1,6 +1,5 @@
 import uuid
 import pytest
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.locations.models import Location, LocationCreate, LocationUpdate
 from src.features.locations.service import LocationService

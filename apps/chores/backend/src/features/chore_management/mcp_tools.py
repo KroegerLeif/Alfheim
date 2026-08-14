@@ -1,14 +1,14 @@
 import uuid
-from typing import Optional
 from datetime import date
+
 from sqlmodel import select
 
-from src.mcp.server import mcp
 from src.core.database import async_session_factory
-from src.core.dependencies import MOCK_USER_ID, MOCK_HOME_ID
-from src.features.chore_management.service import ChoreService
+from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
 from src.features.chore_management.schemas import ChoreAssignRequest
+from src.features.chore_management.service import ChoreService
+from src.mcp.server import mcp
 
 
 @mcp.tool()
@@ -46,7 +46,7 @@ async def get_daily_chores_overview() -> str:
             return "\n".join(lines)
 
     except Exception as e:
-        return f"Error: Failed to fetch daily chores overview: {str(e)}"
+        return f"Error: Failed to fetch daily chores overview: {e!s}"
 
 
 @mcp.tool()
@@ -96,7 +96,7 @@ async def complete_chore_by_name(chore_name: str) -> str:
             return f"Success: Completed chore '{chore_name}' (Instance ID: {updated.id}) and awarded {updated.points_awarded} points!"
 
     except Exception as e:
-        return f"Error: Failed to complete chore: {str(e)}"
+        return f"Error: Failed to complete chore: {e!s}"
 
 
 @mcp.tool()
@@ -122,6 +122,6 @@ async def assign_chore(chore_instance_id: str, user_id: str) -> str:
             return f"Success: Assigned chore instance {updated.id} to user {user_uuid}."
 
     except ValueError as e:
-        return f"Error: Invalid ID format: {str(e)}"
+        return f"Error: Invalid ID format: {e!s}"
     except Exception as e:
-        return f"Error: Failed to assign chore: {str(e)}"
+        return f"Error: Failed to assign chore: {e!s}"

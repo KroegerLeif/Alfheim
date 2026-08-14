@@ -1,9 +1,8 @@
 import uuid
 import pytest
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.products.models import Product, ProductNutrition, BaseUnit
-from src.features.products.schemas import ProductCreate, ProductNutritionCreate, ProductUpdate, ProductNutritionUpdate
+from src.features.products.schemas import ProductCreate, ProductUpdate, ProductNutritionUpdate
 from src.features.products.service import ProductService
 from src.features.categories.models import Category
 
@@ -125,7 +124,7 @@ async def test_update_product_barcode_clash(db_session: AsyncSession):
     """Verify ProductService prevents updating a product barcode to an existing one."""
     home_id = uuid.uuid4()
     # p1 is global because it has a barcode
-    p1 = await ProductService.create_product(
+    await ProductService.create_product(
         db_session, ProductCreate(name="P1", barcode="100", base_unit=BaseUnit.PIECE), home_id
     )
     # p2 is local because it has no barcode

@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime, date, timezone
-from typing import Optional
-from sqlalchemy import Column, DateTime, Date, Index, text
+from datetime import UTC, date, datetime
+
+from sqlalchemy import Column, Date, DateTime, Index
 from sqlmodel import Field, SQLModel, func
 
 
@@ -27,7 +27,7 @@ class ChoreTemplate(SQLModel, table=True):
         max_length=150,
         description="Unique name of the chore.",
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         max_length=500,
         description="Optional detailed instructions for how to perform the chore.",
@@ -42,7 +42,7 @@ class ChoreTemplate(SQLModel, table=True):
         description="If True, missed daily instances do not stack up.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -51,7 +51,7 @@ class ChoreTemplate(SQLModel, table=True):
         description="Timestamp of creation in UTC.",
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -92,17 +92,17 @@ class ChoreInstance(SQLModel, table=True):
         nullable=False,
         description="UUID of the household context.",
     )
-    assigned_to: Optional[uuid.UUID] = Field(
+    assigned_to: uuid.UUID | None = Field(
         default=None,
         nullable=True,
         description="UUID of the user assigned to this chore instance.",
     )
-    completed_by: Optional[uuid.UUID] = Field(
+    completed_by: uuid.UUID | None = Field(
         default=None,
         nullable=True,
         description="UUID of the user who completed this chore instance.",
     )
-    completed_at: Optional[datetime] = Field(
+    completed_at: datetime | None = Field(
         default=None,
         sa_column=Column(
             DateTime(timezone=True),
@@ -129,7 +129,7 @@ class ChoreInstance(SQLModel, table=True):
         description="Points actual awarded (usually matching template points upon completion).",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -138,7 +138,7 @@ class ChoreInstance(SQLModel, table=True):
         description="Timestamp of creation in UTC.",
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -185,7 +185,7 @@ class HouseholdStreak(SQLModel, table=True):
         nullable=False,
         description="Longest achieved chore completion streak.",
     )
-    last_completed_date: Optional[date] = Field(
+    last_completed_date: date | None = Field(
         default=None,
         sa_column=Column(
             Date,
@@ -194,7 +194,7 @@ class HouseholdStreak(SQLModel, table=True):
         description="The last date on which all chores were completed to extend/verify streak.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -203,7 +203,7 @@ class HouseholdStreak(SQLModel, table=True):
         description="Timestamp of creation in UTC.",
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -245,14 +245,14 @@ class ChoreCompletionHistory(SQLModel, table=True):
         nullable=False,
         description="UUID of the user who completed the chore.",
     )
-    completed_by_name: Optional[str] = Field(
+    completed_by_name: str | None = Field(
         default=None,
         max_length=150,
         nullable=True,
         description="Display name or username of the executing user.",
     )
     completed_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,

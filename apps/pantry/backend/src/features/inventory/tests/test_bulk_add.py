@@ -4,7 +4,6 @@ from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.features.locations.models import Location
 from src.features.products.models import Product, BaseUnit
 from src.features.inventory.models import InventoryState
 

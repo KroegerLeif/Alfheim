@@ -1,6 +1,5 @@
 import uuid
 import pytest
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.categories.models import Category, CategoryCreate, CategoryUpdate
 from src.features.categories.service import CategoryService
@@ -72,7 +71,7 @@ async def test_update_category_name_clash(db_session: AsyncSession):
     owner_id = uuid.uuid4()
     home_id = uuid.uuid4()
 
-    cat1 = await CategoryService.create_category(
+    await CategoryService.create_category(
         db_session, CategoryCreate(name="Fruits"), owner_id, home_id
     )
     cat2 = await CategoryService.create_category(

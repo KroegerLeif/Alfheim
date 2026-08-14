@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.features.devices.models import Household, Device
+from app.features.devices.models import Household
 
 
 @pytest.mark.asyncio

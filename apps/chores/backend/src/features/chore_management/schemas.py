@@ -1,12 +1,12 @@
 import uuid
-from datetime import datetime, date
-from typing import Optional
+from datetime import date, datetime
+
 from pydantic import BaseModel, Field
 
 
 class ChoreTemplateBase(BaseModel):
     name: str = Field(min_length=1, max_length=150, description="Name of the chore template.")
-    description: Optional[str] = Field(default=None, max_length=500, description="Instructions/description.")
+    description: str | None = Field(default=None, max_length=500, description="Instructions/description.")
     points: int = Field(default=10, ge=0, description="Points awarded.")
     is_non_cumulative: bool = Field(default=True, description="Reset behaviour.")
 
@@ -16,10 +16,10 @@ class ChoreTemplateCreate(ChoreTemplateBase):
 
 
 class ChoreTemplateUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=150)
-    description: Optional[str] = Field(default=None, max_length=500)
-    points: Optional[int] = Field(default=None, ge=0)
-    is_non_cumulative: Optional[bool] = None
+    name: str | None = Field(default=None, min_length=1, max_length=150)
+    description: str | None = Field(default=None, max_length=500)
+    points: int | None = Field(default=None, ge=0)
+    is_non_cumulative: bool | None = None
 
 
 class ChoreTemplateRead(ChoreTemplateBase):
@@ -33,9 +33,9 @@ class ChoreInstanceRead(BaseModel):
     id: uuid.UUID
     template_id: uuid.UUID
     home_id: uuid.UUID
-    assigned_to: Optional[uuid.UUID] = None
-    completed_by: Optional[uuid.UUID] = None
-    completed_at: Optional[datetime] = None
+    assigned_to: uuid.UUID | None = None
+    completed_by: uuid.UUID | None = None
+    completed_at: datetime | None = None
     due_date: date
     status: str
     points_awarded: int
@@ -48,18 +48,18 @@ class HouseholdStreakRead(BaseModel):
     home_id: uuid.UUID
     current_streak: int
     longest_streak: int
-    last_completed_date: Optional[date] = None
+    last_completed_date: date | None = None
     created_at: datetime
     updated_at: datetime
 
 
 class ChoreAssignRequest(BaseModel):
-    assigned_to: Optional[uuid.UUID] = None
+    assigned_to: uuid.UUID | None = None
 
 
 class ChoreCompleteRequest(BaseModel):
-    completed_by: Optional[uuid.UUID] = None
-    completed_by_name: Optional[str] = None
+    completed_by: uuid.UUID | None = None
+    completed_by_name: str | None = None
 
 
 class ChoreTimelineRead(BaseModel):
@@ -68,7 +68,7 @@ class ChoreTimelineRead(BaseModel):
     instance_id: uuid.UUID
     home_id: uuid.UUID
     completed_by: uuid.UUID
-    completed_by_name: Optional[str] = None
+    completed_by_name: str | None = None
     completed_at: datetime
     points_awarded: int
 

@@ -1,7 +1,7 @@
 """Centralized S3 object storage utility and tenant-isolated path generator."""
 
+
 import aioboto3
-from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,7 +33,7 @@ def get_user_object_key(user_id: str, app_name: str, filename: str) -> str:
 class S3StorageService:
     """Async S3 client provider supporting presigned URL generation and asset lifecycle operations."""
 
-    def __init__(self, settings: Optional[StorageSettings] = None) -> None:
+    def __init__(self, settings: StorageSettings | None = None) -> None:
         self.settings = settings or StorageSettings()
         self.session = aioboto3.Session()
 
@@ -55,7 +55,7 @@ class S3StorageService:
                 await s3_client.create_bucket(Bucket=self.settings.S3_BUCKET_NAME)
 
     async def generate_presigned_upload_url(
-        self, object_key: str, expires_in: int = 3600, content_type: Optional[str] = None
+        self, object_key: str, expires_in: int = 3600, content_type: str | None = None
     ) -> str:
         """Generate a presigned PUT URL allowing direct client asset upload to RustFS/S3."""
         params = {"Bucket": self.settings.S3_BUCKET_NAME, "Key": object_key}

@@ -179,9 +179,50 @@ func Test3TierAppService_UserLinkCRUD(t *testing.T) {
 		t.Errorf("unexpected created link DTO: %+v", created)
 	}
 
+	// Test update link
+	updated, err := svc.UpdateUserLink(ctx, "user-1", "link-1", apps.UpdateUserLinkRequest{
+		Title:       "Google Drive Updated",
+		URL:         "https://drive.google.com/updated",
+		Icon:        "cloud-sync",
+		Category:    "storage",
+		Description: "Updated Cloud",
+	})
+	if err != nil {
+		t.Fatalf("expected no error updating link, got: %v", err)
+	}
+	if updated.Title != "Google Drive Updated" {
+		t.Errorf("expected Google Drive Updated, got %s", updated.Title)
+	}
+
 	// Test link deletion
 	err = svc.DeleteUserLink(ctx, "user-1", "link-1")
 	if err != nil {
 		t.Fatalf("expected no error deleting link-1, got: %v", err)
+	}
+}
+
+func Test3TierAppService_UserPreferences(t *testing.T) {
+	repo := newMockRepository()
+	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := apps.NewService(repo, stackLoader, logger)
+	ctx := context.Background()
+
+	// Get Preferences
+	prefs, err := svc.GetUserPreferences(ctx, "user-1")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(prefs.HiddenAppIDs) != 1 || prefs.HiddenAppIDs[0] != "todo" {
+		t.Errorf("expected [todo], got %v", prefs.HiddenAppIDs)
+	}
+
+	// Update Preferences
+	updated, err := svc.UpdateUserPreferences(ctx, "user-1", []string{"shopping", "pantry"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(updated.HiddenAppIDs) != 2 || updated.HiddenAppIDs[0] != "shopping" {
+		t.Errorf("expected [shopping, pantry], got %v", updated.HiddenAppIDs)
 	}
 }

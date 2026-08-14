@@ -50,7 +50,7 @@ async def get_my_households(
             if response.status_code == 200:
                 return response.json()
             return []
-        except Exception as e:
+        except Exception:
             # Silently fallback to empty list on network or parse failures
             return []
 

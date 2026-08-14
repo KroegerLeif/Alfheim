@@ -1,9 +1,7 @@
 import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.inventory.units import ureg, is_valid_unit
-from src.features.inventory.models import InventoryState, InventoryLedger
-from src.features.inventory.service import InventoryService
-from src.features.inventory.exceptions import InventoryError
+from src.features.inventory.models import InventoryState
 
 def test_pint_unit_conversion_math():
     """Verify that Pint converts liters to milliliters and grams to kilograms correctly."""

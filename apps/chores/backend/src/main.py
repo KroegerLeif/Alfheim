@@ -3,9 +3,11 @@ import importlib
 import logging
 import pathlib
 from contextlib import asynccontextmanager
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
+
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
+
 from src.core.config import settings
 from src.mcp.server import mcp
 
@@ -109,6 +111,7 @@ app.add_middleware(
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
 from src.core.telemetry import setup_telemetry
+
 setup_telemetry(app)
 
 
@@ -125,6 +128,7 @@ discover_and_include_routers(app)
 
 # Discover and register FastMCP tools dynamically
 from src.mcp.server import discover_and_import_mcp_tools
+
 discover_and_import_mcp_tools()
 
 # Mount the FastMCP server

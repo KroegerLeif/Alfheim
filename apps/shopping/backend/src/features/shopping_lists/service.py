@@ -3,7 +3,7 @@ import httpx
 import logging
 import uuid
 from typing import Optional, List, Sequence
-from sqlmodel import select, and_, col
+from sqlmodel import select, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -464,7 +464,7 @@ class ShoppingListService:
     ) -> List[ShoppingItem]:
         """Fetch low stock items from Pantry and merge them into the list if not already active."""
         # 1. Validate list ownership
-        db_list = await ShoppingListService.get_list(session, list_id, home_id)
+        await ShoppingListService.get_list(session, list_id, home_id)
 
         # 2. Query pantry integration
         client = PantryClient()
