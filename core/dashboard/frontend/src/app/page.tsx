@@ -27,9 +27,9 @@ export default function DashboardPage() {
   // Trigger graceful error toast on API load failure
   useEffect(() => {
     if (isError) {
-      setToastMessage('Failed to load dashboard application catalog');
+      setToastMessage(t('dashboard.error_load_catalog'));
     }
-  }, [isError]);
+  }, [isError, t]);
 
   const openAddModal = () => {
     setIsAddModalOpen(true);
@@ -41,7 +41,7 @@ export default function DashboardPage() {
   };
 
   const handleSuccess = (appName: string) => {
-    setToastMessage(`Saved bookmark: "${appName}"`);
+    setToastMessage(t('dashboard.toast_bookmark_saved', { name: appName }));
     setTimeout(() => setToastMessage(null), 4000);
   };
 
@@ -76,23 +76,23 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined text-[var(--primary-main)]">apps</span>
             <div>
               <h2 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
-                <span>Core Applications</span>
+                <span>{t('dashboard.tier1_title')}</span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 font-normal uppercase">
-                  Tier 1
+                  {t('dashboard.tier1_badge')}
                 </span>
               </h2>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono text-[var(--text-muted)]">
-              {dashboard?.core ? `${dashboard.core.length} active` : '0 active'}
+              {t('dashboard.tier1_active_count', { count: dashboard?.core ? dashboard.core.length : 0 })}
             </span>
             <Link
               href="/settings"
               className="px-3 py-1.5 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 transition-all duration-150"
             >
               <span className="material-symbols-outlined text-sm">visibility</span>
-              <span>Manage Visibility</span>
+              <span>{t('dashboard.tier1_manage_visibility')}</span>
             </Link>
             <button
               onClick={() => refetch()}
@@ -120,19 +120,19 @@ export default function DashboardPage() {
             ))
           ) : isError ? (
             <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
-              Failed to load Core Applications.
+              {t('dashboard.tier1_load_error')}
             </div>
           ) : !dashboard?.core || dashboard.core.length === 0 ? (
             <div className="col-span-3 p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
               <span className="material-symbols-outlined text-3xl text-[var(--text-muted)]">visibility_off</span>
               <p className="text-xs font-mono text-[var(--text-muted)]">
-                All Core Applications are currently hidden in your settings preferences.
+                {t('dashboard.tier1_empty_hidden')}
               </p>
               <Link
                 href="/settings"
                 className="px-3 py-1 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[var(--primary-main)] font-mono text-xs font-bold transition-colors"
               >
-                Configure Settings
+                {t('dashboard.tier1_configure_settings')}
               </Link>
             </div>
           ) : (
@@ -166,7 +166,7 @@ export default function DashboardPage() {
 
                   <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
                     <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
-                      Core Native
+                      {t('dashboard.tier1_tag')}
                     </span>
                     <Link
                       href={targetUrl}
@@ -189,14 +189,14 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">hub</span>
             <h2 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
-              <span>Stack Integrations</span>
+              <span>{t('dashboard.tier2_title')}</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20 font-normal uppercase">
-                Tier 2 (YAML)
+                {t('dashboard.tier2_badge')}
               </span>
             </h2>
           </div>
           <span className="text-xs font-mono text-[var(--text-muted)]">
-            {dashboard?.stack ? `${dashboard.stack.length} stack apps` : '0 stack apps'}
+            {t('dashboard.tier2_count', { count: dashboard?.stack ? dashboard.stack.length : 0 })}
           </span>
         </div>
 
@@ -216,13 +216,13 @@ export default function DashboardPage() {
             ))
           ) : isError ? (
             <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
-              Failed to load Stack Integrations.
+              {t('dashboard.tier2_load_error')}
             </div>
           ) : !dashboard?.stack || dashboard.stack.length === 0 ? (
             <div className="col-span-3 p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
               <span className="material-symbols-outlined text-3xl text-[var(--text-muted)]">dns</span>
               <p className="text-xs font-mono text-[var(--text-muted)]">
-                No Tier 2 stack apps defined in deploy/stack-apps.yaml matching your Keycloak roles.
+                {t('dashboard.tier2_empty')}
               </p>
             </div>
           ) : (
@@ -258,14 +258,14 @@ export default function DashboardPage() {
 
                   <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
                     <span className="text-[10px] font-mono text-purple-400 font-bold uppercase tracking-wider">
-                      Stack Managed
+                      {t('dashboard.tier2_tag')}
                     </span>
                     {isInternalRoute ? (
                       <Link
                         href={targetUrl}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                       >
-                        <span>Open Portal</span>
+                        <span>{t('common.open_portal')}</span>
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                       </Link>
                     ) : (
@@ -275,7 +275,7 @@ export default function DashboardPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                       >
-                        <span>Open Portal</span>
+                        <span>{t('common.open_portal')}</span>
                         <span className="material-symbols-outlined text-sm">open_in_new</span>
                       </a>
                     )}
@@ -293,22 +293,22 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">bookmark</span>
             <h2 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
-              <span>My Personal Links</span>
+              <span>{t('dashboard.tier3_title')}</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal uppercase">
-                Tier 3 (User DB)
+                {t('dashboard.tier3_badge')}
               </span>
             </h2>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono text-[var(--text-muted)]">
-              {dashboard?.user ? `${dashboard.user.length} links` : '0 links'}
+              {t('dashboard.tier3_count', { count: dashboard?.user ? dashboard.user.length : 0 })}
             </span>
             <button
               onClick={openAddModal}
               className="px-3.5 py-1.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold font-mono text-xs inline-flex items-center gap-1.5 cursor-pointer hover:bg-[var(--primary-hover)] transition-all duration-150 shadow-[0_0_12px_var(--accent-glow)]"
             >
               <span className="material-symbols-outlined text-base">add</span>
-              <span>Add Bookmark</span>
+              <span>{t('dashboard.tier3_add_bookmark')}</span>
             </button>
           </div>
         </div>
@@ -329,19 +329,19 @@ export default function DashboardPage() {
             ))
           ) : isError ? (
             <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
-              Failed to load personal user links.
+              {t('dashboard.tier3_load_error')}
             </div>
           ) : !dashboard?.user || dashboard.user.length === 0 ? (
             <div className="col-span-3 p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
               <span className="material-symbols-outlined text-3xl text-[var(--text-muted)]">bookmark_border</span>
               <p className="text-xs font-mono text-[var(--text-muted)]">
-                You haven't created any custom personal links yet.
+                {t('dashboard.tier3_empty')}
               </p>
               <button
                 onClick={openAddModal}
                 className="px-3 py-1 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[var(--primary-main)] font-mono text-xs font-bold cursor-pointer transition-colors"
               >
-                Create First Bookmark
+                {t('dashboard.tier3_create_first')}
               </button>
             </div>
           ) : (
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                         type="button"
                         onClick={() => openEditModal(app)}
                         className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
-                        title="Edit Personal Link"
+                        title={t('dashboard.tier3_edit_link')}
                       >
                         <span className="material-symbols-outlined text-sm">edit</span>
                       </button>
@@ -375,20 +375,20 @@ export default function DashboardPage() {
                       {app.title || app.name}
                     </h3>
                     <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
-                      {app.description || 'Personal bookmark'}
+                      {app.description || t('dashboard.tier3_personal_bookmark')}
                     </p>
                   </div>
 
                   <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
                     <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
-                      Custom Link
+                      {t('dashboard.tier3_custom_link')}
                     </span>
                     {isInternalRoute ? (
                       <Link
                         href={targetUrl}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                       >
-                        <span>Open Link</span>
+                        <span>{t('dashboard.tier3_open_link')}</span>
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                       </Link>
                     ) : (
@@ -398,7 +398,7 @@ export default function DashboardPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                       >
-                        <span>Open Link</span>
+                        <span>{t('dashboard.tier3_open_link')}</span>
                         <span className="material-symbols-outlined text-sm">open_in_new</span>
                       </a>
                     )}

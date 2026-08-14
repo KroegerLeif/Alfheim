@@ -69,11 +69,11 @@ export function EditAppModal({
     const trimmedUrl = url.trim();
 
     if (!trimmedTitle) {
-      setErrorMessage('Title is required');
+      setErrorMessage(t('catalog.title_required_error') || 'Title is required');
       return;
     }
     if (!trimmedUrl) {
-      setErrorMessage('URL is required');
+      setErrorMessage(t('catalog.url_required_error') || 'URL is required');
       return;
     }
 
@@ -95,7 +95,7 @@ export function EditAppModal({
           onClose();
         },
         onError: (err) => {
-          setErrorMessage(err.message || 'Failed to update user link');
+          setErrorMessage(err.message || t('catalog.update_failed_error') || 'Failed to update user link');
         },
       }
     );
@@ -105,12 +105,12 @@ export function EditAppModal({
     deleteLinkMutation.mutate(app.id, {
       onSuccess: () => {
         if (onSuccess) {
-          onSuccess(`Deleted link "${app.title || app.name}"`);
+          onSuccess(t('dashboard.toast_bookmark_deleted', { name: app.title || app.name || '' }));
         }
         onClose();
       },
       onError: (err) => {
-        setErrorMessage(err.message || 'Failed to delete user link');
+        setErrorMessage(err.message || t('catalog.delete_failed_error') || 'Failed to delete user link');
       },
     });
   };
@@ -123,13 +123,14 @@ export function EditAppModal({
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">edit_square</span>
             <h2 className="text-base font-bold text-[var(--text-main)]">
-              Edit Personal Link
+              {t('catalog.edit_user_link_title')}
             </h2>
           </div>
           <button
             onClick={onClose}
             type="button"
             className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+            aria-label={t('common.close')}
           >
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
@@ -145,13 +146,13 @@ export function EditAppModal({
           {/* Title */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Link Title *
+              {t('catalog.link_title_req')}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. My Google Drive"
+              placeholder={t('catalog.link_title_placeholder')}
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
               required
             />
@@ -160,14 +161,14 @@ export function EditAppModal({
           {/* URL */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Target URL *
+              {t('catalog.target_url_req')}
             </label>
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://drive.google.com"
-              className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+              placeholder={t('catalog.target_url_placeholder')}
+              className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
               required
             />
           </div>
@@ -175,12 +176,12 @@ export function EditAppModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Description
+              {t('catalog.description')}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description..."
+              placeholder={t('catalog.description_placeholder')}
               rows={2}
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
             />
@@ -189,7 +190,7 @@ export function EditAppModal({
           {/* Icon Picker */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              Icon
+              {t('catalog.select_icon')}
             </label>
             <div className="grid grid-cols-6 gap-2 max-h-28 overflow-y-auto p-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
               {PRESET_ICONS.map((ic) => (
@@ -197,7 +198,7 @@ export function EditAppModal({
                   key={ic.name}
                   type="button"
                   onClick={() => setSelectedIcon(ic.name)}
-                  title={ic.label}
+                  title={t(`catalog.icons.${ic.name}`) || ic.label}
                   className={`p-2 rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer ${
                     selectedIcon === ic.name
                       ? 'bg-[var(--primary-main)]/20 border border-[var(--primary-main)] text-[var(--primary-main)]'
@@ -214,21 +215,21 @@ export function EditAppModal({
           <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
             {confirmDelete ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-rose-400 font-mono">Delete link?</span>
+                <span className="text-xs text-rose-400 font-mono">{t('catalog.confirm_delete_link')}</span>
                 <button
                   type="button"
                   onClick={handleDelete}
                   disabled={deleteLinkMutation.isPending}
                   className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer"
                 >
-                  Confirm
+                  {t('common.confirm')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
                   className="px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             ) : (
@@ -238,7 +239,7 @@ export function EditAppModal({
                 className="px-3 py-1.5 rounded-lg bg-rose-950/40 border border-rose-800/40 text-rose-400 font-mono text-xs hover:bg-rose-900/40 cursor-pointer flex items-center gap-1"
               >
                 <span className="material-symbols-outlined text-sm">delete</span>
-                <span>Delete Link</span>
+                <span>{t('catalog.delete_link')}</span>
               </button>
             )}
 

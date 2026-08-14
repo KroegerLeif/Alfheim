@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTheme, useTranslation } from '@alfheim/shared';
+import { useTheme, useTranslation, THEME_TOKENS, ThemeVariant } from '@alfheim/shared';
 import { useDashboardApps, useUpdateUserPreferences } from '@/features/apps';
 
 interface ColorPickerProps {
@@ -12,6 +12,7 @@ interface ColorPickerProps {
 }
 
 function ColorPicker({ label, value, onChange, swatches }: ColorPickerProps) {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,7 +36,7 @@ function ColorPicker({ label, value, onChange, swatches }: ColorPickerProps) {
             onClick={() => inputRef.current?.click()}
             className="w-10 h-10 border border-[var(--border-subtle)] rounded-xl cursor-pointer hover:scale-105 hover:shadow-md transition-all shrink-0 relative overflow-hidden"
             style={{ backgroundColor: value }}
-            title="Click to open color picker palette"
+            title={t('common.select_icon')}
           >
             <input
               ref={inputRef}
@@ -68,7 +69,6 @@ function ColorPicker({ label, value, onChange, swatches }: ColorPickerProps) {
                   : 'border-[var(--border-subtle)] hover:border-[var(--text-muted)]'
               }`}
               style={{ backgroundColor: swatch }}
-              title={swatch}
             />
           ))}
         </div>
@@ -80,20 +80,24 @@ function ColorPicker({ label, value, onChange, swatches }: ColorPickerProps) {
 interface CustomPreset {
   id: string;
   name: string;
-  colors: any;
+  colors: {
+    dark: { primary: string; canvas: string; accent: string };
+    light: { primary: string; canvas: string; accent: string };
+  };
 }
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { variant, setVariant, resolvedMode, customColors, setCustomColors } = useTheme();
+  const { variant, setVariant, customColors, setCustomColors, resolvedMode } = useTheme();
   const { data: dashboard } = useDashboardApps();
   const updatePrefsMutation = useUpdateUserPreferences();
 
+  const [hiddenAppIds, setHiddenAppIds] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
   const [presets, setPresets] = useState<CustomPreset[]>([]);
   const [newPresetName, setNewPresetName] = useState('');
   const [presetError, setPresetError] = useState<string | null>(null);
-  const [hiddenAppIds, setHiddenAppIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (dashboard?.preferences?.hidden_app_ids) {
@@ -112,7 +116,7 @@ export default function SettingsPage() {
     setHiddenAppIds(updated);
     updatePrefsMutation.mutate(updated, {
       onSuccess: () => {
-        setStatusMessage('Core app visibility preferences updated');
+        setStatusMessage(t('settings.visibility_updated'));
         setTimeout(() => setStatusMessage(null), 3000);
       },
     });
@@ -157,7 +161,7 @@ export default function SettingsPage() {
 
   const handleSavePreset = () => {
     if (!newPresetName.trim()) {
-      setPresetError('Preset name cannot be empty');
+      setPresetError(t('settings.preset_name_required'));
       return;
     }
     if (!customColors) return;
@@ -198,6 +202,8 @@ export default function SettingsPage() {
     setCustomColors(updatedColors);
   };
 
+  const availableVariants = (Object.keys(THEME_TOKENS) as ThemeVariant[]);
+
   return (
     <>
       {/* Settings Header */}
@@ -234,11 +240,11 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-base font-bold text-[var(--text-main)] flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">visibility</span>
-            <span>Core Applications Visibility (Tier 1)</span>
+            <span>{t('settings.visibility_title')}</span>
           </h2>
         </div>
         <p className="text-xs text-[var(--text-muted)] mb-5">
-          Toggle which pre-built native core applications are visible on your personal dashboard grid.
+          {t('settings.visibility_desc')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -263,7 +269,7 @@ export default function SettingsPage() {
                   <div>
                     <div className="text-xs font-bold text-[var(--text-main)]">{app.title || app.name}</div>
                     <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                      {!isHidden ? 'Visible on Dashboard' : 'Hidden from Dashboard'}
+                      {!isHidden ? t('settings.visible_state') : t('settings.hidden_state')}
                     </div>
                   </div>
                 </div>
@@ -289,156 +295,62 @@ export default function SettingsPage() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {/* Nordic Dark Theme Card */}
-          <div
-            onClick={() => setVariant('nordic')}
-            className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-              variant === 'nordic'
-                ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
-                : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold font-mono text-[var(--text-main)]">Nordic Dark</span>
-                {variant === 'nordic' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
-                    {t('common.active')}
-                  </span>
-                )}
+          {availableVariants.map((v) => {
+            const tokens = THEME_TOKENS[v][resolvedMode];
+            const isSelected = variant === v;
+
+            return (
+              <div
+                key={v}
+                onClick={() => setVariant(v)}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
+                    : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-bold font-mono text-[var(--text-main)]">
+                      {t(`settings.${v}_title`)}
+                    </span>
+                    {isSelected && (
+                      <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
+                        {t('common.active')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] mb-4">
+                    {t(`settings.${v}_desc`)}
+                  </p>
+                </div>
+
+                <div 
+                  className="h-10 rounded-lg border border-[var(--border-subtle)] p-2 flex items-center gap-2"
+                  style={{ backgroundColor: tokens.surfaceCanvas }}
+                >
+                  <div 
+                    className="w-4 h-4 rounded-full shadow-xs" 
+                    style={{ backgroundColor: tokens.primaryMain }} 
+                    title={tokens.primaryMain}
+                  />
+                  <div 
+                    className="w-4 h-4 rounded-full shadow-xs" 
+                    style={{ backgroundColor: tokens.accentMint || tokens.accentCyan || tokens.primaryHover }} 
+                    title={tokens.accentMint || tokens.accentCyan}
+                  />
+                  <div 
+                    className="w-8 h-2 rounded opacity-50" 
+                    style={{ backgroundColor: tokens.surfaceElevated }} 
+                  />
+                  <div 
+                    className="w-6 h-2 rounded ml-auto opacity-75" 
+                    style={{ backgroundColor: tokens.primaryMain }} 
+                  />
+                </div>
               </div>
-              <p className="text-xs text-[var(--text-muted)] mb-4">
-                {t('settings.nordic_desc') || 'Deep Frost Slate canvas with radiant Mint and Cyan aurora accents.'}
-              </p>
-            </div>
-
-            <div className="h-10 rounded-lg bg-[#0f172a] border border-[var(--border-subtle)] p-2 flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#10b981]" title="Mint #10B981" />
-              <div className="w-4 h-4 rounded-full bg-[#06b6d4]" title="Cyan #06B6D4" />
-              <div className="w-8 h-2 rounded bg-[#334155]" />
-              <div className="w-6 h-2 rounded bg-[#10b981]/40 ml-auto" />
-            </div>
-          </div>
-
-          {/* Obsidian Flux Theme Card */}
-          <div
-            onClick={() => setVariant('obsidian')}
-            className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-              variant === 'obsidian'
-                ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
-                : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold font-mono text-[var(--text-main)]">Obsidian Flux</span>
-                {variant === 'obsidian' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
-                    {t('common.active')}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[var(--text-muted)] mb-4">
-                {t('settings.obsidian_desc')}
-              </p>
-            </div>
-
-            <div className="h-10 rounded-lg bg-[#0b1326] border border-[var(--border-subtle)] p-2 flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#3eb1ff]" />
-              <div className="w-12 h-2 rounded bg-[#182542]" />
-              <div className="w-8 h-2 rounded bg-[#3eb1ff]/30 ml-auto" />
-            </div>
-          </div>
-
-          {/* Kinetic Minimalist Theme Card */}
-          <div
-            onClick={() => setVariant('kinetic')}
-            className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-              variant === 'kinetic'
-                ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
-                : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold font-mono text-[var(--text-main)]">Kinetic Minimalist</span>
-                {variant === 'kinetic' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
-                    {t('common.active')}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[var(--text-muted)] mb-4">
-                {t('settings.kinetic_desc')}
-              </p>
-            </div>
-
-            <div className="h-10 rounded-lg bg-[#000000] border border-[var(--border-subtle)] p-2 flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#00f0ff]" />
-              <div className="w-12 h-2 rounded bg-[#141414]" />
-              <div className="w-8 h-2 rounded bg-[#00f0ff]/40 ml-auto" />
-            </div>
-          </div>
-
-          {/* Slate Balanced Theme Card */}
-          <div
-            onClick={() => setVariant('slate')}
-            className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-              variant === 'slate'
-                ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
-                : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold font-mono text-[var(--text-main)]">Slate Balanced</span>
-                {variant === 'slate' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
-                    {t('common.active')}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[var(--text-muted)] mb-4">
-                {t('settings.slate_desc')}
-              </p>
-            </div>
-
-            <div className="h-10 rounded-lg bg-[#0f172a] border border-[var(--border-subtle)] p-2 flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#818cf8]" />
-              <div className="w-12 h-2 rounded bg-[#334155]" />
-              <div className="w-8 h-2 rounded bg-[#818cf8]/40 ml-auto" />
-            </div>
-          </div>
-
-          {/* Custom Theme Card */}
-          <div
-            onClick={() => setVariant('custom')}
-            className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-              variant === 'custom'
-                ? 'bg-[var(--surface-card)] border-[var(--primary-main)] shadow-[0_0_20px_var(--accent-glow)]'
-                : 'bg-[var(--surface-canvas)] border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold font-mono text-[var(--text-main)]">Custom Theme</span>
-                {variant === 'custom' && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--primary-main)]/20 text-[var(--primary-main)] border border-[var(--primary-main)]/40 font-bold">
-                    {t('common.active')}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[var(--text-muted)] mb-4">
-                {t('settings.custom_desc')}
-              </p>
-            </div>
-
-            <div className="h-10 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] p-2 flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[var(--primary-main)]" />
-              <div className="w-12 h-2 rounded bg-[var(--surface-elevated)]" />
-              <div className="w-8 h-2 rounded bg-[var(--primary-main)]/40 ml-auto" />
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
@@ -448,22 +360,22 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-sm font-bold text-[var(--text-main)] font-mono flex items-center gap-2">
               <span className="material-symbols-outlined text-base text-[var(--primary-main)]">palette</span>
-              Custom Theme Builder ({resolvedMode} Mode)
+              {t('settings.custom_builder_title', { mode: resolvedMode })}
             </h3>
             <p className="text-xs text-[var(--text-muted)] mt-1">
-              Adjust the primary accent, background canvas, and glow/border highlights below. Colors are automatically saved and applied live.
+              {t('settings.custom_builder_desc')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pb-6">
             <ColorPicker
-              label="Primary Accent"
+              label={t('settings.primary_accent')}
               value={customColors[resolvedMode]?.primary || '#3eb1ff'}
               onChange={(val) => handleColorChange('primary', val)}
               swatches={['#ec4899', '#3eb1ff', '#00f0ff', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#f43f5e']}
             />
             <ColorPicker
-              label="Background Canvas"
+              label={t('settings.bg_canvas')}
               value={customColors[resolvedMode]?.canvas || (resolvedMode === 'dark' ? '#0b1326' : '#f4f6fb')}
               onChange={(val) => handleColorChange('canvas', val)}
               swatches={
@@ -473,7 +385,7 @@ export default function SettingsPage() {
               }
             />
             <ColorPicker
-              label="Accent Glow & Border"
+              label={t('settings.accent_glow_border')}
               value={customColors[resolvedMode]?.accent || '#3eb1ff'}
               onChange={(val) => handleColorChange('accent', val)}
               swatches={['#ec4899', '#3eb1ff', '#00f0ff', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#f43f5e']}
@@ -485,10 +397,10 @@ export default function SettingsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h4 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider font-mono">
-                  Saved Color Presets
+                  {t('settings.saved_presets')}
                 </h4>
                 <p className="text-[11px] text-[var(--text-muted)]">
-                  Save your active custom colors config as a reusable preset, or apply saved presets.
+                  {t('settings.saved_presets_desc')}
                 </p>
               </div>
               
@@ -500,14 +412,14 @@ export default function SettingsPage() {
                     setNewPresetName(e.target.value);
                     if (presetError) setPresetError(null);
                   }}
-                  placeholder="Preset Name (e.g. Neon Cyberpunk)"
+                  placeholder={t('settings.preset_placeholder')}
                   className="px-3 py-1.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-sans text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] transition-colors placeholder:text-[var(--text-faint)]"
                 />
                 <button
                   onClick={handleSavePreset}
                   className="px-3.5 py-1.5 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-main)] font-semibold text-xs hover:border-[var(--primary-main)] transition-all cursor-pointer whitespace-nowrap"
                 >
-                  Save Active
+                  {t('settings.save_active')}
                 </button>
               </div>
             </div>
@@ -518,7 +430,7 @@ export default function SettingsPage() {
 
             {presets.length === 0 ? (
               <p className="text-xs text-[var(--text-muted)] font-mono italic">
-                No saved custom presets yet.
+                {t('settings.no_presets')}
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -545,7 +457,7 @@ export default function SettingsPage() {
                         <button
                           onClick={(e) => handleDeletePreset(preset.id, e)}
                           className="text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer shrink-0"
-                          title="Delete Preset"
+                          title={t('settings.delete_preset')}
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>
                         </button>
@@ -570,27 +482,27 @@ export default function SettingsPage() {
       {/* Infrastructure Status Panel (Read Only) */}
       <div className="col-span-12 md:col-span-8 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <h2 className="text-base font-bold text-[var(--text-main)] mb-1">
-          Infrastructure Status
+          {t('settings.infra_status')}
         </h2>
         <p className="text-xs text-[var(--text-muted)] mb-5">
-          Read-only gateway routing mesh, service proxy rules, and security authentication indicators.
+          {t('settings.infra_desc')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Caddy Card */}
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex flex-col justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">Caddy Reverse Proxy Gateway</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.caddy_title')}</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                Dynamic edge routing and HTTPS TLS termination.
+                {t('settings.caddy_desc')}
               </div>
             </div>
             <div className="flex gap-1.5 mt-2">
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40">
-                ACTIVE
+                {t('settings.status_active')}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40">
-                PROTECTED
+                {t('settings.status_protected')}
               </span>
             </div>
           </div>
@@ -598,17 +510,17 @@ export default function SettingsPage() {
           {/* Nginx Card */}
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex flex-col justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">Nginx Gateway Proxy</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.nginx_proxy')}</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                Internal loopback routing proxy for port-mapping rules.
+                {t('settings.nginx_proxy_desc')}
               </div>
             </div>
             <div className="flex gap-1.5 mt-2">
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40">
-                ACTIVE
+                {t('settings.status_active')}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40">
-                PROTECTED
+                {t('settings.status_protected')}
               </span>
             </div>
           </div>
@@ -616,17 +528,17 @@ export default function SettingsPage() {
           {/* Keycloak Card */}
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex flex-col justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">Keycloak OAuth2 / OIDC</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.keycloak_sso')}</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                Central OpenID Connect single sign-on realm validate.
+                {t('settings.keycloak_sso_desc')}
               </div>
             </div>
             <div className="flex gap-1.5 mt-2">
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40">
-                ACTIVE
+                {t('settings.status_active')}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40">
-                PROTECTED
+                {t('settings.status_protected')}
               </span>
             </div>
           </div>

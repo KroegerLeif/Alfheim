@@ -101,9 +101,9 @@ export function AddAppModal({
               <span className="material-symbols-outlined text-xl">bookmark_add</span>
             </div>
             <div>
-              <h3 className="text-base font-bold text-[var(--text-main)]">Add Personal Link</h3>
+              <h3 className="text-base font-bold text-[var(--text-main)]">{t('catalog.add_user_link_title')}</h3>
               <p className="text-xs text-[var(--text-muted)] font-mono">
-                Create a custom bookmark visible exclusively to your account.
+                {t('catalog.add_user_link_desc')}
               </p>
             </div>
           </div>
@@ -129,13 +129,13 @@ export function AddAppModal({
           {/* Link Title Input */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              Link Title *
+              {t('catalog.link_title_req')}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. My Google Drive"
+              placeholder={t('catalog.link_title_placeholder')}
               required
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
@@ -144,13 +144,13 @@ export function AddAppModal({
           {/* Target URL Input */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              Target URL *
+              {t('catalog.target_url_req')}
             </label>
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://drive.google.com"
+              placeholder={t('catalog.target_url_placeholder')}
               required
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
@@ -159,12 +159,12 @@ export function AddAppModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              Description (Optional)
+              {t('catalog.description_opt')}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short note or bookmark summary..."
+              placeholder={t('catalog.description_placeholder')}
               rows={2}
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-main)] transition-colors"
             />
@@ -173,7 +173,7 @@ export function AddAppModal({
           {/* Icon Selection Grid */}
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
-              Select Icon
+              {t('catalog.select_icon')}
             </label>
             <div className="grid grid-cols-6 gap-2 p-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] max-h-36 overflow-y-auto">
               {PRESET_ICONS.map((item) => (
@@ -181,7 +181,7 @@ export function AddAppModal({
                   key={item.name}
                   type="button"
                   onClick={() => setSelectedIcon(item.name)}
-                  title={item.label}
+                  title={t(`catalog.icons.${item.name}`) || item.label}
                   className={`p-2.5 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
                     selectedIcon === item.name
                       ? 'bg-[var(--primary-main)] text-slate-950 shadow-[0_0_10px_var(--primary-main)] font-bold'
@@ -211,12 +211,12 @@ export function AddAppModal({
               {createLinkMutation.isPending ? (
                 <>
                   <span className="w-3 h-3 rounded-full border-2 border-slate-950 border-t-transparent animate-spin" />
-                  <span>Saving...</span>
+                  <span>{t('common.loading')}</span>
                 </>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold">check</span>
-                  <span>Save Bookmark</span>
+                  <span>{t('catalog.save_bookmark')}</span>
                 </>
               )}
             </button>
