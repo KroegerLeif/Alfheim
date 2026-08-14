@@ -9,7 +9,12 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./assets": {
+      "types": "./src/assets/index.ts",
+      "default": "./src/assets/index.ts"
+    },
+    "./assets/*": "./src/assets/*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

@@ -4,6 +4,7 @@ packages:
   - 'core/*'
   - 'core/*/frontend'
   - 'packages/*'
+  - 'websites/*'
 allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
