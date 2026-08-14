@@ -18,13 +18,25 @@ export const AlfiSection: React.FC = () => {
   const statesList: { key: AlfiState; label: string }[] = [
     { key: 'idle', label: 'Idle' },
     { key: 'thinking', label: 'Thinking' },
-    { key: 'loading', label: 'Syncing' },
-    { key: 'curious', label: 'Curious' },
+    { key: 'speaking', label: 'Speaking' },
+    { key: 'listening', label: 'Listening' },
+    { key: 'eating', label: 'Eating' },
+    { key: 'fixing', label: 'Fixing' },
+    { key: 'chasing', label: 'Chasing' },
     { key: 'sleeping', label: 'Standby' },
   ];
 
   const cycleState = () => {
-    const order: AlfiState[] = ['idle', 'thinking', 'loading', 'curious', 'sleeping'];
+    const order: AlfiState[] = [
+      'idle',
+      'thinking',
+      'speaking',
+      'listening',
+      'eating',
+      'fixing',
+      'chasing',
+      'sleeping',
+    ];
     const nextIdx = (order.indexOf(mascotState) + 1) % order.length;
     setMascotState(order[nextIdx]);
   };
