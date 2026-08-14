@@ -111,7 +111,7 @@ export function MemberGrid({
           ))
         ) : (
           <div className="p-8 text-center text-xs text-[var(--text-muted)] font-mono bg-[var(--surface-elevated)] border border-dashed border-[var(--border-subtle)] rounded-xl">
-            No members enrolled in this household.
+            {t('household.no_members')}
           </div>
         )}
       </div>

@@ -167,6 +167,7 @@
     "confirm_remove": "Are you sure you want to remove this member?",
     "confirm_delete_contact": "Are you sure you want to delete this contact?",
     "confirm_delete_category": "Are you sure you want to delete this category? All contacts in this category will be uncategorized.",
+    "no_members": "No members enrolled in this household.",
     "description": "Description",
     "links": "Links (one URL per line)",
     "category": "Category",

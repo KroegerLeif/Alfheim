@@ -167,6 +167,7 @@
     "confirm_remove": "Sind Sie sicher, dass Sie dieses Mitglied entfernen möchten?",
     "confirm_delete_contact": "Sind Sie sicher, dass Sie diesen Kontakt löschen möchten?",
     "confirm_delete_category": "Sind Sie sicher, dass Sie diese Kategorie löschen möchten? Alle Kontakte in dieser Kategorie werden nicht kategorisiert.",
+    "no_members": "Keine Mitglieder in diesem Haushalt registriert.",
     "description": "Beschreibung",
     "links": "Links (eine URL pro Zeile)",
     "category": "Kategorie",

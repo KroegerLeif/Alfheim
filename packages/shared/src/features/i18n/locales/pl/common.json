@@ -167,6 +167,7 @@
     "confirm_remove": "Czy na pewno chcesz usunąć tego członka?",
     "confirm_delete_contact": "Czy na pewno chcesz usunąć ten kontakt?",
     "confirm_delete_category": "Czy na pewno chcesz usunąć tę kategorię? Wszystkie kontakty w tej kategorii stracą przypisanie.",
+    "no_members": "Brak zarejestrowanych członków w tym gospodarstwie.",
     "description": "Opis",
     "links": "Linki (jeden adres URL w linii)",
     "category": "Kategoria",
