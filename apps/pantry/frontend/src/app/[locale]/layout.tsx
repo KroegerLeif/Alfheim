@@ -5,10 +5,10 @@ import { getMessages } from "next-intl/server";
 import {
   LanguageProvider,
   ThemeProvider,
-  AppHeader,
 } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
+import { ClientHeader } from "@/components/shared/ClientHeader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -53,14 +53,8 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                 <div className="flex w-full min-h-screen">
                   <Sidebar />
                   <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-                    {/* Top Navigation & Controls Header Bar using Shared AppHeader */}
-                    <AppHeader
-                      appName="pantry"
-                      brandTitle="ALFHEIM // PANTRY"
-                      brandSubtitle="Inventory & Ledger"
-                      showBackToDashboard={true}
-                      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
-                    />
+                    {/* Top Navigation & Controls Header Bar using Shared ClientHeader */}
+                    <ClientHeader />
 
                     <main className="flex-1 p-6">
                       {children}
