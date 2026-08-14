@@ -36,12 +36,12 @@ export function InventoryFilterBar({
           placeholder={t("pantry.searchPlaceholder")}
           className="w-full pl-9 pr-4 py-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-11 rounded" />
       </div>
-      <select value={selectedCategoryId} onChange={(e) => onCategoryChange(e.target.value)}
+      <select aria-label={t("pantry.filterCategory")} value={selectedCategoryId} onChange={(e) => onCategoryChange(e.target.value)}
         className="py-2.5 px-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-xs uppercase h-11 min-w-[180px] cursor-pointer rounded">
         <option value="">{t("pantry.filterCategory")}</option>
         {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>)}
       </select>
-      <select value={selectedLocationId} onChange={(e) => onLocationChange(e.target.value)}
+      <select aria-label={t("pantry.filterLocation")} value={selectedLocationId} onChange={(e) => onLocationChange(e.target.value)}
         className="py-2.5 px-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-xs uppercase h-11 min-w-[180px] cursor-pointer rounded">
         <option value="">{t("pantry.filterLocation")}</option>
         {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name.toUpperCase()}</option>)}

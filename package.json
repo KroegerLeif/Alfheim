@@ -1,4 +1,10 @@
 {
   "name": "alfheim",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@testing-library/user-event": "^14.6.4",
+    "happy-dom": "^20.11.2",
+    "msw": "^2.15.0",
+    "vitest-axe": "^0.1.0"
+  }
 }

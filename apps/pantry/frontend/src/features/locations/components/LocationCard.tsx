@@ -21,7 +21,7 @@ export function LocationCard({ location, expiredCount, knappCount }: LocationCar
     <div className="border border-[var(--border-subtle)] bg-[var(--surface-card)] hover:border-[var(--border-accent)] p-6 flex flex-col justify-between gap-6 transition-all rounded-lg shadow-sm">
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-4">
-          <h3 className="font-heading text-2xl font-bold uppercase tracking-wide leading-none truncate max-w-[200px] text-[var(--text-main)]">{location.name}</h3>
+          <h2 className="font-heading text-2xl font-bold uppercase tracking-wide leading-none truncate max-w-[200px] text-[var(--text-main)]">{location.name}</h2>
           <MapPin className="h-4 w-4 text-[var(--text-muted)] shrink-0 mt-0.5" />
         </div>
         {location.is_system && (

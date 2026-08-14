@@ -1,125 +1,95 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent, act } from '@testing-library/react'
+import { axe } from 'vitest-axe'
+import { http, HttpResponse } from 'msw'
+import { server } from '@/mocks/server'
+import { renderWithProviders } from '@/tests/utils'
 import { ProductCatalogView } from '../ProductCatalogView'
-import { useProducts, useSearchProducts, useCreateProduct } from '../../services/productService'
-import { useCategories } from '@/features/categories/services/categoryService'
-import { createQueryWrapper } from '@/tests/utils'
-import { vi, Mock } from 'vitest'
 
-vi.mock('../../services/productService', () => ({
-  useProducts: vi.fn(),
-  useSearchProducts: vi.fn(),
-  useCreateProduct: vi.fn(),
-}))
+describe('ProductCatalogView Feature Component', () => {
+  it('renders products and passes accessibility checks', async () => {
+    const { container } = renderWithProviders(<ProductCatalogView />)
 
-vi.mock('@/features/categories/services/categoryService', () => ({
-  useCategories: vi.fn(),
-}))
-
-describe('ProductCatalogView Component', () => {
-  const mockProducts = [
-    { id: '1', name: 'Apples', brand: 'Farmer', barcode: '111', base_unit: 'piece', minimum_stock: 5, category_id: 'cat1', is_global: true },
-    { id: '2', name: 'Milk', brand: 'Dairy', barcode: '222', base_unit: 'ml', minimum_stock: 1000, category_id: 'cat2', is_global: false },
-  ]
-
-  const mockCategories = [
-    { id: 'cat1', name: 'Fruits', description: 'Fresh Fruits', is_global: true },
-    { id: 'cat2', name: 'Dairy Products', description: 'Dairy', is_global: false },
-  ]
-
-  const mockMutate = vi.fn()
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    // Default mock implementations
-    ;(useProducts as Mock).mockReturnValue({ data: mockProducts, isLoading: false })
-    ;(useSearchProducts as Mock).mockReturnValue({ data: [], isLoading: false })
-    ;(useCategories as Mock).mockReturnValue({ data: mockCategories, isLoading: false })
-    ;(useCreateProduct as Mock).mockReturnValue({
-      mutate: mockMutate,
-      isPending: false,
+    await waitFor(() => {
+      expect(screen.getByText('Whole Milk')).toBeInTheDocument()
     })
+
+    expect(screen.getByText('Basmati Rice')).toBeInTheDocument()
+    expect(screen.getByText('Dairy')).toBeInTheDocument()
+    expect(screen.getByText('Grains')).toBeInTheDocument()
+
+    const results = await axe(container)
+    expect(results).toHaveNoViolations()
   })
 
-  it('renders the title and subtitles', () => {
-    render(<ProductCatalogView />, { wrapper: createQueryWrapper() })
-    expect(screen.getByText('title')).toBeInTheDocument()
-    expect(screen.getByText('subtitle')).toBeInTheDocument()
-  })
+  it('filters product list using search input', async () => {
+    renderWithProviders(<ProductCatalogView />)
 
-  it('renders list of product blueprints with categories and details', () => {
-    render(<ProductCatalogView />, { wrapper: createQueryWrapper() })
-
-    expect(screen.getByText('Apples')).toBeInTheDocument()
-    expect(screen.getByText('Fruits')).toBeInTheDocument()
-    expect(screen.getByText('Milk')).toBeInTheDocument()
-    expect(screen.getByText('Dairy Products')).toBeInTheDocument()
-  })
-
-  it('filters product list when search input is typed in', async () => {
-    ;(useSearchProducts as Mock).mockReturnValue({ data: [mockProducts[0]], isLoading: false })
-
-    render(<ProductCatalogView />, { wrapper: createQueryWrapper() })
+    await waitFor(() => {
+      expect(screen.getByText('Whole Milk')).toBeInTheDocument()
+    })
 
     const searchInput = screen.getByPlaceholderText('searchPlaceholder')
-    fireEvent.change(searchInput, { target: { value: 'Apples' } })
-
-    // Wait for debounce timeout to resolve hook call
-    await waitFor(() => {
-      expect(useSearchProducts).toHaveBeenCalledWith('Apples')
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'Milk' } })
+      await new Promise((resolve) => setTimeout(resolve, 350))
     })
 
-    expect(screen.getByText('Apples')).toBeInTheDocument()
-    expect(screen.queryByText('Milk')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Whole Milk')).toBeInTheDocument()
+      expect(screen.queryByText('Basmati Rice')).not.toBeInTheDocument()
+    })
   })
 
-  it('validates and submits the Create Product form successfully', async () => {
-    render(<ProductCatalogView />, { wrapper: createQueryWrapper() })
+  it('creates a new product via creation form', async () => {
+    const { user } = renderWithProviders(<ProductCatalogView />)
 
-    // Fill form
-    fireEvent.change(screen.getByLabelText('name *'), { target: { value: 'Potatoes' } })
-    fireEvent.change(screen.getByLabelText('brand'), { target: { value: 'Local Farms' } })
-    fireEvent.change(screen.getByLabelText('barcode'), { target: { value: '33333' } })
-    fireEvent.change(screen.getByLabelText('baseUnit'), { target: { value: 'g' } })
-    fireEvent.change(screen.getByLabelText('minStockLabel'), { target: { value: '500' } })
-    fireEvent.change(screen.getByLabelText('category'), { target: { value: 'cat1' } })
+    await waitFor(() => {
+      expect(screen.getByText('Whole Milk')).toBeInTheDocument()
+    })
 
-    // Submit form
-    fireEvent.submit(screen.getByRole('button', { name: 'submit' }))
+    await user.type(screen.getByLabelText('name *'), 'Oat Milk')
+    await user.type(screen.getByLabelText('brand'), 'Oatly')
+    await user.type(screen.getByLabelText('barcode'), '555555')
+    await user.selectOptions(screen.getByLabelText('category'), 'cat-1')
 
-    expect(mockMutate).toHaveBeenCalledWith(
-      {
-        name: 'Potatoes',
-        brand: 'Local Farms',
-        barcode: '33333',
-        base_unit: 'g',
-        minimum_stock: 500,
-        category_id: 'cat1',
-        nutrition: null,
-      },
-      expect.any(Object)
-    )
+    const submitBtn = screen.getByRole('button', { name: 'submit' })
+    await user.click(submitBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('Oat Milk')).toBeInTheDocument()
+    })
   })
 
-  it('allows barcode to be optional (null) on submission', () => {
-    render(<ProductCatalogView />, { wrapper: createQueryWrapper() })
+  it('renders empty list state when search yields no results', async () => {
+    renderWithProviders(<ProductCatalogView />)
 
-    // Submit product without barcode
-    fireEvent.change(screen.getByLabelText('name *'), { target: { value: 'Onions' } })
-    fireEvent.submit(screen.getByRole('button', { name: 'submit' }))
+    await waitFor(() => {
+      expect(screen.getByText('Whole Milk')).toBeInTheDocument()
+    })
 
-    expect(mockMutate).toHaveBeenCalledWith(
-      {
-        name: 'Onions',
-        brand: null,
-        barcode: null,
-        base_unit: 'piece',
-        minimum_stock: 0,
-        category_id: null,
-        nutrition: null,
-      },
-      expect.any(Object)
+    const searchInput = screen.getByPlaceholderText('searchPlaceholder')
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'UnknownProduct' } })
+      await new Promise((resolve) => setTimeout(resolve, 350))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('noProducts')).toBeInTheDocument()
+    })
+  })
+
+  it('handles backend network error gracefully', async () => {
+    server.use(
+      http.get('*/api/v1/products', () => {
+        return new HttpResponse(null, { status: 500 })
+      })
     )
+
+    renderWithProviders(<ProductCatalogView />)
+
+    await waitFor(() => {
+      expect(screen.getByText('noProducts')).toBeInTheDocument()
+    })
   })
 })
