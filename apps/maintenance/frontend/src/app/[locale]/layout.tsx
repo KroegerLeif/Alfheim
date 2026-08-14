@@ -54,7 +54,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       <body className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
-            <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
+            <ThemeProvider defaultMode="dark" defaultVariant="nordic">
               <Providers>
                 <div className="flex w-full min-h-screen">
                   <Sidebar />
