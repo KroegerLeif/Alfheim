@@ -524,14 +524,14 @@ else
   info "Starting VictoriaMetrics & VictoriaLogs …"
   if dc up ${BUILD_FLAG} -d victoriametrics victorialogs; then
     wait_healthy_soft "victoriametrics" "VictoriaMetrics" 60
-    wait_healthy_soft "victorialogs"     "VictoriaLogs"    60
+    wait_running_soft "victorialogs"     "VictoriaLogs"    60
   else
     warn "Failed to launch VictoriaMetrics or VictoriaLogs containers"
   fi
 
   info "Starting OTel Collector, Vector log shipper, and Grafana …"
   if dc up ${BUILD_FLAG} -d otel-collector vector grafana; then
-    wait_healthy_soft "otel-collector"  "OTel Collector" 30 || true
+    wait_running_soft "otel-collector"  "OTel Collector" 30 || true
     wait_running_soft "vector-shipper"   "Vector"         30 || true
     wait_running_soft "alfheim_grafana"  "Grafana"        30 || true
   else

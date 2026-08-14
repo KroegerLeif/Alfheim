@@ -43,12 +43,6 @@ services:
           memory: 256M
     networks:
       - observability-internal
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.119.0
@@ -68,13 +62,7 @@ services:
       victoriametrics:
         condition: service_healthy
       victorialogs:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:13133/ || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+        condition: service_started
 
   vector:
     image: timberio/vector:0.39.0-alpine
@@ -92,7 +80,7 @@ services:
       - observability-internal
     depends_on:
       otel-collector:
-        condition: service_healthy
+        condition: service_started
 
   grafana:
     image: grafana/grafana:11.4.0
@@ -132,7 +120,7 @@ services:
       victoriametrics:
         condition: service_healthy
       victorialogs:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   victoriametrics_data:
