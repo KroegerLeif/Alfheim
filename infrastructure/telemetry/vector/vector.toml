@@ -1,8 +1,8 @@
-# apps/logging-stack/vector.toml
+# infrastructure/telemetry/vector/vector.toml
+# Log collector and parser for Alfheim Docker containers
 
 [sources.docker_socket]
 type = "docker_logs"
-# Exclude Vector itself to prevent loops and noise
 exclude_containers = ["vector-shipper"]
 
 [transforms.process_and_parse_logs]
@@ -10,10 +10,10 @@ type = "remap"
 inputs = ["docker_socket"]
 source = '''
 # 1. Parse JSON logs from applications if possible
-# (Pantry/Shopping python apps log in structured JSON stdout formats)
+# (Pantry, Shopping, Chores, Maintenance, Dashboard log in structured JSON)
 msg_str = string!(.message)
 if parsed, err = parse_json(msg_str); err == null {
-  # Merge parsed attributes into the root event structure
+  # Merge parsed attributes into root structure
   . = merge(., parsed)
   .parsed_as_json = true
 } else {
@@ -32,31 +32,30 @@ if .level != null {
   .severity = "info"
 }
 
-# Preserve standard attributes in structured format
+# Preserve standard container attributes
 .container_metadata = {
   "id": .container_id,
   "image": .image,
   "created_at": .container_created_at
 }
 
-# Clean up raw or temporal properties to optimize storage
+# Clean up raw/redundant properties
 del(.container_id)
 del(.container_created_at)
 del(.image)
 '''
 
-[sinks.signoz_otel_sink]
+[sinks.otel_collector_logs]
 type = "opentelemetry"
 inputs = ["process_and_parse_logs"]
 
-[sinks.signoz_otel_sink.protocol]
+[sinks.otel_collector_logs.protocol]
 type = "http"
-# Forward specifically to the OTel Collector HTTP port for logs
-uri = "http://signoz-otel-collector:4318/v1/logs"
+uri = "http://otel-collector:4318/v1/logs"
 
-[sinks.signoz_otel_sink.encoding]
+[sinks.otel_collector_logs.encoding]
 codec = "otlp"
 
-[sinks.signoz_otel_sink.batch]
+[sinks.otel_collector_logs.batch]
 max_events = 500
 timeout_secs = 1

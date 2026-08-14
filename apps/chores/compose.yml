@@ -29,7 +29,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@chores-db:5432/chores
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=chores-backend
     healthcheck:
