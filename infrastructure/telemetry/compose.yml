@@ -6,6 +6,8 @@ services:
     image: victoriametrics/victoria-metrics:latest
     container_name: victoriametrics
     restart: unless-stopped
+    ports:
+      - "8428:8428"
     command:
       - "-retentionPeriod=14d"
       - "-storageDataPath=/victoria-metrics-data"
@@ -30,6 +32,8 @@ services:
     image: victoriametrics/victoria-logs:latest
     container_name: victorialogs
     restart: unless-stopped
+    ports:
+      - "9428:9428"
     command:
       - "-retentionPeriod=7d"
       - "-storageDataPath=/victoria-logs-data"
@@ -83,7 +87,7 @@ services:
         condition: service_started
 
   grafana:
-    image: grafana/grafana:11.4.0
+    image: grafana/grafana:latest
     container_name: alfheim_grafana
     restart: unless-stopped
     environment:
