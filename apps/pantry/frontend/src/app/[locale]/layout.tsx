@@ -5,15 +5,10 @@ import { getMessages } from "next-intl/server";
 import {
   LanguageProvider,
   ThemeProvider,
-  BackToDashboard,
-  LanguageSwitcher,
-  ThemeToggle,
-  HouseholdSwitcher,
+  AppHeader,
 } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
-import { HeaderAuthControls } from "@/components/shared/HeaderAuthControls";
-
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,21 +55,18 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       <body className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
-            <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
+            <ThemeProvider defaultMode="dark" defaultVariant="nordic">
               <Providers>
                 <div className="flex w-full min-h-screen">
                   <Sidebar />
                   <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-                    {/* Top Navigation & Controls Header Bar */}
-                    <header className="h-16 border-b border-[var(--border-subtle)] bg-[var(--surface-card)] px-6 flex items-center justify-between shrink-0 select-none z-10">
-                      <BackToDashboard href={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"} />
-                      <div className="flex items-center gap-3">
-                        <HouseholdSwitcher />
-                        <LanguageSwitcher variant="dropdown" />
-                        <ThemeToggle showVariantToggle={true} />
-                        <HeaderAuthControls />
-                      </div>
-                    </header>
+                    {/* Top Navigation & Controls Header Bar using Shared AppHeader */}
+                    <AppHeader
+                      brandTitle="Pantry"
+                      brandSubtitle="Inventory & Ledger"
+                      showBackToDashboard={true}
+                      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
+                    />
 
                     <main className="flex-1 p-6">
                       {children}

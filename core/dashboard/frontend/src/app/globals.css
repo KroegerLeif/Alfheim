@@ -1,45 +1,9 @@
 @import "tailwindcss";
+@import "@alfheim/shared/styles/theme.css";
 
 @theme {
-  --color-surface-canvas: var(--surface-canvas);
-  --color-surface-card: var(--surface-card);
-  --color-surface-elevated: var(--surface-elevated);
-  --color-primary-main: var(--primary-main);
-  --color-primary-hover: var(--primary-hover);
-  --color-border-subtle: var(--border-subtle);
-  --color-border-accent: var(--border-accent);
-  --color-text-main: var(--text-main);
-  --color-text-muted: var(--text-muted);
-
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
-}
-
-:root,
-[data-theme="obsidian"] {
-  --surface-canvas: #0b1326;
-  --surface-card: #111b33;
-  --surface-elevated: #182542;
-  --primary-main: #3eb1ff;
-  --primary-hover: #60beff;
-  --border-subtle: #222222;
-  --border-accent: rgba(62, 177, 255, 0.3);
-  --text-main: #f0f6fc;
-  --text-muted: #8b949e;
-  --accent-glow: rgba(62, 177, 255, 0.15);
-}
-
-[data-theme="kinetic"] {
-  --surface-canvas: #060b17;
-  --surface-card: #0c162d;
-  --surface-elevated: #142244;
-  --primary-main: #00f0ff;
-  --primary-hover: #38f4ff;
-  --border-subtle: #1e293b;
-  --border-accent: rgba(0, 240, 255, 0.5);
-  --text-main: #ffffff;
-  --text-muted: #94a3b8;
-  --accent-glow: rgba(0, 240, 255, 0.25);
 }
 
 body {
@@ -49,7 +13,7 @@ body {
   overflow-x: hidden;
 }
 
-/* 12-column CSS Grid Utilities */
+/* 12-column Grid Utilities */
 .stitch-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));

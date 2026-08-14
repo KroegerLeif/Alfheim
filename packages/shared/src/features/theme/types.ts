@@ -1,4 +1,4 @@
-export type ThemeVariant = 'obsidian' | 'kinetic' | 'slate' | 'custom';
+export type ThemeVariant = 'nordic' | 'obsidian' | 'kinetic' | 'slate' | 'custom';
 export type ThemeMode = 'dark' | 'light' | 'system';
 export type ResolvedMode = 'dark' | 'light';
 
@@ -6,6 +6,9 @@ export interface CustomModeColors {
   primary: string;
   canvas: string;
   accent: string;
+  mint?: string;
+  cyan?: string;
+  gold?: string;
 }
 
 export interface CustomColorsConfig {
@@ -19,6 +22,9 @@ export interface ThemeTokens {
   surfaceElevated: string;
   primaryMain: string;
   primaryHover: string;
+  accentMint: string;
+  accentCyan: string;
+  accentGold: string;
   borderSubtle: string;
   borderAccent: string;
   textMain: string;
@@ -45,4 +51,3 @@ export interface ThemeContextType {
   customColors: CustomColorsConfig;
   setCustomColors: (colors: CustomColorsConfig) => void;
 }
-

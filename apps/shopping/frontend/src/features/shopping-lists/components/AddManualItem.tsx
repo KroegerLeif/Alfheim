@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, ChevronUp, ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
-import { IconPicker, Specular } from "@alfheim/shared";
+import { IconPicker } from "@alfheim/shared";
 import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
 import { cn } from "@/lib/utils";
 
@@ -64,26 +64,22 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   const isInvalid = !name.trim() || addItem.isPending;
 
   return (
-    <div className="glass-card rounded-2xl p-5 relative shrink-0 select-none">
-      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none z-0">
-        <Specular opacityClassName="via-white/20 dark:via-white/10" />
-      </div>
-
+    <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 relative shrink-0 select-none">
       <div className="relative z-10 flex flex-col gap-3">
-        <h3 className="font-mono text-[9px] font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400 leading-none">
+        <h3 className="font-mono text-[9px] font-bold uppercase tracking-widest text-[var(--primary-main)] leading-none">
           {t("title")}
         </h3>
 
         {/* Text Input & Icon Picker Row */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-3 h-11 pl-4 pr-1.5 rounded-xl glass-inset min-w-0">
-            <Search className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+          <div className="flex-1 flex items-center gap-3 h-11 pl-4 pr-1.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] min-w-0">
+            <Search className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !isInvalid && handleSubmit()}
               placeholder={t("namePlaceholder")}
-              className="flex-1 bg-transparent border-none outline-none font-heading text-sm font-semibold tracking-wide text-foreground placeholder:text-muted-foreground/35 min-w-0"
+              className="flex-1 bg-transparent border-none outline-none font-heading text-sm font-semibold tracking-wide text-[var(--text-main)] placeholder:[var(--text-muted)] min-w-0"
               disabled={addItem.isPending}
             />
             <IconPicker
@@ -95,12 +91,12 @@ export function AddManualItem({ listId }: AddManualItemProps) {
 
         {/* Stepper + Unit Selector + Submit Row */}
         <div className="flex gap-2">
-          <div className="flex items-center h-10 rounded-lg glass-inset overflow-hidden shrink-0">
+          <div className="flex items-center h-10 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] overflow-hidden shrink-0">
             <button
               onClick={handleDecrement}
               disabled={addItem.isPending}
               aria-label={t("stepperDec")}
-              className="w-9 h-full flex items-center justify-center cursor-pointer text-muted-foreground/50 hover:text-blue-500 hover:bg-white/2 transition-colors disabled:opacity-40"
+              className="w-9 h-full flex items-center justify-center cursor-pointer text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors disabled:opacity-40"
             >
               <ChevronDown className="h-4 w-4" strokeWidth={2.5} />
             </button>
@@ -108,14 +104,14 @@ export function AddManualItem({ listId }: AddManualItemProps) {
               type="text"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
-              className="w-10 h-full bg-transparent border-none outline-none text-center font-mono text-sm font-bold text-foreground"
+              className="w-10 h-full bg-transparent border-none outline-none text-center font-mono text-sm font-bold text-[var(--text-main)]"
               disabled={addItem.isPending}
             />
             <button
               onClick={handleIncrement}
               disabled={addItem.isPending}
               aria-label={t("stepperInc")}
-              className="w-9 h-full flex items-center justify-center cursor-pointer text-muted-foreground/50 hover:text-blue-500 hover:bg-white/2 transition-colors disabled:opacity-40"
+              className="w-9 h-full flex items-center justify-center cursor-pointer text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors disabled:opacity-40"
             >
               <ChevronUp className="h-4 w-4" strokeWidth={2.5} />
             </button>
@@ -127,10 +123,10 @@ export function AddManualItem({ listId }: AddManualItemProps) {
             onClick={handleSubmit}
             disabled={isInvalid}
             className={cn(
-              "flex-1 h-10 px-5 rounded-lg flex items-center justify-center gap-1.5 font-heading text-xs font-black uppercase tracking-wider transition-all duration-300 text-white shrink-0 shadow-md",
+              "flex-1 h-10 px-5 rounded-lg flex items-center justify-center gap-1.5 font-heading text-xs font-bold uppercase tracking-wider transition-all text-slate-950 shrink-0 shadow-md",
               isInvalid
-                ? "glass-inset text-muted-foreground/45 border-transparent pointer-events-none opacity-40 shadow-none"
-                : "bg-gradient-to-br from-blue-400 via-blue-500 to-blue-800 hover:scale-[1.01] hover:shadow-blue-500/25 border-t border-blue-300/40 border-l border-blue-300/20 border-r border-blue-900/30 border-b border-blue-950/40 cursor-pointer"
+                ? "bg-[var(--surface-elevated)] text-[var(--text-muted)] border-transparent pointer-events-none opacity-40 shadow-none"
+                : "bg-[var(--primary-main)] hover:bg-[var(--primary-hover)] cursor-pointer"
             )}
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={3} />

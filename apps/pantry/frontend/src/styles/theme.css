@@ -19,8 +19,7 @@
   --input: var(--surface-elevated);
   --ring: var(--primary-main);
   
-  /* Strict Swiss style flat corners */
-  --radius: 0rem;
+  --radius: 0.5rem;
 }
 
 @theme {
