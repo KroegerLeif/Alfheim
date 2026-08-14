@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { StatusBadge, useTranslation } from '@alfheim/shared';
 import { useDashboardApps, AddAppModal, EditAppModal } from '@/features/apps';
-import { SystemHealthWidget } from '@/features/dashboard/components/SystemHealthWidget';
 import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
 import { AppItem } from '@/shared/types';
 import Link from 'next/link';
@@ -62,9 +61,6 @@ export default function DashboardPage() {
           </button>
         </div>
       )}
-
-      {/* System Health Telemetry Widget */}
-      <SystemHealthWidget />
 
       {/* Live System Shell / Terminal Log Feed */}
       <SystemShellLogs />

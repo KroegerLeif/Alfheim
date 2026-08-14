@@ -40,7 +40,7 @@ export const ArchitectureSection: React.FC = () => {
       id: 'observability',
       icon: Activity,
       color: 'text-purple-400 border-purple-500/30 bg-purple-500/10',
-      title: t('docs.architecture.pillars.observability.title', 'OpenTelemetry & SigNoz'),
+      title: t('docs.architecture.pillars.observability.title', 'OpenTelemetry & VictoriaStack'),
       desc: t(
         'docs.architecture.pillars.observability.desc',
         'Full distributed tracing, structured logging, and real-time CPU/memory/traffic telemetry across all containers.'

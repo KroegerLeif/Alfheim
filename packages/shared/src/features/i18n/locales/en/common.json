@@ -218,7 +218,7 @@
     "gateway_rules": "Gateway & Security Rules",
     "gateway_subtitle": "Configure central Nginx reverse proxy routes and Keycloak IAM tokens.",
     "telemetry_stream": "OpenTelemetry Stream",
-    "telemetry_stream_desc": "Push live CPU/RAM telemetry logs to SigNoz collector.",
+    "telemetry_stream_desc": "Push live CPU/RAM telemetry logs to VictoriaStack collector.",
     "system_update": "System Update",
     "platform_up_to_date": "Platform Up to Date",
     "platform_release": "Alfheim OS Platform Release",

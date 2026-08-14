@@ -18,14 +18,14 @@
 #                      [live at http://alfheim/maintenance after this stage]
 #   6. Chores        — chores-db  →  chores-backend
 #                      [live at http://alfheim/api/v1/chores after this stage]
-#   7. Observability — signoz-clickhouse  →  signoz-otel-collector  →  signoz-ui  →  vector-shipper
+#   7. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
 #   8. Summary       — print accessible URLs with green checkmarks
 #
 # Usage:
 #   ./scripts/up.sh              # start stack (use cached images — no build)
 #   ./scripts/up.sh -b           # start stack AND rebuild images first
 #   ./scripts/up.sh --build      # same as -b
-#   ./scripts/up.sh --skip-obs   # skip the SigNoz/Vector observability stack
+#   ./scripts/up.sh --skip-obs   # skip the VictoriaStack observability stack
 # =============================================================================
 
 set -euo pipefail
@@ -408,6 +408,29 @@ info "Starting keycloak (realm import may take up to 90 s on first boot) …"
 dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "alfheim_keycloak" "keycloak" 180
 
+info "Synchronizing Keycloak clients (ensuring alfheim-grafana client exists) …"
+docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+  --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1 || true
+
+if ! docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfheim -q clientId=alfheim-grafana --fields id 2>/dev/null | grep -q 'id'; then
+  docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh create clients -r alfheim \
+    -s clientId=alfheim-grafana \
+    -s name="Grafana Observability" \
+    -s rootUrl="http://alfheim.loegien.localhost/grafana" \
+    -s baseUrl="/" \
+    -s enabled=true \
+    -s publicClient=false \
+    -s secret=alfheim-grafana-secret \
+    -s standardFlowEnabled=true \
+    -s directAccessGrantsEnabled=true \
+    -s 'redirectUris=["http://alfheim.loegien.localhost/grafana/login/generic_oauth","http://api.alfheim.loegien.localhost/grafana/login/generic_oauth","http://localhost:3000/grafana/login/generic_oauth","http://alfheim.loegien.de/grafana/login/generic_oauth","http://api.alfheim.loegien.de/grafana/login/generic_oauth","http://localhost:3000/*"]' \
+    -s 'webOrigins=["*"]' \
+    -s 'attributes."post.logout.redirect.uris"="+"' >/dev/null 2>&1 || true
+  ok "Keycloak alfheim-grafana client registered"
+else
+  ok "Keycloak alfheim-grafana client verified"
+fi
+
 info "Starting rustfs S3 object storage …"
 dc up ${BUILD_FLAG} -d rustfs
 wait_healthy "alfheim_rustfs" "rustfs" 60
@@ -514,37 +537,31 @@ wait_healthy "chores-frontend" "chores-frontend" 240
 notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
 
 # =============================================================================
-# STAGE 7 — Observability  (ClickHouse · SigNoz · Vector)
+# STAGE 7 — Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
 # =============================================================================
 if [[ "${SKIP_OBS}" == "true" ]]; then
   warn "Skipping observability stack (--skip-obs flag set)"
 else
-  step "STAGE 7 · Observability  (ClickHouse · SigNoz · Vector)"
+  step "STAGE 7 · Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)"
 
-  info "Starting ClickHouse …"
-  if dc up ${BUILD_FLAG} -d signoz-clickhouse; then
-    wait_healthy_soft "signoz-clickhouse" "ClickHouse" 120
+  info "Starting VictoriaMetrics & VictoriaLogs …"
+  if dc up ${BUILD_FLAG} -d victoriametrics victorialogs; then
+    wait_healthy_soft "victoriametrics" "VictoriaMetrics" 60
+    wait_running_soft "victorialogs"     "VictoriaLogs"    60
   else
-    warn "Failed to launch ClickHouse container"
+    warn "Failed to launch VictoriaMetrics or VictoriaLogs containers"
   fi
 
-  info "Running SigNoz schema migrator (one-shot job) …"
-  if dc up ${BUILD_FLAG} -d signoz-schema-migrator; then
-    wait_one_shot_soft "signoz-schema-migrator" "schema-migrator" 120
+  info "Starting OTel Collector, Vector log shipper, and Grafana …"
+  if dc up ${BUILD_FLAG} -d otel-collector vector grafana; then
+    wait_running_soft "otel-collector"  "OTel Collector" 30 || true
+    wait_running_soft "vector-shipper"   "Vector"         30 || true
+    wait_running_soft "alfheim_grafana"  "Grafana"        30 || true
   else
-    warn "Failed to launch SigNoz schema migrator container"
+    warn "Failed to launch OTel Collector, Vector, or Grafana containers"
   fi
 
-  info "Starting SigNoz UI, OTEL collector, and Vector log shipper …"
-  if dc up ${BUILD_FLAG} -d signoz-otel-collector signoz vector; then
-    wait_running_soft "signoz-otel-collector" "otel-collector" 30 || true
-    wait_running_soft "signoz-ui"             "SigNoz UI"      30 || true
-    wait_running_soft "vector-shipper"        "Vector"         30 || true
-  else
-    warn "Failed to launch SigNoz UI, OTEL collector, or Vector containers"
-  fi
-
-  notice "🟢 Observability Stack (Soft Load Complete)"
+  notice "🟢 Observability Stack (VictoriaStack Live)"
 fi
 
 # =============================================================================
@@ -561,13 +578,13 @@ echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim.loegien.
 echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim.loegien.localhost/pantry${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim.loegien.localhost/maintenance${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim.loegien.localhost/chores${RESET}"
+if [[ "${SKIP_OBS}" != "true" ]]; then
+  echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}http://alfheim.loegien.localhost/grafana${RESET}"
+fi
 echo ""
 echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://api.alfheim.loegien.localhost/auth${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
-if [[ "${SKIP_OBS}" != "true" ]]; then
-  echo -e "  ${GREEN}✔${RESET}  SigNoz             →  ${BOLD}http://api.alfheim.loegien.localhost/signoz${RESET}"
-fi
 echo ""
 echo -e "  ${DIM}Useful commands:${RESET}"
 echo -e "  ${DIM}  docker compose logs -f <service>   tail a service${RESET}"

@@ -105,8 +105,8 @@
           "desc": "Central ingress gateway performing path-based routing, header injection, and HTTPS certificate management."
         },
         "observability": {
-          "title": "OpenTelemetry & SigNoz",
-          "desc": "Full distributed tracing, structured logging, and real-time CPU/memory/traffic telemetry across all containers."
+          "title": "OpenTelemetry & VictoriaStack",
+          "desc": "Full distributed tracing, structured logging, and live telemetry across all containers."
         }
       }
     },

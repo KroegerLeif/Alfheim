@@ -17,7 +17,8 @@ alfheim/
 │   ├── caddy/                  # Central Caddy Reverse Proxy & Ingress Gateway
 │   ├── keycloak/               # Keycloak config & realm import files
 │   ├── postgres-iam/           # IAM postgres database config files
-│   └── rustfs/                 # RustFS S3-compatible central object storage
+│   ├── rustfs/                 # RustFS S3-compatible central object storage
+│   └── telemetry/              # VictoriaStack, OTel Collector, Vector & Grafana
 ├── core/
 │   └── dashboard/              # Central Dashboard Module (Go control plane & Next.js frontend)
 └── apps/
@@ -49,7 +50,7 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 * **`infra-net`**: Isolated infrastructure bridge connecting Keycloak, `postgres-iam`, and RustFS S3 backend ports.
 * **`core-net`**: Dedicated control plane network for `dashboard-backend` and `dashboard-db`.
 * **`app-<name>-net`**: App-isolated networks connecting microservice backends to their dedicated database containers (e.g. `app-pantry-net`, `app-shopping-net`).
-* **`observability-internal`**: Dedicated telemetry bridge connecting app backends to the SigNoz OpenTelemetry Collector.
+* **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.
 
 ### C. Routing Matrix (Central Caddy Gateway)
 
@@ -62,6 +63,7 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `http://shopping-frontend:3010` | Served on `/shopping` basePath, 302 redirects bare path to `/shopping/en` |
 | `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `http://maintenance-frontend:3000`| Served on `/maintenance` basePath, 302 redirects bare path to `/maintenance/en` |
 | `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `http://chores-frontend:3000` | Served on `/chores` basePath, 302 redirects bare path to `/chores/de` |
+| `http://alfheim.loegien.localhost/grafana` | `grafana` | `http://grafana:3000/grafana` | Observability & Telemetry UI (Keycloak SSO) |
 
 #### 2. API Gateway Domain (`api.alfheim.loegien.localhost` / `api.alfheim.loegien.de`)
 
@@ -69,6 +71,7 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | :--- | :--- | :--- | :--- |
 | `http://api.alfheim.loegien.localhost/auth` | `keycloak` | `http://keycloak:8080/auth` | OIDC IAM provider. Native subpath (no stripping). |
 | `http://api.alfheim.loegien.localhost/storage/` | `rustfs` | `http://rustfs:9000/` | Central S3 object storage & presigned URLs. Strips `/storage` prefix. |
+| `http://api.alfheim.loegien.localhost/grafana/` | `grafana` | `http://grafana:3000/grafana/` | Observability & Telemetry UI (Keycloak SSO). |
 | `http://api.alfheim.loegien.localhost/pantry/api/v1/` | `pantry-backend` | `http://pantry-backend:8000/api/v1/` | Strips `/pantry` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |

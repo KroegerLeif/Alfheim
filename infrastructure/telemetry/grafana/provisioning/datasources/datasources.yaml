@@ -1,0 +1,25 @@
+# infrastructure/telemetry/grafana/provisioning/datasources/datasources.yaml
+apiVersion: 1
+
+datasources:
+  - name: VictoriaMetrics
+    uid: victoriametrics
+    type: prometheus
+    access: proxy
+    url: http://victoriametrics:8428
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 5s
+      prometheusType: Prometheus
+      prometheusVersion: 2.45.0
+    editable: true
+
+  - name: VictoriaLogs
+    uid: victorialogs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://victorialogs:9428
+    jsonData:
+      maxLines: 1000
+    editable: true

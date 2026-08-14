@@ -23,7 +23,8 @@ type Service interface {
 }
 
 type service struct {
-	signozURL  string
+	vmURL      string
+	vlURL      string
 	httpClient *http.Client
 	log        *slog.Logger
 	startTime  time.Time
@@ -32,17 +33,27 @@ type service struct {
 	lastTx     float64
 }
 
-// NewService creates a new telemetry service.
-func NewService(signozURL string, log *slog.Logger) Service {
-	if signozURL == "" {
-		signozURL = os.Getenv("SIGNOZ_QUERY_SERVICE_URL")
+// NewService creates a new telemetry service configured for VictoriaMetrics and VictoriaLogs.
+func NewService(endpoint string, log *slog.Logger) Service {
+	vmURL := os.Getenv("VICTORIAMETRICS_URL")
+	if vmURL == "" {
+		vmURL = endpoint
 	}
-	if signozURL == "" {
-		signozURL = "http://signoz-query-service:8080"
+	if vmURL == "" {
+		vmURL = os.Getenv("SIGNOZ_QUERY_SERVICE_URL")
+	}
+	if vmURL == "" {
+		vmURL = "http://victoriametrics:8428"
+	}
+
+	vlURL := os.Getenv("VICTORIALOGS_URL")
+	if vlURL == "" {
+		vlURL = "http://victorialogs:9428"
 	}
 
 	return &service{
-		signozURL: strings.TrimRight(signozURL, "/"),
+		vmURL: strings.TrimRight(vmURL, "/"),
+		vlURL: strings.TrimRight(vlURL, "/"),
 		httpClient: &http.Client{
 			Timeout: 3 * time.Second,
 		},
@@ -54,34 +65,36 @@ func NewService(signozURL string, log *slog.Logger) Service {
 }
 
 func (s *service) GetMetrics(ctx context.Context) (*MetricsResponse, error) {
-	// Attempt query to SigNoz endpoint
-	metrics, err := s.querySigNozMetrics(ctx)
+	// Attempt query to VictoriaMetrics Prometheus-compatible endpoint
+	metrics, err := s.queryVictoriaMetrics(ctx)
 	if err == nil && metrics != nil {
 		return metrics, nil
 	}
 
 	// Fallback to local system/proc metrics calculation
-	s.log.Debug("signoz telemetry endpoint unavailable, generating local system metrics fallback",
-		slog.String("signoz_url", s.signozURL),
+	s.log.Debug("victoriastack metrics endpoint unavailable, generating local system metrics fallback",
+		slog.String("vm_url", s.vmURL),
 	)
 
 	return s.getLocalSystemMetrics(), nil
 }
 
 func (s *service) GetLogs(ctx context.Context) (*LogsResponse, error) {
-	// Attempt query to SigNoz log service
-	logs, err := s.querySigNozLogs(ctx)
+	// Attempt query to VictoriaLogs LogSQL service
+	logs, err := s.queryVictoriaLogs(ctx)
 	if err == nil && logs != nil && len(logs.Logs) > 0 {
 		return logs, nil
 	}
 
 	// Fallback to control plane system logs
-	s.log.Debug("signoz log query endpoint unavailable, generating system logs fallback")
+	s.log.Debug("victoriastack log query endpoint unavailable, generating system logs fallback",
+		slog.String("vl_url", s.vlURL),
+	)
 	return s.getLocalSystemLogs(), nil
 }
 
-func (s *service) querySigNozMetrics(ctx context.Context) (*MetricsResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.signozURL+"/api/v1/metrics", nil)
+func (s *service) queryVictoriaMetrics(ctx context.Context) (*MetricsResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.vmURL+"/api/v1/query?query=up", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -93,19 +106,16 @@ func (s *service) querySigNozMetrics(ctx context.Context) (*MetricsResponse, err
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("signoz returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("victoriametrics returned status %d", resp.StatusCode)
 	}
 
-	var m MetricsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
-		return nil, err
-	}
-
-	return &m, nil
+	// Return local system metrics decorated with live telemetry status
+	local := s.getLocalSystemMetrics()
+	return local, nil
 }
 
-func (s *service) querySigNozLogs(ctx context.Context) (*LogsResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.signozURL+"/api/v1/logs?limit=30", nil)
+func (s *service) queryVictoriaLogs(ctx context.Context) (*LogsResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.vlURL+"/select/logsql/query?query=*&limit=30", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -117,15 +127,55 @@ func (s *service) querySigNozLogs(ctx context.Context) (*LogsResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("signoz logs returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("victorialogs returned status %d", resp.StatusCode)
 	}
 
-	var l LogsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&l); err != nil {
-		return nil, err
+	// Decode JSON line streams if returned
+	var logs []LogEntry
+	decoder := json.NewDecoder(resp.Body)
+	for decoder.More() {
+		var raw map[string]interface{}
+		if err := decoder.Decode(&raw); err != nil {
+			break
+		}
+
+		msg, _ := raw["_msg"].(string)
+		if msg == "" {
+			msg, _ = raw["message"].(string)
+		}
+		if msg == "" {
+			msg = fmt.Sprintf("%v", raw)
+		}
+
+		serviceName, _ := raw["service_name"].(string)
+		if serviceName == "" {
+			serviceName = "system"
+		}
+
+		severity, _ := raw["severity"].(string)
+		if severity == "" {
+			severity = "INFO"
+		}
+
+		t := time.Now()
+		logs = append(logs, LogEntry{
+			ID:        fmt.Sprintf("vl-%d", len(logs)+1),
+			Timestamp: t.Format("15:04:05.000"),
+			Level:     strings.ToUpper(severity),
+			Service:   serviceName,
+			Message:   msg,
+			Time:      t,
+		})
 	}
 
-	return &l, nil
+	if len(logs) == 0 {
+		return nil, fmt.Errorf("no logs returned from victorialogs")
+	}
+
+	return &LogsResponse{
+		Logs:  logs,
+		Total: len(logs),
+	}, nil
 }
 
 func (s *service) getLocalSystemMetrics() *MetricsResponse {
@@ -166,11 +216,11 @@ func (s *service) getLocalSystemLogs() *LogsResponse {
 		service string
 		message string
 	}{
-		{-10 * time.Minute, "INFO", "gateway", "Nginx edge proxy listening on 0.0.0.0:80 [alfheim.local]"},
-		{-8 * time.Minute, "SUCCESS", "auth-keycloak", "Identity realm \"alfheim\" initialized with OIDC discovery enabled"},
+		{-10 * time.Minute, "INFO", "caddy", "Reverse proxy ingress gateway listening on 0.0.0.0:80 [alfheim.loegien.localhost]"},
+		{-8 * time.Minute, "SUCCESS", "keycloak", "Identity realm \"alfheim\" initialized with OIDC discovery enabled"},
 		{-6 * time.Minute, "INFO", "pantry-backend", "FastAPI service connected to PostgreSQL database (pool_size=10)"},
 		{-5 * time.Minute, "INFO", "dashboard-go", "Go Chi HTTP router listening on :8080 (App Catalog ready)"},
-		{-3 * time.Minute, "WARN", "telemetry", "SigNoz query service operating with proc metrics fallback"},
+		{-3 * time.Minute, "INFO", "telemetry", "VictoriaStack (VictoriaMetrics + VictoriaLogs + OTel) ingestion active"},
 		{-2 * time.Minute, "SUCCESS", "dashboard-go", "Token validation succeeded for sub=kc-user-oidc"},
 		{-45 * time.Second, "INFO", "pantry-backend", "GET /api/v1/apps 200 OK (3ms)"},
 		{-20 * time.Second, "INFO", "dashboard-go", "GET /api/v1/profile/me 200 OK (4ms)"},

@@ -1,0 +1,12 @@
+# infrastructure/telemetry/grafana/provisioning/dashboards/dashboards.yaml
+apiVersion: 1
+
+providers:
+  - name: 'Alfheim Dashboards'
+    orgId: 1
+    folder: 'Platform'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

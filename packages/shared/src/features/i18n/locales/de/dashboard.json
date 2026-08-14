@@ -20,7 +20,7 @@
     "return_to_dashboard": "Zurück zum Dashboard",
     "status_in_progress": "STATUS: IN BEARBEITUNG",
     "telemetry_title": "Systemgesundheit & Telemetrie",
-    "telemetry_subtitle": "Live OpenTelemetry / SigNoz Metrik-Stream",
+    "telemetry_subtitle": "Live OpenTelemetry / VictoriaStack Metrik-Stream",
     "telemetry_syncing": "SYNCHRONISATION...",
     "telemetry_procs_fallback": "PROCS FALLBACK",
     "telemetry_live_stream": "LIVE STREAM",

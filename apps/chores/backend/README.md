@@ -31,11 +31,11 @@ backend/
 ├── README.md                   # This documentation
 ├── src/
 │   ├── main.py                 # Application entry point & reset background scheduler loop
-│   ├── core/                   # Shared system utilities & setup
-│   │   ├── config.py           # Environment variables (Pydantic Settings)
-│   │   ├── database.py         # SQLAlchemy engine, session maker, DB init
-│   │   ├── dependencies.py     # JWT validation and zero-trust household validator
-│   │   └── telemetry.py        # OpenTelemetry instrumentations for SigNoz
+│   ├── core/                   # Shared system utilities
+│   │   ├── config.py           # Pydantic v2 BaseSettings
+│   │   ├── database.py         # SQLAlchemy 2.0 async engine & sessionmaker
+│   │   ├── security.py         # Keycloak OIDC JWT token verification
+│   │   └── telemetry.py        # OpenTelemetry instrumentation (VictoriaStack)
 │   ├── mcp/                    # MCP server core
 │   │   └── server.py           # Central FastMCP server and tool discovery engine
 │   └── features/               # Independent feature domains

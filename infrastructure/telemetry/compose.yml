@@ -1,0 +1,140 @@
+# infrastructure/telemetry/compose.yml
+# Alfheim Observability & Monitoring Stack (VictoriaStack + OTel Collector + Vector + Grafana)
+
+services:
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics
+    restart: unless-stopped
+    ports:
+      - "8428:8428"
+    command:
+      - "-retentionPeriod=14d"
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-httpListenAddr=:8428"
+    volumes:
+      - victoriametrics_data:/victoria-metrics-data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    networks:
+      - observability-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  victorialogs:
+    image: victoriametrics/victoria-logs:latest
+    container_name: victorialogs
+    restart: unless-stopped
+    ports:
+      - "9428:9428"
+    command:
+      - "-retentionPeriod=7d"
+      - "-storageDataPath=/victoria-logs-data"
+      - "-httpListenAddr=:9428"
+    volumes:
+      - victorialogs_data:/victoria-logs-data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    networks:
+      - observability-internal
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.119.0
+    container_name: otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "0.30"
+          memory: 192M
+    networks:
+      - observability-internal
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      victorialogs:
+        condition: service_started
+
+  vector:
+    image: timberio/vector:0.39.0-alpine
+    container_name: vector-shipper
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./vector/vector.toml:/etc/vector/vector.toml:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "0.20"
+          memory: 128M
+    networks:
+      - observability-internal
+    depends_on:
+      otel-collector:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: alfheim_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
+      - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=alfheim-grafana
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=alfheim-grafana-secret
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid email profile
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=http://api.alfheim.loegien.localhost/auth/realms/alfheim/protocol/openid-connect/auth
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/userinfo
+      - GF_AUTH_GENERIC_OAUTH_SIGNOUT_REDIRECT_URL=http://api.alfheim.loegien.localhost/auth/realms/alfheim/protocol/openid-connect/logout?post_logout_redirect_uri=http%3A%2F%2Fapi.alfheim.loegien.localhost%2Fgrafana%2Flogin
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'admin') && 'Admin' || contains(realm_access.roles[*], 'editor') && 'Editor' || 'Viewer'
+      - GF_AUTH_GENERIC_OAUTH_USE_REFRESH_TOKEN=true
+    volumes:
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    deploy:
+      resources:
+        limits:
+          cpus: "0.40"
+          memory: 256M
+    networks:
+      - observability-internal
+      - gateway-net
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      victorialogs:
+        condition: service_started
+
+volumes:
+  victoriametrics_data:
+  victorialogs_data:
+  grafana_data:
+
+networks:
+  observability-internal:
+    name: observability-internal
+    external: true
+  gateway-net:
+    name: gateway-net
+    external: true

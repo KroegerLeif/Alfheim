@@ -34,7 +34,7 @@ services:
       - KEYCLOAK_URL=http://keycloak:8080/auth
       - KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=shopping-backend
     healthcheck:
