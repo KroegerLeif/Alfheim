@@ -9,11 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`feat(shared): establish shared vector asset pipeline for brand emblems and alfi mascot states`** (Active)
-  - Created structured asset directories `brand/`, `alfi/`, `fonts/` in `packages/shared/src/assets/`.
-  - Added standalone SVGs: `logo-mark.svg`, `logo-full-dark.svg`, `favicon.svg`, and 5 ALFI mascot states (`alfi-idle`, `alfi-thinking`, `alfi-loading`, `alfi-sleeping`, `alfi-curious`).
-  - Exported asset definitions and path helpers via `@alfheim/shared` and `@alfheim/shared/assets`.
-  - Wired interactive ALFI mascot states and brand emblems into `websites/docs`.
+* **`feat(shared): sync asset registries with brand logo variants and expanded alfi mascot states`** (Active)
+  - Added primary logo mark (`logo-mark.svg`) and monochrome white variant (`logo-mark-white.svg`) under `brand/`.
+  - Added complete favicon suite under `favicon_io/` (`favicon.ico`, PNGs, and `site.webmanifest`).
+  - Added 8 expressive ALFI mascot states (`alfi-idle`, `alfi-thinking`, `alfi-speaking`, `alfi-listenig`, `alfi-eating`, `alfi-fixing`, `alfi-chasing`, `alfi-sleeping`).
+  - Extended `AlfiState` and `BRAND_ASSETS` registries in `packages/shared/src/assets/index.ts`.
+  - Wired all 8 mascot states and logo variants into `websites/docs`.
 * **`feat(docs): create react vite documentation site and github pages deployment workflow`**
   - Created `websites/docs` with React 19, TypeScript, Vite 8, Tailwind CSS v4, and Lucide React.
   - Configured `base: './'` for 404-free asset loading on GitHub Pages.

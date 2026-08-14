@@ -39,15 +39,19 @@ websites/docs/
 ### Shared Asset Pipeline (`@alfheim/shared/assets`)
 Vector emblems and mascot states are centralized in `packages/shared/src/assets/`:
 - **Brand Emblems** (`packages/shared/src/assets/brand/`):
-  - `logo-mark.svg`: Hexagonal shield brand mark.
-  - `logo-full-dark.svg`: Full logo with typographic wordmark for dark surfaces.
-  - `favicon.svg`: High-contrast application icon.
+  - `logo-mark.svg`: Primary hexagonal shield brand mark (gold/cyan gradient).
+  - `logo-mark-white.svg`: Monochrome white logo mark variant for high-contrast / dark backgrounds.
+- **Favicon Bundle** (`packages/shared/src/assets/favicon_io/`):
+  - Multi-resolution favicons (`favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`).
 - **ALFI Mascot States** (`packages/shared/src/assets/alfi/`):
   - `alfi-idle.svg`: Ambient idle state with floating orbit.
   - `alfi-thinking.svg`: Violet analytical state with rotated orbit.
-  - `alfi-loading.svg`: Cyan dual-orbit data synchronization state.
+  - `alfi-speaking.svg`: Active conversational / voice assistant state.
+  - `alfi-listenig.svg`: Inquisitive listening / audio sensor state.
+  - `alfi-eating.svg`: Pantry & recipe culinary state.
+  - `alfi-fixing.svg`: Maintenance & repair mechanic state with wrench.
+  - `alfi-chasing.svg`: Household chores & gamified streaks state.
   - `alfi-sleeping.svg`: Low-power standby state with sleep indicators.
-  - `alfi-curious.svg`: Amber inquisitive state with asymmetric optics.
 - **Local Fonts** (`packages/shared/src/assets/fonts/`):
   - Directory placeholder for self-hosted typography assets.
 
