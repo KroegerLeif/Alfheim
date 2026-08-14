@@ -475,6 +475,55 @@
   },
   "clients": [
     {
+      "id": "alfheim-grafana-client",
+      "clientId": "alfheim-grafana",
+      "name": "Grafana Observability",
+      "rootUrl": "http://api.alfheim.loegien.localhost/grafana",
+      "baseUrl": "/",
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "alfheim-grafana-secret",
+      "redirectUris": [
+        "http://api.alfheim.loegien.localhost/grafana/login/generic_oauth",
+        "http://alfheim.loegien.localhost/grafana/login/generic_oauth",
+        "http://api.alfheim.loegien.de/grafana/login/generic_oauth",
+        "http://alfheim.loegien.de/grafana/login/generic_oauth",
+        "http://localhost:3000/grafana/login/generic_oauth",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
       "id": "dashboard-frontend-client",
       "clientId": "dashboard-frontend",
       "name": "Dashboard Frontend",
