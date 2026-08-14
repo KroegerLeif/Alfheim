@@ -408,6 +408,29 @@ info "Starting keycloak (realm import may take up to 90 s on first boot) …"
 dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "alfheim_keycloak" "keycloak" 180
 
+info "Synchronizing Keycloak clients (ensuring alfheim-grafana client exists) …"
+docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+  --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1 || true
+
+if ! docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfheim -q clientId=alfheim-grafana --fields id 2>/dev/null | grep -q 'id'; then
+  docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh create clients -r alfheim \
+    -s clientId=alfheim-grafana \
+    -s name="Grafana Observability" \
+    -s rootUrl="http://alfheim.loegien.localhost/grafana" \
+    -s baseUrl="/" \
+    -s enabled=true \
+    -s publicClient=false \
+    -s secret=alfheim-grafana-secret \
+    -s standardFlowEnabled=true \
+    -s directAccessGrantsEnabled=true \
+    -s 'redirectUris=["http://alfheim.loegien.localhost/grafana/login/generic_oauth","http://api.alfheim.loegien.localhost/grafana/login/generic_oauth","http://localhost:3000/grafana/login/generic_oauth","http://alfheim.loegien.de/grafana/login/generic_oauth","http://api.alfheim.loegien.de/grafana/login/generic_oauth","http://localhost:3000/*"]' \
+    -s 'webOrigins=["*"]' \
+    -s 'attributes."post.logout.redirect.uris"="+"' >/dev/null 2>&1 || true
+  ok "Keycloak alfheim-grafana client registered"
+else
+  ok "Keycloak alfheim-grafana client verified"
+fi
+
 info "Starting rustfs S3 object storage …"
 dc up ${BUILD_FLAG} -d rustfs
 wait_healthy "alfheim_rustfs" "rustfs" 60
@@ -555,13 +578,13 @@ echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim.loegien.
 echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim.loegien.localhost/pantry${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim.loegien.localhost/maintenance${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim.loegien.localhost/chores${RESET}"
+if [[ "${SKIP_OBS}" != "true" ]]; then
+  echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}http://alfheim.loegien.localhost/grafana${RESET}"
+fi
 echo ""
 echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://api.alfheim.loegien.localhost/auth${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
-if [[ "${SKIP_OBS}" != "true" ]]; then
-  echo -e "  ${GREEN}✔${RESET}  Grafana UI         →  ${BOLD}http://api.alfheim.loegien.localhost/grafana${RESET}"
-fi
 echo ""
 echo -e "  ${DIM}Useful commands:${RESET}"
 echo -e "  ${DIM}  docker compose logs -f <service>   tail a service${RESET}"
