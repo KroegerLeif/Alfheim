@@ -17,6 +17,7 @@ import { useTranslations } from "next-intl";
 
 export function Sidebar() {
   const t = useTranslations("maintenance");
+  const tCommon = useTranslations("common");
   const { activeNav, setActiveNav, isSidebarCollapsed, setIsSidebarCollapsed } = useLayout();
   const [mounted, setMounted] = useState(false);
 
@@ -60,7 +61,7 @@ export function Sidebar() {
             "p-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] transition-all text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer",
             isSidebarCollapsed && "mx-auto"
           )}
-          aria-label={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          aria-label={isSidebarCollapsed ? tCommon("expand_sidebar") : tCommon("collapse_sidebar")}
         >
           {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>

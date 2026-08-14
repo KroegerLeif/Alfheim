@@ -24,7 +24,7 @@ export const Footer: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4 text-xs text-[#8b949e]">
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#111b33] border border-[#1c2847]">
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            Zero-Trust Architecture
+            {t('docs.footer.zero_trust_badge', 'Zero-Trust Architecture')}
           </span>
           <a
             href="https://github.com/KroegerLeif/loeger-os"
