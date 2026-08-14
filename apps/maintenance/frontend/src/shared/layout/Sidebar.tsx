@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useLayout, NavOption } from "./LayoutContext";
+import { AppLogo } from "@alfheim/shared";
 import { 
   Laptop, 
   Wrench, 
@@ -34,20 +35,23 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-screen select-none bg-[var(--surface-card)] border-r border-[var(--border-subtle)] text-[var(--text-main)] flex flex-col transition-all duration-300 ease-in-out shrink-0 relative",
+        "h-screen select-none bg-[var(--surface-card)] border-r border-[var(--border-subtle)] text-[var(--text-main)] flex flex-col font-sans transition-all duration-300 ease-in-out shrink-0 relative",
         isSidebarCollapsed ? "w-20" : "w-72"
       )}
     >
       {/* Brand Header */}
       <div className={cn("p-5 border-b border-[var(--border-subtle)] flex items-center justify-between", isSidebarCollapsed && "justify-center")}>
         {!isSidebarCollapsed && (
-          <div className="flex flex-col gap-1">
-            <span className="font-heading text-2xl font-black uppercase tracking-wide leading-none text-[var(--text-main)]">
-              ALFHEIM // OS
-            </span>
-            <span className="text-[9px] text-[var(--primary-main)] font-semibold uppercase tracking-widest leading-none">
-              Maintenance v1.0
-            </span>
+          <div className="flex items-center gap-3">
+            <AppLogo appName="maintenance" size={32} />
+            <div className="flex flex-col">
+              <span className="font-heading text-sm font-bold uppercase tracking-wider text-[var(--text-main)] leading-tight">
+                ALFHEIM // MAINTENANCE
+              </span>
+              <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest leading-none">
+                Device & Service Registry
+              </span>
+            </div>
           </div>
         )}
         <button
@@ -62,10 +66,8 @@ export function Sidebar() {
         </button>
       </div>
 
-
-
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1.5">
+      <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = activeNav === item.id;
           const Icon = item.icon;
@@ -75,20 +77,19 @@ export function Sidebar() {
               key={item.id}
               onClick={() => setActiveNav(item.id)}
               className={cn(
-                "w-full flex items-center gap-3.5 px-3 py-3 rounded-xl text-sm font-semibold uppercase tracking-wide border transition-all cursor-pointer",
+                "w-full flex items-center gap-3 text-xs uppercase font-semibold transition-all border border-transparent cursor-pointer rounded-lg",
+                isSidebarCollapsed ? "justify-center p-3" : "px-3.5 py-2.5",
                 isActive
-                  ? "bg-[var(--primary-main)]/10 text-[var(--primary-main)] border-[var(--primary-main)]/30 font-bold"
-                  : "bg-transparent border-transparent text-[var(--text-muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--text-main)]"
+                  ? "bg-[var(--primary-main)] text-black font-bold border-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]"
+                  : "hover:bg-[var(--surface-elevated)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
               )}
-              title={item.label}
             >
-              <Icon className={cn("h-4.5 w-4.5 shrink-0 transition-transform duration-300", isActive && "scale-110")} />
-              {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+              <Icon className="h-4 w-4 shrink-0" />
+              {!isSidebarCollapsed && <span>{item.label}</span>}
             </button>
           );
         })}
       </nav>
-
     </aside>
   );
 }

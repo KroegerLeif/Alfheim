@@ -27,7 +27,7 @@ export function AuthControls({
   const { t } = useTranslation();
 
   const getInitials = () => {
-    if (!user) return 'U';
+    if (!user) return 'LK';
     if (user.given_name && user.family_name) {
       return `${user.given_name[0]}${user.family_name[0]}`.toUpperCase();
     }
@@ -41,36 +41,31 @@ export function AuthControls({
     if (user.preferred_username) {
       return user.preferred_username.substring(0, 2).toUpperCase();
     }
-    return 'U';
+    return 'LK';
   };
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      {showUserInfo && user && (
-        <div className="flex items-center gap-2 pr-2 border-r border-[var(--border-subtle)]">
-          <div
-            className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#182542] to-[#3eb1ff]/30 border border-[var(--primary-main)]/40 flex items-center justify-center text-xs font-bold text-[var(--primary-main)] font-mono"
-            title={user.name || user.preferred_username || 'User'}
-          >
-            {getInitials()}
-          </div>
-          <div className="hidden sm:flex flex-col truncate max-w-[120px]">
-            <span className="text-xs font-semibold text-[var(--text-main)] truncate">
-              {user.name || user.preferred_username}
-            </span>
-          </div>
+    <div className={`flex items-center gap-2.5 ${className}`}>
+      {/* User Initials Avatar Badge */}
+      {showUserInfo && (
+        <div
+          className="w-8 h-8 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 flex items-center justify-center text-xs font-mono font-bold text-[var(--primary-main)] shadow-sm select-none transition-colors"
+          title={user?.name || user?.preferred_username || 'Logged In User'}
+        >
+          {getInitials()}
         </div>
       )}
 
+      {/* Dedicated Exit/Logout Button */}
       {onLogout && (
         <button
           type="button"
           onClick={onLogout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 hover:bg-red-900/30 text-xs font-mono transition-all duration-200 cursor-pointer"
-          title={t('common.logout')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 hover:bg-red-900/30 hover:border-red-700/60 text-xs font-mono transition-all duration-200 cursor-pointer shadow-sm"
+          title={t('common.logout') || 'Abmelden'}
         >
           <span className="material-symbols-outlined text-sm">logout</span>
-          <span className="hidden sm:inline font-semibold">{t('common.logout')}</span>
+          <span className="hidden sm:inline font-semibold">{t('common.logout') || 'Abmelden'}</span>
         </button>
       )}
     </div>

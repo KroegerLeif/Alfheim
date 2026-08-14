@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import {
@@ -10,9 +10,9 @@ import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ClientHeader } from "@/components/shared/ClientHeader";
 
-const hankenGrotesk = Hanken_Grotesk({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-hanken-grotesk",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -34,7 +34,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   return (
     <html
       lang={locale}
-      className={`${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -51,9 +51,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
                 <div className="flex w-full min-h-screen">
                   <Sidebar />
                   <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-                    {/* Reuse shared layout shell from @alfheim/shared */}
                     <ClientHeader />
-
                     <main className="flex-1 p-6">
                       {children}
                     </main>

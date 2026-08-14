@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from "@alfheim/shared";
+import { useTranslation, AppLogo } from "@alfheim/shared";
 import { Link, usePathname } from "@/navigation";
 import { cn } from "@/core/utils";
 import { 
@@ -64,19 +64,22 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-mono">
+    <aside className="w-64 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-sans">
       {/* Brand Header */}
-      <div className="p-6 border-b border-[var(--border-subtle)] flex flex-col gap-1">
-        <div className="font-heading text-2xl font-bold uppercase tracking-wide leading-none text-[var(--text-main)]">
-          {t("pantry.systemBrand")}
-        </div>
-        <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-mono">
-          {t("pantry.systemVersion")}
+      <div className="p-5 border-b border-[var(--border-subtle)] flex items-center gap-3">
+        <AppLogo appName="pantry" size={32} />
+        <div className="flex flex-col">
+          <div className="font-heading text-sm font-bold uppercase tracking-wider text-[var(--text-main)] leading-tight">
+            ALFHEIM // PANTRY
+          </div>
+          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-mono">
+            Inventory & Ledger
+          </div>
         </div>
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -86,7 +89,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-3.5 text-sm uppercase font-semibold transition-all border border-transparent cursor-pointer rounded-lg",
+                "flex items-center gap-3 px-3.5 py-2.5 text-xs uppercase font-semibold transition-all border border-transparent cursor-pointer rounded-lg",
                 isActive
                   ? "bg-[var(--primary-main)] text-black font-bold border-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]"
                   : "hover:bg-[var(--surface-elevated)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
@@ -100,14 +103,14 @@ export function Sidebar() {
       </nav>
 
       {/* Alert Monitor Panel */}
-      <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)] flex flex-col gap-3">
-        <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider mb-1">
+      <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)] flex flex-col gap-2.5">
+        <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider font-mono">
           {t("pantry.systemAlerts")}
         </div>
 
         {/* Low Stock Notification */}
         <div className={cn(
-          "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded",
+          "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
           lowStockCount > 0 
             ? "border-amber-800/40 bg-amber-950/20 text-amber-400" 
             : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"
@@ -121,7 +124,7 @@ export function Sidebar() {
 
         {/* Expired Items Notification */}
         <div className={cn(
-          "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded",
+          "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
           expiredCount > 0 
             ? "border-red-800/40 bg-red-950/20 text-red-400" 
             : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"

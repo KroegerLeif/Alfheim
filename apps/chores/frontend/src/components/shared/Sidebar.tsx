@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useTranslation, AppLogo } from "@alfheim/shared";
 import { Link, usePathname } from "@/navigation";
 import { cn } from "@/core/utils";
 import { 
@@ -64,7 +64,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-mono transition-all duration-300 ease-in-out shrink-0 relative",
+        "border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-sans transition-all duration-300 ease-in-out shrink-0 relative",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
@@ -76,12 +76,15 @@ export function Sidebar() {
         )}
       >
         {!isCollapsed && (
-          <div className="flex flex-col gap-1 select-none">
-            <div className="font-heading text-2xl font-bold uppercase tracking-wide leading-none text-[var(--text-main)]">
-              {t("chores.systemBrand", { defaultValue: "Chores Tracker" })}
-            </div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-mono">
-              {t("chores.systemVersion", { defaultValue: "v1.0.0" })}
+          <div className="flex items-center gap-3 select-none">
+            <AppLogo appName="chores" size={32} />
+            <div className="flex flex-col">
+              <div className="font-heading text-sm font-bold uppercase tracking-wider text-[var(--text-main)] leading-tight">
+                ALFHEIM // CHORES
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-mono">
+                Gamified Habits
+              </div>
             </div>
           </div>
         )}
@@ -98,7 +101,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 p-3 space-y-2">
+      <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -109,8 +112,8 @@ export function Sidebar() {
               href={item.href}
               title={item.label}
               className={cn(
-                "flex items-center text-sm uppercase font-semibold transition-all border border-transparent cursor-pointer rounded-lg relative",
-                isCollapsed ? "justify-center p-3" : "justify-between px-4 py-3.5",
+                "flex items-center text-xs uppercase font-semibold transition-all border border-transparent cursor-pointer rounded-lg relative",
+                isCollapsed ? "justify-center p-3" : "justify-between px-3.5 py-2.5",
                 isActive
                   ? "bg-[var(--primary-main)] text-black font-bold border-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]"
                   : "hover:bg-[var(--surface-elevated)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
@@ -123,7 +126,7 @@ export function Sidebar() {
               {item.href === "/" && pendingCount > 0 && (
                 <span
                   className={cn(
-                    "px-2 py-0.5 text-[10px] font-bold rounded-full",
+                    "px-2 py-0.5 text-[10px] font-bold rounded-full font-mono",
                     isActive ? "bg-black text-[var(--primary-main)]" : "bg-[var(--primary-main)] text-black",
                     isCollapsed && "absolute -top-1 -right-1 px-1.5 py-0.2 text-[9px] shadow-sm"
                   )}
@@ -138,4 +141,3 @@ export function Sidebar() {
     </aside>
   );
 }
-

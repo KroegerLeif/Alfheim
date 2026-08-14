@@ -6,9 +6,10 @@ import { LanguageSwitcher } from '../../i18n/components/LanguageSwitcher';
 import { ThemeToggle } from '../../theme/components/ThemeToggle';
 import { AuthControls, UserIdentity } from './AuthControls';
 import { HouseholdSwitcher } from '../../ui/components/HouseholdSwitcher';
-import { AlfheimLogo } from '../../ui/components/AlfheimLogo';
+import { AppLogo, AppIdentifier } from '../../ui/components/AppLogo';
 
 export interface AppHeaderProps {
+  appName?: AppIdentifier;
   brandTitle?: string;
   brandSubtitle?: string;
   brandIcon?: React.ReactNode;
@@ -22,6 +23,7 @@ export interface AppHeaderProps {
   showAuthControls?: boolean;
   user?: UserIdentity | null;
   onLogout?: () => void;
+  notificationSlot?: React.ReactNode;
   actionsSlot?: React.ReactNode;
   className?: string;
   children?: React.ReactNode;
@@ -36,14 +38,15 @@ const getFallbackDashboardUrl = (): string => {
 
 /**
  * Universal Unified Application Header Component.
- * Standardizes system chrome across all microfrontends and shell apps:
- * - Left: [BackToDashboard] + [Brand Icon / Fallback AlfheimLogo] + [Brand Title / Subtitle] + [Custom Left Slot]
+ * Adheres strictly to the standard top navigation bar layout:
+ * - Left: [Back to Dashboard] -> [App Logo Badge] -> [App Title · Subtitle Breadcrumb] -> [Left Slot]
  * - Center: [Search Bar / Custom Center Slot]
- * - Right: [HouseholdSwitcher] + [LanguageSwitcher] + [ThemeToggle] + [AuthControls / Avatar] + [Custom Actions]
+ * - Right: [HouseholdSwitcher] -> [LanguageSelector (DE/EN/PL)] -> [ThemeToggle] -> [Notification Bell] -> [User Initials Avatar] -> [Logout Button] -> [Actions Slot]
  */
 export function AppHeader({
+  appName,
   brandTitle = 'Alfheim OS',
-  brandSubtitle = 'Nordic Dark',
+  brandSubtitle = 'Obsidian Flux',
   brandIcon,
   showBackToDashboard = true,
   backToDashboardHref,
@@ -55,6 +58,7 @@ export function AppHeader({
   showAuthControls = true,
   user,
   onLogout,
+  notificationSlot,
   actionsSlot,
   className = '',
   children,
@@ -63,24 +67,18 @@ export function AppHeader({
 
   return (
     <header className={`h-16 bg-[var(--surface-card)] border-b border-[var(--border-subtle)] px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 select-none transition-colors duration-200 ${className}`}>
-      {/* Left side: [Brand Identity / Back / App Name / Left Slot] */}
+      {/* Left side: [Back to Dashboard] -> [App Logo Badge] -> [App Title · Subtitle Breadcrumb] */}
       <div className="flex items-center gap-3">
-        {/* Back Link to Portal */}
+        {/* 1. Back Link to Dashboard */}
         {showBackToDashboard && (
           <div className="flex items-center">
             <BackToDashboard href={resolvedBackHref} />
           </div>
         )}
 
-        {/* Brand Icon & Typography */}
+        {/* 2. App Logo Badge & 3. Title Breadcrumb */}
         <div className="flex items-center gap-2.5">
-          {brandIcon ? (
-            <div className="w-8 h-8 rounded-lg bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shrink-0 shadow-[0_0_12px_var(--accent-glow)]">
-              {brandIcon}
-            </div>
-          ) : (
-            <AlfheimLogo variant="mark" size={32} />
-          )}
+          <AppLogo appName={appName} customIcon={brandIcon} size={32} />
 
           <div className="hidden xs:flex flex-col leading-tight">
             <span className="font-bold text-sm tracking-wider uppercase text-[var(--text-main)] font-sans">
@@ -116,12 +114,24 @@ export function AppHeader({
         </div>
       )}
 
-      {/* Right side: [HouseholdSwitcher] + [LanguageSwitcher] + [ThemeToggle] + [AuthControls] + [Actions] */}
+      {/* Right side: [HouseholdSwitcher] -> [LanguageSelector] -> [ThemeToggle] -> [Notifications] -> [User Avatar + Logout] */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* 1. Household Switcher */}
         {showHouseholdSwitcher && <HouseholdSwitcher />}
+
+        {/* 2. Language Selector dropdown (DE / EN / PL) */}
         {showLanguageSwitcher && <LanguageSwitcher variant="dropdown" />}
+
+        {/* 3. Theme Toggle button */}
         {showThemeToggle && <ThemeToggle showVariantToggle={true} />}
+
+        {/* 4. Notification Bell slot */}
+        {notificationSlot}
+
+        {/* 5. User Avatar & 6. Dedicated Logout Button */}
         {showAuthControls && <AuthControls user={user} onLogout={onLogout} />}
+
+        {/* Custom actions slot */}
         {actionsSlot}
       </div>
     </header>

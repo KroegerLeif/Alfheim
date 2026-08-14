@@ -33,8 +33,9 @@ export function Header() {
 
   return (
     <AppHeader
-      brandTitle="Alfheim OS"
-      brandSubtitle="Sovereign Cloud"
+      appName="dashboard"
+      brandTitle="ALFHEIM // DASHBOARD"
+      brandSubtitle="Sovereign Portal"
       showBackToDashboard={false}
       user={authUser}
       onLogout={logout}
@@ -55,7 +56,7 @@ export function Header() {
           </div>
         </div>
       }
-      actionsSlot={
+      notificationSlot={
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setNotificationsOpen(!notificationsOpen)}

@@ -5,7 +5,7 @@ import { AppHeader } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useLayout, NavOption } from "./LayoutContext";
 import { useAuth } from "@/core/auth/AuthContext";
-import { Bell, Wrench } from "lucide-react";
+import { Bell } from "lucide-react";
 import { cn } from "@/core/utils";
 
 interface NotificationItem {
@@ -54,26 +54,26 @@ export function Header() {
 
   return (
     <AppHeader
-      brandTitle="Maintenance"
+      appName="maintenance"
+      brandTitle="ALFHEIM // MAINTENANCE"
       brandSubtitle={titleMap[activeNav]}
-      brandIcon={<Wrench className="h-4 w-4" />}
       showBackToDashboard={true}
       backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
       user={authUser}
       onLogout={logout}
-      actionsSlot={
+      notificationSlot={
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "w-9 h-9 rounded-lg flex items-center justify-center transition-colors relative cursor-pointer border border-[var(--border-subtle)]",
+              "w-8 h-8 rounded-lg flex items-center justify-center transition-colors relative cursor-pointer border border-[var(--border-subtle)]",
               isOpen ? "bg-[var(--primary-main)] text-black" : "bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
             )}
             aria-label="Maintenance Notifications"
           >
             <Bell className="w-4 h-4" />
             {alertCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse ring-2 ring-[var(--surface-card)]" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse ring-2 ring-[var(--surface-card)]" />
             )}
           </button>
 
