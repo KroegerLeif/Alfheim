@@ -147,6 +147,7 @@
     "subtitle": "Customize UI appearance, gateway proxy rules, and security tokens.",
     "theme_title": "Visual Theme Mode",
     "theme_subtitle": "Select your design theme (Obsidian, Kinetic, Slate, or Custom).",
+    "nordic_desc": "Deep Frost Slate canvas with radiant Mint and Cyan aurora accents.",
     "obsidian_desc": "Sleek dark slate canvas with refined cyan primary accents.",
     "kinetic_desc": "Deep black canvas paired with electric neon blue glow.",
     "slate_desc": "Balanced slate gray design with soft indigo accents.",

@@ -80,7 +80,7 @@ export function AppHeader({
         <div className="flex items-center gap-2.5">
           <AppLogo appName={appName} customIcon={brandIcon} size={32} />
 
-          <div className="hidden xs:flex flex-col leading-tight">
+          <div className="flex flex-col leading-tight">
             <span className="font-bold text-sm tracking-wider uppercase text-[var(--text-main)] font-sans">
               {brandTitle}
             </span>
