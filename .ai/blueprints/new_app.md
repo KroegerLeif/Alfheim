@@ -169,7 +169,7 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
    ```yaml
    environment:
      - OTEL_ENABLED=true
-     - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+     - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
      - OTEL_EXPORTER_OTLP_INSECURE=true
      - OTEL_SERVICE_NAME=<app-name>-backend
    ```

@@ -105,7 +105,7 @@
           "desc": "Zentrales Ingress-Gateway für pfadbasiertes Routing, Header-Injektion und automatische HTTPS-Zertifikate."
         },
         "observability": {
-          "title": "OpenTelemetry & SigNoz",
+          "title": "OpenTelemetry & VictoriaStack",
           "desc": "Vollständiges Tracing, strukturierte Logs und Live-Telemetrie über alle Container."
         }
       }

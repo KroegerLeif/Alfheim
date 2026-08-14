@@ -9,6 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`refactor(telemetry): migrate monitoring stack from signoz to victoriastack and grafana`**
+  - Migrated legacy `apps/logging-stack` to `infrastructure/telemetry` (VictoriaMetrics, VictoriaLogs, OTel Collector, Vector, Grafana).
+  - Configured unified OTLP entrypoint via OpenTelemetry Collector Contrib (`:4317` / `:4318`) routing to VictoriaMetrics and VictoriaLogs.
+  - Configured Vector Docker socket log harvester forwarding OTLP logs.
+  - Configured Grafana with VictoriaMetrics and VictoriaLogs provisioning and Keycloak OIDC SSO.
+  - Updated Caddyfile, root `compose.yaml`, `up.sh`, and `down.sh`.
+  - Refactored Go dashboard backend `telemetry` service to query PromQL and LogSQL with automatic system fallback.
 * **`refactor(apps): localize sidebars and docs website components`**
   - Localized expand/collapse sidebar accessibility attributes in Maintenance and Chores.
   - Localized mascot states, network topology labels, storage/basepath tags, and zero-trust footer badges in `websites/docs`.
@@ -72,15 +79,15 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |
 | **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` (`maintenance_postgres_data`) |
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
-| **`apps/logging-stack`**| SigNoz (Otel / ClickHouse) | `api.alfheim.loegien.de/signoz` | Clickhouse |
+| **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
 | **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
 
 ### Docker Network Map:
-* **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Keycloak, RustFS S3, and API Backends.
+* **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Keycloak, RustFS S3, Grafana, and API Backends.
 * **`infra-net`** (Bridge, pre-created in `up.sh`): Keycloak ↔ `postgres-iam` database ↔ RustFS S3 backend.
 * **`core-net`** (Bridge, pre-created in `up.sh`): Control plane `dashboard-backend` ↔ `dashboard-db`.
 * **`app-<name>-net`** (Bridge, pre-created in `up.sh`): Isolated per-app database network (e.g. `app-pantry-net`, `app-shopping-net`).
-* **`observability-internal`** (External, pre-created in `up.sh`): Backends ↔ Otel Collector ↔ ClickHouse.
+* **`observability-internal`** (External, pre-created in `up.sh`): Backends & Vector ↔ OTel Collector ↔ VictoriaMetrics & VictoriaLogs.
 
 ---
 
@@ -221,4 +228,4 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 * Chores: `http://alfheim.loegien.localhost/chores`
 * Central API Gateway: `http://api.alfheim.loegien.localhost/api/v1`
 * Keycloak IAM: `http://api.alfheim.loegien.localhost/auth`
-* SigNoz Observability UI: `http://api.alfheim.loegien.localhost/signoz`
+* Grafana Telemetry UI: `http://api.alfheim.loegien.localhost/grafana`

@@ -105,8 +105,8 @@
           "desc": "Centralna brama ingress realizująca routing ścieżkowy, wstrzykiwanie nagłówków i certyfikaty HTTPS."
         },
         "observability": {
-          "title": "OpenTelemetry & SigNoz",
-          "desc": "Pełne rozproszone śledzenie żądań, ustrukturyzowane logi i telemetria na żywo."
+          "title": "OpenTelemetry & VictoriaStack",
+          "desc": "Pełne rozproszone śledzenie, ustrukturyzowane logi i telemetria na żywo we wszystkich kontenerach."
         }
       }
     },

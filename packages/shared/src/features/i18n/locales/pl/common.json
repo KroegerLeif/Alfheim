@@ -218,7 +218,7 @@
     "gateway_rules": "Reguły bramki i bezpieczeństwa",
     "gateway_subtitle": "Konfiguruj centralne trasy Nginx reverse proxy i tokeny Keycloak IAM.",
     "telemetry_stream": "Strumień OpenTelemetry",
-    "telemetry_stream_desc": "Wysyłaj dane telemetryczne CPU/RAM do kolektora SigNoz.",
+    "telemetry_stream_desc": "Wysyłaj dane telemetryczne CPU/RAM do kolektora VictoriaStack.",
     "system_update": "Aktualizacja systemu",
     "platform_up_to_date": "Platforma jest aktualna",
     "platform_release": "Wydanie platformy Alfheim OS",

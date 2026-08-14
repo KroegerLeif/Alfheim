@@ -22,7 +22,7 @@ export const TechStackSection: React.FC = () => {
       category: t('docs.techStack.categories.databases', 'Databases & Storage'),
       icon: Database,
       color: 'text-amber-400',
-      items: ['PostgreSQL 16 (Isolated instances)', 'RustFS (High-performance S3)', 'ClickHouse (SigNoz)', 'Redis (Caching)'],
+      items: ['PostgreSQL 16 (Isolated instances)', 'RustFS (High-performance S3)', 'VictoriaStack (Metrics & Logs)', 'Redis (Caching)'],
     },
     {
       category: t('docs.techStack.categories.platform', 'Platform & Mesh'),
