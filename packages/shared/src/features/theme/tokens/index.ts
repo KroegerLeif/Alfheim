@@ -1,19 +1,20 @@
 import { ResolvedMode, ThemeTokens, ThemeVariant } from '../types';
+import nordicTheme from './themes/nordic.json';
 import obsidianTheme from './themes/obsidian.json';
 import kineticTheme from './themes/kinetic.json';
 import slateTheme from './themes/slate.json';
 import customTheme from './themes/custom.json';
 
-export const DEFAULT_THEME_VARIANT: ThemeVariant = 'obsidian';
+export const DEFAULT_THEME_VARIANT: ThemeVariant = 'nordic';
 export const DEFAULT_THEME_MODE: ResolvedMode = 'dark';
 
 export const THEME_TOKENS: Record<ThemeVariant, Record<ResolvedMode, ThemeTokens>> = {
+  nordic: nordicTheme as Record<ResolvedMode, ThemeTokens>,
   obsidian: obsidianTheme as Record<ResolvedMode, ThemeTokens>,
   kinetic: kineticTheme as Record<ResolvedMode, ThemeTokens>,
   slate: slateTheme as Record<ResolvedMode, ThemeTokens>,
   custom: customTheme as Record<ResolvedMode, ThemeTokens>,
 };
-
 
 export const CSS_VAR_MAP: Record<keyof ThemeTokens, string> = {
   surfaceCanvas: '--surface-canvas',
@@ -21,6 +22,9 @@ export const CSS_VAR_MAP: Record<keyof ThemeTokens, string> = {
   surfaceElevated: '--surface-elevated',
   primaryMain: '--primary-main',
   primaryHover: '--primary-hover',
+  accentMint: '--accent-mint',
+  accentCyan: '--accent-cyan',
+  accentGold: '--accent-gold',
   borderSubtle: '--border-subtle',
   borderAccent: '--border-accent',
   textMain: '--text-main',

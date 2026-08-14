@@ -92,7 +92,7 @@ export const ArchitectureSection: React.FC = () => {
       <div className="mt-10 glass-card rounded-2xl p-6 sm:p-8 border border-[#1c2847]">
         <div className="flex items-center gap-2 text-xs font-mono text-[#3eb1ff] mb-4">
           <NetworkIcon className="w-4 h-4" />
-          <span>DOCKER MULTI-ZONE NETWORK TOPOLOGY</span>
+          <span>{t('docs.architecture.diagram_title', 'DOCKER MULTI-ZONE NETWORK TOPOLOGY')}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
           <div className="p-4 rounded-xl bg-[#0b1326] border border-sky-500/30">

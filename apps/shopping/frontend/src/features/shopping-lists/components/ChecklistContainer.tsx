@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ShoppingCart, X, CheckSquare } from "lucide-react";
+import { Search, ShoppingCart, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ItemRow } from "./ItemRow";
 import {
@@ -10,7 +10,6 @@ import {
   useDeleteShoppingItem,
 } from "../services/shoppingListService";
 import { getCategoryKeyForItem } from "../utils/category";
-import { Specular } from "@alfheim/shared";
 
 interface ChecklistContainerProps {
   listId: string;
@@ -33,8 +32,8 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
   if (isLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-3 animate-pulse">
-        <div className="h-6 w-32 bg-muted/40 rounded-md" />
-        <div className="h-4 w-48 bg-muted/30 rounded-md" />
+        <div className="h-6 w-32 bg-[var(--surface-elevated)] rounded-md" />
+        <div className="h-4 w-48 bg-[var(--surface-elevated)] rounded-md" />
       </div>
     );
   }
@@ -42,12 +41,11 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
   if (!list) {
     return (
       <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-        <Specular opacityClassName="via-white/20 dark:via-white/10" />
         <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3 shrink-0">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center glass-inset">
-            <ShoppingCart className="h-5 w-5 text-muted-foreground/30" />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
+            <ShoppingCart className="h-5 w-5 text-[var(--text-muted)]" />
           </div>
-          <span className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-widest select-none">
+          <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-widest select-none">
             {t("empty")}
           </span>
         </div>
@@ -58,74 +56,58 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
   const items = list?.items ?? [];
 
   // Filter items by search query
-  const filteredItems = searchQuery
-    ? items.filter((item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : items;
+  const filtered = items.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // Split into active and completed
-  const activeItems = filteredItems.filter((i) => !i.is_completed);
-  const completedItems = filteredItems.filter((i) => i.is_completed);
+  const openItems = filtered.filter((i) => !i.is_completed);
+  const completedItems = filtered.filter((i) => i.is_completed);
 
-  // Group active items by category key
-  const categoriesMap: Record<string, typeof activeItems> = {};
-  activeItems.forEach((item) => {
-    const categoryKey = getCategoryKeyForItem(item.name, item.product_id);
-    if (!categoriesMap[categoryKey]) {
-      categoriesMap[categoryKey] = [];
-    }
-    categoriesMap[categoryKey].push(item);
+  // Group open items by derived Category
+  const categoriesMap: Record<string, typeof items> = {};
+  openItems.forEach((item) => {
+    const key = getCategoryKeyForItem(item.name);
+    if (!categoriesMap[key]) categoriesMap[key] = [];
+    categoriesMap[key].push(item);
   });
 
-  const categories = Object.keys(categoriesMap);
+  const categoryKeys = Object.keys(categoriesMap);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-      <Specular opacityClassName="via-white/20 dark:via-white/10" />
-
-      {/* Checklist Header Toolbar */}
-      <div className="flex items-center justify-between gap-4 p-4 border-b border-border/40 shrink-0">
-        <div className="flex items-center gap-2">
-          <CheckSquare className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-heading font-black tracking-wider leading-none text-foreground uppercase">
-            {t("title")}
-          </h2>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-muted/50 border border-border/40 text-muted-foreground font-bold">
-            {activeItems.length} {t("open")}
-          </span>
-        </div>
-
-        {/* Local Search Input */}
-        <div className="flex items-center gap-2 h-9 px-3 rounded-xl glass-inset select-none shrink-0 w-36 md:w-52">
-          <Search className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+      {/* Search and item count filter sub-header */}
+      <div className="p-3 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3 shrink-0">
+        <div className="flex-1 flex items-center gap-2 h-9 px-3 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
+          <Search className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
           <input
+            type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className="flex-1 bg-transparent border-none outline-none font-sans text-xs text-foreground placeholder:text-muted-foreground/40 min-w-0"
+            className="flex-1 bg-transparent border-none outline-none font-heading text-xs font-semibold text-[var(--text-main)] placeholder:[var(--text-muted)]"
           />
           {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="cursor-pointer text-muted-foreground/50 hover:text-foreground shrink-0"
-            >
+            <button onClick={() => setSearchQuery("")} className="cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)]">
               <X className="h-3 w-3" />
             </button>
           )}
         </div>
+
+        <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold text-[var(--text-muted)] shrink-0 select-none">
+          <span className="text-[var(--primary-main)]">{openItems.length}</span> {t("open")}
+          <span>•</span>
+          <span className="text-[var(--text-muted)]">{completedItems.length}</span> {t("completed")}
+        </div>
       </div>
 
-      {/* Checklist scroll area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5 scrollbar-none min-h-0">
-        {/* Render grouped category items */}
-        {categories.map((catKey) => (
+      {/* Main checklist container */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-none min-h-0">
+        {/* Render grouped open items by category */}
+        {categoryKeys.map((catKey) => (
           <div key={catKey} className="space-y-2">
-            <div className="font-mono text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 select-none flex items-center gap-2">
-              <span>{tCat(catKey)}</span>
-              <div className="flex-1 h-[1px] bg-border/30" />
-              <span className="text-[9px] text-muted-foreground/40">
-                {categoriesMap[catKey].length}
+            <div className="px-2">
+              <span className="font-mono text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                {tCat(catKey)}
               </span>
             </div>
             <div className="space-y-1.5">
@@ -149,10 +131,10 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
 
         {/* Render completed items section at the bottom */}
         {completedItems.length > 0 && (
-          <div className="pt-4 border-t border-border/30">
+          <div className="pt-4 border-t border-[var(--border-subtle)]">
             <button
               onClick={() => setShowCompleted(!showCompleted)}
-              className="w-full font-mono text-[10px] font-bold text-muted-foreground/50 hover:text-muted-foreground uppercase tracking-widest px-2 mb-2 select-none flex items-center justify-between cursor-pointer"
+              className="w-full font-mono text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 mb-2 select-none flex items-center justify-between cursor-pointer"
             >
               <span>
                 {t("completed")} ({completedItems.length})
@@ -186,10 +168,10 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
         {/* Empty layout view */}
         {items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3 shrink-0">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center glass-inset text-muted-foreground/30">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[var(--text-muted)]">
               <ShoppingCart className="h-6 w-6" />
             </div>
-            <span className="font-mono text-xs text-muted-foreground/50 uppercase tracking-widest select-none">
+            <span className="font-mono text-xs text-[var(--text-muted)] uppercase tracking-widest select-none">
               {t("empty")}
             </span>
           </div>

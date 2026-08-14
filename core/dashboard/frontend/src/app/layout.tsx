@@ -31,7 +31,6 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
-      data-theme="obsidian"
       suppressHydrationWarning
     >
       <head>
@@ -56,7 +55,7 @@ export default function RootLayout({
         }>
           <AuthProvider>
             <LanguageProvider defaultLanguage="de">
-              <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
+              <ThemeProvider defaultMode="dark" defaultVariant="nordic">
                 <QueryProvider>
                   <div className="flex h-screen w-full overflow-hidden">
                     <Sidebar />

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation, AppLogo } from '@alfheim/shared';
 import { useAuth } from '@/core/providers';
 
 interface NavItemConfig {
@@ -33,15 +33,13 @@ export function Sidebar() {
     <aside className="hidden md:flex w-[280px] h-full bg-[var(--surface-card)] border-r border-[var(--border-subtle)] flex-col shrink-0 select-none z-20">
       {/* Brand Header */}
       <div className="h-16 px-6 flex items-center gap-3 border-b border-[var(--border-subtle)]">
-        <div className="w-8 h-8 rounded-lg bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]">
-          <span className="material-symbols-outlined text-xl">blur_on</span>
-        </div>
+        <AppLogo appName="dashboard" size={32} />
         <div className="flex flex-col">
-          <span className="font-bold text-sm tracking-wider uppercase text-[var(--text-main)]">
-            Alfheim OS
+          <span className="font-bold text-sm tracking-wider uppercase text-[var(--text-main)] font-sans">
+            ALFHEIM // DASHBOARD
           </span>
-          <span className="text-[11px] text-[var(--text-muted)] font-mono">
-            Obsidian Flux v1.0
+          <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">
+            Sovereign Portal
           </span>
         </div>
       </div>

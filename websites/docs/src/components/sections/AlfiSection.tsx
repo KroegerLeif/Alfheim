@@ -16,14 +16,14 @@ export const AlfiSection: React.FC = () => {
   ];
 
   const statesList: { key: AlfiState; label: string }[] = [
-    { key: 'idle', label: 'Idle' },
-    { key: 'thinking', label: 'Thinking' },
-    { key: 'speaking', label: 'Speaking' },
-    { key: 'listening', label: 'Listening' },
-    { key: 'eating', label: 'Eating' },
-    { key: 'fixing', label: 'Fixing' },
-    { key: 'chasing', label: 'Chasing' },
-    { key: 'sleeping', label: 'Standby' },
+    { key: 'idle', label: t('docs.states.idle', 'Idle') },
+    { key: 'thinking', label: t('docs.states.thinking', 'Thinking') },
+    { key: 'speaking', label: t('docs.states.speaking', 'Speaking') },
+    { key: 'listening', label: t('docs.states.listening', 'Listening') },
+    { key: 'eating', label: t('docs.states.eating', 'Eating') },
+    { key: 'fixing', label: t('docs.states.fixing', 'Fixing') },
+    { key: 'chasing', label: t('docs.states.chasing', 'Chasing') },
+    { key: 'sleeping', label: t('docs.states.sleeping', 'Standby') },
   ];
 
   const cycleState = () => {

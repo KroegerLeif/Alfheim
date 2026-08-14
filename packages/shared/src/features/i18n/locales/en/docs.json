@@ -61,7 +61,9 @@
         "description": "Unified OIDC authentication brokering, live telemetry streaming, catalog management, and Caddy reverse proxy routing.",
         "badge": "Go + Next.js",
         "route": "/"
-      }
+      },
+      "storage_label": "Storage",
+      "basepath_label": "Frontend BasePath"
     },
     "alfi": {
       "badge": "Autonomous Companion",
@@ -71,12 +73,24 @@
       "cap1": "Proactive inventory restocking & deficit detection",
       "cap2": "Natural language recipe suggestions from available pantry items",
       "cap3": "Automated maintenance scheduling & warranty ingestion",
-      "cap4": "Fair chore allocation & streak preservation reminders"
+      "cap4": "Fair chore allocation & streak preservation reminders",
+      "states": {
+        "idle": "Idle",
+        "thinking": "Thinking",
+        "speaking": "Speaking",
+        "listening": "Listening",
+        "eating": "Eating",
+        "fixing": "Fixing",
+        "chasing": "Chasing",
+        "sleeping": "Standby"
+      }
     },
     "architecture": {
       "badge": "Topology & Security",
       "title": "Architectural Foundation",
       "subtitle": "Security-first multi-zone network segmentation with unified Keycloak identity brokering.",
+      "diagram_title": "DOCKER MULTI-ZONE NETWORK TOPOLOGY",
+      "gateway_net_desc": "Caddy Ingress & Frontends",
       "pillars": {
         "iam": {
           "title": "Zero-Trust IAM",
@@ -97,16 +111,24 @@
       }
     },
     "techStack": {
+      "badge": "Engineering",
       "title": "Technology Stack",
       "frontend": "Frontends: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
       "backend": "Backends: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
       "database": "Databases: PostgreSQL 16 (dedicated instances per app), ClickHouse",
-      "infra": "Infra: Docker Compose, Caddy 2, Keycloak 24, RustFS (S3-compatible)"
+      "infra": "Infra: Docker Compose, Caddy 2, Keycloak 24, RustFS (S3-compatible)",
+      "categories": {
+        "frontends": "Frontends & UI",
+        "backends": "API Backends",
+        "storage": "Databases & Storage",
+        "platform": "Platform & Mesh"
+      }
     },
     "footer": {
       "copyright": "© 2026 Alfheim Sovereign OS. All rights reserved.",
       "license": "Licensed under MIT",
-      "builtWith": "Built with React 19, Vite, and Tailwind CSS v4."
+      "builtWith": "Built with React 19, Vite, and Tailwind CSS v4.",
+      "zero_trust_badge": "Zero-Trust Architecture"
     }
   }
 }

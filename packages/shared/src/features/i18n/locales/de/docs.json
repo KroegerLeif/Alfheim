@@ -61,7 +61,9 @@
         "description": "Zentrale OIDC-Authentifizierung, Live-Telemetrie-Streaming, App-Katalog und Caddy-Proxy-Routing.",
         "badge": "Go + Next.js",
         "route": "/"
-      }
+      },
+      "storage_label": "Speicher",
+      "basepath_label": "Frontend BasePath"
     },
     "alfi": {
       "badge": "Autonomer Begleiter",
@@ -71,12 +73,24 @@
       "cap1": "Proaktive Nachbestellempfehlungen und Erkennung von Vorratsmängeln",
       "cap2": "Rezeptvorschläge in natürlicher Sprache basierend auf Vorräten",
       "cap3": "Automatische Wartungsplanung und Garantiebeleg-Archivierung",
-      "cap4": "Faire Aufgabenverteilung und Streak-Erinnerungen"
+      "cap4": "Faire Aufgabenverteilung und Streak-Erinnerungen",
+      "states": {
+        "idle": "Bereit",
+        "thinking": "Denkt nach",
+        "speaking": "Spricht",
+        "listening": "Hört zu",
+        "eating": "Essen",
+        "fixing": "Repariert",
+        "chasing": "Verfolgt",
+        "sleeping": "Standby"
+      }
     },
     "architecture": {
       "badge": "Topologie & Sicherheit",
       "title": "Architektonisches Fundament",
       "subtitle": "Sicherheitsfokussierte Multi-Zonen-Netzwerksegmentierung mit einheitlichem Keycloak-Identitätsmanagement.",
+      "diagram_title": "DOCKER MULTI-ZONEN NETZWERK TOPOLOGIE",
+      "gateway_net_desc": "Caddy Ingress & Frontends",
       "pillars": {
         "iam": {
           "title": "Zero-Trust IAM",
@@ -97,16 +111,24 @@
       }
     },
     "techStack": {
+      "badge": "Technik",
       "title": "Technologie-Stack",
       "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
       "backend": "Backend: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
       "database": "Datenbanken: PostgreSQL 16 (dedizierte Instanzen je App), ClickHouse",
-      "infra": "Infrastruktur: Docker Compose, Caddy 2, Keycloak 24, RustFS (S3-kompatibel)"
+      "infra": "Infrastruktur: Docker Compose, Caddy 2, Keycloak 24, RustFS (S3-kompatibel)",
+      "categories": {
+        "frontends": "Frontends & UI",
+        "backends": "API Backends",
+        "storage": "Datenbanken & Speicher",
+        "platform": "Plattform & Mesh"
+      }
     },
     "footer": {
       "copyright": "© 2026 Alfheim Sovereign OS. Alle Rechte vorbehalten.",
       "license": "Lizenziert unter MIT",
-      "builtWith": "Erstellt mit React 19, Vite und Tailwind CSS v4."
+      "builtWith": "Erstellt mit React 19, Vite und Tailwind CSS v4.",
+      "zero_trust_badge": "Zero-Trust Architektur"
     }
   }
 }

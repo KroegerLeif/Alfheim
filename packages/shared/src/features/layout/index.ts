@@ -1,3 +1,4 @@
 export * from './Header';
-export * from './SidePanel';
 export * from './Shell';
+export * from './AppShell';
+export * from './SidePanel';

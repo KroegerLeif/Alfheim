@@ -126,7 +126,26 @@ Verify HTTP routing and responses using browser or `curl`:
 
 ---
 
-## 5. Security & Keycloak OIDC Token Verification
+## 5. Design System & Unified Theme Engine (`@alfheim/shared`)
+
+The monorepo shares a centralized design system and dynamic theme engine through the `@alfheim/shared` package:
+
+* **Default Variant**: **`nordic` (Nordic Dark)** — Featuring Deep Frost Slate canvas with radiant Mint and Cyan aurora accents.
+* **Available Themes**: `nordic`, `obsidian`, `kinetic`, `slate`, and user-configurable `custom` themes with live color swatches and localStorage presets.
+* **CSS Ingestion**: All micro-frontends import centralized Tailwind CSS v4 design tokens and `:root` variables via `@import "@alfheim/shared/styles/theme.css";`.
+* **Dynamic Theme Propagation**: Micro-frontends initialize `<ThemeProvider defaultMode="dark" defaultVariant="nordic">` to guarantee zero theme flickering across subpaths.
+
+---
+
+## 6. Internationalization (i18n)
+
+* **Supported Locales**: English (`en`), German (`de`), and Polish (`pl`).
+* **Dictionary Architecture**: Centralized JSON dictionaries stored in `packages/shared/src/features/i18n/locales/{en,de,pl}/` covering `common`, `dashboard`, `pantry`, `shopping`, `maintenance`, `chores`, and `docs`.
+* **Route Resolution**: Micro-frontends enforce localized subpath routing (e.g. `/pantry/en`, `/shopping/de`, `/chores/pl`).
+
+---
+
+## 7. Security & Keycloak OIDC Token Verification
 
 * **Public Issuer URL**: `http://api.alfheim.loegien.localhost/auth/realms/alfheim`
 * **Internal Docker JWKS**: `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`

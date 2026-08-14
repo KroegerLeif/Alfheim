@@ -3,8 +3,6 @@
 import { useTranslations } from "next-intl";
 import { QuickTile } from "./QuickTile";
 import { useShoppingHistory } from "../services/shoppingHistoryService";
-import { Specular } from "@alfheim/shared";
-import { cn } from "@/lib/utils";
 
 interface QuickAddGridProps {
   onAdd: (name: string, unit: string) => void;
@@ -20,24 +18,22 @@ export function QuickAddGrid({ onAdd, disabled = false }: QuickAddGridProps) {
 
   if (isLoading) {
     return (
-      <div className="glass-card rounded-2xl p-5 flex flex-col min-h-0 relative overflow-hidden animate-pulse">
-        <div className="h-4 w-28 bg-white/5 rounded-md mb-4" />
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 flex flex-col min-h-0 relative overflow-hidden animate-pulse">
+        <div className="h-4 w-28 bg-[var(--surface-elevated)] rounded-md mb-4" />
         <div className="grid grid-cols-2 gap-2">
-          <div className="h-20 bg-white/5 rounded-xl" />
-          <div className="h-20 bg-white/5 rounded-xl" />
-          <div className="h-20 bg-white/5 rounded-xl" />
-          <div className="h-20 bg-white/5 rounded-xl" />
+          <div className="h-20 bg-[var(--surface-elevated)] rounded-xl" />
+          <div className="h-20 bg-[var(--surface-elevated)] rounded-xl" />
+          <div className="h-20 bg-[var(--surface-elevated)] rounded-xl" />
+          <div className="h-20 bg-[var(--surface-elevated)] rounded-xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="glass-card rounded-2xl p-5 flex flex-col min-h-0 relative overflow-hidden flex-1 select-none">
-      <Specular opacityClassName="via-white/20 dark:via-white/10" />
-
+    <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 flex flex-col min-h-0 relative overflow-hidden flex-1 select-none">
       <div className="relative z-10 flex flex-col min-h-0 h-full">
-        <h3 className="font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground/45 mb-4 shrink-0">
+        <h3 className="font-mono text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-4 shrink-0">
           {t("title")}
         </h3>
 
@@ -57,7 +53,7 @@ export function QuickAddGrid({ onAdd, disabled = false }: QuickAddGridProps) {
 
           {history.length === 0 && (
             <div className="flex items-center justify-center py-12">
-              <span className="font-mono text-[9px] text-muted-foreground/30 uppercase tracking-widest">
+              <span className="font-mono text-[9px] text-[var(--text-muted)] uppercase tracking-widest">
                 {t("noHistory")}
               </span>
             </div>

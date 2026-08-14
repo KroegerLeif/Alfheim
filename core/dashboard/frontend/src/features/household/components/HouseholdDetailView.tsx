@@ -105,7 +105,7 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
           {t('household.not_found')}
         </h3>
         <p className="text-xs text-[var(--text-muted)]">
-          The requested household does not exist or you do not have permission to view it.
+          {t('household.not_found_desc')}
         </p>
         <Link
           href="/household"

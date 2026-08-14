@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n/utils/useTranslation';
 
 const STORAGE_KEY = 'alfheim_active_household_id';
 const CACHE_KEY = 'alfheim_cached_households';
+const LEGACY_CACHE_KEY = 'loeger_os_cached_households';
 
 interface Household {
   id: string;
@@ -15,31 +16,30 @@ interface Household {
 
 export function HouseholdSwitcher({ className = '' }: { className?: string }) {
   const { t } = useTranslation();
-  const [households, setHouseholds] = useState<Household[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [households, setHouseholds] = useState<Household[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY) || localStorage.getItem(LEGACY_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // Ignore cache error
+      }
+    }
+    return [];
+  });
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_KEY);
+    }
+    return null;
+  });
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load cached households for instant render (stale-while-revalidate)
-    try {
-      const cachedHouseholds = localStorage.getItem(CACHE_KEY);
-      if (cachedHouseholds) {
-        const parsed = JSON.parse(cachedHouseholds);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setHouseholds(parsed);
-        }
-      }
-    } catch {
-      // Ignore malformed cache
-    }
-
-    // Load active ID from localStorage
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setActiveId(saved);
-    }
-
     // Fetch households from central dashboard backend using active frontend auth tokens
     const token = sessionStorage.getItem('token_chores-frontend') ||
                   sessionStorage.getItem('token_maintenance-frontend') ||
@@ -58,9 +58,9 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
           const data = await res.json();
           if (Array.isArray(data)) {
             setHouseholds(data);
-            // Cache households for instant render on next mount
             try {
               localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+              localStorage.setItem(LEGACY_CACHE_KEY, JSON.stringify(data));
             } catch {
               // Ignore storage quota errors
             }
@@ -136,7 +136,7 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-mono text-[var(--text-main)] transition-all duration-200 cursor-pointer"
-        aria-label="Select Household"
+        aria-label={t('household.select_household') || 'Select Household'}
       >
         <span className="material-symbols-outlined text-sm text-[var(--primary-main)]">home</span>
         <span className="font-semibold">{selectedHousehold?.name || t('household.title')}</span>

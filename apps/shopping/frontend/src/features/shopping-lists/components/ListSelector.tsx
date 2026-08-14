@@ -11,7 +11,6 @@ import {
   useHouseholds,
 } from "../services/shoppingListService";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
-import { Specular } from "@alfheim/shared";
 import type { ShoppingList } from "../types";
 import { ListTab } from "./ListTab";
 
@@ -69,7 +68,6 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
       }
     });
 
-    // Custom lists are already ordered by position index from the backend
     return {
       orderedLists: [...hhLists, ...persLists],
       customListsOnly: custLists,
@@ -98,8 +96,6 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
       const updated = [...customIds];
       const [moved] = updated.splice(fromIndex, 1);
       updated.splice(toIndex, 0, moved);
-
-      // Trigger mutation to save the new order in the database
       reorderLists.mutate(updated);
     }
     setDraggedListId(null);
@@ -136,8 +132,8 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   if (isLoading) {
     return (
       <div className="flex gap-2 shrink-0">
-        <div className="h-11 w-28 rounded-2xl glass-card animate-pulse" />
-        <div className="h-11 w-28 rounded-2xl glass-card animate-pulse" />
+        <div className="h-11 w-28 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] animate-pulse" />
+        <div className="h-11 w-28 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] animate-pulse" />
       </div>
     );
   }
@@ -146,9 +142,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
   return (
     <div className="shrink-0 max-w-full overflow-x-auto scrollbar-none flex items-center gap-2">
-      <div className="inline-flex p-1.5 rounded-2xl glass-card relative overflow-hidden shrink-0 select-none">
-        <Specular opacityClassName="via-white/30 dark:via-white/10" />
-
+      <div className="inline-flex p-1.5 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] relative overflow-hidden shrink-0 select-none">
         <div className="flex gap-1 relative z-10 items-center">
           {orderedLists.map((list) => {
             const isActive = activeListId === list.id;
@@ -194,7 +188,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 placeholder={tNav("newListPlaceholder")}
-                className="bg-transparent border-none outline-none font-heading text-xs font-bold uppercase tracking-wider text-foreground placeholder:text-muted-foreground/40 w-24"
+                className="bg-transparent border-none outline-none font-heading text-xs font-bold uppercase tracking-wider text-[var(--text-main)] placeholder:[var(--text-muted)] w-24"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCreate();
@@ -218,7 +212,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
           ) : (
             <button
               onClick={() => setIsCreating(true)}
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground hover:text-foreground bg-[var(--surface-elevated)] hover:bg-[var(--surface-card)] transition-colors cursor-pointer shrink-0"
+              className="flex items-center justify-center w-9 h-9 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] transition-colors cursor-pointer shrink-0"
               title={tNav("newListPlaceholder")}
             >
               <Plus className="h-4 w-4" />

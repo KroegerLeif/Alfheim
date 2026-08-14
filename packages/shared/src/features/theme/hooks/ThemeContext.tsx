@@ -68,14 +68,18 @@ function applyThemeToDOM(variant: ThemeVariant, resolvedMode: ResolvedMode, cust
   }
 
   // 3. Inject CSS custom properties
-  let tokens: ThemeTokens = THEME_TOKENS[variant][resolvedMode];
+  const variantTokens = THEME_TOKENS[variant] || THEME_TOKENS.nordic;
+  let tokens: ThemeTokens = variantTokens[resolvedMode] || variantTokens.dark;
 
   if (variant === 'custom' && customColors) {
     const modeColors = customColors[resolvedMode];
     if (modeColors) {
-      const primary = modeColors.primary;
-      const canvas = modeColors.canvas;
+      const primary = modeColors.primary || '#10b981';
+      const canvas = modeColors.canvas || (resolvedMode === 'dark' ? '#0f172a' : '#f8fafc');
       const accent = modeColors.accent || primary;
+      const mint = modeColors.mint || (resolvedMode === 'dark' ? '#10b981' : '#059669');
+      const cyan = modeColors.cyan || (resolvedMode === 'dark' ? '#06b6d4' : '#0891b2');
+      const gold = modeColors.gold || (resolvedMode === 'dark' ? '#f59e0b' : '#d97706');
 
       const isResolvedDark = resolvedMode === 'dark';
       const surfaceCard = isResolvedDark ? adjustBrightness(canvas, 10) : '#ffffff';
@@ -86,6 +90,9 @@ function applyThemeToDOM(variant: ThemeVariant, resolvedMode: ResolvedMode, cust
         ...tokens,
         primaryMain: primary,
         primaryHover: adjustBrightness(primary, isResolvedDark ? 20 : -20),
+        accentMint: mint,
+        accentCyan: cyan,
+        accentGold: gold,
         surfaceCanvas: canvas,
         surfaceCard: surfaceCard,
         surfaceElevated: surfaceElevated,
@@ -133,12 +140,12 @@ export function ThemeProvider({
         const savedRaw = localStorage.getItem(STORAGE_KEY);
         if (savedRaw) {
           const parsed: ThemeOverrideConfig = JSON.parse(savedRaw);
-          if (parsed.variant && ['obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) {
+          if (parsed.variant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) {
             return parsed.variant;
           }
         }
         const legacyVariant = localStorage.getItem(LEGACY_STORAGE_KEY) as ThemeVariant;
-        if (legacyVariant && ['obsidian', 'kinetic', 'slate', 'custom'].includes(legacyVariant)) {
+        if (legacyVariant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(legacyVariant)) {
           return legacyVariant;
         }
       } catch {
@@ -156,14 +163,20 @@ export function ThemeProvider({
           const parsed = JSON.parse(saved);
           return {
             dark: {
-              primary: parsed.dark?.primary || '#3eb1ff',
-              canvas: parsed.dark?.canvas || '#0b1326',
-              accent: parsed.dark?.accent || '#3eb1ff',
+              primary: parsed.dark?.primary || '#10b981',
+              canvas: parsed.dark?.canvas || '#0f172a',
+              accent: parsed.dark?.accent || '#10b981',
+              mint: parsed.dark?.mint || '#10b981',
+              cyan: parsed.dark?.cyan || '#06b6d4',
+              gold: parsed.dark?.gold || '#f59e0b',
             },
             light: {
-              primary: parsed.light?.primary || '#0284c7',
-              canvas: parsed.light?.canvas || '#f4f6fb',
-              accent: parsed.light?.accent || '#0284c7',
+              primary: parsed.light?.primary || '#059669',
+              canvas: parsed.light?.canvas || '#f8fafc',
+              accent: parsed.light?.accent || '#059669',
+              mint: parsed.light?.mint || '#059669',
+              cyan: parsed.light?.cyan || '#0891b2',
+              gold: parsed.light?.gold || '#d97706',
             }
           };
         }
@@ -173,14 +186,20 @@ export function ThemeProvider({
     }
     return {
       dark: {
-        primary: '#3eb1ff',
-        canvas: '#0b1326',
-        accent: '#3eb1ff',
+        primary: '#10b981',
+        canvas: '#0f172a',
+        accent: '#10b981',
+        mint: '#10b981',
+        cyan: '#06b6d4',
+        gold: '#f59e0b',
       },
       light: {
-        primary: '#0284c7',
-        canvas: '#f4f6fb',
-        accent: '#0284c7',
+        primary: '#059669',
+        canvas: '#f8fafc',
+        accent: '#059669',
+        mint: '#059669',
+        cyan: '#0891b2',
+        gold: '#d97706',
       }
     };
   });
@@ -215,7 +234,7 @@ export function ThemeProvider({
           if (parsed.mode && ['dark', 'light', 'system'].includes(parsed.mode)) {
             setModeState(parsed.mode);
           }
-          if (parsed.variant && ['obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) {
+          if (parsed.variant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) {
             setVariantState(parsed.variant);
           }
         } catch {}
@@ -225,14 +244,20 @@ export function ThemeProvider({
           if (parsed.dark || parsed.light) {
             setCustomColorsState({
               dark: {
-                primary: parsed.dark?.primary || '#3eb1ff',
-                canvas: parsed.dark?.canvas || '#0b1326',
-                accent: parsed.dark?.accent || '#3eb1ff',
+                primary: parsed.dark?.primary || '#10b981',
+                canvas: parsed.dark?.canvas || '#0f172a',
+                accent: parsed.dark?.accent || '#10b981',
+                mint: parsed.dark?.mint || '#10b981',
+                cyan: parsed.dark?.cyan || '#06b6d4',
+                gold: parsed.dark?.gold || '#f59e0b',
               },
               light: {
-                primary: parsed.light?.primary || '#0284c7',
-                canvas: parsed.light?.canvas || '#f4f6fb',
-                accent: parsed.light?.accent || '#0284c7',
+                primary: parsed.light?.primary || '#059669',
+                canvas: parsed.light?.canvas || '#f8fafc',
+                accent: parsed.light?.accent || '#059669',
+                mint: parsed.light?.mint || '#059669',
+                cyan: parsed.light?.cyan || '#0891b2',
+                gold: parsed.light?.gold || '#d97706',
               }
             });
           }
@@ -282,7 +307,7 @@ export function ThemeProvider({
 
   const toggleTheme = useCallback(() => {
     setVariantState((prevVariant) => {
-      const nextVariant: ThemeVariant = prevVariant === 'obsidian' ? 'kinetic' : 'obsidian';
+      const nextVariant: ThemeVariant = prevVariant === 'nordic' ? 'obsidian' : 'nordic';
       setModeState((prevMode) => {
         saveOverride(prevMode, nextVariant);
         return prevMode;
@@ -308,4 +333,3 @@ export function ThemeProvider({
 
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
 }
-

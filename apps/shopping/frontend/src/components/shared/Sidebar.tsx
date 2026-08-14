@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { AppLogo } from "@alfheim/shared";
 import { useSidebar, useActiveList } from "@/app/[locale]/providers";
 import {
   useShoppingLists,
@@ -10,7 +11,7 @@ import {
   useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
-import { ChevronLeft, Home, User, Sparkles } from "lucide-react";
+import { ChevronLeft, Home, User, ShoppingBag } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "@/features/shopping-lists/types";
@@ -19,11 +20,7 @@ import { SidebarCustomItem } from "./sidebar/SidebarCustomItem";
 import { CreateListForm } from "./sidebar/CreateListForm";
 
 /**
- * Sidepanel navigation featuring:
- * - Brand header
- * - Protected System Lists
- * - Drag-and-Drop reorderable Custom Lists via backend position indexes
- * - User Profile Footer
+ * Clean Nordic Dark Sidebar navigation component for Shopping app.
  */
 export function Sidebar() {
   const t = useTranslations("Navigation");
@@ -100,22 +97,9 @@ export function Sidebar() {
       const updated = [...currentIds];
       const [moved] = updated.splice(fromIndex, 1);
       updated.splice(toIndex, 0, moved);
-
-      // Save order changes directly to the database
       reorderLists.mutate(updated);
     }
     setDraggedListId(null);
-  };
-
-  const handleCreate = (name: string) => {
-    createList.mutate(
-      { name },
-      {
-        onSuccess: (newList) => {
-          setActiveListId(newList.id);
-        },
-      }
-    );
   };
 
   if (!isSidebarOpen) return null;
@@ -123,34 +107,32 @@ export function Sidebar() {
   return (
     <>
       <div
-        className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+        className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => setIsSidebarOpen(false)}
         aria-hidden
       />
 
       <aside
         className={cn(
-          "w-72 border-r border-border/40 bg-card/95 backdrop-blur-xl text-foreground flex flex-col h-full select-none font-sans relative shrink-0 z-50 transition-all duration-300 shadow-xl md:shadow-none",
+          "w-72 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-sans relative shrink-0 z-40 transition-colors duration-200 shadow-xl md:shadow-none",
           "fixed md:relative inset-y-0 left-0"
         )}
       >
-        <div className="p-5 border-b border-border/40 flex items-center justify-between gap-2 shrink-0">
+        <div className="p-5 border-b border-[var(--border-subtle)] flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <Sparkles className="h-4 w-4" />
-            </div>
+            <AppLogo appName="shopping" size={32} />
             <div className="flex flex-col">
-              <span className="font-heading text-sm font-black uppercase tracking-wider text-foreground leading-tight">
-                {t("title")}
+              <span className="font-heading text-sm font-bold uppercase tracking-wider text-[var(--text-main)] leading-tight">
+                ALFHEIM // SHOPPING
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-widest leading-none">
-                {t("subtitle")}
+              <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest leading-none">
+                {t("subtitle") || "Smart Grocery List"}
               </span>
             </div>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-muted/60 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+            className="p-1.5 rounded-lg bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-subtle)] cursor-pointer transition-colors"
             aria-label={t("collapseSidebar")}
             title={t("collapseSidebar")}
           >
@@ -162,40 +144,28 @@ export function Sidebar() {
           {/* Household Lists Section */}
           <div className="space-y-1">
             <div className="px-3 pb-1">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground/50">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]">
                 {t("household_lists")}
               </span>
             </div>
 
             {isLoading ? (
               <div className="space-y-2 px-2 animate-pulse">
-                <div className="h-10 rounded-xl bg-muted/40" />
-                <div className="h-10 rounded-xl bg-muted/30" />
+                <div className="h-10 rounded-lg bg-[var(--surface-elevated)]" />
+                <div className="h-10 rounded-lg bg-[var(--surface-elevated)]" />
               </div>
             ) : (
               householdLists.map((list) => {
                 const isActive = activeListId === list.id;
-                const completedCount = (list.items ?? []).filter((i) => i.is_completed).length;
-                const totalCount = (list.items ?? []).length;
-
                 return (
                   <SidebarItem
                     key={list.id}
                     isActive={isActive}
                     onClick={() => handleSelectHouseholdList(list)}
-                    icon={
-                      <Home
-                        className={cn(
-                          "h-4 w-4 shrink-0 transition-colors",
-                          isActive
-                            ? "text-emerald-500 dark:text-emerald-400"
-                            : "text-muted-foreground/60 group-hover:text-emerald-500"
-                        )}
-                      />
-                    }
+                    icon={<Home className={cn("h-4 w-4 shrink-0 transition-colors", isActive ? "text-[var(--primary-main)]" : "text-[var(--text-muted)]")} />}
                     label={list.displayName}
-                    completedCount={completedCount}
-                    totalCount={totalCount}
+                    completedCount={(list.items ?? []).filter((i) => i.is_completed).length}
+                    totalCount={(list.items ?? []).length}
                   />
                 );
               })
@@ -205,82 +175,54 @@ export function Sidebar() {
           {/* Personal & Custom Lists Section */}
           <div className="space-y-1">
             <div className="px-3 pb-1 flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground/50">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]">
                 {t("personal_lists")}
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground/40">
+              <span className="text-[10px] font-mono text-[var(--text-muted)]">
                 {lists.filter(l => !l.is_default).length}
               </span>
             </div>
-
-            {lists.length === 0 && !isLoading && (
-              <div className="px-3 py-3 text-center text-[11px] font-mono text-muted-foreground/40 italic">
-                {t("noLists")}
-              </div>
-            )}
 
             {!isLoading && personalList && (
               <SidebarItem
                 isActive={activeListId === (personalList as ShoppingList).id}
                 onClick={() => handleSelectPersonalOrCustomList(personalList as ShoppingList)}
-                icon={
-                  <User
-                    className={cn(
-                      "h-4 w-4 shrink-0 transition-colors",
-                      activeListId === (personalList as ShoppingList).id
-                        ? "text-blue-500 dark:text-blue-400"
-                        : "text-muted-foreground/60 group-hover:text-blue-500"
-                    )}
-                  />
-                }
-                label={
-                  user.username && user.username !== "User"
-                    ? t("personalList", { username: user.username })
-                    : t("personal_list_fallback")
-                }
+                icon={<User className={cn("h-4 w-4 shrink-0 transition-colors", activeListId === (personalList as ShoppingList).id ? "text-[var(--accent-cyan)]" : "text-[var(--text-muted)]")} />}
+                label={user.username && user.username !== "User" ? t("personalList", { username: user.username }) : t("personal_list_fallback")}
                 completedCount={((personalList as ShoppingList).items ?? []).filter((i) => i.is_completed).length}
                 totalCount={((personalList as ShoppingList).items ?? []).length}
               />
             )}
 
             {!isLoading &&
-              customLists.map((list) => {
-                const isActive = activeListId === list.id;
-                const completedCount = (list.items ?? []).filter((i) => i.is_completed).length;
-                const totalCount = (list.items ?? []).length;
-                const isDragging = draggedListId === list.id;
+              customLists.map((list) => (
+                <SidebarCustomItem
+                  key={list.id}
+                  name={list.name}
+                  isActive={activeListId === list.id}
+                  isDragging={draggedListId === list.id}
+                  completedCount={(list.items ?? []).filter((i) => i.is_completed).length}
+                  totalCount={(list.items ?? []).length}
+                  onSelect={() => handleSelectPersonalOrCustomList(list)}
+                  onDelete={() => {
+                    deleteList.mutate(list.id, {
+                      onSuccess: () => {
+                        if (activeListId === list.id) {
+                          const fallback = householdLists[0] || personalList;
+                          if (fallback) setActiveListId(fallback.id);
+                        }
+                      },
+                    });
+                  }}
+                  onDragStart={(e) => handleDragStart(e, list.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, list.id)}
+                  onDragEnd={() => setDraggedListId(null)}
+                  isPendingDelete={deleteList.isPending}
+                />
+              ))}
 
-                return (
-                  <SidebarCustomItem
-                    key={list.id}
-                    name={list.name}
-                    isActive={isActive}
-                    isDragging={isDragging}
-                    completedCount={completedCount}
-                    totalCount={totalCount}
-                    onSelect={() => handleSelectPersonalOrCustomList(list)}
-                    onDelete={() => {
-                      deleteList.mutate(list.id, {
-                        onSuccess: () => {
-                          if (isActive) {
-                            const fallback = householdLists[0] || personalList;
-                            if (fallback) {
-                              setActiveListId(fallback.id);
-                            }
-                          }
-                        },
-                      });
-                    }}
-                    onDragStart={(e) => handleDragStart(e, list.id)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, list.id)}
-                    onDragEnd={() => setDraggedListId(null)}
-                    isPendingDelete={deleteList.isPending}
-                  />
-                );
-              })}
-
-            <CreateListForm onSave={handleCreate} isPending={createList.isPending} />
+            <CreateListForm onSave={(name) => createList.mutate({ name }, { onSuccess: (l) => setActiveListId(l.id) })} isPending={createList.isPending} />
           </div>
         </div>
       </aside>

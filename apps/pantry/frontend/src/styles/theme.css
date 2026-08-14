@@ -19,8 +19,7 @@
   --input: var(--surface-elevated);
   --ring: var(--primary-main);
   
-  /* Strict Swiss style flat corners */
-  --radius: 0rem;
+  --radius: 0.5rem;
 }
 
 @theme {
@@ -44,7 +43,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --font-heading: var(--font-barlow-condensed), sans-serif;
+  --font-heading: var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
   --font-body: var(--font-inter), sans-serif;
 

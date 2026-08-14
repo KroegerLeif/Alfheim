@@ -148,14 +148,14 @@ export const AppsGrid: React.FC = () => {
                 <div className="flex items-center justify-between text-xs font-mono text-[#8b949e]">
                   <span className="flex items-center gap-1.5">
                     <Database className="w-3.5 h-3.5 text-[#3eb1ff]" />
-                    Storage
+                    {t('docs.modules.storage_label', 'Storage')}
                   </span>
                   <span className="text-[#f0f6fc]">{app.db}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-mono text-[#8b949e]">
                   <span className="flex items-center gap-1.5">
                     <Globe2 className="w-3.5 h-3.5 text-[#3eb1ff]" />
-                    Frontend BasePath
+                    {t('docs.modules.basepath_label', 'Frontend BasePath')}
                   </span>
                   <span className="text-[#3eb1ff] bg-[#0b1326] px-1.5 py-0.5 rounded border border-[#1c2847]">
                     {app.route}

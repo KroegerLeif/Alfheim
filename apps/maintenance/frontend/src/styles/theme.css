@@ -1,5 +1,4 @@
 :root {
-  /* Core Variables mapped to Shared Design System */
   --background: var(--surface-canvas);
   --foreground: var(--text-main);
   --card: var(--surface-card);
@@ -14,67 +13,13 @@
   --muted-foreground: var(--text-muted);
   --accent: var(--primary-main);
   --accent-foreground: var(--surface-canvas);
-  --destructive: #f43f5e;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: var(--border-subtle);
   --input: var(--surface-elevated);
   --ring: var(--primary-main);
   
-  --radius: 1rem;
-  
-  /* Light Mode Glass Tokens */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border-top: rgba(226, 232, 240, 0.8);
-  --glass-border-left: rgba(226, 232, 240, 0.6);
-  --glass-border-right: rgba(226, 232, 240, 0.4);
-  --glass-border-bottom: rgba(203, 213, 225, 0.6);
-  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-  
-  --glass-active-bg: rgba(6, 182, 212, 0.08);
-  --glass-active-border-top: rgba(6, 182, 212, 0.3);
-  --glass-active-border-left: rgba(6, 182, 212, 0.2);
-  --glass-active-border-right: rgba(6, 182, 212, 0.1);
-  --glass-active-border-bottom: rgba(6, 182, 212, 0.2);
-  --glass-active-shadow: 0 4px 12px rgba(6, 182, 212, 0.1);
-  
-  --glass-inset-bg: rgba(241, 245, 249, 0.7);
-  --glass-inset-border-top: rgba(203, 213, 225, 0.4);
-  --glass-inset-border-left: rgba(203, 213, 225, 0.3);
-  --glass-inset-border-right: rgba(203, 213, 225, 0.2);
-  --glass-inset-border-bottom: rgba(255, 255, 255, 0.8);
-  --glass-inset-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-
-  --glass-modal-bg: #ffffff;
-  --glass-modal-border: #cbd5e1;
-  --glass-modal-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-.dark {
-  /* Dark Mode Glass Tokens */
-  --glass-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-  --glass-border-top: rgba(255, 255, 255, 0.12);
-  --glass-border-left: rgba(255, 255, 255, 0.08);
-  --glass-border-right: rgba(255, 255, 255, 0.04);
-  --glass-border-bottom: rgba(0, 0, 0, 0.3);
-  --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
-  
-  --glass-active-bg: linear-gradient(150deg, rgba(6, 182, 212, 0.18) 0%, rgba(6, 182, 212, 0.08) 100%);
-  --glass-active-border-top: rgba(34, 211, 238, 0.3);
-  --glass-active-border-left: rgba(34, 211, 238, 0.2);
-  --glass-active-border-right: rgba(6, 182, 212, 0.1);
-  --glass-active-border-bottom: rgba(6, 182, 212, 0.2);
-  --glass-active-shadow: 0 4px 20px rgba(6, 182, 212, 0.15);
-  
-  --glass-inset-bg: rgba(255, 255, 255, 0.03);
-  --glass-inset-border-top: rgba(255, 255, 255, 0.1);
-  --glass-inset-border-left: rgba(255, 255, 255, 0.05);
-  --glass-inset-border-right: rgba(255, 255, 255, 0.02);
-  --glass-inset-border-bottom: rgba(0, 0, 0, 0.2);
-  --glass-inset-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-
-  --glass-modal-bg: #0f172a;
-  --glass-modal-border: rgba(255, 255, 255, 0.12);
-  --glass-modal-shadow: 0 32px 64px rgba(0, 0, 0, 0.6);
+  --radius: 0.75rem;
 }
 
 @theme {
