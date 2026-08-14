@@ -7,7 +7,7 @@ import { TelemetryMetrics } from '@/shared/types';
 
 /**
  * System Health Telemetry Widget.
- * Renders dynamic CPU, RAM, Network I/O, and Uptime Bento cards with live SigNoz / backend telemetry.
+ * Renders dynamic CPU, RAM, Network I/O, and Uptime Bento cards with live VictoriaStack / backend telemetry.
  * Styled with high contrast and explicit layout boundaries for Obsidian Flux & Kinetic themes.
  */
 export function SystemHealthWidget() {

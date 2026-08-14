@@ -11,8 +11,8 @@ import (
 
 func TestTelemetryService_GetMetricsFallback(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	// Unreachable SigNoz URL to test fallback execution
-	svc := telemetry.NewService("http://invalid-signoz-query-host:9999", logger)
+	// Unreachable VictoriaMetrics URL to test fallback execution
+	svc := telemetry.NewService("http://invalid-victoriametrics-host:9999", logger)
 	ctx := context.Background()
 
 	metrics, err := svc.GetMetrics(ctx)
@@ -43,7 +43,7 @@ func TestTelemetryService_GetMetricsFallback(t *testing.T) {
 
 func TestTelemetryService_GetLogsFallback(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := telemetry.NewService("http://invalid-signoz-query-host:9999", logger)
+	svc := telemetry.NewService("http://invalid-victoriametrics-host:9999", logger)
 	ctx := context.Background()
 
 	logsResp, err := svc.GetLogs(ctx)
