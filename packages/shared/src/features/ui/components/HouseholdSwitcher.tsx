@@ -4,8 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../../i18n/utils/useTranslation';
 
 const STORAGE_KEY = 'alfheim_active_household_id';
-const CACHE_KEY = 'loeger_os_cached_households';
-const LEGACY_CACHE_KEY = 'alfheim_cached_households';
+const CACHE_KEY = 'alfheim_cached_households';
+const LEGACY_CACHE_KEY = 'loeger_os_cached_households';
 
 interface Household {
   id: string;
@@ -136,7 +136,7 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-mono text-[var(--text-main)] transition-all duration-200 cursor-pointer"
-        aria-label="Select Household"
+        aria-label={t('household.select_household') || 'Select Household'}
       >
         <span className="material-symbols-outlined text-sm text-[var(--primary-main)]">home</span>
         <span className="font-semibold">{selectedHousehold?.name || t('household.title')}</span>
