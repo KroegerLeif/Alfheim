@@ -56,7 +56,7 @@ export function Header() {
     <AppHeader
       appName="maintenance"
       brandTitle="ALFHEIM // MAINTENANCE"
-      brandSubtitle={titleMap[activeNav]}
+      brandSubtitle={titleMap[activeNav] || "Device & Service Registry"}
       showBackToDashboard={true}
       backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
       user={authUser}
