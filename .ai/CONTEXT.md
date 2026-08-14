@@ -228,4 +228,4 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 * Chores: `http://alfheim.loegien.localhost/chores`
 * Central API Gateway: `http://api.alfheim.loegien.localhost/api/v1`
 * Keycloak IAM: `http://api.alfheim.loegien.localhost/auth`
-* Grafana Telemetry UI: `http://api.alfheim.loegien.localhost/grafana`
+* Grafana Telemetry UI: `http://alfheim.loegien.localhost/grafana` (API alias: `http://api.alfheim.loegien.localhost/grafana`)

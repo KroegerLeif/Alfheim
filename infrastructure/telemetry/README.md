@@ -38,12 +38,12 @@ infrastructure/telemetry/
 | **`otel-collector`** | `otel-collector:4317` (gRPC), `otel-collector:4318` (HTTP) | N/A (Internal `observability-internal`) | Unified OTLP telemetry ingestion |
 | **`victoriametrics`** | `victoriametrics:8428` | N/A (Internal `observability-internal`) | PromQL / Metrics time-series engine |
 | **`victorialogs`** | `victorialogs:9428` | N/A (Internal `observability-internal`) | LogSQL / Log analytics engine |
-| **`grafana`** | `grafana:3000` | `http://api.alfheim.loegien.localhost/grafana` | Monitoring & Visualization UI |
+| **`grafana`** | `grafana:3000` | `http://alfheim.loegien.localhost/grafana` (API alias: `http://api.alfheim.loegien.localhost/grafana`) | Monitoring & Visualization UI |
 
 ---
 
 ## 3. Grafana Access
 
-* **URL**: `http://api.alfheim.loegien.localhost/grafana` (or `http://alfheim.loegien.localhost/grafana`)
+* **Primary URL**: `http://alfheim.loegien.localhost/grafana` (API alias: `http://api.alfheim.loegien.localhost/grafana`)
 * **Default Admin**: `admin` / `admin`
 * **Keycloak SSO**: Client `alfheim-grafana` under realm `alfheim` (generic OAuth).
