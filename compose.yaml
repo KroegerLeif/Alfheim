@@ -4,7 +4,7 @@ include:
   - ./infrastructure/compose.yml
   - ./infrastructure/caddy/compose.yml
   - ./core/dashboard/compose.yml
-  - ./apps/logging-stack/compose.yml
+  - ./infrastructure/telemetry/compose.yml
   - ./apps/maintenance/compose.yml
   - ./apps/pantry/compose.yml
   - ./apps/shopping/compose.yml

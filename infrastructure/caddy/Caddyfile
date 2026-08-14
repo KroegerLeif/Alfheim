@@ -31,6 +31,9 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	handle /chores* {
 		reverse_proxy chores-frontend:3000
 	}
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
 
 	# Dashboard Frontend Catch-all (Root)
 	handle {
@@ -99,8 +102,8 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy rustfs:9000
 	}
 
-	# Observability UI
-	handle_path /signoz* {
-		reverse_proxy signoz-ui:8080
+	# Observability & Monitoring UI (Grafana)
+	handle /grafana* {
+		reverse_proxy grafana:3000
 	}
 }
