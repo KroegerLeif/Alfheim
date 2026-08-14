@@ -9,7 +9,22 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`feat(shared): sync asset registries with brand logo variants and expanded alfi mascot states`** (Active)
+* **`refactor(apps): localize sidebars and docs website components`**
+  - Localized expand/collapse sidebar accessibility attributes in Maintenance and Chores.
+  - Localized mascot states, network topology labels, storage/basepath tags, and zero-trust footer badges in `websites/docs`.
+* **`refactor(dashboard): localize app tiers, modals, and dynamic theme picker in settings`**
+  - Refactored Dashboard Tier 1, Tier 2, and Tier 3 headers, counts, empty states, and toast notifications to use `t('dashboard.*')`.
+  - Refactored Settings Theme Picker to dynamically iterate over `(Object.keys(THEME_TOKENS) as ThemeVariant[])` and localized builder/status strings.
+  - Localized `AddAppModal.tsx`, `EditAppModal.tsx`, and `HouseholdDetailView.tsx`.
+* **`feat(i18n): populate locale dictionaries and unify cache keys in shared components`**
+  - Synchronized `en`, `de`, and `pl` locale dictionaries for `common.json`, `dashboard.json`, and `docs.json`.
+  - Updated `HouseholdSwitcher` cache key to `'alfheim_cached_households'` and localized aria labels.
+  - Localized avatar titles and logout actions in `AuthControls`.
+* **`style(theme): unify design system tokens and css ingestion across frontends`**
+  - Enhanced `@alfheim/shared/styles/theme.css` with `:root` CSS custom property fallbacks and Tailwind v4 `@theme` tokens.
+  - Replaced local `theme.css` imports with `@import "@alfheim/shared/styles/theme.css";` across all 4 app globals.css.
+  - Standardized default theme variant to `'nordic'` across all 5 layout files (`dashboard`, `pantry`, `shopping`, `maintenance`, `chores`).
+* **`feat(shared): sync asset registries with brand logo variants and expanded alfi mascot states`**
   - Added primary logo mark (`logo-mark.svg`) and monochrome white variant (`logo-mark-white.svg`) under `brand/`.
   - Added complete favicon suite under `favicon_io/` (`favicon.ico`, PNGs, and `site.webmanifest`).
   - Added 8 expressive ALFI mascot states (`alfi-idle`, `alfi-thinking`, `alfi-speaking`, `alfi-listenig`, `alfi-eating`, `alfi-fixing`, `alfi-chasing`, `alfi-sleeping`).
