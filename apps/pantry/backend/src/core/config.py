@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
+    # Security: Restrict allowed origins for CORS
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "http://alfheim.loegien.localhost",
+        "http://api.alfheim.loegien.localhost",
+    ]
+
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/pantry"
 
