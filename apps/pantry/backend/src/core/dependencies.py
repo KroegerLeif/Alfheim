@@ -1,10 +1,11 @@
+import logging
 import os
 import uuid
-import logging
+
 import jwt
-from typing import Optional
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
+
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -12,11 +13,12 @@ logger = logging.getLogger(__name__)
 MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 MOCK_HOME_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
+
 class UserHomeContext(BaseModel):
     user_id: uuid.UUID
     home_id: uuid.UUID
-    email: Optional[str] = None
-    username: Optional[str] = None
+    email: str | None = None
+    username: str | None = None
     roles: list[str] = []
 
 
@@ -37,7 +39,7 @@ def decode_keycloak_token(token: str) -> dict:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"invalid or expired token: {e}",
-            )
+            ) from e
 
     last_error = None
     for jwks_url in settings.jwks_fallback_urls:
@@ -69,7 +71,9 @@ async def get_current_user_and_home(request: Request) -> UserHomeContext:
     if not auth_header:
         # Fallback for testing suite if no header present and running pytest or test env
         if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "true" or settings.ENVIRONMENT == "testing":
-            return UserHomeContext(user_id=MOCK_USER_ID, home_id=MOCK_HOME_ID)
+            hh_str = request.headers.get("X-Household-ID")
+            home_id = uuid.UUID(hh_str) if hh_str else MOCK_HOME_ID
+            return UserHomeContext(user_id=MOCK_USER_ID, home_id=home_id)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="missing authorization header",

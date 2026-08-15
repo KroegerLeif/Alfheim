@@ -1,8 +1,10 @@
 import uuid
-from typing import Optional, Sequence
+from collections.abc import Sequence
+
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select, or_
+from sqlmodel import or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from src.features.categories.models import Category, CategoryCreate, CategoryUpdate
 
 
@@ -20,8 +22,7 @@ class CategoryService:
         # Service-level check: Verify name doesn't clash with any active category for this home
         # (either global or existing personal categories in this home)
         clash_stmt = select(Category).where(
-            Category.name == payload.name,
-            or_(Category.home_id == home_id, Category.is_global)
+            Category.name == payload.name, or_(Category.home_id == home_id, Category.is_global)
         )
         clash_res = await session.exec(clash_stmt)
         if clash_res.first():
@@ -48,11 +49,10 @@ class CategoryService:
         session: AsyncSession,
         category_id: uuid.UUID,
         home_id: uuid.UUID,
-    ) -> Optional[Category]:
+    ) -> Category | None:
         """Retrieve a specific active category (either global or personal to the home)."""
         statement = select(Category).where(
-            Category.id == category_id,
-            or_(Category.home_id == home_id, Category.is_global)
+            Category.id == category_id, or_(Category.home_id == home_id, Category.is_global)
         )
         result = await session.exec(statement)
         return result.first()
@@ -61,18 +61,16 @@ class CategoryService:
     async def list_categories(
         session: AsyncSession,
         home_id: uuid.UUID,
-        name: Optional[str] = None,
+        name: str | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Category]:
         """Retrieve a list of active categories (global + personal) with optional filtering and pagination."""
-        statement = select(Category).where(
-            or_(Category.home_id == home_id, Category.is_global)
-        )
-        
+        statement = select(Category).where(or_(Category.home_id == home_id, Category.is_global))
+
         if name:
             statement = statement.where(Category.name == name)
-            
+
         statement = statement.offset(offset).limit(limit)
         result = await session.exec(statement)
         return result.all()
@@ -83,7 +81,7 @@ class CategoryService:
         category_id: uuid.UUID,
         home_id: uuid.UUID,
         payload: CategoryUpdate,
-    ) -> Optional[Category]:
+    ) -> Category | None:
         """Partially update an existing personal category. Global categories cannot be modified."""
         category = await CategoryService.get_category(session, category_id, home_id)
         if not category:
@@ -98,7 +96,7 @@ class CategoryService:
             clash_stmt = select(Category).where(
                 Category.name == update_data["name"],
                 Category.id != category.id,
-                or_(Category.home_id == home_id, Category.is_global)
+                or_(Category.home_id == home_id, Category.is_global),
             )
             clash_res = await session.exec(clash_stmt)
             if clash_res.first():

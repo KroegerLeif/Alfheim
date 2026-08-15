@@ -1,26 +1,26 @@
-import uuid
 import logging
-from datetime import date, datetime, timezone, timedelta
-from typing import Optional, Sequence
+import uuid
+from collections.abc import Sequence
+from datetime import UTC, date, datetime, timedelta
+
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select, or_
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.features.chore_management.models import (
-    ChoreTemplate,
-    ChoreInstance,
-    HouseholdStreak,
-    ChoreCompletionHistory,
-)
-from src.features.chore_management.schemas import ChoreTemplateCreate, ChoreTemplateUpdate, ChoreAssignRequest
 from src.features.chore_management.exceptions import (
-    ChoreTemplateNotFoundError,
-    ChoreInstanceNotFoundError,
     ChoreAlreadyCompletedError,
+    ChoreInstanceNotFoundError,
     ChoreNotAssignableError,
+    ChoreTemplateNotFoundError,
     DuplicateChoreTemplateError,
-    HouseholdStreakNotFoundError,
 )
+from src.features.chore_management.models import (
+    ChoreCompletionHistory,
+    ChoreInstance,
+    ChoreTemplate,
+    HouseholdStreak,
+)
+from src.features.chore_management.schemas import ChoreAssignRequest, ChoreTemplateCreate, ChoreTemplateUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ class ChoreService:
         session: AsyncSession,
         template_id: uuid.UUID,
         home_id: uuid.UUID,
-    ) -> Optional[ChoreTemplate]:
+    ) -> ChoreTemplate | None:
         """Retrieve a specific chore template if it belongs to the active household."""
         stmt = select(ChoreTemplate).where(
             ChoreTemplate.id == template_id,
@@ -190,9 +190,7 @@ class ChoreService:
             )
             clash_res = await session.exec(clash_stmt)
             if clash_res.first():
-                raise DuplicateChoreTemplateError(
-                    f"Chore template with name '{update_data['name']}' already exists."
-                )
+                raise DuplicateChoreTemplateError(f"Chore template with name '{update_data['name']}' already exists.")
 
         for key, val in update_data.items():
             setattr(template, key, val)
@@ -225,7 +223,7 @@ class ChoreService:
     async def get_today_chores(
         session: AsyncSession,
         home_id: uuid.UUID,
-        due_date: Optional[date] = None,
+        due_date: date | None = None,
     ) -> Sequence[ChoreInstance]:
         """Fetch all chore instances for a given date, triggering self-healing generation if necessary."""
         if not due_date:
@@ -264,7 +262,7 @@ class ChoreService:
             raise ChoreNotAssignableError("Cannot assign a missed chore.")
 
         instance.assigned_to = payload.assigned_to
-        instance.updated_at = datetime.now(timezone.utc)
+        instance.updated_at = datetime.now(UTC)
         session.add(instance)
         await session.commit()
         await session.refresh(instance)
@@ -276,7 +274,7 @@ class ChoreService:
         instance_id: uuid.UUID,
         completed_by: uuid.UUID,
         home_id: uuid.UUID,
-        completed_by_name: Optional[str] = None,
+        completed_by_name: str | None = None,
     ) -> ChoreInstance:
         """Mark a chore instance as completed, awarding points, logging timeline audit record and evaluating streak extensions."""
         stmt = select(ChoreInstance).where(
@@ -297,7 +295,7 @@ class ChoreService:
         template = t_res.first()
         points = template.points if template else 10
 
-        completed_timestamp = datetime.now(timezone.utc)
+        completed_timestamp = datetime.now(UTC)
         instance.status = "completed"
         instance.completed_by = completed_by
         instance.completed_at = completed_timestamp
@@ -365,7 +363,6 @@ class ChoreService:
         )
         res = await session.exec(stmt)
         return res.all()
-
 
     @staticmethod
     async def get_integrations_summary(

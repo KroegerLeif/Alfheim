@@ -1,8 +1,10 @@
 import json
 import pathlib
+
 import anyio
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from src.features.categories.models import Category
 
 

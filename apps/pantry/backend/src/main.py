@@ -1,9 +1,17 @@
 import importlib
+import logging
 import pathlib
 from contextlib import asynccontextmanager
-from fastapi import APIRouter, FastAPI
+
+from fastapi import APIRouter, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 from src.core.config import settings
-from src.mcp.server import mcp
+from src.core.telemetry import setup_telemetry
+from src.mcp.server import discover_and_import_mcp_tools, mcp
+
+logger = logging.getLogger(__name__)
 
 
 def discover_and_include_routers(app: FastAPI) -> None:
@@ -26,13 +34,14 @@ def discover_and_include_routers(app: FastAPI) -> None:
                 if isinstance(attr, APIRouter):
                     app.include_router(attr)
         except Exception as e:
-            print(f"Failed to import router from {module_name}: {e}")
+            logger.error(f"Failed to import router from {module_name}: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     from src.core.database import init_db
+
     await init_db()
 
     try:
@@ -42,19 +51,14 @@ async def lifespan(app: FastAPI):
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers
         from src.core.telemetry import shutdown_telemetry
+
         shutdown_telemetry()
 
-
-
-from fastapi import Request
-from fastapi.responses import JSONResponse
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -65,7 +69,6 @@ app.add_middleware(
 )
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from src.core.telemetry import setup_telemetry
 setup_telemetry(app)
 
 
@@ -77,11 +80,11 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
         content={"detail": str(exc)},
     )
 
+
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)
 
 # Discover and register FastMCP tools dynamically
-from src.mcp.server import discover_and_import_mcp_tools
 discover_and_import_mcp_tools()
 
 # Mount the FastMCP server
@@ -91,6 +94,5 @@ app.mount("/mcp", mcp.http_app())
 @app.get("/api/v1/health")
 async def health_check():
     """Simple health check endpoint."""
-    import logging
-    logging.info("Pantry health check endpoint hit!")
+    logger.info("Pantry health check endpoint hit!")
     return {"status": "ok", "project": settings.PROJECT_NAME}

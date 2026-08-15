@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
+
 from sqlalchemy import Column, DateTime, Index, text
 from sqlmodel import Field, SQLModel, func
 
@@ -14,7 +14,7 @@ class CategoryBase(SQLModel):
         max_length=100,
         description="Name of the product category.",
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         max_length=500,
         description="Optional description/details of the category.",
@@ -30,13 +30,13 @@ class CategoryCreate(CategoryBase):
 class CategoryUpdate(SQLModel):
     """Schema for partially updating an existing Category (PATCH)."""
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         default=None,
         min_length=1,
         max_length=100,
         description="Updated name of the category.",
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         max_length=500,
         description="Updated description of the category.",
@@ -48,8 +48,8 @@ class CategoryRead(CategoryBase):
 
     id: uuid.UUID
     is_global: bool
-    owner_id: Optional[uuid.UUID]
-    home_id: Optional[uuid.UUID]
+    owner_id: uuid.UUID | None
+    home_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
 
@@ -70,18 +70,18 @@ class Category(CategoryBase, table=True):
         nullable=False,
         description="If True, this is a system-wide global category visible to all homes.",
     )
-    owner_id: Optional[uuid.UUID] = Field(
+    owner_id: uuid.UUID | None = Field(
         default=None,
         nullable=True,
         description="UUID of the user who created the category. Null for system/global categories.",
     )
-    home_id: Optional[uuid.UUID] = Field(
+    home_id: uuid.UUID | None = Field(
         default=None,
         nullable=True,
         description="UUID of the home space this category belongs to. Null for system/global categories.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -90,7 +90,7 @@ class Category(CategoryBase, table=True):
         description="Timestamp of creation, stored in UTC.",
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),

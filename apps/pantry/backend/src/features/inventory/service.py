@@ -1,14 +1,16 @@
 import uuid
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from datetime import UTC
+
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select, or_, col
+from sqlmodel import col, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.features.products.models import Product
+from src.features.inventory.exceptions import IncompatibleUnitsError, InsufficientStockError, InventoryError
+from src.features.inventory.models import InventoryLedger, InventoryState, InventoryTransactionType
+from src.features.inventory.schemas import BulkAddInventoryPayload, BulkAddResponse, InventoryTransactionCreate
 from src.features.locations.models import Location
-from src.features.inventory.models import InventoryTransactionType, InventoryLedger, InventoryState
-from src.features.inventory.schemas import InventoryTransactionCreate
-from src.features.inventory.exceptions import InventoryError, IncompatibleUnitsError, InsufficientStockError
+from src.features.products.models import Product
 
 
 class InventoryService:
@@ -34,9 +36,7 @@ class InventoryService:
         product_res = await session.exec(product_stmt)
         product = product_res.first()
         if not product:
-            raise InventoryError(
-                f"Product with ID '{payload.product_id}' not found or not authorized."
-            )
+            raise InventoryError(f"Product with ID '{payload.product_id}' not found or not authorized.")
 
         # 2. Fetch and validate Location (must be system location or owned by home space)
         location_stmt = select(Location).where(
@@ -46,13 +46,12 @@ class InventoryService:
         location_res = await session.exec(location_stmt)
         location = location_res.first()
         if not location:
-            raise InventoryError(
-                f"Location with ID '{payload.location_id}' not found or not authorized."
-            )
+            raise InventoryError(f"Location with ID '{payload.location_id}' not found or not authorized.")
 
         # 3. Pint-based Unit Compatibility & Normalization Check
-        from src.features.inventory.units import ureg
         from pint import DimensionalityError
+
+        from src.features.inventory.units import ureg
 
         try:
             input_quantity = ureg.Quantity(payload.quantity_input, payload.unit_input)
@@ -164,8 +163,8 @@ class InventoryService:
     async def get_ledger_history(
         session: AsyncSession,
         home_id: uuid.UUID,
-        product_id: Optional[uuid.UUID] = None,
-        location_id: Optional[uuid.UUID] = None,
+        product_id: uuid.UUID | None = None,
+        location_id: uuid.UUID | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[InventoryLedger]:
@@ -189,8 +188,8 @@ class InventoryService:
     async def get_current_state(
         session: AsyncSession,
         home_id: uuid.UUID,
-        product_id: Optional[uuid.UUID] = None,
-        location_id: Optional[uuid.UUID] = None,
+        product_id: uuid.UUID | None = None,
+        location_id: uuid.UUID | None = None,
     ) -> Sequence[InventoryState]:
         """Retrieve real-time consolidated stock levels cache, ensuring home space boundaries."""
         statement = (
@@ -220,10 +219,7 @@ class InventoryService:
 
         # Subquery to aggregate total stock per product for the home
         subq = (
-            select(
-                InventoryState.product_id,
-                func.sum(InventoryState.quantity).label("total_quantity")
-            )
+            select(InventoryState.product_id, func.sum(InventoryState.quantity).label("total_quantity"))
             .join(Location, InventoryState.location_id == Location.id)
             .where(Location.home_id == home_id)
             .group_by(InventoryState.product_id)
@@ -236,17 +232,19 @@ class InventoryService:
             .outerjoin(subq, Product.id == subq.c.product_id)
             .where(
                 or_(Product.is_global, Product.home_id == home_id),
-                func.coalesce(subq.c.total_quantity, 0.0) < Product.minimum_stock
+                func.coalesce(subq.c.total_quantity, 0.0) < Product.minimum_stock,
             )
         )
 
         result = await session.exec(stmt)
         low_stock = []
         for product, current_stock in result:
-            low_stock.append({
-                "product": product,
-                "current_stock": current_stock,
-            })
+            low_stock.append(
+                {
+                    "product": product,
+                    "current_stock": current_stock,
+                }
+            )
         return low_stock
 
     @staticmethod
@@ -259,9 +257,9 @@ class InventoryService:
         Leverages sentinel date '9999-12-31' for infinite shelf-life tracking,
         optimizing index usage on expiration_date.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
 
         # Base statement to select inventory state within target home locations
         base_stmt = (
@@ -272,24 +270,20 @@ class InventoryService:
 
         # 1. Expired: expiration_date is not NULL and <= today
         expired_stmt = base_stmt.where(
-            InventoryState.expiration_date.is_not(None),
-            InventoryState.expiration_date <= today
+            InventoryState.expiration_date.is_not(None), InventoryState.expiration_date <= today
         )
         expired_res = await session.exec(expired_stmt)
         expired = expired_res.all()
 
         # 2. Valid: expiration_date is not NULL and > today (includes the sentinel 9999-12-31)
         valid_stmt = base_stmt.where(
-            InventoryState.expiration_date.is_not(None),
-            InventoryState.expiration_date > today
+            InventoryState.expiration_date.is_not(None), InventoryState.expiration_date > today
         )
         valid_res = await session.exec(valid_stmt)
         valid = valid_res.all()
 
         # 3. Untracked: expiration_date is NULL
-        untracked_stmt = base_stmt.where(
-            InventoryState.expiration_date.is_(None)
-        )
+        untracked_stmt = base_stmt.where(InventoryState.expiration_date.is_(None))
         untracked_res = await session.exec(untracked_stmt)
         untracked = untracked_res.all()
 
@@ -313,17 +307,15 @@ class InventoryService:
         standardized translatable i18n reasons.
         """
         from sqlmodel import func
+
         from src.features.inventory.schemas import (
-            BulkAddResponse,
             BulkAddSuccessfulItem,
             BulkAddUnrecognizedItem,
         )
         from src.features.products.service import ProductService
 
         # 1. Fetch system fallback location 'Backlog' for this home space
-        fallback_stmt = select(Location).where(
-            Location.home_id == home_id, Location.is_system == True
-        )
+        fallback_stmt = select(Location).where(Location.home_id == home_id, Location.is_system == True)  # noqa: E712
         fallback_res = await session.exec(fallback_stmt)
         backlog_location = fallback_res.first()
         if not backlog_location:
@@ -364,7 +356,7 @@ class InventoryService:
                 name_query = item.name.strip().lower()
                 stmt = select(Product).where(
                     func.lower(Product.name) == name_query,
-                    or_(Product.is_global == True, Product.home_id == home_id),
+                    or_(Product.is_global == True, Product.home_id == home_id),  # noqa: E712
                 )
                 res = await session.exec(stmt)
                 product = res.first()
@@ -411,7 +403,7 @@ class InventoryService:
                 reason_code = "pantry.error.invalid_unit"
                 if "dimension" in str(e).lower() or "incompatible" in str(e).lower():
                     reason_code = "pantry.error.incompatible_units"
-                
+
                 unrecognized_items.append(
                     BulkAddUnrecognizedItem(
                         shopping_item_id=item.shopping_item_id,
@@ -428,4 +420,3 @@ class InventoryService:
             successful_items=successful_items,
             unrecognized_items=unrecognized_items,
         )
-

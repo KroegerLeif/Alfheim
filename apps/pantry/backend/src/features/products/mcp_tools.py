@@ -1,16 +1,16 @@
 import uuid
-from typing import Optional
-from src.mcp.server import mcp
+
 from src.core.database import async_session_factory
 from src.core.dependencies import MOCK_HOME_ID
-from src.features.products.service import ProductService
+from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 from src.features.products.schemas import (
     ProductCreate,
-    ProductUpdate,
     ProductNutritionCreate,
     ProductNutritionUpdate,
+    ProductUpdate,
 )
-from src.features.products.clients.open_food_facts import OpenFoodFactsClient
+from src.features.products.service import ProductService
+from src.mcp.server import mcp
 
 # Initialize the Open Food Facts client for external barcode queries
 off_client = OpenFoodFactsClient()
@@ -18,9 +18,9 @@ off_client = OpenFoodFactsClient()
 
 @mcp.tool()
 async def list_products(
-    name: Optional[str] = None,
-    barcode: Optional[str] = None,
-    category_id: Optional[str] = None,
+    name: str | None = None,
+    barcode: str | None = None,
+    category_id: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> str:
@@ -143,18 +143,18 @@ async def get_product_by_barcode(barcode: str) -> str:
 async def create_product(
     name: str,
     base_unit: str,
-    brand: Optional[str] = None,
-    barcode: Optional[str] = None,
-    category_id: Optional[str] = None,
-    image_url: Optional[str] = None,
+    brand: str | None = None,
+    barcode: str | None = None,
+    category_id: str | None = None,
+    image_url: str | None = None,
     minimum_stock: float = 0.0,
-    calories: Optional[float] = None,
-    fat: Optional[float] = None,
-    saturated_fat: Optional[float] = None,
-    carbohydrates: Optional[float] = None,
-    sugars: Optional[float] = None,
-    protein: Optional[float] = None,
-    salt: Optional[float] = None,
+    calories: float | None = None,
+    fat: float | None = None,
+    saturated_fat: float | None = None,
+    carbohydrates: float | None = None,
+    sugars: float | None = None,
+    protein: float | None = None,
+    salt: float | None = None,
 ) -> str:
     """Create a new product blueprint (automatically promoted to global if barcode is present).
 
@@ -217,13 +217,13 @@ async def create_product(
 @mcp.tool()
 async def update_product(
     product_id: str,
-    name: Optional[str] = None,
-    brand: Optional[str] = None,
-    barcode: Optional[str] = None,
-    category_id: Optional[str] = None,
-    image_url: Optional[str] = None,
-    base_unit: Optional[str] = None,
-    minimum_stock: Optional[float] = None,
+    name: str | None = None,
+    brand: str | None = None,
+    barcode: str | None = None,
+    category_id: str | None = None,
+    image_url: str | None = None,
+    base_unit: str | None = None,
+    minimum_stock: float | None = None,
 ) -> str:
     """Update details of a custom product blueprint (Global catalog items cannot be updated).
 
@@ -333,13 +333,13 @@ async def get_product_nutrition(product_id: str) -> str:
 @mcp.tool()
 async def update_product_nutrition(
     product_id: str,
-    calories: Optional[float] = None,
-    fat: Optional[float] = None,
-    saturated_fat: Optional[float] = None,
-    carbohydrates: Optional[float] = None,
-    sugars: Optional[float] = None,
-    protein: Optional[float] = None,
-    salt: Optional[float] = None,
+    calories: float | None = None,
+    fat: float | None = None,
+    saturated_fat: float | None = None,
+    carbohydrates: float | None = None,
+    sugars: float | None = None,
+    protein: float | None = None,
+    salt: float | None = None,
 ) -> str:
     """Update or add nutritional details to a custom product blueprint (Global items cannot be updated).
 

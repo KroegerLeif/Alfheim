@@ -1,13 +1,18 @@
 import asyncio
+import contextlib
 import importlib
 import logging
 import pathlib
 from contextlib import asynccontextmanager
-from datetime import datetime, date, timedelta
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from src.core.config import settings
-from src.mcp.server import mcp
+from src.core.telemetry import setup_telemetry
+from src.mcp.server import discover_and_import_mcp_tools, mcp
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +37,11 @@ def discover_and_include_routers(app: FastAPI) -> None:
                 if isinstance(attr, APIRouter):
                     app.include_router(attr)
         except Exception as e:
-            print(f"Failed to import router from {module_name}: {e}")
+            logger.error(f"Failed to import router from {module_name}: {e}")
 
 
 async def schedule_nightly_reset():
-    """Runs a background loop that executes the daily reset for all households at 00:00:05 local time."""
+    """Runs a background loop that executes the daily reset for all households at 00:00:05 UTC."""
     from src.core.database import async_session_factory
     from src.features.chore_management.service import ChoreService
 
@@ -44,7 +49,7 @@ async def schedule_nightly_reset():
 
     while True:
         try:
-            now = datetime.now()
+            now = datetime.now(UTC)
             # Calculate next midnight (00:00:05 to avoid boundary issues)
             next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=5, microsecond=0)
             sleep_sec = (next_midnight - now).total_seconds()
@@ -53,7 +58,7 @@ async def schedule_nightly_reset():
             await asyncio.sleep(sleep_sec)
 
             # Trigger reset
-            target_date = date.today()
+            target_date = datetime.now(UTC).date()
             async with async_session_factory() as session:
                 await ChoreService.run_nightly_reset_for_all(session, target_date)
             logger.info(f"Nightly reset completed successfully for date {target_date}")
@@ -71,6 +76,7 @@ async def schedule_nightly_reset():
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     from src.core.database import init_db
+
     await init_db()
 
     # Start background scheduler
@@ -83,12 +89,12 @@ async def lifespan(app: FastAPI):
     finally:
         # Cancel background scheduler
         reset_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await reset_task
-        except asyncio.CancelledError:
-            pass
+
         # Gracefully flush and shutdown OpenTelemetry providers
         from src.core.telemetry import shutdown_telemetry
+
         shutdown_telemetry()
 
 
@@ -96,8 +102,6 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -108,7 +112,6 @@ app.add_middleware(
 )
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from src.core.telemetry import setup_telemetry
 setup_telemetry(app)
 
 
@@ -120,11 +123,11 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
         content={"detail": str(exc)},
     )
 
+
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)
 
 # Discover and register FastMCP tools dynamically
-from src.mcp.server import discover_and_import_mcp_tools
 discover_and_import_mcp_tools()
 
 # Mount the FastMCP server
@@ -134,5 +137,5 @@ app.mount("/mcp", mcp.http_app())
 @app.get("/api/v1/health")
 async def health_check():
     """Simple health check endpoint."""
-    logging.info("Chores health check endpoint hit!")
+    logger.info("Chores health check endpoint hit!")
     return {"status": "ok", "project": settings.PROJECT_NAME}

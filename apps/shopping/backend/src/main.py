@@ -1,10 +1,17 @@
 import importlib
+import logging
 import pathlib
 from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from src.core.config import settings
 from src.core.exceptions import ShoppingError
+from src.core.telemetry import setup_telemetry
+
+logger = logging.getLogger(__name__)
 
 
 def discover_and_include_routers(app: FastAPI) -> None:
@@ -26,20 +33,22 @@ def discover_and_include_routers(app: FastAPI) -> None:
                 if isinstance(attr, APIRouter):
                     app.include_router(attr)
         except Exception as e:
-            print(f"Failed to import router from {module_name}: {e}")
+            logger.error(f"Failed to import router from {module_name}: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     from src.core.database import init_db
+
     await init_db()
-    
+
     try:
         yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers
         from src.core.telemetry import shutdown_telemetry
+
         shutdown_telemetry()
 
 
@@ -47,8 +56,6 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,9 +66,7 @@ app.add_middleware(
 )
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from src.core.telemetry import setup_telemetry
 setup_telemetry(app)
-
 
 
 @app.exception_handler(ShoppingError)

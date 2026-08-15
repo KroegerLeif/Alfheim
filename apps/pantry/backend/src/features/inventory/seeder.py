@@ -1,16 +1,17 @@
 import json
 import pathlib
+
 import anyio
 from pydantic import BaseModel, TypeAdapter
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.features.products.models import Product
-from src.features.locations.models import Location
+from src.core.dependencies import MOCK_HOME_ID
 from src.features.inventory.models import InventoryState, InventoryTransactionType
 from src.features.inventory.schemas import InventoryTransactionCreate
 from src.features.inventory.service import InventoryService
-from src.core.dependencies import MOCK_HOME_ID
+from src.features.locations.models import Location
+from src.features.products.models import Product
 
 
 class InventorySeedItem(BaseModel):
@@ -92,6 +93,4 @@ async def seed_default_inventory(session: AsyncSession) -> None:
                 home_id=MOCK_HOME_ID,
             )
         except Exception as e:
-            print(
-                f"Inventory seeder failed to seed product '{product.name}' in location '{location.name}': {e}"
-            )
+            print(f"Inventory seeder failed to seed product '{product.name}' in location '{location.name}': {e}")

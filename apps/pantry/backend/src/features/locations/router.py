@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -9,8 +9,8 @@ from src.core.dependencies import (
     get_current_user_and_home,
 )
 from src.features.locations import (
-    LocationRead,
     LocationCreate,
+    LocationRead,
     LocationUpdate,
 )
 from src.features.locations.service import LocationService
@@ -18,9 +18,7 @@ from src.features.locations.service import LocationService
 router = APIRouter(prefix="/api/v1/locations", tags=["locations"])
 
 
-@router.post(
-    "", response_model=LocationRead, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=LocationRead, status_code=status.HTTP_201_CREATED)
 async def create_location(
     payload: LocationCreate,
     session: AsyncSession = Depends(get_db_session),
@@ -37,7 +35,7 @@ async def create_location(
 
 @router.get("", response_model=list[LocationRead])
 async def list_locations(
-    name: Optional[str] = None,
+    name: str | None = None,
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),

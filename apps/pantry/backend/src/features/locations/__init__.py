@@ -4,8 +4,8 @@ from src.features.locations.models import (
     LocationRead,
     LocationUpdate,
 )
-from src.features.locations.service import LocationService
 from src.features.locations.seeder import seed_default_locations
+from src.features.locations.service import LocationService
 
 __all__ = [
     "Location",

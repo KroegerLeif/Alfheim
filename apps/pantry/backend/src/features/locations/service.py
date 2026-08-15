@@ -1,8 +1,10 @@
 import uuid
-from typing import Optional, Sequence
+from collections.abc import Sequence
+
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from src.features.locations.models import Location, LocationCreate, LocationUpdate
 
 
@@ -59,11 +61,9 @@ class LocationService:
         session: AsyncSession,
         location_id: uuid.UUID,
         home_id: uuid.UUID,
-    ) -> Optional[Location]:
+    ) -> Location | None:
         """Retrieve a specific location details by ID, scoped to home space."""
-        statement = select(Location).where(
-            Location.id == location_id, Location.home_id == home_id
-        )
+        statement = select(Location).where(Location.id == location_id, Location.home_id == home_id)
         result = await session.exec(statement)
         return result.first()
 
@@ -71,7 +71,7 @@ class LocationService:
     async def list_locations(
         session: AsyncSession,
         home_id: uuid.UUID,
-        name: Optional[str] = None,
+        name: str | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Location]:
@@ -91,7 +91,7 @@ class LocationService:
         location_id: uuid.UUID,
         home_id: uuid.UUID,
         payload: LocationUpdate,
-    ) -> Optional[Location]:
+    ) -> Location | None:
         """Partially update an existing location's properties.
 
         System locations are protected and cannot be modified.
@@ -134,9 +134,7 @@ class LocationService:
             raise ValueError("System locations cannot be modified or deleted.")
 
         # 1. Locate the default fallback location for this home
-        fallback_statement = select(Location).where(
-            Location.home_id == home_id, Location.is_system
-        )
+        fallback_statement = select(Location).where(Location.home_id == home_id, Location.is_system)
         fallback_result = await session.exec(fallback_statement)
         fallback = fallback_result.first()
 
@@ -144,9 +142,7 @@ class LocationService:
             raise ValueError("System fallback location ('Backlog') could not be found.")
 
         # 2. Reassign any stored items to the fallback location
-        await reassign_items_to_fallback(
-            session, old_location_id=location.id, fallback_location_id=fallback.id
-        )
+        await reassign_items_to_fallback(session, old_location_id=location.id, fallback_location_id=fallback.id)
 
         # 3. Delete the target location
         await session.delete(location)

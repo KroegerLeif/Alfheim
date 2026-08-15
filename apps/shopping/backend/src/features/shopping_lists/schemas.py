@@ -1,17 +1,17 @@
 import uuid
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict, field_validator
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # -------------------------------------------------------------
 # Shopping Item Lifecycle Schemas
 # -------------------------------------------------------------
 
+
 class ShoppingItemBase(BaseModel):
     name: str = Field(min_length=1, max_length=255, description="Name of the item.")
-    brand: Optional[str] = Field(default=None, max_length=255, description="Optional brand name.")
-    barcode: Optional[str] = Field(default=None, max_length=100, description="Optional barcode (EAN/UPC).")
+    brand: str | None = Field(default=None, max_length=255, description="Optional brand name.")
+    barcode: str | None = Field(default=None, max_length=100, description="Optional barcode (EAN/UPC).")
     quantity: float = Field(default=1.0, gt=0, description="Requested quantity.")
     unit: str = Field(default="piece", max_length=50, description="Unit of measurement.")
 
@@ -22,21 +22,21 @@ class ShoppingItemCreate(ShoppingItemBase):
 
 class PushItemPayload(BaseModel):
     name: str = Field(min_length=1, max_length=255, description="Name of the item.")
-    brand: Optional[str] = Field(default=None, max_length=255)
-    barcode: Optional[str] = Field(default=None, max_length=100)
+    brand: str | None = Field(default=None, max_length=255)
+    barcode: str | None = Field(default=None, max_length=100)
     quantity: float = Field(default=1.0, gt=0)
     unit: str = Field(default="piece", max_length=50)
-    product_id: Optional[uuid.UUID] = Field(default=None)
-    list_id: Optional[uuid.UUID] = Field(default=None)
+    product_id: uuid.UUID | None = Field(default=None)
+    list_id: uuid.UUID | None = Field(default=None)
 
 
 class ShoppingItemUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    brand: Optional[str] = Field(default=None, max_length=255)
-    barcode: Optional[str] = Field(default=None, max_length=100)
-    quantity: Optional[float] = Field(default=None, gt=0)
-    unit: Optional[str] = Field(default=None, max_length=50)
-    is_completed: Optional[bool] = Field(default=None)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    brand: str | None = Field(default=None, max_length=255)
+    barcode: str | None = Field(default=None, max_length=100)
+    quantity: float | None = Field(default=None, gt=0)
+    unit: str | None = Field(default=None, max_length=50)
+    is_completed: bool | None = Field(default=None)
 
 
 class ShoppingItemRead(ShoppingItemBase):
@@ -45,7 +45,7 @@ class ShoppingItemRead(ShoppingItemBase):
     is_completed: bool
     is_auto_generated: bool
     is_synced: bool
-    product_id: Optional[uuid.UUID]
+    product_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
 
@@ -56,12 +56,13 @@ class ShoppingItemRead(ShoppingItemBase):
 # Shopping List Lifecycle Schemas
 # -------------------------------------------------------------
 
+
 class ShoppingListCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255, description="Name of the shopping list.")
 
 
 class ReorderListsPayload(BaseModel):
-    list_ids: List[uuid.UUID] = Field(description="Ordered list of Shopping List UUIDs.")
+    list_ids: list[uuid.UUID] = Field(description="Ordered list of Shopping List UUIDs.")
 
 
 class ShoppingListRead(BaseModel):
@@ -74,7 +75,7 @@ class ShoppingListRead(BaseModel):
     position: int
     created_at: datetime
     updated_at: datetime
-    items: List[ShoppingItemRead] = Field(default_factory=list)
+    items: list[ShoppingItemRead] = Field(default_factory=list)
 
     @field_validator("items", mode="before")
     @classmethod
@@ -88,27 +89,27 @@ class ShoppingListRead(BaseModel):
 # Sync and Integration Schemas (i18n-ready)
 # -------------------------------------------------------------
 
+
 class UnrecognizedShoppingItem(BaseModel):
     """Payload representing an item the Pantry backend could not resolve."""
+
     shopping_item_id: uuid.UUID
     name: str
-    brand: Optional[str] = None
-    barcode: Optional[str] = None
+    brand: str | None = None
+    barcode: str | None = None
     quantity: float
     unit: str
-    reason: str = Field(
-        description="Standardized translatable i18n error key (e.g. 'pantry.error.product_not_found')."
-    )
+    reason: str = Field(description="Standardized translatable i18n error key (e.g. 'pantry.error.product_not_found').")
 
 
 class SyncToPantryResponse(BaseModel):
     """JSON response returned to the client summarizing the sync status."""
+
     status: str = Field(description="Overall status of the sync (e.g., 'success', 'partial_success').")
     synced_count: int = Field(description="Number of items successfully synced and stocked.")
     unrecognized_count: int = Field(description="Number of items unrecognized or invalid.")
-    unrecognized_items: List[UnrecognizedShoppingItem] = Field(
-        default_factory=list,
-        description="List of items requiring manual classification or ignore options."
+    unrecognized_items: list[UnrecognizedShoppingItem] = Field(
+        default_factory=list, description="List of items requiring manual classification or ignore options."
     )
 
 
@@ -116,4 +117,3 @@ class HouseholdRead(BaseModel):
     id: uuid.UUID
     name: str
     slug: str
-

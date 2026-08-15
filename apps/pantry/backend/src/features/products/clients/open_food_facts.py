@@ -1,6 +1,8 @@
+import contextlib
 import logging
-from typing import Optional
+
 import httpx
+
 from src.features.products.models import BaseUnit
 from src.features.products.schemas import ProductCreate, ProductNutritionCreate
 
@@ -18,15 +20,13 @@ class OpenFoodFactsClient:
         self.base_url = base_url
         self.timeout = timeout
 
-    async def get_by_barcode(self, barcode: str) -> Optional[ProductCreate]:
+    async def get_by_barcode(self, barcode: str) -> ProductCreate | None:
         """Fetch product metadata from Open Food Facts by barcode.
 
         Returns None if not found, if a request error occurs, or if timeout is exceeded.
         """
         url = f"{self.base_url}/api/v2/product/{barcode}.json"
-        headers = {
-            "User-Agent": "DigitalPantry - Python - Version 0.1.0 - Developer Contact"
-        }
+        headers = {"User-Agent": "DigitalPantry - Python - Version 0.1.0 - Developer Contact"}
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -51,9 +51,7 @@ class OpenFoodFactsClient:
                 return self._map_to_product_create(barcode, data["product"])
 
         except httpx.TimeoutException:
-            logger.warning(
-                "Timeout querying Open Food Facts for barcode %s", barcode
-            )
+            logger.warning("Timeout querying Open Food Facts for barcode %s", barcode)
             return None
         except httpx.RequestError as exc:
             logger.error(
@@ -96,10 +94,7 @@ class OpenFoodFactsClient:
             base_unit = BaseUnit.PIECE
 
         # 4. Resolve image URL
-        image_url = (
-            product_data.get("image_front_url")
-            or product_data.get("image_url")
-        )
+        image_url = product_data.get("image_front_url") or product_data.get("image_url")
 
         # 5. Extract nutrition details safely
         nutriments = product_data.get("nutriments", {})
@@ -109,17 +104,15 @@ class OpenFoodFactsClient:
         calories = nutriments.get("energy-kcal_100g") or nutriments.get("energy-kcal")
         if calories is None and "energy_100g" in nutriments:
             # Convert kJ to kcal if kcal is missing (1 kcal = 4.184 kJ)
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 calories = float(nutriments["energy_100g"]) / 4.184
-            except (ValueError, TypeError):
-                pass
 
         try:
             # Check if any nutritional info is present
-            has_nutrition = any(
-                key in nutriments
-                for key in ["fat_100g", "carbohydrates_100g", "proteins_100g", "salt_100g"]
-            ) or calories is not None
+            has_nutrition = (
+                any(key in nutriments for key in ["fat_100g", "carbohydrates_100g", "proteins_100g", "salt_100g"])
+                or calories is not None
+            )
 
             if has_nutrition:
                 nutrition_payload = ProductNutritionCreate(
@@ -131,15 +124,9 @@ class OpenFoodFactsClient:
                     carbohydrates=self._safe_float(
                         nutriments.get("carbohydrates_100g") or nutriments.get("carbohydrates")
                     ),
-                    sugars=self._safe_float(
-                        nutriments.get("sugars_100g") or nutriments.get("sugars")
-                    ),
-                    protein=self._safe_float(
-                        nutriments.get("proteins_100g") or nutriments.get("proteins")
-                    ),
-                    salt=self._safe_float(
-                        nutriments.get("salt_100g") or nutriments.get("salt")
-                    ),
+                    sugars=self._safe_float(nutriments.get("sugars_100g") or nutriments.get("sugars")),
+                    protein=self._safe_float(nutriments.get("proteins_100g") or nutriments.get("proteins")),
+                    salt=self._safe_float(nutriments.get("salt_100g") or nutriments.get("salt")),
                 )
         except Exception as exc:
             logger.warning(
@@ -158,7 +145,7 @@ class OpenFoodFactsClient:
         )
 
     @staticmethod
-    def _safe_float(value) -> Optional[float]:
+    def _safe_float(value) -> float | None:
         """Convert input to float safely, returning None on failure."""
         if value is None:
             return None

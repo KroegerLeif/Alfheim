@@ -1,15 +1,15 @@
 import uuid
-from typing import Optional
-from src.mcp.server import mcp
+
 from src.core.database import async_session_factory
-from src.core.dependencies import MOCK_USER_ID, MOCK_HOME_ID
-from src.features.locations.service import LocationService
+from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.locations.models import LocationCreate, LocationUpdate
+from src.features.locations.service import LocationService
+from src.mcp.server import mcp
 
 
 @mcp.tool()
 async def list_locations(
-    name: Optional[str] = None,
+    name: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> str:
@@ -80,7 +80,7 @@ async def get_location(location_id: str) -> str:
 @mcp.tool()
 async def create_location(
     name: str,
-    description: Optional[str] = None,
+    description: str | None = None,
 ) -> str:
     """Create a new storage location inside the home space.
 
@@ -108,8 +108,8 @@ async def create_location(
 @mcp.tool()
 async def update_location(
     location_id: str,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
 ) -> str:
     """Update details of a custom storage location (System locations cannot be updated).
 

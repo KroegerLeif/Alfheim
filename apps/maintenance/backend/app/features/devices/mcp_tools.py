@@ -6,11 +6,12 @@ exclusively from DeviceService.
 """
 
 import datetime
-from typing import Any, Optional
-from app.core.mcp import mcp_server
+from typing import Any
+
 from app.core.database import async_session_factory
-from app.features.devices.service import DeviceService
+from app.core.mcp import mcp_server
 from app.features.devices.exceptions import DeviceError
+from app.features.devices.service import DeviceService
 
 
 @mcp_server.tool()
@@ -28,9 +29,7 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
             all_devices = await DeviceService.get_devices(session)
 
         # Filter by name matching (case-insensitive partial match)
-        matching = [
-            d for d in all_devices if device_name.lower() in d.name.lower()
-        ]
+        matching = [d for d in all_devices if device_name.lower() in d.name.lower()]
 
         if not matching:
             return {
@@ -49,9 +48,7 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
                 due_date = step.supply_needed_date
                 if due_date:
                     try:
-                        days_remaining = (
-                            datetime.date.fromisoformat(due_date) - today
-                        ).days
+                        days_remaining = (datetime.date.fromisoformat(due_date) - today).days
                     except ValueError:
                         days_remaining = 9999
 
@@ -67,19 +64,21 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
                     else:
                         upcoming_steps.append(entry)
 
-            output.append({
-                "id": device.id,
-                "name": device.name,
-                "model": device.model,
-                "serial": device.serial,
-                "category": device.category,
-                "location": device.location,
-                "status": device.status,
-                "notes": device.notes,
-                "overdue_steps": overdue_steps,
-                "upcoming_steps": upcoming_steps,
-                "total_steps": len(device.steps),
-            })
+            output.append(
+                {
+                    "id": device.id,
+                    "name": device.name,
+                    "model": device.model,
+                    "serial": device.serial,
+                    "category": device.category,
+                    "location": device.location,
+                    "status": device.status,
+                    "notes": device.notes,
+                    "overdue_steps": overdue_steps,
+                    "upcoming_steps": upcoming_steps,
+                    "total_steps": len(device.steps),
+                }
+            )
 
         return {
             "found": True,
@@ -92,7 +91,7 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
 
 
 @mcp_server.tool()
-async def list_devices(household_id: Optional[int] = None) -> dict[str, Any]:
+async def list_devices(household_id: int | None = None) -> dict[str, Any]:
     """Retrieve all registered devices, optionally filtered by household.
 
     Args:

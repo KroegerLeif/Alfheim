@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -10,11 +10,11 @@ from src.core.dependencies import (
 )
 from src.features.products import (
     ProductCreate,
-    ProductRead,
-    ProductUpdate,
     ProductNutritionRead,
     ProductNutritionUpdate,
+    ProductRead,
     ProductService,
+    ProductUpdate,
 )
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 
@@ -39,9 +39,9 @@ async def create_product(
 
 @router.get("", response_model=list[ProductRead])
 async def list_products(
-    name: Optional[str] = None,
-    barcode: Optional[str] = None,
-    category_id: Optional[uuid.UUID] = None,
+    name: str | None = None,
+    barcode: str | None = None,
+    category_id: uuid.UUID | None = None,
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),

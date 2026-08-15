@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
+
 from sqlalchemy import Column, DateTime, Index
 from sqlmodel import Field, SQLModel, func
 
@@ -30,7 +30,7 @@ class ShoppingHistory(SQLModel, table=True):
         max_length=255,
         description="Brand name, defaults to empty string to ensure clean unique index matching (bypassing NULL constraint issues).",
     )
-    barcode: Optional[str] = Field(
+    barcode: str | None = Field(
         default=None,
         max_length=100,
         description="Optional barcode.",
@@ -45,13 +45,13 @@ class ShoppingHistory(SQLModel, table=True):
         nullable=False,
         description="Counter of purchases to prioritize quick-selection grids.",
     )
-    icon_tag: Optional[str] = Field(
+    icon_tag: str | None = Field(
         default=None,
         max_length=100,
         description="Translatable tag representing the item category icon (e.g., 'icon.grocery.milk').",
     )
     last_purchased_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -59,7 +59,7 @@ class ShoppingHistory(SQLModel, table=True):
         ),
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -67,7 +67,7 @@ class ShoppingHistory(SQLModel, table=True):
         ),
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),

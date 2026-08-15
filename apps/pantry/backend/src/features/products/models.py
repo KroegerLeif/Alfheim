@@ -1,12 +1,13 @@
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Optional
+
 from sqlalchemy import Column, DateTime, String
-from sqlmodel import Field, SQLModel, Relationship, func
+from sqlmodel import Field, Relationship, SQLModel, func
 
 
-class BaseUnit(str, enum.Enum):
+class BaseUnit(enum.StrEnum):
     """Supported base units of measurement for products."""
 
     G = "g"
@@ -26,7 +27,7 @@ class Product(SQLModel, table=True):
         nullable=False,
         description="Unique identifier for the product blueprint.",
     )
-    category_id: Optional[uuid.UUID] = Field(
+    category_id: uuid.UUID | None = Field(
         default=None,
         foreign_key="categories.id",
         nullable=True,
@@ -39,19 +40,19 @@ class Product(SQLModel, table=True):
         max_length=255,
         description="Name of the product.",
     )
-    brand: Optional[str] = Field(
+    brand: str | None = Field(
         default=None,
         max_length=255,
         description="Brand of the product.",
     )
-    barcode: Optional[str] = Field(
+    barcode: str | None = Field(
         default=None,
         unique=True,
         nullable=True,
         index=True,
         description="Globally unique barcode if present, otherwise null for local items.",
     )
-    image_url: Optional[str] = Field(
+    image_url: str | None = Field(
         default=None,
         max_length=2048,
         description="Optional URL to a product image.",
@@ -66,7 +67,7 @@ class Product(SQLModel, table=True):
         index=True,
         description="If True, this product is system-wide and visible to all homes.",
     )
-    home_id: Optional[uuid.UUID] = Field(
+    home_id: uuid.UUID | None = Field(
         default=None,
         nullable=True,
         index=True,
@@ -78,7 +79,7 @@ class Product(SQLModel, table=True):
         description="Minimum stock threshold quantity required for this product in the home.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -87,7 +88,7 @@ class Product(SQLModel, table=True):
         description="Timestamp when the product was created, in UTC.",
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -122,38 +123,32 @@ class ProductNutrition(SQLModel, table=True):
         ondelete="CASCADE",
         description="Reference to the parent product entity.",
     )
-    calories: Optional[float] = Field(
-        default=None, nullable=True, description="Calories per 100g/ml."
-    )
-    fat: Optional[float] = Field(
-        default=None, nullable=True, description="Fat in grams per 100g/ml."
-    )
-    saturated_fat: Optional[float] = Field(
+    calories: float | None = Field(default=None, nullable=True, description="Calories per 100g/ml.")
+    fat: float | None = Field(default=None, nullable=True, description="Fat in grams per 100g/ml.")
+    saturated_fat: float | None = Field(
         default=None,
         nullable=True,
         description="Saturated fat in grams per 100g/ml.",
     )
-    carbohydrates: Optional[float] = Field(
+    carbohydrates: float | None = Field(
         default=None,
         nullable=True,
         description="Carbohydrates in grams per 100g/ml.",
     )
-    sugars: Optional[float] = Field(
+    sugars: float | None = Field(
         default=None,
         nullable=True,
         description="Sugars in grams per 100g/ml.",
     )
-    protein: Optional[float] = Field(
+    protein: float | None = Field(
         default=None,
         nullable=True,
         description="Protein in grams per 100g/ml.",
     )
-    salt: Optional[float] = Field(
-        default=None, nullable=True, description="Salt in grams per 100g/ml."
-    )
+    salt: float | None = Field(default=None, nullable=True, description="Salt in grams per 100g/ml.")
 
     # Relationship back to Product
-    product: Optional[Product] = Relationship(
+    product: Product | None = Relationship(
         back_populates="nutrition",
         sa_relationship_kwargs={"uselist": False},
     )

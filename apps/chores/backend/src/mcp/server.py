@@ -1,6 +1,10 @@
 import importlib
+import logging
 import pathlib
+
 from fastmcp import FastMCP
+
+logger = logging.getLogger(__name__)
 
 # Initialize the FastMCP server instance
 mcp = FastMCP("Chores Tracker")
@@ -32,4 +36,4 @@ def discover_and_import_mcp_tools() -> None:
         try:
             importlib.import_module(module_name)
         except Exception as e:
-            print(f"Failed to import MCP tools from {module_name}: {e}")
+            logger.error(f"Failed to import MCP tools from {module_name}: {e}")

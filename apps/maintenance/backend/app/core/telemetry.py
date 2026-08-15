@@ -1,35 +1,35 @@
 import json
 import logging
 import sys
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import FastAPI
 from opentelemetry import trace
-from opentelemetry.sdk.resources import Resource, SERVICE_NAME, TELEMETRY_SDK_LANGUAGE
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import SERVICE_NAME, TELEMETRY_SDK_LANGUAGE, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from app.core.config import settings
 
 # Global providers to allow graceful shutdown
-_tracer_provider: Optional[TracerProvider] = None
+_tracer_provider: TracerProvider | None = None
 
 
 class JSONFormatter(logging.Formatter):
     """Custom logging Formatter that outputs log records as single-line JSON.
-    
+
     Includes trace_id and span_id if an active tracing context exists.
     """
+
     def format(self, record: logging.LogRecord) -> str:
         span_context = trace.get_current_span().get_span_context()
         trace_id = format(span_context.trace_id, "032x") if span_context.is_valid else None
         span_id = format(span_context.span_id, "16x") if span_context.is_valid else None
 
         log_data = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
             "logger": record.name,
