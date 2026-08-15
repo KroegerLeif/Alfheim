@@ -71,3 +71,19 @@ Streaks are protected against database race conditions during concurrent complet
 ### D. Completion History Audit Timeline
 Every time a `ChoreInstance` is marked as completed via `POST /instances/{id}/complete`, an immutable audit entry is appended to `ChoreCompletionHistory`. The endpoint `GET /templates/{template_id}/timeline` returns the chronological completion history (timestamp, points awarded, executing user) for that task template.
 
+---
+
+## 3. Running Tests & Quality Gate
+
+Run locally using `uv`:
+```bash
+# Sync dependencies
+uv sync
+
+# Run the complete test suite with coverage
+uv run pytest --cov
+
+# Check code linting and formatting
+uv run ruff check .
+uv run ruff format --check .
+```

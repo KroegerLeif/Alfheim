@@ -122,7 +122,7 @@ graph TD
     main --> cat_router
     main --> prod_router
     main --> inv_router
-    
+
     loc_router --> loc_service
     cat_router --> cat_service
     prod_router --> prod_service
@@ -220,22 +220,18 @@ docker compose up -d
    uv run uvicorn src.main:app --reload
    ```
 
-### 5.3 Testing
+### 5.3 Testing & Quality Gate
 
-Pantry uses Pytest alongside HTTPX ASGITransport for asynchronous test cases. Tests are co-located within feature directories in accordance with FDD principles, split into unit tests (verifying services, unit conversions, and schemas in isolation) and integration tests (verifying API routing and serialization logic).
+Pantry uses Pytest with `pytest-asyncio` (`asyncio_mode = "auto"`) alongside HTTPX `ASGITransport` and in-memory `aiosqlite` databases for isolated asynchronous test execution.
 
-#### Running backend tests from the parent folder:
-You can run all tests and get a coverage report directly from the `pantry/` root folder:
-```bash
-./run-tests.sh
-```
-
-#### Running backend tests from the `backend/` folder:
 ```bash
 # Run pytest with code coverage tracking
 uv run pytest --cov=src src/
 
 # Run a specific feature's tests
 uv run pytest src/features/products/tests/
-```
 
+# Run Ruff linter & formatter checks
+uv run ruff check .
+uv run ruff format --check .
+```

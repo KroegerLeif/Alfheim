@@ -59,17 +59,17 @@ FastAPI microservice executing business logic, auto-provisioning system lists, a
 
 ---
 
-## 🧪 Running Tests & Lint
+## 🧪 Running Tests & Quality Gate
 
 Run locally using `uv`:
 ```bash
-# Setup virtual environment and install packages
-uv venv
+# Sync dependencies
 uv sync
 
-# Run the complete test suite
-uv run pytest
+# Run the complete test suite with coverage
+uv run pytest --cov
 
 # Check code linting and formatting
-uv run ruff check
+uv run ruff check .
+uv run ruff format --check .
 ```

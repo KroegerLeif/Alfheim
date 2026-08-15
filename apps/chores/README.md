@@ -49,4 +49,3 @@ The app follows the **Feature-Driven Design (FDD)** pattern defined in `.ai/rule
 - **Chore Instance** (`chore_instances`): A scheduled copy of a chore assigned to a specific day, tracking execution status.
 - **Chore Completion History Audit** (`chore_completion_history`): Immutable audit timeline recording every instance completion event (timestamp, user, points awarded).
 - **Household Streak** (`household_streaks`): Cumulative day counter incremented upon completing all scheduled chores by midnight.
-

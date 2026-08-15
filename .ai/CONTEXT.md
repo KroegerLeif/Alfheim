@@ -9,6 +9,14 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`quality(tooling): implement ruff hooks, pre-commit, and unified pytest matrix suite`**
+  - Configured root `pyproject.toml` with `[tool.uv.workspace]` linking all 4 FastAPI microservices (`pantry`, `shopping`, `maintenance`, `chores`).
+  - Added centralized `ruff.toml` and `.pre-commit-config.yaml` with Astral Ruff linter/formatter and Git hygiene hooks.
+  - Standardized Pytest async test configurations with `asyncio_mode = "auto"`, removing deprecated `event_loop` fixtures.
+  - Harmonized in-memory SQLite (`aiosqlite`) test databases with per-test transaction rollbacks.
+  - Implemented multi-tenant Household isolation and zero-trust auth integration tests across Pantry, Shopping, and Chores.
+  - Resolved SQLModel `session.exec()` deprecations in Maintenance and schema type imports in Pantry.
+  - Added `.github/workflows/python-ci.yml` matrix pipeline for parallel linting and pytest coverage reporting.
 * **`refactor(telemetry): migrate monitoring stack from signoz to victoriastack and grafana`**
   - Migrated legacy `apps/logging-stack` to `infrastructure/telemetry` (VictoriaMetrics, VictoriaLogs, OTel Collector, Vector, Grafana).
   - Configured unified OTLP entrypoint via OpenTelemetry Collector Contrib (`:4317` / `:4318`) routing to VictoriaMetrics and VictoriaLogs.
