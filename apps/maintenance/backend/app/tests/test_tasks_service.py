@@ -1,14 +1,14 @@
-import pytest
-from unittest.mock import patch
 from datetime import date, timedelta
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import SQLModel
+from unittest.mock import patch
 
+import pytest
 from app.features.devices.models import Device, Household
 from app.features.tasks.models import MaintenanceStep
-from app.features.tasks.service import TaskService
 from app.features.tasks.schemas import MaintenanceSubmission, TaskStateUpdate
+from app.features.tasks.service import TaskService
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -23,6 +23,7 @@ SessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
+
 @pytest.fixture(autouse=True)
 async def prepare_database():
     async with engine.begin() as conn:
@@ -30,6 +31,7 @@ async def prepare_database():
     yield
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
+
 
 @pytest.fixture
 async def db_session_isolated():
@@ -45,7 +47,15 @@ async def test_get_overdue_tasks_and_update(db_session_isolated: AsyncSession):
     await db_session.commit()
     await db_session.refresh(h1)
 
-    d1 = Device(name="Water Heater", model="WH-300", serial="SN789", category="water", location="basement", status="active", household_id=h1.id)
+    d1 = Device(
+        name="Water Heater",
+        model="WH-300",
+        serial="SN789",
+        category="water",
+        location="basement",
+        status="active",
+        household_id=h1.id,
+    )
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
@@ -74,6 +84,7 @@ async def test_get_overdue_tasks_and_update(db_session_isolated: AsyncSession):
     overdue_now = await TaskService.get_overdue_tasks(db_session)
     assert not any(x["step_id"] == s1.id for x in overdue_now)
 
+
 @pytest.mark.asyncio
 async def test_submit_maintenance_wizard_and_history(db_session_isolated: AsyncSession):
     db_session = db_session_isolated
@@ -82,7 +93,15 @@ async def test_submit_maintenance_wizard_and_history(db_session_isolated: AsyncS
     await db_session.commit()
     await db_session.refresh(h1)
 
-    d1 = Device(name="Dehumidifier", model="DH-400", serial="SN012", category="air", location="closet", status="active", household_id=h1.id)
+    d1 = Device(
+        name="Dehumidifier",
+        model="DH-400",
+        serial="SN012",
+        category="air",
+        location="closet",
+        status="active",
+        household_id=h1.id,
+    )
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
@@ -97,7 +116,7 @@ async def test_submit_maintenance_wizard_and_history(db_session_isolated: AsyncS
         performer="Alice",
         step_notes="All clean",
         completed_step_ids=[s1.id],
-        supply_items=["Coil Cleaner"]
+        supply_items=["Coil Cleaner"],
     )
 
     with patch("app.features.tasks.service.TaskService.forward_supplies_to_shopping") as mock_forward:

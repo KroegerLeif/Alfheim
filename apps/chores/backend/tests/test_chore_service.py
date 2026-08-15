@@ -2,10 +2,8 @@ import uuid
 from datetime import date
 
 import pytest
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel, select
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.features.chore_management.models import (
     ChoreInstance,
     ChoreTemplate,
@@ -16,36 +14,13 @@ from src.features.chore_management.schemas import (
 )
 from src.features.chore_management.service import ChoreService
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
-engine = create_async_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-)
-
-SessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-@pytest.fixture(autouse=True)
-async def prepare_database():
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-@pytest.fixture
-async def db_session():
-    async with SessionLocal() as session:
-        yield session
 
 @pytest.mark.asyncio
 async def test_update_chore_template(db_session: AsyncSession):
     home_id = uuid.uuid4()
-    t1 = ChoreTemplate(name="Clean Kitchen", description="Wipe counters", recurrence="daily", points=10, home_id=home_id)
+    t1 = ChoreTemplate(
+        name="Clean Kitchen", description="Wipe counters", recurrence="daily", points=10, home_id=home_id
+    )
     db_session.add(t1)
     await db_session.commit()
     await db_session.refresh(t1)
@@ -54,6 +29,7 @@ async def test_update_chore_template(db_session: AsyncSession):
     updated = await ChoreService.update_chore_template(db_session, t1.id, update_data, home_id)
     assert updated.name == "Clean Kitchen 2"
     assert updated.points == 20
+
 
 @pytest.mark.asyncio
 async def test_delete_chore_template(db_session: AsyncSession):
@@ -69,6 +45,7 @@ async def test_delete_chore_template(db_session: AsyncSession):
     # get_chore_template returns None if not found, it doesn't raise
     template = await ChoreService.get_chore_template(db_session, t1.id, home_id)
     assert template is None
+
 
 @pytest.mark.asyncio
 async def test_assign_and_complete_chore_instance(db_session: AsyncSession):
@@ -88,7 +65,9 @@ async def test_assign_and_complete_chore_instance(db_session: AsyncSession):
     inst = chores[0]
 
     # 3. Assign
-    assigned = await ChoreService.assign_chore_instance(db_session, inst.id, ChoreAssignRequest(assigned_to=user_id), home_id)
+    assigned = await ChoreService.assign_chore_instance(
+        db_session, inst.id, ChoreAssignRequest(assigned_to=user_id), home_id
+    )
     assert assigned.assigned_to == user_id
 
     # 4. Complete
@@ -106,6 +85,7 @@ async def test_assign_and_complete_chore_instance(db_session: AsyncSession):
     assert summary["today_completed_count"] == 1
     assert summary["today_pending_count"] == 0
     assert summary["current_streak"] == 1
+
 
 @pytest.mark.asyncio
 async def test_run_nightly_reset(db_session: AsyncSession):

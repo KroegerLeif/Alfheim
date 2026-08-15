@@ -1,14 +1,14 @@
-import pytest
 from datetime import date, timedelta
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlmodel import SQLModel, select
 
+import pytest
 from app.features.devices.models import Device, Household
-from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
-from app.features.maintenance.service import MaintenanceService
-from app.features.maintenance.schemas import WizardSessionPayload, WizardStepEntry
 from app.features.maintenance.exceptions import WizardValidationError
+from app.features.maintenance.schemas import WizardSessionPayload, WizardStepEntry
+from app.features.maintenance.service import MaintenanceService
+from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlmodel import SQLModel, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -23,6 +23,7 @@ SessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
+
 @pytest.fixture(autouse=True)
 async def prepare_database():
     async with engine.begin() as conn:
@@ -31,10 +32,12 @@ async def prepare_database():
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
+
 @pytest.fixture
 async def db_session_isolated():
     async with SessionLocal() as session:
         yield session
+
 
 @pytest.mark.asyncio
 async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession):
@@ -45,7 +48,15 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     await db_session.commit()
     await db_session.refresh(h1)
 
-    d1 = Device(name="HVAC", model="AC-100", serial="SN123", category="climate", location="basement", status="active", household_id=h1.id)
+    d1 = Device(
+        name="HVAC",
+        model="AC-100",
+        serial="SN123",
+        category="climate",
+        location="basement",
+        status="active",
+        household_id=h1.id,
+    )
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
@@ -66,17 +77,15 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     summaries = await MaintenanceService.get_maintenance_summary(db_session, household_id=h1.id)
     assert len(summaries) == 1
     assert summaries[0].total_overdue == 1  # s1 is overdue
-    assert summaries[0].total_ok == 1       # s2 is ok (20 days > 14 days)
+    assert summaries[0].total_ok == 1  # s2 is ok (20 days > 14 days)
 
     # 4. Submit Wizard Session (Completing s1)
     payload = WizardSessionPayload(
         device_id=d1.id,
         performer="John",
         session_notes="Filter replaced.",
-        completed_steps=[
-            WizardStepEntry(step_id=s1.id, comment="Used generic brand")
-        ],
-        supply_items_to_order=[]
+        completed_steps=[WizardStepEntry(step_id=s1.id, comment="Used generic brand")],
+        supply_items_to_order=[],
     )
     result = await MaintenanceService.submit_wizard_session(db_session, payload)
     assert result.completed_step_count == 1
@@ -88,11 +97,12 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
 
     # Verify History Event
     stmt = select(ServiceHistoryEvent).where(ServiceHistoryEvent.device_id == d1.id)
-    res = await db_session.execute(stmt)
-    history = res.scalars().all()
+    res = await db_session.exec(stmt)
+    history = list(res.all())
     assert len(history) == 1
     assert history[0].notes == "Filter replaced."
     assert "Replace Filter" in history[0].completed_steps
+
 
 @pytest.mark.asyncio
 async def test_wizard_validation_error(db_session_isolated: AsyncSession):
@@ -102,7 +112,15 @@ async def test_wizard_validation_error(db_session_isolated: AsyncSession):
     await db_session.commit()
     await db_session.refresh(h1)
 
-    d1 = Device(name="Pump", model="P-200", serial="SN456", category="water", location="yard", status="active", household_id=h1.id)
+    d1 = Device(
+        name="Pump",
+        model="P-200",
+        serial="SN456",
+        category="water",
+        location="yard",
+        status="active",
+        household_id=h1.id,
+    )
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
@@ -110,7 +128,7 @@ async def test_wizard_validation_error(db_session_isolated: AsyncSession):
     payload = WizardSessionPayload(
         device_id=d1.id,
         performer="Jane",
-        completed_steps=[WizardStepEntry(step_id=9999)], # Invalid step ID
+        completed_steps=[WizardStepEntry(step_id=9999)],  # Invalid step ID
     )
 
     with pytest.raises(WizardValidationError):
