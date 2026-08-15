@@ -84,15 +84,17 @@ app/
 
 ---
 
-## 4. Quality Gate & Compilation Commands
+## 4. Quality Gate & Tooling Commands
 
-Before finishing any task, AI agents must run the following validation steps:
+Before finishing any task in Python microservices, AI agents must run the following validation steps:
 
 ```bash
-# 1. Check Python syntax compilation across all feature modules
-python3 -m py_compile app/features/<domain>/*.py
+# 1. Run full monorepo backend quality check across all 4 microservices:
+./scripts/test-all-backends.sh
 
-# 2. Run Ruff linter & type checking (if configured)
-ruff check app/
-mypy app/
+# 2. Or validate an individual service locally inside its backend/ directory:
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest --cov=src --cov-report=term-missing
 ```
+

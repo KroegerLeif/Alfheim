@@ -9,6 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`quality(tooling): implement ruff hooks and pytest suite across microservices`**
+  - Configured root `.pre-commit-config.yaml` and unified `ruff.toml` enforcing Python 3.12, 120-char line limit, and standard rule groups (`E`, `W`, `F`, `I`, `UP`, `B`, `SIM`, `T20`).
+  - Synchronized `[dependency-groups.dev]` across all 4 microservice `pyproject.toml` files with `respx`, `pytest`, `pytest-asyncio`, `pytest-cov`, and `ruff`.
+  - Resolved all formatting and linting violations across Pantry, Shopping, Maintenance, and Chores backends.
+  - Modernized `conftest.py` test fixtures, removed deprecated `event_loop` fixtures, and configured `asyncio_default_fixture_loop_scope = "session"`.
+  - Added comprehensive integration tests covering Keycloak token validation, 401 unauthenticated handling, and multi-tenant household data isolation.
+  - Created `.github/workflows/ci-backend.yml` matrix pipeline executing lint, format, and pytest coverage for all Python services.
 * **`refactor(apps): localize sidebars and docs website components`**
   - Localized expand/collapse sidebar accessibility attributes in Maintenance and Chores.
   - Localized mascot states, network topology labels, storage/basepath tags, and zero-trust footer badges in `websites/docs`.

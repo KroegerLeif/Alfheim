@@ -147,7 +147,43 @@ The monorepo shares a centralized design system and dynamic theme engine through
 
 ## 7. Security & Keycloak OIDC Token Verification
 
-* **Public Issuer URL**: `http://api.alfheim.loegien.localhost/auth/realms/alfheim`
-* **Internal Docker JWKS**: `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
 * **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `http://api.alfheim.loegien.localhost/auth/realms/alfheim`.
+
+---
+
+## 8. Code Quality, Python Tooling & CI/CD Pipeline
+
+The monorepo enforces automated code quality checks, pre-commit hygiene, and test coverage across all Python FastAPI services:
+
+### A. Pre-commit Hooks & Ruff Formatting
+A centralized [`.pre-commit-config.yaml`](file:///Users/leifkroeger/Dev/loeger-os/.pre-commit-config.yaml) and [`ruff.toml`](file:///Users/leifkroeger/Dev/loeger-os/ruff.toml) govern all microservices:
+* **Install Git Hooks**:
+  ```bash
+  pre-commit install
+  ```
+* **Run Linter Across Services**:
+  ```bash
+  uv run ruff check .
+  ```
+* **Format Python Codebase**:
+  ```bash
+  uv run ruff format .
+  ```
+
+### B. Automated Testing with Pytest
+Run test suites per-service or across the entire monorepo:
+* **All-in-One Monorepo Test Runner**:
+  ```bash
+  ./scripts/test-all-backends.sh
+  ```
+* **Per-Service Test Run**:
+  ```bash
+  # Inside any backend directory (e.g. apps/pantry/backend)
+  uv run pytest --cov=src --cov-report=term-missing
+  ```
+
+### C. GitHub Actions CI Matrix
+The pipeline defined in [`.github/workflows/ci-backend.yml`](file:///Users/leifkroeger/Dev/loeger-os/.github/workflows/ci-backend.yml) runs matrix validation (`ruff check`, `ruff format --check`, `pytest`) on all 4 backends on every push and PR.
+
+
 

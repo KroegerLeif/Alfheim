@@ -233,9 +233,22 @@ You can run all tests and get a coverage report directly from the `pantry/` root
 #### Running backend tests from the `backend/` folder:
 ```bash
 # Run pytest with code coverage tracking
-uv run pytest --cov=src src/
+uv run pytest --cov=src --cov-report=term-missing
 
 # Run a specific feature's tests
 uv run pytest src/features/products/tests/
 ```
+
+### 5.4 Linting & Code Formatting
+```bash
+# Run Ruff linting
+uv run ruff check .
+
+# Check code formatting
+uv run ruff format --check .
+
+# Auto-format codebase
+uv run ruff format .
+```
+
 

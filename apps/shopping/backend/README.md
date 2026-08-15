@@ -64,12 +64,17 @@ FastAPI microservice executing business logic, auto-provisioning system lists, a
 Run locally using `uv`:
 ```bash
 # Setup virtual environment and install packages
-uv venv
-uv sync
+uv sync --all-groups
 
-# Run the complete test suite
-uv run pytest
+# Run the complete test suite with coverage
+uv run pytest --cov=src --cov-report=term-missing
 
-# Check code linting and formatting
-uv run ruff check
+# Check code linting
+uv run ruff check .
+
+# Check code formatting
+uv run ruff format --check .
+
+# Auto-format codebase
+uv run ruff format .
 ```

@@ -55,7 +55,7 @@ backend/
 
 ### A. Non-Cumulative Daily Reset Engine
 To prevent chore backlog fatigue, chores follow a `non_cumulative` model:
-- Daily at `00:00:05` (local server time), the background scheduler executes a reset:
+- Daily at `00:00:05` UTC, the background scheduler executes a reset:
   - Any uncompleted `ChoreInstance` for the previous day is transitioned to `missed` status.
   - If any chore was missed, the household's streak is reset to `0`.
   - If all chores for the day were completed, the household's streak is incremented.
@@ -71,3 +71,25 @@ Streaks are protected against database race conditions during concurrent complet
 ### D. Completion History Audit Timeline
 Every time a `ChoreInstance` is marked as completed via `POST /instances/{id}/complete`, an immutable audit entry is appended to `ChoreCompletionHistory`. The endpoint `GET /templates/{template_id}/timeline` returns the chronological completion history (timestamp, points awarded, executing user) for that task template.
 
+---
+
+## 3. 🧪 Testing & Code Quality
+
+Run tests and linting locally using `uv`:
+
+```bash
+# Sync dependencies
+uv sync --all-groups
+
+# Run pytest with code coverage tracking
+uv run pytest --cov=src --cov-report=term-missing
+
+# Run Ruff linter
+uv run ruff check .
+
+# Check formatting
+uv run ruff format --check .
+
+# Auto-format codebase
+uv run ruff format .
+```

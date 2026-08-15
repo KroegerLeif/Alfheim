@@ -69,3 +69,26 @@ Each domain feature exposes custom MCP tools for cursor execution tasks:
 * **Devices Toolset**: `get_all_devices`, `register_new_device`
 * **Tasks Toolset**: `fetch_pending_tasks`, `save_task_notes`
 * **Maintenance Toolset**: `trigger_service_checklist`
+
+---
+
+## 🧪 Testing & Code Quality
+
+Run tests and linting locally using `uv`:
+
+```bash
+# Sync dependencies
+uv sync --all-groups
+
+# Run pytest with code coverage tracking
+uv run pytest --cov=app --cov-report=term-missing
+
+# Run Ruff linter
+uv run ruff check .
+
+# Check formatting
+uv run ruff format --check .
+
+# Auto-format codebase
+uv run ruff format .
+```
