@@ -32,3 +32,7 @@ Refer to the stack guide matching the active codebase's language/framework:
 * **Python & FastAPI**: [stacks/python_fastapi.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/stacks/python_fastapi.md)
 * **Go (Golang)**: [stacks/golang.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/stacks/golang.md)
 * **Java & Spring Boot**: [stacks/java_spring.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/stacks/java_spring.md)
+
+### 5. Quality Gates & Verification
+* **Mandatory Pre-Commit Verification**: Follow [guidelines/quality-gates.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/guidelines/quality-gates.md).
+* **Local Verification Runner**: Always run [`./scripts/verify.sh --all`](file:///Users/leifkroeger/Dev/loeger-os/scripts/verify.sh) before proposing diffs, committing, or pushing code.

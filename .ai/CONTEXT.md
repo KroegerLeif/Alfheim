@@ -9,6 +9,15 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`docs(ai): implement monorepo quality gate guidelines and local verification runner`**
+  - Created `.ai/guidelines/quality-gates.md` documenting mandatory multi-stack quality gates (Python, Go, Frontend, Security, and MCP).
+  - Created `scripts/verify.sh` local pre-flight runner supporting `--all`, `--python`, `--go`, `--frontend`, and `--security` checks.
+  - Added `detect-private-key` and `check-case-conflict` to `.pre-commit-config.yaml`.
+  - Updated `.ai/INDEX.md` and `.ai/CONTEXT.md` requiring agents to run `./scripts/verify.sh` before staging/committing code.
+* **`fix(types): resolve static type checking errors reported by ty`**
+  - Resolved 94 `ty` diagnostics across Pantry, Shopping, Maintenance, and Chores using `sqlmodel.col()` wrappers.
+  - Standardized `Index` definitions to use string column names.
+  - Added primary key null-safety assertions following database refreshes.
 * **`docs(ai): add new-app scaffolding guide with ruff, ty, and pytest coverage standards`**
   - Created `.ai/guidelines/new-app-scaffolding.md` detailing workspace registration, `ruff`, `ty`, `pytest` in-memory `aiosqlite`, and standalone Docker build setup.
   - Added `ty` to root dev dependencies and `.github/workflows/python-ci.yml` quality gates.
