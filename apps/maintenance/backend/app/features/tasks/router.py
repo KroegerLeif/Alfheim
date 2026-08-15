@@ -5,7 +5,7 @@ Exposes REST endpoints for service history, submission, and step updates,
 delegating all logic to TaskService.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
@@ -61,7 +61,7 @@ async def get_service_history(
 )
 async def update_task_state(
     step_id: int = Path(..., description="The MaintenanceStep primary key"),
-    payload: TaskStateUpdate = ...,
+    payload: TaskStateUpdate = Body(...),
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):

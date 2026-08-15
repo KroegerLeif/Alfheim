@@ -93,10 +93,13 @@ async def get_current_inventory(
             for state in states:
                 batch_str = f" [Batch: {state.batch_code}]" if state.batch_code else ""
                 expiry_str = f" [Expires: {state.expiration_date}]" if state.expiration_date else ""
+                p_name = state.product.name if state.product else "Unknown"
+                p_unit = state.product.base_unit if state.product else ""
+                l_name = state.location.name if state.location else "Unknown"
                 lines.append(
-                    f"- Product: {state.product.name} (ID: {state.product_id}) | "
-                    f"Location: {state.location.name} (ID: {state.location_id}) | "
-                    f"Qty: {state.quantity} {state.product.base_unit}{batch_str}{expiry_str}"
+                    f"- Product: {p_name} (ID: {state.product_id}) | "
+                    f"Location: {l_name} (ID: {state.location_id}) | "
+                    f"Qty: {state.quantity} {p_unit}{batch_str}{expiry_str}"
                 )
             return "\n".join(lines)
 

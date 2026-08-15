@@ -4,9 +4,10 @@ Maintenance feature service layer providing orchestration logic for wizard sessi
 
 import datetime
 import logging
+from typing import Any, cast
 
 from sqlalchemy.orm import selectinload
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.features.devices.exceptions import DeviceNotFoundError
@@ -57,7 +58,7 @@ class MaintenanceService:
 
         if completed_step_ids:
             stmt = select(MaintenanceStep).where(
-                MaintenanceStep.id.in_(completed_step_ids),
+                col(MaintenanceStep.id).in_(completed_step_ids),
                 MaintenanceStep.device_id == payload.device_id,
             )
             result = await session.exec(stmt)
@@ -69,6 +70,7 @@ class MaintenanceService:
                 raise WizardValidationError(f"Step IDs not found for device {payload.device_id}: {missing}")
 
             for step in db_steps:
+                assert step.id is not None
                 wizard_entry = completed_step_map[step.id]
                 if wizard_entry.comment is not None:
                     step.description = wizard_entry.comment
@@ -101,6 +103,8 @@ class MaintenanceService:
         await session.commit()
         await session.refresh(event)
         await session.refresh(device)
+        assert event.id is not None
+        assert device.id is not None
 
         forwarded_count = 0
         if payload.supply_items_to_order:
@@ -133,7 +137,7 @@ class MaintenanceService:
         household_result = await session.exec(household_stmt)
         households = list(household_result.all())
 
-        device_stmt = select(Device).options(selectinload(Device.steps))
+        device_stmt = select(Device).options(selectinload(cast(Any, Device.steps)))
         if household_id is not None:
             device_stmt = device_stmt.where(Device.household_id == household_id)
         device_result = await session.exec(device_stmt)
@@ -146,6 +150,7 @@ class MaintenanceService:
         summaries: list[HouseholdMaintenanceSummary] = []
 
         for household in households:
+            assert household.id is not None
             household_devices = devices_by_household.get(household.id, [])
             device_summaries: list[MaintenanceSummary] = []
             total_overdue = 0
@@ -153,6 +158,7 @@ class MaintenanceService:
             total_ok = 0
 
             for device in household_devices:
+                assert device.id is not None
                 overdue = 0
                 due_soon = 0
                 ok = 0

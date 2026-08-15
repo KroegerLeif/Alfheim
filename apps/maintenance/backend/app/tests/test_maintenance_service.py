@@ -48,6 +48,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     await db_session.commit()
     await db_session.refresh(h1)
 
+    assert h1.id is not None
     d1 = Device(
         name="HVAC",
         model="AC-100",
@@ -60,6 +61,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
+    assert d1.id is not None
 
     # 2. Add Steps
     past_date = (date.today() - timedelta(days=5)).isoformat()
@@ -72,6 +74,8 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     await db_session.commit()
     await db_session.refresh(s1)
     await db_session.refresh(s2)
+    assert s1.id is not None
+    assert s2.id is not None
 
     # 3. Check Summary
     summaries = await MaintenanceService.get_maintenance_summary(db_session, household_id=h1.id)
@@ -93,7 +97,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     # Verify DB update
     await db_session.refresh(s1)
     # The new supply needed date should be in the future (approx 3 months from today)
-    assert s1.supply_needed_date > date.today().isoformat()
+    assert s1.supply_needed_date is not None and s1.supply_needed_date > date.today().isoformat()
 
     # Verify History Event
     stmt = select(ServiceHistoryEvent).where(ServiceHistoryEvent.device_id == d1.id)
@@ -101,7 +105,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     history = list(res.all())
     assert len(history) == 1
     assert history[0].notes == "Filter replaced."
-    assert "Replace Filter" in history[0].completed_steps
+    assert history[0].completed_steps is not None and "Replace Filter" in history[0].completed_steps
 
 
 @pytest.mark.asyncio
@@ -111,6 +115,7 @@ async def test_wizard_validation_error(db_session_isolated: AsyncSession):
     db_session.add(h1)
     await db_session.commit()
     await db_session.refresh(h1)
+    assert h1.id is not None
 
     d1 = Device(
         name="Pump",
@@ -124,6 +129,7 @@ async def test_wizard_validation_error(db_session_isolated: AsyncSession):
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
+    assert d1.id is not None
 
     payload = WizardSessionPayload(
         device_id=d1.id,

@@ -2,6 +2,8 @@
 Device feature service layer handling database queries and business logic.
 """
 
+from typing import Any, cast
+
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -31,8 +33,8 @@ class DeviceService:
         Supports optional filtering by household_id.
         """
         statement = select(Device).options(
-            selectinload(Device.steps),
-            selectinload(Device.history_events),
+            selectinload(cast(Any, Device.steps)),
+            selectinload(cast(Any, Device.history_events)),
         )
         if household_id is not None:
             statement = statement.where(Device.household_id == household_id)
@@ -50,8 +52,8 @@ class DeviceService:
         statement = (
             select(Device)
             .options(
-                selectinload(Device.steps),
-                selectinload(Device.history_events),
+                selectinload(cast(Any, Device.steps)),
+                selectinload(cast(Any, Device.history_events)),
             )
             .where(Device.id == device_id)
         )
@@ -90,6 +92,7 @@ class DeviceService:
         )
         session.add(device)
         await session.flush()
+        assert device.id is not None
 
         for step_data in payload.steps:
             step = MaintenanceStep(

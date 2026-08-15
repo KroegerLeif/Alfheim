@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.chore_management.exceptions import (
     ChoreAlreadyCompletedError,
@@ -53,6 +53,7 @@ class ChoreService:
                 # If race occurred, select it again
                 res = await session.exec(stmt)
                 streak = res.first()
+        assert streak is not None
         return streak
 
     @staticmethod
@@ -360,7 +361,7 @@ class ChoreService:
                 ChoreCompletionHistory.template_id == template_id,
                 ChoreCompletionHistory.home_id == home_id,
             )
-            .order_by(ChoreCompletionHistory.completed_at.desc())
+            .order_by(col(ChoreCompletionHistory.completed_at).desc())
             .offset(offset)
             .limit(limit)
         )

@@ -175,7 +175,7 @@ class InventoryService:
         """Retrieve historical transaction log entries, ensuring home space boundaries."""
         statement = (
             select(InventoryLedger)
-            .join(Location, Location.id == InventoryLedger.location_id)
+            .join(Location, col(Location.id) == InventoryLedger.location_id)
             .where(Location.home_id == home_id)
         )
 
@@ -198,7 +198,7 @@ class InventoryService:
         """Retrieve real-time consolidated stock levels cache, ensuring home space boundaries."""
         statement = (
             select(InventoryState)
-            .join(Location, Location.id == InventoryState.location_id)
+            .join(Location, col(Location.id) == InventoryState.location_id)
             .where(Location.home_id == home_id)
         )
 
@@ -224,16 +224,16 @@ class InventoryService:
         # Subquery to aggregate total stock per product for the home
         subq = (
             select(InventoryState.product_id, func.sum(InventoryState.quantity).label("total_quantity"))
-            .join(Location, InventoryState.location_id == Location.id)
+            .join(Location, col(InventoryState.location_id) == Location.id)
             .where(Location.home_id == home_id)
-            .group_by(InventoryState.product_id)
+            .group_by(col(InventoryState.product_id))
             .subquery()
         )
 
         # Query products where aggregated quantity is less than minimum_stock
         stmt = (
             select(Product, func.coalesce(subq.c.total_quantity, 0.0).label("current_stock"))
-            .outerjoin(subq, Product.id == subq.c.product_id)
+            .outerjoin(subq, col(Product.id) == subq.c.product_id)
             .where(
                 or_(Product.is_global, Product.home_id == home_id),
                 func.coalesce(subq.c.total_quantity, 0.0) < Product.minimum_stock,
@@ -268,26 +268,26 @@ class InventoryService:
         # Base statement to select inventory state within target home locations
         base_stmt = (
             select(InventoryState)
-            .join(Location, InventoryState.location_id == Location.id)
+            .join(Location, col(InventoryState.location_id) == Location.id)
             .where(Location.home_id == home_id)
         )
 
         # 1. Expired: expiration_date is not NULL and <= today
         expired_stmt = base_stmt.where(
-            InventoryState.expiration_date.is_not(None), InventoryState.expiration_date <= today
+            col(InventoryState.expiration_date).is_not(None), col(InventoryState.expiration_date) <= today
         )
         expired_res = await session.exec(expired_stmt)
         expired = expired_res.all()
 
         # 2. Valid: expiration_date is not NULL and > today (includes the sentinel 9999-12-31)
         valid_stmt = base_stmt.where(
-            InventoryState.expiration_date.is_not(None), InventoryState.expiration_date > today
+            col(InventoryState.expiration_date).is_not(None), col(InventoryState.expiration_date) > today
         )
         valid_res = await session.exec(valid_stmt)
         valid = valid_res.all()
 
         # 3. Untracked: expiration_date is NULL
-        untracked_stmt = base_stmt.where(InventoryState.expiration_date.is_(None))
+        untracked_stmt = base_stmt.where(col(InventoryState.expiration_date).is_(None))
         untracked_res = await session.exec(untracked_stmt)
         untracked = untracked_res.all()
 

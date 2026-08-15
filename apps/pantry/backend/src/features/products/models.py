@@ -116,7 +116,8 @@ class ProductNutrition(SQLModel, table=True):
 
     __tablename__ = "product_nutrition"
 
-    product_id: uuid.UUID = Field(
+    product_id: uuid.UUID | None = Field(
+        default=None,
         primary_key=True,
         foreign_key="products.id",
         nullable=False,

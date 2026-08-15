@@ -47,6 +47,7 @@ async def test_get_overdue_tasks_and_update(db_session_isolated: AsyncSession):
     await db_session.commit()
     await db_session.refresh(h1)
 
+    assert h1.id is not None
     d1 = Device(
         name="Water Heater",
         model="WH-300",
@@ -59,12 +60,14 @@ async def test_get_overdue_tasks_and_update(db_session_isolated: AsyncSession):
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
+    assert d1.id is not None
 
     past_date = (date.today() - timedelta(days=10)).isoformat()
     s1 = MaintenanceStep(title="Flush Tank", recurrence=12, device_id=d1.id, supply_needed_date=past_date)
     db_session.add(s1)
     await db_session.commit()
     await db_session.refresh(s1)
+    assert s1.id is not None
 
     # Test Overdue Tasks
     overdue = await TaskService.get_overdue_tasks(db_session)
@@ -92,6 +95,7 @@ async def test_submit_maintenance_wizard_and_history(db_session_isolated: AsyncS
     db_session.add(h1)
     await db_session.commit()
     await db_session.refresh(h1)
+    assert h1.id is not None
 
     d1 = Device(
         name="Dehumidifier",
@@ -105,11 +109,13 @@ async def test_submit_maintenance_wizard_and_history(db_session_isolated: AsyncS
     db_session.add(d1)
     await db_session.commit()
     await db_session.refresh(d1)
+    assert d1.id is not None
 
     s1 = MaintenanceStep(title="Clean Coil", recurrence=6, device_id=d1.id)
     db_session.add(s1)
     await db_session.commit()
     await db_session.refresh(s1)
+    assert s1.id is not None
 
     payload = MaintenanceSubmission(
         device_id=d1.id,
@@ -122,7 +128,7 @@ async def test_submit_maintenance_wizard_and_history(db_session_isolated: AsyncS
     with patch("app.features.tasks.service.TaskService.forward_supplies_to_shopping") as mock_forward:
         event = await TaskService.submit_maintenance_wizard(db_session, payload)
         assert event.performer == "Alice"
-        assert "Clean Coil" in event.completed_steps
+        assert event.completed_steps is not None and "Clean Coil" in event.completed_steps
         mock_forward.assert_called_once_with(["Coil Cleaner"])
 
     # Test Get History

@@ -4,11 +4,11 @@ Task feature service layer handling database operations and inter-service HTTP i
 
 import datetime
 import logging
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from sqlalchemy.orm import selectinload
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.features.devices.exceptions import DeviceNotFoundError
@@ -81,8 +81,8 @@ class TaskService:
         """
         statement = (
             select(ServiceHistoryEvent)
-            .options(selectinload(ServiceHistoryEvent.device))
-            .order_by(ServiceHistoryEvent.date.desc())
+            .options(selectinload(cast(Any, ServiceHistoryEvent.device)))
+            .order_by(col(ServiceHistoryEvent.date).desc())
         )
         result = await session.exec(statement)
         events = list(result.all())
@@ -92,7 +92,7 @@ class TaskService:
 
         return [
             ServiceHistoryEventDetailRead(
-                id=e.id,
+                id=e.id or 0,
                 date=e.date,
                 performer=e.performer,
                 notes=e.notes,
@@ -117,7 +117,7 @@ class TaskService:
         completed_steps_titles = []
         if payload.completed_step_ids:
             steps_statement = select(MaintenanceStep).where(
-                MaintenanceStep.id.in_(payload.completed_step_ids),
+                col(MaintenanceStep.id).in_(payload.completed_step_ids),
                 MaintenanceStep.device_id == payload.device_id,
             )
             result = await session.exec(steps_statement)
@@ -179,12 +179,12 @@ class TaskService:
     @staticmethod
     async def get_overdue_tasks(session: AsyncSession) -> list[dict[str, Any]]:
         """Fetch all maintenance steps currently overdue across all devices."""
-        statement = select(MaintenanceStep).options(selectinload(MaintenanceStep.device))
+        statement = select(MaintenanceStep).options(selectinload(cast(Any, MaintenanceStep.device)))
         result = await session.exec(statement)
         all_steps = list(result.all())
 
         today = datetime.date.today()
-        overdue = []
+        overdue: list[dict[str, Any]] = []
 
         for step in all_steps:
             if not step.supply_needed_date:
@@ -210,5 +210,5 @@ class TaskService:
                     }
                 )
 
-        overdue.sort(key=lambda x: x["days_overdue"], reverse=True)
+        overdue.sort(key=lambda x: int(x["days_overdue"]), reverse=True)
         return overdue

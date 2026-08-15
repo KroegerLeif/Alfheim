@@ -171,10 +171,10 @@ class InventoryState(SQLModel, table=True):
 # 1. Unique constraint when both batch_code and expiration_date are NOT NULL
 Index(
     "uq_state_product_location_batch_expiry",
-    InventoryState.product_id,
-    InventoryState.location_id,
-    InventoryState.batch_code,
-    InventoryState.expiration_date,
+    "product_id",
+    "location_id",
+    "batch_code",
+    "expiration_date",
     unique=True,
     postgresql_where=text("batch_code IS NOT NULL AND expiration_date IS NOT NULL"),
     sqlite_where=text("batch_code IS NOT NULL AND expiration_date IS NOT NULL"),
@@ -183,9 +183,9 @@ Index(
 # 2. Unique constraint when batch_code is NOT NULL and expiration_date IS NULL
 Index(
     "uq_state_product_location_batch_only",
-    InventoryState.product_id,
-    InventoryState.location_id,
-    InventoryState.batch_code,
+    "product_id",
+    "location_id",
+    "batch_code",
     unique=True,
     postgresql_where=text("batch_code IS NOT NULL AND expiration_date IS NULL"),
     sqlite_where=text("batch_code IS NOT NULL AND expiration_date IS NULL"),
@@ -194,9 +194,9 @@ Index(
 # 3. Unique constraint when expiration_date is NOT NULL and batch_code IS NULL
 Index(
     "uq_state_product_location_expiry_only",
-    InventoryState.product_id,
-    InventoryState.location_id,
-    InventoryState.expiration_date,
+    "product_id",
+    "location_id",
+    "expiration_date",
     unique=True,
     postgresql_where=text("batch_code IS NULL AND expiration_date IS NOT NULL"),
     sqlite_where=text("batch_code IS NULL AND expiration_date IS NOT NULL"),
@@ -205,8 +205,8 @@ Index(
 # 4. Unique constraint when both batch_code and expiration_date are NULL
 Index(
     "uq_state_product_location_default",
-    InventoryState.product_id,
-    InventoryState.location_id,
+    "product_id",
+    "location_id",
     unique=True,
     postgresql_where=text("batch_code IS NULL AND expiration_date IS NULL"),
     sqlite_where=text("batch_code IS NULL AND expiration_date IS NULL"),

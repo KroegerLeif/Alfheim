@@ -65,8 +65,8 @@ class ChoreTemplate(SQLModel, table=True):
 # Enforce name uniqueness per household
 Index(
     "uq_chore_template_name_per_home",
-    ChoreTemplate.home_id,
-    ChoreTemplate.name,
+    "home_id",
+    "name",
     unique=True,
 )
 
@@ -152,8 +152,8 @@ class ChoreInstance(SQLModel, table=True):
 # Prevent duplicate template instances scheduled for the exact same date
 Index(
     "uq_chore_instance_template_per_date",
-    ChoreInstance.template_id,
-    ChoreInstance.due_date,
+    "template_id",
+    "due_date",
     unique=True,
 )
 

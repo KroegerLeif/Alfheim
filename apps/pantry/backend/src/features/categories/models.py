@@ -105,7 +105,7 @@ class Category(CategoryBase, table=True):
 # 1. Global category names must be unique database-wide (where home_id is NULL)
 Index(
     "uq_global_category_name",
-    Category.name,
+    "name",
     unique=True,
     postgresql_where=text("home_id IS NULL"),
     sqlite_where=text("home_id IS NULL"),
@@ -114,8 +114,8 @@ Index(
 # 2. Personal category names must be unique within a home space (where home_id is NOT NULL)
 Index(
     "uq_personal_category_name",
-    Category.home_id,
-    Category.name,
+    "home_id",
+    "name",
     unique=True,
     postgresql_where=text("home_id IS NOT NULL"),
     sqlite_where=text("home_id IS NOT NULL"),

@@ -235,11 +235,11 @@ class ShoppingListService:
         stmt = (
             select(ShoppingList)
             .where(
-                ShoppingList.home_id.in_(hh_ids),
+                col(ShoppingList.home_id).in_(hh_ids),
                 ShoppingList.is_default == False,  # noqa: E712
                 col(ShoppingList.is_personal) == False,  # noqa: E712
             )
-            .order_by(ShoppingList.position.asc(), ShoppingList.created_at.asc())
+            .order_by(col(ShoppingList.position).asc(), col(ShoppingList.created_at).asc())
         )
         result = await session.exec(stmt)
         custom_lists = list(result.all())
@@ -256,7 +256,7 @@ class ShoppingListService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
-    ) -> ShoppingList | None:
+    ) -> ShoppingList:
         """Retrieve a specific shopping list with boundary checks.
 
         Personal Lists are accessible from any household context — the home_id

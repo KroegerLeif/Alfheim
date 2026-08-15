@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from sqlmodel import func, select
+from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.history.models import ShoppingHistory
 
@@ -74,8 +74,8 @@ class ShoppingHistoryService:
             select(ShoppingHistory)
             .where(ShoppingHistory.home_id == home_id)
             .order_by(
-                ShoppingHistory.purchase_count.desc(),
-                ShoppingHistory.last_purchased_at.desc(),
+                col(ShoppingHistory.purchase_count).desc(),
+                col(ShoppingHistory.last_purchased_at).desc(),
             )
             .limit(limit)
         )

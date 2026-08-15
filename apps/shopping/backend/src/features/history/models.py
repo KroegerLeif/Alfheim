@@ -80,8 +80,8 @@ class ShoppingHistory(SQLModel, table=True):
 # Unique index scoping name + brand within a household to prevent duplicate entries
 Index(
     "uq_shopping_history_home_name_brand",
-    ShoppingHistory.home_id,
-    ShoppingHistory.name,
-    ShoppingHistory.brand,
+    "home_id",
+    "name",
+    "brand",
     unique=True,
 )
