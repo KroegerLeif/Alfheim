@@ -1,0 +1,29 @@
+target-version = "py312"
+line-length = 120
+indent-width = 4
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort (import sorting)
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "T20", # flake8-print (disallow leftover print statements)
+]
+ignore = [
+    "E501", # Line length handled by formatter
+    "B008", # Do not perform function calls in argument defaults (FastAPI Depends)
+]
+
+[lint.isort]
+known-first-party = ["src", "app"]
+
+[lint.per-file-ignores]
+"**/tests/*" = ["T201", "B011"]
+"**/seeder.py" = ["T201"]
+"**/mcp_tools.py" = ["E402"]
+"**/src/mcp/*" = ["E402"]
+"**/app/core/mcp.py" = ["E402"]

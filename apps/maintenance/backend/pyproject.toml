@@ -22,6 +22,25 @@ dependencies = [
     "mcp[cli]>=1.28.1",
 ]
 
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1",
+    "greenlet>=3.5.1",
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "respx>=0.22.0",
+    "ruff>=0.15.15",
+]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+
+[tool.coverage.run]
+omit = [
+    "**/mcp.py",
+    "**/mcp_tools.py",
+]

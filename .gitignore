@@ -19,4 +19,8 @@ Thumbs.db
 **/__pycache__/
 **/.ruff_cache/
 **/.pytest_cache/
+**/.coverage
+**/.coverage.*
+coverage.xml
+htmlcov/
 **/*.log
