@@ -222,6 +222,7 @@ source = { virtual = "." }
 dev = [
     { name = "pre-commit" },
     { name = "ruff" },
+    { name = "ty" },
 ]
 
 [package.metadata]
@@ -230,6 +231,7 @@ dev = [
 dev = [
     { name = "pre-commit", specifier = ">=4.1.0" },
     { name = "ruff", specifier = ">=0.15.15" },
+    { name = "ty", specifier = ">=0.0.72" },
 ]
 
 [[package]]

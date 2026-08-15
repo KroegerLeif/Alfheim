@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/*/backend/**'
       - 'pyproject.toml'
+      - 'uv.lock'
       - 'ruff.toml'
       - '.pre-commit-config.yaml'
       - '.github/workflows/python-ci.yml'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'apps/*/backend/**'
       - 'pyproject.toml'
+      - 'uv.lock'
       - 'ruff.toml'
       - '.pre-commit-config.yaml'
       - '.github/workflows/python-ci.yml'
@@ -53,6 +55,27 @@ jobs:
       - name: Run Ruff Formatter Check
         run: uv run ruff format --check .
 
+  type-check:
+    name: ty Static Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync Root Workspace
+        run: uv sync --all-groups
+
+      - name: Run ty Type Checker
+        run: uv run ty check --output-format github
+
   test-matrix:
     name: Pytest & Coverage (${{ matrix.service }})
     runs-on: ubuntu-latest
@@ -83,4 +106,4 @@ jobs:
         run: uv sync --all-groups
 
       - name: Run Pytest with Coverage
-        run: uv run pytest --cov --cov-report=xml
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml

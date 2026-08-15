@@ -9,6 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`docs(ai): add new-app scaffolding guide with ruff, ty, and pytest coverage standards`**
+  - Created `.ai/guidelines/new-app-scaffolding.md` detailing workspace registration, `ruff`, `ty`, `pytest` in-memory `aiosqlite`, and standalone Docker build setup.
+  - Added `ty` to root dev dependencies and `.github/workflows/python-ci.yml` quality gates.
+* **`fix(docker): resolve uv workspace lockfile synchronization across backend docker builds`**
+  - Standardized standalone `Dockerfile` builds using `uv sync --no-dev --no-install-project` without workspace lockfile coupling.
+  - Added standard `.dockerignore` files across all backend directories to exclude `.venv`, local `uv.lock`, and caches.
 * **`quality(tooling): implement ruff hooks, pre-commit, and unified pytest matrix suite`**
   - Configured root `pyproject.toml` with `[tool.uv.workspace]` linking all 4 FastAPI microservices (`pantry`, `shopping`, `maintenance`, `chores`).
   - Added centralized `ruff.toml` and `.pre-commit-config.yaml` with Astral Ruff linter/formatter and Git hygiene hooks.

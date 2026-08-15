@@ -84,15 +84,23 @@ app/
 
 ---
 
-## 4. Quality Gate & Compilation Commands
+## 4. Quality Gate & Validation Commands
 
-Before finishing any task, AI agents must run the following validation steps:
+Before finishing any task or submitting a Pull Request, AI agents must run the following validation commands from the repository root:
 
 ```bash
-# 1. Check Python syntax compilation across all feature modules
-python3 -m py_compile app/features/<domain>/*.py
+# 1. Run centralized Ruff linter & formatter checks
+uv run ruff check .
+uv run ruff format --check .
 
-# 2. Run Ruff linter & type checking (if configured)
-ruff check app/
-mypy app/
+# 2. Run static type checking with ty
+uv run ty check
+
+# 3. Run all pytest test suites with coverage
+uv run pytest --cov
+
+# 4. Run pre-commit hooks
+uv run pre-commit run --all-files
 ```
+
+For complete guidelines on creating a new FastAPI microservice, consult [.ai/guidelines/new-app-scaffolding.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/guidelines/new-app-scaffolding.md).
