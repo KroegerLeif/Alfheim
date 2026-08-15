@@ -81,4 +81,3 @@ export const messages: Record<Language, any> = {
 export function getSharedMessages(locale: Language) {
   return messages[locale] || messages.de;
 }
-

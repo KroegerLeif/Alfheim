@@ -3,11 +3,11 @@
 import { useTranslation, AppLogo } from "@alfheim/shared";
 import { Link, usePathname } from "@/navigation";
 import { cn } from "@/core/utils";
-import { 
-  LayoutDashboard, 
-  Archive, 
-  History, 
-  AlertTriangle, 
+import {
+  LayoutDashboard,
+  Archive,
+  History,
+  AlertTriangle,
   Clock,
   Package,
   MapPin,

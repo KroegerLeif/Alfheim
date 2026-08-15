@@ -32,7 +32,7 @@ function ColorPicker({ label, value, onChange, swatches }: ColorPickerProps) {
       <label className="block text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider">{label}</label>
       <div className="flex flex-col gap-3">
         <div className="flex gap-2.5 items-center">
-          <div 
+          <div
             onClick={() => inputRef.current?.click()}
             className="w-10 h-10 border border-[var(--border-subtle)] rounded-xl cursor-pointer hover:scale-105 hover:shadow-md transition-all shrink-0 relative overflow-hidden"
             style={{ backgroundColor: value }}
@@ -403,7 +403,7 @@ export default function SettingsPage() {
                   {t('settings.saved_presets_desc')}
                 </p>
               </div>
-              
+
               <div className="flex gap-2 max-w-sm">
                 <input
                   type="text"
@@ -435,7 +435,7 @@ export default function SettingsPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {presets.map((preset) => {
-                  const isActive = customColors && 
+                  const isActive = customColors &&
                     customColors[resolvedMode]?.primary === preset.colors[resolvedMode]?.primary &&
                     customColors[resolvedMode]?.canvas === preset.colors[resolvedMode]?.canvas &&
                     customColors[resolvedMode]?.accent === preset.colors[resolvedMode]?.accent;
@@ -574,4 +574,3 @@ export default function SettingsPage() {
     </>
   );
 }
-

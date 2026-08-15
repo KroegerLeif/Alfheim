@@ -70,4 +70,3 @@ export interface ChoreTimelineRead {
   completed_at: string;
   points_awarded: number;
 }
-

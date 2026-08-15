@@ -122,7 +122,7 @@ async def run():
         lists = await ShoppingListService.get_lists(session, home_id=home_id, owner_id=user_id, username='Max')
         personal_list = lists[0]
         household_list = lists[1]
-        
+
         for item in household_items:
             try:
                 await ShoppingListService.add_item(session, household_list.id, item, home_id)

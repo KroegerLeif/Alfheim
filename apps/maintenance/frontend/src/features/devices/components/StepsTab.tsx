@@ -37,14 +37,14 @@ export function StepsTab({ device }: StepsTabProps) {
               </div>
               <span className={cn(
                 "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0",
-                isOverdue 
+                isOverdue
                   ? "bg-red-500/10 text-red-500 border-red-500/20"
                   : remainingDays <= 14
                   ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
                   : "bg-[var(--surface-elevated)] text-[var(--text-muted)] border-[var(--border-subtle)]"
               )}>
-                {isOverdue 
-                  ? t("deviceInventory.fields.overdueBy", { days: Math.abs(remainingDays) }) 
+                {isOverdue
+                  ? t("deviceInventory.fields.overdueBy", { days: Math.abs(remainingDays) })
                   : t("deviceInventory.fields.dueIn", { days: remainingDays })}
               </span>
             </div>

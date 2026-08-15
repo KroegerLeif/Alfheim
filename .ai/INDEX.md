@@ -1,6 +1,6 @@
 # AI Agent Router Map (`.ai/INDEX.md`)
 
-This index directs AI agents to the correct guidelines, rules, and workflows depending on their task. 
+This index directs AI agents to the correct guidelines, rules, and workflows depending on their task.
 
 > [!IMPORTANT]
 > **Always read [rules/core.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/core.md) and [CONTEXT.md](file:///Users/leifkroeger/Dev/alfheim/.ai/CONTEXT.md) before starting any task.**

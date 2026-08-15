@@ -81,4 +81,3 @@ export const choresClient = ky.create({
   },
 });
 export type apiClientType = typeof choresClient;
-

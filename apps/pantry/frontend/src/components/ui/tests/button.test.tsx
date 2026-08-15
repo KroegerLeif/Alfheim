@@ -14,7 +14,7 @@ describe('Button Primitive', () => {
     const handleClick = vi.fn()
     render(<Button onClick={handleClick}>Click Me</Button>)
     const buttonElement = screen.getByText('Click Me')
-    
+
     fireEvent.click(buttonElement)
     expect(handleClick).toHaveBeenCalledTimes(1)
   })

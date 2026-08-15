@@ -42,11 +42,11 @@ describe('ItemRow Component', () => {
     // Name + Brand text
     expect(screen.getByText(/Vollmilch/)).toBeInTheDocument()
     expect(screen.getByText(/(Bio)/)).toBeInTheDocument()
-    
+
     // Quantity + Unit text
     expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.getByText('L')).toBeInTheDocument()
-    
+
     // No pantry badge since product_id is null
     expect(screen.queryByText('pantryBadge')).not.toBeInTheDocument()
   })

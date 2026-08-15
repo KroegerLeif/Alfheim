@@ -8,7 +8,7 @@ import { LocationRead, LocationCreate } from "@/features/locations/types";
 export function useLocations() {
   return useQuery<LocationRead[]>({
     queryKey: ["locations"],
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/locations")
         .json<LocationRead[]>(),

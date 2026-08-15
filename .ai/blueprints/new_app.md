@@ -191,7 +191,7 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
 
 ## 7. Registering in `scripts/up.sh` (Vertical Slice Pattern)
 
-Every new application **MUST** be registered as a dedicated vertical slice stage inside `scripts/up.sh` **before** the Observability stage. 
+Every new application **MUST** be registered as a dedicated vertical slice stage inside `scripts/up.sh` **before** the Observability stage.
 
 ### 7.1 Stage Template
 Boot services **strictly sequentially** to avoid resource spikes:

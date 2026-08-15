@@ -3,13 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { useLayout, NavOption } from "./LayoutContext";
 import { AppLogo } from "@alfheim/shared";
-import { 
-  Laptop, 
-  Wrench, 
-  CalendarClock, 
-  History, 
-  ShoppingCart, 
-  ChevronLeft, 
+import {
+  Laptop,
+  Wrench,
+  CalendarClock,
+  History,
+  ShoppingCart,
+  ChevronLeft,
   ChevronRight
 } from "lucide-react";
 import { cn } from "@/core/utils";

@@ -58,7 +58,7 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
             </span>
           )}
         </span>
-        
+
         {/* Linked Catalog Badge */}
         {item.product_id && !item.is_completed && <PantryBadge />}
       </div>

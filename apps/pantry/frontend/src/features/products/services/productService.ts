@@ -14,7 +14,7 @@ export const productKeys = {
 export function useSearchProducts(name?: string) {
   return useQuery<ProductRead[]>({
     queryKey: productKeys.search(name),
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/products", {
           searchParams: {
@@ -33,7 +33,7 @@ export function useSearchProducts(name?: string) {
 export function useProductByBarcode(barcode: string, enabled = true) {
   return useQuery<ProductRead>({
     queryKey: productKeys.barcode(barcode),
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get(`api/v1/products/barcode/${barcode}`)
         .json<ProductRead>(),
@@ -48,7 +48,7 @@ export function useProductByBarcode(barcode: string, enabled = true) {
 export function useProducts() {
   return useQuery<ProductRead[]>({
     queryKey: productKeys.all,
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/products")
         .json<ProductRead[]>(),

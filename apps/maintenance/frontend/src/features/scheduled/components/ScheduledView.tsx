@@ -34,7 +34,7 @@ export function ScheduledView() {
   // Flatten steps from all filtered devices, ensuring array safety
   const allTasks: FlattenedTask[] = [];
   const deviceList = devices ?? [];
-  
+
   deviceList.forEach((device) => {
     const steps = device.steps ?? [];
     steps.forEach((step) => {
@@ -58,7 +58,7 @@ export function ScheduledView() {
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans">
-      
+
       {/* Toggle Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-2">

@@ -27,7 +27,7 @@ export function daysUntil(dateString: string | undefined): number {
   if (!dateString) return 0;
   const targetDate = new Date(dateString);
   if (isNaN(targetDate.getTime())) return 0;
-  
+
   const today = new Date();
   // Strip hours to get exact calendar day counts
   today.setHours(0, 0, 0, 0);
@@ -45,7 +45,7 @@ export function daysUntil(dateString: string | undefined): number {
 export function nextDueFromStep(lastPerformed: string | undefined, intervalMonths: number): string {
   const start = lastPerformed ? new Date(lastPerformed) : new Date();
   if (isNaN(start.getTime())) return "";
-  
+
   start.setMonth(start.getMonth() + intervalMonths);
   return start.toISOString().split("T")[0];
 }

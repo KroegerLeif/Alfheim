@@ -13,7 +13,7 @@ export function ManualsPanel() {
         <FileText className="h-4 w-4 text-[var(--text-muted)]" />
         <span>{t("wizardMode.directManuals")}</span>
       </div>
-      
+
       {/* Manuals Empty State */}
       <div className="space-y-2">
         <p className="text-xs text-[var(--text-muted)] text-center py-6">

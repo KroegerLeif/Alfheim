@@ -57,7 +57,7 @@ export function SidebarHouseholdPicker() {
             <>
               {/* Backdrop element to close the dropdown when clicking outside */}
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-              
+
               <div className="absolute left-4 right-4 mt-1.5 z-20 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] p-1.5 shadow-2xl space-y-0.5">
                 <button
                   onClick={() => {

@@ -30,4 +30,3 @@ export function ThemeToggle({ className = '', showVariantToggle = true }: ThemeT
     </button>
   );
 }
-

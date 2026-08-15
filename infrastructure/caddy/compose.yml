@@ -21,4 +21,3 @@ networks:
   gateway-net:
     name: gateway-net
     external: true
-

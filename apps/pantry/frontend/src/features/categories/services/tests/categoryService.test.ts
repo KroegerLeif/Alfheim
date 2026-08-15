@@ -16,7 +16,7 @@ describe('useCategories Hook', () => {
       { id: '1', name: 'Drinks', description: 'Beverages', is_global: true },
       { id: '2', name: 'Snacks', description: 'Crunchies', is_global: false },
     ]
-    
+
     const mockJson = vi.fn().mockResolvedValue(mockCategories)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,

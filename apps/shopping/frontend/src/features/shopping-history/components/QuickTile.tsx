@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 // Icon mapping configuration
 export const getIconDetails = (tag?: string | null) => {
   const defaultMeta = { Icon: ShoppingCart, color: "var(--text-muted)" };
-  
   if (!tag) return defaultMeta;
 
   switch (tag.toLowerCase()) {

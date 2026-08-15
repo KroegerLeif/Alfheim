@@ -35,7 +35,7 @@ interface LayoutProps {
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {
   const { locale } = await params;
-  
+
   // Retrieve the loaded locale messages
   const messages = await getMessages({ locale });
 

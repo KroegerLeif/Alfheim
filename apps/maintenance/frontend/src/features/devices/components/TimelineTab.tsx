@@ -33,7 +33,7 @@ export function TimelineTab({ device }: TimelineTabProps) {
           <div key={event.id} className="relative space-y-2">
             {/* Timeline Node Dot */}
             <div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--primary-main)] border border-[var(--surface-card)] ring-4 ring-[var(--primary-main)]/20" />
-            
+
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-0.5">
                 <h4 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wide">

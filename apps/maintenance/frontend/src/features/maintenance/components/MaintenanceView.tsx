@@ -58,7 +58,7 @@ export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
   const getDeviceMaintenanceState = (device: Device): MetricFilter => {
     const steps = device.steps ?? [];
     if (steps.length === 0) return "ok";
-    
+
     let hasOverdue = false;
     let hasDueSoon = false;
 
