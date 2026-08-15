@@ -20,3 +20,6 @@ Thumbs.db
 **/.ruff_cache/
 **/.pytest_cache/
 **/*.log
+**/.coverage
+**/.coverage.*
+**/coverage.xml

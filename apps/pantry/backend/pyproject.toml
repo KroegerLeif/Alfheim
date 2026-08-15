@@ -1,7 +1,7 @@
 [project]
-name = "backend"
+name = "pantry-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Backend microservice for the alfheim Pantry application"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -30,8 +30,9 @@ dev = [
     "pytest>=9.0.3",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
+    "respx>=0.23.1",
     "ruff>=0.15.15",
-    "ty>=0.0.40",
+    "ty>=0.0.72",
 ]
 
 [tool.pytest.ini_options]
