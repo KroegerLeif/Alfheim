@@ -3,21 +3,23 @@ from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.dependencies import MOCK_HOME_ID
-from src.features.products.models import Product
-from src.features.locations.models import Location
 from src.features.inventory.models import InventoryState
+from src.features.locations.models import Location
+from src.features.products.models import Product
+
 
 @pytest.fixture(autouse=True)
 async def seed_inventory_data(db_session: AsyncSession):
     """Seed locations, products, and default inventory for testing."""
+    from src.features.inventory.seeder import seed_default_inventory
     from src.features.locations.seeder import seed_default_locations
     from src.features.products.seeder import seed_default_products
-    from src.features.inventory.seeder import seed_default_inventory
 
     await seed_default_locations(db_session)
     await seed_default_products(db_session)
     await seed_default_inventory(db_session)
     await db_session.commit()
+
 
 async def test_startup_seeds_inventory(client: AsyncClient):
     """Verify that default inventory levels are correctly seeded on startup."""
@@ -35,6 +37,7 @@ async def test_startup_seeds_inventory(client: AsyncClient):
     assert spaghetti_state["quantity"] == 500.0
     assert spaghetti_state["location"]["name"] == "Backlog"
 
+
 async def test_get_low_stock_items(client: AsyncClient, db_session: AsyncSession):
     """Verify that the low stock query aggregates quantity and compares it against minimum_stock."""
     spag_res = await db_session.exec(select(Product).where(Product.barcode == "8013383000570"))
@@ -51,7 +54,7 @@ async def test_get_low_stock_items(client: AsyncClient, db_session: AsyncSession
         base_unit="piece",
         minimum_stock=10.0,
         is_global=False,
-        home_id=MOCK_HOME_ID
+        home_id=MOCK_HOME_ID,
     )
     db_session.add(new_prod)
     await db_session.commit()
@@ -70,6 +73,7 @@ async def test_get_low_stock_items(client: AsyncClient, db_session: AsyncSession
     items = {item["product"]["id"]: item for item in data}
     assert items[str(spaghetti.id)]["current_stock"] == 500.0
     assert items[str(new_prod_id)]["current_stock"] == 0.0
+
 
 async def test_get_expiration_summary(client: AsyncClient, db_session: AsyncSession):
     """Verify that the expiration summary correctly categorizes stock by expiration date."""

@@ -1,20 +1,20 @@
 import uuid
-from typing import Optional, Sequence
+from collections.abc import Sequence
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.core.database import get_db_session
-from src.core.dependencies import get_current_user_and_home, UserHomeContext
-from src.features.inventory.service import InventoryService
+from src.core.dependencies import UserHomeContext, get_current_user_and_home
 from src.features.inventory.schemas import (
-    InventoryTransactionCreate,
-    InventoryLedgerRead,
-    InventoryStateReadWithRelations,
-    LowStockItem,
-    ExpirationSummary,
     BulkAddInventoryPayload,
     BulkAddResponse,
+    ExpirationSummary,
+    InventoryLedgerRead,
+    InventoryStateReadWithRelations,
+    InventoryTransactionCreate,
+    LowStockItem,
 )
+from src.features.inventory.service import InventoryService
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 
@@ -44,8 +44,8 @@ async def create_transaction(
     summary="Get inventory transaction history log",
 )
 async def get_ledger_history(
-    product_id: Optional[uuid.UUID] = Query(default=None, description="Filter by product UUID"),
-    location_id: Optional[uuid.UUID] = Query(default=None, description="Filter by location UUID"),
+    product_id: uuid.UUID | None = Query(default=None, description="Filter by product UUID"),
+    location_id: uuid.UUID | None = Query(default=None, description="Filter by location UUID"),
     limit: int = Query(default=100, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
@@ -68,8 +68,8 @@ async def get_ledger_history(
     summary="Get current cached inventory stock levels",
 )
 async def get_current_state(
-    product_id: Optional[uuid.UUID] = Query(default=None, description="Filter by product UUID"),
-    location_id: Optional[uuid.UUID] = Query(default=None, description="Filter by location UUID"),
+    product_id: uuid.UUID | None = Query(default=None, description="Filter by product UUID"),
+    location_id: uuid.UUID | None = Query(default=None, description="Filter by location UUID"),
     session: AsyncSession = Depends(get_db_session),
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):

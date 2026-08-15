@@ -2,7 +2,6 @@ import uuid
 from datetime import date
 
 from sqlmodel import select
-
 from src.core.database import async_session_factory
 from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
@@ -24,7 +23,7 @@ async def get_daily_chores_overview() -> str:
             lines = [
                 f"Household Streak: {summary['current_streak']} days (Longest: {summary['longest_streak']} days)",
                 f"Today's Chores Completion: {summary['today_completed_count']}/{summary['today_total_count']} ({summary['completion_rate']}%)",
-                "Chores List:"
+                "Chores List:",
             ]
 
             today_chores = summary["today_chores"]
@@ -110,7 +109,7 @@ async def assign_chore(chore_instance_id: str, user_id: str) -> str:
     try:
         inst_uuid = uuid.UUID(chore_instance_id)
         user_uuid = uuid.UUID(user_id)
-        
+
         async with async_session_factory() as session:
             payload = ChoreAssignRequest(assigned_to=user_uuid)
             updated = await ChoreService.assign_chore_instance(

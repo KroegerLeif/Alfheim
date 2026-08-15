@@ -1,12 +1,12 @@
 import uuid
-from typing import Optional
 from datetime import date
-from src.mcp.server import mcp
+
 from src.core.database import async_session_factory
 from src.core.dependencies import MOCK_HOME_ID
-from src.features.inventory.service import InventoryService
-from src.features.inventory.schemas import InventoryTransactionCreate
 from src.features.inventory.exceptions import InventoryError
+from src.features.inventory.schemas import InventoryTransactionCreate
+from src.features.inventory.service import InventoryService
+from src.mcp.server import mcp
 
 
 @mcp.tool()
@@ -16,9 +16,9 @@ async def record_inventory_movement(
     transaction_type: str,
     quantity_input: float,
     unit_input: str,
-    batch_code: Optional[str] = None,
-    expiration_date: Optional[str] = None,
-    notes: Optional[str] = None,
+    batch_code: str | None = None,
+    expiration_date: str | None = None,
+    notes: str | None = None,
 ) -> str:
     """Record a physical inventory movement (IN, OUT, WASTE, RECONCILIATION).
 
@@ -65,8 +65,8 @@ async def record_inventory_movement(
 
 @mcp.tool()
 async def get_current_inventory(
-    product_id: Optional[str] = None,
-    location_id: Optional[str] = None,
+    product_id: str | None = None,
+    location_id: str | None = None,
 ) -> str:
     """Retrieve the real-time cached inventory levels.
 
@@ -162,7 +162,9 @@ async def get_inventory_expiration_summary() -> str:
             if not valid:
                 lines.append("None")
             for state in valid:
-                date_str = "Sentinel (infinite)" if str(state.expiration_date) == "9999-12-31" else str(state.expiration_date)
+                date_str = (
+                    "Sentinel (infinite)" if str(state.expiration_date) == "9999-12-31" else str(state.expiration_date)
+                )
                 lines.append(
                     f"- Product: {state.product.name} | Location: {state.location.name} | "
                     f"Qty: {state.quantity} {state.product.base_unit} | Expires: {date_str}"

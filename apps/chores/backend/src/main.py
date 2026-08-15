@@ -7,7 +7,6 @@ from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
-
 from src.core.config import settings
 from src.mcp.server import mcp
 
@@ -73,6 +72,7 @@ async def schedule_nightly_reset():
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     from src.core.database import init_db
+
     await init_db()
 
     # Start background scheduler
@@ -91,6 +91,7 @@ async def lifespan(app: FastAPI):
             pass
         # Gracefully flush and shutdown OpenTelemetry providers
         from src.core.telemetry import shutdown_telemetry
+
         shutdown_telemetry()
 
 
@@ -122,6 +123,7 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
         status_code=400,
         content={"detail": str(exc)},
     )
+
 
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)

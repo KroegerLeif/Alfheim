@@ -82,4 +82,3 @@ class ChoreIntegrationSummary(BaseModel):
     today_total_count: int
     completion_rate: float
     today_chores: list[ChoreInstanceRead] = Field(default_factory=list)
-

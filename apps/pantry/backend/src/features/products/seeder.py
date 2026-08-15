@@ -1,11 +1,11 @@
 import json
 import pathlib
 import uuid
+
 import anyio
 from pydantic import TypeAdapter
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.features.products.models import Product
 from src.features.products.schemas import ProductCreate
 from src.features.products.service import ProductService

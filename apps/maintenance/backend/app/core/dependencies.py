@@ -1,9 +1,10 @@
-import os
 import logging
+import os
+
 import jwt
-from typing import Optional
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -11,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 class UserHouseholdContext(BaseModel):
     user_id: str
-    household_id: Optional[int] = None
-    email: Optional[str] = None
-    username: Optional[str] = None
+    household_id: int | None = None
+    email: str | None = None
+    username: str | None = None
     roles: list[str] = []
 
 
@@ -89,7 +90,7 @@ async def get_current_user_and_household(request: Request) -> UserHouseholdConte
         )
 
     hh_val = payload.get("household_id") or payload.get("active_household_id") or request.headers.get("X-Household-ID")
-    parsed_hh_id: Optional[int] = None
+    parsed_hh_id: int | None = None
     if hh_val is not None:
         try:
             parsed_hh_id = int(hh_val)

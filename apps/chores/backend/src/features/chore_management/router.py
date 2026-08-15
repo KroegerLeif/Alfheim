@@ -3,7 +3,6 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.core.database import get_db_session
 from src.core.dependencies import (
     UserHomeContext,
@@ -162,7 +161,8 @@ async def complete_chore_instance(
     """Mark a chore instance as completed."""
     completed_by = payload.completed_by if payload and payload.completed_by else context.user_id
     completed_by_name = (
-        payload.completed_by_name if payload and payload.completed_by_name
+        payload.completed_by_name
+        if payload and payload.completed_by_name
         else (context.username or context.email or "User")
     )
     return await ChoreService.complete_chore_instance(

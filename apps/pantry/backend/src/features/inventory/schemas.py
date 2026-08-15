@@ -1,18 +1,17 @@
 import uuid
-from datetime import datetime, date
-from typing import Optional
-from pydantic import field_validator
-from sqlmodel import SQLModel, Field
+from datetime import date, datetime
 
+from pydantic import field_validator
+from sqlmodel import Field, SQLModel
 from src.features.inventory.models import InventoryTransactionType
 from src.features.inventory.units import is_valid_unit
-from src.features.products.schemas import ProductRead
 from src.features.locations.models import LocationRead
-
+from src.features.products.schemas import ProductRead
 
 # -------------------------------------------------------------
 # Inventory Transaction / Ledger Schemas
 # -------------------------------------------------------------
+
 
 class InventoryTransactionCreate(SQLModel):
     """Schema for validating incoming inventory movement requests."""
@@ -35,16 +34,16 @@ class InventoryTransactionCreate(SQLModel):
         max_length=50,
         description="The raw unit inputted by the user (e.g. 'kg', 'g', 'ml', 'piece', 'pack').",
     )
-    batch_code: Optional[str] = Field(
+    batch_code: str | None = Field(
         default=None,
         max_length=100,
         description="Optional batch or lot code to track specific stock groups.",
     )
-    expiration_date: Optional[date] = Field(
+    expiration_date: date | None = Field(
         default=None,
         description="Optional expiration date associated with this batch.",
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None,
         max_length=500,
         description="Optional explanatory notes for audit trail records.",
@@ -72,15 +71,16 @@ class InventoryLedgerRead(SQLModel):
     quantity: float
     quantity_input: float
     unit_input: str
-    batch_code: Optional[str]
-    expiration_date: Optional[date]
-    notes: Optional[str]
+    batch_code: str | None
+    expiration_date: date | None
+    notes: str | None
     created_at: datetime
 
 
 # -------------------------------------------------------------
 # Inventory State Schemas
 # -------------------------------------------------------------
+
 
 class InventoryStateRead(SQLModel):
     """Schema for returning cached inventory state details in API responses."""
@@ -89,8 +89,8 @@ class InventoryStateRead(SQLModel):
     product_id: uuid.UUID
     location_id: uuid.UUID
     quantity: float
-    batch_code: Optional[str]
-    expiration_date: Optional[date]
+    batch_code: str | None
+    expiration_date: date | None
     created_at: datetime
     updated_at: datetime
 
@@ -98,13 +98,14 @@ class InventoryStateRead(SQLModel):
 class InventoryStateReadWithRelations(InventoryStateRead):
     """Enhanced inventory state response including nested product and location entities."""
 
-    product: Optional[ProductRead] = None
-    location: Optional[LocationRead] = None
+    product: ProductRead | None = None
+    location: LocationRead | None = None
 
 
 # -------------------------------------------------------------
 # Pull Engine & Summary Schemas
 # -------------------------------------------------------------
+
 
 class LowStockItem(SQLModel):
     """Schema representing a product that has fallen below its minimum stock threshold."""
@@ -125,35 +126,22 @@ class ExpirationSummary(SQLModel):
 # Bulk Sync Schemas (i18n-ready)
 # -------------------------------------------------------------
 
+
 class BulkAddProductItem(SQLModel):
     """Schema for an individual item to be ingested in bulk from a shopping list."""
 
-    shopping_item_id: uuid.UUID = Field(
-        description="The unique identifier of the source shopping item."
-    )
-    name: str = Field(
-        min_length=1, max_length=255, description="Name of the product."
-    )
-    brand: Optional[str] = Field(
-        default=None, max_length=255, description="Brand name of the product."
-    )
-    barcode: Optional[str] = Field(
-        default=None, description="Globally unique barcode if available."
-    )
-    quantity: float = Field(
-        gt=0, description="Quantity of the item to add."
-    )
-    unit: str = Field(
-        min_length=1, max_length=50, description="The unit of measurement (e.g. piece, kg, g, ml, l)."
-    )
+    shopping_item_id: uuid.UUID = Field(description="The unique identifier of the source shopping item.")
+    name: str = Field(min_length=1, max_length=255, description="Name of the product.")
+    brand: str | None = Field(default=None, max_length=255, description="Brand name of the product.")
+    barcode: str | None = Field(default=None, description="Globally unique barcode if available.")
+    quantity: float = Field(gt=0, description="Quantity of the item to add.")
+    unit: str = Field(min_length=1, max_length=50, description="The unit of measurement (e.g. piece, kg, g, ml, l).")
 
 
 class BulkAddInventoryPayload(SQLModel):
     """Schema for validating a list of bulk items to add to inventory."""
 
-    items: list[BulkAddProductItem] = Field(
-        description="List of purchased items to sync to the pantry."
-    )
+    items: list[BulkAddProductItem] = Field(description="List of purchased items to sync to the pantry.")
 
 
 class BulkAddSuccessfulItem(SQLModel):
@@ -170,8 +158,8 @@ class BulkAddUnrecognizedItem(SQLModel):
 
     shopping_item_id: uuid.UUID
     name: str
-    brand: Optional[str] = None
-    barcode: Optional[str] = None
+    brand: str | None = None
+    barcode: str | None = None
     quantity: float
     unit: str
     reason: str = Field(
@@ -184,4 +172,3 @@ class BulkAddResponse(SQLModel):
 
     successful_items: list[BulkAddSuccessfulItem] = Field(default_factory=list)
     unrecognized_items: list[BulkAddUnrecognizedItem] = Field(default_factory=list)
-

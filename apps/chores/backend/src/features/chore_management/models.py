@@ -263,4 +263,3 @@ class ChoreCompletionHistory(SQLModel, table=True):
         default=0,
         description="Points awarded for this completion event.",
     )
-

@@ -1,17 +1,21 @@
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.dependencies import MOCK_HOME_ID
 from src.features.products.models import BaseUnit
 from src.features.products.schemas import ProductCreate, ProductNutritionCreate
 
+
 @pytest.fixture(autouse=True)
 async def seed_products(db_session: AsyncSession):
     """Seed global products dynamically for product tests."""
     from src.features.products.seeder import seed_default_products
+
     await seed_default_products(db_session)
     await db_session.commit()
+
 
 async def test_startup_seeds_products(client: AsyncClient):
     """Verify that default global products are seeded on startup."""
@@ -28,6 +32,7 @@ async def test_startup_seeds_products(client: AsyncClient):
         assert prod["is_global"] is True
         assert prod["home_id"] is None
         assert "nutrition" not in prod
+
 
 async def test_create_personal_product(client: AsyncClient):
     """Verify that a home user can create a personal/local product blueprint."""
@@ -66,6 +71,7 @@ async def test_create_personal_product(client: AsyncClient):
     assert nut_data["calories"] == 250
     assert nut_data["sugars"] == 55
 
+
 async def test_create_duplicate_barcode_clash(client: AsyncClient):
     """Verify barcode uniqueness is globally enforced."""
     payload = {
@@ -76,6 +82,7 @@ async def test_create_duplicate_barcode_clash(client: AsyncClient):
     response = await client.post("/api/v1/products", json=payload)
     assert response.status_code == 400
     assert "already exists" in response.json()["detail"]
+
 
 async def test_list_and_search_products(client: AsyncClient):
     """Verify filtering and search options for products list."""
@@ -103,6 +110,7 @@ async def test_list_and_search_products(client: AsyncClient):
     assert len(data) == 1
     assert data[0]["brand"] == "Oatly"
 
+
 async def test_update_personal_product(client: AsyncClient):
     """Verify updating fields on a local product."""
     create_res = await client.post(
@@ -120,6 +128,7 @@ async def test_update_personal_product(client: AsyncClient):
     assert data["name"] == "Unsweetened Almond Milk"
     assert data["brand"] == "Alpro Premium"
 
+
 async def test_update_global_product_blocked(client: AsyncClient):
     """Verify global products cannot be updated by home spaces."""
     list_res = await client.get("/api/v1/products")
@@ -131,6 +140,7 @@ async def test_update_global_product_blocked(client: AsyncClient):
     )
     assert patch_res.status_code == 400
     assert "Global products cannot be modified" in patch_res.json()["detail"]
+
 
 async def test_delete_personal_product_cascade(client: AsyncClient):
     """Verify that deleting a product cascades to its nutrition profile."""
@@ -153,6 +163,7 @@ async def test_delete_personal_product_cascade(client: AsyncClient):
     get_nut_res = await client.get(f"/api/v1/products/{prod_id}/nutrition")
     assert get_nut_res.status_code == 404
 
+
 async def test_delete_global_product_blocked(client: AsyncClient):
     """Verify that global products cannot be deleted by home spaces."""
     list_res = await client.get("/api/v1/products")
@@ -161,6 +172,7 @@ async def test_delete_global_product_blocked(client: AsyncClient):
     del_res = await client.delete(f"/api/v1/products/{global_prod_id}")
     assert del_res.status_code == 400
     assert "Global products cannot be deleted" in del_res.json()["detail"]
+
 
 async def test_update_nutrition_profile(client: AsyncClient):
     """Verify updating/adding nutrition details on-demand."""
@@ -188,6 +200,7 @@ async def test_update_nutrition_profile(client: AsyncClient):
     assert patch_global_nut.status_code == 400
     assert "Global product nutrition cannot be modified" in patch_global_nut.json()["detail"]
 
+
 async def test_barcode_lookup_cache_hit(client: AsyncClient):
     """Verify barcode lookup serves from local database if cached."""
     response = await client.get("/api/v1/products/barcode/7394376615967")
@@ -195,6 +208,7 @@ async def test_barcode_lookup_cache_hit(client: AsyncClient):
     data = response.json()
     assert data["name"] == "Oatly Barista Edition"
     assert data["brand"] == "Oatly"
+
 
 @patch("src.features.products.router.off_client.get_by_barcode")
 async def test_barcode_lookup_cache_miss_ingested(mock_get: AsyncMock, client: AsyncClient):
@@ -217,6 +231,7 @@ async def test_barcode_lookup_cache_miss_ingested(mock_get: AsyncMock, client: A
     local_check = await client.get(f"/api/v1/products/{data['id']}")
     assert local_check.status_code == 200
     assert local_check.json()["barcode"] == "5449000131805"
+
 
 @patch("src.features.products.router.off_client.get_by_barcode")
 async def test_barcode_lookup_not_found(mock_get: AsyncMock, client: AsyncClient):

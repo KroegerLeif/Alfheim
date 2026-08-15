@@ -1,9 +1,9 @@
 from collections.abc import AsyncGenerator
+
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.core.config import settings
 
 # Create the async engine
@@ -33,8 +33,8 @@ async def init_db() -> None:
     Imports all models to ensure they register with SQLModel.metadata.
     Executes raw SQL DDL migrations to ensure column additions for existing tables.
     """
-    from src.features.shopping_lists.models import ShoppingList, ShoppingItem  # noqa: F401
     from src.features.history.models import ShoppingHistory  # noqa: F401
+    from src.features.shopping_lists.models import ShoppingItem, ShoppingList  # noqa: F401
 
     # 1. Create tables if they do not exist in an isolated transaction
     async with engine.begin() as conn:
@@ -52,4 +52,3 @@ async def init_db() -> None:
                 await conn.execute(text(stmt))
         except Exception:
             pass
-

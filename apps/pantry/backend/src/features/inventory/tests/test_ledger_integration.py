@@ -2,20 +2,22 @@ import pytest
 from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.features.products.models import Product
 from src.features.locations.models import Location
+from src.features.products.models import Product
+
 
 @pytest.fixture(autouse=True)
 async def seed_ledger_data(db_session: AsyncSession):
     """Seed locations, products, and initial inventory levels for ledger tests."""
+    from src.features.inventory.seeder import seed_default_inventory
     from src.features.locations.seeder import seed_default_locations
     from src.features.products.seeder import seed_default_products
-    from src.features.inventory.seeder import seed_default_inventory
 
     await seed_default_locations(db_session)
     await seed_default_products(db_session)
     await seed_default_inventory(db_session)
     await db_session.commit()
+
 
 async def test_record_in_transaction_standard_unit(client: AsyncClient, db_session: AsyncSession):
     """Verify that posting an 'in' transaction with standard units adds stock correctly."""
@@ -42,6 +44,7 @@ async def test_record_in_transaction_standard_unit(client: AsyncClient, db_sessi
     states = {item["product_id"]: item for item in state_res.json()}
     assert states[str(spaghetti.id)]["quantity"] == 700.0
 
+
 async def test_record_in_transaction_flexible_unit(client: AsyncClient, db_session: AsyncSession):
     """Verify that posting an 'in' transaction with a custom unit (l -> ml) normalizes correctly."""
     prod_res = await db_session.exec(select(Product).where(Product.barcode == "7394376615967"))
@@ -67,6 +70,7 @@ async def test_record_in_transaction_flexible_unit(client: AsyncClient, db_sessi
     states = {item["product_id"]: item for item in state_res.json()}
     assert states[str(oatly.id)]["quantity"] == 4500.0
 
+
 async def test_record_out_transaction_sufficient_stock(client: AsyncClient, db_session: AsyncSession):
     """Verify posting an 'out' transaction correctly decrements state cache stock."""
     prod_res = await db_session.exec(select(Product).where(Product.barcode == "8013383000570"))
@@ -90,6 +94,7 @@ async def test_record_out_transaction_sufficient_stock(client: AsyncClient, db_s
     states = {item["product_id"]: item for item in state_res.json()}
     assert states[str(spaghetti.id)]["quantity"] == 300.0
 
+
 async def test_record_out_transaction_insufficient_stock(client: AsyncClient, db_session: AsyncSession):
     """Verify that posting an 'out' transaction exceeding available stock returns HTTP 400."""
     prod_res = await db_session.exec(select(Product).where(Product.barcode == "8013383000570"))
@@ -107,6 +112,7 @@ async def test_record_out_transaction_insufficient_stock(client: AsyncClient, db
     response = await client.post("/api/v1/inventory/transactions", json=payload)
     assert response.status_code == 400
     assert "Insufficient stock" in response.json()["detail"]
+
 
 async def test_out_transaction_to_zero_deletes_cache_row(client: AsyncClient, db_session: AsyncSession):
     """Verify that when a stock level drops to exactly zero, the state cache row is physically deleted."""
@@ -128,6 +134,7 @@ async def test_out_transaction_to_zero_deletes_cache_row(client: AsyncClient, db
     state_res = await client.get("/api/v1/inventory/state")
     states = [item for item in state_res.json() if item["product_id"] == str(spaghetti.id)]
     assert len(states) == 0
+
 
 async def test_reconciliation_transaction(client: AsyncClient, db_session: AsyncSession):
     """Verify reconciliation transaction sets the absolute stock level and records the delta in the ledger."""
@@ -154,6 +161,7 @@ async def test_reconciliation_transaction(client: AsyncClient, db_session: Async
     states = {item["product_id"]: item for item in state_res.json()}
     assert states[str(spaghetti.id)]["quantity"] == 1200.0
 
+
 async def test_incompatible_dimensions_fails(client: AsyncClient, db_session: AsyncSession):
     """Verify that posting a transaction with incompatible unit dimensions returns HTTP 400."""
     prod_res = await db_session.exec(select(Product).where(Product.barcode == "8013383000570"))
@@ -172,6 +180,7 @@ async def test_incompatible_dimensions_fails(client: AsyncClient, db_session: As
     assert response.status_code == 400
     assert "dimensionally incompatible" in response.json()["detail"]
 
+
 async def test_unrecognized_unit_validation_fails(client: AsyncClient, db_session: AsyncSession):
     """Verify that posting a completely unrecognized unit fails syntactic validation (HTTP 422)."""
     prod_res = await db_session.exec(select(Product).where(Product.barcode == "8013383000570"))
@@ -189,6 +198,7 @@ async def test_unrecognized_unit_validation_fails(client: AsyncClient, db_sessio
     response = await client.post("/api/v1/inventory/transactions", json=payload)
     assert response.status_code == 422
     assert "Unrecognized unit of measurement" in response.json()["detail"][0]["msg"]
+
 
 async def test_count_based_product_flexible_units(client: AsyncClient, db_session: AsyncSession):
     """Verify that a product with base_unit 'piece' can accept 'pack' and normalizes correctly."""

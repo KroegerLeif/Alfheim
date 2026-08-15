@@ -5,19 +5,18 @@ Exposes endpoints for the maintenance wizard session submission and aggregate su
 delegating all execution to MaintenanceService.
 """
 
-from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
 from app.features.devices.exceptions import DeviceNotFoundError
+from app.features.maintenance.exceptions import MaintenanceError, WizardValidationError
 from app.features.maintenance.schemas import (
     HouseholdMaintenanceSummary,
     WizardSessionPayload,
     WizardSessionResult,
 )
 from app.features.maintenance.service import MaintenanceService
-from app.features.maintenance.exceptions import WizardValidationError, MaintenanceError
 
 router = APIRouter(prefix="/api/v1", tags=["maintenance"])
 
@@ -43,15 +42,15 @@ async def submit_wizard_session(
 
 @router.get(
     "/maintenance/summary",
-    response_model=List[HouseholdMaintenanceSummary],
+    response_model=list[HouseholdMaintenanceSummary],
     summary="Return maintenance health summary grouped by household",
 )
 async def get_maintenance_summary(
-    household_id: Optional[int] = Query(
+    household_id: int | None = Query(
         default=None,
         description="Restrict results to a single household",
     ),
     session: AsyncSession = Depends(get_db_session),
-) -> List[HouseholdMaintenanceSummary]:
+) -> list[HouseholdMaintenanceSummary]:
     """Return device maintenance health state summary grouped by household."""
     return await MaintenanceService.get_maintenance_summary(session, household_id=household_id)

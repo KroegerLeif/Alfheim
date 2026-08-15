@@ -1,6 +1,5 @@
 """Centralized S3 object storage utility and tenant-isolated path generator."""
 
-
 import aioboto3
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

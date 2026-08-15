@@ -6,12 +6,13 @@ exclusively from TaskService.
 """
 
 import datetime
-from typing import Any, Optional
-from app.core.mcp import mcp_server
+from typing import Any
+
 from app.core.database import async_session_factory
-from app.features.tasks.service import TaskService
-from app.features.tasks.schemas import TaskStateUpdate
+from app.core.mcp import mcp_server
 from app.features.tasks.exceptions import TaskError
+from app.features.tasks.schemas import TaskStateUpdate
+from app.features.tasks.service import TaskService
 
 
 @mcp_server.tool()
@@ -37,9 +38,9 @@ async def list_overdue_tasks() -> dict[str, Any]:
 @mcp_server.tool()
 async def update_task_state_tool(
     step_id: int,
-    comment: Optional[str] = None,
-    supply_needed_date: Optional[str] = None,
-    supply_item: Optional[str] = None,
+    comment: str | None = None,
+    supply_needed_date: str | None = None,
+    supply_item: str | None = None,
 ) -> dict[str, Any]:
     """Update a specific maintenance step's inspection note, due date, or supply item.
 

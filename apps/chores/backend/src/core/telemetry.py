@@ -19,7 +19,6 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import SERVICE_NAME, TELEMETRY_SDK_LANGUAGE, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
 from src.core.config import settings
 from src.core.database import engine
 
@@ -31,9 +30,10 @@ _logger_provider: LoggerProvider | None = None
 
 class JSONFormatter(logging.Formatter):
     """Custom logging Formatter that outputs log records as single-line JSON.
-    
+
     Includes trace_id and span_id if an active tracing context exists.
     """
+
     def format(self, record: logging.LogRecord) -> str:
         span_context = trace.get_current_span().get_span_context()
         trace_id = format(span_context.trace_id, "032x") if span_context.is_valid else None
@@ -62,7 +62,7 @@ class JSONFormatter(logging.Formatter):
 
 def configure_logging(resource: Resource) -> LoggerProvider | None:
     """Configures application logging.
-    
+
     Outputs structured JSON to stdout and routes records to OTel Collector via OTLP/gRPC.
     """
     root_logger = logging.getLogger()
@@ -95,9 +95,7 @@ def configure_logging(resource: Resource) -> LoggerProvider | None:
                 endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
                 insecure=settings.OTEL_EXPORTER_OTLP_INSECURE,
             )
-            logger_provider.add_log_record_processor(
-                BatchLogRecordProcessor(log_exporter)
-            )
+            logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
             otel_handler = LoggingHandler(level=log_level, logger_provider=logger_provider)
             root_logger.addHandler(otel_handler)
@@ -153,10 +151,7 @@ def setup_telemetry(app: FastAPI) -> None:
             insecure=settings.OTEL_EXPORTER_OTLP_INSECURE,
         )
         metric_reader = PeriodicExportingMetricReader(metric_exporter)
-        meter_provider = MeterProvider(
-            resource=resource,
-            metric_readers=[metric_reader]
-        )
+        meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
         metrics.set_meter_provider(meter_provider)
         _meter_provider = meter_provider
 

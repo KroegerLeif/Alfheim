@@ -5,17 +5,16 @@ Exposes REST endpoints for service history, submission, and step updates,
 delegating all logic to TaskService.
 """
 
-from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.dependencies import get_current_user_and_household, UserHouseholdContext
+from app.core.dependencies import UserHouseholdContext, get_current_user_and_household
 from app.features.devices.exceptions import DeviceNotFoundError
+from app.features.devices.schemas import MaintenanceStepRead, ServiceHistoryEventDetailRead, ServiceHistoryEventRead
+from app.features.tasks.exceptions import InvalidStepError, StepNotFoundError
 from app.features.tasks.schemas import MaintenanceSubmission, TaskStateUpdate
-from app.features.devices.schemas import ServiceHistoryEventRead, ServiceHistoryEventDetailRead, MaintenanceStepRead
 from app.features.tasks.service import TaskService
-from app.features.tasks.exceptions import StepNotFoundError, InvalidStepError
 
 router = APIRouter(prefix="/api/v1", tags=["tasks"])
 
@@ -42,11 +41,11 @@ async def submit_maintenance(
 
 @router.get(
     "/history",
-    response_model=List[ServiceHistoryEventDetailRead],
+    response_model=list[ServiceHistoryEventDetailRead],
     summary="Retrieve service history events sorted newest first",
 )
 async def get_service_history(
-    household_id: Optional[int] = Query(default=None, description="Optional household filter"),
+    household_id: int | None = Query(default=None, description="Optional household filter"),
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):

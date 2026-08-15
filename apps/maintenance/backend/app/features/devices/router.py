@@ -5,22 +5,21 @@ Exposes REST endpoints for devices and households, delegating all domain logic
 to DeviceService.
 """
 
-from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.dependencies import get_current_user_and_household, UserHouseholdContext
-from app.features.devices.schemas import HouseholdRead, DeviceRead, DeviceCreate
+from app.core.dependencies import UserHouseholdContext, get_current_user_and_household
+from app.features.devices.exceptions import DeviceError, DeviceNotFoundError, HouseholdNotFoundError
+from app.features.devices.schemas import DeviceCreate, DeviceRead, HouseholdRead
 from app.features.devices.service import DeviceService
-from app.features.devices.exceptions import DeviceNotFoundError, HouseholdNotFoundError, DeviceError
 
 router = APIRouter(prefix="/api/v1", tags=["devices"])
 
 
 @router.get(
     "/households",
-    response_model=List[HouseholdRead],
+    response_model=list[HouseholdRead],
     summary="Retrieve all households",
 )
 async def get_households(
@@ -33,11 +32,11 @@ async def get_households(
 
 @router.get(
     "/devices",
-    response_model=List[DeviceRead],
+    response_model=list[DeviceRead],
     summary="Retrieve all devices with steps and history",
 )
 async def get_devices(
-    household_id: Optional[int] = Query(default=None, description="Optional household filter"),
+    household_id: int | None = Query(default=None, description="Optional household filter"),
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):

@@ -1,29 +1,29 @@
-import os
-import httpx
 import logging
+import os
 import uuid
-from typing import Optional, List, Sequence
-from sqlmodel import select, col
+from collections.abc import Sequence
+
+import httpx
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-logger = logging.getLogger(__name__)
-
 from src.core.exceptions import (
+    ShoppingItemNotFoundError,
     ShoppingListNotFoundError,
     ShoppingListProtectedError,
-    ShoppingItemNotFoundError,
 )
-from src.features.shopping_lists.models import ShoppingList, ShoppingItem
+from src.features.history.service import ShoppingHistoryService
+from src.features.shopping_lists.clients import PantryClient
+from src.features.shopping_lists.models import ShoppingItem, ShoppingList
 from src.features.shopping_lists.schemas import (
-    ShoppingListCreate,
+    PushItemPayload,
     ShoppingItemCreate,
     ShoppingItemUpdate,
-    PushItemPayload,
+    ShoppingListCreate,
     SyncToPantryResponse,
     UnrecognizedShoppingItem,
 )
-from src.features.shopping_lists.clients import PantryClient
-from src.features.history.service import ShoppingHistoryService
+
+logger = logging.getLogger(__name__)
 
 
 class ShoppingListService:
@@ -44,7 +44,7 @@ class ShoppingListService:
     # ------------------------------------------------------------------ #
 
     @staticmethod
-    def _personal_list_name(username: Optional[str], user_id: uuid.UUID) -> str:
+    def _personal_list_name(username: str | None, user_id: uuid.UUID) -> str:
         """Build a deterministic Personal List display name.
 
         Falls back to a UUID-derived short name when the username claim is absent or non-string.
@@ -60,7 +60,7 @@ class ShoppingListService:
         session: AsyncSession,
         home_id: uuid.UUID,
         owner_id: uuid.UUID,
-        username: Optional[str],
+        username: str | None,
     ) -> ShoppingList:
         """Return the caller's Personal List, creating it if it does not yet exist.
 
@@ -185,9 +185,9 @@ class ShoppingListService:
     async def get_lists(
         session: AsyncSession,
         home_id: uuid.UUID,
-        owner_id: Optional[uuid.UUID] = None,
-        username: Optional[str] = None,
-        token: Optional[str] = None,
+        owner_id: uuid.UUID | None = None,
+        username: str | None = None,
+        token: str | None = None,
     ) -> Sequence[ShoppingList]:
         """Retrieve all shopping lists visible to the caller.
 
@@ -205,9 +205,7 @@ class ShoppingListService:
             async with httpx.AsyncClient() as client:
                 try:
                     response = await client.get(
-                        f"{dashboard_url}/api/v1/households/me",
-                        headers={"Authorization": token},
-                        timeout=5.0
+                        f"{dashboard_url}/api/v1/households/me", headers={"Authorization": token}, timeout=5.0
                     )
                     if response.status_code == 200:
                         households = response.json()
@@ -225,24 +223,24 @@ class ShoppingListService:
             try:
                 hh_id = uuid.UUID(hh["id"])
                 hh_ids.append(hh_id)
-                hh_list = await ShoppingListService._ensure_household_list(
-                    session, hh_id, effective_owner
-                )
+                hh_list = await ShoppingListService._ensure_household_list(session, hh_id, effective_owner)
                 household_lists.append(hh_list)
             except Exception as e:
                 logger.error(f"Error ensuring household list: {e}")
 
         # 3. Ensure personal list exists
-        personal = await ShoppingListService._ensure_personal_list(
-            session, home_id, effective_owner, username
-        )
+        personal = await ShoppingListService._ensure_personal_list(session, home_id, effective_owner, username)
 
         # 4. Fetch remaining user-created lists for all enrolled households ordered by position
-        stmt = select(ShoppingList).where(
-            ShoppingList.home_id.in_(hh_ids),
-            ShoppingList.is_default == False,  # noqa: E712
-            col(ShoppingList.is_personal) == False,  # noqa: E712
-        ).order_by(ShoppingList.position.asc(), ShoppingList.created_at.asc())
+        stmt = (
+            select(ShoppingList)
+            .where(
+                ShoppingList.home_id.in_(hh_ids),
+                ShoppingList.is_default == False,  # noqa: E712
+                col(ShoppingList.is_personal) == False,  # noqa: E712
+            )
+            .order_by(ShoppingList.position.asc(), ShoppingList.created_at.asc())
+        )
         result = await session.exec(stmt)
         custom_lists = list(result.all())
 
@@ -258,7 +256,7 @@ class ShoppingListService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
-    ) -> Optional[ShoppingList]:
+    ) -> ShoppingList | None:
         """Retrieve a specific shopping list with boundary checks.
 
         Personal Lists are accessible from any household context — the home_id
@@ -291,13 +289,9 @@ class ShoppingListService:
         db_list = await ShoppingListService.get_list(session, list_id, home_id)
 
         if db_list.is_default:
-            raise ShoppingListProtectedError(
-                "The Household List is protected and cannot be deleted."
-            )
+            raise ShoppingListProtectedError("The Household List is protected and cannot be deleted.")
         if db_list.is_personal:
-            raise ShoppingListProtectedError(
-                "The Personal List is protected and cannot be deleted."
-            )
+            raise ShoppingListProtectedError("The Personal List is protected and cannot be deleted.")
 
         await session.delete(db_list)
         await session.commit()
@@ -306,7 +300,7 @@ class ShoppingListService:
     @staticmethod
     async def reorder_lists(
         session: AsyncSession,
-        list_ids: List[uuid.UUID],
+        list_ids: list[uuid.UUID],
         home_id: uuid.UUID,
     ) -> bool:
         """Update the position index of multiple user-defined shopping lists."""
@@ -460,8 +454,8 @@ class ShoppingListService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
-        token: Optional[str] = None,
-    ) -> List[ShoppingItem]:
+        token: str | None = None,
+    ) -> list[ShoppingItem]:
         """Fetch low stock items from Pantry and merge them into the list if not already active."""
         # 1. Validate list ownership
         await ShoppingListService.get_list(session, list_id, home_id)
@@ -534,7 +528,7 @@ class ShoppingListService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
-        token: Optional[str] = None,
+        token: str | None = None,
     ) -> SyncToPantryResponse:
         """Push checked-off items in bulk to the Pantry, updating sync state and histories."""
         # 1. Validate list ownership
@@ -560,14 +554,16 @@ class ShoppingListService:
         # 3. Format bulk payload for Pantry service
         bulk_payload = []
         for item in completed_items:
-            bulk_payload.append({
-                "shopping_item_id": str(item.id),
-                "name": item.name,
-                "brand": item.brand,
-                "barcode": item.barcode,
-                "quantity": item.quantity,
-                "unit": item.unit,
-            })
+            bulk_payload.append(
+                {
+                    "shopping_item_id": str(item.id),
+                    "name": item.name,
+                    "brand": item.brand,
+                    "barcode": item.barcode,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                }
+            )
 
         # 4. Post to Pantry bulk add
         client = PantryClient()

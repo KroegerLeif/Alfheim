@@ -6,7 +6,6 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.features.chore_management.exceptions import (
     ChoreAlreadyCompletedError,
     ChoreInstanceNotFoundError,
@@ -194,9 +193,7 @@ class ChoreService:
             )
             clash_res = await session.exec(clash_stmt)
             if clash_res.first():
-                raise DuplicateChoreTemplateError(
-                    f"Chore template with name '{update_data['name']}' already exists."
-                )
+                raise DuplicateChoreTemplateError(f"Chore template with name '{update_data['name']}' already exists.")
 
         for key, val in update_data.items():
             setattr(template, key, val)
@@ -369,7 +366,6 @@ class ChoreService:
         )
         res = await session.exec(stmt)
         return res.all()
-
 
     @staticmethod
     async def get_integrations_summary(

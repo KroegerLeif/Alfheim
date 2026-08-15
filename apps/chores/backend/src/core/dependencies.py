@@ -5,13 +5,13 @@ import uuid
 import jwt
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
-
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 MOCK_HOME_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
+
 
 class UserHomeContext(BaseModel):
     user_id: uuid.UUID

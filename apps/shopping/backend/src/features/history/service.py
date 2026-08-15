@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional, Sequence
-from sqlmodel import select, func
-from sqlmodel.ext.asyncio.session import AsyncSession
+from collections.abc import Sequence
+from datetime import UTC, datetime
 
+from sqlmodel import func, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.history.models import ShoppingHistory
 
 
@@ -15,8 +15,8 @@ class ShoppingHistoryService:
         session: AsyncSession,
         home_id: uuid.UUID,
         name: str,
-        brand: Optional[str] = None,
-        barcode: Optional[str] = None,
+        brand: str | None = None,
+        barcode: str | None = None,
         unit: str = "piece",
     ) -> ShoppingHistory:
         """Upsert a purchase event into history, incrementing the count and updating timestamps.
@@ -37,7 +37,7 @@ class ShoppingHistoryService:
         res = await session.exec(stmt)
         db_history = res.first()
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if db_history:
             # Increment and update

@@ -1,6 +1,7 @@
 import importlib
 import pathlib
 from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 from src.core.config import settings
@@ -33,13 +34,15 @@ def discover_and_include_routers(app: FastAPI) -> None:
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     from src.core.database import init_db
+
     await init_db()
-    
+
     try:
         yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers
         from src.core.telemetry import shutdown_telemetry
+
         shutdown_telemetry()
 
 
@@ -60,8 +63,8 @@ app.add_middleware(
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
 from src.core.telemetry import setup_telemetry
-setup_telemetry(app)
 
+setup_telemetry(app)
 
 
 @app.exception_handler(ShoppingError)

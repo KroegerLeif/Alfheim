@@ -1,10 +1,11 @@
 from collections.abc import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
-from app.features.devices.models import Household, Device
+from app.features.devices.models import Device, Household
 from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
 
 # Create the async engine
@@ -118,7 +119,7 @@ async def seed_database(session: AsyncSession) -> None:
         performer="Lena Müller",
         notes="Vacuumed filters and wiped dust off casing.",
         device_id=d1.id,
-        completed_steps=["Vacuum air filter meshes"]
+        completed_steps=["Vacuum air filter meshes"],
     )
     session.add(e1)
 
@@ -201,7 +202,7 @@ async def seed_database(session: AsyncSession) -> None:
         performer="Alex Becker",
         notes="Drained water from condensation tank.",
         device_id=d4.id,
-        completed_steps=["Drain condensation tank"]
+        completed_steps=["Drain condensation tank"],
     )
     session.add(e2)
 

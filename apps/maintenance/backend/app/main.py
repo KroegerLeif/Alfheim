@@ -5,11 +5,12 @@ Main FastAPI application entry point for the Maintenance OS backend.
 import importlib
 import pathlib
 from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.core.mcp import mcp_server, discover_and_import_mcp_tools
+from app.core.mcp import discover_and_import_mcp_tools, mcp_server
 
 
 def discover_and_include_routers(app: FastAPI) -> None:
@@ -37,6 +38,7 @@ def discover_and_include_routers(app: FastAPI) -> None:
 async def lifespan(app: FastAPI):
     # Initialize DB tables and seed data on startup
     from app.core.database import init_db
+
     await init_db()
 
     try:
@@ -44,6 +46,7 @@ async def lifespan(app: FastAPI):
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers on shutdown
         from app.core.telemetry import shutdown_telemetry
+
         shutdown_telemetry()
 
 
@@ -74,6 +77,7 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
 from app.core.telemetry import setup_telemetry
+
 setup_telemetry(app)
 
 # Discover and register router configurations dynamically
