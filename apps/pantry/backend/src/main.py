@@ -56,9 +56,10 @@ app = FastAPI(
 
 from fastapi.middleware.cors import CORSMiddleware
 
+# Security: Restrict allowed origins instead of using wildcard '*' when allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
