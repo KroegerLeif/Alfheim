@@ -7,18 +7,18 @@ ENV UV_COMPILE_BYTECODE=1
 WORKDIR /app
 
 # Copy dependency configuration files first to cache layers
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
 
-# Sync dependencies using the frozen lockfile (excluding development libraries)
+# Sync dependencies (excluding development libraries)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv sync --no-dev --no-install-project
 
 # Copy application source files
 COPY . .
 
-# Run project sync to register workspace packages
+# Run project sync to register the package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --no-dev
 
 # Final slim runtime container
 FROM python:3.12-alpine
