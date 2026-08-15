@@ -47,7 +47,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Sync Root Workspace
-        run: uv sync
+        run: uv sync --all-packages --all-groups
 
       - name: Run Ruff Linter
         run: uv run ruff check .
@@ -71,7 +71,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Sync Root Workspace
-        run: uv sync --all-groups
+        run: uv sync --all-packages --all-groups
 
       - name: Run ty Type Checker
         run: uv run ty check --output-format github

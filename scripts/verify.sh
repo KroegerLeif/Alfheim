@@ -112,6 +112,14 @@ ERRORS=0
 if [[ "$RUN_PYTHON" == true ]]; then
     log_banner "1. Python Verification (Ruff, Ty, Pytest Matrix)"
 
+    log_section "Workspace Environment Synchronization"
+    if uv sync --all-packages --all-groups; then
+        log_success "Workspace environment synchronized across all packages & dependency groups"
+    else
+        log_fail "Failed to synchronize uv workspace"
+        ERRORS=$((ERRORS + 1))
+    fi
+
     log_section "Ruff Linter Check"
     if uv run ruff check .; then
         log_success "Ruff linter passed (0 diagnostics)"
