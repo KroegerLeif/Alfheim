@@ -16,7 +16,7 @@ export function BoardView() {
 
   const filteredTemplates = templates.filter((template) => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     let matchesPoints = true;
     if (selectedFilter === "high") matchesPoints = template.points >= 30;
     else if (selectedFilter === "medium") matchesPoints = template.points >= 15 && template.points < 30;

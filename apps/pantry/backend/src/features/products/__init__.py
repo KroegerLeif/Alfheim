@@ -1,14 +1,14 @@
-from src.features.products.models import Product, ProductNutrition, BaseUnit
+from src.features.products.models import BaseUnit, Product, ProductNutrition
 from src.features.products.schemas import (
     ProductCreate,
-    ProductRead,
-    ProductUpdate,
     ProductNutritionCreate,
     ProductNutritionRead,
     ProductNutritionUpdate,
+    ProductRead,
+    ProductUpdate,
 )
-from src.features.products.service import ProductService
 from src.features.products.seeder import seed_default_products
+from src.features.products.service import ProductService
 
 __all__ = [
     "Product",

@@ -4,19 +4,19 @@ Task feature service layer handling database operations and inter-service HTTP i
 
 import datetime
 import logging
-from typing import List, Optional, Dict, Any
+from typing import Any, cast
 
 import httpx
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.features.devices.models import Device
 from app.features.devices.exceptions import DeviceNotFoundError
+from app.features.devices.models import Device
+from app.features.devices.schemas import ServiceHistoryEventDetailRead
+from app.features.tasks.exceptions import InvalidStepError, StepNotFoundError
 from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
 from app.features.tasks.schemas import MaintenanceSubmission, TaskStateUpdate
-from app.features.devices.schemas import ServiceHistoryEventDetailRead
-from app.features.tasks.exceptions import StepNotFoundError, InvalidStepError
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class TaskService:
     """Service class containing domain logic for maintenance tasks and history."""
 
     @staticmethod
-    async def forward_supplies_to_shopping(supply_items: List[str]) -> None:
+    async def forward_supplies_to_shopping(supply_items: list[str]) -> None:
         """Send parts list to the shopping-backend microservice via HTTP POST."""
         async with httpx.AsyncClient() as client:
             for item in supply_items:
@@ -73,26 +73,26 @@ class TaskService:
     @staticmethod
     async def get_history(
         session: AsyncSession,
-        household_id: Optional[int] = None,
-    ) -> List[ServiceHistoryEventDetailRead]:
+        household_id: int | None = None,
+    ) -> list[ServiceHistoryEventDetailRead]:
         """Fetch all ServiceHistoryEvent records joined with their Device.
 
         Results are ordered descending by date.
         """
         statement = (
             select(ServiceHistoryEvent)
-            .options(selectinload(ServiceHistoryEvent.device))
-            .order_by(ServiceHistoryEvent.date.desc())
+            .options(selectinload(cast(Any, ServiceHistoryEvent.device)))
+            .order_by(col(ServiceHistoryEvent.date).desc())
         )
-        result = await session.execute(statement)
-        events = list(result.scalars().all())
+        result = await session.exec(statement)
+        events = list(result.all())
 
         if household_id is not None:
             events = [e for e in events if e.device and e.device.household_id == household_id]
 
         return [
             ServiceHistoryEventDetailRead(
-                id=e.id,
+                id=e.id or 0,
                 date=e.date,
                 performer=e.performer,
                 notes=e.notes,
@@ -117,11 +117,11 @@ class TaskService:
         completed_steps_titles = []
         if payload.completed_step_ids:
             steps_statement = select(MaintenanceStep).where(
-                MaintenanceStep.id.in_(payload.completed_step_ids),
+                col(MaintenanceStep.id).in_(payload.completed_step_ids),
                 MaintenanceStep.device_id == payload.device_id,
             )
-            result = await session.execute(steps_statement)
-            completed_steps = list(result.scalars().all())
+            result = await session.exec(steps_statement)
+            completed_steps = list(result.all())
 
             if len(completed_steps) != len(payload.completed_step_ids):
                 raise InvalidStepError("One or more step IDs are invalid for this device")
@@ -177,14 +177,14 @@ class TaskService:
         return step
 
     @staticmethod
-    async def get_overdue_tasks(session: AsyncSession) -> List[Dict[str, Any]]:
+    async def get_overdue_tasks(session: AsyncSession) -> list[dict[str, Any]]:
         """Fetch all maintenance steps currently overdue across all devices."""
-        statement = select(MaintenanceStep).options(selectinload(MaintenanceStep.device))
-        result = await session.execute(statement)
-        all_steps = list(result.scalars().all())
+        statement = select(MaintenanceStep).options(selectinload(cast(Any, MaintenanceStep.device)))
+        result = await session.exec(statement)
+        all_steps = list(result.all())
 
         today = datetime.date.today()
-        overdue = []
+        overdue: list[dict[str, Any]] = []
 
         for step in all_steps:
             if not step.supply_needed_date:
@@ -196,17 +196,19 @@ class TaskService:
 
             if due < today:
                 days_overdue = (today - due).days
-                overdue.append({
-                    "step_id": step.id,
-                    "title": step.title,
-                    "device_id": step.device_id,
-                    "device_name": step.device.name if step.device else "Unknown",
-                    "device_location": step.device.location if step.device else "Unknown",
-                    "due_date": step.supply_needed_date,
-                    "days_overdue": days_overdue,
-                    "supply_item": step.supply_item,
-                    "last_completed": step.last_completed,
-                })
+                overdue.append(
+                    {
+                        "step_id": step.id,
+                        "title": step.title,
+                        "device_id": step.device_id,
+                        "device_name": step.device.name if step.device else "Unknown",
+                        "device_location": step.device.location if step.device else "Unknown",
+                        "due_date": step.supply_needed_date,
+                        "days_overdue": days_overdue,
+                        "supply_item": step.supply_item,
+                        "last_completed": step.last_completed,
+                    }
+                )
 
-        overdue.sort(key=lambda x: x["days_overdue"], reverse=True)
+        overdue.sort(key=lambda x: int(x["days_overdue"]), reverse=True)
         return overdue

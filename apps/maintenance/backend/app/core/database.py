@@ -1,10 +1,11 @@
 from collections.abc import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlmodel import SQLModel, select
+
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
-from app.features.devices.models import Household, Device
+from app.features.devices.models import Device, Household
 from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
 
 # Create the async engine
@@ -38,6 +39,8 @@ async def seed_database(session: AsyncSession) -> None:
     await session.commit()
     await session.refresh(h1)
     await session.refresh(h2)
+    assert h1.id is not None
+    assert h2.id is not None
 
     # 2. Create Devices for Zurich Apartment
     d1 = Device(
@@ -67,6 +70,8 @@ async def seed_database(session: AsyncSession) -> None:
     await session.commit()
     await session.refresh(d1)
     await session.refresh(d2)
+    assert d1.id is not None
+    assert d2.id is not None
 
     # Add steps for Dyson
     s1 = MaintenanceStep(
@@ -118,7 +123,7 @@ async def seed_database(session: AsyncSession) -> None:
         performer="Lena Müller",
         notes="Vacuumed filters and wiped dust off casing.",
         device_id=d1.id,
-        completed_steps=["Vacuum air filter meshes"]
+        completed_steps=["Vacuum air filter meshes"],
     )
     session.add(e1)
 
@@ -150,6 +155,8 @@ async def seed_database(session: AsyncSession) -> None:
     await session.commit()
     await session.refresh(d3)
     await session.refresh(d4)
+    assert d3.id is not None
+    assert d4.id is not None
 
     # Add steps for Roborock
     s5 = MaintenanceStep(
@@ -201,7 +208,7 @@ async def seed_database(session: AsyncSession) -> None:
         performer="Alex Becker",
         notes="Drained water from condensation tank.",
         device_id=d4.id,
-        completed_steps=["Drain condensation tank"]
+        completed_steps=["Drain condensation tank"],
     )
     session.add(e2)
 

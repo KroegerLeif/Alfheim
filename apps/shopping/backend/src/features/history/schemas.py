@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -9,10 +9,10 @@ class ShoppingHistoryRead(BaseModel):
     home_id: uuid.UUID
     name: str
     brand: str
-    barcode: Optional[str] = None
+    barcode: str | None = None
     unit: str
     purchase_count: int
-    icon_tag: Optional[str] = None
+    icon_tag: str | None = None
     last_purchased_at: datetime
     created_at: datetime
     updated_at: datetime

@@ -37,7 +37,7 @@ export function UnitSelector({ value, onChange }: UnitSelectorProps) {
           />
         </button>
       </Popover.Trigger>
-      
+
       <Popover.Portal>
         <Popover.Content
           side="top"

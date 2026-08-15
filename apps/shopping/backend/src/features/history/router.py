@@ -1,12 +1,12 @@
 import uuid
-from typing import Sequence
-from fastapi import APIRouter, Depends, status, HTTPException
-from sqlmodel.ext.asyncio.session import AsyncSession
+from collections.abc import Sequence
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import get_current_user_and_home, UserHomeContext
-from src.features.history.service import ShoppingHistoryService
+from src.core.dependencies import UserHomeContext, get_current_user_and_home
 from src.features.history.schemas import ShoppingHistoryRead
+from src.features.history.service import ShoppingHistoryService
 
 router = APIRouter(prefix="/api/v1/shopping-history", tags=["shopping-history"])
 

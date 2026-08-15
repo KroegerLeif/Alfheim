@@ -9,6 +9,33 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(ci): synchronize all uv workspace packages during ci lint and typecheck gates`**
+  - Updated `.github/workflows/python-ci.yml` to run `uv sync --all-packages --all-groups` in root linting and type-checking jobs.
+  - Added workspace synchronization step to `scripts/verify.sh` to ensure complete environment parity.
+  - Updated `README.md` and `.ai/guidelines/new-app-scaffolding.md` documentation to specify `--all-packages --all-groups`.
+* **`docs(ai): implement monorepo quality gate guidelines and local verification runner`**
+  - Created `.ai/guidelines/quality-gates.md` documenting mandatory multi-stack quality gates (Python, Go, Frontend, Security, and MCP).
+  - Created `scripts/verify.sh` local pre-flight runner supporting `--all`, `--python`, `--go`, `--frontend`, and `--security` checks.
+  - Added `detect-private-key` and `check-case-conflict` to `.pre-commit-config.yaml`.
+  - Updated `.ai/INDEX.md` and `.ai/CONTEXT.md` requiring agents to run `./scripts/verify.sh` before staging/committing code.
+* **`fix(types): resolve static type checking errors reported by ty`**
+  - Resolved 94 `ty` diagnostics across Pantry, Shopping, Maintenance, and Chores using `sqlmodel.col()` wrappers.
+  - Standardized `Index` definitions to use string column names.
+  - Added primary key null-safety assertions following database refreshes.
+* **`docs(ai): add new-app scaffolding guide with ruff, ty, and pytest coverage standards`**
+  - Created `.ai/guidelines/new-app-scaffolding.md` detailing workspace registration, `ruff`, `ty`, `pytest` in-memory `aiosqlite`, and standalone Docker build setup.
+  - Added `ty` to root dev dependencies and `.github/workflows/python-ci.yml` quality gates.
+* **`fix(docker): resolve uv workspace lockfile synchronization across backend docker builds`**
+  - Standardized standalone `Dockerfile` builds using `uv sync --no-dev --no-install-project` without workspace lockfile coupling.
+  - Added standard `.dockerignore` files across all backend directories to exclude `.venv`, local `uv.lock`, and caches.
+* **`quality(tooling): implement ruff hooks, pre-commit, and unified pytest matrix suite`**
+  - Configured root `pyproject.toml` with `[tool.uv.workspace]` linking all 4 FastAPI microservices (`pantry`, `shopping`, `maintenance`, `chores`).
+  - Added centralized `ruff.toml` and `.pre-commit-config.yaml` with Astral Ruff linter/formatter and Git hygiene hooks.
+  - Standardized Pytest async test configurations with `asyncio_mode = "auto"`, removing deprecated `event_loop` fixtures.
+  - Harmonized in-memory SQLite (`aiosqlite`) test databases with per-test transaction rollbacks.
+  - Implemented multi-tenant Household isolation and zero-trust auth integration tests across Pantry, Shopping, and Chores.
+  - Resolved SQLModel `session.exec()` deprecations in Maintenance and schema type imports in Pantry.
+  - Added `.github/workflows/python-ci.yml` matrix pipeline for parallel linting and pytest coverage reporting.
 * **`refactor(telemetry): migrate monitoring stack from signoz to victoriastack and grafana`**
   - Migrated legacy `apps/logging-stack` to `infrastructure/telemetry` (VictoriaMetrics, VictoriaLogs, OTel Collector, Vector, Grafana).
   - Configured unified OTLP entrypoint via OpenTelemetry Collector Contrib (`:4317` / `:4318`) routing to VictoriaMetrics and VictoriaLogs.

@@ -1,18 +1,17 @@
 import uuid
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.core.database import get_db_session
 from src.core.dependencies import (
     UserHomeContext,
     get_current_user_and_home,
 )
 from src.features.categories import (
-    CategoryRead,
     CategoryCreate,
-    CategoryUpdate,
+    CategoryRead,
     CategoryService,
+    CategoryUpdate,
 )
 
 router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
@@ -35,7 +34,7 @@ async def create_category(
 
 @router.get("", response_model=list[CategoryRead])
 async def list_categories(
-    name: Optional[str] = None,
+    name: str | None = None,
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),

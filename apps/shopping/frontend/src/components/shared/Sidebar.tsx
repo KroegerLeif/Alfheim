@@ -30,7 +30,7 @@ export function Sidebar() {
 
   const { data: listsData, isLoading } = useShoppingLists();
   const lists = useMemo(() => listsData ?? [], [listsData]);
-  
+
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
   const reorderLists = useReorderShoppingLists();

@@ -1,23 +1,22 @@
 import uuid
-from typing import Optional
 from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.core.database import get_db_session
 from src.core.dependencies import (
     UserHomeContext,
     get_current_user_and_home,
 )
 from src.features.chore_management.schemas import (
-    ChoreTemplateCreate,
-    ChoreTemplateUpdate,
-    ChoreTemplateRead,
-    ChoreInstanceRead,
     ChoreAssignRequest,
     ChoreCompleteRequest,
-    ChoreTimelineRead,
+    ChoreInstanceRead,
     ChoreIntegrationSummary,
+    ChoreTemplateCreate,
+    ChoreTemplateRead,
+    ChoreTemplateUpdate,
+    ChoreTimelineRead,
 )
 from src.features.chore_management.service import ChoreService
 
@@ -124,7 +123,7 @@ async def delete_chore_template(
 
 @router.get("/today", response_model=list[ChoreInstanceRead])
 async def get_today_chores(
-    due_date: Optional[date] = None,
+    due_date: date | None = None,
     session: AsyncSession = Depends(get_db_session),
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
@@ -155,14 +154,15 @@ async def assign_chore_instance(
 @router.post("/instances/{id}/complete", response_model=ChoreInstanceRead)
 async def complete_chore_instance(
     id: uuid.UUID,
-    payload: Optional[ChoreCompleteRequest] = None,
+    payload: ChoreCompleteRequest | None = None,
     session: AsyncSession = Depends(get_db_session),
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Mark a chore instance as completed."""
     completed_by = payload.completed_by if payload and payload.completed_by else context.user_id
     completed_by_name = (
-        payload.completed_by_name if payload and payload.completed_by_name
+        payload.completed_by_name
+        if payload and payload.completed_by_name
         else (context.username or context.email or "User")
     )
     return await ChoreService.complete_chore_instance(

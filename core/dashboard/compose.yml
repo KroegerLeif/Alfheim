@@ -75,4 +75,3 @@ networks:
   core-net:
     name: core-net
     external: true
-

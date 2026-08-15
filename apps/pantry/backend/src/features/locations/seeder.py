@@ -1,10 +1,11 @@
 import json
 import pathlib
+
 import anyio
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.locations.models import Location
-from src.core.dependencies import MOCK_USER_ID, MOCK_HOME_ID
 
 
 async def seed_default_locations(session: AsyncSession) -> None:
@@ -29,9 +30,7 @@ async def seed_default_locations(session: AsyncSession) -> None:
         is_system = item.get("is_system", False)
 
         # Check if a location with this name already exists for this home space
-        stmt = select(Location).where(
-            Location.home_id == MOCK_HOME_ID, Location.name == name
-        )
+        stmt = select(Location).where(Location.home_id == MOCK_HOME_ID, Location.name == name)
         res = await session.exec(stmt)
         if not res.first():
             loc = Location(

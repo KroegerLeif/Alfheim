@@ -1,15 +1,19 @@
 import uuid
+
 import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.dependencies import MOCK_HOME_ID
 
+
 @pytest.fixture(autouse=True)
 async def seed_locations(db_session: AsyncSession):
     """Seed default locations dynamically for locations tests."""
     from src.features.locations.seeder import seed_default_locations
+
     await seed_default_locations(db_session)
     await db_session.commit()
+
 
 async def test_startup_seeds_backlog(client: AsyncClient):
     """Verify that the default 'Backlog' system location is seeded on startup."""
@@ -21,6 +25,7 @@ async def test_startup_seeds_backlog(client: AsyncClient):
     assert data[0]["is_system"] is True
     assert data[0]["home_id"] == str(MOCK_HOME_ID)
 
+
 async def test_create_location(client: AsyncClient):
     """Verify that a new location can be created successfully."""
     payload = {"name": "Fridge", "description": "Kitchen refrigerator"}
@@ -30,6 +35,7 @@ async def test_create_location(client: AsyncClient):
     assert data["name"] == "Fridge"
     assert data["description"] == "Kitchen refrigerator"
     assert data["is_system"] is False
+
 
 async def test_list_and_filter_locations(client: AsyncClient):
     """Verify listing locations and filtering them by name."""
@@ -47,6 +53,7 @@ async def test_list_and_filter_locations(client: AsyncClient):
     assert len(filtered) == 1
     assert filtered[0]["name"] == "Fridge"
 
+
 async def test_get_location_by_id(client: AsyncClient):
     """Verify retrieving a single location by its UUID."""
     create_res = await client.post("/api/v1/locations", json={"name": "Pantry Shelf"})
@@ -60,16 +67,20 @@ async def test_get_location_by_id(client: AsyncClient):
     response = await client.get(f"/api/v1/locations/{fake_id}")
     assert response.status_code == 404
 
+
 async def test_update_location(client: AsyncClient):
     """Verify modifying a location's attributes (PATCH)."""
     create_res = await client.post("/api/v1/locations", json={"name": "Cabinet", "description": "Old"})
     loc_id = create_res.json()["id"]
 
-    patch_res = await client.patch(f"/api/v1/locations/{loc_id}", json={"name": "Kitchen Cabinet", "description": "Updated"})
+    patch_res = await client.patch(
+        f"/api/v1/locations/{loc_id}", json={"name": "Kitchen Cabinet", "description": "Updated"}
+    )
     assert patch_res.status_code == 200
     data = patch_res.json()
     assert data["name"] == "Kitchen Cabinet"
     assert data["description"] == "Updated"
+
 
 async def test_system_location_modification_blocked(client: AsyncClient):
     """Verify that editing or deleting a system location (Backlog) is rejected."""
@@ -83,6 +94,7 @@ async def test_system_location_modification_blocked(client: AsyncClient):
     del_res = await client.delete(f"/api/v1/locations/{backlog_id}")
     assert del_res.status_code == 400
     assert "System locations cannot be modified" in del_res.json()["detail"]
+
 
 async def test_delete_location(client: AsyncClient):
     """Verify deleting a custom location."""

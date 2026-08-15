@@ -32,7 +32,7 @@ function ColorPicker({ label, value, onChange, swatches }: ColorPickerProps) {
       <label className="block text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider">{label}</label>
       <div className="flex flex-col gap-3">
         <div className="flex gap-2.5 items-center">
-          <div 
+          <div
             onClick={() => inputRef.current?.click()}
             className="w-10 h-10 border border-[var(--border-subtle)] rounded-xl cursor-pointer hover:scale-105 hover:shadow-md transition-all shrink-0 relative overflow-hidden"
             style={{ backgroundColor: value }}
@@ -325,27 +325,27 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div 
+                <div
                   className="h-10 rounded-lg border border-[var(--border-subtle)] p-2 flex items-center gap-2"
                   style={{ backgroundColor: tokens.surfaceCanvas }}
                 >
-                  <div 
-                    className="w-4 h-4 rounded-full shadow-xs" 
-                    style={{ backgroundColor: tokens.primaryMain }} 
+                  <div
+                    className="w-4 h-4 rounded-full shadow-xs"
+                    style={{ backgroundColor: tokens.primaryMain }}
                     title={tokens.primaryMain}
                   />
-                  <div 
-                    className="w-4 h-4 rounded-full shadow-xs" 
-                    style={{ backgroundColor: tokens.accentMint || tokens.accentCyan || tokens.primaryHover }} 
+                  <div
+                    className="w-4 h-4 rounded-full shadow-xs"
+                    style={{ backgroundColor: tokens.accentMint || tokens.accentCyan || tokens.primaryHover }}
                     title={tokens.accentMint || tokens.accentCyan}
                   />
-                  <div 
-                    className="w-8 h-2 rounded opacity-50" 
-                    style={{ backgroundColor: tokens.surfaceElevated }} 
+                  <div
+                    className="w-8 h-2 rounded opacity-50"
+                    style={{ backgroundColor: tokens.surfaceElevated }}
                   />
-                  <div 
-                    className="w-6 h-2 rounded ml-auto opacity-75" 
-                    style={{ backgroundColor: tokens.primaryMain }} 
+                  <div
+                    className="w-6 h-2 rounded ml-auto opacity-75"
+                    style={{ backgroundColor: tokens.primaryMain }}
                   />
                 </div>
               </div>
@@ -403,7 +403,7 @@ export default function SettingsPage() {
                   {t('settings.saved_presets_desc')}
                 </p>
               </div>
-              
+
               <div className="flex gap-2 max-w-sm">
                 <input
                   type="text"
@@ -435,7 +435,7 @@ export default function SettingsPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {presets.map((preset) => {
-                  const isActive = customColors && 
+                  const isActive = customColors &&
                     customColors[resolvedMode]?.primary === preset.colors[resolvedMode]?.primary &&
                     customColors[resolvedMode]?.canvas === preset.colors[resolvedMode]?.canvas &&
                     customColors[resolvedMode]?.accent === preset.colors[resolvedMode]?.accent;
@@ -574,4 +574,3 @@ export default function SettingsPage() {
     </>
   );
 }
-

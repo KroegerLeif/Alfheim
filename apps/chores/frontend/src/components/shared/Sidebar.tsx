@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react";
 import { useTranslation, AppLogo } from "@alfheim/shared";
 import { Link, usePathname } from "@/navigation";
 import { cn } from "@/core/utils";
-import { 
-  LayoutDashboard, 
-  LayoutGrid, 
-  Goal, 
+import {
+  LayoutDashboard,
+  LayoutGrid,
+  Goal,
   PlusCircle,
   ChevronLeft,
   ChevronRight

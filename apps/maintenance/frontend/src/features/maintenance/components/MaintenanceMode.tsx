@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Device, MaintenanceSubmitPayload } from "@/shared/types";
-import { 
-  X, 
-  ArrowLeft, 
-  ArrowRight, 
+import {
+  X,
+  ArrowLeft,
+  ArrowRight,
   AlertCircle,
   Check,
   Loader2
@@ -28,7 +28,7 @@ export function MaintenanceMode({ device, onClose }: MaintenanceModeProps) {
   const { user } = useAuth();
   const steps = device.steps ?? [];
   const totalSteps = steps.length;
-  
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [doneSteps, setDoneSteps] = useState<Set<number>>(new Set());
   const [stepNotes, setStepNotes] = useState<Record<number, string>>({});

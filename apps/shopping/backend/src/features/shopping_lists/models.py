@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional, List
-from sqlalchemy import Column, DateTime, Boolean, Integer
-from sqlmodel import Field, SQLModel, Relationship, func
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Integer
+from sqlmodel import Field, Relationship, SQLModel, func
 
 
 class ShoppingList(SQLModel, table=True):
@@ -55,7 +55,7 @@ class ShoppingList(SQLModel, table=True):
         description="Display position index for custom list reordering.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -63,7 +63,7 @@ class ShoppingList(SQLModel, table=True):
         ),
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -73,7 +73,7 @@ class ShoppingList(SQLModel, table=True):
     )
 
     # Relationships
-    items: List["ShoppingItem"] = Relationship(
+    items: list["ShoppingItem"] = Relationship(
         back_populates="shopping_list",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "lazy": "selectin"},
     )
@@ -101,12 +101,12 @@ class ShoppingItem(SQLModel, table=True):
         index=True,
         description="Name of the item.",
     )
-    brand: Optional[str] = Field(
+    brand: str | None = Field(
         default=None,
         max_length=255,
         description="Optional brand name.",
     )
-    barcode: Optional[str] = Field(
+    barcode: str | None = Field(
         default=None,
         max_length=100,
         index=True,
@@ -138,13 +138,13 @@ class ShoppingItem(SQLModel, table=True):
         index=True,
         description="True if successfully synced ('eingelagert') to pantry inventory.",
     )
-    product_id: Optional[uuid.UUID] = Field(
+    product_id: uuid.UUID | None = Field(
         default=None,
         nullable=True,
         description="Matched Pantry product UUID (hydrated after matching).",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -152,7 +152,7 @@ class ShoppingItem(SQLModel, table=True):
         ),
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -162,4 +162,4 @@ class ShoppingItem(SQLModel, table=True):
     )
 
     # Relationships
-    shopping_list: Optional[ShoppingList] = Relationship(back_populates="items")
+    shopping_list: ShoppingList | None = Relationship(back_populates="items")

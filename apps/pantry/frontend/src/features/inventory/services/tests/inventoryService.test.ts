@@ -1,11 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { 
-  useInventoryState, 
-  useLowStockItems, 
-  useExpirationSummary, 
-  useCreateTransaction, 
-  useLedgerHistory, 
-  exportLowStockShoppingList 
+import {
+  useInventoryState,
+  useLowStockItems,
+  useExpirationSummary,
+  useCreateTransaction,
+  useLedgerHistory,
+  exportLowStockShoppingList
 } from '../inventoryService'
 import { createQueryWrapper } from '@/tests/utils'
 import { pantryClient } from '@/core/api'

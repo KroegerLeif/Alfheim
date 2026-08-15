@@ -1,13 +1,13 @@
 import uuid
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
 from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from src.core.dependencies import MOCK_USER_ID, MOCK_HOME_ID
-from src.features.shopping_lists.models import ShoppingList, ShoppingItem
+from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.history.models import ShoppingHistory
+from src.features.shopping_lists.models import ShoppingItem, ShoppingList
 
 
 @pytest.mark.asyncio
@@ -119,7 +119,7 @@ async def test_auto_import_low_stock(mock_fetch: AsyncMock, client: AsyncClient,
                 "minimum_stock": 2000.0,
             },
             "current_stock": 500.0,
-        }
+        },
     ]
 
     # Trigger auto import
@@ -130,7 +130,7 @@ async def test_auto_import_low_stock(mock_fetch: AsyncMock, client: AsyncClient,
     # Verify merge logic: Apple Juice skipped (already active), Basmati Rice imported
     assert len(imported) == 1
     assert imported[0]["name"] == "Basmati Rice"
-    
+
     # Deficiency deficit calculation: minimum (2000) - current (500) = 1500
     assert imported[0]["quantity"] == 1500.0
     assert imported[0]["unit"] == "g"
@@ -140,7 +140,9 @@ async def test_auto_import_low_stock(mock_fetch: AsyncMock, client: AsyncClient,
 
 @pytest.mark.asyncio
 @patch("src.features.shopping_lists.clients.PantryClient.bulk_add_items", new_callable=AsyncMock)
-async def test_sync_to_pantry_flow_and_history_logging(mock_bulk_add: AsyncMock, client: AsyncClient, db_session: AsyncSession):
+async def test_sync_to_pantry_flow_and_history_logging(
+    mock_bulk_add: AsyncMock, client: AsyncClient, db_session: AsyncSession
+):
     # Setup list and items
     l1 = ShoppingList(name="Sync Test List", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
     db_session.add(l1)
@@ -191,7 +193,7 @@ async def test_sync_to_pantry_flow_and_history_logging(mock_bulk_add: AsyncMock,
                 "unit": "pack",
                 "reason": "pantry.error.product_not_found",
             }
-        ]
+        ],
     }
 
     # Trigger Sync to Pantry
@@ -249,7 +251,7 @@ async def test_sync_to_pantry_flow_and_history_logging(mock_bulk_add: AsyncMock,
                 "unit": "g",
             }
         ],
-        "unrecognized_items": []
+        "unrecognized_items": [],
     }
 
     # Trigger second sync
@@ -340,4 +342,3 @@ async def test_reorder_shopping_lists(client: AsyncClient, db_session: AsyncSess
     assert custom_ordered[0]["id"] == id_c
     assert custom_ordered[1]["id"] == id_b
     assert custom_ordered[2]["id"] == id_a
-

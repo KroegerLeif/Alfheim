@@ -91,4 +91,3 @@ networks:
   observability-internal:
     name: observability-internal
     external: true
-

@@ -4,16 +4,15 @@ Maintenance feature service layer providing orchestration logic for wizard sessi
 
 import datetime
 import logging
-from typing import List, Optional
+from typing import Any, cast
 
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.features.devices.models import Device, Household
 from app.features.devices.exceptions import DeviceNotFoundError
-from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
-from app.features.tasks.service import add_months, TaskService
+from app.features.devices.models import Device, Household
+from app.features.maintenance.exceptions import WizardValidationError
 from app.features.maintenance.schemas import (
     HouseholdMaintenanceSummary,
     MaintenanceSummary,
@@ -21,12 +20,13 @@ from app.features.maintenance.schemas import (
     WizardSessionResult,
     WizardStepResult,
 )
-from app.features.maintenance.exceptions import WizardValidationError
+from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
+from app.features.tasks.service import TaskService, add_months
 
 logger = logging.getLogger(__name__)
 
 
-def days_until(iso_date: Optional[str]) -> int:
+def days_until(iso_date: str | None) -> int:
     """Return calendar days until an ISO date string (negative = overdue)."""
     if not iso_date:
         return 9999
@@ -53,25 +53,24 @@ class MaintenanceService:
         completed_step_ids = [entry.step_id for entry in payload.completed_steps]
         completed_step_map = {entry.step_id: entry for entry in payload.completed_steps}
 
-        updated_step_results: List[WizardStepResult] = []
-        completed_step_titles: List[str] = []
+        updated_step_results: list[WizardStepResult] = []
+        completed_step_titles: list[str] = []
 
         if completed_step_ids:
             stmt = select(MaintenanceStep).where(
-                MaintenanceStep.id.in_(completed_step_ids),
+                col(MaintenanceStep.id).in_(completed_step_ids),
                 MaintenanceStep.device_id == payload.device_id,
             )
-            result = await session.execute(stmt)
-            db_steps = list(result.scalars().all())
+            result = await session.exec(stmt)
+            db_steps = list(result.all())
 
             if len(db_steps) != len(completed_step_ids):
                 found_ids = {s.id for s in db_steps}
                 missing = [sid for sid in completed_step_ids if sid not in found_ids]
-                raise WizardValidationError(
-                    f"Step IDs not found for device {payload.device_id}: {missing}"
-                )
+                raise WizardValidationError(f"Step IDs not found for device {payload.device_id}: {missing}")
 
             for step in db_steps:
+                assert step.id is not None
                 wizard_entry = completed_step_map[step.id]
                 if wizard_entry.comment is not None:
                     step.description = wizard_entry.comment
@@ -104,6 +103,8 @@ class MaintenanceService:
         await session.commit()
         await session.refresh(event)
         await session.refresh(device)
+        assert event.id is not None
+        assert device.id is not None
 
         forwarded_count = 0
         if payload.supply_items_to_order:
@@ -127,39 +128,41 @@ class MaintenanceService:
     @staticmethod
     async def get_maintenance_summary(
         session: AsyncSession,
-        household_id: Optional[int] = None,
-    ) -> List[HouseholdMaintenanceSummary]:
+        household_id: int | None = None,
+    ) -> list[HouseholdMaintenanceSummary]:
         """Aggregate device maintenance health states into a household-level dashboard summary."""
         household_stmt = select(Household)
         if household_id is not None:
             household_stmt = household_stmt.where(Household.id == household_id)
-        household_result = await session.execute(household_stmt)
-        households = list(household_result.scalars().all())
+        household_result = await session.exec(household_stmt)
+        households = list(household_result.all())
 
-        device_stmt = select(Device).options(selectinload(Device.steps))
+        device_stmt = select(Device).options(selectinload(cast(Any, Device.steps)))
         if household_id is not None:
             device_stmt = device_stmt.where(Device.household_id == household_id)
-        device_result = await session.execute(device_stmt)
-        all_devices = list(device_result.scalars().all())
+        device_result = await session.exec(device_stmt)
+        all_devices = list(device_result.all())
 
-        devices_by_household: dict[int, List[Device]] = {}
+        devices_by_household: dict[int, list[Device]] = {}
         for device in all_devices:
             devices_by_household.setdefault(device.household_id, []).append(device)
 
-        summaries: List[HouseholdMaintenanceSummary] = []
+        summaries: list[HouseholdMaintenanceSummary] = []
 
         for household in households:
+            assert household.id is not None
             household_devices = devices_by_household.get(household.id, [])
-            device_summaries: List[MaintenanceSummary] = []
+            device_summaries: list[MaintenanceSummary] = []
             total_overdue = 0
             total_due_soon = 0
             total_ok = 0
 
             for device in household_devices:
+                assert device.id is not None
                 overdue = 0
                 due_soon = 0
                 ok = 0
-                earliest_date: Optional[str] = None
+                earliest_date: str | None = None
 
                 for step in device.steps:
                     days = days_until(step.supply_needed_date)

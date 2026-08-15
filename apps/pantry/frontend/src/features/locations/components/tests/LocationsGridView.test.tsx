@@ -79,7 +79,7 @@ describe('LocationsGridView Component', () => {
     render(<LocationsGridView />, { wrapper: createQueryWrapper() })
 
     const toggleBtn = screen.getByRole('button', { name: 'createBtn' })
-    
+
     // Form should be closed initially
     expect(screen.queryByLabelText('name *')).not.toBeInTheDocument()
 

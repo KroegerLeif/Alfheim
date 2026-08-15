@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { choresClient } from "@/core/api";
-import { 
-  ChoreTemplateRead, 
-  ChoreTemplateCreate, 
-  ChoreTemplateUpdate, 
-  ChoreInstanceRead, 
+import {
+  ChoreTemplateRead,
+  ChoreTemplateCreate,
+  ChoreTemplateUpdate,
+  ChoreInstanceRead,
   ChoreIntegrationSummary,
   ChoreTimelineRead
 } from "../types";
@@ -50,7 +50,7 @@ export function useChoreTemplates() {
 
   return useQuery<ChoreTemplateRead[]>({
     queryKey: choreKeys.templates(activeHouseholdId),
-    queryFn: () => 
+    queryFn: () =>
       choresClient
         .get("templates")
         .json<ChoreTemplateRead[]>(),
@@ -62,7 +62,7 @@ export function useTodayChores(dueDate?: string) {
 
   return useQuery<ChoreInstanceRead[]>({
     queryKey: choreKeys.today(activeHouseholdId, dueDate),
-    queryFn: () => 
+    queryFn: () =>
       choresClient
         .get("today", {
           searchParams: dueDate ? { due_date: dueDate } : {},
@@ -76,7 +76,7 @@ export function useChoreSummary() {
 
   return useQuery<ChoreIntegrationSummary>({
     queryKey: choreKeys.summary(activeHouseholdId),
-    queryFn: () => 
+    queryFn: () =>
       choresClient
         .get("integrations/summary")
         .json<ChoreIntegrationSummary>(),
@@ -200,4 +200,3 @@ export function useTaskTimeline(templateId: string) {
     enabled: !!templateId && !!activeHouseholdId,
   });
 }
-

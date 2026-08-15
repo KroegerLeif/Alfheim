@@ -1,16 +1,17 @@
 from pydantic import BaseModel
-from typing import List, Optional
+
 
 class MaintenanceSubmission(BaseModel):
     device_id: int
-    completed_step_ids: List[int]
-    step_notes: Optional[str] = None
+    completed_step_ids: list[int]
+    step_notes: str | None = None
     performer: str
-    supply_items: Optional[List[str]] = None
+    supply_items: list[str] | None = None
 
 
 class TaskStateUpdate(BaseModel):
     """Input schema for updating an individual step's inspection state."""
-    comment: Optional[str] = None          # Free-text inspection note
-    supply_needed_date: Optional[str] = None  # Override the next-due date
-    supply_item: Optional[str] = None      # Override the supply item
+
+    comment: str | None = None  # Free-text inspection note
+    supply_needed_date: str | None = None  # Override the next-due date
+    supply_item: str | None = None  # Override the supply item

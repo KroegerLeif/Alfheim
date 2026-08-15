@@ -14,15 +14,15 @@ import { Wrench } from "lucide-react";
 export default function MaintenancePage() {
   const t = useTranslations("common");
   const { activeNav } = useLayout();
-  
+
   // Track which device is currently in active step-by-step wizard mode
   const [maintenanceDevice, setMaintenanceDevice] = useState<Device | null>(null);
 
-  const isMainView = 
-    activeNav === "devices" || 
-    activeNav === "maintenance" || 
-    activeNav === "scheduled" || 
-    activeNav === "history" || 
+  const isMainView =
+    activeNav === "devices" ||
+    activeNav === "maintenance" ||
+    activeNav === "scheduled" ||
+    activeNav === "history" ||
     activeNav === "shopping";
 
   return (
@@ -30,7 +30,7 @@ export default function MaintenancePage() {
       {activeNav === "devices" && (
         <DevicesView onStartMaintenance={(device) => setMaintenanceDevice(device)} />
       )}
-      
+
       {activeNav === "maintenance" && (
         <MaintenanceView onStartMaintenance={(device) => setMaintenanceDevice(device)} />
       )}

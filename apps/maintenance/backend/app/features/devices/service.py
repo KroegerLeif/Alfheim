@@ -2,44 +2,45 @@
 Device feature service layer handling database queries and business logic.
 """
 
-from typing import List, Optional
+from typing import Any, cast
+
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.features.devices.models import Household, Device
-from app.features.tasks.models import MaintenanceStep
-from app.features.devices.schemas import DeviceCreate
 from app.features.devices.exceptions import DeviceNotFoundError, HouseholdNotFoundError
+from app.features.devices.models import Device, Household
+from app.features.devices.schemas import DeviceCreate
+from app.features.tasks.models import MaintenanceStep
 
 
 class DeviceService:
     """Service class containing logic for household and device operations."""
 
     @staticmethod
-    async def get_households(session: AsyncSession) -> List[Household]:
+    async def get_households(session: AsyncSession) -> list[Household]:
         """Fetch all registered households from the database."""
-        result = await session.execute(select(Household))
-        return list(result.scalars().all())
+        result = await session.exec(select(Household))
+        return list(result.all())
 
     @staticmethod
     async def get_devices(
         session: AsyncSession,
-        household_id: Optional[int] = None,
-    ) -> List[Device]:
+        household_id: int | None = None,
+    ) -> list[Device]:
         """Fetch all devices with eager selectinload for steps and history.
 
         Supports optional filtering by household_id.
         """
         statement = select(Device).options(
-            selectinload(Device.steps),
-            selectinload(Device.history_events),
+            selectinload(cast(Any, Device.steps)),
+            selectinload(cast(Any, Device.history_events)),
         )
         if household_id is not None:
             statement = statement.where(Device.household_id == household_id)
 
-        result = await session.execute(statement)
-        return list(result.scalars().all())
+        result = await session.exec(statement)
+        return list(result.all())
 
     @staticmethod
     async def get_device_by_id(session: AsyncSession, device_id: int) -> Device:
@@ -51,13 +52,13 @@ class DeviceService:
         statement = (
             select(Device)
             .options(
-                selectinload(Device.steps),
-                selectinload(Device.history_events),
+                selectinload(cast(Any, Device.steps)),
+                selectinload(cast(Any, Device.history_events)),
             )
             .where(Device.id == device_id)
         )
-        result = await session.execute(statement)
-        device = result.scalar_one_or_none()
+        result = await session.exec(statement)
+        device = result.first()
         if not device:
             raise DeviceNotFoundError(f"Device with ID {device_id} not found")
         return device
@@ -91,6 +92,7 @@ class DeviceService:
         )
         session.add(device)
         await session.flush()
+        assert device.id is not None
 
         for step_data in payload.steps:
             step = MaintenanceStep(

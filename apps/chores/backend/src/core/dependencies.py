@@ -1,9 +1,9 @@
+import logging
 import os
 import uuid
-import logging
+
 import jwt
-from typing import Optional
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
 from src.core.config import settings
 
@@ -12,11 +12,12 @@ logger = logging.getLogger(__name__)
 MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 MOCK_HOME_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
+
 class UserHomeContext(BaseModel):
     user_id: uuid.UUID
     home_id: uuid.UUID
-    email: Optional[str] = None
-    username: Optional[str] = None
+    email: str | None = None
+    username: str | None = None
     roles: list[str] = []
 
 

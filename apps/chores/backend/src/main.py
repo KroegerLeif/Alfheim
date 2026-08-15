@@ -3,7 +3,8 @@ import importlib
 import logging
 import pathlib
 from contextlib import asynccontextmanager
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
+
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 from src.core.config import settings
@@ -71,6 +72,7 @@ async def schedule_nightly_reset():
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     from src.core.database import init_db
+
     await init_db()
 
     # Start background scheduler
@@ -89,6 +91,7 @@ async def lifespan(app: FastAPI):
             pass
         # Gracefully flush and shutdown OpenTelemetry providers
         from src.core.telemetry import shutdown_telemetry
+
         shutdown_telemetry()
 
 
@@ -109,6 +112,7 @@ app.add_middleware(
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
 from src.core.telemetry import setup_telemetry
+
 setup_telemetry(app)
 
 
@@ -120,11 +124,13 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
         content={"detail": str(exc)},
     )
 
+
 # Discover and register router configurations dynamically
 discover_and_include_routers(app)
 
 # Discover and register FastMCP tools dynamically
 from src.mcp.server import discover_and_import_mcp_tools
+
 discover_and_import_mcp_tools()
 
 # Mount the FastMCP server

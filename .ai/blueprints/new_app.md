@@ -70,12 +70,16 @@ When initializing a new app, the following files **MUST** be explicitly created 
 * **`apps/<app-name>/.env.example`**: Local environment variables configuration.
 
 ### Backend Core (Python / FastAPI Example)
-* **`backend/Dockerfile`**: Production multi-stage Docker build file.
-* **`backend/pyproject.toml`** (or package dependency manifest): Configured dependency list.
+> [!TIP]
+> Follow [.ai/guidelines/new-app-scaffolding.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/guidelines/new-app-scaffolding.md) for full details on workspace setup, in-memory `aiosqlite` Pytest fixtures, `ty` type checking, and standalone Docker resolution.
+
+* **`backend/Dockerfile`**: Production multi-stage Docker build file with standalone `uv sync` resolution.
+* **`backend/.dockerignore`**: Standard ignore rules excluding `.venv`, `uv.lock`, and caches.
+* **`backend/pyproject.toml`** (or package dependency manifest): Configured dependency list with `pytest`, `pytest-asyncio`, `pytest-cov`, and `respx`.
 * **`backend/src/main.py`**: Expresses HTTP lifespan, middleware, CORS, routers, and healthcheck route at `/api/v1/health`.
 * **`backend/src/core/config.py`**: Environment configuration loader.
 * **`backend/src/core/database.py`**: Async database connection pool & session manager.
-* **`backend/src/core/dependencies.py`**: Parsers for Keycloak JWT tokens converting them into `UserHomeContext`.
+* **`backend/src/core/dependencies.py`**: Parsers for Keycloak JWT tokens and `X-Household-ID` header.
 
 ### Frontend Core
 * **`frontend/Dockerfile`**: Standalone build configuration matching `"standalone"` output mode.
@@ -191,7 +195,7 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
 
 ## 7. Registering in `scripts/up.sh` (Vertical Slice Pattern)
 
-Every new application **MUST** be registered as a dedicated vertical slice stage inside `scripts/up.sh` **before** the Observability stage. 
+Every new application **MUST** be registered as a dedicated vertical slice stage inside `scripts/up.sh` **before** the Observability stage.
 
 ### 7.1 Stage Template
 Boot services **strictly sequentially** to avoid resource spikes:

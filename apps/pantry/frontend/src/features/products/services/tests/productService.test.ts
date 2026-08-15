@@ -108,7 +108,7 @@ describe('Product Service Hooks', () => {
       expect(result.current.data).toEqual(mockProductRead)
       expect(pantryClient.post).toHaveBeenCalledWith('api/v1/products', { json: newProduct })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: productKeys.all })
-      
+
       invalidateSpy.mockRestore()
     })
   })

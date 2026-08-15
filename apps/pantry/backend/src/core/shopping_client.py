@@ -1,20 +1,20 @@
-import httpx
 import logging
-from typing import Optional
 import uuid
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
 
 async def push_out_of_stock_to_shopping(
     shopping_url: str,
-    token: Optional[str],
+    token: str | None,
     household_id: uuid.UUID,
     name: str,
     quantity: float = 1.0,
     unit: str = "piece",
-    product_id: Optional[uuid.UUID] = None,
-    barcode: Optional[str] = None,
+    product_id: uuid.UUID | None = None,
+    barcode: str | None = None,
 ) -> bool:
     """Push an out-of-stock item from Pantry directly to Shopping backend via internal HTTP integration."""
     target_url = f"{shopping_url.rstrip('/')}/api/v1/shopping/items"

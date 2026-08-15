@@ -1,18 +1,18 @@
 import uuid
+
 import pytest
 from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from src.features.locations.models import Location
-from src.features.products.models import Product, BaseUnit
 from src.features.inventory.models import InventoryState
+from src.features.products.models import BaseUnit, Product
 
 
 @pytest.fixture(autouse=True)
 async def seed_locations(db_session: AsyncSession):
     """Seed the default system locations like Backlog before tests."""
     from src.features.locations.seeder import seed_default_locations
+
     await seed_default_locations(db_session)
     await db_session.commit()
 
@@ -65,7 +65,7 @@ async def test_bulk_add_success(client: AsyncClient, db_session: AsyncSession):
                 "barcode": None,
                 "quantity": 3,
                 "unit": "piece",
-            }
+            },
         ]
     }
 

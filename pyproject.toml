@@ -1,0 +1,18 @@
+[project]
+name = "alfheim-monorepo"
+version = "0.1.0"
+description = "Central orchestration and monorepo workspace for Alfheim"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = [
+    "apps/*/backend",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.1.0",
+    "ruff>=0.15.15",
+    "ty>=0.0.72",
+]

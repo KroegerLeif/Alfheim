@@ -136,4 +136,3 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
     </>
   );
 }
-

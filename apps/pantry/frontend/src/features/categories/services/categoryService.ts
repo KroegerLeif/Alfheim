@@ -8,7 +8,7 @@ import { CategoryRead, CategoryCreate } from "@/features/categories/types";
 export function useCategories() {
   return useQuery<CategoryRead[]>({
     queryKey: ["categories"],
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/categories")
         .json<CategoryRead[]>(),
@@ -31,4 +31,3 @@ export function useCreateCategory() {
     },
   });
 }
-

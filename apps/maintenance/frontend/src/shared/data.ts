@@ -1,13 +1,13 @@
 // Static reference data used by the frontend UI
 // Device data is now served live from the backend API via useQuery hooks
 
-import { 
-  Wind, 
-  Droplet, 
-  Zap, 
-  Tv, 
-  ShieldAlert, 
-  Sprout 
+import {
+  Wind,
+  Droplet,
+  Zap,
+  Tv,
+  ShieldAlert,
+  Sprout
 } from "lucide-react";
 import { Household } from "./types";
 

@@ -154,3 +154,53 @@ The monorepo shares a centralized design system and dynamic theme engine through
 * **Internal Docker JWKS**: `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
 * **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `http://api.alfheim.loegien.localhost/auth/realms/alfheim`.
 
+---
+
+## 6. Python Developer Tooling, Quality Gates & Testing
+
+The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`) are organized as a unified **`uv` workspace**.
+
+### A. Environment Setup & Workspace Sync
+Install `uv` (>= 0.12+) and sync all workspace members from the repository root:
+```bash
+uv sync --all-packages --all-groups
+```
+
+### B. Code Quality, Linting & Formatting (Ruff)
+Run Ruff across the entire monorepo:
+```bash
+# Run linter
+uv run ruff check .
+
+# Run auto-fixing
+uv run ruff check --fix .
+
+# Verify formatting
+uv run ruff format --check .
+
+# Apply formatting
+uv run ruff format .
+```
+
+### C. Git Pre-Commit Hooks
+Install and run pre-commit hooks locally:
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files
+```
+
+### D. Automated Test Suite (Pytest & Coverage)
+Execute tests per microservice or across the workspace using in-memory SQLite transactions:
+```bash
+# Pantry backend tests
+cd apps/pantry/backend && uv run pytest --cov
+
+# Shopping backend tests
+cd apps/shopping/backend && uv run pytest --cov
+
+# Maintenance backend tests
+cd apps/maintenance/backend && uv run pytest --cov
+
+# Chores backend tests
+cd apps/chores/backend && uv run pytest --cov
+```

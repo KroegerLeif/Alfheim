@@ -1,13 +1,14 @@
 import enum
 import uuid
-from datetime import datetime, date, timezone
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import Column, DateTime, String, Index, text
-from sqlmodel import Field, SQLModel, Relationship, func
+from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import Column, DateTime, Index, String, text
+from sqlmodel import Field, Relationship, SQLModel, func
 
 if TYPE_CHECKING:
-    from src.features.products.models import Product
     from src.features.locations.models import Location
+    from src.features.products.models import Product
 
 
 class InventoryTransactionType(str, enum.Enum):
@@ -59,26 +60,26 @@ class InventoryLedger(SQLModel, table=True):
         nullable=False,
         description="The raw unit inputted by the user (e.g. 'kg', 'g', 'pack').",
     )
-    batch_code: Optional[str] = Field(
+    batch_code: str | None = Field(
         default=None,
         max_length=100,
         nullable=True,
         index=True,
         description="Optional code for tracking batch/lot specific inventory.",
     )
-    expiration_date: Optional[date] = Field(
+    expiration_date: date | None = Field(
         default=None,
         index=True,
         description="Optional expiration date of this batch.",
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None,
         max_length=500,
         nullable=True,
         description="Optional note describing the reason or details of this movement.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -124,20 +125,20 @@ class InventoryState(SQLModel, table=True):
         nullable=False,
         description="Current stock level, normalized strictly to product's base unit.",
     )
-    batch_code: Optional[str] = Field(
+    batch_code: str | None = Field(
         default=None,
         max_length=100,
         nullable=True,
         index=True,
         description="Optional batch code.",
     )
-    expiration_date: Optional[date] = Field(
+    expiration_date: date | None = Field(
         default=None,
         index=True,
         description="Optional expiration date.",
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -145,7 +146,7 @@ class InventoryState(SQLModel, table=True):
         ),
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -170,10 +171,10 @@ class InventoryState(SQLModel, table=True):
 # 1. Unique constraint when both batch_code and expiration_date are NOT NULL
 Index(
     "uq_state_product_location_batch_expiry",
-    InventoryState.product_id,
-    InventoryState.location_id,
-    InventoryState.batch_code,
-    InventoryState.expiration_date,
+    "product_id",
+    "location_id",
+    "batch_code",
+    "expiration_date",
     unique=True,
     postgresql_where=text("batch_code IS NOT NULL AND expiration_date IS NOT NULL"),
     sqlite_where=text("batch_code IS NOT NULL AND expiration_date IS NOT NULL"),
@@ -182,9 +183,9 @@ Index(
 # 2. Unique constraint when batch_code is NOT NULL and expiration_date IS NULL
 Index(
     "uq_state_product_location_batch_only",
-    InventoryState.product_id,
-    InventoryState.location_id,
-    InventoryState.batch_code,
+    "product_id",
+    "location_id",
+    "batch_code",
     unique=True,
     postgresql_where=text("batch_code IS NOT NULL AND expiration_date IS NULL"),
     sqlite_where=text("batch_code IS NOT NULL AND expiration_date IS NULL"),
@@ -193,9 +194,9 @@ Index(
 # 3. Unique constraint when expiration_date is NOT NULL and batch_code IS NULL
 Index(
     "uq_state_product_location_expiry_only",
-    InventoryState.product_id,
-    InventoryState.location_id,
-    InventoryState.expiration_date,
+    "product_id",
+    "location_id",
+    "expiration_date",
     unique=True,
     postgresql_where=text("batch_code IS NULL AND expiration_date IS NOT NULL"),
     sqlite_where=text("batch_code IS NULL AND expiration_date IS NOT NULL"),
@@ -204,8 +205,8 @@ Index(
 # 4. Unique constraint when both batch_code and expiration_date are NULL
 Index(
     "uq_state_product_location_default",
-    InventoryState.product_id,
-    InventoryState.location_id,
+    "product_id",
+    "location_id",
     unique=True,
     postgresql_where=text("batch_code IS NULL AND expiration_date IS NULL"),
     sqlite_where=text("batch_code IS NULL AND expiration_date IS NULL"),

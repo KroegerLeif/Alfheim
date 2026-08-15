@@ -113,4 +113,3 @@ export function TaskCard({ template }: TaskCardProps) {
     </>
   );
 }
-

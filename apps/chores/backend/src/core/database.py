@@ -1,8 +1,8 @@
 from collections.abc import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.core.config import settings
 
 # Create the async engine
@@ -32,12 +32,6 @@ async def init_db() -> None:
     Imports all models to ensure they register with SQLModel.metadata.
     """
     # Import models to register them on SQLModel.metadata
-    from src.features.chore_management.models import (
-        ChoreTemplate,
-        ChoreInstance,
-        HouseholdStreak,
-        ChoreCompletionHistory,
-    )  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)

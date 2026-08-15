@@ -25,7 +25,7 @@ export function MapAddressBanner({
   onUpdateAddressClick,
 }: MapAddressBannerProps) {
   const { t } = useTranslation();
-  
+
   // Collapsible UX prompt when no address is set
   if (!household.street) {
     return (

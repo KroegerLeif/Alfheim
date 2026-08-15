@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pantryClient } from "@/core/api";
-import { 
-  InventoryStateReadWithRelations, 
-  LowStockItem, 
+import {
+  InventoryStateReadWithRelations,
+  LowStockItem,
   ExpirationSummary,
   InventoryTransactionCreate,
   InventoryLedgerRead
@@ -41,12 +41,12 @@ function useActiveHouseholdId() {
 export const inventoryKeys = {
   all: (householdId: string | null) => ["inventory", { householdId }] as const,
   states: (householdId: string | null) => [...inventoryKeys.all(householdId), "state"] as const,
-  stateFiltered: (householdId: string | null, productId?: string, locationId?: string) => 
+  stateFiltered: (householdId: string | null, productId?: string, locationId?: string) =>
     [...inventoryKeys.states(householdId), { productId, locationId }] as const,
   lowStock: (householdId: string | null) => [...inventoryKeys.all(householdId), "low-stock"] as const,
   expirationSummary: (householdId: string | null) => [...inventoryKeys.all(householdId), "expiration-summary"] as const,
   ledger: (householdId: string | null) => [...inventoryKeys.all(householdId), "ledger"] as const,
-  ledgerFiltered: (householdId: string | null, productId?: string, locationId?: string, limit?: number, offset?: number) => 
+  ledgerFiltered: (householdId: string | null, productId?: string, locationId?: string, limit?: number, offset?: number) =>
     [...inventoryKeys.ledger(householdId), { productId, locationId, limit, offset }] as const,
 };
 
@@ -59,7 +59,7 @@ export function useInventoryState(productId?: string, locationId?: string) {
 
   return useQuery<InventoryStateReadWithRelations[]>({
     queryKey: inventoryKeys.stateFiltered(activeHouseholdId, productId, locationId),
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/inventory/state", {
           searchParams: {
@@ -80,7 +80,7 @@ export function useLowStockItems() {
 
   return useQuery<LowStockItem[]>({
     queryKey: inventoryKeys.lowStock(activeHouseholdId),
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/inventory/low-stock")
         .json<LowStockItem[]>(),
@@ -96,7 +96,7 @@ export function useExpirationSummary() {
 
   return useQuery<ExpirationSummary>({
     queryKey: inventoryKeys.expirationSummary(activeHouseholdId),
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/inventory/expiration-summary")
         .json<ExpirationSummary>(),
@@ -197,7 +197,7 @@ export function useLedgerHistory(productId?: string, locationId?: string, limit 
 
   return useQuery<InventoryLedgerRead[]>({
     queryKey: inventoryKeys.ledgerFiltered(activeHouseholdId, productId, locationId, limit, offset),
-    queryFn: () => 
+    queryFn: () =>
       pantryClient
         .get("api/v1/inventory/transactions", {
           searchParams: {

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  ShoppingCart, 
-  Download, 
-  Send, 
-  Trash2, 
-  CheckCircle2 
+import {
+  ShoppingCart,
+  Download,
+  Send,
+  Trash2,
+  CheckCircle2
 } from "lucide-react";
 import { cn } from "@/core/utils";
 import { useTranslations } from "next-intl";
@@ -75,7 +75,7 @@ export function ShoppingView() {
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans text-[var(--text-main)]">
-      
+
       {/* Header Bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-2">

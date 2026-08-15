@@ -1,0 +1,37 @@
+target-version = "py312"
+line-length = 120
+indent-width = 4
+
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort / import ordering
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade (Python 3.12 modern idioms)
+    "ASYNC", # flake8-async (asyncio safety)
+    "FAST",  # FastAPI specific best practices
+    "T20",   # flake8-print (prevent rogue print statements)
+]
+ignore = [
+    "E501",    # line length handled by formatter
+    "B008",    # do not perform function calls in argument defaults (FastAPI Depends)
+    "B904",    # allow re-raising exceptions without explicit from err chaining in legacy handlers
+    "UP042",   # allow (str, Enum) inheritance for SQLAlchemy/SQLModel string-backed enums
+    "FAST001", # allow explicit response_model annotations
+    "FAST002", # allow standard non-Annotated Depends syntax
+]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["B008", "ASYNC", "T20", "E741"]
+"**/mcp_tools.py" = ["B008"]
+"**/mcp/server.py" = ["T201"]
+"**/main.py" = ["E402", "T201"]
+"**/models.py" = ["E402"]
+"**/seeder.py" = ["T201"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

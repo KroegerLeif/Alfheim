@@ -1,12 +1,12 @@
 import uuid
-from typing import Optional, Sequence
-from sqlalchemy.exc import IntegrityError
-from sqlmodel import select, or_, col
-from sqlmodel.ext.asyncio.session import AsyncSession
+from collections.abc import Sequence
 
-from src.features.products.models import Product, ProductNutrition
-from src.features.products.schemas import ProductCreate, ProductUpdate, ProductNutritionUpdate
+from sqlalchemy.exc import IntegrityError
+from sqlmodel import col, or_, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
+from src.features.products.models import Product, ProductNutrition
+from src.features.products.schemas import ProductCreate, ProductNutritionUpdate, ProductUpdate
 
 
 class ProductService:
@@ -29,20 +29,17 @@ class ProductService:
             barcode_stmt = select(Product).where(Product.barcode == payload.barcode)
             barcode_res = await session.exec(barcode_stmt)
             if barcode_res.first():
-                raise ValueError(
-                    f"Product with barcode '{payload.barcode}' already exists."
-                )
+                raise ValueError(f"Product with barcode '{payload.barcode}' already exists.")
             # Products with valid barcodes are promoted globally to prevent collisions
             is_global = True
 
         # 2. Category boundary check
         if payload.category_id:
             from src.features.categories.models import Category
+
             category_stmt = select(Category).where(Category.id == payload.category_id)
             if not is_global:
-                category_stmt = category_stmt.where(
-                    or_(Category.is_global, Category.home_id == home_id)
-                )
+                category_stmt = category_stmt.where(or_(Category.is_global, Category.home_id == home_id))
             else:
                 category_stmt = category_stmt.where(Category.is_global)
             category_res = await session.exec(category_stmt)
@@ -83,9 +80,7 @@ class ProductService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(
-                f"Integrity error creating product '{payload.name}': {e}"
-            ) from e
+            raise ValueError(f"Integrity error creating product '{payload.name}': {e}") from e
 
         await session.refresh(product)
         return product
@@ -95,7 +90,7 @@ class ProductService:
         session: AsyncSession,
         product_id: uuid.UUID,
         home_id: uuid.UUID,
-    ) -> Optional[Product]:
+    ) -> Product | None:
         """Retrieve a specific product if it is global or personal to the user's home."""
         statement = select(Product).where(
             Product.id == product_id,
@@ -109,7 +104,7 @@ class ProductService:
         session: AsyncSession,
         product_id: uuid.UUID,
         home_id: uuid.UUID,
-    ) -> Optional[ProductNutrition]:
+    ) -> ProductNutrition | None:
         """Retrieve the isolated nutrition profile of a product if authorized."""
         # Join Product to enforce home isolation boundary on nutrition queries
         statement = (
@@ -128,8 +123,8 @@ class ProductService:
         session: AsyncSession,
         barcode: str,
         home_id: uuid.UUID,
-        off_client: Optional[OpenFoodFactsClient] = None,
-    ) -> Optional[Product]:
+        off_client: OpenFoodFactsClient | None = None,
+    ) -> Product | None:
         """Look up a product locally by barcode.
 
         If not found, queries Open Food Facts Client, auto-seeds the database,
@@ -180,16 +175,14 @@ class ProductService:
     async def list_products(
         session: AsyncSession,
         home_id: uuid.UUID,
-        name: Optional[str] = None,
-        barcode: Optional[str] = None,
-        category_id: Optional[uuid.UUID] = None,
+        name: str | None = None,
+        barcode: str | None = None,
+        category_id: uuid.UUID | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Product]:
         """List and search products visible to the current home space."""
-        statement = select(Product).where(
-            or_(Product.is_global, Product.home_id == home_id)
-        )
+        statement = select(Product).where(or_(Product.is_global, Product.home_id == home_id))
 
         if name:
             statement = statement.where(col(Product.name).ilike(f"%{name}%"))
@@ -208,7 +201,7 @@ class ProductService:
         product_id: uuid.UUID,
         home_id: uuid.UUID,
         payload: ProductUpdate,
-    ) -> Optional[Product]:
+    ) -> Product | None:
         """Partially update an existing product. Global products cannot be modified."""
         product = await ProductService.get_product(session, product_id, home_id)
         if not product:
@@ -223,14 +216,10 @@ class ProductService:
         if "barcode" in update_data and update_data["barcode"] != product.barcode:
             barcode_val = update_data["barcode"]
             if barcode_val and len(barcode_val.strip()) > 0:
-                clash_stmt = select(Product).where(
-                    Product.barcode == barcode_val, Product.id != product.id
-                )
+                clash_stmt = select(Product).where(Product.barcode == barcode_val, Product.id != product.id)
                 clash_res = await session.exec(clash_stmt)
                 if clash_res.first():
-                    raise ValueError(
-                        f"Product with barcode '{barcode_val}' already exists."
-                    )
+                    raise ValueError(f"Product with barcode '{barcode_val}' already exists.")
                 # Adding a valid barcode promotes local product to global
                 product.is_global = True
                 product.home_id = None
@@ -239,19 +228,16 @@ class ProductService:
         if "category_id" in update_data and update_data["category_id"] is not None:
             category_id = update_data["category_id"]
             from src.features.categories.models import Category
+
             category_stmt = select(Category).where(Category.id == category_id)
             is_now_global = product.is_global
             if not is_now_global:
-                category_stmt = category_stmt.where(
-                    or_(Category.is_global, Category.home_id == home_id)
-                )
+                category_stmt = category_stmt.where(or_(Category.is_global, Category.home_id == home_id))
             else:
                 category_stmt = category_stmt.where(Category.is_global)
             category_res = await session.exec(category_stmt)
             if not category_res.first():
-                raise ValueError(
-                    f"Category with ID '{category_id}' not found or not authorized for this product."
-                )
+                raise ValueError(f"Category with ID '{category_id}' not found or not authorized for this product.")
 
         for key, value in update_data.items():
             setattr(product, key, value)
@@ -272,7 +258,7 @@ class ProductService:
         product_id: uuid.UUID,
         home_id: uuid.UUID,
         payload: ProductNutritionUpdate,
-    ) -> Optional[ProductNutrition]:
+    ) -> ProductNutrition | None:
         """Update or create the nutrition profile of an existing product.
 
         Global products cannot be modified.
@@ -284,9 +270,7 @@ class ProductService:
         if product.is_global:
             raise ValueError("Global product nutrition cannot be modified.")
 
-        nutrition = await ProductService.get_product_nutrition(
-            session, product_id, home_id
-        )
+        nutrition = await ProductService.get_product_nutrition(session, product_id, home_id)
 
         update_data = payload.model_dump(exclude_unset=True)
 

@@ -64,7 +64,7 @@ export function TaskTimelineModal({ template, onClose }: TaskTimelineModalProps)
                   <div key={entry.id} className="relative group">
                     {/* Timeline Node Dot */}
                     <div className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full bg-[var(--primary-main)] ring-4 ring-[var(--surface-card)]" />
-                    
+
                     <div className="bg-[var(--surface-container)] border border-[var(--border-subtle)] p-3.5 rounded-lg space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-main)]">

@@ -25,7 +25,7 @@ export const AlfheimLogo: React.FC<AlfheimLogoProps> = ({
   if (variant === 'full' || showText) {
     return (
       <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-        <div 
+        <div
           className="rounded-lg bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shrink-0 shadow-[0_0_12px_var(--accent-glow)]"
           style={{ width: size, height: size }}
         >
@@ -60,7 +60,7 @@ export const AlfheimLogo: React.FC<AlfheimLogoProps> = ({
   }
 
   return (
-    <div 
+    <div
       className={`rounded-lg bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shrink-0 shadow-[0_0_12px_var(--accent-glow)] ${className}`}
       style={{ width: size, height: size }}
       data-asset={variant === 'white' ? BRAND_ASSETS.logoMarkWhite : BRAND_ASSETS.logoMark}
