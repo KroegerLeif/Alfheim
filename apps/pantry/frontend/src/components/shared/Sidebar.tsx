@@ -111,8 +111,8 @@ export function Sidebar() {
         {/* Low Stock Notification */}
         <div className={cn(
           "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
-          lowStockCount > 0 
-            ? "border-amber-800/40 bg-amber-950/20 text-amber-400" 
+          lowStockCount > 0
+            ? "border-amber-800/40 bg-amber-950/20 text-amber-400"
             : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"
         )}>
           <div className="flex items-center gap-2">
@@ -125,8 +125,8 @@ export function Sidebar() {
         {/* Expired Items Notification */}
         <div className={cn(
           "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
-          expiredCount > 0 
-            ? "border-red-800/40 bg-red-950/20 text-red-400" 
+          expiredCount > 0
+            ? "border-red-800/40 bg-red-950/20 text-red-400"
             : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"
         )}>
           <div className="flex items-center gap-2">

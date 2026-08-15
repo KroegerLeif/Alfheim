@@ -325,27 +325,27 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div 
+                <div
                   className="h-10 rounded-lg border border-[var(--border-subtle)] p-2 flex items-center gap-2"
                   style={{ backgroundColor: tokens.surfaceCanvas }}
                 >
-                  <div 
-                    className="w-4 h-4 rounded-full shadow-xs" 
-                    style={{ backgroundColor: tokens.primaryMain }} 
+                  <div
+                    className="w-4 h-4 rounded-full shadow-xs"
+                    style={{ backgroundColor: tokens.primaryMain }}
                     title={tokens.primaryMain}
                   />
-                  <div 
-                    className="w-4 h-4 rounded-full shadow-xs" 
-                    style={{ backgroundColor: tokens.accentMint || tokens.accentCyan || tokens.primaryHover }} 
+                  <div
+                    className="w-4 h-4 rounded-full shadow-xs"
+                    style={{ backgroundColor: tokens.accentMint || tokens.accentCyan || tokens.primaryHover }}
                     title={tokens.accentMint || tokens.accentCyan}
                   />
-                  <div 
-                    className="w-8 h-2 rounded opacity-50" 
-                    style={{ backgroundColor: tokens.surfaceElevated }} 
+                  <div
+                    className="w-8 h-2 rounded opacity-50"
+                    style={{ backgroundColor: tokens.surfaceElevated }}
                   />
-                  <div 
-                    className="w-6 h-2 rounded ml-auto opacity-75" 
-                    style={{ backgroundColor: tokens.primaryMain }} 
+                  <div
+                    className="w-6 h-2 rounded ml-auto opacity-75"
+                    style={{ backgroundColor: tokens.primaryMain }}
                   />
                 </div>
               </div>
