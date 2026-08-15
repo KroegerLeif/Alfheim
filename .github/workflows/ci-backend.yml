@@ -1,0 +1,74 @@
+name: Python Backends CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**/backend/**'
+      - '.github/workflows/ci-backend.yml'
+      - '.pre-commit-config.yaml'
+      - 'ruff.toml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**/backend/**'
+      - '.github/workflows/ci-backend.yml'
+      - '.pre-commit-config.yaml'
+      - 'ruff.toml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Pantry Backend
+            path: apps/pantry/backend
+            cov_target: src
+          - name: Shopping Backend
+            path: apps/shopping/backend
+            cov_target: src
+          - name: Maintenance Backend
+            path: apps/maintenance/backend
+            cov_target: app
+          - name: Chores Backend
+            path: apps/chores/backend
+            cov_target: src
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "${{ matrix.path }}/pyproject.toml"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: uv sync --all-groups
+
+      - name: Run Ruff Linter
+        run: uv run ruff check .
+
+      - name: Verify Code Formatting
+        run: uv run ruff format --check .
+
+      - name: Run Pytest Suite with Coverage
+        run: uv run pytest --cov=${{ matrix.cov_target }} --cov-report=term-missing
