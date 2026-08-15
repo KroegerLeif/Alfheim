@@ -7,17 +7,14 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.database import get_db_session
-from src.features.categories.models import Category  # noqa: F401
-from src.features.inventory.models import InventoryLedger, InventoryState  # noqa: F401
-
-# Import all models to register them on SQLModel.metadata
-from src.features.locations.models import Location  # noqa: F401
-from src.features.products.models import Product, ProductNutrition  # noqa: F401
-
-# Import FastAPI application entrypoint
+from src.features.chore_management.models import (  # noqa: F401
+    ChoreCompletionHistory,
+    ChoreInstance,
+    ChoreTemplate,
+    HouseholdStreak,
+)
 from src.main import app
 
-# Setup in-memory SQLite database engine for test runs
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 test_engine = create_async_engine(
@@ -34,7 +31,6 @@ test_session_factory = async_sessionmaker(
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def init_test_db():
-    """Create all database tables for the duration of the test session."""
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     yield
@@ -44,10 +40,6 @@ async def init_test_db():
 
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Provide a transactional database session for a single test case.
-
-    Automatically rolls back the transaction at the end of the test.
-    """
     async with test_engine.connect() as conn:
         transaction = await conn.begin()
         async with AsyncSession(conn, expire_on_commit=False) as session:
@@ -57,11 +49,6 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture
 async def client(db_session) -> AsyncGenerator[AsyncClient, None]:
-    """Provide an asynchronous HTTPX client configured to make calls to the FastAPI app.
-
-    Overrides the db session dependency on the app.
-    """
-
     async def _get_test_db():
         yield db_session
 

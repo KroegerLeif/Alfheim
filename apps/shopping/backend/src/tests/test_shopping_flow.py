@@ -1,13 +1,14 @@
 import uuid
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
 from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.core.dependencies import MOCK_USER_ID, MOCK_HOME_ID
-from src.features.shopping_lists.models import ShoppingList, ShoppingItem
+from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.history.models import ShoppingHistory
+from src.features.shopping_lists.models import ShoppingItem, ShoppingList
 
 
 @pytest.mark.asyncio
@@ -30,7 +31,7 @@ async def test_create_retrieve_delete_shopping_list(client: AsyncClient, db_sess
     assert response.status_code == 200
     lists = response.json()
     assert len(lists) == 3
-    assert any(l["id"] == list_id for l in lists)
+    assert any(s_list["id"] == list_id for s_list in lists)
 
     # 4. Delete the shopping list
     response = await client.delete(f"/api/v1/shopping-lists/{list_id}")
@@ -119,7 +120,7 @@ async def test_auto_import_low_stock(mock_fetch: AsyncMock, client: AsyncClient,
                 "minimum_stock": 2000.0,
             },
             "current_stock": 500.0,
-        }
+        },
     ]
 
     # Trigger auto import
@@ -130,7 +131,7 @@ async def test_auto_import_low_stock(mock_fetch: AsyncMock, client: AsyncClient,
     # Verify merge logic: Apple Juice skipped (already active), Basmati Rice imported
     assert len(imported) == 1
     assert imported[0]["name"] == "Basmati Rice"
-    
+
     # Deficiency deficit calculation: minimum (2000) - current (500) = 1500
     assert imported[0]["quantity"] == 1500.0
     assert imported[0]["unit"] == "g"
@@ -140,7 +141,9 @@ async def test_auto_import_low_stock(mock_fetch: AsyncMock, client: AsyncClient,
 
 @pytest.mark.asyncio
 @patch("src.features.shopping_lists.clients.PantryClient.bulk_add_items", new_callable=AsyncMock)
-async def test_sync_to_pantry_flow_and_history_logging(mock_bulk_add: AsyncMock, client: AsyncClient, db_session: AsyncSession):
+async def test_sync_to_pantry_flow_and_history_logging(
+    mock_bulk_add: AsyncMock, client: AsyncClient, db_session: AsyncSession
+):
     # Setup list and items
     l1 = ShoppingList(name="Sync Test List", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
     db_session.add(l1)
@@ -191,7 +194,7 @@ async def test_sync_to_pantry_flow_and_history_logging(mock_bulk_add: AsyncMock,
                 "unit": "pack",
                 "reason": "pantry.error.product_not_found",
             }
-        ]
+        ],
     }
 
     # Trigger Sync to Pantry
@@ -249,7 +252,7 @@ async def test_sync_to_pantry_flow_and_history_logging(mock_bulk_add: AsyncMock,
                 "unit": "g",
             }
         ],
-        "unrecognized_items": []
+        "unrecognized_items": [],
     }
 
     # Trigger second sync
@@ -290,11 +293,10 @@ async def test_unauthorized_access(client: AsyncClient):
             return None
         return default
 
-    with patch("os.getenv", side_effect=fake_getenv):
-        with patch("src.core.config.settings.ENVIRONMENT", "production"):
-            response = await client.get("/api/v1/shopping-lists", headers={})
-            assert response.status_code == 401
-            assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()
+    with patch("os.getenv", side_effect=fake_getenv), patch("src.core.config.settings.ENVIRONMENT", "production"):
+        response = await client.get("/api/v1/shopping-lists", headers={})
+        assert response.status_code == 401
+        assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()
 
 
 @pytest.mark.asyncio
@@ -320,7 +322,7 @@ async def test_reorder_shopping_lists(client: AsyncClient, db_session: AsyncSess
     res = await client.get("/api/v1/shopping-lists")
     assert res.status_code == 200
     lists = res.json()
-    custom_lists = [l for l in lists if not l["is_default"] and not l["is_personal"]]
+    custom_lists = [s_list for s_list in lists if not s_list["is_default"] and not s_list["is_personal"]]
     assert len(custom_lists) == 3
     assert custom_lists[0]["id"] == id_a
     assert custom_lists[1]["id"] == id_b
@@ -335,9 +337,8 @@ async def test_reorder_shopping_lists(client: AsyncClient, db_session: AsyncSess
     res_ordered = await client.get("/api/v1/shopping-lists")
     assert res_ordered.status_code == 200
     ordered_lists = res_ordered.json()
-    custom_ordered = [l for l in ordered_lists if not l["is_default"] and not l["is_personal"]]
+    custom_ordered = [s_list for s_list in ordered_lists if not s_list["is_default"] and not s_list["is_personal"]]
     assert len(custom_ordered) == 3
     assert custom_ordered[0]["id"] == id_c
     assert custom_ordered[1]["id"] == id_b
     assert custom_ordered[2]["id"] == id_a
-

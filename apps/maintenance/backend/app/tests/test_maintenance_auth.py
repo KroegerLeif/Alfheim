@@ -1,8 +1,10 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.features.devices.models import Household, Device
+
+from app.features.devices.models import Household
 
 
 @pytest.mark.asyncio
@@ -60,8 +62,7 @@ async def test_unauthorized_access(client: AsyncClient):
             return None
         return default
 
-    with patch("os.getenv", side_effect=fake_getenv):
-        with patch("app.core.config.settings.ENVIRONMENT", "production"):
-            response = await client.get("/api/v1/devices", headers={})
-            assert response.status_code == 401
-            assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()
+    with patch("os.getenv", side_effect=fake_getenv), patch("app.core.config.settings.ENVIRONMENT", "production"):
+        response = await client.get("/api/v1/devices", headers={})
+        assert response.status_code == 401
+        assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()
