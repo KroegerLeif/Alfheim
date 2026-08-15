@@ -9,6 +9,10 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(ci): synchronize all uv workspace packages during ci lint and typecheck gates`**
+  - Updated `.github/workflows/python-ci.yml` to run `uv sync --all-packages --all-groups` in root linting and type-checking jobs.
+  - Added workspace synchronization step to `scripts/verify.sh` to ensure complete environment parity.
+  - Updated `README.md` and `.ai/guidelines/new-app-scaffolding.md` documentation to specify `--all-packages --all-groups`.
 * **`docs(ai): implement monorepo quality gate guidelines and local verification runner`**
   - Created `.ai/guidelines/quality-gates.md` documenting mandatory multi-stack quality gates (Python, Go, Frontend, Security, and MCP).
   - Created `scripts/verify.sh` local pre-flight runner supporting `--all`, `--python`, `--go`, `--frontend`, and `--security` checks.

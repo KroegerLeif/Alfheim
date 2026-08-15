@@ -97,7 +97,7 @@ python_files = "test_*.py"
 
 After updating `pyproject.toml`, run from repository root:
 ```bash
-uv sync --all-groups
+uv sync --all-packages --all-groups
 ```
 
 ---

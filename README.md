@@ -163,7 +163,7 @@ The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`
 ### A. Environment Setup & Workspace Sync
 Install `uv` (>= 0.12+) and sync all workspace members from the repository root:
 ```bash
-uv sync
+uv sync --all-packages --all-groups
 ```
 
 ### B. Code Quality, Linting & Formatting (Ruff)
