@@ -22,6 +22,13 @@ export function MemberGrid({
   const { t } = useTranslation();
   const members = household?.members ?? [];
 
+  const getLocalizedRole = (role: string) => {
+    const roleKey = role.toLowerCase();
+    const key = `dashboard.household.roles.${roleKey}`;
+    const translated = t(key);
+    return translated === key ? role : translated;
+  };
+
   const getMemberDisplayName = (m: HouseholdMember) => {
     if (m.first_name || m.last_name) {
       return `${m.first_name || ''} ${m.last_name || ''}`.trim();
@@ -90,9 +97,9 @@ export function MemberGrid({
                       onChange={(e) => onRoleChange(member.user_id, member.role, e.target.value)}
                       className="bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-main)] rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
                     >
-                      <option value="ADMIN">ADMIN</option>
-                      <option value="MEMBER">MEMBER</option>
-                      <option value="GUEST">GUEST</option>
+                      <option value="ADMIN">{getLocalizedRole('ADMIN')}</option>
+                      <option value="MEMBER">{getLocalizedRole('MEMBER')}</option>
+                      <option value="GUEST">{getLocalizedRole('GUEST')}</option>
                     </select>
                     <button
                       onClick={() => onRemoveMember(member.user_id, getMemberDisplayName(member))}
@@ -103,7 +110,7 @@ export function MemberGrid({
                   </div>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-[var(--surface-canvas)] text-[var(--primary-main)] border border-[var(--border-subtle)]">
-                    {member.role}
+                    {getLocalizedRole(member.role)}
                   </span>
                 )}
               </div>

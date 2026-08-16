@@ -195,25 +195,25 @@ export function ContactModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                Icon
+                {t('common.select_icon')}
               </label>
               <select
                 value={contactIcon}
                 onChange={(e) => setContactIcon(e.target.value)}
                 className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] cursor-pointer"
               >
-                <option value="person">Person</option>
-                <option value="call">Call / Phone</option>
-                <option value="local_police">Police / Safety</option>
-                <option value="medical_services">Medical / Doctor</option>
-                <option value="handyman">Handyman / Service</option>
-                <option value="business">Business</option>
-                <option value="star">Important</option>
+                <option value="person">{t('dashboard.contact.categories.person')}</option>
+                <option value="call">{t('dashboard.contact.categories.call')}</option>
+                <option value="local_police">{t('dashboard.contact.categories.police')}</option>
+                <option value="medical_services">{t('dashboard.contact.categories.doctor')}</option>
+                <option value="handyman">{t('dashboard.contact.categories.handyman')}</option>
+                <option value="business">{t('dashboard.contact.categories.business')}</option>
+                <option value="star">{t('dashboard.contact.categories.important')}</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                Avatar Image URL
+                {t('profile.avatar_url')}
               </label>
               <input
                 type="url"
