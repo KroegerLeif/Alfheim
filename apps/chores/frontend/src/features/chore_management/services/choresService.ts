@@ -11,7 +11,12 @@ import {
 import { useState, useEffect } from "react";
 
 export function useActiveHouseholdId() {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("alfheim_active_household_id");
+    }
+    return null;
+  });
 
   useEffect(() => {
     setActiveId(localStorage.getItem("alfheim_active_household_id"));
