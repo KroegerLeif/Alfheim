@@ -42,12 +42,30 @@ async def test_shopping_household_isolation_and_protected_lists(client: AsyncCli
 
 @pytest.mark.asyncio
 async def test_shopping_unauthorized_production(client: AsyncClient):
-    def fake_getenv(key, default=None):
-        if key in ("PYTEST_CURRENT_TEST", "TESTING"):
-            return None
-        return default
+    """Verify that unauthenticated requests fail when ENVIRONMENT == 'production'."""
+    with patch("src.core.dependencies.settings.ENVIRONMENT", "production"):
+        response = await client.get("/api/v1/shopping-lists", headers={})
+        assert response.status_code == 401
+        assert "missing authorization header" in response.json()["detail"].lower()
 
-    with patch("os.getenv", side_effect=fake_getenv):
-        with patch("src.core.config.settings.ENVIRONMENT", "production"):
-            response = await client.get("/api/v1/shopping-lists", headers={})
-            assert response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_shopping_mock_fallback_fails_with_production_database_url(client: AsyncClient):
+    """Verify that mock fallback fails when DATABASE_URL points to non-localhost production database."""
+    with patch(
+        "src.core.dependencies.settings.DATABASE_URL",
+        "postgresql+asyncpg://postgres:pass@db.production.aws.loeger.com:5432/shopping",
+    ):
+        response = await client.get("/api/v1/shopping-lists", headers={})
+        assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_shopping_mock_fallback_fails_with_production_keycloak_url(client: AsyncClient):
+    """Verify that mock fallback fails when KEYCLOAK_URL points to non-localhost production Keycloak."""
+    with patch(
+        "src.core.dependencies.settings.KEYCLOAK_URL",
+        "https://auth.production.loeger-os.com/auth",
+    ):
+        response = await client.get("/api/v1/shopping-lists", headers={})
+        assert response.status_code == 401

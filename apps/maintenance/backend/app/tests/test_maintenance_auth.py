@@ -55,14 +55,31 @@ async def test_device_creation_and_retrieval(client: AsyncClient, db_session: As
 
 
 @pytest.mark.asyncio
-async def test_unauthorized_access(client: AsyncClient):
-    def fake_getenv(key, default=None):
-        if key in ("PYTEST_CURRENT_TEST", "TESTING"):
-            return None
-        return default
+async def test_unauthorized_access_in_production(client: AsyncClient):
+    """Verify that mock auth fallback fails when ENVIRONMENT == 'production'."""
+    with patch("app.core.dependencies.settings.ENVIRONMENT", "production"):
+        response = await client.get("/api/v1/devices", headers={})
+        assert response.status_code == 401
+        assert "missing authorization header" in response.text.lower() or "unauthorized" in response.text.lower()
 
-    with patch("os.getenv", side_effect=fake_getenv):
-        with patch("app.core.config.settings.ENVIRONMENT", "production"):
-            response = await client.get("/api/v1/devices", headers={})
-            assert response.status_code == 401
-            assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()
+
+@pytest.mark.asyncio
+async def test_mock_auth_fallback_fails_with_production_database_url(client: AsyncClient):
+    """Verify that mock fallback fails when DATABASE_URL points to non-localhost production database."""
+    with patch(
+        "app.core.dependencies.settings.DATABASE_URL",
+        "postgresql+asyncpg://postgres:secret@db.prod.internal.loeger.com:5432/maintenance",
+    ):
+        response = await client.get("/api/v1/devices", headers={})
+        assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_mock_auth_fallback_fails_with_production_keycloak_url(client: AsyncClient):
+    """Verify that mock fallback fails when KEYCLOAK_URL points to non-localhost production Keycloak."""
+    with patch(
+        "app.core.dependencies.settings.KEYCLOAK_URL",
+        "https://auth.production.loeger-os.com/auth",
+    ):
+        response = await client.get("/api/v1/devices", headers={})
+        assert response.status_code == 401
