@@ -47,13 +47,31 @@ async def test_household_tenant_isolation(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_missing_auth_header_in_production(client: AsyncClient):
-    def fake_getenv(key, default=None):
-        if key in ("PYTEST_CURRENT_TEST", "TESTING"):
-            return None
-        return default
+async def test_mock_auth_fallback_fails_in_production(client: AsyncClient):
+    """Verify that unauthenticated requests are strictly rejected in production environments."""
+    with patch("src.core.dependencies.settings.ENVIRONMENT", "production"):
+        response = await client.get("/api/v1/chores/templates", headers={})
+        assert response.status_code == 401
+        assert "missing authorization header" in response.json()["detail"].lower()
 
-    with patch("os.getenv", side_effect=fake_getenv):
-        with patch("src.core.config.settings.ENVIRONMENT", "production"):
-            response = await client.get("/api/v1/chores/templates", headers={})
-            assert response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_mock_auth_fallback_fails_with_production_database_url(client: AsyncClient):
+    """Verify that mock fallback is disabled when a non-localhost production DB URL is configured."""
+    with patch(
+        "src.core.dependencies.settings.DATABASE_URL",
+        "postgresql+asyncpg://postgres:pass@db.production.aws.loeger.com:5432/chores",
+    ):
+        response = await client.get("/api/v1/chores/templates", headers={})
+        assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_mock_auth_fallback_fails_with_production_keycloak_url(client: AsyncClient):
+    """Verify that mock fallback is disabled when a non-localhost production Keycloak URL is configured."""
+    with patch(
+        "src.core.dependencies.settings.KEYCLOAK_URL",
+        "https://auth.production.loeger-os.com/auth",
+    ):
+        response = await client.get("/api/v1/chores/templates", headers={})
+        assert response.status_code == 401

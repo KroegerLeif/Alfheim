@@ -1,5 +1,6 @@
 import logging
 import os
+from urllib.parse import urlparse
 
 import jwt
 from fastapi import HTTPException, Request, status
@@ -8,6 +9,30 @@ from pydantic import BaseModel
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+SAFE_TEST_HOSTS = {
+    "localhost",
+    "127.0.0.1",
+    "::1",
+    "0.0.0.0",
+    "test",
+    "testserver",
+    "postgres",
+    "keycloak",
+    "alfheim_keycloak",
+    "pantry-backend",
+    "shopping-backend",
+    "chores-backend",
+    "maintenance-backend",
+}
+
+SAFE_TEST_SUFFIXES = (
+    ".localhost",
+    ".test",
+    ".local",
+    ".internal",
+    ".loegien.localhost",
+)
 
 
 class UserHouseholdContext(BaseModel):
@@ -21,6 +46,65 @@ class UserHouseholdContext(BaseModel):
 _jwks_clients: dict[str, jwt.PyJWKClient] = {}
 
 
+def _is_safe_test_url(url: str | None) -> bool:
+    """Validate that a URL points to a local or container test service, not remote production infrastructure."""
+    if not url:
+        return True
+    try:
+        parsed = urlparse(url)
+        hostname = (parsed.hostname or "").lower()
+        if not hostname:
+            return True
+        if hostname in SAFE_TEST_HOSTS:
+            return True
+        if any(hostname.endswith(suffix) for suffix in SAFE_TEST_SUFFIXES):
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def is_mock_auth_allowed() -> bool:
+    """
+    Ensure mock authentication and test token bypass are strictly constrained to explicit
+    test execution contexts and disabled when production/staging environments or non-localhost
+    production URLs are detected.
+    """
+    env = (settings.ENVIRONMENT or "").strip().lower()
+    # 1. Strictly forbid mock auth fallbacks in production or staging environments
+    if env in ("production", "prod", "staging", "stage"):
+        return False
+
+    # 2. Must be running in an explicit test runner or testing environment
+    is_explicit_test = bool(os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "true")
+    if not is_explicit_test and env != "testing":
+        return False
+
+    # 3. Guard against non-localhost production database or Keycloak URLs
+    if not _is_safe_test_url(getattr(settings, "DATABASE_URL", None)):
+        logger.error(
+            "Mock auth rejected: non-localhost/unsafe DATABASE_URL detected: %s",
+            settings.DATABASE_URL,
+        )
+        return False
+
+    if not _is_safe_test_url(getattr(settings, "KEYCLOAK_URL", None)):
+        logger.error(
+            "Mock auth rejected: non-localhost/unsafe KEYCLOAK_URL detected: %s",
+            settings.KEYCLOAK_URL,
+        )
+        return False
+
+    if not _is_safe_test_url(getattr(settings, "KEYCLOAK_PUBLIC_URL", None)):
+        logger.error(
+            "Mock auth rejected: non-localhost/unsafe KEYCLOAK_PUBLIC_URL detected: %s",
+            settings.KEYCLOAK_PUBLIC_URL,
+        )
+        return False
+
+    return True
+
+
 def get_jwks_client(jwks_url: str) -> jwt.PyJWKClient:
     if jwks_url not in _jwks_clients:
         _jwks_clients[jwks_url] = jwt.PyJWKClient(jwks_url)
@@ -28,8 +112,9 @@ def get_jwks_client(jwks_url: str) -> jwt.PyJWKClient:
 
 
 def decode_keycloak_token(token: str) -> dict:
-    if os.getenv("TESTING") == "true" or settings.ENVIRONMENT == "testing":
+    if is_mock_auth_allowed():
         try:
+            logger.debug("Decoding Keycloak token without signature verification in test context.")
             return jwt.decode(token, options={"verify_signature": False, "verify_aud": False, "verify_iss": False})
         except Exception as e:
             raise HTTPException(
@@ -65,7 +150,8 @@ async def get_current_user_and_household(request: Request) -> UserHouseholdConte
     """Dependency injector providing authenticated user and household context from Keycloak JWT."""
     auth_header = request.headers.get("Authorization")
     if not auth_header:
-        if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "true" or settings.ENVIRONMENT == "testing":
+        if is_mock_auth_allowed():
+            logger.warning("Mock auth fallback context injected for testing context. User: test-user, Household: 1")
             return UserHouseholdContext(user_id="test-user", household_id=1)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
