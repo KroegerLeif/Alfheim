@@ -17,6 +17,8 @@ describe('useTranslation Hook', () => {
     expect(result.current.language).toBe('de')
     expect(result.current.t('common.active')).toBe('Aktiv')
     expect(result.current.t('common.save')).toBe('Speichern')
+    expect(result.current.t('auth.error')).toBe('Authentifizierungsfehler')
+    expect(result.current.t('auth.securing_session')).toBe('Sitzung mit Keycloak wird gesichert...')
   })
 
   it('translates keys in English when language is set to en', () => {
@@ -28,6 +30,8 @@ describe('useTranslation Hook', () => {
     expect(result.current.language).toBe('en')
     expect(result.current.t('common.active')).toBe('Active')
     expect(result.current.t('common.save')).toBe('Save')
+    expect(result.current.t('auth.error')).toBe('Authentication Error')
+    expect(result.current.t('auth.securing_session')).toBe('Securing session with Keycloak...')
   })
 
   it('translates keys in Polish when language is set to pl', () => {
@@ -39,6 +43,8 @@ describe('useTranslation Hook', () => {
     expect(result.current.language).toBe('pl')
     expect(result.current.t('common.active')).toBe('Aktywny')
     expect(result.current.t('common.save')).toBe('Zapisz')
+    expect(result.current.t('auth.error')).toBe('Błąd uwierzytelniania')
+    expect(result.current.t('auth.securing_session')).toBe('Zabezpieczanie sesji z Keycloak...')
   })
 
   it('interpolates dynamic parameters into translated messages', () => {

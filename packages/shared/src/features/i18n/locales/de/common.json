@@ -37,6 +37,10 @@
     "expand_sidebar": "Seitenleiste erweitern",
     "collapse_sidebar": "Seitenleiste einklappen"
   },
+  "auth": {
+    "error": "Authentifizierungsfehler",
+    "securing_session": "Sitzung mit Keycloak wird gesichert..."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "profile": "Profil",

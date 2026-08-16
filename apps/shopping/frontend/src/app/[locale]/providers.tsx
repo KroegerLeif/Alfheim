@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider as SharedThemeProvider } from "@alfheim/shared";
+import { ThemeProvider as SharedThemeProvider, useTranslation } from "@alfheim/shared";
 import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
 import Keycloak from "keycloak-js";
 
@@ -26,6 +26,7 @@ export const ActiveListContext = createContext<{
 export const useActiveList = () => useContext(ActiveListContext);
 
 export default function Providers({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -127,7 +128,7 @@ export default function Providers({ children }: { children: ReactNode }) {
           <div className="h-12 w-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto text-xl font-bold">
             !
           </div>
-          <h2 className="text-lg font-bold">Authentication Error</h2>
+          <h2 className="text-lg font-bold">{t("auth.error")}</h2>
           <p className="text-sm text-muted-foreground">{authError}</p>
           <button
             onClick={() => window.location.reload()}
@@ -145,7 +146,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-          <p className="text-lg font-medium tracking-wide">Securing session with Keycloak...</p>
+          <p className="text-lg font-medium tracking-wide">{t("auth.securing_session")}</p>
         </div>
       </div>
     );
