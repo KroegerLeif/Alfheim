@@ -9,7 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
-* **`fix(ci): synchronize all uv workspace packages during ci lint and typecheck gates`**
+* **`chore(test): configure pnpm allowBuilds for msw and harmonize vitest scripts`**
+  - Configured `msw: true` under `allowBuilds` in `pnpm-workspace.yaml` for pnpm 11 security policy compatibility.
+  - Added `"test": "vitest run"` and `"test:watch": "vitest"` across `maintenance-frontend`, `dashboard-frontend`, and `chores-frontend` (`--passWithNoTests`).
+* **`test(workspace): modernize frontend testing stack and implement FDD test suites`**
+  - Integrated Vitest, React Testing Library, MSW v2, and `vitest-axe` across all workspace frontends.
+  - Added FDD component, service, and accessibility test suites for Maintenance (`DevicesView`) and Dashboard (`AddAppModal`).
+  - Added mock servers, handlers, and test setup harnesses across microfrontends.
   - Updated `.github/workflows/python-ci.yml` to run `uv sync --all-packages --all-groups` in root linting and type-checking jobs.
   - Added workspace synchronization step to `scripts/verify.sh` to ensure complete environment parity.
   - Updated `README.md` and `.ai/guidelines/new-app-scaffolding.md` documentation to specify `--all-packages --all-groups`.
