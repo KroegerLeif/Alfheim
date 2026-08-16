@@ -70,6 +70,25 @@
     "tier3_custom_link": "Custom Link",
     "tier3_open_link": "Open Link",
     "toast_bookmark_saved": "Saved bookmark: \"{name}\"",
-    "toast_bookmark_deleted": "Deleted link \"{name}\""
+    "toast_bookmark_deleted": "Deleted link \"{name}\"",
+    "contact": {
+      "categories": {
+        "person": "Person",
+        "business": "Business",
+        "important": "Important",
+        "call": "Call / Phone",
+        "police": "Police / Safety",
+        "doctor": "Medical / Doctor",
+        "handyman": "Handyman / Service"
+      }
+    },
+    "household": {
+      "roles": {
+        "admin": "ADMIN",
+        "member": "MEMBER",
+        "guest": "GUEST",
+        "owner": "OWNER"
+      }
+    }
   }
 }

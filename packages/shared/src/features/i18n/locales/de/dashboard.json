@@ -70,6 +70,25 @@
     "tier3_custom_link": "Benutzerdefinierter Link",
     "tier3_open_link": "Link öffnen",
     "toast_bookmark_saved": "Lesezeichen gespeichert: \"{name}\"",
-    "toast_bookmark_deleted": "Link gelöscht \"{name}\""
+    "toast_bookmark_deleted": "Link gelöscht \"{name}\"",
+    "contact": {
+      "categories": {
+        "person": "Person",
+        "business": "Unternehmen",
+        "important": "Wichtig",
+        "call": "Anruf / Telefon",
+        "police": "Polizei / Sicherheit",
+        "doctor": "Arzt / Medizin",
+        "handyman": "Handwerker / Service"
+      }
+    },
+    "household": {
+      "roles": {
+        "admin": "ADMIN",
+        "member": "MITGLIED",
+        "guest": "GAST",
+        "owner": "EIGENTÜMER"
+      }
+    }
   }
 }

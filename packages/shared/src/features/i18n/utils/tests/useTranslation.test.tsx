@@ -19,6 +19,8 @@ describe('useTranslation Hook', () => {
     expect(result.current.t('common.save')).toBe('Speichern')
     expect(result.current.t('auth.error')).toBe('Authentifizierungsfehler')
     expect(result.current.t('auth.securing_session')).toBe('Sitzung mit Keycloak wird gesichert...')
+    expect(result.current.t('dashboard.contact.categories.business')).toBe('Unternehmen')
+    expect(result.current.t('dashboard.household.roles.member')).toBe('MITGLIED')
   })
 
   it('translates keys in English when language is set to en', () => {
@@ -32,6 +34,8 @@ describe('useTranslation Hook', () => {
     expect(result.current.t('common.save')).toBe('Save')
     expect(result.current.t('auth.error')).toBe('Authentication Error')
     expect(result.current.t('auth.securing_session')).toBe('Securing session with Keycloak...')
+    expect(result.current.t('dashboard.contact.categories.business')).toBe('Business')
+    expect(result.current.t('dashboard.household.roles.member')).toBe('MEMBER')
   })
 
   it('translates keys in Polish when language is set to pl', () => {
@@ -45,6 +49,8 @@ describe('useTranslation Hook', () => {
     expect(result.current.t('common.save')).toBe('Zapisz')
     expect(result.current.t('auth.error')).toBe('Błąd uwierzytelniania')
     expect(result.current.t('auth.securing_session')).toBe('Zabezpieczanie sesji z Keycloak...')
+    expect(result.current.t('dashboard.contact.categories.business')).toBe('Firma')
+    expect(result.current.t('dashboard.household.roles.member')).toBe('CZŁONEK')
   })
 
   it('interpolates dynamic parameters into translated messages', () => {
