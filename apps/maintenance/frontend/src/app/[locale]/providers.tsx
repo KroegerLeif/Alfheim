@@ -5,8 +5,10 @@ import { ReactNode, useState, useEffect, useCallback, useRef } from "react";
 import Keycloak from "keycloak-js";
 import { LayoutProvider } from "@/shared/layout/LayoutContext";
 import { AuthContext, UserProfile } from "@/core/auth/AuthContext";
+import { useTranslation } from "@alfheim/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -156,7 +158,7 @@ export default function Providers({ children }: { children: ReactNode }) {
           <div className="h-12 w-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto text-xl font-bold">
             !
           </div>
-          <h2 className="text-lg font-bold">Authentication Error</h2>
+          <h2 className="text-lg font-bold">{t("auth.error")}</h2>
           <p className="text-sm text-[var(--text-muted)]">{authError}</p>
           <button
             onClick={() => window.location.reload()}
@@ -174,7 +176,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="text-center space-y-4">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent mx-auto"></div>
-          <p className="text-lg font-medium tracking-wide">Securing session with Keycloak...</p>
+          <p className="text-lg font-medium tracking-wide">{t("auth.securing_session")}</p>
         </div>
       </div>
     );

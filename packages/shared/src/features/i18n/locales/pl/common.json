@@ -37,6 +37,10 @@
     "expand_sidebar": "Rozwiń panel boczny",
     "collapse_sidebar": "Zwiń panel boczny"
   },
+  "auth": {
+    "error": "Błąd uwierzytelniania",
+    "securing_session": "Zabezpieczanie sesji z Keycloak..."
+  },
   "nav": {
     "dashboard": "Pulpit",
     "profile": "Profil",
