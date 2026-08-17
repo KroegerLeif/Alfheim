@@ -25,7 +25,7 @@ export function HistoryView() {
   if (isError) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-sm text-red-500">Failed to load service history. Please try again.</p>
+        <p className="text-sm text-red-500">{t("history.load_error")}</p>
       </div>
     );
   }
