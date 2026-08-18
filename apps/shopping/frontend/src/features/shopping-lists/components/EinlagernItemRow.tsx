@@ -102,12 +102,16 @@ export function EinlagernItemRow({
             <button
               onClick={confirmEdit}
               className="h-8 px-2.5 rounded bg-emerald-500 text-white font-bold text-xs cursor-pointer flex items-center justify-center shrink-0"
+              title={t("confirmEdit")}
+              aria-label={t("confirmEdit")}
             >
               <Check className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setIsEditing(false)}
               className="h-8 px-2.5 rounded bg-red-500 text-white font-bold text-xs cursor-pointer flex items-center justify-center shrink-0"
+              title={t("cancelEdit")}
+              aria-label={t("cancelEdit")}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -196,6 +200,8 @@ export function EinlagernItemRow({
             <button
               onClick={() => setIsSaving(false)}
               className="h-8 px-3 rounded-lg flex items-center justify-center font-heading text-xs font-black uppercase tracking-wider text-white bg-red-600 shrink-0 shadow-sm cursor-pointer"
+              title={t("cancelSave")}
+              aria-label={t("cancelSave")}
             >
               <X className="h-4 w-4" />
             </button>

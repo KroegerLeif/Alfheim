@@ -9,6 +9,7 @@ import { render } from '@testing-library/react'
 import { DashboardView } from '../DashboardView'
 import { choreKeys } from '../../services/choresService'
 import { mockTemplates, mockInstances, mockSummary } from '../../../../tests/mocks/handlers'
+import { formatDate } from '@/core/utils'
 
 describe('DashboardView Component', () => {
   beforeEach(() => {
@@ -45,7 +46,7 @@ describe('DashboardView Component', () => {
     const hhId = 'hh-1'
 
     queryClient.setQueryData(choreKeys.templates(hhId), mockTemplates)
-    queryClient.setQueryData(choreKeys.today(hhId, '2026-08-16'), mockInstances)
+    queryClient.setQueryData(choreKeys.today(hhId, formatDate(new Date())), mockInstances)
     queryClient.setQueryData(choreKeys.summary(hhId), mockSummary)
     queryClient.setQueryData(['integrations', 'shopping', hhId], { pendingCount: 3, totalLists: 2 })
     queryClient.setQueryData(['integrations', 'maintenance', hhId], { dueCount: 2, totalDevices: 5 })

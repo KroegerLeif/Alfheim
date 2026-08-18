@@ -83,7 +83,11 @@
     "defaultTag": "(Default)",
     "editItem": "Edit Item",
     "saveToCatalog": "Save to Catalog",
-    "skipItem": "Skip Item"
+    "skipItem": "Skip Item",
+    "confirmEdit": "Confirm edit",
+    "cancelEdit": "Cancel edit",
+    "cancelSave": "Cancel save",
+    "close": "Close"
   },
   "Error": {
     "nameRequired": "Item name is required",

@@ -83,7 +83,11 @@
     "defaultTag": "(Domyślne)",
     "editItem": "Edytuj artykuł",
     "saveToCatalog": "Zapisz w katalogu",
-    "skipItem": "Pomiń artykuł"
+    "skipItem": "Pomiń artykuł",
+    "confirmEdit": "Potwierdź zmianę",
+    "cancelEdit": "Anuluj edycję",
+    "cancelSave": "Anuluj zapisywanie",
+    "close": "Zamknij"
   },
   "Error": {
     "nameRequired": "Nazwa artykułu jest wymagana",

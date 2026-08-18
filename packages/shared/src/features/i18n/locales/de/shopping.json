@@ -83,7 +83,11 @@
     "defaultTag": "(Standard)",
     "editItem": "Artikel bearbeiten",
     "saveToCatalog": "Im Katalog speichern",
-    "skipItem": "Artikel überspringen"
+    "skipItem": "Artikel überspringen",
+    "confirmEdit": "Änderung bestätigen",
+    "cancelEdit": "Bearbeitung abbrechen",
+    "cancelSave": "Speichern abbrechen",
+    "close": "Schließen"
   },
   "Error": {
     "nameRequired": "Name ist erforderlich",

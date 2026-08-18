@@ -135,6 +135,8 @@ export function EinlagernModal({ listId, initialItems = [], onClose }: Einlagern
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 transition-colors"
+              title={t("close")}
+              aria-label={t("close")}
             >
               <X className="h-4 w-4" />
             </button>
