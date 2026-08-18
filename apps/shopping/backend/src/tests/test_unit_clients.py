@@ -11,7 +11,7 @@ async def test_pantry_client_fetch_low_stock_success():
     client = PantryClient()
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = [{"product": {"id": "123", "name": "Milk"}}]
+    mock_response.json.return_value = [{"product": {"id": "00000000-0000-0000-0000-000000000123", "name": "Milk"}}]
 
     with patch("httpx.AsyncClient.get", return_value=mock_response):
         items = await client.fetch_low_stock_items(token="Bearer token", household_id=None)
