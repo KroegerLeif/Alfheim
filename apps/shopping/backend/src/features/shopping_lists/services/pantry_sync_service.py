@@ -66,6 +66,13 @@ class PantrySyncService:
             deficit = min_stock - current_stock
             quantity_to_buy = max(1.0, deficit)
 
+            product_uuid = None
+            if product_id:
+                try:
+                    product_uuid = uuid.UUID(str(product_id))
+                except (ValueError, TypeError):
+                    logger.warning("Invalid product id from pantry: %r", product_id)
+
             db_item = ShoppingItem(
                 list_id=list_id,
                 name=name,
@@ -76,7 +83,7 @@ class PantrySyncService:
                 is_auto_generated=True,
                 is_completed=False,
                 is_synced=False,
-                product_id=uuid.UUID(product_id) if product_id else None,
+                product_id=product_uuid,
             )
             session.add(db_item)
             imported_items.append(db_item)
