@@ -58,11 +58,14 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
   - Multi-tenant boundary tests must assert household isolation (`home_id` / `household_id`) and zero-trust auth token verification.
 - **Mandatory Commands**:
   ```bash
-  # Run per backend directory
-  (cd apps/pantry/backend && uv run pytest --cov --cov-report=term-missing)
-  (cd apps/shopping/backend && uv run pytest --cov --cov-report=term-missing)
-  (cd apps/maintenance/backend && uv run pytest --cov --cov-report=term-missing)
-  (cd apps/chores/backend && uv run pytest --cov --cov-report=term-missing)
+  # Standalone service execution snippet with PYTHONPATH set for module resolution
+  PYTHONPATH=. uv run pytest --cov
+
+  # Per-service execution matrix matching ./scripts/verify.sh
+  (cd apps/pantry/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
+  (cd apps/shopping/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
+  (cd apps/maintenance/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
+  (cd apps/chores/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
   ```
 
 ---
@@ -74,7 +77,7 @@ The central dashboard backend control plane is located in [`core/dashboard/backe
 ### A. Testing & Race Detection
 - **Mandatory Command**:
   ```bash
-  cd core/dashboard/backend && go test -race -cover ./...
+  cd core/dashboard/backend && go test -v -race -cover ./...
   ```
 - **Requirements**:
   - All tests must pass with the Go race detector (`-race`) enabled without data race violations.
