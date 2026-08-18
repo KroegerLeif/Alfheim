@@ -52,9 +52,9 @@ apps/<app-name>/
         ├── features/                  # Feature-Driven UI Modules (FDD)
         │   └── <feature_name>/        # Domain components, hooks & state
         │       ├── components/        # Feature UI components
-        │       ├── api/               # API mutation & query hooks (React Query + Ky)
+│       │       ├── api/               # API mutation & query hooks (React Query + fetch wrappers)
         │       └── types/             # Domain TypeScript types & Zod schemas
-        ├── lib/                       # HTTP clients & utilities (ky instances, cn helper)
+│       ├── lib/                       # HTTP clients & utilities (typed fetch instances, cn helper)
         └── components/
             └── shared/                # Cross-feature UI components
 ```
@@ -87,7 +87,7 @@ When initializing a new app, the following files **MUST** be explicitly created 
 * **`frontend/next.config.ts`**: Configured with `basePath: '/<app-name>'`, standalone build output, and `@alfheim/shared` transpiling.
 * **`frontend/src/proxy.ts`**: Next.js 16 proxy file for localized path routing.
 * **`frontend/src/i18n.ts`**: Merges global locales from `@alfheim/shared` via `getSharedMessages(locale)`.
-* **`frontend/src/lib/api.ts`**: Typed `ky` HTTP client configured for API requests.
+* **`frontend/src/lib/api.ts`**: Centralized typed API client wrapping native `fetch` configured for API requests.
 
 ---
 

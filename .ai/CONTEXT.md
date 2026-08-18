@@ -19,6 +19,9 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Updated `.github/workflows/python-ci.yml` to run `uv sync --all-packages --all-groups` in root linting and type-checking jobs.
   - Added workspace synchronization step to `scripts/verify.sh` to ensure complete environment parity.
   - Updated `README.md` and `.ai/guidelines/new-app-scaffolding.md` documentation to specify `--all-packages --all-groups`.
+* **`docs(ai): harmonize stack guidelines with monorepo reality (#129)`**
+  - Updated `.ai/stacks/nextjs_tailwind.md` and `.ai/blueprints/new_app.md` to standardize on native `fetch` with typed API wrappers (removing deprecated `ky` client references).
+  - Harmonized quality gate documentation across `.ai/guidelines/quality-gates.md`, `.ai/INDEX.md`, and `.ai/CONTEXT.md` to align with `./scripts/verify.sh` and workspace `pnpm` scripts (`pnpm check-types` / `tsc`).
 * **`docs(ai): implement monorepo quality gate guidelines and local verification runner`**
   - Created `.ai/guidelines/quality-gates.md` documenting mandatory multi-stack quality gates (Python, Go, Frontend, Security, and MCP).
   - Created `scripts/verify.sh` local pre-flight runner supporting `--all`, `--python`, `--go`, `--frontend`, and `--security` checks.

@@ -8,7 +8,7 @@
 
 * **Framework**: Next.js 14+ (App Router)
 * **Styling**: Tailwind CSS v4
-* **Data Fetching & State**: TanStack Query (React Query v5) + `ky` HTTP Client
+* **Data Fetching & State**: TanStack Query (React Query v5) + Native `fetch` with Typed API Client Wrappers
 * **Type Safety**: TypeScript 5.x + Zod schemas
 
 ---
@@ -29,11 +29,11 @@ src/
 │       │   ├── item-card.tsx
 │       │   └── item-list.tsx
 │       ├── hooks/            # TanStack Query custom hooks (use-pantry-items.ts)
-│       ├── api/              # Feature-specific API calls using shared ky client
+│       ├── api/              # Feature-specific API calls using shared fetch client
 │       ├── types/            # TypeScript interfaces & Zod schemas for domain
 │       └── index.ts          # Public interface barrel file for feature
 └── shared/                   # Domain-agnostic primitives & global utilities
-    ├── api.ts                # Centralized ky HTTP client instance
+    ├── api.ts                # Centralized typed fetch client instance
     ├── components/           # Generic design system components (Button, Input, Modal)
     ├── hooks/                # Generic utility hooks (use-debounce.ts)
     └── lib/                  # Utility functions (cn, formatters)
@@ -41,23 +41,41 @@ src/
 
 ---
 
-## 3. Data Fetching Rules: TanStack Query & `ky`
+## 3. Data Fetching Rules: TanStack Query & Native `fetch`
 
-### 1. Centralized HTTP Client (`src/shared/api.ts`)
-* All external HTTP communication MUST go through the configured `ky` instance in `src/shared/api.ts`.
-* Direct `fetch()` calls inside components or feature files are strictly prohibited.
+### 1. Centralized Typed API Client (`src/shared/api.ts` or `src/core/api.ts`)
+* All external HTTP communication MUST go through centralized API client wrappers wrapping native `fetch()`.
+* Direct, unconfigured `fetch()` calls inside components or feature files are prohibited; always use the centralized API client wrapper.
 
 ```typescript
-// src/shared/api.ts
-import ky from 'ky';
+// src/shared/api.ts or src/core/api/client.ts
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-export const api = ky.create({
-  prefixUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
-  timeout: 10000,
-  headers: {
+export async function apiClient<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('alfheim_access_token') : null;
+  const activeHhId = typeof window !== 'undefined' ? localStorage.getItem('alfheim_active_household_id') : null;
+
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
-  },
-});
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(activeHhId ? { 'X-Household-ID': activeHhId } : {}),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
 ```
 
 ### 2. TanStack Query Hooks
@@ -91,8 +109,11 @@ To ensure complete dark mode compatibility and maintainable design systems, AI a
 Verify build and type correctness before completing any Next.js task:
 
 ```bash
-# Type check TypeScript files without emitting output
-pnpm check-types # or npx tsc --noEmit
+# Workspace frontend verification (type checking & tests)
+./scripts/verify.sh --frontend
+
+# Type check TypeScript files across frontend packages
+pnpm check-types # or pnpm --recursive exec tsc --noEmit
 
 # Next.js build verification
 pnpm build
