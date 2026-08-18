@@ -35,4 +35,4 @@ Refer to the stack guide matching the active codebase's language/framework:
 
 ### 5. Quality Gates & Verification
 * **Mandatory Pre-Commit Verification**: Follow [guidelines/quality-gates.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/guidelines/quality-gates.md).
-* **Local Verification Runner**: Always run [`./scripts/verify.sh --all`](file:///Users/leifkroeger/Dev/loeger-os/scripts/verify.sh) before proposing diffs, committing, or pushing code.
+* **Local Verification Runner**: Always run [`./scripts/verify.sh`](file:///Users/leifkroeger/Dev/loeger-os/scripts/verify.sh) (or specific flags like `./scripts/verify.sh --frontend`) before proposing diffs, committing, or pushing code.

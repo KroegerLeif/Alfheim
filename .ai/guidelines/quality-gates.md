@@ -95,6 +95,8 @@ Managed via `pnpm` workspace across `apps/*/frontend`, `core/dashboard/frontend`
 ### A. TypeScript Type Safety
 - **Mandatory Command**:
   ```bash
+  pnpm check-types     # Runs tsc --noEmit across workspace packages
+  # or
   pnpm -r exec tsc --noEmit
   ```
 - **Rules**:
@@ -105,7 +107,7 @@ Managed via `pnpm` workspace across `apps/*/frontend`, `core/dashboard/frontend`
 ### B. Vitest Unit & Integration Suites
 - **Mandatory Command**:
   ```bash
-  pnpm -r test
+  pnpm -r test         # or pnpm --recursive test
   ```
 - **Requirements**:
   - Microfrontend components and services must maintain passing Vitest test suites with mocking via `@testing-library/react`.
