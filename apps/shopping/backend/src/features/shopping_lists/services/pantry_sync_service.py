@@ -132,10 +132,13 @@ class PantrySyncService:
         client = pantry_client or PantryClient()
         sync_result = await client.bulk_add_items(items=bulk_payload, token=token, household_id=home_id)
 
-        success_map = {
-            uuid.UUID(x["shopping_item_id"]): uuid.UUID(x["product_id"])
-            for x in sync_result.get("successful_items", [])
-        }
+        success_map: dict[uuid.UUID, uuid.UUID] = {}
+        for x in sync_result.get("successful_items", []):
+            try:
+                success_map[uuid.UUID(x["shopping_item_id"])] = uuid.UUID(x["product_id"])
+            except (KeyError, ValueError, TypeError) as exc:
+                logger.warning("Invalid successful_items entry from pantry: %r (%s)", x, exc)
+
         unrecognized_list = sync_result.get("unrecognized_items", [])
 
         # Process updates in Shopping DB
