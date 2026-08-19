@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
 from src.core.dependencies import UserHomeContext, get_current_user_and_home
+from src.features.inventory.alert_service import AlertService
+from src.features.inventory.ledger_service import LedgerService
 from src.features.inventory.schemas import (
     BulkAddInventoryPayload,
     BulkAddResponse,
@@ -52,7 +54,7 @@ async def get_ledger_history(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Retrieve paginated inventory transaction log history for the current home space."""
-    return await InventoryService.get_ledger_history(
+    return await LedgerService.get_ledger_history(
         session=session,
         home_id=context.home_id,
         product_id=product_id,
@@ -92,7 +94,7 @@ async def get_low_stock_items(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Retrieve products that are below their minimum stock thresholds for the current home space."""
-    return await InventoryService.get_low_stock_items(
+    return await AlertService.get_low_stock_items(
         session=session,
         home_id=context.home_id,
     )
@@ -108,7 +110,7 @@ async def get_expiration_summary(
     context: UserHomeContext = Depends(get_current_user_and_home),
 ):
     """Retrieve summary of inventory items categorized by their expiration status (Expired, Valid, Untracked)."""
-    return await InventoryService.get_expiration_summary(
+    return await AlertService.get_expiration_summary(
         session=session,
         home_id=context.home_id,
     )

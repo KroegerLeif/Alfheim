@@ -3,6 +3,7 @@ from datetime import date
 
 from src.core.database import async_session_factory
 from src.core.dependencies import MOCK_HOME_ID
+from src.features.inventory.alert_service import AlertService
 from src.features.inventory.exceptions import InventoryError
 from src.features.inventory.schemas import InventoryTransactionCreate
 from src.features.inventory.service import InventoryService
@@ -112,7 +113,7 @@ async def get_low_stock_alerts() -> str:
     """List all products currently below their minimum stock thresholds."""
     try:
         async with async_session_factory() as session:
-            low_stock_items = await InventoryService.get_low_stock_items(
+            low_stock_items = await AlertService.get_low_stock_items(
                 session=session,
                 home_id=MOCK_HOME_ID,
             )
@@ -139,7 +140,7 @@ async def get_inventory_expiration_summary() -> str:
     """Summarize inventory items grouped by their expiration status (Expired, Valid, Untracked)."""
     try:
         async with async_session_factory() as session:
-            summary = await InventoryService.get_expiration_summary(
+            summary = await AlertService.get_expiration_summary(
                 session=session,
                 home_id=MOCK_HOME_ID,
             )

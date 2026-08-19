@@ -1,11 +1,12 @@
 import uuid
 from collections.abc import Sequence
-from datetime import UTC
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.features.inventory.alert_service import AlertService
 from src.features.inventory.exceptions import IncompatibleUnitsError, InsufficientStockError, InventoryError
+from src.features.inventory.ledger_service import LedgerService
 from src.features.inventory.models import InventoryLedger, InventoryState, InventoryTransactionType
 from src.features.inventory.schemas import (
     BulkAddInventoryPayload,
@@ -19,7 +20,7 @@ from src.features.products.models import Product
 
 
 class InventoryService:
-    """Service class encapsulating async database operations for Inventory Tracking."""
+    """Service class encapsulating async database operations for core Inventory Stock Mutation."""
 
     @staticmethod
     async def create_transaction(
@@ -164,31 +165,6 @@ class InventoryService:
         return ledger_entry
 
     @staticmethod
-    async def get_ledger_history(
-        session: AsyncSession,
-        home_id: uuid.UUID,
-        product_id: uuid.UUID | None = None,
-        location_id: uuid.UUID | None = None,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[InventoryLedger]:
-        """Retrieve historical transaction log entries, ensuring home space boundaries."""
-        statement = (
-            select(InventoryLedger)
-            .join(Location, col(Location.id) == InventoryLedger.location_id)
-            .where(Location.home_id == home_id)
-        )
-
-        if product_id:
-            statement = statement.where(InventoryLedger.product_id == product_id)
-        if location_id:
-            statement = statement.where(InventoryLedger.location_id == location_id)
-
-        statement = statement.order_by(col(InventoryLedger.created_at).desc()).offset(offset).limit(limit)
-        result = await session.exec(statement)
-        return result.all()
-
-    @staticmethod
     async def get_current_state(
         session: AsyncSession,
         home_id: uuid.UUID,
@@ -211,91 +187,45 @@ class InventoryService:
         return result.all()
 
     @staticmethod
+    async def get_ledger_history(
+        session: AsyncSession,
+        home_id: uuid.UUID,
+        product_id: uuid.UUID | None = None,
+        location_id: uuid.UUID | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Sequence[InventoryLedger]:
+        """Retrieve historical transaction log entries (delegates to LedgerService)."""
+        return await LedgerService.get_ledger_history(
+            session=session,
+            home_id=home_id,
+            product_id=product_id,
+            location_id=location_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    @staticmethod
     async def get_low_stock_items(
         session: AsyncSession,
         home_id: uuid.UUID,
     ) -> list[dict]:
-        """Evaluate current cached InventoryState against minimum_stock to find low-stock products.
-
-        Uses a LEFT OUTER JOIN to include products with zero stock that have a minimum_stock > 0.
-        """
-        from sqlmodel import func
-
-        # Subquery to aggregate total stock per product for the home
-        subq = (
-            select(InventoryState.product_id, func.sum(InventoryState.quantity).label("total_quantity"))
-            .join(Location, col(InventoryState.location_id) == Location.id)
-            .where(Location.home_id == home_id)
-            .group_by(col(InventoryState.product_id))
-            .subquery()
+        """Evaluate current cached InventoryState against minimum_stock (delegates to AlertService)."""
+        return await AlertService.get_low_stock_items(
+            session=session,
+            home_id=home_id,
         )
-
-        # Query products where aggregated quantity is less than minimum_stock
-        stmt = (
-            select(Product, func.coalesce(subq.c.total_quantity, 0.0).label("current_stock"))
-            .outerjoin(subq, col(Product.id) == subq.c.product_id)
-            .where(
-                or_(Product.is_global, Product.home_id == home_id),
-                func.coalesce(subq.c.total_quantity, 0.0) < Product.minimum_stock,
-            )
-        )
-
-        result = await session.exec(stmt)
-        low_stock = []
-        for product, current_stock in result:
-            low_stock.append(
-                {
-                    "product": product,
-                    "current_stock": current_stock,
-                }
-            )
-        return low_stock
 
     @staticmethod
     async def get_expiration_summary(
         session: AsyncSession,
         home_id: uuid.UUID,
     ) -> dict:
-        """Categorize current cached inventory stock into 'Valid', 'Expired', and 'Untracked'.
-
-        Leverages sentinel date '9999-12-31' for infinite shelf-life tracking,
-        optimizing index usage on expiration_date.
-        """
-        from datetime import datetime
-
-        today = datetime.now(UTC).date()
-
-        # Base statement to select inventory state within target home locations
-        base_stmt = (
-            select(InventoryState)
-            .join(Location, col(InventoryState.location_id) == Location.id)
-            .where(Location.home_id == home_id)
+        """Categorize current cached inventory stock into expiration statuses (delegates to AlertService)."""
+        return await AlertService.get_expiration_summary(
+            session=session,
+            home_id=home_id,
         )
-
-        # 1. Expired: expiration_date is not NULL and <= today
-        expired_stmt = base_stmt.where(
-            col(InventoryState.expiration_date).is_not(None), col(InventoryState.expiration_date) <= today
-        )
-        expired_res = await session.exec(expired_stmt)
-        expired = expired_res.all()
-
-        # 2. Valid: expiration_date is not NULL and > today (includes the sentinel 9999-12-31)
-        valid_stmt = base_stmt.where(
-            col(InventoryState.expiration_date).is_not(None), col(InventoryState.expiration_date) > today
-        )
-        valid_res = await session.exec(valid_stmt)
-        valid = valid_res.all()
-
-        # 3. Untracked: expiration_date is NULL
-        untracked_stmt = base_stmt.where(col(InventoryState.expiration_date).is_(None))
-        untracked_res = await session.exec(untracked_stmt)
-        untracked = untracked_res.all()
-
-        return {
-            "expired": expired,
-            "valid": valid,
-            "untracked": untracked,
-        }
 
     @staticmethod
     async def bulk_add_items(
@@ -311,9 +241,6 @@ class InventoryService:
         standardized translatable i18n reasons.
         """
         from sqlmodel import func
-        from src.features.inventory.schemas import (
-            BulkAddResponse,
-        )
         from src.features.products.service import ProductService
 
         # 1. Fetch system fallback location 'Backlog' for this home space
