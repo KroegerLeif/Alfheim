@@ -1,3 +1,5 @@
+from src.features.inventory.alert_service import AlertService
+from src.features.inventory.ledger_service import LedgerService
 from src.features.inventory.models import InventoryLedger, InventoryState, InventoryTransactionType
 from src.features.inventory.router import router
 from src.features.inventory.schemas import (
@@ -18,6 +20,8 @@ __all__ = [
     "InventoryStateRead",
     "InventoryStateReadWithRelations",
     "InventoryService",
+    "LedgerService",
+    "AlertService",
     "router",
     "seed_default_inventory",
 ]

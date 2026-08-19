@@ -62,7 +62,9 @@ async def test_pantry_sync_service_auto_import_low_stock_merges_and_quantities(d
     await db_session.commit()
     await db_session.refresh(l1)
 
-    active_barcode = ShoppingItem(list_id=l1.id, name="Apple", barcode="12345", quantity=1.0, unit="piece", is_completed=False)
+    active_barcode = ShoppingItem(
+        list_id=l1.id, name="Apple", barcode="12345", quantity=1.0, unit="piece", is_completed=False
+    )
     active_name = ShoppingItem(list_id=l1.id, name="Banana", quantity=1.0, unit="piece", is_completed=False)
     db_session.add(active_barcode)
     db_session.add(active_name)
@@ -125,8 +127,12 @@ async def test_pantry_sync_service_sync_to_pantry_updates_success_and_unrecogniz
     await db_session.commit()
     await db_session.refresh(l1)
 
-    synced_item = ShoppingItem(list_id=l1.id, name="Milk", quantity=1.0, unit="piece", is_completed=True, is_synced=False)
-    unsynced_item = ShoppingItem(list_id=l1.id, name="Butter", quantity=2.0, unit="pack", is_completed=True, is_synced=False)
+    synced_item = ShoppingItem(
+        list_id=l1.id, name="Milk", quantity=1.0, unit="piece", is_completed=True, is_synced=False
+    )
+    unsynced_item = ShoppingItem(
+        list_id=l1.id, name="Butter", quantity=2.0, unit="pack", is_completed=True, is_synced=False
+    )
     db_session.add(synced_item)
     db_session.add(unsynced_item)
     await db_session.commit()
