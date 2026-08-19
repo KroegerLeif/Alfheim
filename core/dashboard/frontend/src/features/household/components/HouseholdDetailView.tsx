@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useTranslation, AddressAutocomplete } from '@alfheim/shared';
-import { useAuth } from '@/core/providers';
+import { useTranslation } from '@alfheim/shared';
 
 // Subcomponents
+import { HouseholdHeader } from './HouseholdHeader';
 import { MapAddressBanner } from './MapAddressBanner';
-import { MemberGrid } from './MemberGrid';
+import { MemberTable } from './MemberTable';
+import { AddressManagementModal } from './AddressManagementModal';
 import { InviteModal } from './InviteModal';
+import { HouseholdDetailSkeleton } from './HouseholdDetailSkeleton';
+
 import {
   ContactCards,
   CategoryManager,
@@ -24,7 +27,6 @@ import {
   useDeleteCategory,
 } from '@/features/contact';
 
-import { HouseholdDetailSkeleton } from './HouseholdDetailSkeleton';
 import {
   useHousehold,
   useCreateInvite,
@@ -40,12 +42,11 @@ interface HouseholdDetailViewProps {
 }
 
 /**
- * Main household view component.
- * Orchestrates layout and aggregates core states, modals, and mutations.
+ * Main household detail view orchestrator component.
+ * Aggregates state, queries, and mutations, delegating rendering to SRP sub-components.
  */
 export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
   const { t } = useTranslation();
-  const { user: currentUser } = useAuth();
 
   // Queries
   const { data: household, isLoading: isHhLoading } = useHousehold(householdId);
@@ -229,34 +230,12 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
 
   return (
     <>
-      {/* Title & Invite action banner */}
-      <div className="col-span-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
-        <div className="space-y-1">
-          <Link
-            href="/household"
-            className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--primary-main)] transition-colors mb-1 self-start"
-          >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
-            <span>{t('household.back_to_list')}</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-[var(--text-main)]">{household.name}</h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-[var(--primary-main)]/10 text-[var(--primary-main)] border border-[var(--border-accent)]">
-              {household.role || 'MEMBER'}
-            </span>
-          </div>
-        </div>
-
-        {isOwnerOrAdmin && (
-          <button
-            onClick={handleGenerateInvite}
-            className="px-3.5 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs flex items-center gap-1.5 hover:bg-[var(--primary-hover)] transition-all cursor-pointer shadow-md"
-          >
-            <span className="material-symbols-outlined text-sm">person_add</span>
-            <span>{t('household.invite_member')}</span>
-          </button>
-        )}
-      </div>
+      {/* Title & Invite action banner header */}
+      <HouseholdHeader
+        household={household}
+        isOwnerOrAdmin={isOwnerOrAdmin}
+        onGenerateInvite={handleGenerateInvite}
+      />
 
       {/* Map & Address Info section */}
       <MapAddressBanner
@@ -267,8 +246,8 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
 
       {/* Members roster and Contacts details */}
       <div className="col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-2">
-        {/* Members registry */}
-        <MemberGrid
+        {/* Members registry table */}
+        <MemberTable
           household={household}
           isOwnerOrAdmin={isOwnerOrAdmin}
           onRoleChange={handleRoleChange}
@@ -337,26 +316,13 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
       {/* Invites details modal */}
       {activeInvite && <InviteModal invite={activeInvite} onClose={() => setActiveInvite(null)} />}
 
-      {/* Geocoding address update search modal */}
-      {isAddressModalOpen && (
-        <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-              <h3 className="text-base font-bold text-[var(--text-main)]">{t('household.address_search')}</h3>
-              <button
-                onClick={() => setIsAddressModalOpen(false)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <AddressAutocomplete placeholder={t('household.address_search')} onSelect={handleAddressSelect} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Geocoding address update modal */}
+      <AddressManagementModal
+        isOpen={isAddressModalOpen}
+        household={household}
+        onClose={() => setIsAddressModalOpen(false)}
+        onAddressSelect={handleAddressSelect}
+      />
 
       {/* Category CRUD Modal */}
       {isCategoryModalOpen && (
