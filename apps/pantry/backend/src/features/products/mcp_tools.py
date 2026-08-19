@@ -1,14 +1,6 @@
-import uuid
-
 from src.core.database import async_session_factory
 from src.core.dependencies import MOCK_HOME_ID
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
-from src.features.products.schemas import (
-    ProductCreate,
-    ProductNutritionCreate,
-    ProductNutritionUpdate,
-    ProductUpdate,
-)
 from src.features.products.service import ProductService
 from src.mcp.server import mcp
 
@@ -34,14 +26,13 @@ async def list_products(
     - offset: Number of records to skip (default 0).
     """
     try:
-        cat_uuid = uuid.UUID(category_id) if category_id else None
         async with async_session_factory() as session:
             products = await ProductService.list_products(
                 session=session,
                 home_id=MOCK_HOME_ID,
                 name=name,
                 barcode=barcode,
-                category_id=cat_uuid,
+                category_id=category_id,
                 limit=limit,
                 offset=offset,
             )
@@ -75,11 +66,10 @@ async def get_product(product_id: str) -> str:
     - product_id: UUID string of the product blueprint.
     """
     try:
-        prod_uuid = uuid.UUID(product_id)
         async with async_session_factory() as session:
             prod = await ProductService.get_product(
                 session=session,
-                product_id=prod_uuid,
+                product_id=product_id,
                 home_id=MOCK_HOME_ID,
             )
 
@@ -175,9 +165,17 @@ async def create_product(
     - salt: Salt grams per 100g/ml.
     """
     try:
-        nutrition_payload = None
-        if any(v is not None for v in [calories, fat, saturated_fat, carbohydrates, sugars, protein, salt]):
-            nutrition_payload = ProductNutritionCreate(
+        async with async_session_factory() as session:
+            prod = await ProductService.create_product(
+                session=session,
+                home_id=MOCK_HOME_ID,
+                name=name,
+                base_unit=base_unit,
+                brand=brand,
+                barcode=barcode,
+                category_id=category_id,
+                image_url=image_url,
+                minimum_stock=minimum_stock,
                 calories=calories,
                 fat=fat,
                 saturated_fat=saturated_fat,
@@ -185,25 +183,6 @@ async def create_product(
                 sugars=sugars,
                 protein=protein,
                 salt=salt,
-            )
-
-        payload = ProductCreate(
-            name=name,
-            base_unit=base_unit,
-            brand=brand,
-            barcode=barcode,
-            category_id=uuid.UUID(category_id) if category_id else None,
-            image_url=image_url,
-            minimum_stock=minimum_stock,
-            nutrition=nutrition_payload,
-        )
-
-        async with async_session_factory() as session:
-            prod = await ProductService.create_product(
-                session=session,
-                payload=payload,
-                home_id=MOCK_HOME_ID,
-                is_global=False,  # Barcode validation promotes automatically inside Service
             )
             global_status = "global" if prod.is_global else "local"
             return f"Success: Created {global_status} product blueprint '{prod.name}' with ID {prod.id}."
@@ -238,23 +217,18 @@ async def update_product(
     - minimum_stock: Optional new minimum stock limit.
     """
     try:
-        prod_uuid = uuid.UUID(product_id)
-        payload = ProductUpdate(
-            name=name,
-            brand=brand,
-            barcode=barcode,
-            category_id=uuid.UUID(category_id) if category_id else None,
-            image_url=image_url,
-            base_unit=base_unit,
-            minimum_stock=minimum_stock,
-        )
-
         async with async_session_factory() as session:
             prod = await ProductService.update_product(
                 session=session,
-                product_id=prod_uuid,
+                product_id=product_id,
                 home_id=MOCK_HOME_ID,
-                payload=payload,
+                name=name,
+                brand=brand,
+                barcode=barcode,
+                category_id=category_id,
+                image_url=image_url,
+                base_unit=base_unit,
+                minimum_stock=minimum_stock,
             )
 
             if not prod:
@@ -277,11 +251,10 @@ async def delete_product(product_id: str) -> str:
     - product_id: UUID string of the custom product to delete.
     """
     try:
-        prod_uuid = uuid.UUID(product_id)
         async with async_session_factory() as session:
             success = await ProductService.delete_product(
                 session=session,
-                product_id=prod_uuid,
+                product_id=product_id,
                 home_id=MOCK_HOME_ID,
             )
 
@@ -304,11 +277,10 @@ async def get_product_nutrition(product_id: str) -> str:
     - product_id: UUID string of the product blueprint.
     """
     try:
-        prod_uuid = uuid.UUID(product_id)
         async with async_session_factory() as session:
             nutrition = await ProductService.get_product_nutrition(
                 session=session,
-                product_id=prod_uuid,
+                product_id=product_id,
                 home_id=MOCK_HOME_ID,
             )
 
@@ -354,23 +326,18 @@ async def update_product_nutrition(
     - salt: Salt grams per 100g/ml.
     """
     try:
-        prod_uuid = uuid.UUID(product_id)
-        payload = ProductNutritionUpdate(
-            calories=calories,
-            fat=fat,
-            saturated_fat=saturated_fat,
-            carbohydrates=carbohydrates,
-            sugars=sugars,
-            protein=protein,
-            salt=salt,
-        )
-
         async with async_session_factory() as session:
             nutrition = await ProductService.update_product_nutrition(
                 session=session,
-                product_id=prod_uuid,
+                product_id=product_id,
                 home_id=MOCK_HOME_ID,
-                payload=payload,
+                calories=calories,
+                fat=fat,
+                saturated_fat=saturated_fat,
+                carbohydrates=carbohydrates,
+                sugars=sugars,
+                protein=protein,
+                salt=salt,
             )
 
             if not nutrition:
