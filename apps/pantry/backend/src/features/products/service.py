@@ -6,7 +6,12 @@ from sqlmodel import col, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 from src.features.products.models import Product, ProductNutrition
-from src.features.products.schemas import ProductCreate, ProductNutritionUpdate, ProductUpdate
+from src.features.products.schemas import (
+    ProductCreate,
+    ProductNutritionCreate,
+    ProductNutritionUpdate,
+    ProductUpdate,
+)
 
 
 class ProductService:
@@ -15,15 +20,59 @@ class ProductService:
     @staticmethod
     async def create_product(
         session: AsyncSession,
-        payload: ProductCreate,
-        home_id: uuid.UUID,
+        payload: ProductCreate | None = None,
+        home_id: uuid.UUID = uuid.UUID("00000000-0000-0000-0000-000000000001"),
         is_global: bool = False,
+        *,
+        name: str | None = None,
+        base_unit: str | None = None,
+        brand: str | None = None,
+        barcode: str | None = None,
+        category_id: uuid.UUID | str | None = None,
+        image_url: str | None = None,
+        minimum_stock: float = 0.0,
+        calories: float | None = None,
+        fat: float | None = None,
+        saturated_fat: float | None = None,
+        carbohydrates: float | None = None,
+        sugars: float | None = None,
+        protein: float | None = None,
+        salt: float | None = None,
     ) -> Product:
         """Create a new product blueprint.
 
         Enforces global barcode uniqueness and writes both product and nutrition
         profile in a single ACID transaction.
         """
+        if payload is None:
+            if name is None or base_unit is None:
+                raise ValueError("Product name and base_unit are required.")
+
+            cat_uuid = uuid.UUID(category_id) if isinstance(category_id, str) else category_id
+
+            nutrition_payload = None
+            if any(v is not None for v in [calories, fat, saturated_fat, carbohydrates, sugars, protein, salt]):
+                nutrition_payload = ProductNutritionCreate(
+                    calories=calories,
+                    fat=fat,
+                    saturated_fat=saturated_fat,
+                    carbohydrates=carbohydrates,
+                    sugars=sugars,
+                    protein=protein,
+                    salt=salt,
+                )
+
+            payload = ProductCreate(
+                name=name,
+                base_unit=base_unit,
+                brand=brand,
+                barcode=barcode,
+                category_id=cat_uuid,
+                image_url=image_url,
+                minimum_stock=minimum_stock,
+                nutrition=nutrition_payload,
+            )
+
         # 1. Barcode uniqueness pre-check & global promotion logic
         if payload.barcode and len(payload.barcode.strip()) > 0:
             barcode_stmt = select(Product).where(Product.barcode == payload.barcode)
@@ -88,12 +137,13 @@ class ProductService:
     @staticmethod
     async def get_product(
         session: AsyncSession,
-        product_id: uuid.UUID,
+        product_id: uuid.UUID | str,
         home_id: uuid.UUID,
     ) -> Product | None:
         """Retrieve a specific product if it is global or personal to the user's home."""
+        prod_uuid = uuid.UUID(product_id) if isinstance(product_id, str) else product_id
         statement = select(Product).where(
-            Product.id == product_id,
+            Product.id == prod_uuid,
             or_(Product.is_global, Product.home_id == home_id),
         )
         result = await session.exec(statement)
@@ -102,16 +152,17 @@ class ProductService:
     @staticmethod
     async def get_product_nutrition(
         session: AsyncSession,
-        product_id: uuid.UUID,
+        product_id: uuid.UUID | str,
         home_id: uuid.UUID,
     ) -> ProductNutrition | None:
         """Retrieve the isolated nutrition profile of a product if authorized."""
+        prod_uuid = uuid.UUID(product_id) if isinstance(product_id, str) else product_id
         # Join Product to enforce home isolation boundary on nutrition queries
         statement = (
             select(ProductNutrition)
             .join(Product)
             .where(
-                ProductNutrition.product_id == product_id,
+                ProductNutrition.product_id == prod_uuid,
                 or_(Product.is_global, Product.home_id == home_id),
             )
         )
@@ -177,19 +228,20 @@ class ProductService:
         home_id: uuid.UUID,
         name: str | None = None,
         barcode: str | None = None,
-        category_id: uuid.UUID | None = None,
+        category_id: uuid.UUID | str | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Product]:
         """List and search products visible to the current home space."""
+        cat_uuid = uuid.UUID(category_id) if isinstance(category_id, str) else category_id
         statement = select(Product).where(or_(Product.is_global, Product.home_id == home_id))
 
         if name:
             statement = statement.where(col(Product.name).ilike(f"%{name}%"))
         if barcode:
             statement = statement.where(Product.barcode == barcode)
-        if category_id:
-            statement = statement.where(Product.category_id == category_id)
+        if cat_uuid:
+            statement = statement.where(Product.category_id == cat_uuid)
 
         statement = statement.offset(offset).limit(limit)
         result = await session.exec(statement)
@@ -198,24 +250,51 @@ class ProductService:
     @staticmethod
     async def update_product(
         session: AsyncSession,
-        product_id: uuid.UUID,
+        product_id: uuid.UUID | str,
         home_id: uuid.UUID,
-        payload: ProductUpdate,
+        payload: ProductUpdate | None = None,
+        *,
+        name: str | None = None,
+        brand: str | None = None,
+        barcode: str | None = None,
+        category_id: uuid.UUID | str | None = None,
+        image_url: str | None = None,
+        base_unit: str | None = None,
+        minimum_stock: float | None = None,
     ) -> Product | None:
         """Partially update an existing product. Global products cannot be modified."""
-        product = await ProductService.get_product(session, product_id, home_id)
+        prod_uuid = uuid.UUID(product_id) if isinstance(product_id, str) else product_id
+        product = await ProductService.get_product(session, prod_uuid, home_id)
         if not product:
             return None
 
         if product.is_global:
             raise ValueError("Global products cannot be modified.")
 
-        update_data = payload.model_dump(exclude_unset=True)
+        if payload is None:
+            cat_uuid = uuid.UUID(category_id) if isinstance(category_id, str) else category_id
+            update_data = {}
+            if name is not None:
+                update_data["name"] = name
+            if brand is not None:
+                update_data["brand"] = brand
+            if barcode is not None:
+                update_data["barcode"] = barcode
+            if cat_uuid is not None:
+                update_data["category_id"] = cat_uuid
+            if image_url is not None:
+                update_data["image_url"] = image_url
+            if base_unit is not None:
+                update_data["base_unit"] = base_unit
+            if minimum_stock is not None:
+                update_data["minimum_stock"] = minimum_stock
+        else:
+            update_data = payload.model_dump(exclude_unset=True)
 
         # Barcode uniqueness pre-check on update & global promotion logic
         if "barcode" in update_data and update_data["barcode"] != product.barcode:
             barcode_val = update_data["barcode"]
-            if barcode_val and len(barcode_val.strip()) > 0:
+            if isinstance(barcode_val, str) and len(barcode_val.strip()) > 0:
                 clash_stmt = select(Product).where(Product.barcode == barcode_val, Product.id != product.id)
                 clash_res = await session.exec(clash_stmt)
                 if clash_res.first():
@@ -226,18 +305,20 @@ class ProductService:
 
         # Category boundary check on update
         if "category_id" in update_data and update_data["category_id"] is not None:
-            category_id = update_data["category_id"]
-            from src.features.categories.models import Category
+            category_val = update_data["category_id"]
+            if isinstance(category_val, (str, uuid.UUID)):
+                cat_id = uuid.UUID(category_val) if isinstance(category_val, str) else category_val
+                from src.features.categories.models import Category
 
-            category_stmt = select(Category).where(Category.id == category_id)
-            is_now_global = product.is_global
-            if not is_now_global:
-                category_stmt = category_stmt.where(or_(Category.is_global, Category.home_id == home_id))
-            else:
-                category_stmt = category_stmt.where(Category.is_global)
-            category_res = await session.exec(category_stmt)
-            if not category_res.first():
-                raise ValueError(f"Category with ID '{category_id}' not found or not authorized for this product.")
+                category_stmt = select(Category).where(Category.id == cat_id)
+                is_now_global = product.is_global
+                if not is_now_global:
+                    category_stmt = category_stmt.where(or_(Category.is_global, Category.home_id == home_id))
+                else:
+                    category_stmt = category_stmt.where(Category.is_global)
+                category_res = await session.exec(category_stmt)
+                if not category_res.first():
+                    raise ValueError(f"Category with ID '{category_val}' not found or not authorized for this product.")
 
         for key, value in update_data.items():
             setattr(product, key, value)
@@ -255,28 +336,54 @@ class ProductService:
     @staticmethod
     async def update_product_nutrition(
         session: AsyncSession,
-        product_id: uuid.UUID,
+        product_id: uuid.UUID | str,
         home_id: uuid.UUID,
-        payload: ProductNutritionUpdate,
+        payload: ProductNutritionUpdate | None = None,
+        *,
+        calories: float | None = None,
+        fat: float | None = None,
+        saturated_fat: float | None = None,
+        carbohydrates: float | None = None,
+        sugars: float | None = None,
+        protein: float | None = None,
+        salt: float | None = None,
     ) -> ProductNutrition | None:
         """Update or create the nutrition profile of an existing product.
 
         Global products cannot be modified.
         """
-        product = await ProductService.get_product(session, product_id, home_id)
+        prod_uuid = uuid.UUID(product_id) if isinstance(product_id, str) else product_id
+        product = await ProductService.get_product(session, prod_uuid, home_id)
         if not product:
             return None
 
         if product.is_global:
             raise ValueError("Global product nutrition cannot be modified.")
 
-        nutrition = await ProductService.get_product_nutrition(session, product_id, home_id)
+        if payload is None:
+            update_data = {}
+            if calories is not None:
+                update_data["calories"] = calories
+            if fat is not None:
+                update_data["fat"] = fat
+            if saturated_fat is not None:
+                update_data["saturated_fat"] = saturated_fat
+            if carbohydrates is not None:
+                update_data["carbohydrates"] = carbohydrates
+            if sugars is not None:
+                update_data["sugars"] = sugars
+            if protein is not None:
+                update_data["protein"] = protein
+            if salt is not None:
+                update_data["salt"] = salt
+        else:
+            update_data = payload.model_dump(exclude_unset=True)
 
-        update_data = payload.model_dump(exclude_unset=True)
+        nutrition = await ProductService.get_product_nutrition(session, prod_uuid, home_id)
 
         if not nutrition:
             # Create new nutrition entry if it didn't exist
-            nutrition = ProductNutrition(product_id=product_id, **update_data)
+            nutrition = ProductNutrition(product_id=prod_uuid, **update_data)
             session.add(nutrition)
         else:
             # Update existing nutrition entry
@@ -296,11 +403,12 @@ class ProductService:
     @staticmethod
     async def delete_product(
         session: AsyncSession,
-        product_id: uuid.UUID,
+        product_id: uuid.UUID | str,
         home_id: uuid.UUID,
     ) -> bool:
         """Delete an existing product. Global products cannot be deleted."""
-        product = await ProductService.get_product(session, product_id, home_id)
+        prod_uuid = uuid.UUID(product_id) if isinstance(product_id, str) else product_id
+        product = await ProductService.get_product(session, prod_uuid, home_id)
         if not product:
             return False
 
