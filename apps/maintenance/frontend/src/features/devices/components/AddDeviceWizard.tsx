@@ -116,6 +116,7 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
           </div>
           <button
             onClick={onClose}
+            aria-label={t("wizard.cancel")}
             className="h-8 w-8 rounded-lg bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
           >
             <X className="h-4 w-4" />
