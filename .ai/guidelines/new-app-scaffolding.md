@@ -107,7 +107,7 @@ uv sync --all-packages --all-groups
 All services automatically inherit centralized tooling configurations:
 
 ### A. Ruff Linter & Formatter
-- **Configuration**: Root [`ruff.toml`](file:///Users/leifkroeger/Dev/loeger-os/ruff.toml) enforces Python 3.12 target with rules: `E`, `W`, `F`, `I`, `B`, `UP`, `ASYNC`, `FAST`, `T20`.
+- **Configuration**: Root [`ruff.toml`](ruff.toml) enforces Python 3.12 target with rules: `E`, `W`, `F`, `I`, `B`, `UP`, `ASYNC`, `FAST`, `T20`.
 - **Run Commands**:
   ```bash
   # Check code across monorepo

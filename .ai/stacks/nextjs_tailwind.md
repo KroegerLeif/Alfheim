@@ -1,6 +1,6 @@
 # Next.js & Tailwind CSS v4 Architectural Guide (`.ai/stacks/nextjs_tailwind.md`)
 
-> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/core.md) first.
+> **Note for AI Agents**: Always read [.ai/rules/core.md](.ai/rules/core.md) first.
 
 ---
 

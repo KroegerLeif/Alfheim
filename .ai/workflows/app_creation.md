@@ -19,18 +19,18 @@ Before writing any codebase changes, the AI agent must perform a design audit an
 * Map the directory structure separating global layers (`src/core/` or `src/shared/`) from domain modules (`src/features/<domain>/`).
 
 ### 2. Ingress & Routing Invariant Check
-* Map Caddyfile route paths (`infrastructure/caddy/Caddyfile`) to ensure they do not clash with existing monorepo ingress routes (Refer to [rules/architecture.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/rules/architecture.md)).
+* Map Caddyfile route paths (`infrastructure/caddy/Caddyfile`) to ensure they do not clash with existing monorepo ingress routes (Refer to [rules/architecture.md](.ai/rules/architecture.md)).
 * Confirm Next.js is designated to handle all internal sub-routing.
 
 ### 3. Risk Assessment & Bottlenecks
 * Flag potential z-index issues (e.g., if using maps or overlays).
-* Analyze data models for potentially null array structures and specify how they will be guarded (Refer to [rules/safety.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/safety.md)).
+* Analyze data models for potentially null array structures and specify how they will be guarded (Refer to [rules/safety.md](.ai/rules/safety.md)).
 * Highlight Next.js 15+ routing parameter unwrapping requirements.
 
 ### 4. 3-Tier Application Registration Classification
 Determine which tier the new app belongs to:
-* **Tier 1 (Core Native App):** Register entry in [`tier1_core_registry.go`](file:///Users/leifkroeger/Dev/loeger-os/core/dashboard/backend/internal/features/apps/tier1_core_registry.go).
-* **Tier 2 (Stack Integration / External Portal):** Add configuration entry to [`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml) (with required Keycloak roles).
+* **Tier 1 (Core Native App):** Register entry in [`tier1_core_registry.go`](core/dashboard/backend/internal/features/apps/tier1_core_registry.go).
+* **Tier 2 (Stack Integration / External Portal):** Add configuration entry to [`deploy/stack-apps.yaml`](deploy/stack-apps.yaml) (with required Keycloak roles).
 * **Tier 3 (User Bookmark / Custom Link):** Created at runtime by end-users via `/api/v1/user/links`.
 
 ---

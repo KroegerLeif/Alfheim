@@ -10,7 +10,7 @@ Execute this checklist whenever evaluating an application's layout, performing c
 
 ### 📋 Phase 1: File Size & Complexity Audit
 * [ ] **Scan Page Components**: Locate all `page.tsx` and `layout.tsx` files inside `src/app/`.
-* [ ] **Verify Line Limits**: Ensure no view, page, or layout component exceeds **200 lines of code** (Refer to [rules/architecture.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/architecture.md)).
+* [ ] **Verify Line Limits**: Ensure no view, page, or layout component exceeds **200 lines of code** (Refer to [rules/architecture.md](.ai/rules/architecture.md)).
 * [ ] **Identify Monoliths**: Flag any single component file housing local queries, modal layouts, list mappings, and forms simultaneously. Enforce Single Responsibility Principle.
 
 ### 📁 Phase 2: Feature-Driven Design (FDD) Isolation
@@ -20,7 +20,7 @@ Execute this checklist whenever evaluating an application's layout, performing c
 
 ### ⚡ Phase 3: Hydration & Parameter Safety Audit
 * [ ] **Locate Dynamic Routes**: Find all dynamic folder sub-routes (e.g. `[id]`).
-* [ ] **Verify Parameter Promise Resolution**: If Next.js 15+, check that the page is an `async` Server Component resolving route params asynchronously (`const { id } = await params;`) instead of using client-side hooks (`useParams`) (Refer to [rules/safety.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/safety.md)).
+* [ ] **Verify Parameter Promise Resolution**: If Next.js 15+, check that the page is an `async` Server Component resolving route params asynchronously (`const { id } = await params;`) instead of using client-side hooks (`useParams`) (Refer to [rules/safety.md](.ai/rules/safety.md)).
 * [ ] **Verify Suspense Boundaries**: Verify that the dynamic layout wraps client components inside a React `<Suspense>` fallback boundary to protect against hydration crashes.
 
 ### 🔒 Phase 4: Array Null-Safety Checks
@@ -37,5 +37,5 @@ Execute this checklist whenever evaluating an application's layout, performing c
 
 ### 🎨 Phase 6: Stacking Context & Map Layering
 * [ ] **Identify Map Instances**: Locate all usages of `<OSMMapViewer />` or Leaflet bindings.
-* [ ] **Check Map Isolation**: Verify the map component is wrapped in a container with `relative z-0 isolate overflow-hidden` (Refer to [rules/architecture.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/architecture.md)).
+* [ ] **Check Map Isolation**: Verify the map component is wrapped in a container with `relative z-0 isolate overflow-hidden` (Refer to [rules/architecture.md](.ai/rules/architecture.md)).
 * [ ] **Check Modal Layering**: Inspect all modal container declarations. Verify that modal overlays use `z-[9999]` and absolute/fixed positioning to override Leaflet default layers.
