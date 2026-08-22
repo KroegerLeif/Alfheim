@@ -11,5 +11,15 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/tests/setup.ts',
     exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
+    testTimeout: 15000,
+    coverage: {
+      provider: 'v8',
+      thresholds: {
+        lines: 75,
+        statements: 75,
+        branches: 55,
+        functions: 75,
+      },
+    },
   },
 })
