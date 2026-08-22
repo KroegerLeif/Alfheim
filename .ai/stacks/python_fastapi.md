@@ -1,6 +1,6 @@
 # Python & FastAPI Architectural Guide (`.ai/stacks/python_fastapi.md`)
 
-> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/core.md) first.
+> **Note for AI Agents**: Always read [.ai/rules/core.md](.ai/rules/core.md) first.
 
 ---
 
@@ -103,4 +103,4 @@ uv run pytest --cov
 uv run pre-commit run --all-files
 ```
 
-For complete guidelines on creating a new FastAPI microservice, consult [.ai/guidelines/new-app-scaffolding.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/guidelines/new-app-scaffolding.md).
+For complete guidelines on creating a new FastAPI microservice, consult [.ai/guidelines/new-app-scaffolding.md](.ai/guidelines/new-app-scaffolding.md).

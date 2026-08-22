@@ -1,6 +1,6 @@
 # Go Architectural Guide (`.ai/stacks/golang.md`)
 
-> **Note for AI Agents**: Always read [.ai/rules/core.md](file:///Users/leifkroeger/Dev/alfheim/.ai/rules/core.md) first.
+> **Note for AI Agents**: Always read [.ai/rules/core.md](.ai/rules/core.md) first.
 
 ---
 

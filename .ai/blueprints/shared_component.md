@@ -30,7 +30,7 @@ Identify the purpose of your component and place it in the appropriate subdirect
 ### 4) Use theme tokens
 * Consume CSS custom properties from the shared design system (`var(--surface-canvas)`, `var(--text-main)`, `var(--primary-main)`).
 * Do **NOT** use hardcoded hexadecimal or RGB color strings in component styling.
-* If a new theme token is required, refer to [blueprints/theme.md](file:///Users/leifkroeger/Dev/alfheim/.ai/blueprints/theme.md) to register it correctly.
+* If a new theme token is required, refer to [blueprints/theme.md](.ai/blueprints/theme.md) to register it correctly.
 
 ### 5) Register exports
 * Export the component from the feature's local `index.ts`.

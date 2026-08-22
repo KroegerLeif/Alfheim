@@ -31,7 +31,7 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
 
 ### A. Static Analysis & Linting (Ruff)
 - **Tool**: Astral Ruff (Linter & Formatter)
-- **Config**: [`ruff.toml`](file:///Users/leifkroeger/Dev/loeger-os/ruff.toml)
+- **Config**: [`ruff.toml`](ruff.toml)
 - **Mandatory Commands**:
   ```bash
   uv run ruff check .               # Must return 0 diagnostics
@@ -72,7 +72,7 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
 
 ## 🐹 3. Go Quality Gates
 
-The central dashboard backend control plane is located in [`core/dashboard/backend`](file:///Users/leifkroeger/Dev/loeger-os/core/dashboard/backend).
+The central dashboard backend control plane is located in [`core/dashboard/backend`](core/dashboard/backend).
 
 ### A. Testing & Race Detection
 - **Mandatory Command**:

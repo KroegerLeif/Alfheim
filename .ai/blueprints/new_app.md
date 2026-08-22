@@ -71,7 +71,7 @@ When initializing a new app, the following files **MUST** be explicitly created 
 
 ### Backend Core (Python / FastAPI Example)
 > [!TIP]
-> Follow [.ai/guidelines/new-app-scaffolding.md](file:///Users/leifkroeger/Dev/loeger-os/.ai/guidelines/new-app-scaffolding.md) for full details on workspace setup, in-memory `aiosqlite` Pytest fixtures, `ty` type checking, and standalone Docker resolution.
+> Follow [.ai/guidelines/new-app-scaffolding.md](.ai/guidelines/new-app-scaffolding.md) for full details on workspace setup, in-memory `aiosqlite` Pytest fixtures, `ty` type checking, and standalone Docker resolution.
 
 * **`backend/Dockerfile`**: Production multi-stage Docker build file with standalone `uv sync` resolution.
 * **`backend/.dockerignore`**: Standard ignore rules excluding `.venv`, `uv.lock`, and caches.
@@ -235,7 +235,7 @@ echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim.loegien.l
 - [ ] **Implement Frontend**: tsconfig/package configs, `next.config.ts` (standalone mode, transpile `@alfheim/shared`), proxy setup (`src/proxy.ts`), i18n setup, API client, layout, and first page views.
 - [ ] **Populate i18n**: Add translations in all 3 language JSON files under `@alfheim/shared`.
 - [ ] **Register 3-Tier Dashboard Entry**:
-  - For Tier 1 Core Apps: Register entry in [`tier1_core_registry.go`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/internal/features/apps/tier1_core_registry.go).
-  - For Tier 2 Stack Integrations: Register entry in [`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml).
+  - For Tier 1 Core Apps: Register entry in [`tier1_core_registry.go`](core/dashboard/backend/internal/features/apps/tier1_core_registry.go).
+  - For Tier 2 Stack Integrations: Register entry in [`deploy/stack-apps.yaml`](deploy/stack-apps.yaml).
 - [ ] **Register Orchestration**: Create compose.yml, add to root compose.yaml, add stage to scripts/up.sh.
 - [ ] **Quality checks**: Run TypeScript verification (`pnpm build`), check no dummy stubs or `@ts-ignore` statements exist.
