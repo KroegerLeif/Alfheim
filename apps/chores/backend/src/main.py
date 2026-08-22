@@ -12,6 +12,19 @@ from src.mcp.server import mcp
 
 logger = logging.getLogger(__name__)
 
+# Strong references to background tasks to prevent garbage collection
+BACKGROUND_TASKS: set[asyncio.Task] = set()
+
+
+def handle_task_exception(task: asyncio.Task) -> None:
+    """Callback for background tasks to log unexpected errors and remove task reference."""
+    BACKGROUND_TASKS.discard(task)
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc:
+        logger.error(f"Background task {task.get_name()} failed with exception: {exc}", exc_info=exc)
+
 
 def discover_and_include_routers(app: FastAPI) -> None:
     """Scan the src/features directory for router.py files and include their APIRouters."""
@@ -77,6 +90,8 @@ async def lifespan(app: FastAPI):
 
     # Start background scheduler
     reset_task = asyncio.create_task(schedule_nightly_reset())
+    BACKGROUND_TASKS.add(reset_task)
+    reset_task.add_done_callback(handle_task_exception)
 
     try:
         # Initialize FastMCP lifespan
