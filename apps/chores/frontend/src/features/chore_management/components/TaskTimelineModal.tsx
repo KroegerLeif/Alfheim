@@ -12,7 +12,7 @@ interface TaskTimelineModalProps {
 
 export function TaskTimelineModal({ template, onClose }: TaskTimelineModalProps) {
   const { t } = useTranslation();
-  const { data: timeline = [], isLoading } = useTaskTimeline(template?.id || "");
+  const { data: timeline = [], isLoading, isError } = useTaskTimeline(template?.id || "");
 
   if (!template) return null;
 
@@ -42,7 +42,11 @@ export function TaskTimelineModal({ template, onClose }: TaskTimelineModalProps)
 
         {/* Content Body */}
         <div className="p-6 overflow-y-auto space-y-4 flex-1">
-          {isLoading ? (
+          {isError ? (
+            <div className="py-8 text-center text-xs font-bold uppercase text-rose-400">
+              Failed to load task timeline history.
+            </div>
+          ) : isLoading ? (
             <div className="py-12 flex justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--primary-main)] border-t-transparent"></div>
             </div>

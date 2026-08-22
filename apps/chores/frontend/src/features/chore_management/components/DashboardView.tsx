@@ -14,12 +14,14 @@ export function DashboardView() {
   const todayStr = formatDate(new Date());
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
-  const { data: chores = [], isLoading: choresLoading } = useTodayChores(selectedDate);
-  const { data: templates = [], isLoading: templatesLoading } = useChoreTemplates();
+  const { data: chores = [], isLoading: choresLoading, isError: choresError } = useTodayChores(selectedDate);
+  const { data: templates = [], isLoading: templatesLoading, isError: templatesError } = useChoreTemplates();
   const { data: summary } = useChoreSummary();
 
-  const { data: shoppingData, isLoading: shoppingLoading } = useShoppingIntegration();
-  const { data: maintenanceData, isLoading: maintenanceLoading } = useMaintenanceIntegration();
+  const { data: shoppingData, isLoading: shoppingLoading, isError: shoppingError } = useShoppingIntegration();
+  const { data: maintenanceData, isLoading: maintenanceLoading, isError: maintenanceError } = useMaintenanceIntegration();
+
+  const isError = choresError || templatesError || shoppingError || maintenanceError;
 
   const handleDateChange = (daysOffset: number) => {
     const d = new Date();
@@ -29,6 +31,11 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
+      {isError && (
+        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
+          Failed to load chore dashboard data or service integrations.
+        </div>
+      )}
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

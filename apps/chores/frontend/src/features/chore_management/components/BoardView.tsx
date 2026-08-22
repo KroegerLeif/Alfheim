@@ -10,7 +10,7 @@ import { useTranslation } from "@alfheim/shared";
 
 export function BoardView() {
   const { t } = useTranslation();
-  const { data: templates = [], isLoading } = useChoreTemplates();
+  const { data: templates = [], isLoading, isError } = useChoreTemplates();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
@@ -57,7 +57,11 @@ export function BoardView() {
       />
 
       {/* Main Grid View */}
-      {isLoading ? (
+      {isError ? (
+        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
+          Failed to load chore templates board.
+        </div>
+      ) : isLoading ? (
         <div className="h-60 flex items-center justify-center">
           <div className="h-6.5 w-6.5 animate-spin rounded-full border-2 border-[var(--primary-main)] border-t-transparent"></div>
         </div>

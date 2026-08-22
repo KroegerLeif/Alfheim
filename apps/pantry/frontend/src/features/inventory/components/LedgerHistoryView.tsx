@@ -18,7 +18,7 @@ import { LedgerTableRow } from "./LedgerTableRow";
  */
 export function LedgerHistoryView() {
   const { t } = useTranslation();
-  const { data: ledger = [], isLoading, refetch } = useLedgerHistory();
+  const { data: ledger = [], isLoading, isError, refetch } = useLedgerHistory();
   const { data: locations = [] } = useLocations();
   const { data: products = [] } = useProducts();
 
@@ -69,7 +69,9 @@ export function LedgerHistoryView() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isError ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-10 text-xs font-bold text-rose-400 uppercase">Failed to load transaction ledger records.</TableCell></TableRow>
+            ) : isLoading ? (
               <TableRow><TableCell colSpan={6} className="text-center py-10 text-xs text-[var(--text-muted)] uppercase">{t("pantry.loadingHistory")}</TableCell></TableRow>
             ) : filteredLedger.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center py-10 text-xs text-[var(--text-muted)] uppercase">{t("pantry.noAuditLogs")}</TableCell></TableRow>

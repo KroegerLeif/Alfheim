@@ -35,11 +35,14 @@
     "select_icon": "Symbol wählen",
     "logged_in_user": "Angemeldeter Benutzer",
     "expand_sidebar": "Seitenleiste erweitern",
-    "collapse_sidebar": "Seitenleiste einklappen"
+    "collapse_sidebar": "Seitenleiste einklappen",
+    "select_language": "Sprache auswählen",
+    "notifications": "Benachrichtigungen"
   },
   "auth": {
     "error": "Authentifizierungsfehler",
-    "securing_session": "Sitzung mit Keycloak wird gesichert..."
+    "securing_session": "Sitzung mit Keycloak wird gesichert...",
+    "retry_connection": "Verbindung erneut versuchen"
   },
   "nav": {
     "dashboard": "Dashboard",
