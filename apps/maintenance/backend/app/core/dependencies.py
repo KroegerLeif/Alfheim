@@ -60,7 +60,8 @@ def _is_safe_test_url(url: str | None) -> bool:
         if any(hostname.endswith(suffix) for suffix in SAFE_TEST_SUFFIXES):
             return True
         return False
-    except Exception:
+    except (ValueError, AttributeError) as e:
+        logger.warning("Failed to parse test URL '%s': %s", url, e)
         return False
 
 
@@ -116,7 +117,8 @@ def decode_keycloak_token(token: str) -> dict:
         try:
             logger.debug("Decoding Keycloak token without signature verification in test context.")
             return jwt.decode(token, options={"verify_signature": False, "verify_aud": False, "verify_iss": False})
-        except Exception as e:
+        except jwt.PyJWTError as e:
+            logger.warning("Mock JWT decoding failed: %s", e)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"invalid or expired token: {e}",
@@ -136,10 +138,11 @@ def decode_keycloak_token(token: str) -> dict:
             )
         except HTTPException:
             raise
-        except Exception as e:
+        except (jwt.PyJWTError, ValueError) as e:
+            logger.warning("Keycloak token verification attempt failed for endpoint %s: %s", jwks_url, e)
             last_error = e
 
-    logger.warning(f"Keycloak JWT validation failed across endpoints: {last_error}")
+    logger.warning("Keycloak JWT validation failed across endpoints: %s", last_error)
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=f"invalid or expired token: {last_error}",

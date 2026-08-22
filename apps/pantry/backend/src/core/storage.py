@@ -1,10 +1,14 @@
 """Centralized S3 object storage utility and tenant-isolated path generator."""
 
+import logging
 import os
 
 import aioboto3
+from botocore.exceptions import ClientError
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class StorageSettings(BaseSettings):
@@ -75,8 +79,22 @@ class S3StorageService:
         async with self._get_client() as s3_client:
             try:
                 await s3_client.head_bucket(Bucket=self.settings.S3_BUCKET_NAME)
-            except Exception:
-                await s3_client.create_bucket(Bucket=self.settings.S3_BUCKET_NAME)
+            except ClientError as e:
+                logger.info(
+                    "S3 bucket '%s' not found or inaccessible (%s). Attempting creation...",
+                    self.settings.S3_BUCKET_NAME,
+                    e,
+                )
+                try:
+                    await s3_client.create_bucket(Bucket=self.settings.S3_BUCKET_NAME)
+                except ClientError as create_err:
+                    logger.error(
+                        "Failed to create S3 bucket '%s': %s",
+                        self.settings.S3_BUCKET_NAME,
+                        create_err,
+                        exc_info=True,
+                    )
+                    raise
 
     async def generate_presigned_upload_url(
         self, object_key: str, expires_in: int = 3600, content_type: str | None = None
