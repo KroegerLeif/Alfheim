@@ -20,9 +20,9 @@ export function LocationsGridView() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
 
-  const { data: locations = [], isLoading: isLoadingLocs } = useLocations();
-  const { data: states = [], isLoading: isLoadingStates } = useInventoryState();
-  const { data: lowStockItems = [], isLoading: isLoadingLowStock } = useLowStockItems();
+  const { data: locations = [], isLoading: isLoadingLocs, isError: isLocsError } = useLocations();
+  const { data: states = [], isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
+  const { data: lowStockItems = [], isLoading: isLoadingLowStock, isError: isLowStockError } = useLowStockItems();
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -32,6 +32,7 @@ export function LocationsGridView() {
   );
 
   const isLoadingData = isLoadingLocs || isLoadingStates || isLoadingLowStock;
+  const isErrorData = isLocsError || isStatesError || isLowStockError;
 
   const handleCreateSuccess = () => {
     setIsFormOpen(false);
@@ -62,6 +63,12 @@ export function LocationsGridView() {
       {successMessage && !isFormOpen && (
         <div className="border border-emerald-800/40 bg-emerald-950/20 text-emerald-400 p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal max-w-xl rounded">
           <Check className="h-4 w-4 shrink-0 mt-0.5" /><span>{successMessage}</span>
+        </div>
+      )}
+
+      {isErrorData && (
+        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
+          Failed to load storage locations or inventory data. Please refresh or try again later.
         </div>
       )}
 

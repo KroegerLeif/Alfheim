@@ -23,7 +23,7 @@ import { ProductRead } from "@/features/products/types";
 export function InventoryTableView() {
   const { t } = useTranslation();
 
-  const { data: states = [], isLoading, refetch } = useInventoryState();
+  const { data: states = [], isLoading, isError, refetch } = useInventoryState();
   const { data: locations = [] } = useLocations();
   const { data: categories = [] } = useCategories();
 
@@ -89,7 +89,9 @@ export function InventoryTableView() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isError ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-12 text-xs font-bold text-rose-400 uppercase">Failed to load inventory stock levels.</TableCell></TableRow>
+            ) : isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-10 text-xs text-[var(--text-muted)] uppercase">{t("pantry.loadingRegisters")}</TableCell></TableRow>
             ) : filteredStates.length === 0 ? (
               <TableRow><TableCell colSpan={5} className="text-center py-10 text-xs text-[var(--text-muted)] uppercase">[ {t("pantry.noItems")} ]</TableCell></TableRow>

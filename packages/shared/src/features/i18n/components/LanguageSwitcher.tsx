@@ -76,13 +76,15 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
     );
   }
 
+  const { t } = useTranslation();
+
   return (
     <div className={`relative inline-block ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-mono text-[var(--text-main)] transition-all duration-200 cursor-pointer"
-        aria-label="Select Language"
+        aria-label={t("common.select_language")}
       >
         <span className="text-sm">{currentLangOption.flag}</span>
         <span className="uppercase font-semibold">{currentLangOption.code}</span>

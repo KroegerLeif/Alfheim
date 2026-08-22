@@ -22,8 +22,10 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const [showWizard, setShowWizard] = useState(false);
 
   // Fetch households and devices using custom FDD hooks
-  const { data: households = [] } = useHouseholds();
-  const { data: devices = [], isLoading } = useDevices(householdId);
+  const { data: households = [], isError: householdsError } = useHouseholds();
+  const { data: devices = [], isLoading, isError: devicesError } = useDevices(householdId);
+
+  const isError = householdsError || devicesError;
 
   if (isLoading) {
     return (
@@ -70,6 +72,12 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      {isError && (
+        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
+          Failed to load devices or location data. Please refresh or try again later.
+        </div>
+      )}
+
       {/* Page header with Add Device FAB */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

@@ -35,11 +35,14 @@
     "select_icon": "Select Icon",
     "logged_in_user": "Logged In User",
     "expand_sidebar": "Expand Sidebar",
-    "collapse_sidebar": "Collapse Sidebar"
+    "collapse_sidebar": "Collapse Sidebar",
+    "select_language": "Select Language",
+    "notifications": "Notifications"
   },
   "auth": {
     "error": "Authentication Error",
-    "securing_session": "Securing session with Keycloak..."
+    "securing_session": "Securing session with Keycloak...",
+    "retry_connection": "Retry Connection"
   },
   "nav": {
     "dashboard": "Dashboard",

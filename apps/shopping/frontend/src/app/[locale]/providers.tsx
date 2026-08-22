@@ -146,7 +146,7 @@ export default function Providers({ children }: { children: ReactNode }) {
             onClick={() => window.location.reload()}
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
           >
-            Retry Connection
+            {t("auth.retry_connection")}
           </button>
         </div>
       </div>

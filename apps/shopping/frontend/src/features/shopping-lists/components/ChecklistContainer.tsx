@@ -25,9 +25,19 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
   const [showCompleted, setShowCompleted] = useState(true);
 
   // Queries & Mutations
-  const { data: list, isLoading } = useShoppingListDetails(listId);
+  const { data: list, isLoading, isError } = useShoppingListDetails(listId);
   const toggleItem = useUpdateShoppingItem(listId);
   const deleteItem = useDeleteShoppingItem(listId);
+
+  if (isError) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <div className="p-4 border border-rose-800/40 bg-rose-950/20 text-rose-400 font-mono text-xs font-bold uppercase rounded-lg">
+          Failed to load shopping list details.
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

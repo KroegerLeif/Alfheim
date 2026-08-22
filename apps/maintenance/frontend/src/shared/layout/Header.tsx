@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { AppHeader } from "@alfheim/shared";
+import { AppHeader, useTranslation } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useLayout, NavOption } from "./LayoutContext";
 import { useAuth } from "@/core/auth/AuthContext";
@@ -20,6 +20,7 @@ interface NotificationItem {
  */
 export function Header() {
   const t = useTranslations("maintenance");
+  const { t: tShared } = useTranslation();
   const { activeNav } = useLayout();
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -69,7 +70,7 @@ export function Header() {
               "w-8 h-8 rounded-lg flex items-center justify-center transition-colors relative cursor-pointer border border-[var(--border-subtle)]",
               isOpen ? "bg-[var(--primary-main)] text-black" : "bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
             )}
-            aria-label="Maintenance Notifications"
+            aria-label={tShared("common.notifications")}
           >
             <Bell className="w-4 h-4" />
             {alertCount > 0 && (

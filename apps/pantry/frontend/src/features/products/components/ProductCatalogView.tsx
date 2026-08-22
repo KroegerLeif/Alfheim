@@ -24,13 +24,14 @@ export function ProductCatalogView() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const { data: allProducts = [], isLoading: isLoadingAll } = useProducts();
-  const { data: searchResults = [], isLoading: isSearching } = useSearchProducts(debouncedQuery);
-  const { data: categories = [] } = useCategories();
+  const { data: allProducts = [], isLoading: isLoadingAll, isError: isAllError } = useProducts();
+  const { data: searchResults = [], isLoading: isSearching, isError: isSearchError } = useSearchProducts(debouncedQuery);
+  const { data: categories = [], isError: isCategoriesError } = useCategories();
 
   const isSearchActive = debouncedQuery.trim().length > 0;
   const products = isSearchActive ? searchResults : allProducts;
   const isLoadingList = isSearchActive ? isSearching : isLoadingAll;
+  const isErrorList = (isSearchActive ? isSearchError : isAllError) || isCategoriesError;
 
   return (
     <div className="flex-1 max-h-screen overflow-hidden grid grid-cols-1 lg:grid-cols-3 text-[var(--text-main)]">
@@ -48,6 +49,12 @@ export function ProductCatalogView() {
             placeholder={t("pantry.searchPlaceholder")}
             className="w-full pl-9 pr-4 py-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-11 rounded" />
         </div>
+
+        {isErrorList && (
+          <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
+            Failed to load product catalog data. Please try again later.
+          </div>
+        )}
 
         <ProductList products={products} categories={categories} isLoading={isLoadingList} />
       </div>

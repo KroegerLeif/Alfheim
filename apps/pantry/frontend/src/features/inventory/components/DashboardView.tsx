@@ -21,14 +21,15 @@ import { ShoppingSyncPanel } from "./ShoppingSyncPanel";
 export function DashboardView() {
   const { t } = useTranslation();
 
-  const { data: states = [], isLoading: isLoadingStates } = useInventoryState();
-  const { data: lowStockItems = [], isLoading: isLoadingLowStock } = useLowStockItems();
-  const { data: expirationSummary, isLoading: isLoadingExp } = useExpirationSummary();
+  const { data: states = [], isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
+  const { data: lowStockItems = [], isLoading: isLoadingLowStock, isError: isLowStockError } = useLowStockItems();
+  const { data: expirationSummary, isLoading: isLoadingExp, isError: isExpError } = useExpirationSummary();
 
   const [modalMode, setModalMode] = React.useState<"in" | "out">("in");
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const isLoadingMetrics = isLoadingStates || isLoadingLowStock || isLoadingExp;
+  const isErrorMetrics = isStatesError || isLowStockError || isExpError;
 
   const totalStockQuantity = states.reduce((sum, item) => sum + item.quantity, 0);
   const uniqueItemsCount = states.length;
@@ -52,6 +53,12 @@ export function DashboardView() {
 
   return (
     <div className="flex-1 p-6 md:p-12 space-y-10 max-w-7xl mx-auto w-full select-none text-[var(--text-main)]">
+
+      {isErrorMetrics && (
+        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
+          Failed to load inventory dashboard metrics. Please refresh or try again later.
+        </div>
+      )}
 
       {/* KPI Summary */}
       <MetricSummaryCards

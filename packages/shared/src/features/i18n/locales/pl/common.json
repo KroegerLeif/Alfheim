@@ -35,11 +35,14 @@
     "select_icon": "Wybierz ikonę",
     "logged_in_user": "Zalogowany użytkownik",
     "expand_sidebar": "Rozwiń panel boczny",
-    "collapse_sidebar": "Zwiń panel boczny"
+    "collapse_sidebar": "Zwiń panel boczny",
+    "select_language": "Wybierz język",
+    "notifications": "Powiadomienia"
   },
   "auth": {
     "error": "Błąd uwierzytelniania",
-    "securing_session": "Zabezpieczanie sesji z Keycloak..."
+    "securing_session": "Zabezpieczanie sesji z Keycloak...",
+    "retry_connection": "Ponów połączenie"
   },
   "nav": {
     "dashboard": "Pulpit",
