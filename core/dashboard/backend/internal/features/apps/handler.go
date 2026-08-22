@@ -136,8 +136,13 @@ func (h *Handler) CreateUserLink(w http.ResponseWriter, r *http.Request) {
 	createdItem, err := h.service.CreateUserLink(r.Context(), claims.Subject, req)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		if errors.Is(err, ErrInvalidLinkInputs) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "bad_request", "message": "link title and url are required"})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "internal_server_error", "message": "failed to create user link"})
 		return
 	}
 
@@ -171,11 +176,16 @@ func (h *Handler) UpdateUserLink(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if errors.Is(err, ErrLinkNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "user link not found"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "not_found", "message": "user link not found"})
 			return
 		}
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		if errors.Is(err, ErrInvalidLinkInputs) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "bad_request", "message": "link title and url are required"})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "internal_server_error", "message": "failed to update user link"})
 		return
 	}
 
@@ -201,11 +211,11 @@ func (h *Handler) DeleteUserLink(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if errors.Is(err, ErrLinkNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "user link not found"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "not_found", "message": "user link not found"})
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "internal_server_error", "message": "failed to delete user link"})
 		return
 	}
 

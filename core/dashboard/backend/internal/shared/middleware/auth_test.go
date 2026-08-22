@@ -319,13 +319,14 @@ func TestRequestLoggerAndCORS(t *testing.T) {
 		}
 	})
 
-	t.Run("CORS handles OPTIONS preflight request", func(t *testing.T) {
+	t.Run("CORS handles OPTIONS preflight request with Origin", func(t *testing.T) {
 		nextCalled := false
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			nextCalled = true
 		})
 
 		req := httptest.NewRequest(http.MethodOptions, "/cors-test", nil)
+		req.Header.Set("Origin", "http://localhost:3000")
 		rec := httptest.NewRecorder()
 
 		CORS(next).ServeHTTP(rec, req)
@@ -336,12 +337,39 @@ func TestRequestLoggerAndCORS(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Errorf("expected 200 OK for OPTIONS, got %d", rec.Code)
 		}
-		if rec.Header().Get("Access-Control-Allow-Origin") != "*" {
-			t.Errorf("expected CORS header set")
+		if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+			t.Errorf("expected CORS origin header to reflect request origin, got %q", rec.Header().Get("Access-Control-Allow-Origin"))
+		}
+		if rec.Header().Get("Access-Control-Allow-Credentials") != "true" {
+			t.Errorf("expected Allow-Credentials true")
+		}
+		if rec.Header().Get("Vary") != "Origin" {
+			t.Errorf("expected Vary Origin header")
 		}
 	})
 
 	t.Run("CORS sets headers and passes non-OPTIONS request to next", func(t *testing.T) {
+		nextCalled := false
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			nextCalled = true
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/cors-test", nil)
+		req.Header.Set("Origin", "http://localhost:3000")
+		rec := httptest.NewRecorder()
+
+		CORS(next).ServeHTTP(rec, req)
+
+		if !nextCalled {
+			t.Errorf("expected next handler to be called")
+		}
+		if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+			t.Errorf("expected CORS origin header set to request origin, got %q", rec.Header().Get("Access-Control-Allow-Origin"))
+		}
+	})
+
+	t.Run("CORS omits origin and credentials headers when Origin request header is missing", func(t *testing.T) {
 		nextCalled := false
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			nextCalled = true
@@ -356,8 +384,11 @@ func TestRequestLoggerAndCORS(t *testing.T) {
 		if !nextCalled {
 			t.Errorf("expected next handler to be called")
 		}
-		if rec.Header().Get("Access-Control-Allow-Origin") != "*" {
-			t.Errorf("expected CORS header set")
+		if rec.Header().Get("Access-Control-Allow-Origin") != "" {
+			t.Errorf("expected Access-Control-Allow-Origin to be empty when no Origin header present, got %q", rec.Header().Get("Access-Control-Allow-Origin"))
+		}
+		if rec.Header().Get("Access-Control-Allow-Credentials") != "" {
+			t.Errorf("expected Access-Control-Allow-Credentials to be empty when no Origin header present, got %q", rec.Header().Get("Access-Control-Allow-Credentials"))
 		}
 	})
 }
