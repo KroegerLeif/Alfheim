@@ -8,7 +8,7 @@
 
 * **Framework**: Next.js 14+ (App Router)
 * **Styling**: Tailwind CSS v4
-* **Data Fetching & State**: TanStack Query (React Query v5) + Native `fetch` with Typed API Client Wrappers
+* **Data Fetching & State**: TanStack Query (React Query v5) + `ky` / Centralized Typed HTTP Client Wrappers
 * **Type Safety**: TypeScript 5.x + Zod schemas
 
 ---
@@ -41,41 +41,41 @@ src/
 
 ---
 
-## 3. Data Fetching Rules: TanStack Query & Native `fetch`
+## 3. Data Fetching Rules: TanStack Query & Centralized HTTP Client
 
-### 1. Centralized Typed API Client (`src/shared/api.ts` or `src/core/api.ts`)
-* All external HTTP communication MUST go through centralized API client wrappers wrapping native `fetch()`.
+### 1. Centralized Typed API Client (`src/shared/api.ts` or `src/core/api/client.ts`)
+* All external HTTP communication MUST go through centralized API client wrappers (using `ky` instances with configured prefix URLs, timeouts, and request/response hooks).
 * Direct, unconfigured `fetch()` calls inside components or feature files are prohibited; always use the centralized API client wrapper.
 
 ```typescript
 // src/shared/api.ts or src/core/api/client.ts
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+import ky from 'ky';
 
-export async function apiClient<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = typeof window !== 'undefined' ? sessionStorage.getItem('alfheim_access_token') : null;
-  const activeHhId = typeof window !== 'undefined' ? localStorage.getItem('alfheim_active_household_id') : null;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.alfheim.loegien.localhost/api/v1';
 
-  const headers: HeadersInit = {
+export const api = ky.create({
+  prefixUrl: BASE_URL,
+  timeout: 10000,
+  headers: {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(activeHhId ? { 'X-Household-ID': activeHhId } : {}),
-    ...options.headers,
-  };
-
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json();
-}
+  },
+  hooks: {
+    beforeRequest: [
+      (request) => {
+        if (typeof window !== 'undefined') {
+          const token = sessionStorage.getItem('alfheim_access_token');
+          if (token) {
+            request.headers.set('Authorization', `Bearer ${token}`);
+          }
+          const activeHhId = localStorage.getItem('alfheim_active_household_id');
+          if (activeHhId) {
+            request.headers.set('X-Household-ID', activeHhId);
+          }
+        }
+      },
+    ],
+  },
+});
 ```
 
 ### 2. TanStack Query Hooks
