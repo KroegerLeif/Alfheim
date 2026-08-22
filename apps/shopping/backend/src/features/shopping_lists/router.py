@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 from collections.abc import Sequence
@@ -19,6 +20,8 @@ from src.features.shopping_lists.schemas import (
     SyncToPantryResponse,
 )
 from src.features.shopping_lists.service import ShoppingListService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/shopping-lists", tags=["shopping-lists"])
 items_router = APIRouter(prefix="/api/v1/shopping/items", tags=["shopping-items"])
@@ -45,9 +48,12 @@ async def get_my_households(
             response = await client.get(f"{dashboard_url}/api/v1/households/me", headers=headers, timeout=5.0)
             if response.status_code == 200:
                 return response.json()
+            logger.warning(
+                "Dashboard endpoint returned status code %s when retrieving households.", response.status_code
+            )
             return []
-        except Exception:
-            # Silently fallback to empty list on network or parse failures
+        except (httpx.RequestError, ValueError) as exc:
+            logger.warning("Failed to proxy households retrieval request to dashboard backend: %s", exc)
             return []
 
 
