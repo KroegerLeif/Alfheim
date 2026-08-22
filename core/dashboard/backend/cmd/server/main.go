@@ -59,11 +59,10 @@ func main() {
 
 	// Keycloak Admin client & Authenticator
 	kcClient := keycloak.NewClient(cfg.Keycloak, log)
-	auth, err := middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
+	auth, err := setupAuthenticator(cfg, log)
 	if err != nil {
-		log.Warn("failed to initialize oidc jwks authenticator; requests will require valid jwks endpoint",
-			slog.String("error", err.Error()),
-		)
+		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	// Initialize Repositories
@@ -113,17 +112,10 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ready","database":"connected"}`))
 	})
 
-	// Auth Middleware fallback for optional validation in dev
-	var authMw func(http.Handler) http.Handler
+	// Auth Middleware enforcing OIDC JWT validation and household role resolution
 	roleMw := middleware.HouseholdRoleMiddleware(dbClient.Pool, log)
-	if auth != nil {
-		authMw = func(next http.Handler) http.Handler {
-			return auth.AuthenticateMiddleware(roleMw(next))
-		}
-	} else {
-		authMw = func(next http.Handler) http.Handler {
-			return roleMw(next)
-		}
+	authMw := func(next http.Handler) http.Handler {
+		return auth.AuthenticateMiddleware(roleMw(next))
 	}
 
 	// Register Feature Domain Routes
@@ -180,4 +172,9 @@ func main() {
 	}
 
 	log.Info("dashboard-backend service stopped cleanly")
+}
+
+// setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
+func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	return middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
 }
