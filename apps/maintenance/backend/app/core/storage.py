@@ -1,6 +1,9 @@
 """Centralized S3 object storage utility and tenant-isolated path generator."""
 
+import os
+
 import aioboto3
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,10 +14,26 @@ class StorageSettings(BaseSettings):
 
     S3_ENDPOINT_URL: str = "http://rustfs:9000"
     S3_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/storage"
-    S3_ACCESS_KEY: str = "minioadmin"
-    S3_SECRET_KEY: str = "minioadmin"
+    S3_ACCESS_KEY: str | None = None
+    S3_SECRET_KEY: str | None = None
     S3_BUCKET_NAME: str = "alfheim-assets"
     S3_REGION: str = "us-east-1"
+
+    @model_validator(mode="after")
+    def validate_secrets(self) -> "StorageSettings":
+        """Enforce mandatory S3 secrets in non-development/testing environments."""
+        env = (os.getenv("ENVIRONMENT") or "development").strip().lower()
+        if env not in ("development", "dev", "testing", "test"):
+            if not self.S3_ACCESS_KEY:
+                raise ValueError("S3_ACCESS_KEY is required in non-development environment")
+            if not self.S3_SECRET_KEY:
+                raise ValueError("S3_SECRET_KEY is required in non-development environment")
+        else:
+            if not self.S3_ACCESS_KEY:
+                self.S3_ACCESS_KEY = "minioadmin"
+            if not self.S3_SECRET_KEY:
+                self.S3_SECRET_KEY = "minioadmin"
+        return self
 
 
 def get_household_object_key(household_id: str, app_name: str, filename: str) -> str:
