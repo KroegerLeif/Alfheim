@@ -65,6 +65,63 @@ async def test_pantry_mock_fallback_fails_with_production_database_url(client: A
 
 
 @pytest.mark.asyncio
+async def test_pantry_cross_tenant_idor_header_override_rejected(client: AsyncClient):
+    """Verify that a user attempting to override X-Household-ID to an unauthorized tenant is blocked with 403 Forbidden."""
+    import jwt
+
+    home_authorized = str(uuid.uuid4())
+    home_unauthorized = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
+
+    token = jwt.encode(
+        {
+            "sub": user_id,
+            "household_id": home_authorized,
+            "households": [home_authorized],
+        },
+        "secret",
+        algorithm="HS256",
+    )
+
+    auth_headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Household-ID": home_unauthorized,
+    }
+
+    response = await client.get("/api/v1/locations", headers=auth_headers)
+    assert response.status_code == 403
+    assert "forbidden" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_pantry_authorized_household_header_override_allowed(client: AsyncClient):
+    """Verify that a user selecting a household present in their authorized JWT claims succeeds."""
+    import jwt
+
+    home_a = str(uuid.uuid4())
+    home_b = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
+
+    token = jwt.encode(
+        {
+            "sub": user_id,
+            "household_id": home_a,
+            "households": [home_a, home_b],
+        },
+        "secret",
+        algorithm="HS256",
+    )
+
+    auth_headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Household-ID": home_b,
+    }
+
+    response = await client.get("/api/v1/locations", headers=auth_headers)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_pantry_mock_fallback_fails_with_production_keycloak_url(client: AsyncClient):
     """Verify that mock fallback fails when KEYCLOAK_URL points to non-localhost production Keycloak."""
     with patch(
