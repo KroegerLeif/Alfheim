@@ -152,10 +152,11 @@ def decode_keycloak_token(token: str) -> dict:
 async def get_current_user_and_home(request: Request) -> UserHomeContext:
     """Dependency injector providing authenticated user and active household context from Keycloak JWT."""
     auth_header = request.headers.get("Authorization")
+    header_hh = request.headers.get("X-Household-ID")
+
     if not auth_header:
         if is_mock_auth_allowed():
-            hh_str = request.headers.get("X-Household-ID")
-            home_id = uuid.UUID(hh_str) if hh_str else MOCK_HOME_ID
+            home_id = uuid.UUID(header_hh) if header_hh else MOCK_HOME_ID
             logger.warning(
                 "Mock auth fallback context injected for testing context. User: %s, Household: %s",
                 MOCK_USER_ID,
@@ -189,24 +190,73 @@ async def get_current_user_and_home(request: Request) -> UserHomeContext:
     except ValueError:
         user_id = uuid.uuid5(uuid.NAMESPACE_DNS, sub)
 
-    hh_str = request.headers.get("X-Household-ID") or payload.get("household_id") or payload.get("active_household_id")
-    if hh_str:
-        try:
-            home_id = uuid.UUID(hh_str)
-        except ValueError:
-            home_id = uuid.uuid5(uuid.NAMESPACE_DNS, hh_str)
-    else:
-        if is_mock_auth_allowed():
-            logger.warning(
-                "Mock household fallback context injected for testing context. Home: %s",
-                MOCK_HOME_ID,
-            )
-            home_id = MOCK_HOME_ID
+    # Collect all authorized household IDs from verified JWT claims
+    allowed_households: set[str] = set()
+
+    primary_hh = payload.get("household_id") or payload.get("active_household_id")
+    if primary_hh:
+        allowed_households.add(str(primary_hh).lower())
+
+    raw_households = payload.get("households")
+    if isinstance(raw_households, list):
+        for item in raw_households:
+            if isinstance(item, str) and item:
+                allowed_households.add(item.lower())
+            elif isinstance(item, dict):
+                hh_id = item.get("id") or item.get("household_id")
+                if hh_id:
+                    allowed_households.add(str(hh_id).lower())
+
+    selected_hh_str: str | None = None
+
+    if header_hh:
+        header_hh_clean = header_hh.strip().lower()
+        if allowed_households:
+            if header_hh_clean not in allowed_households:
+                logger.warning(
+                    "Cross-tenant IDOR blocked: header X-Household-ID '%s' not in user's token household claims: %s",
+                    header_hh,
+                    allowed_households,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: user is not a member of the requested household",
+                )
+            selected_hh_str = header_hh
         else:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="missing household context (X-Household-ID or token claim)",
-            )
+            if is_mock_auth_allowed():
+                selected_hh_str = header_hh
+            else:
+                logger.warning(
+                    "Cross-tenant IDOR blocked: header X-Household-ID '%s' supplied but no household claims present in token.",
+                    header_hh,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: user is not a member of the requested household",
+                )
+    else:
+        if primary_hh:
+            selected_hh_str = str(primary_hh)
+        elif allowed_households:
+            selected_hh_str = next(iter(allowed_households))
+        else:
+            if is_mock_auth_allowed():
+                logger.warning(
+                    "Mock household fallback context injected for testing context. Home: %s",
+                    MOCK_HOME_ID,
+                )
+                selected_hh_str = str(MOCK_HOME_ID)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="missing household context (X-Household-ID or token claim)",
+                )
+
+    try:
+        home_id = uuid.UUID(selected_hh_str)
+    except ValueError:
+        home_id = uuid.uuid5(uuid.NAMESPACE_DNS, selected_hh_str)
 
     roles = payload.get("realm_access", {}).get("roles", [])
 

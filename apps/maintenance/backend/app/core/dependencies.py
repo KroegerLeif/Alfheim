@@ -149,10 +149,21 @@ def decode_keycloak_token(token: str) -> dict:
 async def get_current_user_and_household(request: Request) -> UserHouseholdContext:
     """Dependency injector providing authenticated user and household context from Keycloak JWT."""
     auth_header = request.headers.get("Authorization")
+    header_hh = request.headers.get("X-Household-ID")
+
     if not auth_header:
         if is_mock_auth_allowed():
-            logger.warning("Mock auth fallback context injected for testing context. User: test-user, Household: 1")
-            return UserHouseholdContext(user_id="test-user", household_id=1)
+            parsed_mock_hh: int | None = 1
+            if header_hh:
+                try:
+                    parsed_mock_hh = int(header_hh)
+                except (ValueError, TypeError):
+                    parsed_mock_hh = None
+            logger.warning(
+                "Mock auth fallback context injected for testing context. User: test-user, Household: %s",
+                parsed_mock_hh,
+            )
+            return UserHouseholdContext(user_id="test-user", household_id=parsed_mock_hh)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="missing authorization header",
@@ -175,11 +186,67 @@ async def get_current_user_and_household(request: Request) -> UserHouseholdConte
             detail="missing sub claim in token",
         )
 
-    hh_val = payload.get("household_id") or payload.get("active_household_id") or request.headers.get("X-Household-ID")
+    # Collect all authorized household IDs from verified JWT claims
+    allowed_households: set[str] = set()
+
+    primary_hh = payload.get("household_id") or payload.get("active_household_id")
+    if primary_hh is not None:
+        allowed_households.add(str(primary_hh).lower())
+
+    raw_households = payload.get("households")
+    if isinstance(raw_households, list):
+        for item in raw_households:
+            if isinstance(item, (str, int)) and item:
+                allowed_households.add(str(item).lower())
+            elif isinstance(item, dict):
+                hh_id = item.get("id") or item.get("household_id")
+                if hh_id is not None:
+                    allowed_households.add(str(hh_id).lower())
+
+    selected_hh_str: str | None = None
+
+    if header_hh:
+        header_hh_clean = header_hh.strip().lower()
+        if allowed_households:
+            if header_hh_clean not in allowed_households:
+                logger.warning(
+                    "Cross-tenant IDOR blocked: header X-Household-ID '%s' not in user's token household claims: %s",
+                    header_hh,
+                    allowed_households,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: user is not a member of the requested household",
+                )
+            selected_hh_str = header_hh
+        else:
+            if is_mock_auth_allowed():
+                selected_hh_str = header_hh
+            else:
+                logger.warning(
+                    "Cross-tenant IDOR blocked: header X-Household-ID '%s' supplied but no household claims present in token.",
+                    header_hh,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: user is not a member of the requested household",
+                )
+    else:
+        if primary_hh is not None:
+            selected_hh_str = str(primary_hh)
+        elif allowed_households:
+            selected_hh_str = next(iter(allowed_households))
+        else:
+            if is_mock_auth_allowed():
+                logger.warning("Mock household fallback context injected for testing context. Household: 1")
+                selected_hh_str = "1"
+            else:
+                parsed_hh_id = None
+
     parsed_hh_id: int | None = None
-    if hh_val is not None:
+    if selected_hh_str is not None:
         try:
-            parsed_hh_id = int(hh_val)
+            parsed_hh_id = int(selected_hh_str)
         except (ValueError, TypeError):
             parsed_hh_id = None
 

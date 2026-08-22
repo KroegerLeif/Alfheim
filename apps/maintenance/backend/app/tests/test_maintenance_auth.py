@@ -75,6 +75,55 @@ async def test_mock_auth_fallback_fails_with_production_database_url(client: Asy
 
 
 @pytest.mark.asyncio
+async def test_maintenance_cross_tenant_idor_header_override_rejected(client: AsyncClient):
+    """Verify that a user attempting to override X-Household-ID to an unauthorized tenant is blocked with 403 Forbidden."""
+    import jwt
+
+    token = jwt.encode(
+        {
+            "sub": "user-123",
+            "household_id": 1,
+            "households": [1],
+        },
+        "secret",
+        algorithm="HS256",
+    )
+
+    auth_headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Household-ID": "999",
+    }
+
+    response = await client.get("/api/v1/devices", headers=auth_headers)
+    assert response.status_code == 403
+    assert "forbidden" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_maintenance_authorized_household_header_override_allowed(client: AsyncClient):
+    """Verify that a user selecting a household present in their authorized JWT claims succeeds."""
+    import jwt
+
+    token = jwt.encode(
+        {
+            "sub": "user-123",
+            "household_id": 1,
+            "households": [1, 2],
+        },
+        "secret",
+        algorithm="HS256",
+    )
+
+    auth_headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Household-ID": "2",
+    }
+
+    response = await client.get("/api/v1/devices", headers=auth_headers)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_mock_auth_fallback_fails_with_production_keycloak_url(client: AsyncClient):
     """Verify that mock fallback fails when KEYCLOAK_URL points to non-localhost production Keycloak."""
     with patch(
