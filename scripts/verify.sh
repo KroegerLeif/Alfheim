@@ -145,12 +145,12 @@ if [[ "$RUN_PYTHON" == true ]]; then
     fi
 
     log_section "Pytest Test Matrix Across Python Microservices"
-    PYTHON_SERVICES=(
-        "apps/pantry/backend"
-        "apps/shopping/backend"
-        "apps/maintenance/backend"
-        "apps/chores/backend"
-    )
+    PYTHON_SERVICES=()
+    while IFS= read -r service_dir; do
+        if [[ -f "$service_dir/pyproject.toml" ]]; then
+            PYTHON_SERVICES+=("$service_dir")
+        fi
+    done < <(find apps core -maxdepth 3 -mindepth 2 -type d \( -name "backend" -o -name "service*" \) | sort)
 
     for service in "${PYTHON_SERVICES[@]}"; do
         echo -e "\n${BOLD}--> Running tests in ${service}...${NC}"
