@@ -1,4 +1,7 @@
 {
   "name": "alfheim",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10"
+  }
 }
