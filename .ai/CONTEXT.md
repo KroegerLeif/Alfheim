@@ -117,6 +117,7 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
 | **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
 | **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
+| **`apps/chat`** | Go, Next.js 16, OIDC | *Not yet registered* (Phase 0-5 only — no compose/Caddy wiring yet) | `chat-db` (planned) |
 
 ### Docker Network Map:
 * **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Keycloak, RustFS S3, Grafana, and API Backends.
@@ -245,6 +246,43 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 2. **Instance Uniqueness**: Only one instance per chore template can be scheduled for a given date (enforced via index uq_chore_instance_template_per_date).
 3. **Streak Integrity**: Streaks are incremented if all scheduled chores for a day are completed. If any chore is left uncompleted, it is marked as "missed" and the streak resets to 0 during the daily reset.
 4. **Self-Healing Reset**: If the system is offline, the daily reset runs retroactively on the first access of a household's chores list for that day.
+
+---
+
+## 🗄️ Database Schema Invariants (Chat Service — `apps/chat/backend`, Go)
+
+> **Status**: Phase 0-5. Backend skeleton, migrations, JWT auth (issuer + audience), `/api/v1/chat/health`, the `internal/shared/llm` provider abstraction (**Ollama and OpenAI-compatible implemented**; Anthropic still returns a clear "not implemented yet" error), the `model-blocks` feature (CRUD, AES-256-GCM key encryption, ownership/sharing rules, on-demand health checks, ENV bootstrap seeding), the `conversations` feature (CRUD for conversations/messages, the `GET .../stream` SSE endpoint, and a full multi-round MCP tool-calling loop), the `mcpservers` registry feature (seeded from `CHAT_MCP_SERVERS`, admin enable/disable), and `internal/shared/mcp` (a from-scratch Streamable HTTP client for the Fach-Apps' FastMCP servers) exist. A minimal Next.js 16 frontend skeleton (`apps/chat/frontend`) exists with a conversation list and a chat streaming view that manually verifies the SSE pipeline end to end (it does not yet render `tool_call` events). Image attachments are still pending. Not yet wired into `compose.yaml`, `scripts/up.sh`, or the Caddyfile.
+
+### Table: `model_blocks`
+* **`id`** (UUID, PK), **`owner_user_id`** (Keycloak sub), **`household_id`** (NULLABLE — NULL means private)
+* **`visibility`** (`private` | `shared`) — shared blocks are usable by household members but only editable by the owner
+* **`provider_type`** (`ollama` | `openai_compatible`, `anthropic` planned), **`base_url`**, **`model_identifier`**
+* **`api_key_encrypted`** (AES-256-GCM ciphertext, BYTEA, NULLABLE), **`api_key_key_id`** (default `v1`, enables future key rotation)
+* **`health_status`** (`ok` | `unreachable` | `auth_invalid` | `unknown`), **`health_checked_at`**, **`health_detail`**
+* **`is_bootstrap`** — set on the idempotent, first-startup-only upsert seeded from `CHAT_BOOTSTRAP_*` env vars
+
+### Table: `mcp_server_registry`
+* Seeded/re-synced on every startup from `CHAT_MCP_SERVERS` (`internal/features/mcpservers`) — `app_slug`, `internal_url` (e.g. `http://pantry-backend:8000/mcp`), `enabled`. Re-seeding upserts `internal_url` by `app_slug` but never resets an admin's `enabled` toggle. No MCP server code is added by this feature; `internal/shared/mcp` is a from-scratch Streamable HTTP **client** (initialize handshake, session id, JSON or SSE response bodies) that talks to the Fach-Apps' existing FastMCP servers.
+
+### Tables: `conversations`, `messages`, `image_refs`
+* `conversations.source_app`/`source_context` capture the host Fach-App and its context when opened from the embedded chat widget (vs. NULL for the full chat app).
+* `messages.role` in (`user`,`assistant`,`system`,`tool`); `image_refs.storage_key` points at RustFS.
+
+#### Invariant Rules:
+1. API key plaintext never leaves the backend — response DTOs expose only `has_api_key: bool`.
+2. Shared `model_blocks` are usable by household members; only `owner_user_id` may edit, delete, or trigger a health check (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
+3. Bootstrap blocks (`is_bootstrap = true`, `owner_user_id = "system"`) are the one exception: visible and modifiable by any authenticated user, since they have no natural personal owner. The one-time seed is tracked via the separate `bootstrap_state` table (not `model_blocks` row presence), so deleting/editing the seeded block never causes it to reappear on the next restart.
+4. `internal/shared/llm.Provider` is constructed with primitive params (provider type, base URL, model, API key) — never a `modelblocks.ModelBlock` — so `internal/shared/llm` has no dependency on `internal/features/modelblocks`.
+5. JWT validation in `internal/shared/middleware/auth.go` checks **both** issuer and audience (`KEYCLOAK_EXPECTED_AUDIENCE`), a deliberate divergence from `core/dashboard/backend`'s issuer-only check.
+6. Conversations are always personal (`owner_user_id` only) — unlike `model_blocks`, there is no household-shared visibility for a conversation itself; a household member with access to a shared model block still gets their own separate conversation using it.
+7. `GET /api/v1/chat/conversations/{id}/stream` requires the conversation's last message to be an unanswered `role='user'` message (`ErrNoPendingUserMessage` otherwise). The completed assistant reply is persisted via `AppendMessageAndTouchConversation` (single transaction: insert message + bump `conversations.updated_at`), using a fresh 5s `context.Background()` timeout independent of the HTTP request context, so a client disconnecting right as the stream finishes cannot cause the reply to be silently lost. A stream that ends in an `Err` chunk persists nothing.
+8. `internal/features/conversations` depends on `internal/shared/llm` and defines its own narrow `ModelBlockResolver` interface (satisfied structurally by `modelblocks.Service`) rather than importing `internal/features/modelblocks` — kept decoupled per this repo's Go interface convention (defined at the consumer).
+9. The chat-backend HTTP server sets a long `WriteTimeout` (10 minutes, see `cmd/server/main.go`) specifically because the SSE endpoint holds the response open for as long as the model takes to reply; `ReadTimeout` stays short (15s).
+10. The frontend cannot use the browser's native `EventSource` for streaming because it cannot send an `Authorization` header; `apps/chat/frontend/src/lib/api.ts`'s `streamAssistantReply` instead reads the `text/event-stream` response body manually via `fetch()` + `ReadableStream`.
+11. The tool-calling loop (`conversations.service.runToolLoop`) forwards every provider chunk live to the client (`delta`, `tool_call`) but deliberately **never forwards an intermediate round's `Done` chunk** — a round ending is not the same as the whole assistant turn ending. Only the final round (no more tool calls, or the round limit reached) emits the terminal `Done`/`Err` chunk that ends the SSE response.
+12. `tool_round_limit` and `allowed_mcp_apps` live in a model block's `config_json` and are parsed into `llm.ProviderPolicy` by `modelblocks.parseProviderPolicy` (default round limit: 8). `llm.ProviderPolicy` lives in `internal/shared/llm` — not on the `modelblocks` or `conversations` domain types — specifically so both features can share it without one importing the other.
+13. `internal/features/conversations` never imports `internal/features/mcpservers` or `internal/shared/mcp`'s concrete `*mcp.ClientPool` type directly in its exported `Service`/`NewService` signature: it defines its own `MCPServerLister` and `MCPClientPool` consumer interfaces (`toolbridge.go`), satisfied structurally. `mcp.ClientPool.Get` returns the `mcp.ToolCaller` interface (not `*mcp.Client`) specifically so tests can substitute a fake without a real MCP server.
+14. `OpenAICompatibleProvider` (`internal/shared/llm/openai_compatible_provider.go`) expects `model_blocks.base_url` to be the API root **without** a trailing `/v1` (e.g. `https://api.openai.com`, not `.../v1`) — it appends `/v1/chat/completions` and `/v1/models` itself, per this phase's explicit spec. Streamed tool-call arguments arrive as fragmented JSON-string deltas keyed by index (unlike Ollama's single complete `tool_calls` list); they are buffered per index and only turned into `StreamChunk{ToolCall: ...}` once `finish_reason == "tool_calls"` (or the connection closes without an explicit `data: [DONE]` frame, which some providers omit).
 
 ---
 
