@@ -22,9 +22,11 @@
 
 ```
 src/
-├── core/               # Cross-cutting concerns (auth, HTTP client, utilities)
+├── components/shared/  # Shared shell components (ClientHeader, Sidebar, PantryChatOverlay)
+├── core/               # Cross-cutting concerns (auth, chat, HTTP client, utilities)
 │   ├── api.ts          # pantryClient (ky instance) + type-safe fetcher
 │   ├── authContext.tsx # useActiveHouseholdId hook (JWT → household_id)
+│   ├── chatContext.tsx # usePantryChat hook + PantryChatProvider
 │   └── utils.ts        # Shared utility helpers
 │
 ├── features/

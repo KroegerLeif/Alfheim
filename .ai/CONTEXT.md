@@ -9,6 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(pantry): integrate alfi chatwidget with contextual product data`**
+  - Integrated `PantryChatProvider` and `PantryChatOverlay` into `apps/pantry/frontend/src/app/[locale]/providers.tsx`.
+  - Added ALFI assistant trigger button to `ClientHeader` using `actionsSlot` in `AppHeader`.
+  - Implemented dynamic contextual product triggering in `ProductList` and `InventoryTableRow` passing `entityType: "product"`, `entityId`, and `entityData` (name, barcode, brand, quantity, location).
+  - Added active household ID extraction from `localStorage` (`alfheim_active_household_id`) with event listener synchronization.
+  - Added `askAlfi` and `askAlfiAboutProduct` i18n keys across `de`, `en`, and `pl` `pantry.json` locale files.
+  - Added Vitest test suite in `chatContext.test.tsx` verifying Header trigger, product list context forwarding, and inventory table row context forwarding.
 * **`feat(shared): implement alfi chatwidget on sidepanel base`**
   - Created `packages/shared/src/features/layout/ChatWidget/` with `ChatWidget`, `ChatWidgetHeader`, `ChatWidgetMessages`, `ChatWidgetInput`, `AlfiAvatar`, `useChatStream`, and `sseClient`.
   - Implemented `AlfiAvatar` SVG mascot with interactive status states (`idle`, `thinking`, `tool_calling`, `streaming`).
