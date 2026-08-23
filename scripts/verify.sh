@@ -154,7 +154,7 @@ if [[ "$RUN_PYTHON" == true ]]; then
 
     for service in "${PYTHON_SERVICES[@]}"; do
         echo -e "\n${BOLD}--> Running tests in ${service}...${NC}"
-        if (cd "$ROOT_DIR/$service" && uv run pytest --cov --cov-report=term-missing); then
+        if (cd "$ROOT_DIR/$service" && uv run pytest --cov --cov-report=term-missing --cov-fail-under=75); then
             log_success "Pytest suite for $service passed"
         else
             log_fail "Pytest suite for $service failed"
