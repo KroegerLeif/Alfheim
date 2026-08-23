@@ -54,7 +54,12 @@
   "header": {
     "notifications": "Powiadomienia",
     "theme_obsidian": "Tryb Obsidian",
-    "theme_kinetic": "Tryb Kinetic"
+    "theme_kinetic": "Tryb Kinetic",
+    "brand_subtitles": {
+      "dashboard": "Suwerenny Portal",
+      "pantry": "Zapasy i Księga",
+      "chores": "Grywalizacja Nawyków"
+    }
   },
   "catalog": {
     "add_app_title": "Zarejestruj nową usługę",
@@ -179,7 +184,22 @@
     "links": "Linki (jeden adres URL w linii)",
     "category": "Kategoria",
     "name": "Nazwa",
-    "none": "Brak"
+    "none": "Brak",
+    "contact_name_placeholder": "np. Leif Kröger",
+    "contact_phone_placeholder": "np. +49 123 45678",
+    "contact_email_placeholder": "np. kontakt@domena.com",
+    "contact_address_placeholder": "Wyszukaj adres do naniesienia na mapie...",
+    "contact_avatar_placeholder": "np. https://domena.com/obraz.jpg",
+    "contact_desc_placeholder": "Opcjonalne notatki...",
+    "contact_links_placeholder": "np. https://strona.com",
+    "geocoded_lookup": "(Wyszukiwanie geokodowane)",
+    "geocoded_resolved": "Rozpoznano lokalizację geokodowaną: {lat}, {lng}",
+    "category_name_placeholder": "np. Zdrowie, Usługi",
+    "icon_symbol": "Ikona (symbol Material)",
+    "category_icon_placeholder": "np. home, call, local_hospital",
+    "color_indicator": "Wskaźnik koloru",
+    "close_modal": "Zamknij okno",
+    "household_name_placeholder": "np. Rezydencja"
   },
   "settings": {
     "title": "Ustawienia platformy i motyw graficzny",
@@ -247,6 +267,7 @@
     "given_name": "Imię",
     "family_name": "Nazwisko",
     "not_available": "Brak danych",
-    "update_failed": "Aktualizacja nie powiodła się: {error}"
+    "update_failed": "Aktualizacja nie powiodła się: {error}",
+    "avatar_url_placeholder": "https://example.com/avatar.jpg"
   }
 }

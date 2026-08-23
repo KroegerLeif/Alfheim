@@ -35,7 +35,7 @@ export function Header() {
     <AppHeader
       appName="dashboard"
       brandTitle="ALFHEIM // DASHBOARD"
-      brandSubtitle="Sovereign Portal"
+      brandSubtitle={t('header.brand_subtitles.dashboard')}
       showBackToDashboard={false}
       user={authUser}
       onLogout={logout}

@@ -47,7 +47,7 @@ export function ContactModalFormFields({
           </label>
           <input
             type="text" value={contactName} onChange={(e) => setContactName(e.target.value)}
-            placeholder="e.g. Leif Kröger" required
+            placeholder={t('household.contact_name_placeholder')} required
             className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
           />
         </div>
@@ -74,7 +74,7 @@ export function ContactModalFormFields({
           </label>
           <input
             type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
-            placeholder="e.g. +49 123 45678"
+            placeholder={t('household.contact_phone_placeholder')}
             className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
           />
         </div>
@@ -84,7 +84,7 @@ export function ContactModalFormFields({
           </label>
           <input
             type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="e.g. contact@domain.com"
+            placeholder={t('household.contact_email_placeholder')}
             className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
           />
         </div>
@@ -92,17 +92,17 @@ export function ContactModalFormFields({
 
       <div>
         <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-          {t('household.address')} (Geocoded lookup)
+          {t('household.address')} {t('household.geocoded_lookup')}
         </label>
         <AddressAutocomplete
-          placeholder="Search address for map plotting..." initialValue={contactAddress}
+          placeholder={t('household.contact_address_placeholder')} initialValue={contactAddress}
           onSelect={(addr) => {
             setContactAddress(addr.display_name); setContactLat(addr.lat); setContactLng(addr.lng);
           }}
         />
         {contactLat && contactLng && (
           <p className="text-[10px] font-mono text-[var(--text-muted)] mt-1.5">
-            Geocoded location resolved: {contactLat.toFixed(5)}, {contactLng.toFixed(5)}
+            {t('household.geocoded_resolved', { lat: contactLat.toFixed(5), lng: contactLng.toFixed(5) })}
           </p>
         )}
       </div>
@@ -131,7 +131,7 @@ export function ContactModalFormFields({
           </label>
           <input
             type="url" value={contactAvatarUrl} onChange={(e) => setContactAvatarUrl(e.target.value)}
-            placeholder="e.g. https://domain.com/image.jpg"
+            placeholder={t('household.contact_avatar_placeholder')}
             className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
           />
         </div>
@@ -143,7 +143,7 @@ export function ContactModalFormFields({
         </label>
         <textarea
           value={contactDesc} onChange={(e) => setContactDesc(e.target.value)}
-          placeholder="Optional notes..." rows={2}
+          placeholder={t('household.contact_desc_placeholder')} rows={2}
           className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
         />
       </div>
@@ -154,7 +154,7 @@ export function ContactModalFormFields({
         </label>
         <textarea
           value={contactLinks} onChange={(e) => setContactLinks(e.target.value)}
-          placeholder="e.g. https://website.com" rows={2}
+          placeholder={t('household.contact_links_placeholder')} rows={2}
           className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
         />
       </div>

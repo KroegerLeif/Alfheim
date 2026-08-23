@@ -54,7 +54,12 @@
   "header": {
     "notifications": "Notifications",
     "theme_obsidian": "Obsidian Mode",
-    "theme_kinetic": "Kinetic Mode"
+    "theme_kinetic": "Kinetic Mode",
+    "brand_subtitles": {
+      "dashboard": "Sovereign Portal",
+      "pantry": "Inventory & Ledger",
+      "chores": "Gamified Habits"
+    }
   },
   "catalog": {
     "add_app_title": "Register New Service",
@@ -179,7 +184,22 @@
     "links": "Links (one URL per line)",
     "category": "Category",
     "name": "Name",
-    "none": "None"
+    "none": "None",
+    "contact_name_placeholder": "e.g. Leif Kröger",
+    "contact_phone_placeholder": "e.g. +49 123 45678",
+    "contact_email_placeholder": "e.g. contact@domain.com",
+    "contact_address_placeholder": "Search address for map plotting...",
+    "contact_avatar_placeholder": "e.g. https://domain.com/image.jpg",
+    "contact_desc_placeholder": "Optional notes...",
+    "contact_links_placeholder": "e.g. https://website.com",
+    "geocoded_lookup": "(Geocoded lookup)",
+    "geocoded_resolved": "Geocoded location resolved: {lat}, {lng}",
+    "category_name_placeholder": "e.g. Health, Utilities",
+    "icon_symbol": "Icon (Material symbol)",
+    "category_icon_placeholder": "e.g. home, call, local_hospital",
+    "color_indicator": "Color Indicator",
+    "close_modal": "Close modal",
+    "household_name_placeholder": "e.g. Residence"
   },
   "settings": {
     "title": "Platform Settings & Design Theme",
@@ -247,6 +267,7 @@
     "given_name": "Given Name",
     "family_name": "Family Name",
     "not_available": "N/A",
-    "update_failed": "Update failed: {error}"
+    "update_failed": "Update failed: {error}",
+    "avatar_url_placeholder": "https://example.com/avatar.jpg"
   }
 }

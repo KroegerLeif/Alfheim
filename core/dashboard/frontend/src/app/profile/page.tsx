@@ -128,7 +128,7 @@ export default function ProfilePage() {
               type="url"
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
+              placeholder={t('profile.avatar_url_placeholder')}
               className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] transition-colors duration-200 font-mono text-xs"
             />
           </div>
