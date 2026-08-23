@@ -50,7 +50,7 @@ export function HouseholdCreateModal({
               type="text"
               value={newHouseholdName}
               onChange={(e) => setNewHouseholdName(e.target.value)}
-              placeholder="e.g. Residence"
+              placeholder={t('household.household_name_placeholder')}
               className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
               required
             />

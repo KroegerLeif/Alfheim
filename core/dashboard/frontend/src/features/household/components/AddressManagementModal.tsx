@@ -53,7 +53,7 @@ export function AddressManagementModal({
           <button
             onClick={onClose}
             className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-            aria-label="Close modal"
+            aria-label={t('household.close_modal')}
           >
             <span className="material-symbols-outlined">close</span>
           </button>

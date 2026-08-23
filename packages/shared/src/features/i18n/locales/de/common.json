@@ -54,7 +54,12 @@
   "header": {
     "notifications": "Benachrichtigungen",
     "theme_obsidian": "Obsidian Modus",
-    "theme_kinetic": "Kinetic Modus"
+    "theme_kinetic": "Kinetic Modus",
+    "brand_subtitles": {
+      "dashboard": "Souveränes Portal",
+      "pantry": "Bestand & Buchhaltung",
+      "chores": "Spielerische Gewohnheiten"
+    }
   },
   "catalog": {
     "add_app_title": "Neuen Dienst registrieren",
@@ -179,7 +184,22 @@
     "links": "Links (eine URL pro Zeile)",
     "category": "Kategorie",
     "name": "Name",
-    "none": "Keine"
+    "none": "Keine",
+    "contact_name_placeholder": "z.B. Leif Kröger",
+    "contact_phone_placeholder": "z.B. +49 123 45678",
+    "contact_email_placeholder": "z.B. contact@domain.com",
+    "contact_address_placeholder": "Adresse für Kartenanzeige suchen...",
+    "contact_avatar_placeholder": "z.B. https://domain.com/image.jpg",
+    "contact_desc_placeholder": "Optionale Notizen...",
+    "contact_links_placeholder": "z.B. https://website.com",
+    "geocoded_lookup": "(Geocodierte Suche)",
+    "geocoded_resolved": "Geocodierter Standort aufgelöst: {lat}, {lng}",
+    "category_name_placeholder": "z.B. Gesundheit, Versorgung",
+    "icon_symbol": "Icon (Material-Symbol)",
+    "category_icon_placeholder": "z.B. home, call, local_hospital",
+    "color_indicator": "Farbindikator",
+    "close_modal": "Modal schließen",
+    "household_name_placeholder": "z.B. Wohnsitz"
   },
   "settings": {
     "title": "Plattform-Einstellungen & Design-Theme",
@@ -247,6 +267,7 @@
     "given_name": "Vorname",
     "family_name": "Nachname",
     "not_available": "N/V",
-    "update_failed": "Aktualisierung fehlgeschlagen: {error}"
+    "update_failed": "Aktualisierung fehlgeschlagen: {error}",
+    "avatar_url_placeholder": "https://example.com/avatar.jpg"
   }
 }
