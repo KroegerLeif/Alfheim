@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"alfheim/chat/config"
+	"alfheim/chat/internal/features/conversations"
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/db"
 	"alfheim/chat/internal/shared/logger"
@@ -77,6 +78,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Conversations Feature (messages, SSE-streamed assistant replies)
+	conversationsRepo := conversations.NewRepository(dbClient.Pool)
+	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, log)
+	conversationsHandler := conversations.NewHandler(conversationsService)
+
 	// Router Setup
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
@@ -89,13 +95,17 @@ func main() {
 
 	// Feature Domain Routes
 	modelBlocksHandler.RegisterRoutes(r, authMw)
+	conversationsHandler.RegisterRoutes(r, authMw)
 
-	// HTTP Server & Graceful Shutdown
+	// HTTP Server & Graceful Shutdown.
+	// WriteTimeout is generous because the SSE streaming endpoint holds the response
+	// open for as long as the model takes to finish generating; ReadTimeout stays
+	// short since it only bounds reading the (small) request body/headers.
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		WriteTimeout: 10 * time.Minute,
 		IdleTimeout:  60 * time.Second,
 	}
 
