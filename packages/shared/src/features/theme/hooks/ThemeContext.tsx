@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { CSS_VAR_MAP, DEFAULT_THEME_MODE, DEFAULT_THEME_VARIANT, THEME_TOKENS } from '../tokens';
-import { ResolvedMode, ThemeContextType, ThemeMode, ThemeOverrideConfig, ThemeTokens, ThemeVariant, CustomColorsConfig } from '../types';
+import { DEFAULT_THEME_VARIANT } from '../tokens';
+import { ResolvedMode, ThemeContextType, ThemeMode, ThemeOverrideConfig, ThemeVariant, CustomColorsConfig } from '../types';
+import { getSystemMode, applyThemeToDOM } from '../utils/themeDomUtils';
 
 const STORAGE_KEY = 'alfheim_theme_override';
 const LEGACY_STORAGE_KEY = 'stitch-theme';
@@ -13,103 +14,6 @@ interface ThemeProviderProps {
   children: React.ReactNode;
   defaultMode?: ThemeMode;
   defaultVariant?: ThemeVariant;
-}
-
-function getSystemMode(): ResolvedMode {
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return DEFAULT_THEME_MODE;
-}
-
-const parseHex = (hex: string) => {
-  let sanitized = hex.replace('#', '');
-  if (sanitized.length === 3) {
-    sanitized = sanitized.split('').map(char => char + char).join('');
-  }
-  const r = parseInt(sanitized.substring(0, 2), 16) || 0;
-  const g = parseInt(sanitized.substring(2, 4), 16) || 0;
-  const b = parseInt(sanitized.substring(4, 6), 16) || 0;
-  return { r, g, b };
-};
-
-const hexToRgba = (hex: string, alpha: number) => {
-  const { r, g, b } = parseHex(hex);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
-const adjustBrightness = (hex: string, percent: number) => {
-  const { r, g, b } = parseHex(hex);
-  const adjust = (val: number) => Math.max(0, Math.min(255, val + percent));
-  const toHex = (val: number) => {
-    const h = val.toString(16);
-    return h.length === 1 ? '0' + h : h;
-  };
-  return `#${toHex(adjust(r))}${toHex(adjust(g))}${toHex(adjust(b))}`;
-};
-
-function applyThemeToDOM(variant: ThemeVariant, resolvedMode: ResolvedMode, customColors?: CustomColorsConfig) {
-  if (typeof document === 'undefined') return;
-
-  const root = document.documentElement;
-
-  // 1. Data attributes
-  root.setAttribute('data-theme', variant);
-  root.setAttribute('data-mode', resolvedMode);
-  root.setAttribute('data-theme-variant', variant);
-
-  // 2. Class toggles for Tailwind CSS
-  if (resolvedMode === 'dark') {
-    root.classList.add('dark');
-    root.classList.remove('light');
-  } else {
-    root.classList.add('light');
-    root.classList.remove('dark');
-  }
-
-  // 3. Inject CSS custom properties
-  const variantTokens = THEME_TOKENS[variant] || THEME_TOKENS.nordic;
-  let tokens: ThemeTokens = variantTokens[resolvedMode] || variantTokens.dark;
-
-  if (variant === 'custom' && customColors) {
-    const modeColors = customColors[resolvedMode];
-    if (modeColors) {
-      const primary = modeColors.primary || '#10b981';
-      const canvas = modeColors.canvas || (resolvedMode === 'dark' ? '#0f172a' : '#f8fafc');
-      const accent = modeColors.accent || primary;
-      const mint = modeColors.mint || (resolvedMode === 'dark' ? '#10b981' : '#059669');
-      const cyan = modeColors.cyan || (resolvedMode === 'dark' ? '#06b6d4' : '#0891b2');
-      const gold = modeColors.gold || (resolvedMode === 'dark' ? '#f59e0b' : '#d97706');
-
-      const isResolvedDark = resolvedMode === 'dark';
-      const surfaceCard = isResolvedDark ? adjustBrightness(canvas, 10) : '#ffffff';
-      const surfaceElevated = isResolvedDark ? adjustBrightness(canvas, 20) : adjustBrightness(canvas, -10);
-      const borderSubtle = isResolvedDark ? adjustBrightness(canvas, 25) : adjustBrightness(canvas, -15);
-
-      tokens = {
-        ...tokens,
-        primaryMain: primary,
-        primaryHover: adjustBrightness(primary, isResolvedDark ? 20 : -20),
-        accentMint: mint,
-        accentCyan: cyan,
-        accentGold: gold,
-        surfaceCanvas: canvas,
-        surfaceCard: surfaceCard,
-        surfaceElevated: surfaceElevated,
-        borderSubtle: borderSubtle,
-        borderAccent: hexToRgba(accent, 0.4),
-        accentGlow: hexToRgba(accent, 0.15)
-      };
-    }
-  }
-
-  (Object.keys(CSS_VAR_MAP) as Array<keyof ThemeTokens>).forEach((tokenKey) => {
-    const varName = CSS_VAR_MAP[tokenKey];
-    const varValue = tokens[tokenKey];
-    if (varName && varValue) {
-      root.style.setProperty(varName, varValue);
-    }
-  });
 }
 
 export function ThemeProvider({
@@ -127,9 +31,7 @@ export function ThemeProvider({
             return parsed.mode;
           }
         }
-      } catch {
-        // Ignore parse error
-      }
+      } catch {}
     }
     return defaultMode;
   });
@@ -148,9 +50,7 @@ export function ThemeProvider({
         if (legacyVariant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(legacyVariant)) {
           return legacyVariant;
         }
-      } catch {
-        // Ignore parse error
-      }
+      } catch {}
     }
     return defaultVariant;
   });
@@ -180,63 +80,41 @@ export function ThemeProvider({
             }
           };
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     return {
       dark: {
-        primary: '#10b981',
-        canvas: '#0f172a',
-        accent: '#10b981',
-        mint: '#10b981',
-        cyan: '#06b6d4',
-        gold: '#f59e0b',
+        primary: '#10b981', canvas: '#0f172a', accent: '#10b981',
+        mint: '#10b981', cyan: '#06b6d4', gold: '#f59e0b',
       },
       light: {
-        primary: '#059669',
-        canvas: '#f8fafc',
-        accent: '#059669',
-        mint: '#059669',
-        cyan: '#0891b2',
-        gold: '#d97706',
+        primary: '#059669', canvas: '#f8fafc', accent: '#059669',
+        mint: '#059669', cyan: '#0891b2', gold: '#d97706',
       }
     };
   });
 
   const [systemMode, setSystemMode] = useState<ResolvedMode>(getSystemMode);
 
-  // Compute resolved mode ('dark' or 'light')
   const resolvedMode: ResolvedMode = mode === 'system' ? systemMode : mode;
   const isDark = resolvedMode === 'dark';
 
-  // Listen for OS color scheme preference changes
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
-
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemMode(e.matches ? 'dark' : 'light');
-    };
-
+    const handleChange = (e: MediaQueryListEvent) => setSystemMode(e.matches ? 'dark' : 'light');
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // Listen for localStorage changes from other tabs/apps
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
         try {
           const parsed: ThemeOverrideConfig = JSON.parse(e.newValue || '{}');
-          if (parsed.mode && ['dark', 'light', 'system'].includes(parsed.mode)) {
-            setModeState(parsed.mode);
-          }
-          if (parsed.variant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) {
-            setVariantState(parsed.variant);
-          }
+          if (parsed.mode && ['dark', 'light', 'system'].includes(parsed.mode)) setModeState(parsed.mode);
+          if (parsed.variant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) setVariantState(parsed.variant);
         } catch {}
       } else if (e.key === 'alfheim_custom_theme') {
         try {
@@ -244,32 +122,24 @@ export function ThemeProvider({
           if (parsed.dark || parsed.light) {
             setCustomColorsState({
               dark: {
-                primary: parsed.dark?.primary || '#10b981',
-                canvas: parsed.dark?.canvas || '#0f172a',
-                accent: parsed.dark?.accent || '#10b981',
-                mint: parsed.dark?.mint || '#10b981',
-                cyan: parsed.dark?.cyan || '#06b6d4',
-                gold: parsed.dark?.gold || '#f59e0b',
+                primary: parsed.dark?.primary || '#10b981', canvas: parsed.dark?.canvas || '#0f172a',
+                accent: parsed.dark?.accent || '#10b981', mint: parsed.dark?.mint || '#10b981',
+                cyan: parsed.dark?.cyan || '#06b6d4', gold: parsed.dark?.gold || '#f59e0b',
               },
               light: {
-                primary: parsed.light?.primary || '#059669',
-                canvas: parsed.light?.canvas || '#f8fafc',
-                accent: parsed.light?.accent || '#059669',
-                mint: parsed.light?.mint || '#059669',
-                cyan: parsed.light?.cyan || '#0891b2',
-                gold: parsed.light?.gold || '#d97706',
+                primary: parsed.light?.primary || '#059669', canvas: parsed.light?.canvas || '#f8fafc',
+                accent: parsed.light?.accent || '#059669', mint: parsed.light?.mint || '#059669',
+                cyan: parsed.light?.cyan || '#0891b2', gold: parsed.light?.gold || '#d97706',
               }
             });
           }
         } catch {}
       }
     };
-
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Update DOM when variant, resolvedMode, or customColors changes
   useEffect(() => {
     applyThemeToDOM(variant, resolvedMode, customColors);
   }, [variant, resolvedMode, customColors]);
@@ -318,15 +188,7 @@ export function ThemeProvider({
 
   const contextValue = useMemo<ThemeContextType>(
     () => ({
-      mode,
-      variant,
-      resolvedMode,
-      isDark,
-      setMode,
-      setVariant,
-      toggleTheme,
-      customColors,
-      setCustomColors,
+      mode, variant, resolvedMode, isDark, setMode, setVariant, toggleTheme, customColors, setCustomColors,
     }),
     [mode, variant, resolvedMode, isDark, setMode, setVariant, toggleTheme, customColors, setCustomColors]
   );

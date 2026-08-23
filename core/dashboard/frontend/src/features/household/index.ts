@@ -7,3 +7,4 @@ export * from './components/MemberTable';
 export * from './components/MemberGrid';
 export * from './components/MapAddressBanner';
 export * from './components/InviteModal';
+export * from './components/HouseholdCreateModal';

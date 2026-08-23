@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from '@alfheim/shared';
 import { useUpdateUserLink, useDeleteUserLink } from '../queries';
 import { AppItem } from '@/shared/types';
+import { EditAppFormFields } from './EditAppFormFields';
 
 interface EditAppModalProps {
   app: AppItem | null;
@@ -27,16 +28,7 @@ const PRESET_ICONS = [
   { name: 'checklist', label: 'Task List' },
 ];
 
-/**
- * Interactive Edit Tier 3 User Link Modal Component.
- * Enables editing or deleting an existing user custom link/bookmark.
- */
-export function EditAppModal({
-  app,
-  isOpen,
-  onClose,
-  onSuccess,
-}: EditAppModalProps) {
+export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalProps) {
   const { t } = useTranslation();
   const updateLinkMutation = useUpdateUserLink();
   const deleteLinkMutation = useDeleteUserLink();
@@ -64,7 +56,6 @@ export function EditAppModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-
     const trimmedTitle = title.trim();
     const trimmedUrl = url.trim();
 
@@ -78,25 +69,13 @@ export function EditAppModal({
     }
 
     updateLinkMutation.mutate(
-      {
-        id: app.id,
-        payload: {
-          title: trimmedTitle,
-          description: description.trim(),
-          icon: selectedIcon,
-          url: trimmedUrl,
-        },
-      },
+      { id: app.id, payload: { title: trimmedTitle, description: description.trim(), icon: selectedIcon, url: trimmedUrl } },
       {
         onSuccess: (updatedItem) => {
-          if (onSuccess) {
-            onSuccess(updatedItem.title || updatedItem.name || trimmedTitle);
-          }
+          if (onSuccess) onSuccess(updatedItem.title || updatedItem.name || trimmedTitle);
           onClose();
         },
-        onError: (err) => {
-          setErrorMessage(err.message || t('catalog.update_failed_error') || 'Failed to update user link');
-        },
+        onError: (err) => setErrorMessage(err.message || t('catalog.update_failed_error') || 'Failed to update user link'),
       }
     );
   };
@@ -104,34 +83,22 @@ export function EditAppModal({
   const handleDelete = () => {
     deleteLinkMutation.mutate(app.id, {
       onSuccess: () => {
-        if (onSuccess) {
-          onSuccess(t('dashboard.toast_bookmark_deleted', { name: app.title || app.name || '' }));
-        }
+        if (onSuccess) onSuccess(t('dashboard.toast_bookmark_deleted', { name: app.title || app.name || '' }));
         onClose();
       },
-      onError: (err) => {
-        setErrorMessage(err.message || t('catalog.delete_failed_error') || 'Failed to delete user link');
-      },
+      onError: (err) => setErrorMessage(err.message || t('catalog.delete_failed_error') || 'Failed to delete user link'),
     });
   };
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 relative">
-        {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--primary-main)]">edit_square</span>
-            <h2 className="text-base font-bold text-[var(--text-main)]">
-              {t('catalog.edit_user_link_title')}
-            </h2>
+            <h2 className="text-base font-bold text-[var(--text-main)]">{t('catalog.edit_user_link_title')}</h2>
           </div>
-          <button
-            onClick={onClose}
-            type="button"
-            className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
-            aria-label={t('common.close')}
-          >
+          <button onClick={onClose} type="button" className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer" aria-label={t('common.close')}>
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
         </div>
@@ -143,119 +110,35 @@ export function EditAppModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.link_title_req')}
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('catalog.link_title_placeholder')}
-              className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-              required
-            />
-          </div>
+          <EditAppFormFields
+            title={title} setTitle={setTitle} url={url} setUrl={setUrl}
+            description={description} setDescription={setDescription}
+            selectedIcon={selectedIcon} setSelectedIcon={setSelectedIcon} presetIcons={PRESET_ICONS}
+          />
 
-          {/* URL */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.target_url_req')}
-            </label>
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t('catalog.target_url_placeholder')}
-              className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-              required
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.description')}
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('catalog.description_placeholder')}
-              rows={2}
-              className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-            />
-          </div>
-
-          {/* Icon Picker */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1.5">
-              {t('catalog.select_icon')}
-            </label>
-            <div className="grid grid-cols-6 gap-2 max-h-28 overflow-y-auto p-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
-              {PRESET_ICONS.map((ic) => (
-                <button
-                  key={ic.name}
-                  type="button"
-                  onClick={() => setSelectedIcon(ic.name)}
-                  title={t(`catalog.icons.${ic.name}`) || ic.label}
-                  className={`p-2 rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer ${
-                    selectedIcon === ic.name
-                      ? 'bg-[var(--primary-main)]/20 border border-[var(--primary-main)] text-[var(--primary-main)]'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-elevated)]'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-lg">{ic.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Footer Actions */}
           <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
             {confirmDelete ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-rose-400 font-mono">{t('catalog.confirm_delete_link')}</span>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={deleteLinkMutation.isPending}
-                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer"
-                >
+                <button type="button" onClick={handleDelete} disabled={deleteLinkMutation.isPending} className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer">
                   {t('common.confirm')}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(false)}
-                  className="px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-                >
+                <button type="button" onClick={() => setConfirmDelete(false)} className="px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer">
                   {t('common.cancel')}
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                className="px-3 py-1.5 rounded-lg bg-rose-950/40 border border-rose-800/40 text-rose-400 font-mono text-xs hover:bg-rose-900/40 cursor-pointer flex items-center gap-1"
-              >
+              <button type="button" onClick={() => setConfirmDelete(true)} className="px-3 py-1.5 rounded-lg bg-rose-950/40 border border-rose-800/40 text-rose-400 font-mono text-xs hover:bg-rose-900/40 cursor-pointer flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">delete</span>
                 <span>{t('catalog.delete_link')}</span>
               </button>
             )}
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-              >
+              <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer">
                 {t('common.cancel')}
               </button>
-              <button
-                type="submit"
-                disabled={updateLinkMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50 transition-all shadow-md"
-              >
+              <button type="submit" disabled={updateLinkMutation.isPending} className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50 transition-all shadow-md">
                 {updateLinkMutation.isPending ? t('common.loading') : t('common.save_changes')}
               </button>
             </div>

@@ -1,21 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@alfheim/shared';
-import { useHouseholds, useCreateHousehold, useJoinHousehold } from '@/features/household';
+import { useHouseholds, useCreateHousehold, useJoinHousehold, HouseholdCreateModal } from '@/features/household';
 
 export default function HouseholdSelectorPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { data: households, isLoading, isError } = useHouseholds();
+  const { data: households, isLoading } = useHouseholds();
   const createHouseholdMutation = useCreateHousehold();
   const joinMutation = useJoinHousehold();
 
   const [joinTokenInput, setJoinTokenInput] = useState('');
   const [joinStatus, setJoinStatus] = useState<string | null>(null);
 
-  // Create Household Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newHouseholdName, setNewHouseholdName] = useState('');
   const [createStatus, setCreateStatus] = useState<string | null>(null);
@@ -38,13 +37,9 @@ export default function HouseholdSelectorPage() {
         onSuccess: (newHh) => {
           setNewHouseholdName('');
           setIsCreateModalOpen(false);
-          if (newHh?.id) {
-            handleHouseholdSelect(newHh.id, 'OWNER');
-          }
+          if (newHh?.id) handleHouseholdSelect(newHh.id, 'OWNER');
         },
-        onError: (err) => {
-          setCreateStatus(t('household.create_failed', { error: err.message }));
-        },
+        onError: (err) => setCreateStatus(t('household.create_failed', { error: err.message })),
       }
     );
   };
@@ -60,13 +55,9 @@ export default function HouseholdSelectorPage() {
         onSuccess: (household) => {
           setJoinStatus(t('household.join_success', { name: household.name }));
           setJoinTokenInput('');
-          if (household?.id) {
-            handleHouseholdSelect(household.id, household.role || 'MEMBER');
-          }
+          if (household?.id) handleHouseholdSelect(household.id, household.role || 'MEMBER');
         },
-        onError: (err) => {
-          setJoinStatus(t('household.join_failed', { error: err.message }));
-        },
+        onError: (err) => setJoinStatus(t('household.join_failed', { error: err.message })),
       }
     );
   };
@@ -85,7 +76,6 @@ export default function HouseholdSelectorPage() {
   return (
     <>
       <div className="col-span-12 max-w-4xl mx-auto w-full space-y-8 py-4 sm:py-8">
-        {/* Title Header */}
         <div className="flex flex-col space-y-2">
           <div className="inline-flex items-center gap-2 self-start px-2.5 py-1 rounded-full bg-[var(--primary-main)]/10 text-[var(--primary-main)] text-xs font-mono border border-[var(--border-accent)]">
             <span className="material-symbols-outlined text-sm">home</span>
@@ -95,24 +85,17 @@ export default function HouseholdSelectorPage() {
             {hasHouseholds ? t('household.select_household') : t('household.no_household')}
           </h1>
           <p className="text-sm text-[var(--text-muted)] font-sans max-w-xl">
-            {hasHouseholds
-              ? t('household.select_household_desc')
-              : t('household.no_household_desc')}
+            {hasHouseholds ? t('household.select_household_desc') : t('household.no_household_desc')}
           </p>
         </div>
 
         {joinStatus && (
-          <div className={`p-4 rounded-xl text-xs font-mono border ${
-            joinStatus.includes('failed')
-              ? 'bg-red-950/40 border-red-800/40 text-red-300'
-              : 'bg-emerald-950/40 border-emerald-800/40 text-emerald-300'
-          }`}>
+          <div className={`p-4 rounded-xl text-xs font-mono border ${joinStatus.includes('failed') ? 'bg-red-950/40 border-red-800/40 text-red-300' : 'bg-emerald-950/40 border-emerald-800/40 text-emerald-300'}`}>
             {joinStatus}
           </div>
         )}
 
         {hasHouseholds ? (
-          /* Selector List / Grid view */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {households.map((hh) => (
               <div
@@ -148,9 +131,7 @@ export default function HouseholdSelectorPage() {
           </div>
         ) : null}
 
-        {/* Action Cards (Create & Join) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Create Household Card */}
           <div className="p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex flex-col justify-between space-y-4 shadow-lg">
             <div>
               <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-main)] mb-1">
@@ -169,7 +150,6 @@ export default function HouseholdSelectorPage() {
             </button>
           </div>
 
-          {/* Join Household Card */}
           <div className="p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex flex-col justify-between space-y-4 shadow-lg">
             <div>
               <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-main)] mb-1">
@@ -202,58 +182,15 @@ export default function HouseholdSelectorPage() {
         </div>
       </div>
 
-      {/* Consolidated Create Household Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-              <h3 className="text-base font-bold text-[var(--text-main)]">{t('household.create_household')}</h3>
-              <button onClick={() => setIsCreateModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            {createStatus && (
-              <div className="p-3 rounded bg-red-950/40 border border-red-800/40 text-red-300 text-xs font-mono">
-                {createStatus}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateHouseholdSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-                  {t('household.title')} {t('catalog.app_name')} *
-                </label>
-                <input
-                  type="text"
-                  value={newHouseholdName}
-                  onChange={(e) => setNewHouseholdName(e.target.value)}
-                  placeholder="e.g. Residence"
-                  className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] cursor-pointer"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={createHouseholdMutation.isPending}
-                  className="px-4 py-2 rounded bg-[var(--primary-main)] text-slate-950 font-bold text-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
-                >
-                  {createHouseholdMutation.isPending ? t('common.loading') : t('household.create_household')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <HouseholdCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        newHouseholdName={newHouseholdName}
+        setNewHouseholdName={setNewHouseholdName}
+        createStatus={createStatus}
+        onSubmit={handleCreateHouseholdSubmit}
+        isPending={createHouseholdMutation.isPending}
+      />
     </>
   );
 }
