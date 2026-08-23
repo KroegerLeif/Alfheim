@@ -1,16 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { pantryClient } from "@/core/api";
 import {
   InventoryStateReadWithRelations,
   LowStockItem,
   ExpirationSummary,
-  InventoryTransactionCreate,
-  InventoryLedgerRead
 } from "../types";
-
 import { useState, useEffect } from "react";
 
-function useActiveHouseholdId() {
+export {
+  useCreateTransaction,
+  useLedgerHistory,
+} from "./inventoryLedgerService";
+
+export function useActiveHouseholdId() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,7 +105,6 @@ export function useExpirationSummary() {
   });
 }
 
-
 /**
  * 4. Helper action to push low-stock items to active household Shopping App
  * Fetches current low-stock levels and forwards them via POST /api/v1/shopping/items.
@@ -166,47 +167,4 @@ export async function exportLowStockShoppingList(): Promise<LowStockItem[]> {
   return pantryClient
     .get("api/v1/inventory/low-stock")
     .json<LowStockItem[]>();
-}
-
-/**
- * 5. POST /api/v1/inventory/transactions
- * TanStack Mutation to record an IN, OUT, WASTE, or RECONCILIATION transaction.
- * Re-fetches all relevant inventory lists on success.
- */
-export function useCreateTransaction() {
-  const queryClient = useQueryClient();
-
-  return useMutation<InventoryLedgerRead, any, InventoryTransactionCreate>({
-    mutationFn: (payload) =>
-      pantryClient
-        .post("api/v1/inventory/transactions", { json: payload })
-        .json<InventoryLedgerRead>(),
-    onSuccess: () => {
-      // Invalidate all inventory queries to refresh states across the app
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-    },
-  });
-}
-
-/**
- * 6. GET /api/v1/inventory/transactions
- * Retrieves transaction audit ledger history logs.
- */
-export function useLedgerHistory(productId?: string, locationId?: string, limit = 100, offset = 0) {
-  const activeHouseholdId = useActiveHouseholdId();
-
-  return useQuery<InventoryLedgerRead[]>({
-    queryKey: inventoryKeys.ledgerFiltered(activeHouseholdId, productId, locationId, limit, offset),
-    queryFn: () =>
-      pantryClient
-        .get("api/v1/inventory/transactions", {
-          searchParams: {
-            ...(productId && { product_id: productId }),
-            ...(locationId && { location_id: locationId }),
-            limit,
-            offset,
-          },
-        })
-        .json<InventoryLedgerRead[]>(),
-  });
 }
