@@ -286,9 +286,9 @@ func TestService_TriggerHealthCheck(t *testing.T) {
 
 	t.Run("marks unknown health for an unimplemented provider", func(t *testing.T) {
 		created, err := svc.Create(ctx, "user-1", "", modelblocks.CreateRequest{
-			ProviderType:    "openai_compatible",
+			ProviderType:    "anthropic", // still unimplemented as of Phase 5; openai_compatible now is
 			DisplayName:     "External",
-			ModelIdentifier: "gpt-4.1",
+			ModelIdentifier: "claude-3",
 		})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

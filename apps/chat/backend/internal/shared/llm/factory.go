@@ -19,7 +19,7 @@ func NewProvider(providerType, baseURL, model, apiKey string) (Provider, error) 
 	case ProviderTypeOllama:
 		return NewOllamaProvider(baseURL, model, apiKey), nil
 	case ProviderTypeOpenAICompatible:
-		return nil, fmt.Errorf("provider type %q is not implemented yet (planned for a later phase)", providerType)
+		return NewOpenAICompatibleProvider(baseURL, model, apiKey), nil
 	case ProviderTypeAnthropic:
 		return nil, fmt.Errorf("provider type %q is not implemented yet (planned for a later phase)", providerType)
 	default:

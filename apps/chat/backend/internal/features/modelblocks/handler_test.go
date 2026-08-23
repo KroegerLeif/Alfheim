@@ -150,9 +150,9 @@ func TestHandler_TriggerHealthCheck(t *testing.T) {
 	router := newTestRouter(svc, claims)
 
 	created, err := svc.Create(context.Background(), claims.Subject, "", modelblocks.CreateRequest{
-		ProviderType:    "openai_compatible", // not yet implemented -> deterministic "unknown" result
+		ProviderType:    "anthropic", // still unimplemented as of Phase 5 -> deterministic "unknown" result
 		DisplayName:     "External",
-		ModelIdentifier: "gpt-4.1",
+		ModelIdentifier: "claude-3",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

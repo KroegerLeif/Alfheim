@@ -220,8 +220,18 @@ func TestNewProvider(t *testing.T) {
 		}
 	})
 
+	t.Run("constructs an openai-compatible provider", func(t *testing.T) {
+		p, err := NewProvider(ProviderTypeOpenAICompatible, "https://api.openai.com", "gpt-4.1", "sk-test")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if p.Name() != "openai_compatible" {
+			t.Errorf("expected provider name openai_compatible, got %s", p.Name())
+		}
+	})
+
 	t.Run("returns an error for not-yet-implemented providers", func(t *testing.T) {
-		if _, err := NewProvider(ProviderTypeOpenAICompatible, "https://api.openai.com", "gpt-4.1", "sk-test"); err == nil {
+		if _, err := NewProvider(ProviderTypeAnthropic, "https://api.anthropic.com", "claude-3", "sk-test"); err == nil {
 			t.Errorf("expected error for unimplemented provider type")
 		}
 	})
