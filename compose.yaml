@@ -9,6 +9,7 @@ include:
   - ./apps/pantry/compose.yml
   - ./apps/shopping/compose.yml
   - ./apps/chores/compose.yml
+  - ./apps/chat/compose.yml
 
 networks:
   gateway-net:
@@ -31,6 +32,9 @@ networks:
     driver: bridge
   app-maintenance-net:
     name: app-maintenance-net
+    driver: bridge
+  app-chat-net:
+    name: app-chat-net
     driver: bridge
   observability-internal:
     name: observability-internal
