@@ -18,6 +18,21 @@
     "attachImage": "Załącz obraz",
     "uploadingImage": "Przesyłanie obrazu...",
     "removeAttachment": "Usuń załącznik",
-    "uploadError": "Nie udało się przesłać obrazu"
+    "uploadError": "Nie udało się przesłać obrazu",
+    "widgetTitle": "Asystent ALFI",
+    "widgetSubtitle": "Twój inteligentny asystent Alfheim",
+    "authRequired": "Wymagane logowanie",
+    "authRequiredDesc": "Zaloguj się do aplikacji, aby rozmawiać z ALFI.",
+    "welcomeTitle": "Cześć! Jestem ALFI.",
+    "welcomeSubtitle": "W czym mogę Ci pomóc w {app}?",
+    "welcomeGeneric": "W czym mogę Ci dzisiaj pomóc?",
+    "toolCalling": "ALFI wykonuje akcję: {tool}...",
+    "toolPantry": "ALFI sprawdza zapasy...",
+    "toolChores": "ALFI sprawdza zadania...",
+    "toolMaintenance": "ALFI sprawdza dane konserwacji...",
+    "toolShopping": "ALFI sprawdza listę zakupów...",
+    "newChat": "Nowy czat",
+    "contextBadge": "Kontekst: {app}",
+    "close": "Zamknij"
   }
 }

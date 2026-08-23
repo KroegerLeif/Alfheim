@@ -18,6 +18,21 @@
     "attachImage": "Bild anhängen",
     "uploadingImage": "Bild wird hochgeladen...",
     "removeAttachment": "Anhang entfernen",
-    "uploadError": "Fehler beim Hochladen des Bildes"
+    "uploadError": "Fehler beim Hochladen des Bildes",
+    "widgetTitle": "ALFI Assistent",
+    "widgetSubtitle": "Dein intelligenter Alfheim-Begleiter",
+    "authRequired": "Anmeldung erforderlich",
+    "authRequiredDesc": "Bitte melde dich in der Anwendung an, um mit ALFI zu sprechen.",
+    "welcomeTitle": "Hallo! Ich bin ALFI.",
+    "welcomeSubtitle": "Wie kann ich dir in {app} helfen?",
+    "welcomeGeneric": "Wie kann ich dir heute helfen?",
+    "toolCalling": "ALFI führt Aktion aus: {tool}...",
+    "toolPantry": "ALFI prüft Pantry-Bestand...",
+    "toolChores": "ALFI prüft Aufgaben...",
+    "toolMaintenance": "ALFI prüft Wartungsdaten...",
+    "toolShopping": "ALFI prüft Einkaufsliste...",
+    "newChat": "Neuer Chat",
+    "contextBadge": "Kontext: {app}",
+    "close": "Schließen"
   }
 }

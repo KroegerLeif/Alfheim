@@ -18,6 +18,21 @@
     "attachImage": "Attach image",
     "uploadingImage": "Uploading image...",
     "removeAttachment": "Remove attachment",
-    "uploadError": "Failed to upload image"
+    "uploadError": "Failed to upload image",
+    "widgetTitle": "ALFI Assistant",
+    "widgetSubtitle": "Your smart Alfheim companion",
+    "authRequired": "Authentication required",
+    "authRequiredDesc": "Please sign in to the application to talk with ALFI.",
+    "welcomeTitle": "Hello! I'm ALFI.",
+    "welcomeSubtitle": "How can I help you in {app}?",
+    "welcomeGeneric": "How can I help you today?",
+    "toolCalling": "ALFI is executing action: {tool}...",
+    "toolPantry": "ALFI is checking pantry inventory...",
+    "toolChores": "ALFI is checking chores...",
+    "toolMaintenance": "ALFI is checking maintenance data...",
+    "toolShopping": "ALFI is checking shopping list...",
+    "newChat": "New chat",
+    "contextBadge": "Context: {app}",
+    "close": "Close"
   }
 }
