@@ -69,8 +69,8 @@ vi.mock('next-intl', () => ({
 }))
 
 // Mock @alfheim/shared translation hook for pantry tests
-vi.mock('@alfheim/shared', async () => {
-  const actual = await vi.importActual<any>('@alfheim/shared')
+vi.mock('@alfheim/shared', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@alfheim/shared')>()
   return {
     ...actual,
     useTranslation: () => ({

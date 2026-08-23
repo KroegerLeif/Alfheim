@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useTranslation } from "@alfheim/shared";
 import { useCreateLocation } from "../services/locationService";
-import { Button } from "@/components/ui/button";
+import { Button } from "@alfheim/shared";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
 
 interface LocationCreateFormProps {

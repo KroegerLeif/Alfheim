@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { LanguageProvider, ThemeProvider } from "@alfheim/shared";
+import { AppShell, LanguageProvider, ThemeProvider } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Header } from "@/shared/layout/Header";
@@ -56,15 +56,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
             <ThemeProvider defaultMode="dark" defaultVariant="nordic">
               <Providers>
-                <div className="flex w-full min-h-screen">
-                  <Sidebar />
-                  <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[var(--surface-canvas)] transition-colors duration-200">
-                    <Header />
-                    <main className="flex-1">
-                      {children}
-                    </main>
-                  </div>
-                </div>
+                <AppShell header={<Header />} sidebar={<Sidebar />}>
+                  {children}
+                </AppShell>
               </Providers>
             </ThemeProvider>
           </LanguageProvider>

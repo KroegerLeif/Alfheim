@@ -17,9 +17,9 @@ src/
 │   │   ├── tokens/          # CSS variable map + theme token JSON
 │   │   └── types.ts
 │   ├── layout/
-│   │   ├── Header/          # GlobalHeader, AuthControls, BackToDashboard
+│   │   ├── Header/          # AppHeader, AuthControls, BackToDashboard
 │   │   ├── SidePanel/       # Reusable slide-over panel
-│   │   └── Shell/           # Base application shell wrapper
+│   │   └── AppShell/        # Base application shell wrapper
 │   └── ui/                  # Atomic primitives namespace
 ├── features/index.ts
 └── index.ts                 # public exports
@@ -35,9 +35,9 @@ import {
   useTranslation,
   ThemeProvider,
   useTheme,
-  GlobalHeader,
+  AppHeader,
   SidePanel,
-  Shell,
+  AppShell,
   ThemeToggle,
   LanguageSwitcher,
   getSharedMessages,

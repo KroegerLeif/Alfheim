@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslation } from "@alfheim/shared";
-import { Button } from "@/components/ui/button";
+import { Button } from "@alfheim/shared";
 import { Search, Barcode, PackagePlus, Loader2 } from "lucide-react";
 import { ProductRead } from "@/features/products/types";
 

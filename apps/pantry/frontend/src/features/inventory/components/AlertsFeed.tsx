@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslation } from "@alfheim/shared";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@alfheim/shared";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
 
 type AlertItem = InventoryStateReadWithRelations & { severity: "high" | "medium" };

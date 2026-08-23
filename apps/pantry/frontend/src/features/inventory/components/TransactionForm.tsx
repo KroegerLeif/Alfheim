@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslation } from "@alfheim/shared";
-import { Button } from "@/components/ui/button";
+import { Button } from "@alfheim/shared";
 import { Plus, Minus, Loader2 } from "lucide-react";
 import { useLocations } from "@/features/locations/services/locationService";
 import { useCreateTransaction } from "@/features/inventory/services/inventoryService";
