@@ -9,6 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(chat): implement rustfs/s3 image attachments, upload flow, and message rendering`**
+  - Created `internal/shared/storage` S3 client wrapping AWS SDK v2 with idempotent bucket check (`EnsureBucketExists`), multipart upload, and tenant-isolated object key generator (`households/{household_id}/chat/...` and `users/{user_id}/chat/...`).
+  - Created `internal/features/attachments` with `POST /api/v1/chat/attachments` and `GET /api/v1/chat/attachments/{id}` endpoints persisting to Postgres `image_refs`.
+  - Updated `internal/features/conversations` to link uploaded `image_refs` when posting messages, returning attachments in `MessageResponseDTO`.
+  - Updated `apps/chat/frontend` with `ChatInput` file picker, live upload indicator, `AttachmentPreview` staging component, and `MessageItem` attachment rendering.
+  - Added unit and handler test suites for storage, attachments, and frontend components.
 * **`chore(test): configure pnpm allowBuilds for msw and harmonize vitest scripts`**
   - Configured `msw: true` under `allowBuilds` in `pnpm-workspace.yaml` for pnpm 11 security policy compatibility.
   - Added `"test": "vitest run"` and `"test:watch": "vitest"` across `maintenance-frontend`, `dashboard-frontend`, and `chores-frontend` (`--passWithNoTests`).
@@ -251,7 +257,7 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 
 ## 🗄️ Database Schema Invariants (Chat Service — `apps/chat/backend`, Go)
 
-> **Status**: Phase 0-5. Backend skeleton, migrations, JWT auth (issuer + audience), `/api/v1/chat/health`, the `internal/shared/llm` provider abstraction (**Ollama and OpenAI-compatible implemented**; Anthropic still returns a clear "not implemented yet" error), the `model-blocks` feature (CRUD, AES-256-GCM key encryption, ownership/sharing rules, on-demand health checks, ENV bootstrap seeding), the `conversations` feature (CRUD for conversations/messages, the `GET .../stream` SSE endpoint, and a full multi-round MCP tool-calling loop), the `mcpservers` registry feature (seeded from `CHAT_MCP_SERVERS`, admin enable/disable), and `internal/shared/mcp` (a from-scratch Streamable HTTP client for the Fach-Apps' FastMCP servers) exist. A minimal Next.js 16 frontend skeleton (`apps/chat/frontend`) exists with a conversation list and a chat streaming view that manually verifies the SSE pipeline end to end (it does not yet render `tool_call` events). Image attachments are still pending. Not yet wired into `compose.yaml`, `scripts/up.sh`, or the Caddyfile.
+> **Status**: Phase 0-6. Backend skeleton, migrations, JWT auth (issuer + audience), `/api/v1/chat/health`, the `internal/shared/llm` provider abstraction (**Ollama and OpenAI-compatible implemented**; Anthropic still returns a clear "not implemented yet" error), the `model-blocks` feature (CRUD, AES-256-GCM key encryption, ownership/sharing rules, on-demand health checks, ENV bootstrap seeding), the `conversations` feature (CRUD for conversations/messages, the `GET .../stream` SSE endpoint, and a full multi-round MCP tool-calling loop), the `mcpservers` registry feature (seeded from `CHAT_MCP_SERVERS`, admin enable/disable), `internal/shared/mcp` (a from-scratch Streamable HTTP client for the Fach-Apps' FastMCP servers), and `attachments` / `internal/shared/storage` (S3/RustFS storage client, idempotent bucket check, multipart upload, tenant-isolated object keys, and `image_refs` metadata persistence). Next.js 16 frontend (`apps/chat/frontend`) with conversation list, SSE chat streaming view, `ChatInput` file picker, `AttachmentPreview` staging component, and `MessageItem` attachment rendering. Not yet wired into `compose.yaml`, `scripts/up.sh`, or the Caddyfile.
 
 ### Table: `model_blocks`
 * **`id`** (UUID, PK), **`owner_user_id`** (Keycloak sub), **`household_id`** (NULLABLE — NULL means private)

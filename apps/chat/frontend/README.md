@@ -4,7 +4,7 @@ Next.js 16 frontend for the Alfheim AI chat feature (`apps/chat`). Follows [`.ai
 
 ## Status
 
-Phase 3 skeleton: conversation list + a chat streaming view built primarily to manually verify the backend's SSE pipeline end to end. No model-block management UI, sharing UI, or MCP tool-call rendering yet (later phases). Not yet wired into `compose.yaml`/Caddy/`scripts/up.sh`/the dashboard registry.
+Phase 6: conversation list, SSE chat streaming view, image attachment file picker with live upload progress, staging preview, and message image attachment rendering. Not yet wired into `compose.yaml`/Caddy/`scripts/up.sh`/the dashboard registry (Phase 9).
 
 ## Structure
 
@@ -12,9 +12,9 @@ Phase 3 skeleton: conversation list + a chat streaming view built primarily to m
 src/proxy.ts                                 # next-intl locale routing (Next.js 16 proxy convention)
 src/i18n.ts, src/navigation.ts               # next-intl config, merges @alfheim/shared locales
 src/core/authContext.tsx                     # local auth context (Keycloak-backed, see providers.tsx)
-src/lib/api.ts                               # typed fetch client, incl. manual SSE stream reader
+src/lib/api.ts, src/lib/sse.ts               # typed fetch client, multipart upload, manual SSE stream reader
 src/app/[locale]/{layout,providers,page}.tsx # AppShell + Keycloak init + page composition
-src/features/conversations/                  # ConversationList, ChatStreamView, React Query hooks, types
+src/features/conversations/                  # ConversationList, ChatStreamView, ChatInput, MessageItem, AttachmentPreview, React Query hooks, types
 ```
 
 ### Why not `EventSource` for streaming?
