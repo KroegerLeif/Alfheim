@@ -1,6 +1,9 @@
 {
   "name": "alfheim",
   "private": true,
+  "scripts": {
+    "check-types": "pnpm -r exec tsc --noEmit"
+  },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10"
   }
