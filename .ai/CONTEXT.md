@@ -9,6 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(shared): implement alfi chatwidget on sidepanel base`**
+  - Created `packages/shared/src/features/layout/ChatWidget/` with `ChatWidget`, `ChatWidgetHeader`, `ChatWidgetMessages`, `ChatWidgetInput`, `AlfiAvatar`, `useChatStream`, and `sseClient`.
+  - Implemented `AlfiAvatar` SVG mascot with interactive status states (`idle`, `thinking`, `tool_calling`, `streaming`).
+  - Added app context forwarding (`sourceApp`, `sourceContext`, `entityType`, `entityId`, `entityData`) to conversation creation API.
+  - Implemented SSE streaming reader in `sseClient.ts` with Bearer auth token resolution (from props or `sessionStorage` fallback).
+  - Added multi-language dictionary extensions across `de`, `en`, and `pl` in `chat.json`.
+  - Added Vitest and axe accessibility test suites in `ChatWidget.test.tsx`.
 * **`feat(chat): implement rustfs/s3 image attachments, upload flow, and message rendering`**
   - Created `internal/shared/storage` S3 client wrapping AWS SDK v2 with idempotent bucket check (`EnsureBucketExists`), multipart upload, and tenant-isolated object key generator (`households/{household_id}/chat/...` and `users/{user_id}/chat/...`).
   - Created `internal/features/attachments` with `POST /api/v1/chat/attachments` and `GET /api/v1/chat/attachments/{id}` endpoints persisting to Postgres `image_refs`.
