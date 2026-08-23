@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"alfheim/chat/config"
+	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/db"
 	"alfheim/chat/internal/shared/logger"
 	"alfheim/chat/internal/shared/middleware"
@@ -53,8 +54,26 @@ func main() {
 	}
 
 	// OIDC JWT Authenticator (validates issuer AND audience against Keycloak JWKS).
-	if _, err := setupAuthenticator(cfg, log); err != nil {
+	auth, err := setupAuthenticator(cfg, log)
+	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	authMw := auth.AuthenticateMiddleware
+
+	// Model Blocks Feature (LLM provider configs, encryption, health checks)
+	modelBlocksRepo := modelblocks.NewRepository(dbClient.Pool)
+	modelBlocksService := modelblocks.NewService(modelBlocksRepo, cfg.Encryption.Key, cfg.Encryption.KeyID, log)
+	modelBlocksHandler := modelblocks.NewHandler(modelBlocksService)
+
+	// Seed the ENV-configured fallback model block on first startup only.
+	if err := modelBlocksService.EnsureBootstrap(ctx, modelblocks.BootstrapSeed{
+		Provider:      cfg.Bootstrap.Provider,
+		OllamaBaseURL: cfg.Bootstrap.OllamaBaseURL,
+		OllamaModel:   cfg.Bootstrap.OllamaModel,
+		APIKey:        cfg.Bootstrap.APIKey,
+	}); err != nil {
+		log.Error("failed to seed bootstrap model block", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -67,6 +86,9 @@ func main() {
 	// Health Check Endpoint (unauthenticated, mirrors the compose healthcheck path
 	// used by the other FastAPI backends: /api/v1/health, scoped here under /chat).
 	r.Get("/api/v1/chat/health", healthHandler(dbClient))
+
+	// Feature Domain Routes
+	modelBlocksHandler.RegisterRoutes(r, authMw)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
