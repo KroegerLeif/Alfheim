@@ -9,6 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(deploy): configure compose, caddy routing, and tier-1 chat app registration`**
+  - Created `apps/chat/compose.yml` with `chat-db` (Postgres 16), `chat-backend` (Go), and `chat-frontend` (Next.js 16).
+  - Integrated `apps/chat/compose.yml` into root `compose.yaml` and declared `app-chat-net` bridge network.
+  - Added Stage 7 Chat App Slice to `scripts/up.sh` and teardown routines in `scripts/down.sh`.
+  - Configured Caddy reverse-proxy routing for `/chat*` and `/api/v1/chat*`.
+  - Removed orphaned `librechat` entry from `deploy/stack-apps.yaml` and registered `apps/chat` as Tier-1 Core App in `tier1_core_registry.go`.
 * **`feat(pantry): integrate alfi chatwidget with contextual product data`**
   - Integrated `PantryChatProvider` and `PantryChatOverlay` into `apps/pantry/frontend/src/app/[locale]/providers.tsx`.
   - Added ALFI assistant trigger button to `ClientHeader` using `actionsSlot` in `AppHeader`.
@@ -137,7 +143,7 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
 | **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
 | **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
-| **`apps/chat`** | Go, Next.js 16, OIDC | *Not yet registered* (Phase 0-5 only — no compose/Caddy wiring yet) | `chat-db` (planned) |
+| **`apps/chat`** | Go, Next.js 16, OIDC | `alfheim.loegien.de/chat` / `api.alfheim.loegien.de/api/v1/chat` | `chat-db` (`chat_postgres_data`, Port `5436`) |
 
 ### Docker Network Map:
 * **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Keycloak, RustFS S3, Grafana, and API Backends.
