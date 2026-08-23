@@ -1,0 +1,19 @@
+{
+  "Chat": {
+    "brandTitle": "ALFHEIM // CHAT",
+    "conversations": "Konwersacje",
+    "newConversation": "Nowa konwersacja",
+    "noConversations": "Brak konwersacji. Rozpocznij nową.",
+    "noModelBlocks": "Nie skonfigurowano żadnego modelu. Najpierw utwórz blok modelu przez API.",
+    "selectModel": "Wybierz model",
+    "createButton": "Utwórz",
+    "deleteConfirm": "Czy na pewno usunąć tę konwersację?",
+    "untitledConversation": "Konwersacja bez nazwy",
+    "noConversationSelected": "Wybierz konwersację po lewej lub rozpocznij nową.",
+    "inputPlaceholder": "Wpisz wiadomość...",
+    "send": "Wyślij",
+    "thinking": "Generowanie odpowiedzi...",
+    "streamError": "Nie udało się przesłać strumienia odpowiedzi",
+    "loadError": "Nie udało się załadować wiadomości."
+  }
+}

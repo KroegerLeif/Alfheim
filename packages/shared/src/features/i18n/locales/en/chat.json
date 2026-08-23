@@ -1,0 +1,19 @@
+{
+  "Chat": {
+    "brandTitle": "ALFHEIM // CHAT",
+    "conversations": "Conversations",
+    "newConversation": "New conversation",
+    "noConversations": "No conversations yet. Start a new one.",
+    "noModelBlocks": "No model configured yet. Create a model block via the API first.",
+    "selectModel": "Select model",
+    "createButton": "Create",
+    "deleteConfirm": "Really delete this conversation?",
+    "untitledConversation": "Untitled conversation",
+    "noConversationSelected": "Select a conversation on the left or start a new one.",
+    "inputPlaceholder": "Type a message...",
+    "send": "Send",
+    "thinking": "Generating reply...",
+    "streamError": "Failed to stream the reply",
+    "loadError": "Failed to load messages."
+  }
+}

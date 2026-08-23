@@ -1,0 +1,19 @@
+{
+  "Chat": {
+    "brandTitle": "ALFHEIM // CHAT",
+    "conversations": "Unterhaltungen",
+    "newConversation": "Neue Unterhaltung",
+    "noConversations": "Noch keine Unterhaltungen. Starte eine neue.",
+    "noModelBlocks": "Kein Modell konfiguriert. Lege zuerst ein Model Block über die API an.",
+    "selectModel": "Modell auswählen",
+    "createButton": "Erstellen",
+    "deleteConfirm": "Diese Unterhaltung wirklich löschen?",
+    "untitledConversation": "Unbenannte Unterhaltung",
+    "noConversationSelected": "Wähle links eine Unterhaltung aus oder starte eine neue.",
+    "inputPlaceholder": "Nachricht eingeben...",
+    "send": "Senden",
+    "thinking": "Antwort wird generiert...",
+    "streamError": "Fehler beim Streaming der Antwort",
+    "loadError": "Nachrichten konnten nicht geladen werden."
+  }
+}
