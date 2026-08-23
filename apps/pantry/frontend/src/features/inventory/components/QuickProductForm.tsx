@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslation } from "@alfheim/shared";
-import { Button } from "@/components/ui/button";
+import { Button } from "@alfheim/shared";
 import { Loader2, PackagePlus } from "lucide-react";
 import { useCreateProduct } from "@/features/products/services/productService";
 import { useCategories } from "@/features/categories/services/categoryService";

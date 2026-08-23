@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@alfheim/shared";
 import { ProductSearchStep } from "./ProductSearchStep";
 import { QuickProductForm } from "./QuickProductForm";
 import { TransactionForm } from "./TransactionForm";

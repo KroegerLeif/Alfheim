@@ -8,8 +8,7 @@ import { useCategories } from "@/features/categories/services/categoryService";
 import { StockActionModal } from "./StockActionModal";
 import { InventoryFilterBar } from "./InventoryFilterBar";
 import { InventoryTableRow } from "./InventoryTableRow";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from "@alfheim/shared";
 import { RefreshCw } from "lucide-react";
 import { ProductRead } from "@/features/products/types";
 

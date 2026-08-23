@@ -4,7 +4,7 @@ import * as React from "react";
 import { useTranslation } from "@alfheim/shared";
 import { useLocations } from "../services/locationService";
 import { useInventoryState, useLowStockItems } from "@/features/inventory/services/inventoryService";
-import { Button } from "@/components/ui/button";
+import { Button } from "@alfheim/shared";
 import { Plus, Minus, Loader2, Check } from "lucide-react";
 import { LocationCard } from "./LocationCard";
 import { LocationCreateForm } from "./LocationCreateForm";

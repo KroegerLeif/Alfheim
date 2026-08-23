@@ -1,8 +1,7 @@
 "use client";
 
 import { useTranslation } from "@alfheim/shared";
-import { Button } from "@/components/ui/button";
-import { TableRow, TableCell } from "@/components/ui/table";
+import { Button, TableRow, TableCell } from "@alfheim/shared";
 import { Plus, Minus, AlertTriangle } from "lucide-react";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
 

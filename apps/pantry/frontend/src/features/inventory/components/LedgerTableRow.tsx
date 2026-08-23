@@ -1,8 +1,7 @@
 "use client";
 
 import { useTranslation } from "@alfheim/shared";
-import { TableRow, TableCell } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { TableRow, TableCell, Badge } from "@alfheim/shared";
 import { ProductRead } from "@/features/products/types";
 import { LocationRead } from "@/features/locations/types";
 
