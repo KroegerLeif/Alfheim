@@ -14,6 +14,10 @@
     "send": "Wyślij",
     "thinking": "Generowanie odpowiedzi...",
     "streamError": "Nie udało się przesłać strumienia odpowiedzi",
-    "loadError": "Nie udało się załadować wiadomości."
+    "loadError": "Nie udało się załadować wiadomości.",
+    "attachImage": "Załącz obraz",
+    "uploadingImage": "Przesyłanie obrazu...",
+    "removeAttachment": "Usuń załącznik",
+    "uploadError": "Nie udało się przesłać obrazu"
   }
 }

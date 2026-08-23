@@ -76,3 +76,42 @@ describe("streamAssistantReply", () => {
     expect(onDone).toHaveBeenCalledWith({ total_tokens: 1 });
   });
 });
+
+describe("uploadAttachment and postMessage", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("uploads an image file via multipart form and returns attachment metadata", async () => {
+    const mockAttachment = {
+      id: "att-123",
+      storage_key: "households/hh-1/chat/pic.png",
+      mime_type: "image/png",
+      size_bytes: 1024,
+      url: "http://localhost/storage/households/hh-1/chat/pic.png",
+      created_at: "2026-08-23T18:00:00Z",
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockAttachment), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { uploadAttachment } = await import("@/lib/api");
+    const file = new File(["test-content"], "test.png", { type: "image/png" });
+    const result = await uploadAttachment(file);
+
+    expect(result.id).toBe("att-123");
+    expect(result.url).toContain("pic.png");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/attachments"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.any(FormData),
+      })
+    );
+  });
+});

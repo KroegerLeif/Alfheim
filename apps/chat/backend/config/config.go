@@ -12,14 +12,13 @@ import (
 
 // Config encapsulates all chat-backend service configurations.
 type Config struct {
-	Environment string
-	Port        string
-	Database    DatabaseConfig
-	Keycloak    KeycloakConfig
-	Encryption  EncryptionConfig
-	Bootstrap   BootstrapConfig
-	// MCPServersSpec is the raw CHAT_MCP_SERVERS value, e.g.
-	// "pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp".
+	Environment    string
+	Port           string
+	Database       DatabaseConfig
+	Keycloak       KeycloakConfig
+	Encryption     EncryptionConfig
+	Bootstrap      BootstrapConfig
+	Storage        StorageConfig
 	MCPServersSpec string
 }
 
@@ -58,6 +57,17 @@ type BootstrapConfig struct {
 	APIKey        string
 }
 
+// StorageConfig holds S3/RustFS object storage configuration settings.
+type StorageConfig struct {
+	Endpoint   string
+	AccessKey  string
+	SecretKey  string
+	BucketName string
+	UseSSL     bool
+	Region     string
+	PublicURL  string
+}
+
 // Load fetches configurations from environment variables with sensible defaults.
 func Load() (*Config, error) {
 	port := getEnv("PORT", "8080")
@@ -79,6 +89,14 @@ func Load() (*Config, error) {
 
 	encryptionKeyB64 := getEnv("CHAT_ENCRYPTION_KEY", "")
 	encryptionKeyID := getEnv("CHAT_ENCRYPTION_KEY_ID", "v1")
+
+	s3Endpoint := getEnv("S3_ENDPOINT", getEnv("S3_ENDPOINT_URL", "http://rustfs:9000"))
+	s3AccessKey := getEnv("S3_ACCESS_KEY", getEnv("S3_ROOT_USER", "minioadmin"))
+	s3SecretKey := getEnv("S3_SECRET_KEY", getEnv("S3_ROOT_PASSWORD", "minioadmin"))
+	s3BucketName := getEnv("S3_BUCKET_NAME", "alfheim-assets")
+	s3UseSSL := getEnvAsBool("S3_USE_SSL", false)
+	s3Region := getEnv("S3_REGION", "us-east-1")
+	s3PublicURL := getEnv("S3_PUBLIC_URL", "http://api.alfheim.loegien.localhost/storage")
 
 	cfg := &Config{
 		Environment: env,
@@ -106,6 +124,15 @@ func Load() (*Config, error) {
 			OllamaModel:   getEnv("CHAT_BOOTSTRAP_MODEL", ""),
 			Provider:      getEnv("CHAT_BOOTSTRAP_PROVIDER", "ollama"),
 			APIKey:        getEnv("CHAT_BOOTSTRAP_API_KEY", ""),
+		},
+		Storage: StorageConfig{
+			Endpoint:   s3Endpoint,
+			AccessKey:  s3AccessKey,
+			SecretKey:  s3SecretKey,
+			BucketName: s3BucketName,
+			UseSSL:     s3UseSSL,
+			Region:     s3Region,
+			PublicURL:  s3PublicURL,
 		},
 		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
 	}
@@ -138,4 +165,16 @@ func getEnvAsInt32(key string, fallback int32) int32 {
 		return fallback
 	}
 	return int32(val)
+}
+
+func getEnvAsBool(key string, fallback bool) bool {
+	valueStr := getEnv(key, "")
+	if valueStr == "" {
+		return fallback
+	}
+	val, err := strconv.ParseBool(valueStr)
+	if err != nil {
+		return fallback
+	}
+	return val
 }

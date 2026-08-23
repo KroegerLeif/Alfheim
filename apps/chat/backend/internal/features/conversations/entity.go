@@ -41,12 +41,24 @@ const (
 	RoleTool      Role = "tool"
 )
 
+// MessageAttachment carries metadata for an image attached to a chat message.
+type MessageAttachment struct {
+	ID         string
+	MessageID  *string
+	StorageKey string
+	MimeType   string
+	SizeBytes  int64
+	URL        string
+	CreatedAt  time.Time
+}
+
 // Message is a single turn within a Conversation.
 type Message struct {
 	ID             string
 	ConversationID string
 	Role           Role
 	Content        string
+	Attachments    []MessageAttachment
 	// ToolCallsJSON records tool call requests/results for this turn (audit & replay);
 	// populated starting with the MCP bridge in a later phase.
 	ToolCallsJSON  json.RawMessage

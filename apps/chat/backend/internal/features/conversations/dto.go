@@ -43,27 +43,50 @@ func ToConversationResponse(c *Conversation) ConversationResponseDTO {
 
 // CreateMessageRequest is the payload for POST /api/v1/chat/conversations/{id}/messages.
 type CreateMessageRequest struct {
-	Content string `json:"content"`
+	Content       string   `json:"content"`
+	AttachmentIDs []string `json:"attachment_ids,omitempty"`
+}
+
+// AttachmentSummaryDTO represents an attached file summarized within a message.
+type AttachmentSummaryDTO struct {
+	ID         string `json:"id"`
+	StorageKey string `json:"storage_key"`
+	MimeType   string `json:"mime_type"`
+	SizeBytes  int64  `json:"size_bytes"`
+	URL        string `json:"url"`
 }
 
 // MessageResponseDTO is the JSON serialization contract for a message.
 type MessageResponseDTO struct {
-	ID             string          `json:"id"`
-	ConversationID string          `json:"conversation_id"`
-	Role           Role            `json:"role"`
-	Content        string          `json:"content"`
-	ToolCallsJSON  json.RawMessage `json:"tool_calls,omitempty"`
-	TokenUsageJSON json.RawMessage `json:"token_usage,omitempty"`
-	CreatedAt      time.Time       `json:"created_at"`
+	ID             string                 `json:"id"`
+	ConversationID string                 `json:"conversation_id"`
+	Role           Role                   `json:"role"`
+	Content        string                 `json:"content"`
+	Attachments    []AttachmentSummaryDTO `json:"attachments,omitempty"`
+	ToolCallsJSON  json.RawMessage        `json:"tool_calls,omitempty"`
+	TokenUsageJSON json.RawMessage        `json:"token_usage,omitempty"`
+	CreatedAt      time.Time              `json:"created_at"`
 }
 
 // ToMessageResponse converts a Message domain entity to its response DTO.
 func ToMessageResponse(m *Message) MessageResponseDTO {
+	attachments := make([]AttachmentSummaryDTO, 0, len(m.Attachments))
+	for _, a := range m.Attachments {
+		attachments = append(attachments, AttachmentSummaryDTO{
+			ID:         a.ID,
+			StorageKey: a.StorageKey,
+			MimeType:   a.MimeType,
+			SizeBytes:  a.SizeBytes,
+			URL:        a.URL,
+		})
+	}
+
 	return MessageResponseDTO{
 		ID:             m.ID,
 		ConversationID: m.ConversationID,
 		Role:           m.Role,
 		Content:        m.Content,
+		Attachments:    attachments,
 		ToolCallsJSON:  m.ToolCallsJSON,
 		TokenUsageJSON: m.TokenUsageJSON,
 		CreatedAt:      m.CreatedAt,

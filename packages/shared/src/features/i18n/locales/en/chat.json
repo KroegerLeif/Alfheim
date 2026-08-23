@@ -14,6 +14,10 @@
     "send": "Send",
     "thinking": "Generating reply...",
     "streamError": "Failed to stream the reply",
-    "loadError": "Failed to load messages."
+    "loadError": "Failed to load messages.",
+    "attachImage": "Attach image",
+    "uploadingImage": "Uploading image...",
+    "removeAttachment": "Remove attachment",
+    "uploadError": "Failed to upload image"
   }
 }

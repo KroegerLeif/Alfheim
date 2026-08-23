@@ -14,6 +14,10 @@
     "send": "Senden",
     "thinking": "Antwort wird generiert...",
     "streamError": "Fehler beim Streaming der Antwort",
-    "loadError": "Nachrichten konnten nicht geladen werden."
+    "loadError": "Nachrichten konnten nicht geladen werden.",
+    "attachImage": "Bild anhängen",
+    "uploadingImage": "Bild wird hochgeladen...",
+    "removeAttachment": "Anhang entfernen",
+    "uploadError": "Fehler beim Hochladen des Bildes"
   }
 }

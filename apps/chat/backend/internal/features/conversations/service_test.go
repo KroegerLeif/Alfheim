@@ -62,7 +62,7 @@ func (f *fakeRepository) DeleteConversation(ctx context.Context, id string) erro
 	return nil
 }
 
-func (f *fakeRepository) CreateMessage(ctx context.Context, m *conversations.Message) error {
+func (f *fakeRepository) CreateMessage(ctx context.Context, m *conversations.Message, attachmentIDs ...string) error {
 	m.CreatedAt = time.Now()
 	f.messages[m.ConversationID] = append(f.messages[m.ConversationID], m)
 	return nil
@@ -283,7 +283,7 @@ func TestService_PostAndListMessages(t *testing.T) {
 		}
 	})
 
-	msg, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hello"})
+	msg, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hello", AttachmentIDs: []string{"att-1"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

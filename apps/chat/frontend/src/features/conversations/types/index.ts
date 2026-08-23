@@ -1,4 +1,4 @@
-// Mirrors the Go backend's response DTOs (apps/chat/backend/internal/features/{modelblocks,conversations}).
+// Mirrors the Go backend's response DTOs (apps/chat/backend/internal/features/{modelblocks,conversations,attachments}).
 
 export type ModelBlockVisibility = "private" | "shared";
 export type ModelBlockHealthStatus = "ok" | "unreachable" | "auth_invalid" | "unknown";
@@ -37,11 +37,30 @@ export interface Conversation {
 
 export type MessageRole = "user" | "assistant" | "system" | "tool";
 
+export interface AttachmentSummary {
+  id: string;
+  storage_key: string;
+  mime_type: string;
+  size_bytes: number;
+  url: string;
+}
+
+export interface Attachment {
+  id: string;
+  message_id?: string;
+  storage_key: string;
+  mime_type: string;
+  size_bytes: number;
+  url: string;
+  created_at: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
   role: MessageRole;
   content: string;
+  attachments?: AttachmentSummary[];
   tool_calls?: unknown;
   token_usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
   created_at: string;
@@ -52,6 +71,11 @@ export interface CreateConversationRequest {
   source_app?: string;
   source_context?: unknown;
   title?: string;
+}
+
+export interface CreateMessageRequest {
+  content: string;
+  attachment_ids?: string[];
 }
 
 export interface ApiErrorPayload {

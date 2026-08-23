@@ -8,6 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"alfheim/chat/internal/shared/storage"
 )
 
 // Repository defines data access operations for conversations and messages.
@@ -17,7 +19,7 @@ type Repository interface {
 	ListConversationsByOwner(ctx context.Context, ownerUserID string) ([]*Conversation, error)
 	DeleteConversation(ctx context.Context, id string) error
 
-	CreateMessage(ctx context.Context, m *Message) error
+	CreateMessage(ctx context.Context, m *Message, attachmentIDs ...string) error
 	ListMessages(ctx context.Context, conversationID string) ([]*Message, error)
 	// AppendMessageAndTouchConversation inserts m and bumps its conversation's
 	// updated_at in a single transaction, used to persist the completed assistant
@@ -26,12 +28,13 @@ type Repository interface {
 }
 
 type repository struct {
-	pool *pgxpool.Pool
+	pool    *pgxpool.Pool
+	storage storage.Client
 }
 
 // NewRepository initializes a PostgreSQL-backed conversations repository.
-func NewRepository(pool *pgxpool.Pool) Repository {
-	return &repository{pool: pool}
+func NewRepository(pool *pgxpool.Pool, storageClient storage.Client) Repository {
+	return &repository{pool: pool, storage: storageClient}
 }
 
 const conversationColumns = `
@@ -130,18 +133,35 @@ func (r *repository) DeleteConversation(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *repository) CreateMessage(ctx context.Context, m *Message) error {
+func (r *repository) CreateMessage(ctx context.Context, m *Message, attachmentIDs ...string) error {
 	m.CreatedAt = time.Now()
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	query := `
 		INSERT INTO messages (id, conversation_id, role, content, tool_calls_json, mcp_server_id, token_usage_json, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
-	_, err := r.pool.Exec(ctx, query,
+	_, err = tx.Exec(ctx, query,
 		m.ID, m.ConversationID, m.Role, m.Content, m.ToolCallsJSON, m.MCPServerID, m.TokenUsageJSON, m.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert message %s: %w", m.ID, err)
+	}
+
+	if len(attachmentIDs) > 0 {
+		_, err = tx.Exec(ctx, `UPDATE image_refs SET message_id = $1 WHERE id = ANY($2)`, m.ID, attachmentIDs)
+		if err != nil {
+			return fmt.Errorf("failed to link image_refs to message %s: %w", m.ID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit create message transaction: %w", err)
 	}
 	return nil
 }
@@ -156,16 +176,44 @@ func (r *repository) ListMessages(ctx context.Context, conversationID string) ([
 	defer rows.Close()
 
 	var results []*Message
+	var messageIDs []string
+	messageIndex := make(map[string]*Message)
+
 	for rows.Next() {
 		m, err := scanMessage(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan message row: %w", err)
 		}
+		m.Attachments = make([]MessageAttachment, 0)
 		results = append(results, m)
+		messageIDs = append(messageIDs, m.ID)
+		messageIndex[m.ID] = m
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate message rows: %w", err)
 	}
+
+	if len(messageIDs) > 0 {
+		attQuery := `SELECT id, message_id, storage_key, mime_type, size_bytes, created_at FROM image_refs WHERE message_id = ANY($1) ORDER BY created_at ASC`
+		attRows, err := r.pool.Query(ctx, attQuery, messageIDs)
+		if err == nil {
+			defer attRows.Close()
+			for attRows.Next() {
+				var a MessageAttachment
+				if err := attRows.Scan(&a.ID, &a.MessageID, &a.StorageKey, &a.MimeType, &a.SizeBytes, &a.CreatedAt); err == nil {
+					if r.storage != nil {
+						a.URL = r.storage.GetPublicURL(a.StorageKey)
+					}
+					if a.MessageID != nil {
+						if parent, exists := messageIndex[*a.MessageID]; exists {
+							parent.Attachments = append(parent.Attachments, a)
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return results, nil
 }
 

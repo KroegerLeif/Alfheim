@@ -5,45 +5,49 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@alfheim/shared";
 import { postMessage, streamAssistantReply } from "@/lib/api";
 import { useMessages } from "@/features/conversations/services/conversationService";
+import { MessageItem } from "./MessageItem";
+import { ChatInput } from "./ChatInput";
 
 interface ChatStreamViewProps {
   conversationId: string | null;
 }
 
 /**
- * Renders a conversation's message history plus an input box, and drives the SSE
- * streaming endpoint to show the assistant's reply arriving incrementally — this is
- * the primary surface for manually verifying the streaming pipeline end to end.
+ * Renders a conversation's message history and attachments, driving the SSE
+ * streaming endpoint to show assistant replies arriving incrementally.
  */
 export function ChatStreamView({ conversationId }: ChatStreamViewProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: messages, isLoading, isError } = useMessages(conversationId);
 
-  const [input, setInput] = useState("");
   const [streamingText, setStreamingText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Cancel any in-flight stream when switching conversations or unmounting.
+  // Cancel in-flight stream when switching conversations or unmounting
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, [conversationId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
+  }, [messages, streamingText]);
 
   const invalidateMessages = () => {
     queryClient.invalidateQueries({ queryKey: ["chat", "conversations", conversationId, "messages"] });
   };
 
-  const handleSend = async () => {
-    const content = input.trim();
-    if (!content || !conversationId || isStreaming) return;
+  const handleSend = async (content: string, attachmentIds: string[]) => {
+    if (!conversationId || isStreaming) return;
+    if (!content && attachmentIds.length === 0) return;
 
-    setInput("");
     setStreamError(null);
 
     try {
-      await postMessage(conversationId, content);
+      await postMessage(conversationId, content, attachmentIds);
     } catch (err) {
       setStreamError(err instanceof Error ? err.message : t("Chat.streamError"));
       return;
@@ -88,16 +92,7 @@ export function ChatStreamView({ conversationId }: ChatStreamViewProps) {
         {isError && <p className="text-sm text-red-400">{t("Chat.loadError")}</p>}
 
         {messages?.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-2xl rounded-xl px-4 py-2 text-sm whitespace-pre-wrap ${
-              message.role === "user"
-                ? "ml-auto bg-[var(--primary-main)] text-black"
-                : "bg-[var(--surface-card)] text-[var(--text-main)]"
-            }`}
-          >
-            {message.content}
-          </div>
+          <MessageItem key={message.id} message={message} />
         ))}
 
         {isStreaming && (
@@ -107,31 +102,10 @@ export function ChatStreamView({ conversationId }: ChatStreamViewProps) {
         )}
 
         {streamError && <p className="text-sm text-red-400">{streamError}</p>}
+        <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-[var(--border-subtle)] p-4 flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void handleSend();
-            }
-          }}
-          placeholder={t("Chat.inputPlaceholder")}
-          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm px-3 py-2"
-        />
-        <button
-          type="button"
-          onClick={() => void handleSend()}
-          disabled={!input.trim() || isStreaming}
-          className="rounded-lg bg-[var(--primary-main)] text-black text-sm font-semibold px-4 py-2 disabled:opacity-50 cursor-pointer"
-        >
-          {t("Chat.send")}
-        </button>
-      </div>
+      <ChatInput onSend={handleSend} disabled={isStreaming} />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"alfheim/chat/config"
+	"alfheim/chat/internal/features/attachments"
 	"alfheim/chat/internal/features/conversations"
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
@@ -25,6 +26,7 @@ import (
 	"alfheim/chat/internal/shared/logger"
 	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
+	"alfheim/chat/internal/shared/storage"
 )
 
 func main() {
@@ -91,8 +93,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	// S3 / RustFS Storage Client
+	storageClient, err := storage.NewClient(ctx, cfg.Storage)
+	if err != nil {
+		log.Warn("failed to initialize storage client; attachments may be unavailable", slog.String("error", err.Error()))
+	}
+
+	// Attachments Feature (RustFS/S3 file uploads, image references)
+	attachmentsRepo := attachments.NewRepository(dbClient.Pool)
+	attachmentsService := attachments.NewService(attachmentsRepo, storageClient, log)
+	attachmentsHandler := attachments.NewHandler(attachmentsService)
+
+	if err := attachmentsService.EnsureStorageReady(ctx); err != nil {
+		log.Warn("s3 bucket check failed or deferred", slog.String("error", err.Error()))
+	}
+
 	// Conversations Feature (messages, SSE-streamed assistant replies, MCP tool-calling loop)
-	conversationsRepo := conversations.NewRepository(dbClient.Pool)
+	conversationsRepo := conversations.NewRepository(dbClient.Pool, storageClient)
 	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, log)
 	conversationsHandler := conversations.NewHandler(conversationsService)
 
@@ -110,6 +127,8 @@ func main() {
 	modelBlocksHandler.RegisterRoutes(r, authMw)
 	conversationsHandler.RegisterRoutes(r, authMw)
 	mcpServersHandler.RegisterRoutes(r, authMw)
+	attachmentsHandler.RegisterRoutes(r, authMw)
+
 
 	// HTTP Server & Graceful Shutdown.
 	// WriteTimeout is generous because the SSE streaming endpoint holds the response
