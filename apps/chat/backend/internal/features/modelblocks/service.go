@@ -44,11 +44,16 @@ type Service interface {
 	EnsureBootstrap(ctx context.Context, seed BootstrapSeed) error
 	// ResolveProvider loads a model block, checks the caller may use it (owner, or a
 	// shared block within the caller's household), decrypts its API key if any, and
-	// constructs a ready-to-use llm.Provider. Unlike TriggerHealthCheck/Update/Delete,
-	// this uses the broader "usable" visibility rule, not the owner-only edit rule,
-	// since household members are allowed to chat with shared model blocks.
-	ResolveProvider(ctx context.Context, userID, householdID, id string) (llm.Provider, error)
+	// constructs a ready-to-use llm.Provider plus its tool-calling policy (parsed
+	// from config_json). Unlike TriggerHealthCheck/Update/Delete, this uses the
+	// broader "usable" visibility rule, not the owner-only edit rule, since household
+	// members are allowed to chat with shared model blocks.
+	ResolveProvider(ctx context.Context, userID, householdID, id string) (llm.Provider, llm.ProviderPolicy, error)
 }
+
+// defaultToolRoundLimit caps tool-calling rounds when a model block's config_json
+// does not specify its own "tool_round_limit".
+const defaultToolRoundLimit = 8
 
 type service struct {
 	repo            Repository
@@ -278,15 +283,45 @@ func (s *service) runProviderHealthCheck(ctx context.Context, m *ModelBlock) llm
 	return provider.HealthCheck(ctx)
 }
 
-func (s *service) ResolveProvider(ctx context.Context, userID, householdID, id string) (llm.Provider, error) {
+func (s *service) ResolveProvider(ctx context.Context, userID, householdID, id string) (llm.Provider, llm.ProviderPolicy, error) {
 	m, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, llm.ProviderPolicy{}, err
 	}
 	if !m.IsVisibleTo(userID, householdID) {
-		return nil, ErrForbidden
+		return nil, llm.ProviderPolicy{}, ErrForbidden
 	}
-	return s.buildProvider(m)
+
+	provider, err := s.buildProvider(m)
+	if err != nil {
+		return nil, llm.ProviderPolicy{}, err
+	}
+
+	return provider, parseProviderPolicy(m.ConfigJSON), nil
+}
+
+// parseProviderPolicy reads the optional "tool_round_limit" (number) and
+// "allowed_mcp_apps" (string array) fields from a model block's config_json,
+// falling back to sane defaults for any field that is absent or malformed.
+func parseProviderPolicy(configJSON json.RawMessage) llm.ProviderPolicy {
+	policy := llm.ProviderPolicy{ToolRoundLimit: defaultToolRoundLimit}
+
+	var parsed struct {
+		ToolRoundLimit *int     `json:"tool_round_limit"`
+		AllowedMCPApps []string `json:"allowed_mcp_apps"`
+	}
+	if len(configJSON) == 0 {
+		return policy
+	}
+	if err := json.Unmarshal(configJSON, &parsed); err != nil {
+		return policy
+	}
+
+	if parsed.ToolRoundLimit != nil && *parsed.ToolRoundLimit > 0 {
+		policy.ToolRoundLimit = *parsed.ToolRoundLimit
+	}
+	policy.AllowedMCPApps = parsed.AllowedMCPApps
+	return policy
 }
 
 func (s *service) EnsureBootstrap(ctx context.Context, seed BootstrapSeed) error {

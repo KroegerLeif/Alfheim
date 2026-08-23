@@ -229,10 +229,22 @@ func (p *OllamaProvider) HealthCheck(ctx context.Context) HealthResult {
 func toOllamaMessages(messages []Message) []ollamaChatMessage {
 	out := make([]ollamaChatMessage, 0, len(messages))
 	for _, m := range messages {
-		out = append(out, ollamaChatMessage{
+		msg := ollamaChatMessage{
 			Role:    string(m.Role),
 			Content: m.Content,
-		})
+		}
+		// Replay the assistant's own tool-call turn so the model has context for its
+		// prior request in this otherwise-stateless round; Ollama has no notion of a
+		// tool_call_id, so only the function name/arguments are echoed back.
+		if m.Role == RoleAssistant && len(m.ToolCalls) > 0 {
+			msg.ToolCalls = make([]ollamaToolCall, 0, len(m.ToolCalls))
+			for _, tc := range m.ToolCalls {
+				msg.ToolCalls = append(msg.ToolCalls, ollamaToolCall{
+					Function: ollamaToolCallFunction{Name: tc.ToolName, Arguments: tc.Arguments},
+				})
+			}
+		}
+		out = append(out, msg)
 	}
 	return out
 }

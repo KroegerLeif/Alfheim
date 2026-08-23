@@ -19,9 +19,11 @@ import (
 
 	"alfheim/chat/config"
 	"alfheim/chat/internal/features/conversations"
+	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/db"
 	"alfheim/chat/internal/shared/logger"
+	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
 )
 
@@ -78,9 +80,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Conversations Feature (messages, SSE-streamed assistant replies)
+	// MCP Servers Registry (bridges to the Fach-Apps' FastMCP servers)
+	mcpServersRepo := mcpservers.NewRepository(dbClient.Pool)
+	mcpServersService := mcpservers.NewService(mcpServersRepo, log)
+	mcpServersHandler := mcpservers.NewHandler(mcpServersService)
+	mcpClientPool := mcp.NewClientPool()
+
+	if err := mcpServersService.SeedFromEnv(ctx, cfg.MCPServersSpec); err != nil {
+		log.Error("failed to seed mcp server registry from CHAT_MCP_SERVERS", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	// Conversations Feature (messages, SSE-streamed assistant replies, MCP tool-calling loop)
 	conversationsRepo := conversations.NewRepository(dbClient.Pool)
-	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, log)
+	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, log)
 	conversationsHandler := conversations.NewHandler(conversationsService)
 
 	// Router Setup
@@ -96,6 +109,7 @@ func main() {
 	// Feature Domain Routes
 	modelBlocksHandler.RegisterRoutes(r, authMw)
 	conversationsHandler.RegisterRoutes(r, authMw)
+	mcpServersHandler.RegisterRoutes(r, authMw)
 
 	// HTTP Server & Graceful Shutdown.
 	// WriteTimeout is generous because the SSE streaming endpoint holds the response

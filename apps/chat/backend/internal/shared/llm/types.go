@@ -22,6 +22,11 @@ type Message struct {
 	// ToolCallID correlates a tool-result message (Role == RoleTool) back to the
 	// tool call that produced it. Empty for all other roles.
 	ToolCallID string
+	// ToolCalls holds the tool invocations an assistant message requested. Only
+	// meaningful when Role == RoleAssistant; required so a subsequent round of the
+	// tool-calling loop can replay the assistant's own tool-call turn back to the
+	// provider (each ChatStream call is otherwise stateless from the provider's side).
+	ToolCalls []ToolCallRequest
 }
 
 // ToolDefinition describes an MCP tool made available to the model for this request,
@@ -90,6 +95,18 @@ type HealthResult struct {
 	Status HealthStatus
 	// Detail is a human-readable, non-sensitive description suitable for display in the UI.
 	Detail string
+}
+
+// ProviderPolicy carries per-model-block tool-calling limits alongside a resolved
+// Provider. It lives here (rather than on the modelblocks or conversations domain
+// types) so both features can share it without depending on one another.
+type ProviderPolicy struct {
+	// ToolRoundLimit caps how many provider round-trips a single assistant turn may
+	// take while the model keeps requesting tool calls, preventing infinite loops.
+	ToolRoundLimit int
+	// AllowedMCPApps restricts which MCP servers' tools are offered to the model.
+	// An empty slice means no restriction (all enabled servers are offered).
+	AllowedMCPApps []string
 }
 
 // Provider abstracts a single LLM backend (a configured model block).

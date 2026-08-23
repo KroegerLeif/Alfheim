@@ -18,6 +18,9 @@ type Config struct {
 	Keycloak    KeycloakConfig
 	Encryption  EncryptionConfig
 	Bootstrap   BootstrapConfig
+	// MCPServersSpec is the raw CHAT_MCP_SERVERS value, e.g.
+	// "pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp".
+	MCPServersSpec string
 }
 
 // DatabaseConfig holds PostgreSQL connection configuration settings.
@@ -104,6 +107,7 @@ func Load() (*Config, error) {
 			Provider:      getEnv("CHAT_BOOTSTRAP_PROVIDER", "ollama"),
 			APIKey:        getEnv("CHAT_BOOTSTRAP_API_KEY", ""),
 		},
+		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
 	}
 
 	if encryptionKeyB64 != "" {

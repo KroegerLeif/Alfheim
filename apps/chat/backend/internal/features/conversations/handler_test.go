@@ -129,10 +129,10 @@ func TestHandler_PostAndListMessages(t *testing.T) {
 
 func TestHandler_StreamEmitsSSEDeltasAndDoneEvent(t *testing.T) {
 	repo := newFakeRepository()
-	provider := &fakeProvider{chunks: []llm.StreamChunk{
+	provider := fakeProviderOnce([]llm.StreamChunk{
 		{DeltaText: "Hi"},
 		{Done: true, Usage: &llm.Usage{TotalTokens: 5}},
-	}}
+	})
 	svc := newTestService(repo, &fakeResolver{provider: provider})
 	claims := &middleware.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
@@ -171,9 +171,9 @@ func TestHandler_StreamEmitsSSEDeltasAndDoneEvent(t *testing.T) {
 
 func TestHandler_StreamReportsErrorEventOnMidStreamFailure(t *testing.T) {
 	repo := newFakeRepository()
-	provider := &fakeProvider{chunks: []llm.StreamChunk{
+	provider := fakeProviderOnce([]llm.StreamChunk{
 		{Done: true, Err: errStreamFailed},
-	}}
+	})
 	svc := newTestService(repo, &fakeResolver{provider: provider})
 	claims := &middleware.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
