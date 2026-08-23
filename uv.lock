@@ -10,6 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "alfheim-monorepo",
+    "backend-shared",
     "chores-backend",
     "maintenance-backend",
     "pantry-backend",
@@ -337,6 +338,41 @@ wheels = [
 ]
 
 [[package]]
+name = "backend-shared"
+version = "0.1.0"
+source = { editable = "packages/backend-shared" }
+dependencies = [
+    { name = "aioboto3" },
+    { name = "fastapi" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp" },
+    { name = "opentelemetry-instrumentation-fastapi" },
+    { name = "opentelemetry-instrumentation-logging" },
+    { name = "opentelemetry-instrumentation-sqlalchemy" },
+    { name = "opentelemetry-sdk" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyjwt", extra = ["crypto"] },
+    { name = "sqlalchemy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aioboto3", specifier = ">=13.0.0" },
+    { name = "fastapi", specifier = ">=0.128.8" },
+    { name = "opentelemetry-api", specifier = ">=1.25.0" },
+    { name = "opentelemetry-exporter-otlp", specifier = ">=1.25.0" },
+    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
+    { name = "opentelemetry-instrumentation-logging", specifier = ">=0.46b0" },
+    { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.46b0" },
+    { name = "opentelemetry-sdk", specifier = ">=1.25.0" },
+    { name = "pydantic", specifier = ">=2.10.0" },
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
+]
+
+[[package]]
 name = "beartype"
 version = "0.22.9"
 source = { registry = "https://pypi.org/simple" }
@@ -653,6 +689,7 @@ source = { virtual = "apps/chores/backend" }
 dependencies = [
     { name = "aioboto3" },
     { name = "asyncpg" },
+    { name = "backend-shared" },
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "opentelemetry-api" },
@@ -683,6 +720,7 @@ dev = [
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "fastmcp", specifier = ">=3.4.1" },
     { name = "opentelemetry-api", specifier = ">=1.25.0" },
@@ -1487,6 +1525,7 @@ source = { virtual = "apps/maintenance/backend" }
 dependencies = [
     { name = "aioboto3" },
     { name = "asyncpg" },
+    { name = "backend-shared" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "mcp", extra = ["cli"] },
@@ -1518,6 +1557,7 @@ dev = [
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.28.1" },
@@ -1940,6 +1980,7 @@ source = { virtual = "apps/pantry/backend" }
 dependencies = [
     { name = "aioboto3" },
     { name = "asyncpg" },
+    { name = "backend-shared" },
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "opentelemetry-api" },
@@ -1972,6 +2013,7 @@ dev = [
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "fastmcp", specifier = ">=3.4.1" },
     { name = "opentelemetry-api", specifier = ">=1.25.0" },
@@ -2730,6 +2772,7 @@ source = { virtual = "apps/shopping/backend" }
 dependencies = [
     { name = "aioboto3" },
     { name = "asyncpg" },
+    { name = "backend-shared" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "opentelemetry-api" },
@@ -2758,6 +2801,7 @@ dev = [
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "opentelemetry-api", specifier = ">=1.44.0" },

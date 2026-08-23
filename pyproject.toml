@@ -8,6 +8,7 @@ requires-python = ">=3.12"
 [tool.uv.workspace]
 members = [
     "apps/*/backend",
+    "packages/backend-shared",
 ]
 
 [dependency-groups]
