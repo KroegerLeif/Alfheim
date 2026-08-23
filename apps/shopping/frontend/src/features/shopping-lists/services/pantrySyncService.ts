@@ -53,6 +53,7 @@ export function useSyncToPantry(listId: string) {
         .then((data) => SyncToPantryResponseSchema.parse(data));
     },
     onSuccess: () => {
+      // Clear completed items since they are synced to pantry and deleted from local checklist
       queryClient.invalidateQueries({ queryKey: shoppingKeys.list(listId) });
     },
   });
