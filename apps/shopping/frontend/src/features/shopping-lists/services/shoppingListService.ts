@@ -4,8 +4,18 @@ import { z } from "zod";
 import { ShoppingListSchema } from "../schemas";
 import { ShoppingList, ShoppingListCreatePayload } from "../types";
 
-export * from "./shoppingItemService";
-export * from "./pantrySyncService";
+export {
+  useAddShoppingItem,
+  useUpdateShoppingItem,
+  useDeleteShoppingItem,
+} from "./shoppingItemService";
+
+export {
+  useImportLowStock,
+  useSyncToPantry,
+  useCreatePantryProduct,
+  type PantryProductCreatePayload,
+} from "./pantrySyncService";
 
 // --- Shopping Lists Query Keys ---
 export const shoppingKeys = {
@@ -88,6 +98,29 @@ export function useReorderShoppingLists() {
         .then(() => {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.lists() });
+    },
+  });
+}
+
+export interface Household {
+  id: string;
+  name: string;
+  is_default?: boolean;
+}
+
+/**
+ * Hook to retrieve user households for target pantry storage.
+ */
+export function useHouseholds() {
+  return useQuery<Household[]>({
+    queryKey: ["households", "me"],
+    queryFn: async () => {
+      try {
+        const res = await shoppingClient.get("api/v1/households/me").json<Household[]>();
+        return Array.isArray(res) ? res : [];
+      } catch {
+        return [];
+      }
     },
   });
 }

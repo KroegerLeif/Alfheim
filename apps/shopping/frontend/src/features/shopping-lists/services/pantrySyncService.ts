@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { shoppingClient, pantryClient } from "@/lib/api";
 import { z } from "zod";
 import {
@@ -8,6 +8,16 @@ import {
 } from "../schemas";
 import { ShoppingItem, SyncToPantryResponse } from "../types";
 import { shoppingKeys } from "./shoppingListService";
+
+export interface PantryProductCreatePayload {
+  name: string;
+  brand?: string | null;
+  barcode?: string | null;
+  base_unit: string;
+  minimum_stock: number;
+  category_id?: string | null;
+  householdId?: string;
+}
 
 /**
  * Hook to import low-stock items from Pantry inventory alerts.
@@ -49,18 +59,6 @@ export function useSyncToPantry(listId: string) {
   });
 }
 
-// --- Pantry Catalog Resolution Support ---
-
-export interface PantryProductCreatePayload {
-  name: string;
-  brand?: string | null;
-  barcode?: string | null;
-  base_unit: string;
-  minimum_stock: number;
-  category_id?: string | null;
-  householdId?: string;
-}
-
 /**
  * Hook to record new product blueprints in the central Pantry catalog.
  */
@@ -75,29 +73,6 @@ export function useCreatePantryProduct() {
         .post("api/v1/products", { json: payload, headers })
         .json()
         .then((data) => ProductReadSchema.parse(data));
-    },
-  });
-}
-
-export interface Household {
-  id: string;
-  name: string;
-  is_default?: boolean;
-}
-
-/**
- * Hook to retrieve user households for target pantry storage.
- */
-export function useHouseholds() {
-  return useQuery<Household[]>({
-    queryKey: ["households", "me"],
-    queryFn: async () => {
-      try {
-        const res = await shoppingClient.get("api/v1/households/me").json<Household[]>();
-        return Array.isArray(res) ? res : [];
-      } catch {
-        return [];
-      }
     },
   });
 }
