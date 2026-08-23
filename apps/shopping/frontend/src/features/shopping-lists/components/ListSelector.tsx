@@ -2,17 +2,15 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Check, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
-  useShoppingLists,
-  useCreateShoppingList,
-  useDeleteShoppingList,
-  useReorderShoppingLists,
-  useHouseholds,
+  useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
+  useReorderShoppingLists, useHouseholds,
 } from "../services/shoppingListService";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
 import type { ShoppingList } from "../types";
 import { ListTab } from "./ListTab";
+import { ListCreateForm } from "./ListCreateForm";
 
 interface ListSelectorProps {
   activeListId: string | null;
@@ -23,9 +21,6 @@ function isProtectedList(list: ShoppingList): boolean {
   return list.is_default || list.is_personal;
 }
 
-/**
- * Tab switcher displaying all visible shopping lists with drag-and-drop reordering and inline list actions.
- */
 export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const tNav = useTranslations("Navigation");
   const { data: listsData, isLoading } = useShoppingLists();
@@ -43,10 +38,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const households = useMemo(() => householdsData ?? [], [householdsData]);
 
   const isPersonalList = (l: ShoppingList) =>
-    l.is_personal ||
-    l.name.endsWith(" - Liste") ||
-    l.name.endsWith("'s List") ||
-    l.name.startsWith("Lista ");
+    l.is_personal || l.name.endsWith(" - Liste") || l.name.endsWith("'s List") || l.name.startsWith("Lista ");
 
   const { orderedLists, customListsOnly } = useMemo(() => {
     const hhLists: (ShoppingList & { displayName: string })[] = [];
@@ -56,22 +48,14 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     lists.forEach((list) => {
       if (list.is_default) {
         const hh = households.find((h) => h.id === list.home_id);
-        hhLists.push({
-          ...list,
-          displayName: hh ? hh.name : tNav("household_list_fallback"),
-        });
+        hhLists.push({ ...list, displayName: hh ? hh.name : tNav("household_list_fallback") });
       } else {
         persLists.push(list);
-        if (!list.is_personal) {
-          custLists.push(list);
-        }
+        if (!list.is_personal) custLists.push(list);
       }
     });
 
-    return {
-      orderedLists: [...hhLists, ...persLists],
-      customListsOnly: custLists,
-    };
+    return { orderedLists: [...hhLists, ...persLists], customListsOnly: custLists };
   }, [lists, households, tNav]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -104,16 +88,13 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const handleCreate = () => {
     const trimmed = newListName.trim();
     if (!trimmed) return;
-    createList.mutate(
-      { name: trimmed },
-      {
-        onSuccess: (newList) => {
-          onSelect(newList.id);
-          setIsCreating(false);
-          setNewListName("");
-        },
-      }
-    );
+    createList.mutate({ name: trimmed }, {
+      onSuccess: (newList) => {
+        onSelect(newList.id);
+        setIsCreating(false);
+        setNewListName("");
+      },
+    });
   };
 
   const handleCancel = () => {
@@ -152,63 +133,30 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
 
             return (
               <ListTab
-                key={list.id}
-                list={list}
-                isActive={isActive}
-                isProtected={isProtected}
-                canDelete={canDelete}
-                isDragging={isDragging}
-                username={user.username}
+                key={list.id} list={list} isActive={isActive} isProtected={isProtected}
+                canDelete={canDelete} isDragging={isDragging} username={user.username}
                 onSelect={() => handleSelect(list)}
                 onDelete={() => {
                   deleteList.mutate(list.id, {
                     onSuccess: () => {
                       const remaining = lists.filter((l) => l.id !== list.id);
-                      if (remaining.length > 0) {
-                        const fallback = remaining[0];
-                        handleSelect(fallback);
-                      }
+                      if (remaining.length > 0) handleSelect(remaining[0]);
                     },
                   });
                 }}
                 onDragStart={(e) => handleDragStart(e, list.id)}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, list.id)}
-                onDragEnd={() => setDraggedListId(null)}
-                isPersonalList={isPersonalList(list)}
+                onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, list.id)}
+                onDragEnd={() => setDraggedListId(null)} isPersonalList={isPersonalList(list)}
                 isPendingDelete={deleteList.isPending}
               />
             );
           })}
 
           {isCreating ? (
-            <div className="flex items-center gap-1 px-2.5 h-9 bg-[var(--surface-elevated)] rounded-xl border border-[var(--border-subtle)] shrink-0">
-              <input
-                type="text"
-                value={newListName}
-                onChange={(e) => setNewListName(e.target.value)}
-                placeholder={tNav("newListPlaceholder")}
-                className="bg-transparent border-none outline-none font-heading text-xs font-bold uppercase tracking-wider text-[var(--text-main)] placeholder:[var(--text-muted)] w-24"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreate();
-                  if (e.key === "Escape") handleCancel();
-                }}
-              />
-              <button
-                onClick={handleCreate}
-                disabled={!newListName.trim() || createList.isPending}
-                className="text-green-500 hover:text-green-400 p-1 cursor-pointer disabled:opacity-40"
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={handleCancel}
-                className="text-red-500 hover:text-red-400 p-1 cursor-pointer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            <ListCreateForm
+              newListName={newListName} setNewListName={setNewListName}
+              onCreate={handleCreate} onCancel={handleCancel} isPending={createList.isPending}
+            />
           ) : (
             <button
               onClick={() => setIsCreating(true)}

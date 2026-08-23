@@ -1,27 +1,21 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { AppLogo } from "@alfheim/shared";
 import { useSidebar, useActiveList } from "@/app/[locale]/providers";
 import {
-  useShoppingLists,
-  useCreateShoppingList,
-  useDeleteShoppingList,
-  useReorderShoppingLists,
-  useHouseholds,
+  useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
+  useReorderShoppingLists, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
-import { ChevronLeft, Home, User, ShoppingBag } from "lucide-react";
+import { Home, User } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "@/features/shopping-lists/types";
 import { SidebarItem } from "./sidebar/SidebarItem";
 import { SidebarCustomItem } from "./sidebar/SidebarCustomItem";
 import { CreateListForm } from "./sidebar/CreateListForm";
+import { SidebarHeader } from "./sidebar/SidebarHeader";
 
-/**
- * Clean Nordic Dark Sidebar navigation component for Shopping app.
- */
 export function Sidebar() {
   const t = useTranslations("Navigation");
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
@@ -47,10 +41,7 @@ export function Sidebar() {
     lists.forEach((list) => {
       if (list.is_default) {
         const hh = households.find((h) => h.id === list.home_id);
-        hhLists.push({
-          ...list,
-          displayName: hh ? hh.name : t("household_list_fallback"),
-        });
+        hhLists.push({ ...list, displayName: hh ? hh.name : t("household_list_fallback") });
       } else if (list.is_personal) {
         persList = list;
       } else {
@@ -112,36 +103,13 @@ export function Sidebar() {
         aria-hidden
       />
 
-      <aside
-        className={cn(
-          "w-72 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-sans relative shrink-0 z-40 transition-colors duration-200 shadow-xl md:shadow-none",
-          "fixed md:relative inset-y-0 left-0"
-        )}
-      >
-        <div className="p-5 border-b border-[var(--border-subtle)] flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-3">
-            <AppLogo appName="shopping" size={32} />
-            <div className="flex flex-col">
-              <span className="font-heading text-sm font-bold uppercase tracking-wider text-[var(--text-main)] leading-tight">
-                ALFHEIM // SHOPPING
-              </span>
-              <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest leading-none">
-                {t("subtitle") || "Smart Grocery List"}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="p-1.5 rounded-lg bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-subtle)] cursor-pointer transition-colors"
-            aria-label={t("collapseSidebar")}
-            title={t("collapseSidebar")}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        </div>
+      <aside className={cn(
+        "w-72 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-sans relative shrink-0 z-40 transition-colors duration-200 shadow-xl md:shadow-none",
+        "fixed md:relative inset-y-0 left-0"
+      )}>
+        <SidebarHeader onClose={() => setIsSidebarOpen(false)} />
 
         <div className="flex-1 overflow-y-auto p-3 space-y-5 scrollbar-none">
-          {/* Household Lists Section */}
           <div className="space-y-1">
             <div className="px-3 pb-1">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]">
@@ -172,7 +140,6 @@ export function Sidebar() {
             )}
           </div>
 
-          {/* Personal & Custom Lists Section */}
           <div className="space-y-1">
             <div className="px-3 pb-1 flex items-center justify-between">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]">

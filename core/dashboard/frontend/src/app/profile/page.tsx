@@ -2,17 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@alfheim/shared';
-import { useUserProfile, useUpdateProfile } from '@/features/profile';
+import { useUserProfile, useUpdateProfile, ProfileHeaderBanner, ProfileOidcClaims } from '@/features/profile';
 import { useAuth } from '@/core/providers';
 
-/**
- * Profile Page View.
- * Binds OIDC JWT user identity claims from useAuth() and syncs profile updates via useUserProfile()/useUpdateProfile().
- */
 export default function ProfilePage() {
   const { t } = useTranslation();
   const { user: authUser, logout } = useAuth();
-  const { data: profile, isLoading, isError } = useUserProfile();
+  const { data: profile } = useUserProfile();
   const updateMutation = useUpdateProfile();
 
   const [firstName, setFirstName] = useState('');
@@ -63,50 +59,18 @@ export default function ProfilePage() {
 
   return (
     <>
-      {/* Header Banner */}
-      <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[var(--surface-elevated)] to-[var(--primary-main)]/30 border-2 border-[var(--primary-main)] flex items-center justify-center text-xl font-bold text-[var(--primary-main)] overflow-hidden font-mono">
-            {profile?.avatar_url || avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile?.avatar_url || avatarUrl}
-                alt={displayName}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              `${(firstName?.[0] || displayName[0] || 'U').toUpperCase()}${(lastName?.[0] || '').toUpperCase()}`
-            )}
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-[var(--text-main)]">
-              {displayName}
-            </h1>
-            <p className="text-xs font-mono text-[var(--text-muted)] mt-0.5">
-              @{username} • {email}
-            </p>
-          </div>
-        </div>
+      <ProfileHeaderBanner
+        displayName={displayName}
+        username={username}
+        email={email}
+        userId={userId}
+        firstName={firstName}
+        lastName={lastName}
+        avatarUrl={avatarUrl}
+        profileAvatarUrl={profile?.avatar_url}
+        logout={logout}
+      />
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:block text-right">
-            <span className="px-2.5 py-1 rounded bg-[var(--primary-main)]/10 text-[var(--primary-main)] border border-[var(--primary-main)]/30 text-xs font-mono">
-              Keycloak ID: {userId}
-            </span>
-          </div>
-
-          <button
-            onClick={logout}
-            type="button"
-            className="px-3.5 py-1.5 rounded-lg bg-red-950/30 border border-red-800/40 text-red-400 hover:bg-red-900/40 text-xs font-mono flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-sm">logout</span>
-            <span>{t('common.logout')}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Edit Form */}
       <div className="col-span-12 md:col-span-8 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
         <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">
           {t('profile.title')}
@@ -181,32 +145,14 @@ export default function ProfilePage() {
         </form>
       </div>
 
-      {/* Profile Metadata Sidebar */}
-      <div className="col-span-12 md:col-span-4 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
-        <h2 className="text-base font-bold text-[var(--text-main)] mb-4">{t('profile.oidc_claims_title')}</h2>
-        <div className="space-y-3.5 text-xs">
-          <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.subject_sub')}</span>
-            <span className="font-mono text-[var(--text-main)] break-all">{authUser?.sub || userId}</span>
-          </div>
-          <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.username')}</span>
-            <span className="font-semibold text-[var(--text-main)]">@{username}</span>
-          </div>
-          <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.email')}</span>
-            <span className="font-semibold text-[var(--text-main)]">{email || t('profile.not_available')}</span>
-          </div>
-          <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.given_name')}</span>
-            <span className="font-mono text-[var(--text-main)]">{authUser?.given_name || firstName || t('profile.not_available')}</span>
-          </div>
-          <div>
-            <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.family_name')}</span>
-            <span className="font-mono text-[var(--text-main)]">{authUser?.family_name || lastName || t('profile.not_available')}</span>
-          </div>
-        </div>
-      </div>
+      <ProfileOidcClaims
+        authUser={authUser}
+        userId={userId}
+        username={username}
+        email={email}
+        firstName={firstName}
+        lastName={lastName}
+      />
     </>
   );
 }

@@ -3,19 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@alfheim/shared';
 import { useTelemetryLogs } from '../queries';
+import { SystemShellLogsOutput, LogEntry } from './SystemShellLogsOutput';
 
-interface LogEntry {
-  id: string;
-  timestamp: string;
-  level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS' | string;
-  service: string;
-  message: string;
-}
-
-/**
- * Live System Shell / Terminal Log Feed component.
- * Repaired contrast, crisp level badges (ERR, WARN, OK, INFO), and zero visual clutter.
- */
 export function SystemShellLogs() {
   const { t } = useTranslation();
   const { data: serverLogs } = useTelemetryLogs();
@@ -24,18 +13,15 @@ export function SystemShellLogs() {
   const [, setCommandHistory] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new log entries
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  // Sync server logs when received from Go backend
   useEffect(() => {
     if (serverLogs && serverLogs.length > 0) {
       setLogs((prev) => {
         const userCmds = prev.filter((l) => l.service === 'shell' || l.service === 'system' || l.service === 'network');
         const combined = [...serverLogs, ...userCmds];
-        // Deduplicate by ID
         const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
         return unique.slice(-50);
       });
@@ -50,7 +36,6 @@ export function SystemShellLogs() {
     const now = new Date();
     const timestamp = `${now.toTimeString().split(' ')[0]}.${now.getMilliseconds().toString().padStart(3, '0')}`;
 
-    // Append executed command log
     const cmdLog: LogEntry = {
       id: `log-${Date.now()}`,
       timestamp,
@@ -138,7 +123,6 @@ export function SystemShellLogs() {
 
   return (
     <div className="col-span-12 rounded-2xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] overflow-hidden shadow-2xl flex flex-col font-mono text-xs">
-      {/* Terminal Bar Header */}
       <div className="h-10 px-4 bg-[var(--surface-card)] border-b border-[var(--border-subtle)] flex items-center justify-between select-none shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex items-center gap-1.5 shrink-0">
@@ -161,26 +145,12 @@ export function SystemShellLogs() {
         </div>
       </div>
 
-      {/* Log Output Window */}
-      <div className="p-4 h-64 overflow-y-auto space-y-2 bg-[var(--surface-canvas)] scrollbar-thin">
-        {logs.map((log) => (
-          <div key={log.id} className="flex items-start gap-2.5 leading-relaxed">
-            <span className="text-[var(--primary-main)] shrink-0 font-mono text-xs font-semibold opacity-90">
-              [{log.timestamp}]
-            </span>
-            <span className="shrink-0">{getLevelBadge(log.level)}</span>
-            <span className="text-[var(--text-muted)] font-mono shrink-0 text-xs">
-              [{log.service}]
-            </span>
-            <span className="text-[var(--text-main)] font-mono break-all text-xs">
-              {log.message}
-            </span>
-          </div>
-        ))}
-        <div ref={logsEndRef} />
-      </div>
+      <SystemShellLogsOutput
+        logs={logs}
+        logsEndRef={logsEndRef}
+        getLevelBadge={getLevelBadge}
+      />
 
-      {/* Terminal Command Input Prompt */}
       <form
         onSubmit={handleCommandSubmit}
         className="h-11 px-4 border-t border-[var(--border-subtle)] bg-[var(--surface-card)] flex items-center gap-2.5 shrink-0"

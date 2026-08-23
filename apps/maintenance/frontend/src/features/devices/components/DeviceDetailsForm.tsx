@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { CATEGORIES } from "@/shared/data";
 import { ChevronDown } from "lucide-react";
 import { Household } from "@/shared/types";
+import { DeviceCoreFields } from "./DeviceCoreFields";
 
 const STATUSES = ["active", "maintenance", "inactive"] as const;
 
@@ -60,59 +61,18 @@ export function DeviceDetailsForm({
         {t("wizard.deviceDetailsLegend")}
       </legend>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label className="space-y-1.5">
-          <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-            {t("wizard.name")} *
-          </span>
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("wizard.namePlaceholder")}
-            className="w-full p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all placeholder:text-[var(--text-muted)]/50 font-mono"
-          />
-        </label>
-        <label className="space-y-1.5">
-          <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-            {t("deviceInventory.fields.model")} *
-          </span>
-          <input
-            required
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder={t("wizard.modelPlaceholder")}
-            className="w-full p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all placeholder:text-[var(--text-muted)]/50 font-mono"
-          />
-        </label>
-        <label className="space-y-1.5">
-          <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-            {t("deviceInventory.fields.serialKey")} *
-          </span>
-          <input
-            required
-            value={serial}
-            onChange={(e) => setSerial(e.target.value)}
-            placeholder={t("wizard.serialPlaceholder")}
-            className="w-full p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all placeholder:text-[var(--text-muted)]/50 font-mono"
-          />
-        </label>
-        <label className="space-y-1.5">
-          <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-            {t("deviceInventory.fields.location")} *
-          </span>
-          <input
-            required
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder={t("wizard.locationPlaceholder")}
-            className="w-full p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all placeholder:text-[var(--text-muted)]/50 font-mono"
-          />
-        </label>
-      </div>
+      <DeviceCoreFields
+        name={name}
+        setName={setName}
+        model={model}
+        setModel={setModel}
+        serial={serial}
+        setSerial={setSerial}
+        location={location}
+        setLocation={setLocation}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Category */}
         <label className="space-y-1.5">
           <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
             {t("wizard.category")}
@@ -131,7 +91,6 @@ export function DeviceDetailsForm({
           </div>
         </label>
 
-        {/* Status */}
         <label className="space-y-1.5">
           <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
             {t("wizard.status")}
@@ -150,7 +109,6 @@ export function DeviceDetailsForm({
           </div>
         </label>
 
-        {/* Service interval */}
         <label className="space-y-1.5">
           <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
             {t("wizard.interval")}
@@ -166,7 +124,6 @@ export function DeviceDetailsForm({
         </label>
       </div>
 
-      {/* Household */}
       <label className="space-y-1.5 block">
         <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
           {t("wizard.household")}
@@ -185,7 +142,6 @@ export function DeviceDetailsForm({
         </div>
       </label>
 
-      {/* Notes */}
       <label className="space-y-1.5 block">
         <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
           {t("wizard.notes")}
