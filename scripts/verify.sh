@@ -170,23 +170,32 @@ if [[ "$RUN_GO" == true ]]; then
     log_banner "2. Go Verification (Tests, Race Detector & Coverage)"
 
     if command -v go >/dev/null 2>&1; then
-        log_section "Go Backend Unit & Integration Tests (core/dashboard/backend)"
-        if (cd "$ROOT_DIR/core/dashboard/backend" && go test -race -cover ./...); then
-            log_success "Go test suite passed with race detector enabled"
-        else
-            log_fail "Go tests failed"
-            ERRORS=$((ERRORS + 1))
-        fi
+        GO_SERVICES=()
+        while IFS= read -r service_dir; do
+            if [[ -f "$service_dir/go.mod" ]]; then
+                GO_SERVICES+=("$service_dir")
+            fi
+        done < <(find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort)
 
-        if command -v golangci-lint >/dev/null 2>&1; then
-            log_section "Go Linter (golangci-lint)"
-            if (cd "$ROOT_DIR/core/dashboard/backend" && golangci-lint run); then
-                log_success "golangci-lint passed"
+        for service in "${GO_SERVICES[@]}"; do
+            log_section "Go Backend Unit & Integration Tests ($service)"
+            if (cd "$ROOT_DIR/$service" && go test -race -cover ./...); then
+                log_success "Go test suite passed with race detector enabled ($service)"
             else
-                log_fail "golangci-lint found issues"
+                log_fail "Go tests failed ($service)"
                 ERRORS=$((ERRORS + 1))
             fi
-        fi
+
+            if command -v golangci-lint >/dev/null 2>&1; then
+                log_section "Go Linter (golangci-lint) - $service"
+                if (cd "$ROOT_DIR/$service" && golangci-lint run); then
+                    log_success "golangci-lint passed ($service)"
+                else
+                    log_fail "golangci-lint found issues ($service)"
+                    ERRORS=$((ERRORS + 1))
+                fi
+            fi
+        done
     else
         log_warn "Go is not installed on this environment; skipping Go checks."
     fi

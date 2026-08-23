@@ -10,6 +10,8 @@ members = [
     "apps/*/backend",
     "packages/backend-shared",
 ]
+# apps/chat/backend is a Go service (not Python) and has no pyproject.toml.
+exclude = ["apps/chat/backend"]
 
 [dependency-groups]
 dev = [
