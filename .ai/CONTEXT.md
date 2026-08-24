@@ -9,6 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(chat): enforce household sharing rules and permissions for model blocks`**
+  - Refined access rules and ownership permissions in `apps/chat/backend/internal/features/modelblocks/`: `Get` and `TriggerHealthCheck` allow owner and shared household members (`IsVisibleTo`), while `Update` and `Delete` strictly require ownership (`CanModify` -> `ErrForbidden`).
+  - Added `Get` endpoint (`GET /api/v1/chat/model-blocks/{id}`) and extended handler with household context propagation for health checks.
+  - Implemented `features/model-blocks/` frontend architecture (`ModelBlockCard`, `ModelBlockFormModal`, `ModelBlockManagementView`, `modelBlockService`) with clear badges ("Geteilt im Haushalt", "Privat", "System-Modell"), visibility switching, and conditional edit/delete actions.
+  - Added comprehensive unit and component test suites in backend (`service_test.go`, `handler_test.go`) and frontend (`ModelBlockManagement.test.tsx`).
+  - Added full i18n dictionaries across `de`, `en`, and `pl` for all model management interactions.
 * **`feat(deploy): configure compose, caddy routing, and tier-1 chat app registration`**
   - Created `apps/chat/compose.yml` with `chat-db` (Postgres 16), `chat-backend` (Go), and `chat-frontend` (Next.js 16).
   - Integrated `apps/chat/compose.yml` into root `compose.yaml` and declared `app-chat-net` bridge network.
