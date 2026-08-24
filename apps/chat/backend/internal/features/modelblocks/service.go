@@ -34,10 +34,11 @@ type BootstrapSeed struct {
 // Service defines domain logic for model block management.
 type Service interface {
 	List(ctx context.Context, userID, householdID string) ([]ResponseDTO, error)
+	Get(ctx context.Context, userID, householdID, id string) (ResponseDTO, error)
 	Create(ctx context.Context, userID, householdID string, req CreateRequest) (ResponseDTO, error)
 	Update(ctx context.Context, userID, householdID, id string, req UpdateRequest) (ResponseDTO, error)
 	Delete(ctx context.Context, userID, id string) error
-	TriggerHealthCheck(ctx context.Context, userID, id string) (ResponseDTO, error)
+	TriggerHealthCheck(ctx context.Context, userID, householdID, id string) (ResponseDTO, error)
 	// EnsureBootstrap seeds the ENV-configured fallback model block exactly once,
 	// on the very first successful call; subsequent calls (e.g. on every restart)
 	// are no-ops even if the seeded block was since edited or deleted by a user.
@@ -85,6 +86,17 @@ func (s *service) List(ctx context.Context, userID, householdID string) ([]Respo
 		out = append(out, ToResponse(m, userID))
 	}
 	return out, nil
+}
+
+func (s *service) Get(ctx context.Context, userID, householdID, id string) (ResponseDTO, error) {
+	m, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return ResponseDTO{}, err
+	}
+	if !m.IsVisibleTo(userID, householdID) {
+		return ResponseDTO{}, ErrForbidden
+	}
+	return ToResponse(m, userID), nil
 }
 
 func (s *service) Create(ctx context.Context, userID, householdID string, req CreateRequest) (ResponseDTO, error) {
@@ -210,12 +222,12 @@ func (s *service) Delete(ctx context.Context, userID, id string) error {
 	return nil
 }
 
-func (s *service) TriggerHealthCheck(ctx context.Context, userID, id string) (ResponseDTO, error) {
+func (s *service) TriggerHealthCheck(ctx context.Context, userID, householdID, id string) (ResponseDTO, error) {
 	m, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return ResponseDTO{}, err
 	}
-	if !m.CanModify(userID) {
+	if !m.IsVisibleTo(userID, householdID) {
 		return ResponseDTO{}, ErrForbidden
 	}
 

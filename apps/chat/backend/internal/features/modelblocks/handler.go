@@ -25,6 +25,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
 		r.Get("/api/v1/chat/model-blocks", h.List)
+		r.Get("/api/v1/chat/model-blocks/{id}", h.Get)
 		r.Post("/api/v1/chat/model-blocks", h.Create)
 		r.Patch("/api/v1/chat/model-blocks/{id}", h.Update)
 		r.Delete("/api/v1/chat/model-blocks/{id}", h.Delete)
@@ -46,6 +47,24 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, blocks)
+}
+
+func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
+	claims, err := middleware.GetUserClaims(r.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+
+	block, err := h.service.Get(r.Context(), claims.Subject, claims.HouseholdID, id)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, block)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +139,7 @@ func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	result, err := h.service.TriggerHealthCheck(r.Context(), claims.Subject, id)
+	result, err := h.service.TriggerHealthCheck(r.Context(), claims.Subject, claims.HouseholdID, id)
 	if err != nil {
 		writeServiceError(w, err)
 		return

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@alfheim/shared";
+import { Cpu } from "lucide-react";
 import {
   useConversations,
   useCreateConversation,
@@ -12,13 +13,18 @@ import {
 interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onOpenModelManager?: () => void;
 }
 
 /**
  * Sidebar list of the user's conversations, with a minimal inline form to start a
  * new one against one of their visible model blocks (own + shared-in-household).
  */
-export function ConversationList({ selectedId, onSelect }: ConversationListProps) {
+export function ConversationList({
+  selectedId,
+  onSelect,
+  onOpenModelManager,
+}: ConversationListProps) {
   const { t } = useTranslation();
   const { data: conversations, isLoading } = useConversations();
   const { data: modelBlocks } = useModelBlocks();
@@ -50,9 +56,22 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
   return (
     <aside className="w-72 shrink-0 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] flex flex-col h-full">
       <div className="p-4 border-b border-[var(--border-subtle)] space-y-2">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">
-          {t("Chat.conversations")}
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">
+            {t("Chat.conversations")}
+          </h2>
+          {onOpenModelManager && (
+            <button
+              type="button"
+              onClick={onOpenModelManager}
+              aria-label={t("Chat.manageModels")}
+              title={t("Chat.manageModels")}
+              className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-canvas)] transition-colors cursor-pointer"
+            >
+              <Cpu className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
         {modelBlocks && modelBlocks.length > 0 ? (
           <div className="space-y-2">

@@ -1,0 +1,201 @@
+"use client";
+
+import { useState } from "react";
+import { useTranslation } from "@alfheim/shared";
+import { X } from "lucide-react";
+import type { CreateModelBlockRequest, ModelBlock, UpdateModelBlockRequest } from "../types";
+
+interface ModelBlockFormModalProps {
+  model?: ModelBlock | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (payload: CreateModelBlockRequest | { id: string; payload: UpdateModelBlockRequest }) => void;
+  isPending: boolean;
+}
+
+export function ModelBlockFormModal({
+  model,
+  isOpen,
+  onClose,
+  onSubmit,
+  isPending,
+}: ModelBlockFormModalProps) {
+  const { t } = useTranslation();
+  const isEditing = !!model;
+
+  const [displayName, setDisplayName] = useState(model?.display_name ?? "");
+  const [providerType, setProviderType] = useState(model?.provider_type ?? "ollama");
+  const [modelIdentifier, setModelIdentifier] = useState(model?.model_identifier ?? "");
+  const [baseUrl, setBaseUrl] = useState(model?.base_url ?? "");
+  const [apiKey, setApiKey] = useState("");
+  const [visibility, setVisibility] = useState<"private" | "shared">(model?.visibility ?? "private");
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isEditing && model) {
+      onSubmit({
+        id: model.id,
+        payload: {
+          display_name: displayName,
+          model_identifier: modelIdentifier,
+          base_url: baseUrl || undefined,
+          api_key: apiKey || undefined,
+          visibility,
+        },
+      });
+    } else {
+      onSubmit({
+        display_name: displayName,
+        provider_type: providerType,
+        model_identifier: modelIdentifier,
+        base_url: baseUrl || undefined,
+        api_key: apiKey || undefined,
+        visibility,
+      });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+          <h2 className="text-lg font-bold text-[var(--text-main)]">
+            {isEditing ? t("Chat.editModelBlock") : t("Chat.addModelBlock")}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("Chat.close")}
+            className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
+              {t("Chat.modelDisplayName")}
+            </label>
+            <input
+              type="text"
+              required
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none"
+              placeholder="z. B. Local Llama oder GPT-4o"
+            />
+          </div>
+
+          {!isEditing && (
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
+                {t("Chat.modelProvider")}
+              </label>
+              <select
+                value={providerType}
+                onChange={(e) => setProviderType(e.target.value)}
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none"
+              >
+                <option value="ollama">Ollama (Local / Self-hosted)</option>
+                <option value="openai_compatible">OpenAI Compatible / vLLM</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="anthropic">Anthropic Claude</option>
+                <option value="gemini">Google Gemini</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
+              {t("Chat.modelIdentifier")}
+            </label>
+            <input
+              type="text"
+              required
+              value={modelIdentifier}
+              onChange={(e) => setModelIdentifier(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none"
+              placeholder="z. B. llama3.1:8b, gpt-4o, claude-3-5-sonnet"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
+              {t("Chat.modelBaseUrl")}
+            </label>
+            <input
+              type="text"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none font-mono"
+              placeholder="http://ollama:11434 oder https://api.openai.com/v1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
+              {t("Chat.modelApiKey")}
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none font-mono"
+              placeholder={isEditing ? "(Unverändert lassen)" : "sk-..."}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5">
+              {t("Chat.modelVisibility")}
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setVisibility("private")}
+                className={`px-3 py-2 rounded-lg border text-xs font-semibold flex items-center justify-center cursor-pointer transition-all ${
+                  visibility === "private"
+                    ? "border-[var(--primary-main)] bg-[var(--primary-main)]/10 text-[var(--primary-main)]"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-muted)]"
+                }`}
+              >
+                {t("Chat.visibilityPrivate")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisibility("shared")}
+                className={`px-3 py-2 rounded-lg border text-xs font-semibold flex items-center justify-center cursor-pointer transition-all ${
+                  visibility === "shared"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-muted)]"
+                }`}
+              >
+                {t("Chat.visibilityShared")}
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-xs font-semibold border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
+            >
+              {t("Chat.cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--primary-main)] text-black cursor-pointer disabled:opacity-50"
+            >
+              {t("Chat.save")}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

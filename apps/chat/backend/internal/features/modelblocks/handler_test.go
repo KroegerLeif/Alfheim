@@ -143,16 +143,76 @@ func TestHandler_CreateRejectsMissingHouseholdForSharedVisibility(t *testing.T) 
 	}
 }
 
+func TestHandler_GetModelBlock(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	claims := &middleware.UserClaims{Subject: "user-1", HouseholdID: "hh-1"}
+	router := newTestRouter(svc, claims)
+
+	created, err := svc.Create(context.Background(), "user-1", "hh-1", modelblocks.CreateRequest{
+		ProviderType:    "ollama",
+		DisplayName:     "My Block",
+		ModelIdentifier: "llama3.1:8b",
+		Visibility:      modelblocks.VisibilityShared,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/model-blocks/"+created.ID, nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var res modelblocks.ResponseDTO
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if res.ID != created.ID {
+		t.Errorf("expected ID %s, got %s", created.ID, res.ID)
+	}
+}
+
+func TestHandler_DeleteForbiddenForNonOwner(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	owner := &middleware.UserClaims{Subject: "owner-1"}
+
+	created, err := svc.Create(context.Background(), owner.Subject, "", modelblocks.CreateRequest{
+		ProviderType:    "ollama",
+		DisplayName:     "Mine",
+		ModelIdentifier: "llama3.1:8b",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	intruder := &middleware.UserClaims{Subject: "intruder"}
+	router := newTestRouter(svc, intruder)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/model-blocks/"+created.ID, nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rec.Code)
+	}
+}
+
 func TestHandler_TriggerHealthCheck(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &middleware.UserClaims{Subject: "user-1", HouseholdID: "hh-1"}
 	router := newTestRouter(svc, claims)
 
-	created, err := svc.Create(context.Background(), claims.Subject, "", modelblocks.CreateRequest{
+	created, err := svc.Create(context.Background(), claims.Subject, "hh-1", modelblocks.CreateRequest{
 		ProviderType:    "anthropic", // still unimplemented as of Phase 5 -> deterministic "unknown" result
 		DisplayName:     "External",
 		ModelIdentifier: "claude-3",
+		Visibility:      modelblocks.VisibilityShared,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

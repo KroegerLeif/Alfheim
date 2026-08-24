@@ -279,6 +279,74 @@ func TestService_UpdateOwnershipRules(t *testing.T) {
 	})
 }
 
+func TestService_GetAndVisibility(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	ctx := context.Background()
+
+	shared, err := svc.Create(ctx, "owner-1", "hh-1", modelblocks.CreateRequest{
+		ProviderType:    "ollama",
+		DisplayName:     "Shared Llama",
+		ModelIdentifier: "llama3.1:8b",
+		Visibility:      modelblocks.VisibilityShared,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error creating shared block: %v", err)
+	}
+
+	private, err := svc.Create(ctx, "owner-1", "", modelblocks.CreateRequest{
+		ProviderType:    "ollama",
+		DisplayName:     "Private Llama",
+		ModelIdentifier: "llama3.1:8b",
+		Visibility:      modelblocks.VisibilityPrivate,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error creating private block: %v", err)
+	}
+
+	t.Run("owner can get private and shared block", func(t *testing.T) {
+		res, err := svc.Get(ctx, "owner-1", "hh-1", shared.ID)
+		if err != nil {
+			t.Fatalf("expected owner to get shared block, got: %v", err)
+		}
+		if !res.IsOwner {
+			t.Errorf("expected IsOwner true for owner")
+		}
+
+		resPriv, err := svc.Get(ctx, "owner-1", "", private.ID)
+		if err != nil {
+			t.Fatalf("expected owner to get private block, got: %v", err)
+		}
+		if !resPriv.IsOwner {
+			t.Errorf("expected IsOwner true for owner")
+		}
+	})
+
+	t.Run("household member can get shared block but IsOwner is false", func(t *testing.T) {
+		res, err := svc.Get(ctx, "member-2", "hh-1", shared.ID)
+		if err != nil {
+			t.Fatalf("expected household member to get shared block, got: %v", err)
+		}
+		if res.IsOwner {
+			t.Errorf("expected IsOwner false for household member")
+		}
+	})
+
+	t.Run("household member cannot get private block", func(t *testing.T) {
+		_, err := svc.Get(ctx, "member-2", "hh-1", private.ID)
+		if err != modelblocks.ErrForbidden {
+			t.Errorf("expected ErrForbidden for private block access by other user, got: %v", err)
+		}
+	})
+
+	t.Run("user in different household cannot get shared block", func(t *testing.T) {
+		_, err := svc.Get(ctx, "other-user", "hh-2", shared.ID)
+		if err != modelblocks.ErrForbidden {
+			t.Errorf("expected ErrForbidden for foreign household, got: %v", err)
+		}
+	})
+}
+
 func TestService_TriggerHealthCheck(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
@@ -286,7 +354,7 @@ func TestService_TriggerHealthCheck(t *testing.T) {
 
 	t.Run("marks unknown health for an unimplemented provider", func(t *testing.T) {
 		created, err := svc.Create(ctx, "user-1", "", modelblocks.CreateRequest{
-			ProviderType:    "anthropic", // still unimplemented as of Phase 5; openai_compatible now is
+			ProviderType:    "anthropic",
 			DisplayName:     "External",
 			ModelIdentifier: "claude-3",
 		})
@@ -294,7 +362,7 @@ func TestService_TriggerHealthCheck(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		result, err := svc.TriggerHealthCheck(ctx, "user-1", created.ID)
+		result, err := svc.TriggerHealthCheck(ctx, "user-1", "", created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -306,7 +374,7 @@ func TestService_TriggerHealthCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("non-owner cannot trigger a health check", func(t *testing.T) {
+	t.Run("non-owner with no household cannot trigger health check on private block", func(t *testing.T) {
 		created, err := svc.Create(ctx, "user-1", "", modelblocks.CreateRequest{
 			ProviderType:    "ollama",
 			DisplayName:     "Mine",
@@ -316,9 +384,29 @@ func TestService_TriggerHealthCheck(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = svc.TriggerHealthCheck(ctx, "someone-else", created.ID)
+		_, err = svc.TriggerHealthCheck(ctx, "someone-else", "", created.ID)
 		if err != modelblocks.ErrForbidden {
 			t.Errorf("expected ErrForbidden, got %v", err)
+		}
+	})
+
+	t.Run("authorized household member can trigger health check on shared block", func(t *testing.T) {
+		shared, err := svc.Create(ctx, "owner-1", "hh-1", modelblocks.CreateRequest{
+			ProviderType:    "anthropic",
+			DisplayName:     "Shared Anthropic",
+			ModelIdentifier: "claude-3",
+			Visibility:      modelblocks.VisibilityShared,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		res, err := svc.TriggerHealthCheck(ctx, "member-2", "hh-1", shared.ID)
+		if err != nil {
+			t.Fatalf("expected household member to trigger health check on shared block, got %v", err)
+		}
+		if res.HealthStatus != modelblocks.HealthStatusUnknown {
+			t.Errorf("expected unknown health status, got %s", res.HealthStatus)
 		}
 	})
 }
