@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslation } from "@alfheim/shared";
 import { X } from "lucide-react";
+import { ModelBlockVisibilitySelector } from "./ModelBlockVisibilitySelector";
 import type { CreateModelBlockRequest, ModelBlock, UpdateModelBlockRequest } from "../types";
 
 interface ModelBlockFormModalProps {
@@ -148,35 +149,11 @@ export function ModelBlockFormModal({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5">
-              {t("Chat.modelVisibility")}
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setVisibility("private")}
-                className={`px-3 py-2 rounded-lg border text-xs font-semibold flex items-center justify-center cursor-pointer transition-all ${
-                  visibility === "private"
-                    ? "border-[var(--primary-main)] bg-[var(--primary-main)]/10 text-[var(--primary-main)]"
-                    : "border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-muted)]"
-                }`}
-              >
-                {t("Chat.visibilityPrivate")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setVisibility("shared")}
-                className={`px-3 py-2 rounded-lg border text-xs font-semibold flex items-center justify-center cursor-pointer transition-all ${
-                  visibility === "shared"
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-muted)]"
-                }`}
-              >
-                {t("Chat.visibilityShared")}
-              </button>
-            </div>
-          </div>
+          <ModelBlockVisibilitySelector
+            value={visibility}
+            onChange={setVisibility}
+            disabled={isPending}
+          />
 
           <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-end gap-2">
             <button

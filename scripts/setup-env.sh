@@ -109,7 +109,7 @@ UPDATED_COUNT=0
 for example_file in "${EXAMPLE_FILES[@]}"; do
     target_dir="$(dirname "$example_file")"
     target_env="${target_dir}/.env"
-    
+
     # Relative path display for clean output
     rel_example="${example_file#./}"
     rel_env="${target_env#./}"

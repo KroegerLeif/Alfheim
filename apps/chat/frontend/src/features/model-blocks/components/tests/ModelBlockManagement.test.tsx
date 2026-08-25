@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { vi, Mock } from "vitest";
 import { ModelBlockCard } from "../ModelBlockCard";
 import { ModelBlockFormModal } from "../ModelBlockFormModal";
+import { ModelBlockVisibilitySelector } from "../ModelBlockVisibilitySelector";
 import { ModelBlockManagementView } from "../ModelBlockManagementView";
 import type { ModelBlock } from "../../types";
 import {
@@ -152,6 +153,33 @@ describe("ModelBlockFormModal", () => {
         visibility: "shared",
       })
     );
+  });
+});
+
+describe("ModelBlockVisibilitySelector", () => {
+  it("renders both options and calls onChange when clicked", () => {
+    const onChange = vi.fn();
+    render(<ModelBlockVisibilitySelector value="private" onChange={onChange} />);
+
+    expect(screen.getByText("visibilityPrivate")).toBeInTheDocument();
+    expect(screen.getByText("visibilityShared")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("visibilityShared"));
+    expect(onChange).toHaveBeenCalledWith("shared");
+
+    fireEvent.click(screen.getByText("visibilityPrivate"));
+    expect(onChange).toHaveBeenCalledWith("private");
+  });
+
+  it("respects disabled prop", () => {
+    const onChange = vi.fn();
+    render(<ModelBlockVisibilitySelector value="private" onChange={onChange} disabled={true} />);
+
+    const privateBtn = screen.getByText("visibilityPrivate");
+    const sharedBtn = screen.getByText("visibilityShared");
+
+    expect(privateBtn).toBeDisabled();
+    expect(sharedBtn).toBeDisabled();
   });
 });
 
