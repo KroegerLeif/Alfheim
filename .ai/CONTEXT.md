@@ -9,6 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`chore(tooling): add setup-env script for automated env file scaffolding`**
+  - Created `scripts/setup-env.sh` to dynamically discover all `.env.example` templates across root, apps, core, packages, and infrastructure.
+  - Implemented safe default mode (copies missing `.env` files with green status output, skips existing `.env` with yellow `[SKIP]` notices).
+  - Implemented force mode (`--force` / `-f`) with automatic timestamped backups (`.env.bak.<timestamp>`).
+  - Added GOROOT environment guard to `scripts/verify.sh` to handle stale Homebrew Cellar paths.
 * **`feat(chat): enforce household sharing rules and permissions for model blocks`**
   - Refined access rules and ownership permissions in `apps/chat/backend/internal/features/modelblocks/`: `Get` and `TriggerHealthCheck` allow owner and shared household members (`IsVisibleTo`), while `Update` and `Delete` strictly require ownership (`CanModify` -> `ErrForbidden`).
   - Added `Get` endpoint (`GET /api/v1/chat/model-blocks/{id}`) and extended handler with household context propagation for health checks.
