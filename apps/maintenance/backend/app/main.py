@@ -42,7 +42,8 @@ async def lifespan(app: FastAPI):
     await init_db()
 
     try:
-        yield
+        async with mcp_server.lifespan():
+            yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers on shutdown
         from app.core.telemetry import shutdown_telemetry
@@ -86,8 +87,8 @@ discover_and_include_routers(app)
 # Discover and register FastMCP tools dynamically from features/*/mcp_tools.py
 discover_and_import_mcp_tools()
 
-# Mount the MCP SSE transport at /api/v1/mcp
-app.mount("/api/v1/mcp", mcp_server.sse_app())
+# Mount the FastMCP HTTP server at /mcp
+app.mount("/mcp", mcp_server.http_app())
 
 
 @app.get("/api/v1/health")
