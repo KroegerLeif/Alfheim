@@ -9,6 +9,10 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(mcp): resolve FastMCP import path and runtime dependencies across python backends`**
+  - Standardized FastMCP imports to `from fastmcp import FastMCP` in `apps/maintenance/backend/app/core/mcp.py`.
+  - Replaced legacy `mcp[cli]` dependency with `fastmcp>=3.4.1` in `apps/maintenance/backend/pyproject.toml` and synced `uv.lock`.
+  - Configured FastMCP HTTP server mount at `/mcp` with proper lifespan context management in `apps/maintenance/backend/app/main.py`.
 * **`refactor(chat): extract ModelBlockVisibilitySelector and clean setup-env formatting`**
   - Extracted `ModelBlockVisibilitySelector` subcomponent in `apps/chat/frontend/src/features/model-blocks/components/` to cleanly decouple visibility toggle UI controls from `ModelBlockFormModal`.
   - Added dedicated Vitest component tests in `ModelBlockManagement.test.tsx` verifying toggle callbacks and disabled state handling.
