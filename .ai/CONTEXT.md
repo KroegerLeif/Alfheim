@@ -9,6 +9,10 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`refactor(chat): extract ModelBlockVisibilitySelector and clean setup-env formatting`**
+  - Extracted `ModelBlockVisibilitySelector` subcomponent in `apps/chat/frontend/src/features/model-blocks/components/` to cleanly decouple visibility toggle UI controls from `ModelBlockFormModal`.
+  - Added dedicated Vitest component tests in `ModelBlockManagement.test.tsx` verifying toggle callbacks and disabled state handling.
+  - Formatted `scripts/setup-env.sh` to remove trailing whitespace for flawless pre-commit hook execution.
 * **`chore(tooling): add setup-env script for automated env file scaffolding`**
   - Created `scripts/setup-env.sh` to dynamically discover all `.env.example` templates across root, apps, core, packages, and infrastructure.
   - Implemented safe default mode (copies missing `.env` files with green status output, skips existing `.env` with yellow `[SKIP]` notices).
