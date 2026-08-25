@@ -167,7 +167,10 @@ fi
 # 2. Go Quality Gates
 # ------------------------------------------------------------------------------
 if [[ "$RUN_GO" == true ]]; then
-    log_banner "2. Go Verification (Tests, Race Detector & Coverage)"
+    # Unset stale GOROOT if pointing to a non-existent directory (e.g. after Homebrew upgrade)
+    if [[ -n "${GOROOT:-}" ]] && [[ ! -d "$GOROOT" ]]; then
+        unset GOROOT
+    fi
 
     if command -v go >/dev/null 2>&1; then
         GO_SERVICES=()
