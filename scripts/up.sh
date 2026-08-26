@@ -411,8 +411,15 @@ dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "alfheim_keycloak" "keycloak" 180
 
 info "Synchronizing Keycloak clients (ensuring alfheim-grafana client exists) …"
-docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
-  --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1 || true
+local_kc_attempts=0
+while [[ ${local_kc_attempts} -lt 5 ]]; do
+  if docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+    --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1; then
+    break
+  fi
+  local_kc_attempts=$((local_kc_attempts + 1))
+  sleep 3
+done
 
 if ! docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfheim -q clientId=alfheim-grafana --fields id 2>/dev/null | grep -q 'id'; then
   docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh create clients -r alfheim \

@@ -6,19 +6,16 @@ ENV UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
 
-# Copy dependency configuration files first to cache layers
-COPY pyproject.toml ./
+# Copy dependency configuration and workspace sources
+COPY pyproject.toml uv.lock ./
+COPY packages/backend-shared ./packages/backend-shared
+COPY apps/maintenance/backend ./apps/maintenance/backend
+
+WORKDIR /app/apps/maintenance/backend
 
 # Sync dependencies (excluding development libraries)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-install-project
-
-# Copy application source files
-COPY . .
-
-# Run project sync to register workspace packages
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev
+    uv sync --no-dev --no-editable
 
 # Final slim runtime container
 FROM python:3.12-alpine
@@ -26,8 +23,9 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # Copy virtualenv and executable files from builder
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/app /app/app
+COPY --from=builder /app/apps/maintenance/backend/.venv /app/.venv
+COPY --from=builder /app/apps/maintenance/backend/src /app/src
+COPY --from=builder /app/apps/maintenance/backend/main.py /app/main.py
 
 # Inject virtualenv into system PATH
 ENV PATH="/app/.venv/bin:$PATH"
@@ -36,4 +34,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 # Execute FastAPI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
