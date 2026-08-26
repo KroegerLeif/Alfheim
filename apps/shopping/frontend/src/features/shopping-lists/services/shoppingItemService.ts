@@ -38,11 +38,13 @@ export function useAddShoppingItem(listId: string) {
         .json()
         .then((data) => ShoppingItemSchema.parse(data)),
     onMutate: async (newItemPayload) => {
+      // Cancel outgoing queries to prevent overwrites
       await queryClient.cancelQueries({ queryKey: shoppingKeys.list(listId) });
 
       const previousList = queryClient.getQueryData<ShoppingList>(shoppingKeys.list(listId));
 
       if (previousList) {
+        // Enforce valid UUID string format for schema compliance
         const tempItem: ShoppingItem = {
           id: generateUUID(),
           list_id: listId,
@@ -68,6 +70,7 @@ export function useAddShoppingItem(listId: string) {
       return { previousList };
     },
     onError: (err, newItem, context) => {
+      // Revert state if backend request fails
       if (context?.previousList) {
         queryClient.setQueryData(shoppingKeys.list(listId), context.previousList);
       }

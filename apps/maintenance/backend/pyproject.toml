@@ -43,6 +43,7 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
+source = ["app"]
 omit = [
     "**/mcp_tools.py",
     "**/seeder.py",
