@@ -25,7 +25,8 @@ alfheim/
     ├── pantry/                 # Digital Pantry Module
     ├── shopping/               # Shopping List Module
     ├── maintenance/            # Home Maintenance Tracker Module
-    └── chores/                 # Household Chores Module
+    ├── chores/                 # Household Chores Module
+    └── workout/                # Workout Tracker Module (backend + MCP server; frontend deferred)
 ```
 
 ---
@@ -76,6 +77,7 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `http://chores-backend:8000/api/v1/chores` | Native API route (no stripping). |
+| `http://api.alfheim.loegien.localhost/workout/api/v1/` | `workout-backend` | `http://workout-backend:8000/api/v1/` | Strips `/workout` prefix via Caddy `handle_path`. No frontend yet. |
 | `http://api.alfheim.loegien.localhost/api/v1/apps` | `dashboard-backend` | `http://dashboard-backend:8080/api/v1/apps` | Native Go API route (no stripping). |
 
 ---
@@ -158,7 +160,7 @@ The monorepo shares a centralized design system and dynamic theme engine through
 
 ## 6. Python Developer Tooling, Quality Gates & Testing
 
-The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`) are organized as a unified **`uv` workspace**.
+The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`, `apps/workout/backend`) are organized as a unified **`uv` workspace**.
 
 ### A. Environment Setup & Workspace Sync
 Install `uv` (>= 0.12+) and sync all workspace members from the repository root:
@@ -203,4 +205,7 @@ cd apps/maintenance/backend && uv run pytest --cov
 
 # Chores backend tests
 cd apps/chores/backend && uv run pytest --cov
+
+# Workout backend tests
+cd apps/workout/backend && uv run pytest --cov
 ```
