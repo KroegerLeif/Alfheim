@@ -1,0 +1,17 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.ruff_cache
+.coverage
+.coverage.*
+coverage.xml
+.git
+.gitignore
+*.db
+*.sqlite
+*.sqlite3
+*.log
+uv.lock
