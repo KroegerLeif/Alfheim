@@ -5,6 +5,11 @@
 **Auditor:** Principal Software Architect, Frontend Specialist & Security Auditor
 **Scope:** Entire Alfheim Monorepo (`apps/`, `core/`, `packages/`, `infrastructure/`, `scripts/`, `.ai/`)
 
+> [!NOTE]
+> This document is a **frozen snapshot** of the `v1.0.0` audit; all 15 of its issues are remediated.
+> Open technical debt discovered after this audit is tracked in the living [`backlog.md`](backlog.md)
+> (ID scheme `TD-<AREA>-<NN>`). Do not append new items here.
+
 ---
 
 ## 1. Executive Monorepo Health Scorecard
