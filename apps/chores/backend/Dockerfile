@@ -23,7 +23,7 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # Copy virtualenv and executable files from builder
-COPY --from=builder /app/apps/chores/backend/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/apps/chores/backend/src /app/src
 COPY --from=builder /app/apps/chores/backend/main.py /app/main.py
 

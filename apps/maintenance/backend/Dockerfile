@@ -23,9 +23,8 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # Copy virtualenv and executable files from builder
-COPY --from=builder /app/apps/maintenance/backend/.venv /app/.venv
-COPY --from=builder /app/apps/maintenance/backend/src /app/src
-COPY --from=builder /app/apps/maintenance/backend/main.py /app/main.py
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/apps/maintenance/backend/app /app/app
 
 # Inject virtualenv into system PATH
 ENV PATH="/app/.venv/bin:$PATH"
@@ -34,4 +33,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 # Execute FastAPI server
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
