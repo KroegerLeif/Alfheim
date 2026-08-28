@@ -99,7 +99,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `cd apps/budget/backend && uv run pytest src/tests/test_auth.py`
 
-### [ ] TASK-202: Immutable Audit Log System & Event Hooks
+### [x] TASK-202: Immutable Audit Log System & Event Hooks
 - **Domain/Layer:** Backend / Core Audit
 - **Scope & Files:**
   - `apps/budget/backend/src/core/audit/models.py`
