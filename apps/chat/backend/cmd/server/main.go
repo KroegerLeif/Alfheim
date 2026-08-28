@@ -183,7 +183,7 @@ func main() {
 
 // setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
 func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, cfg.Keycloak.ExpectedAudience, log)
+	return middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
 }
 
 // healthHandler reports service and database connectivity status for compose healthchecks.

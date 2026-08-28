@@ -56,9 +56,22 @@ export function getAuthToken(): string | null {
   return sessionStorage.getItem("token_chat-frontend") || sessionStorage.getItem("alfheim_access_token");
 }
 
+export function getActiveHouseholdId(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("alfheim_active_household_id");
+}
+
 export function authHeaders(): HeadersInit {
   const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const activeHouseholdId = getActiveHouseholdId();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (activeHouseholdId) {
+    headers["X-Household-ID"] = activeHouseholdId;
+  }
+  return headers;
 }
 
 export class ApiError extends Error {
@@ -74,9 +87,11 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await getFreshAuthToken();
+  const activeHouseholdId = getActiveHouseholdId();
   const buildHeaders = (authToken: string | null) => ({
     "Content-Type": "application/json",
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...(activeHouseholdId ? { "X-Household-ID": activeHouseholdId } : {}),
     ...(init?.headers as Record<string, string>),
   });
 

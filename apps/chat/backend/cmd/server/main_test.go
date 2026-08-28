@@ -13,9 +13,8 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 
 	cfg := &config.Config{
 		Keycloak: config.KeycloakConfig{
-			JWKSURL:          "http://invalid.local/jwks-does-not-exist",
-			ExpectedIssuer:   "http://invalid.local/auth/realms/alfheim",
-			ExpectedAudience: "chat-backend",
+			JWKSURL:        "http://invalid.local/jwks-does-not-exist",
+			ExpectedIssuer: "http://invalid.local/auth/realms/alfheim",
 		},
 	}
 

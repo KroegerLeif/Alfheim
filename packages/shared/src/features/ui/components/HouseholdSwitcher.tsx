@@ -40,55 +40,98 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fetch households from central dashboard backend using active frontend auth tokens
-    const token = sessionStorage.getItem('token_chores-frontend') ||
-                  sessionStorage.getItem('token_maintenance-frontend') ||
-                  sessionStorage.getItem('token_pantry-frontend') ||
-                  sessionStorage.getItem('token_shopping-frontend');
-
-    if (token) {
-      const fetchHouseholds = async (url: string): Promise<boolean> => {
+    const getFreshToken = async (): Promise<string | null> => {
+      if (typeof window === 'undefined') return null;
+      const keycloak = (window as any).__keycloak_instance__;
+      if (keycloak && typeof keycloak.updateToken === 'function') {
         try {
-          const res = await fetch(url, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          if (!res.ok) throw new Error(`Status ${res.status}`);
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            setHouseholds(data);
-            try {
-              localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-              localStorage.setItem(LEGACY_CACHE_KEY, JSON.stringify(data));
-            } catch {
-              // Ignore storage quota errors
-            }
-            const activeSaved = localStorage.getItem(STORAGE_KEY);
-            const exists = data.some(h => h.id === activeSaved);
-            if ((!activeSaved || !exists) && data.length > 0) {
-              const defaultHh = data.find(h => h.is_default) || data[0];
-              localStorage.setItem(STORAGE_KEY, defaultHh.id);
-              setActiveId(defaultHh.id);
-              window.dispatchEvent(new Event('storage-household-changed'));
-            }
-            return true;
+          await keycloak.updateToken(30);
+          if (typeof keycloak.token === 'string') {
+            sessionStorage.setItem('alfheim_access_token', keycloak.token);
+            return keycloak.token;
           }
-        } catch (err) {
-          console.warn(`Failed to fetch households from ${url}:`, err);
+        } catch {
+          // Token update failed, fall back to storage
         }
-        return false;
-      };
+      }
+      return (
+        (typeof keycloak?.token === 'string' ? keycloak.token : null) ||
+        sessionStorage.getItem('token_chat-frontend') ||
+        sessionStorage.getItem('token_dashboard-frontend') ||
+        sessionStorage.getItem('token_chores-frontend') ||
+        sessionStorage.getItem('token_maintenance-frontend') ||
+        sessionStorage.getItem('token_pantry-frontend') ||
+        sessionStorage.getItem('token_shopping-frontend') ||
+        sessionStorage.getItem('alfheim_access_token')
+      );
+    };
 
-      const runFetch = async () => {
-        const success = await fetchHouseholds('/api/v1/households/me');
-        if (!success) {
-          await fetchHouseholds('http://alfheim/api/v1/households/me');
+    const fetchHouseholds = async (url: string): Promise<boolean> => {
+      try {
+        let token = await getFreshToken();
+        if (!token) return false;
+
+        let res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (res.status === 401 && typeof window !== 'undefined') {
+          const keycloak = (window as any).__keycloak_instance__;
+          if (keycloak && typeof keycloak.updateToken === 'function') {
+            try {
+              const refreshed = await keycloak.updateToken(-1);
+              if (refreshed && typeof keycloak.token === 'string') {
+                const freshToken: string = keycloak.token;
+                token = freshToken;
+                sessionStorage.setItem('alfheim_access_token', freshToken);
+                res = await fetch(url, {
+                  headers: {
+                    'Authorization': `Bearer ${freshToken}`
+                  }
+                });
+              }
+            } catch {
+              // Retry refresh failed
+            }
+          }
         }
-      };
 
-      runFetch();
-    }
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setHouseholds(data);
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(LEGACY_CACHE_KEY, JSON.stringify(data));
+          } catch {
+            // Ignore storage quota errors
+          }
+          const activeSaved = localStorage.getItem(STORAGE_KEY);
+          const exists = data.some(h => h.id === activeSaved);
+          if ((!activeSaved || !exists) && data.length > 0) {
+            const defaultHh = data.find(h => h.is_default) || data[0];
+            localStorage.setItem(STORAGE_KEY, defaultHh.id);
+            setActiveId(defaultHh.id);
+            window.dispatchEvent(new Event('storage-household-changed'));
+          }
+          return true;
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch households from ${url}:`, err);
+      }
+      return false;
+    };
+
+    const runFetch = async () => {
+      const success = await fetchHouseholds('/api/v1/households/me');
+      if (!success) {
+        await fetchHouseholds('http://alfheim/api/v1/households/me');
+      }
+    };
+
+    runFetch();
 
     // Sync storage events
     const handleStorageChange = (e: StorageEvent) => {

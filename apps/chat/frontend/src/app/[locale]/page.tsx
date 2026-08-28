@@ -14,19 +14,27 @@ import {
  */
 export default function ChatPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedModelBlockId, setSelectedModelBlockId] = useState<string>("");
   const [isModelManagerOpen, setIsModelManagerOpen] = useState(false);
   const [isAddModelOpen, setIsAddModelOpen] = useState(false);
   const createMutation = useCreateModelBlock();
 
   return (
-    <div className="flex h-full min-h-0 relative">
+    <div className="flex flex-1 w-full h-full min-h-0 relative overflow-hidden">
       <ConversationList
         selectedId={selectedId}
         onSelect={(id) => setSelectedId(id || null)}
+        selectedModelBlockId={selectedModelBlockId}
+        onSelectModelBlockId={setSelectedModelBlockId}
         onOpenModelManager={() => setIsModelManagerOpen(true)}
         onOpenAddModel={() => setIsAddModelOpen(true)}
       />
-      <ChatStreamView conversationId={selectedId} />
+      <ChatStreamView
+        conversationId={selectedId}
+        selectedModelBlockId={selectedModelBlockId}
+        onConversationCreated={(id) => setSelectedId(id)}
+        onOpenAddModel={() => setIsAddModelOpen(true)}
+      />
 
       <ModelBlockManagementView
         isOpen={isModelManagerOpen}

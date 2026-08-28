@@ -9,6 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(chat): handle ollama stream errors gracefully, fix layout width and hydration error`**
+  - Streamlined Ollama and provider stream error propagation in `apps/chat/backend/internal/features/conversations/service.go` and `ollama_provider.go` to emit descriptive SSE error events to the client instead of unhandled 500 HTTP failures.
+  - Aligned Keycloak token validation in `apps/chat/backend/internal/shared/middleware/auth.go` with dashboard backend standard by validating issuer, expiration, and signature without enforcing strict backend client audience.
+  - Attached `X-Household-ID` across chat frontend API requests, uploads, and SSE streams via `getActiveHouseholdId()`.
+  - Added token resolution and 401 retry handling across SPA tokens in `packages/shared/src/features/ui/components/HouseholdSwitcher.tsx` to resolve `/api/v1/households/me` 401 errors.
+  - Fixed chat layout width constraint, allowing full responsive container width with centered 4xl reading space, and added `suppressHydrationWarning` on `body` in `apps/chat/frontend/src/app/[locale]/layout.tsx`.
 * **`fix(auth): fix frontend token refresh in chat discovery and align caddy api routes across apps`**
   - Implemented proactive Keycloak token refresh (`getFreshAuthToken`) and 401 retry in `apps/chat/frontend/src/lib/api.ts`.
   - Configured relative API base URLs across chat and maintenance frontends to keep requests same-origin and avoid CORS/host mismatch issues.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "@alfheim/shared";
 import { Cpu, Plus } from "lucide-react";
 import {
@@ -13,6 +13,8 @@ import {
 interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  selectedModelBlockId?: string;
+  onSelectModelBlockId?: (id: string) => void;
   onOpenModelManager?: () => void;
   onOpenAddModel?: () => void;
 }
@@ -24,6 +26,8 @@ interface ConversationListProps {
 export function ConversationList({
   selectedId,
   onSelect,
+  selectedModelBlockId: externalModelBlockId,
+  onSelectModelBlockId,
   onOpenModelManager,
   onOpenAddModel,
 }: ConversationListProps) {
@@ -33,12 +37,36 @@ export function ConversationList({
   const createConversation = useCreateConversation();
   const deleteConversation = useDeleteConversation();
 
-  const [selectedModelBlockId, setSelectedModelBlockId] = useState("");
+  const [internalModelBlockId, setInternalModelBlockId] = useState("");
+  const activeModelBlockId = externalModelBlockId ?? internalModelBlockId;
+
+  // Auto-select first model block if none is selected
+  useEffect(() => {
+    if (modelBlocks && modelBlocks.length > 0) {
+      const exists = modelBlocks.some((b) => b.id === activeModelBlockId);
+      if (!activeModelBlockId || !exists) {
+        const firstId = modelBlocks[0].id;
+        if (onSelectModelBlockId) {
+          onSelectModelBlockId(firstId);
+        } else {
+          setInternalModelBlockId(firstId);
+        }
+      }
+    }
+  }, [modelBlocks, activeModelBlockId, onSelectModelBlockId]);
+
+  const handleModelChange = (id: string) => {
+    if (onSelectModelBlockId) {
+      onSelectModelBlockId(id);
+    } else {
+      setInternalModelBlockId(id);
+    }
+  };
 
   const handleCreate = () => {
-    if (!selectedModelBlockId) return;
+    if (!activeModelBlockId) return;
     createConversation.mutate(
-      { model_block_id: selectedModelBlockId },
+      { model_block_id: activeModelBlockId },
       {
         onSuccess: (created) => onSelect(created.id),
       }
@@ -79,8 +107,8 @@ export function ConversationList({
           <div className="space-y-2">
             <select
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm px-2 py-1.5"
-              value={selectedModelBlockId}
-              onChange={(e) => setSelectedModelBlockId(e.target.value)}
+              value={activeModelBlockId}
+              onChange={(e) => handleModelChange(e.target.value)}
             >
               <option value="">{t("Chat.selectModel")}</option>
               {modelBlocks.map((block) => (
@@ -92,7 +120,7 @@ export function ConversationList({
             <button
               type="button"
               onClick={handleCreate}
-              disabled={!selectedModelBlockId || createConversation.isPending}
+              disabled={!activeModelBlockId || createConversation.isPending}
               className="w-full rounded-lg bg-[var(--primary-main)] text-black text-sm font-semibold py-1.5 disabled:opacity-50 cursor-pointer"
             >
               {t("Chat.newConversation")}

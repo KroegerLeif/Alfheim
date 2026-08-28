@@ -187,13 +187,14 @@ func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID,
 	tools, toolServers := buildToolDefinitions(ctx, s.mcpServers, s.mcpPool, policy.AllowedMCPApps, s.log)
 	messages := toLLMMessages(history)
 
-	// The first round runs synchronously so a provider connection failure surfaces
-	// as a normal JSON error response (headers not sent yet), matching the
-	// single-round behavior before this phase; later rounds run inside the
-	// goroutine, where errors must instead become SSE "error" events.
+	out := make(chan llm.StreamChunk, 1)
+
 	firstRoundChunks, err := provider.ChatStream(ctx, llm.ChatRequest{Messages: messages, Tools: tools, Stream: true})
 	if err != nil {
-		return nil, err
+		s.log.Warn("failed to start LLM provider stream", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
+		out <- llm.StreamChunk{Done: true, Err: fmt.Errorf("LLM provider error: %w", err)}
+		close(out)
+		return out, nil
 	}
 
 	roundLimit := policy.ToolRoundLimit
@@ -201,7 +202,6 @@ func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID,
 		roundLimit = 8
 	}
 
-	out := make(chan llm.StreamChunk)
 	go s.runToolLoop(conversationID, provider, tools, toolServers, messages, firstRoundChunks, roundLimit, out)
 	return out, nil
 }

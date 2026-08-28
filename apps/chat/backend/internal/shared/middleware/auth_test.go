@@ -80,7 +80,7 @@ func TestNewAuthenticator(t *testing.T) {
 	discardLog := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	t.Run("returns error on invalid jwks url", func(t *testing.T) {
-		auth, err := NewAuthenticator("http://invalid.localhost.test:99999/jwks", "test-issuer", "test-audience", discardLog)
+		auth, err := NewAuthenticator("http://invalid.localhost.test:99999/jwks", "test-issuer", discardLog)
 		if err == nil {
 			t.Errorf("expected error initializing authenticator with invalid url, got nil")
 		}
@@ -93,7 +93,7 @@ func TestNewAuthenticator(t *testing.T) {
 		_, server := generateJWKSServer(t, "key-1")
 		defer server.Close()
 
-		auth, err := NewAuthenticator(server.URL, "", "", discardLog)
+		auth, err := NewAuthenticator(server.URL, "", discardLog)
 		if err != nil {
 			t.Fatalf("expected no error constructing authenticator, got %v", err)
 		}
@@ -112,10 +112,9 @@ func TestAuthenticateMiddleware(t *testing.T) {
 	defer server.Close()
 
 	issuer := "http://test-issuer.local"
-	audience := "chat-backend"
 	discardLog := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	auth, err := NewAuthenticator(server.URL, issuer, audience, discardLog)
+	auth, err := NewAuthenticator(server.URL, issuer, discardLog)
 	if err != nil {
 		t.Fatalf("failed to create authenticator: %v", err)
 	}
@@ -166,7 +165,6 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			tokenClaims: jwt.MapClaims{
 				"sub": "user-expired",
 				"iss": issuer,
-				"aud": audience,
 				"exp": time.Now().Add(-time.Hour).Unix(),
 			},
 			signKey:        privKey,
@@ -174,12 +172,11 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			expectedSubstr: "invalid or expired token",
 		},
 		{
-			name:       "rejects token with wrong audience",
+			name:       "rejects token with wrong issuer",
 			authHeader: "GENERATE",
 			tokenClaims: jwt.MapClaims{
-				"sub": "user-wrong-aud",
-				"iss": issuer,
-				"aud": "some-other-client",
+				"sub": "user-wrong-iss",
+				"iss": "http://wrong-issuer.local",
 				"exp": time.Now().Add(time.Hour).Unix(),
 			},
 			signKey:        privKey,
@@ -187,7 +184,7 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			expectedSubstr: "invalid or expired token",
 		},
 		{
-			name:       "valid token with sub, email, household_id, roles and matching audience",
+			name:       "valid token with sub, email, household_id, roles and issuer",
 			authHeader: "GENERATE",
 			tokenClaims: jwt.MapClaims{
 				"sub":                "user-42",
@@ -196,7 +193,6 @@ func TestAuthenticateMiddleware(t *testing.T) {
 				"given_name":         "User",
 				"family_name":        "FortyTwo",
 				"iss":                issuer,
-				"aud":                audience,
 				"exp":                time.Now().Add(time.Hour).Unix(),
 				"household_id":       "hh-100",
 				"realm_access": map[string]interface{}{
@@ -213,7 +209,6 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			tokenClaims: jwt.MapClaims{
 				"sub":                 "user-active-hh",
 				"iss":                 issuer,
-				"aud":                 audience,
 				"exp":                 time.Now().Add(time.Hour).Unix(),
 				"active_household_id": "hh-active-200",
 			},
@@ -228,7 +223,6 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			tokenClaims: jwt.MapClaims{
 				"sub": "user-header-hh",
 				"iss": issuer,
-				"aud": audience,
 				"exp": time.Now().Add(time.Hour).Unix(),
 			},
 			signKey:        privKey,

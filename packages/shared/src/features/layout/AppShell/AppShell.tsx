@@ -19,7 +19,7 @@ export function AppShell({ header, sidebar, className = '', children }: AppShell
       {header}
       <div className="flex-1 flex min-w-0 overflow-hidden">
         {sidebar}
-        <main className="flex-1 min-w-0 overflow-y-auto">
+        <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
           {children}
         </main>
       </div>

@@ -1,12 +1,14 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, Mock } from "vitest";
 import { ChatStreamView } from "../ChatStreamView";
-import { useMessages } from "@/features/conversations/services/conversationService";
+import { useCreateConversation, useMessages, useModelBlocks } from "@/features/conversations/services/conversationService";
 import { postMessage, streamAssistantReply, uploadAttachment } from "@/lib/api";
 import { createQueryWrapper } from "@/tests/utils";
 
 vi.mock("@/features/conversations/services/conversationService", () => ({
   useMessages: vi.fn(),
+  useModelBlocks: vi.fn(),
+  useCreateConversation: vi.fn(),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -16,8 +18,17 @@ vi.mock("@/lib/api", () => ({
 }));
 
 describe("ChatStreamView", () => {
+  const mockCreateMutateAsync = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    ;(useModelBlocks as Mock).mockReturnValue({
+      data: [{ id: "mb-1", display_name: "Local Llama" }],
+    });
+    ;(useCreateConversation as Mock).mockReturnValue({
+      mutateAsync: mockCreateMutateAsync,
+      isPending: false,
+    });
     global.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url");
     global.URL.revokeObjectURL = vi.fn();
   });
@@ -120,5 +131,38 @@ describe("ChatStreamView", () => {
     fireEvent.click(screen.getByRole("button", { name: "send" }));
 
     await waitFor(() => expect(screen.getByText("boom")).toBeInTheDocument());
+  });
+
+  it("automatically creates a conversation and streams reply when sending from empty landing state", async () => {
+    ;(useMessages as Mock).mockReturnValue({ data: [], isLoading: false, isError: false });
+    mockCreateMutateAsync.mockResolvedValue({ id: "new-convo-1", model_block_id: "mb-1" });
+    ;(postMessage as Mock).mockResolvedValue({ id: "m1", role: "user", content: "first question" });
+    ;(streamAssistantReply as Mock).mockImplementation(async (_id, handlers) => {
+      handlers.onDelta("AI ");
+      handlers.onDelta("Answer");
+      handlers.onDone({ total_tokens: 2 });
+    });
+
+    const onConversationCreated = vi.fn();
+    render(
+      <ChatStreamView
+        conversationId={null}
+        selectedModelBlockId="mb-1"
+        onConversationCreated={onConversationCreated}
+      />,
+      { wrapper: createQueryWrapper() }
+    );
+
+    expect(screen.getByText("welcomeTitle")).toBeInTheDocument();
+    expect(screen.getByText("Local Llama")).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText("inputPlaceholder");
+    fireEvent.change(input, { target: { value: "first question" } });
+    fireEvent.click(screen.getByRole("button", { name: "send" }));
+
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith({ model_block_id: "mb-1" }));
+    await waitFor(() => expect(onConversationCreated).toHaveBeenCalledWith("new-convo-1"));
+    await waitFor(() => expect(postMessage).toHaveBeenCalledWith("new-convo-1", "first question", []));
+    await waitFor(() => expect(streamAssistantReply).toHaveBeenCalled());
   });
 });

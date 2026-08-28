@@ -11,10 +11,10 @@ export function MessageItem({ message }: MessageItemProps) {
 
   return (
     <div
-      className={`max-w-2xl rounded-xl px-4 py-2 text-sm whitespace-pre-wrap ${
+      className={`max-w-3xl sm:max-w-4xl rounded-xl px-4 py-3 text-sm whitespace-pre-wrap shadow-xs ${
         isUser
-          ? "ml-auto bg-[var(--primary-main)] text-black"
-          : "bg-[var(--surface-card)] text-[var(--text-main)]"
+          ? "ml-auto bg-[var(--primary-main)] text-black font-medium"
+          : "bg-[var(--surface-card)] text-[var(--text-main)] border border-[var(--border-subtle)]"
       }`}
     >
       {message.attachments && message.attachments.length > 0 && (

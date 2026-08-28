@@ -33,12 +33,11 @@ type DatabaseConfig struct {
 
 // KeycloakConfig holds Keycloak OIDC settings used for bearer token validation.
 type KeycloakConfig struct {
-	BaseURL          string
-	Realm            string
-	ClientID         string
-	JWKSURL          string
-	ExpectedIssuer   string
-	ExpectedAudience string
+	BaseURL        string
+	Realm          string
+	ClientID       string
+	JWKSURL        string
+	ExpectedIssuer string
 }
 
 // EncryptionConfig holds the symmetric key material used to encrypt model block API keys at rest.
@@ -84,8 +83,6 @@ func Load() (*Config, error) {
 	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "chat-backend")
 	keycloakJWKSURL := getEnv("KEYCLOAK_JWKS_URL", fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakBaseURL, keycloakRealm))
 	expectedIssuer := getEnv("KEYCLOAK_PUBLIC_ISSUER", fmt.Sprintf("http://api.alfheim.loegien.localhost/auth/realms/%s", keycloakRealm))
-	// Defaults to the client ID: Keycloak's default audience mapper stamps the requesting client id into `aud`.
-	expectedAudience := getEnv("KEYCLOAK_EXPECTED_AUDIENCE", keycloakClientID)
 
 	encryptionKeyB64 := getEnv("CHAT_ENCRYPTION_KEY", "")
 	encryptionKeyID := getEnv("CHAT_ENCRYPTION_KEY_ID", "v1")
@@ -109,12 +106,11 @@ func Load() (*Config, error) {
 			MigrationsDir:   migrationsDir,
 		},
 		Keycloak: KeycloakConfig{
-			BaseURL:          keycloakBaseURL,
-			Realm:            keycloakRealm,
-			ClientID:         keycloakClientID,
-			JWKSURL:          keycloakJWKSURL,
-			ExpectedIssuer:   expectedIssuer,
-			ExpectedAudience: expectedAudience,
+			BaseURL:        keycloakBaseURL,
+			Realm:          keycloakRealm,
+			ClientID:       keycloakClientID,
+			JWKSURL:        keycloakJWKSURL,
+			ExpectedIssuer: expectedIssuer,
 		},
 		Encryption: EncryptionConfig{
 			KeyID: encryptionKeyID,

@@ -33,20 +33,14 @@ type UserClaims struct {
 }
 
 // Authenticator handles OIDC JWT validation via Keycloak JWKS endpoint.
-//
-// Unlike core/dashboard/backend's authenticator, this one also enforces the token
-// audience claim (`aud`). This is a deliberate divergence from the dashboard backend
-// (which currently only checks the issuer) and was chosen for the chat backend so it
-// does not inherit that gap; the dashboard backend should be hardened separately.
 type Authenticator struct {
-	jwks             *keyfunc.JWKS
-	expectedIssuer   string
-	expectedAudience string
-	log              *slog.Logger
+	jwks           *keyfunc.JWKS
+	expectedIssuer string
+	log            *slog.Logger
 }
 
 // NewAuthenticator creates an Authenticator instance that fetches and caches JWKS.
-func NewAuthenticator(jwksURL string, expectedIssuer string, expectedAudience string, log *slog.Logger) (*Authenticator, error) {
+func NewAuthenticator(jwksURL string, expectedIssuer string, log *slog.Logger) (*Authenticator, error) {
 	options := keyfunc.Options{
 		RefreshInterval: time.Hour,
 		RefreshTimeout:  time.Second * 10,
@@ -65,15 +59,14 @@ func NewAuthenticator(jwksURL string, expectedIssuer string, expectedAudience st
 	}
 
 	return &Authenticator{
-		jwks:             jwks,
-		expectedIssuer:   expectedIssuer,
-		expectedAudience: expectedAudience,
-		log:              log,
+		jwks:           jwks,
+		expectedIssuer: expectedIssuer,
+		log:            log,
 	}, nil
 }
 
 // AuthenticateMiddleware enforces valid OIDC JWT Bearer tokens in incoming HTTP requests,
-// validating the issuer and (unlike the dashboard backend) the audience claim.
+// validating the token issuer and signature against Keycloak JWKS keys.
 func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
@@ -93,9 +86,6 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 		var parseOpts []jwt.ParserOption
 		if a.expectedIssuer != "" {
 			parseOpts = append(parseOpts, jwt.WithIssuer(a.expectedIssuer))
-		}
-		if a.expectedAudience != "" {
-			parseOpts = append(parseOpts, jwt.WithAudience(a.expectedAudience))
 		}
 
 		token, err := jwt.Parse(rawToken, a.jwks.Keyfunc, parseOpts...)

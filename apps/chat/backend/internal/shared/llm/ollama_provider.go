@@ -110,7 +110,7 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, req ChatRequest) (<-cha
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return nil, fmt.Errorf("ollama chat request failed with status %d: %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("Ollama error (%d) for model %q: %s", resp.StatusCode, p.model, bytes.TrimSpace(respBody))
 	}
 
 	out := make(chan StreamChunk)
