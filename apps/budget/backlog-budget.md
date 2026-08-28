@@ -28,7 +28,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 
 ## Phase 1: Foundation & Base Setup
 
-### [ ] TASK-101: Project Directory Structure & Pyproject Setup
+### [x] TASK-101: Project Directory Structure & Pyproject Setup
 - **Domain/Layer:** Backend / Infrastructure
 - **Scope & Files:**
   - `apps/budget/backend/pyproject.toml`
