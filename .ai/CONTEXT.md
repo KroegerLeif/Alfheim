@@ -9,6 +9,10 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(chat): enable host-gateway resolution and improve discovery error handling`**
+  - Configured `extra_hosts: ["host.docker.internal:host-gateway"]` in `apps/chat/compose.yml` for reliable Linux and Docker Desktop host resolution.
+  - Hardened Ollama model discovery in `apps/chat/backend/internal/features/modelblocks/service.go` with 5s timeouts and descriptive network failure messages.
+  - Enhanced `ModelBlockFormModal.tsx` to surface exact API error descriptions directly in the UI.
 * **`feat(chat): fix material icon rendering and add ollama auto-discovery`**
   - Included Google Material Symbols Outlined font across `apps/chat/frontend/src/app/[locale]/layout.tsx` and `globals.css` to fix icon rendering across header, navigation, and dropdowns.
   - Implemented `POST /api/v1/chat/models/discover` backend discovery endpoint querying `{base_url}/api/tags` for installed Ollama models.
