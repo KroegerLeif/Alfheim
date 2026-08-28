@@ -116,7 +116,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 
 ## Phase 3: Backend Domain Features (Strict FDD)
 
-### [ ] TASK-301: Accounts Domain Implementation
+### [x] TASK-301: Accounts Domain Implementation
 - **Domain/Layer:** Backend / Accounts
 - **Scope & Files:**
   - `apps/budget/backend/src/features/accounts/models.py`

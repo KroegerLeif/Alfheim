@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.audit import register_audit_hooks
 from src.core.config import settings
 from src.core.database import init_db
+from src.features.accounts import router as accounts_router
 
 register_audit_hooks()
 
@@ -24,6 +25,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
+)
+
+app.include_router(
+    accounts_router,
+    prefix="/api/v1/accounts",
+    tags=["accounts"],
 )
 
 # Configure CORS middleware
