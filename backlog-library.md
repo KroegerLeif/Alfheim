@@ -131,7 +131,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   4. Unit & integration tests pass.
 
 #### [TASK-08] Implement Streaming Provider Subscription API Endpoints
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/api/v1/providers.py`
 - **Description:** Build API endpoints to manage active household streaming & subscription services (e.g., Netflix, Amazon Prime, Disney+, PS Plus, Xbox Game Pass).
 - **Definition of Done:**
