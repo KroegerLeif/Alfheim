@@ -1,4 +1,4 @@
-# Multi-stage production build using uv
+# Multi-stage production build using uv with monorepo root context
 FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
 
 # Enable Python bytecode compilation
@@ -6,19 +6,22 @@ ENV UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
 
-# Copy dependency configuration files first to cache layers
-COPY pyproject.toml ./
+# Copy root workspace and package configuration files to cache dependencies
+COPY pyproject.toml uv.lock ./
+COPY packages/backend-shared/pyproject.toml ./packages/backend-shared/
+COPY apps/budget/backend/pyproject.toml ./apps/budget/backend/
 
-# Sync dependencies (excluding development libraries)
+# Sync dependencies for budget-backend workspace package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-install-project
+    uv sync --no-dev --package budget-backend --no-install-project
 
-# Copy application source files
-COPY . .
+# Copy application and shared source files
+COPY packages/backend-shared ./packages/backend-shared
+COPY apps/budget/backend ./apps/budget/backend
 
 # Run project sync to register the package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev
+    uv sync --no-dev --package budget-backend
 
 # Final slim runtime container
 FROM python:3.12-alpine
@@ -27,10 +30,12 @@ WORKDIR /app
 
 # Copy virtualenv and executable files from builder
 COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/src /app/src
+COPY --from=builder /app/apps/budget/backend /app/apps/budget/backend
 
 # Inject virtualenv into system PATH
 ENV PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app/apps/budget/backend
 
 # Expose FastAPI application port
 EXPOSE 8000
