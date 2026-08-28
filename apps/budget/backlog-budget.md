@@ -185,7 +185,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 
 ## Phase 4: FastMCP Tool Server
 
-### [ ] TASK-401: FastMCP SSE Server & Tool Definitions
+### [x] TASK-401: FastMCP SSE Server & Tool Definitions
 - **Domain/Layer:** Backend / FastMCP
 - **Scope & Files:**
   - `apps/budget/backend/src/mcp/server.py`
