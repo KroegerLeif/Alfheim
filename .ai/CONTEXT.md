@@ -9,6 +9,12 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(chat): fix material icon rendering and add ollama auto-discovery`**
+  - Included Google Material Symbols Outlined font across `apps/chat/frontend/src/app/[locale]/layout.tsx` and `globals.css` to fix icon rendering across header, navigation, and dropdowns.
+  - Implemented `POST /api/v1/chat/models/discover` backend discovery endpoint querying `{base_url}/api/tags` for installed Ollama models.
+  - Implemented one-click Ollama model auto-discovery and tag select dropdown with auto display naming in `ModelBlockFormModal`.
+  - Replaced plain text notice in `ConversationList` sidebar empty state with a styled card and "Add Model" CTA button triggering `ModelBlockFormModal`.
+  - Registered `chat-frontend` client in Keycloak `alfheim-realm.json` and synchronized dictionaries across `de`, `en`, and `pl`.
 * **`fix(mcp): resolve FastMCP import path and runtime dependencies across python backends`**
   - Standardized FastMCP imports to `from fastmcp import FastMCP` in `apps/maintenance/backend/app/core/mcp.py`.
   - Replaced legacy `mcp[cli]` dependency with `fastmcp>=3.4.1` in `apps/maintenance/backend/pyproject.toml` and synced `uv.lock`.
