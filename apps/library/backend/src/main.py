@@ -5,6 +5,8 @@ from backend_shared import configure_logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.v1 import router as api_v1_router
+
 # Initialize structured application logging
 configure_logging()
 logger = logging.getLogger("library.backend")
@@ -33,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register API v1 routers
+app.include_router(api_v1_router)
 
 
 @app.get("/health")

@@ -112,7 +112,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Provides `current_household_id` to route handler signatures.
 
 #### [TASK-06] Implement CRUD API Endpoints for Locations & Items
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/api/v1/items.py`, `apps/library/backend/src/api/v1/locations.py`
 - **Description:** Build REST API endpoints for managing media items and locations. Locations must support parent-child hierarchy (e.g. Living Room -> Main Bookshelf -> Shelf 2). Items support filter by location, media type (`BOOK`, `GAME`, `MOVIE`, `SERIES`), and `is_cookbook`.
 - **Definition of Done:**
