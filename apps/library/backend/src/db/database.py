@@ -37,7 +37,10 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """Initialize database tables by creating all registered SQLModel models."""
+    from src.db.migrations import run_search_index_migrations
     from src.db.models import Item, LendingRecord, Location, ProviderSubscription  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+
+    await run_search_index_migrations(engine)
