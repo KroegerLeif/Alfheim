@@ -17,6 +17,8 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	redir /maintenance/ /maintenance/en 302
 	redir /chores /chores/de 302
 	redir /chores/ /chores/de 302
+	redir /workout /workout/de 302
+	redir /workout/ /workout/de 302
 
 	# Microfrontend proxies (keep basePath prefix intact for Next.js apps)
 	handle /pantry* {
@@ -30,6 +32,9 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	}
 	handle /chores* {
 		reverse_proxy chores-frontend:3000
+	}
+	handle /workout* {
+		reverse_proxy workout-frontend:3000
 	}
 	handle /grafana* {
 		reverse_proxy grafana:3000

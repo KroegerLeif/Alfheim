@@ -21,9 +21,8 @@ export const analyticsApi = {
     if (params.from_date !== undefined) searchParams.from_date = params.from_date;
     if (params.to_date !== undefined) searchParams.to_date = params.to_date;
 
-    return workoutClient
-      .get(`${RESOURCE}/muscle-volume`, { searchParams })
-      .json<MuscleVolumeResponse>();
+    const options = Object.keys(searchParams).length > 0 ? { searchParams } : {};
+    return workoutClient.get(`${RESOURCE}/muscle-volume`, options).json<MuscleVolumeResponse>();
   },
 
   getStreaks(): Promise<StreakResponse> {

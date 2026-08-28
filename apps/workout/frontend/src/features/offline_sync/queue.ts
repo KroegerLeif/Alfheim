@@ -20,6 +20,7 @@ export interface EnqueueInput {
   completedAt?: string;
   /** Injectable for deterministic tests; defaults to crypto.randomUUID(). */
   clientIdempotencyKey?: string;
+  queuedAt?: number;
 }
 
 function newKey(): string {
@@ -40,7 +41,7 @@ export async function enqueueSet(input: EnqueueInput): Promise<PendingSet> {
     actualWeightKg: input.actualWeightKg,
     isWarmup: input.isWarmup ?? false,
     completedAt: input.completedAt ?? new Date().toISOString(),
-    queuedAt: Date.now(),
+    queuedAt: input.queuedAt ?? Date.now(),
     attempts: 0,
   };
 

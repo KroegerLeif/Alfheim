@@ -19,8 +19,8 @@ export function AnalyticsView() {
   const streaksQuery = useStreaks();
   const leaderboardQuery = useLeaderboard();
 
-  const isLoading = muscleVolumeQuery.isLoading || streaksQuery.isLoading || leaderboardQuery.isLoading;
   const isError = muscleVolumeQuery.isError || streaksQuery.isError || leaderboardQuery.isError;
+  const isLoading = !isError && (muscleVolumeQuery.isLoading || streaksQuery.isLoading || leaderboardQuery.isLoading);
 
   const volumeEntries = muscleVolumeQuery.data?.entries ?? [];
   const leaderboardEntries = leaderboardQuery.data?.entries ?? [];

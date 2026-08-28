@@ -26,7 +26,8 @@ export const plansApi = {
     if (params.limit !== undefined) searchParams.limit = params.limit;
     if (params.offset !== undefined) searchParams.offset = params.offset;
 
-    return workoutClient.get(RESOURCE, { searchParams }).json<PlanRead[]>();
+    const options = Object.keys(searchParams).length > 0 ? { searchParams } : {};
+    return workoutClient.get(RESOURCE, options).json<PlanRead[]>();
   },
 
   get(planId: string): Promise<PlanRead> {

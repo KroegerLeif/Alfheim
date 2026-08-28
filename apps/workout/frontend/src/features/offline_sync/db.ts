@@ -39,6 +39,15 @@ export function getDb(): Promise<IDBPDatabase<WorkoutDB>> {
   return dbPromise;
 }
 
+/** Reset and close the memoized handle. Test-only; production code never needs this. */
+export async function closeDbForTests(): Promise<void> {
+  if (dbPromise) {
+    const db = await dbPromise;
+    db.close();
+    dbPromise = null;
+  }
+}
+
 /** Reset the memoized handle. Test-only; production code never needs this. */
 export function resetDbForTests(): void {
   dbPromise = null;

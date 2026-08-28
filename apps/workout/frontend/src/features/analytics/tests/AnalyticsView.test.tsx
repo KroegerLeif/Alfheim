@@ -44,23 +44,20 @@ describe("AnalyticsView", () => {
   });
 
   it("shows an alert when any analytics request fails", async () => {
-    server.use(http.get(/\/analytics\/streaks$/, () => HttpResponse.json({}, { status: 500 })));
+    server.use(http.get(/\/analytics\/streaks/, () => HttpResponse.error()));
 
     renderWithProviders(<AnalyticsView />);
 
-    // ky retries GET 500s a couple of times with backoff before the query
-    // client settles into an error state, so this needs more than the
-    // default 1000ms waitFor budget.
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument(), { timeout: 5000 });
     expect(screen.getByRole("alert")).toHaveTextContent("loadFailed");
-  }, 10000);
+  });
 
   it("shows the empty state when there is no volume data and no leaderboard entries", async () => {
     server.use(
-      http.get(/\/analytics\/muscle-volume$/, () =>
+      http.get(/\/analytics\/muscle-volume/, () =>
         HttpResponse.json({ ...mockMuscleVolume, entries: [] })
       ),
-      http.get(/\/analytics\/leaderboard$/, () => HttpResponse.json({ entries: [] }))
+      http.get(/\/analytics\/leaderboard/, () => HttpResponse.json({ entries: [] }))
     );
 
     renderWithProviders(<AnalyticsView />);
@@ -79,7 +76,7 @@ describe("AnalyticsView", () => {
 
   it("guards streak values with a fallback when the response has zero streaks", async () => {
     server.use(
-      http.get(/\/analytics\/streaks$/, () =>
+      http.get(/\/analytics\/streaks/, () =>
         HttpResponse.json({ current_streak_days: 0, longest_streak_days: 0 })
       )
     );

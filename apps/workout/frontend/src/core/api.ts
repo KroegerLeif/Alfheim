@@ -1,8 +1,12 @@
 import ky from "ky";
 
-export interface ApiError {
+export class ApiError extends Error {
   status?: number;
-  message: string;
+  constructor(status: number | undefined, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
 }
 
 /**
@@ -48,15 +52,13 @@ const handleResponseError = async (response: Response) => {
     message = response.statusText || message;
   }
 
-  throw {
-    status: response.status,
-    message,
-  } as ApiError;
+  throw new ApiError(response.status, message);
 };
 
 export const workoutClient = ky.create({
   prefixUrl: BASE_URL,
   timeout: 10000,
+  retry: 0,
   headers: {
     "Content-Type": "application/json",
   },

@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/mocks/server";
+import { closeDbForTests } from "../db";
 import {
   clearQueue,
   countPending,
@@ -37,6 +38,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await clearQueue();
+  await closeDbForTests();
 });
 
 describe("queue persistence", () => {
@@ -59,12 +61,8 @@ describe("queue persistence", () => {
   });
 
   it("returns entries oldest first", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-16T10:00:00Z"));
-    await enqueue("older");
-    vi.setSystemTime(new Date("2026-08-16T10:05:00Z"));
-    await enqueue("newer");
-    vi.useRealTimers();
+    await enqueue("older", { queuedAt: 1000 });
+    await enqueue("newer", { queuedAt: 2000 });
 
     const pending = await listPending();
     expect(pending.map((entry) => entry.clientIdempotencyKey)).toEqual(["older", "newer"]);

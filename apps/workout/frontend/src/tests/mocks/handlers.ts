@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import type { PlanRead } from '@/features/plans/types'
 
 export const mockEquipment = [
   {
@@ -58,7 +59,7 @@ export const mockExercises = [
   },
 ]
 
-export const mockPlans = [
+export const mockPlans: PlanRead[] = [
   {
     id: 'plan-1',
     home_id: 'hh-1',
@@ -282,27 +283,88 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.get(/\/plans$/, () => {
+  http.get(/\/plans\/([^/]+)\/days\/([^/]+)\/resolved/, ({ params }) => {
+    return HttpResponse.json({
+      id: params[1],
+      day_order: 1,
+      label: 'Push Day',
+      exercises: [
+        {
+          id: 'plan-ex-1',
+          exercise_id: 'ex-1',
+          exercise_order: 1,
+          sets: [
+            {
+              id: 'plan-set-1',
+              set_order: 1,
+              target_reps: 8,
+              target_weight_type: 'default',
+              resolved_weight_kg: 60,
+              is_warmup: false,
+            },
+          ],
+        },
+      ],
+    })
+  }),
+
+  http.get(/\/plans\/([^/]+)$/, ({ params }) => {
+    const id = params[0] as string
+    const found = mockPlans.find((p) => p.id === id) ?? mockPlans[0]
+    return HttpResponse.json(found)
+  }),
+
+  http.post(/\/plans$/, async ({ request }) => {
+    const body = (await request.json()) as any
+    return HttpResponse.json(
+      {
+        id: 'plan-new',
+        home_id: 'hh-1',
+        owner_user_id: 'user-1',
+        name: body.name,
+        description: body.description ?? null,
+        is_shared: body.is_shared ?? false,
+        is_active: true,
+        created_at: '2026-08-16T00:00:00Z',
+        updated_at: '2026-08-16T00:00:00Z',
+        days: body.days ?? [],
+      },
+      { status: 201 }
+    )
+  }),
+
+  http.patch(/\/plans\/([^/]+)$/, async ({ params, request }) => {
+    const id = params[0] as string
+    const body = (await request.json()) as any
+    const found = mockPlans.find((p) => p.id === id) ?? mockPlans[0]
+    return HttpResponse.json({ ...found, ...body, id })
+  }),
+
+  http.delete(/\/plans\/([^/]+)$/, () => {
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get(/\/plans/, () => {
     return HttpResponse.json(mockPlans)
   }),
 
-  http.get(/\/sessions$/, () => {
+  http.get(/\/sessions/, () => {
     return HttpResponse.json([])
   }),
 
-  http.post(/\/sessions$/, () => {
+  http.post(/\/sessions/, () => {
     return HttpResponse.json(mockSession, { status: 201 })
   }),
 
-  http.get(/\/analytics\/muscle-volume$/, () => {
+  http.get(/\/analytics\/muscle-volume/, () => {
     return HttpResponse.json(mockMuscleVolume)
   }),
 
-  http.get(/\/analytics\/streaks$/, () => {
+  http.get(/\/analytics\/streaks/, () => {
     return HttpResponse.json(mockStreaks)
   }),
 
-  http.get(/\/analytics\/leaderboard$/, () => {
+  http.get(/\/analytics\/leaderboard/, () => {
     return HttpResponse.json(mockLeaderboard)
   }),
 ]
