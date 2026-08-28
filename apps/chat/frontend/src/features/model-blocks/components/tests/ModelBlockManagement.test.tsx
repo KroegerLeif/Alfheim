@@ -11,6 +11,7 @@ import {
   useUpdateModelBlock,
   useDeleteModelBlock,
   useTriggerHealthCheck,
+  useDiscoverModels,
 } from "../../services/modelBlockService";
 import { createQueryWrapper } from "@/tests/utils";
 
@@ -20,6 +21,7 @@ vi.mock("../../services/modelBlockService", () => ({
   useUpdateModelBlock: vi.fn(),
   useDeleteModelBlock: vi.fn(),
   useTriggerHealthCheck: vi.fn(),
+  useDiscoverModels: vi.fn(),
 }));
 
 describe("ModelBlockCard", () => {
@@ -29,6 +31,10 @@ describe("ModelBlockCard", () => {
     vi.clearAllMocks();
     ;(useTriggerHealthCheck as Mock).mockReturnValue({
       mutate: mockTriggerHealth,
+      isPending: false,
+    });
+    ;(useDiscoverModels as Mock).mockReturnValue({
+      mutate: vi.fn(),
       isPending: false,
     });
   });
@@ -124,6 +130,15 @@ describe("ModelBlockCard", () => {
 });
 
 describe("ModelBlockFormModal", () => {
+  const mockDiscover = vi.fn();
+
+  beforeEach(() => {
+    ;(useDiscoverModels as Mock).mockReturnValue({
+      mutate: mockDiscover,
+      isPending: false,
+    });
+  });
+
   it("allows switching between private and shared visibility", () => {
     const onSubmit = vi.fn();
     render(
@@ -135,10 +150,10 @@ describe("ModelBlockFormModal", () => {
       />
     );
 
-    fireEvent.change(screen.getByPlaceholderText("z. B. Local Llama oder GPT-4o"), {
+    fireEvent.change(screen.getByPlaceholderText("z. B. Gemma 2 9B oder Local Llama"), {
       target: { value: "New Model" },
     });
-    fireEvent.change(screen.getByPlaceholderText("z. B. llama3.1:8b, gpt-4o, claude-3-5-sonnet"), {
+    fireEvent.change(screen.getByPlaceholderText("z. B. llama3.1:8b, gemma2:9b, gpt-4o"), {
       target: { value: "mistral:7b" },
     });
 
@@ -153,6 +168,37 @@ describe("ModelBlockFormModal", () => {
         visibility: "shared",
       })
     );
+  });
+
+  it("triggers Ollama model discovery and converts identifier to select dropdown", () => {
+    mockDiscover.mockImplementation(({}, { onSuccess }) => {
+      onSuccess({ models: ["gemma2:9b", "qwen2.5-coder:7b"] });
+    });
+
+    render(
+      <ModelBlockFormModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+        isPending={false}
+      />
+    );
+
+    const scanBtn = screen.getByText("scanModels");
+    fireEvent.click(scanBtn);
+
+    expect(mockDiscover).toHaveBeenCalled();
+    expect(screen.getByText("scanSuccess")).toBeInTheDocument();
+
+    const selects = screen.getAllByRole("combobox");
+    const modelSelect = selects[selects.length - 1];
+    expect(modelSelect).toBeInTheDocument();
+    expect(screen.getByText("gemma2:9b")).toBeInTheDocument();
+    expect(screen.getByText("qwen2.5-coder:7b")).toBeInTheDocument();
+
+    // Selecting qwen2.5-coder:7b auto-updates display name
+    fireEvent.change(modelSelect, { target: { value: "qwen2.5-coder:7b" } });
+    expect(screen.getByDisplayValue("Qwen2.5 Coder 7b")).toBeInTheDocument();
   });
 });
 

@@ -56,6 +56,14 @@
     "healthUnreachable": "Nieosiągalny",
     "healthAuthInvalid": "Nieprawidłowa autoryzacja",
     "healthUnknown": "Nieznany",
+    "scanModels": "Skanuj / Załaduj modele",
+    "scanningModels": "Skanowanie...",
+    "scanSuccess": "Znaleziono {count} model(i)",
+    "scanError": "Nie znaleziono modeli lub Ollama jest nieosiągalna",
+    "selectDiscoveredModel": "-- Wybierz wykryty model Ollama --",
+    "manualModelInput": "Ręczne wprowadzanie...",
+    "noModelsConfiguredTitle": "Brak skonfigurowanego modelu",
+    "noModelBlocksPrompt": "Dodaj lokalny model Ollama lub model w chmurze, aby rozpocząć.",
     "cancel": "Anuluj",
     "save": "Zapisz"
   }

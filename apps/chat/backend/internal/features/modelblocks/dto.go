@@ -53,6 +53,18 @@ type ResponseDTO struct {
 	UpdatedAt       time.Time       `json:"updated_at"`
 }
 
+// DiscoverRequest is the payload for POST /api/v1/chat/models/discover.
+type DiscoverRequest struct {
+	ProviderType string  `json:"provider_type"`
+	BaseURL      *string `json:"base_url,omitempty"`
+	APIKey       *string `json:"api_key,omitempty"`
+}
+
+// DiscoverResponse is the return payload for POST /api/v1/chat/models/discover.
+type DiscoverResponse struct {
+	Models []string `json:"models"`
+}
+
 // ToResponse converts a ModelBlock domain entity to its response DTO, scoped to the
 // requesting user so IsOwner reflects their edit/delete permission.
 func ToResponse(m *ModelBlock, requestingUserID string) ResponseDTO {

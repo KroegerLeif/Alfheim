@@ -56,6 +56,14 @@
     "healthUnreachable": "Unreachable",
     "healthAuthInvalid": "Invalid auth",
     "healthUnknown": "Unknown",
+    "scanModels": "Scan / Load Models",
+    "scanningModels": "Scanning...",
+    "scanSuccess": "Found {count} model(s)",
+    "scanError": "No models found or Ollama unreachable",
+    "selectDiscoveredModel": "-- Select discovered Ollama model --",
+    "manualModelInput": "Manual input...",
+    "noModelsConfiguredTitle": "No Model Configured",
+    "noModelBlocksPrompt": "Add a local Ollama or cloud model to get started.",
     "cancel": "Cancel",
     "save": "Save"
   }

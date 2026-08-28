@@ -234,3 +234,47 @@ func TestHandler_TriggerHealthCheck(t *testing.T) {
 		t.Errorf("expected unknown health status, got %s", result.HealthStatus)
 	}
 }
+
+func TestHandler_DiscoverModels(t *testing.T) {
+	mockOllama := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/tags" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"models": []map[string]any{
+				{"name": "gemma2:9b"},
+				{"name": "qwen2.5-coder:7b"},
+			},
+		})
+	}))
+	defer mockOllama.Close()
+
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	claims := &middleware.UserClaims{Subject: "user-1", HouseholdID: "hh-1"}
+	router := newTestRouter(svc, claims)
+
+	body, _ := json.Marshal(modelblocks.DiscoverRequest{
+		ProviderType: "ollama",
+		BaseURL:      &mockOllama.URL,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/models/discover", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp modelblocks.DiscoverResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode discover response: %v", err)
+	}
+
+	if len(resp.Models) != 2 || resp.Models[0] != "gemma2:9b" || resp.Models[1] != "qwen2.5-coder:7b" {
+		t.Errorf("unexpected models returned: %+v", resp.Models)
+	}
+}

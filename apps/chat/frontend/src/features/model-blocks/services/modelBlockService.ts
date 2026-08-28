@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/lib/api";
-import type { CreateModelBlockRequest, UpdateModelBlockRequest } from "../types";
+import type { CreateModelBlockRequest, DiscoverModelsRequest, UpdateModelBlockRequest } from "../types";
 
 export function useModelBlocks() {
   return useQuery({
@@ -49,5 +49,11 @@ export function useTriggerHealthCheck() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "model-blocks"] });
     },
+  });
+}
+
+export function useDiscoverModels() {
+  return useMutation({
+    mutationFn: (payload: DiscoverModelsRequest) => api.discoverModels(payload),
   });
 }

@@ -34,6 +34,12 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
+      </head>
       <body className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <LanguageProvider defaultLanguage={locale === "en" || locale === "pl" ? locale : "de"}>

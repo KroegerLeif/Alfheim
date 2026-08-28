@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@alfheim/shared";
-import { Cpu } from "lucide-react";
+import { Cpu, Plus } from "lucide-react";
 import {
   useConversations,
   useCreateConversation,
@@ -14,6 +14,7 @@ interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onOpenModelManager?: () => void;
+  onOpenAddModel?: () => void;
 }
 
 /**
@@ -24,10 +25,11 @@ export function ConversationList({
   selectedId,
   onSelect,
   onOpenModelManager,
+  onOpenAddModel,
 }: ConversationListProps) {
   const { t } = useTranslation();
-  const { data: conversations, isLoading } = useConversations();
   const { data: modelBlocks } = useModelBlocks();
+  const { data: conversations, isLoading } = useConversations();
   const createConversation = useCreateConversation();
   const deleteConversation = useDeleteConversation();
 
@@ -97,7 +99,29 @@ export function ConversationList({
             </button>
           </div>
         ) : (
-          <p className="text-xs text-[var(--text-muted)]">{t("Chat.noModelBlocks")}</p>
+          <div className="p-3.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] space-y-2.5 text-center">
+            <div className="w-8 h-8 rounded-lg bg-[var(--primary-main)]/10 text-[var(--primary-main)] flex items-center justify-center mx-auto">
+              <Cpu className="w-4 h-4" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-[var(--text-main)]">
+                {t("Chat.noModelsConfiguredTitle")}
+              </p>
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                {t("Chat.noModelBlocksPrompt")}
+              </p>
+            </div>
+            {(onOpenAddModel || onOpenModelManager) && (
+              <button
+                type="button"
+                onClick={onOpenAddModel || onOpenModelManager}
+                className="w-full rounded-lg bg-[var(--primary-main)] text-black text-xs font-bold py-1.5 flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{t("Chat.addModelBlock")}</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
 

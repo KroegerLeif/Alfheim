@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 		r.Patch("/api/v1/chat/model-blocks/{id}", h.Update)
 		r.Delete("/api/v1/chat/model-blocks/{id}", h.Delete)
 		r.Post("/api/v1/chat/model-blocks/{id}/health-check", h.TriggerHealthCheck)
+		r.Post("/api/v1/chat/models/discover", h.Discover)
 	})
 }
 
@@ -142,6 +143,31 @@ func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
 	result, err := h.service.TriggerHealthCheck(r.Context(), claims.Subject, claims.HouseholdID, id)
 	if err != nil {
 		writeServiceError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *Handler) Discover(w http.ResponseWriter, r *http.Request) {
+	claims, err := middleware.GetUserClaims(r.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		return
+	}
+	_ = claims
+
+	var req DiscoverRequest
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "bad_request", "invalid json request payload")
+			return
+		}
+	}
+
+	result, err := h.service.DiscoverModels(r.Context(), req)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "discovery_failed", err.Error())
 		return
 	}
 

@@ -118,6 +118,17 @@ export function triggerModelBlockHealthCheck(id: string): Promise<ModelBlock> {
   });
 }
 
+export function discoverModels(payload: {
+  provider_type: string;
+  base_url?: string;
+  api_key?: string;
+}): Promise<{ models: string[] }> {
+  return request<{ models: string[] }>("/models/discover", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function listConversations(): Promise<Conversation[]> {
   return request<Conversation[]>("/conversations");
 }

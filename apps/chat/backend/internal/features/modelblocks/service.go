@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,6 +41,7 @@ type Service interface {
 	Update(ctx context.Context, userID, householdID, id string, req UpdateRequest) (ResponseDTO, error)
 	Delete(ctx context.Context, userID, id string) error
 	TriggerHealthCheck(ctx context.Context, userID, householdID, id string) (ResponseDTO, error)
+	DiscoverModels(ctx context.Context, req DiscoverRequest) (DiscoverResponse, error)
 	// EnsureBootstrap seeds the ENV-configured fallback model block exactly once,
 	// on the very first successful call; subsequent calls (e.g. on every restart)
 	// are no-ops even if the seeded block was since edited or deleted by a user.
@@ -405,6 +408,77 @@ func normalizeConfigJSON(raw json.RawMessage) json.RawMessage {
 		return json.RawMessage("{}")
 	}
 	return raw
+}
+
+func (s *service) DiscoverModels(ctx context.Context, req DiscoverRequest) (DiscoverResponse, error) {
+	providerType := req.ProviderType
+	if providerType == "" {
+		providerType = llm.ProviderTypeOllama
+	}
+
+	baseURL := "http://host.docker.internal:11434"
+	if req.BaseURL != nil && *req.BaseURL != "" {
+		baseURL = *req.BaseURL
+	}
+	baseURL = strings.TrimRight(baseURL, "/")
+
+	if providerType == llm.ProviderTypeOllama || providerType == "ollama" {
+		models, err := fetchOllamaModels(ctx, baseURL, req.APIKey)
+		if err != nil {
+			s.log.Warn("failed to discover ollama models", slog.String("base_url", baseURL), slog.String("error", err.Error()))
+			return DiscoverResponse{Models: []string{}}, err
+		}
+		return DiscoverResponse{Models: models}, nil
+	}
+
+	return DiscoverResponse{Models: []string{}}, fmt.Errorf("auto-discovery is currently only supported for provider 'ollama'")
+}
+
+func fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]string, error) {
+	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	httpReq, err := http.NewRequestWithContext(checkCtx, http.MethodGet, baseURL+"/api/tags", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct discover request: %w", err)
+	}
+	if apiKey != nil && *apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+*apiKey)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to ollama at %s: %w", baseURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("ollama /api/tags returned status %d", resp.StatusCode)
+	}
+
+	var tags struct {
+		Models []struct {
+			Name  string `json:"name"`
+			Model string `json:"model"`
+		} `json:"models"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
+		return nil, fmt.Errorf("failed to parse ollama tags response: %w", err)
+	}
+
+	result := make([]string, 0, len(tags.Models))
+	for _, m := range tags.Models {
+		name := m.Name
+		if name == "" {
+			name = m.Model
+		}
+		if name != "" {
+			result = append(result, name)
+		}
+	}
+	return result, nil
 }
 
 func nonEmptyPtr(s string) *string {

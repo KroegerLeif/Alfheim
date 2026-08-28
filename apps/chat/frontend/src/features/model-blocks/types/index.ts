@@ -37,3 +37,13 @@ export interface UpdateModelBlockRequest {
   api_key?: string;
   visibility?: ModelBlockVisibility;
 }
+
+export interface DiscoverModelsRequest {
+  provider_type: string;
+  base_url?: string;
+  api_key?: string;
+}
+
+export interface DiscoverModelsResponse {
+  models: string[];
+}

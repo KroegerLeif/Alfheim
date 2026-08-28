@@ -2,8 +2,11 @@ package modelblocks_test
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -479,4 +482,48 @@ func TestService_EncryptionKeyMissing(t *testing.T) {
 	if err != modelblocks.ErrEncryptionKeyMissing {
 		t.Errorf("expected ErrEncryptionKeyMissing, got %v", err)
 	}
+}
+
+func TestService_DiscoverModels(t *testing.T) {
+	mockOllama := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/tags" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"models": []map[string]any{
+				{"name": "llama3.2:3b"},
+				{"name": "deepseek-r1:8b"},
+			},
+		})
+	}))
+	defer mockOllama.Close()
+
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repo := newFakeRepository()
+	svc := modelblocks.NewService(repo, nil, "", log)
+	ctx := context.Background()
+
+	t.Run("successful discovery", func(t *testing.T) {
+		resp, err := svc.DiscoverModels(ctx, modelblocks.DiscoverRequest{
+			ProviderType: "ollama",
+			BaseURL:      &mockOllama.URL,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(resp.Models) != 2 || resp.Models[0] != "llama3.2:3b" || resp.Models[1] != "deepseek-r1:8b" {
+			t.Errorf("unexpected models: %+v", resp.Models)
+		}
+	})
+
+	t.Run("unsupported provider", func(t *testing.T) {
+		_, err := svc.DiscoverModels(ctx, modelblocks.DiscoverRequest{
+			ProviderType: "anthropic",
+		})
+		if err == nil {
+			t.Fatal("expected error for unsupported provider, got nil")
+		}
+	})
 }

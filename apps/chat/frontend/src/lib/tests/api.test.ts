@@ -114,4 +114,26 @@ describe("uploadAttachment and postMessage", () => {
       })
     );
   });
+
+  it("calls discover endpoint with provider payload and returns models list", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ models: ["gemma2:9b", "llama3.2:3b"] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { discoverModels } = await import("@/lib/api");
+    const result = await discoverModels({ provider_type: "ollama", base_url: "http://localhost:11434" });
+
+    expect(result.models).toEqual(["gemma2:9b", "llama3.2:3b"]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/models/discover"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ provider_type: "ollama", base_url: "http://localhost:11434" }),
+      })
+    );
+  });
 });

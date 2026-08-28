@@ -26,14 +26,19 @@ describe("ConversationList", () => {
     window.confirm = vi.fn(() => true);
   });
 
-  it("shows the empty state when there are no conversations", () => {
+  it("shows the empty state when there are no conversations and no models", () => {
     ;(useConversations as Mock).mockReturnValue({ data: [], isLoading: false });
     ;(useModelBlocks as Mock).mockReturnValue({ data: [] });
 
-    render(<ConversationList selectedId={null} onSelect={vi.fn()} />, { wrapper: createQueryWrapper() });
+    const onOpenAddModel = vi.fn();
+    render(<ConversationList selectedId={null} onSelect={vi.fn()} onOpenAddModel={onOpenAddModel} />, { wrapper: createQueryWrapper() });
 
     expect(screen.getByText("noConversations")).toBeInTheDocument();
-    expect(screen.getByText("noModelBlocks")).toBeInTheDocument();
+    expect(screen.getByText("noModelsConfiguredTitle")).toBeInTheDocument();
+    expect(screen.getByText("addModelBlock")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("addModelBlock"));
+    expect(onOpenAddModel).toHaveBeenCalled();
   });
 
   it("lists conversations and invokes onSelect when clicked", () => {
