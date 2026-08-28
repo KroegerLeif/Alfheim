@@ -81,7 +81,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   4. `pnpm --filter library-frontend check-types` passes with zero errors.
 
 #### [TASK-03] Register `library` App in Core Registry & Docker Compose
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `core/dashboard/backend/internal/features/apps/tier1_core_registry.go`, `compose.yaml`, `apps/library/compose.yml`
 - **Description:** Register `library` as a Tier-1 Core application in Go backend registry (`tier1_core_registry.go`) and add service definition in `apps/library/compose.yml` integrated into root `compose.yaml`.
 - **Definition of Done:**
