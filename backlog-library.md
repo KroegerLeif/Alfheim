@@ -121,7 +121,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Pytest suite verifies multi-tenancy isolation for items and locations.
 
 #### [TASK-07] Implement Lending Management API Endpoints
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/api/v1/lending.py`
 - **Description:** Build API endpoints to lend items to contacts and mark items returned. Statuses: `AVAILABLE`, `LENT_OUT`. Required fields: `contact_name`, `lent_at`, optional `due_date` and `notes`.
 - **Definition of Done:**
