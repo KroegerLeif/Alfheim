@@ -58,7 +58,29 @@
     "brand_subtitles": {
       "dashboard": "Suwerenny Portal",
       "pantry": "Zapasy i Księga",
-      "chores": "Grywalizacja Nawyków"
+      "chores": "Grywalizacja Nawyków",
+      "library": "Centrum Mediów i Biblioteki"
+    }
+  },
+  "library": {
+    "nav": {
+      "title": "Biblioteka",
+      "catalog": "Katalog",
+      "locations": "Lokalizacje",
+      "lending": "Wypożyczenia",
+      "providers": "Dostawcy"
+    },
+    "titles": {
+      "catalog": "Katalog Mediów",
+      "locations": "Lokalizacje Przechowywania",
+      "lending": "Centrum Wypożyczeń",
+      "providers": "Dostawcy Strumieniowi"
+    },
+    "placeholders": {
+      "catalog": "Widok zastępczy katalogu dla książek, gier planszowych, gier wideo, filmów i seriali.",
+      "locations": "Miejse zastępcze zarządzania hierarchią lokalizacji.",
+      "lending": "Miejsce zastępcze śledzenia i historii wypożyczeń.",
+      "providers": "Miejsce zastępcze aktywnych usług strumieniowych i subskrypcyjnych."
     }
   },
   "catalog": {

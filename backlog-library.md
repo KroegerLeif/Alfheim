@@ -71,7 +71,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. `uv run pytest` executes successfully in `apps/library/backend/`.
 
 #### [TASK-02] Create Frontend Project Scaffolding for `library`
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/frontend/`
 - **Description:** Initialize Next.js 16 App Router frontend project structure for `apps/library/frontend/`. Configure `@alfheim/shared` dependency in `package.json`, Tailwind CSS setup, Next.js proxy config in `src/proxy.ts`, and basic page layout shell.
 - **Definition of Done:**
