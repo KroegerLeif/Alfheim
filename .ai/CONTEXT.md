@@ -9,6 +9,10 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(auth): fix frontend token refresh in chat discovery and align caddy api routes across apps`**
+  - Implemented proactive Keycloak token refresh (`getFreshAuthToken`) and 401 retry in `apps/chat/frontend/src/lib/api.ts`.
+  - Configured relative API base URLs across chat and maintenance frontends to keep requests same-origin and avoid CORS/host mismatch issues.
+  - Added comprehensive `/api/v1/...` and `/<app>/api/v1...` reverse proxy and path rewrite rules in `infrastructure/caddy/Caddyfile` across frontend and API domains.
 * **`fix(chat): enable host-gateway resolution and improve discovery error handling`**
   - Configured `extra_hosts: ["host.docker.internal:host-gateway"]` in `apps/chat/compose.yml` for reliable Linux and Docker Desktop host resolution.
   - Hardened Ollama model discovery in `apps/chat/backend/internal/features/modelblocks/service.go` with 5s timeouts and descriptive network failure messages.
