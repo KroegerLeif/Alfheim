@@ -205,7 +205,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 
 ## Phase 5: Shared UI Primitives (@alfheim/shared)
 
-### [ ] TASK-501: Shared Financial Components & Form Elements
+### [x] TASK-501: Shared Financial Components & Form Elements
 - **Domain/Layer:** Shared / UI
 - **Scope & Files:**
   - `packages/shared/src/features/finance/BucketMeter.tsx`
