@@ -62,7 +62,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
 ### Phase 1: Scaffolding & Monorepo Setup
 
 #### [TASK-01] Create Backend Project Scaffolding for `library`
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/`
 - **Description:** Initialize Python 3.12 FastAPI backend structure for `apps/library/backend/` using `uv` workspace configuration. Include `pyproject.toml` referencing `backend-shared`, basic FastAPI app initialization, lifespan handling, health check endpoint (`/health`), and logging setup.
 - **Definition of Done:**
