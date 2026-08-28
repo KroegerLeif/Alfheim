@@ -157,7 +157,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   4. External API errors are gracefully handled and returned as standard error payloads.
 
 #### [TASK-10] Implement RustFS / MinIO S3 Manual PDF Upload & Presigned URLs
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/services/storage.py`, `apps/library/backend/src/api/v1/manuals.py`
 - **Description:** Integrate RustFS / S3 storage client using `backend-shared` storage utilities. Enable PDF game manual upload, storage at `library/households/{household_id}/manuals/{item_id}/{filename}.pdf`, and generation of secure presigned download URLs.
 - **Definition of Done:**
