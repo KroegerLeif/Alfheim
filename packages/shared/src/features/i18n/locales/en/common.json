@@ -58,7 +58,29 @@
     "brand_subtitles": {
       "dashboard": "Sovereign Portal",
       "pantry": "Inventory & Ledger",
-      "chores": "Gamified Habits"
+      "chores": "Gamified Habits",
+      "library": "Media & Library Hub"
+    }
+  },
+  "library": {
+    "nav": {
+      "title": "Library",
+      "catalog": "Catalog",
+      "locations": "Locations",
+      "lending": "Lending",
+      "providers": "Providers"
+    },
+    "titles": {
+      "catalog": "Media Catalog",
+      "locations": "Storage Locations",
+      "lending": "Lending Hub",
+      "providers": "Streaming Providers"
+    },
+    "placeholders": {
+      "catalog": "Catalog view placeholder for books, board games, video games, movies, and TV series.",
+      "locations": "Hierarchical location management placeholder.",
+      "lending": "Lending tracking and history placeholder.",
+      "providers": "Active household streaming & subscription services placeholder."
     }
   },
   "catalog": {
