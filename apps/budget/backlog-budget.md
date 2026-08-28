@@ -59,7 +59,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `docker compose config`
 
-### [ ] TASK-103: Caddy Ingress Gateway Routing Configuration
+### [x] TASK-103: Caddy Ingress Gateway Routing Configuration
 - **Domain/Layer:** Infrastructure / Ingress
 - **Scope & Files:**
   - `infrastructure/caddy/Caddyfile`
