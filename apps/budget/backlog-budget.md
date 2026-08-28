@@ -86,12 +86,12 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 
 ## Phase 2: Auth, Tenancy & Audit Logging
 
-### [ ] TASK-201: Tenant Isolation & JWT Header Verification Dependency
+### [x] TASK-201: Tenant Isolation & JWT Header Verification Dependency
 - **Domain/Layer:** Backend / Auth
 - **Scope & Files:**
   - `apps/budget/backend/src/core/auth.py`
   - `apps/budget/backend/src/core/dependencies.py`
-  - `apps/budget/backend/src/tests/test_auth.py`
+  - `apps/budget/backend/tests/test_auth.py`
 - **Requirements & Business Logic:**
   - Implement FastAPI dependency `get_current_tenant` to extract and validate `X-Household-ID` request header.
   - Verify `X-Household-ID` against JWT claims (`household_id`, `active_household_id`, or `households`).
