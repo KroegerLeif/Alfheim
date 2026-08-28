@@ -9,20 +9,26 @@ from src.features.accounts import router as accounts_router
 from src.features.plans import router as plans_router
 from src.features.pots import router as pots_router
 from src.features.transactions import router as transactions_router
+from src.mcp.server import discover_and_import_mcp_tools, mcp
 
 register_audit_hooks()
+
+# Discover and register FastMCP tools
+discover_and_import_mcp_tools()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for database initialization."""
+    """Lifespan context manager for database initialization and FastMCP server."""
     # Initialize DB tables on application startup
     try:
         await init_db()
     except Exception:
         # DB connection might fail in test environments where DB URL is not SQLite, handled gracefully
         pass
-    yield
+
+    async with mcp.lifespan():
+        yield
 
 
 app = FastAPI(
@@ -53,6 +59,9 @@ app.include_router(
     prefix="/api/v1/transactions",
     tags=["transactions"],
 )
+
+# Mount the FastMCP SSE/HTTP app
+app.mount("/mcp", mcp.http_app())
 
 # Configure CORS middleware
 app.add_middleware(
