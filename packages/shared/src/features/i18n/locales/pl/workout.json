@@ -1,12 +1,10 @@
 {
   "workout": {
     "title": "Workout Tracker",
-
     "navToday": "Dzisiaj",
     "navPlans": "Plany",
     "navCatalog": "Katalog",
     "navAnalytics": "Analiza",
-
     "todayTitle": "Dzisiejszy Trening",
     "todaySubtitle": "Rozpocznij sesję lub kontynuuj trwający trening",
     "plansTitle": "Plany Treningowe",
@@ -17,7 +15,6 @@
     "analyticsSubtitle": "Objętość treningowa, passy i ranking gospodarstwa domowego",
     "sessionTitle": "Aktywna Sesja",
     "sessionSubtitle": "Rejestruj serie podczas treningu",
-
     "startSession": "Rozpocznij Sesję",
     "startFreeSession": "Rozpocznij Trening Dowolny",
     "resumeSession": "Wznów",
@@ -30,7 +27,6 @@
     "sessionAbandoned": "Sesja Przerwana",
     "abandonConfirm": "Czy na pewno przerwać sesję? Zarejestrowane serie zostaną zachowane.",
     "selectPlanDay": "Wybierz Dzień Planu",
-
     "setNumber": "Seria {number}",
     "reps": "Powt.",
     "weight": "Ciężar",
@@ -46,12 +42,10 @@
     "nextExercise": "Następne Ćwiczenie",
     "previousExercise": "Poprzednie Ćwiczenie",
     "exerciseProgress": "Ćwiczenie {current} z {total}",
-
     "restTimer": "Przerwa",
     "restDone": "Przerwa Zakończona",
     "skipRest": "Pomiń Przerwę",
     "startRest": "Rozpocznij Przerwę",
-
     "offlineMode": "Offline",
     "offlineQueued": "Zapisano Offline",
     "pendingSets": "{count} serii oczekuje na synchronizację",
@@ -59,7 +53,6 @@
     "synced": "Zsynchronizowano",
     "syncFailed": "Synchronizacja nie powiodła się",
     "syncRetry": "Spróbuj ponownie",
-
     "createPlan": "Utwórz Plan",
     "editPlan": "Edytuj Plan",
     "deletePlan": "Usuń Plan",
@@ -74,7 +67,6 @@
     "planDeleteConfirm": "Czy na pewno usunąć plan \"{name}\"? Zarejestrowane sesje pozostaną niezmienione.",
     "planNameRequired": "Nazwa planu jest wymagana",
     "planOwnerOnly": "Tylko twórca może edytować ten plan",
-
     "addDay": "Dodaj Dzień",
     "dayLabel": "Nazwa Dnia",
     "dayLabelPlaceholder": "np. Push",
@@ -84,7 +76,6 @@
     "addSet": "Dodaj Serię",
     "removeSet": "Usuń Serię",
     "noDays": "Ten plan nie zawiera jeszcze dni",
-
     "targetWeightType": "Docelowy Ciężar",
     "weightAbsolute": "Bezwzględny",
     "weightDefault": "Domyślny Ciężar",
@@ -92,7 +83,6 @@
     "offsetKg": "Odchylenie (kg)",
     "baselineMissing": "Brak domyślnego ciężaru",
     "baselineMissingHint": "Ustaw domyślny ciężar dla tego ćwiczenia w katalogu",
-
     "exercises": "Ćwiczenia",
     "equipment": "Sprzęt",
     "createExercise": "Utwórz Ćwiczenie",
@@ -110,17 +100,16 @@
     "noExercises": "Nie znaleziono ćwiczeń",
     "noFavorites": "Brak oznaczonych ulubionych",
     "exerciseNameRequired": "Nazwa ćwiczenia jest wymagana",
-
     "createEquipment": "Utwórz Sprzęt",
     "equipmentName": "Nazwa",
     "category": "Kategoria",
+    "scope": "Zakres",
     "scopeSystem": "System",
     "scopeHousehold": "Gospodarstwo Domowe",
     "scopeUser": "Osobisty",
     "noEquipment": "Nie znaleziono sprzętu",
     "systemEquipmentReadonly": "Sprzęt systemowy nie może być edytowany",
     "equipmentNameRequired": "Nazwa jest wymagana",
-
     "muscleChest": "Klatka Piersiowa",
     "muscleBack": "Plecy",
     "muscleShoulders": "Barki",
@@ -134,7 +123,7 @@
     "muscleForearms": "Przedramiona",
     "muscleTraps": "Czworoboczne",
     "muscleFullBody": "Całe Ciało",
-
+    "allMuscleGroups": "Wszystkie Grupy Mięśniowe",
     "muscleVolume": "Objętość Mięśniowa",
     "totalVolume": "Całkowita Objętość",
     "currentStreak": "Aktualna Passa",
@@ -145,7 +134,6 @@
     "streakDays": "{count} dni",
     "noAnalyticsData": "Brak zakończonych sesji",
     "noAnalyticsDataSubtitle": "Zakończ sesję, aby zobaczyć swoją analizę",
-
     "save": "Zapisz",
     "cancel": "Anuluj",
     "delete": "Usuń",

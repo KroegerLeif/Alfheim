@@ -1,12 +1,10 @@
 {
   "workout": {
     "title": "Workout Tracker",
-
     "navToday": "Today",
     "navPlans": "Plans",
     "navCatalog": "Catalog",
     "navAnalytics": "Analytics",
-
     "todayTitle": "Today's Workout",
     "todaySubtitle": "Start your session or continue an active one",
     "plansTitle": "Workout Plans",
@@ -17,7 +15,6 @@
     "analyticsSubtitle": "Training volume, streaks and household leaderboard",
     "sessionTitle": "Active Session",
     "sessionSubtitle": "Log your sets during the workout",
-
     "startSession": "Start Session",
     "startFreeSession": "Start Free Workout",
     "resumeSession": "Resume",
@@ -30,7 +27,6 @@
     "sessionAbandoned": "Session Abandoned",
     "abandonConfirm": "Really abandon the session? Logged sets will be kept.",
     "selectPlanDay": "Select Plan Day",
-
     "setNumber": "Set {number}",
     "reps": "Reps",
     "weight": "Weight",
@@ -46,12 +42,10 @@
     "nextExercise": "Next Exercise",
     "previousExercise": "Previous Exercise",
     "exerciseProgress": "Exercise {current} of {total}",
-
     "restTimer": "Rest",
     "restDone": "Rest Done",
     "skipRest": "Skip Rest",
     "startRest": "Start Rest",
-
     "offlineMode": "Offline",
     "offlineQueued": "Saved Offline",
     "pendingSets": "{count} sets waiting to sync",
@@ -59,7 +53,6 @@
     "synced": "Synced",
     "syncFailed": "Sync Failed",
     "syncRetry": "Retry",
-
     "createPlan": "Create Plan",
     "editPlan": "Edit Plan",
     "deletePlan": "Delete Plan",
@@ -74,7 +67,6 @@
     "planDeleteConfirm": "Really delete plan \"{name}\"? Already logged sessions remain unchanged.",
     "planNameRequired": "Plan name is required",
     "planOwnerOnly": "Only the creator can edit this plan",
-
     "addDay": "Add Day",
     "dayLabel": "Day Label",
     "dayLabelPlaceholder": "e.g. Push",
@@ -84,7 +76,6 @@
     "addSet": "Add Set",
     "removeSet": "Remove Set",
     "noDays": "This plan has no days yet",
-
     "targetWeightType": "Target Weight",
     "weightAbsolute": "Absolute",
     "weightDefault": "Default Weight",
@@ -92,7 +83,6 @@
     "offsetKg": "Offset (kg)",
     "baselineMissing": "No default weight set",
     "baselineMissingHint": "Set a default weight for this exercise in the catalog",
-
     "exercises": "Exercises",
     "equipment": "Equipment",
     "createExercise": "Create Exercise",
@@ -110,17 +100,16 @@
     "noExercises": "No exercises found",
     "noFavorites": "No favorites marked yet",
     "exerciseNameRequired": "Exercise name is required",
-
     "createEquipment": "Create Equipment",
     "equipmentName": "Name",
     "category": "Category",
+    "scope": "Scope",
     "scopeSystem": "System",
     "scopeHousehold": "Household",
     "scopeUser": "Personal",
     "noEquipment": "No equipment found",
     "systemEquipmentReadonly": "System equipment cannot be edited",
     "equipmentNameRequired": "Name is required",
-
     "muscleChest": "Chest",
     "muscleBack": "Back",
     "muscleShoulders": "Shoulders",
@@ -134,7 +123,7 @@
     "muscleForearms": "Forearms",
     "muscleTraps": "Traps",
     "muscleFullBody": "Full Body",
-
+    "allMuscleGroups": "All Muscle Groups",
     "muscleVolume": "Muscle Volume",
     "totalVolume": "Total Volume",
     "currentStreak": "Current Streak",
@@ -145,7 +134,6 @@
     "streakDays": "{count} days",
     "noAnalyticsData": "No completed sessions yet",
     "noAnalyticsDataSubtitle": "Complete a session to see your analytics",
-
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
