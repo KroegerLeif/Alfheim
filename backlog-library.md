@@ -144,7 +144,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
 ### Phase 3: External Providers & RustFS Integration
 
 #### [TASK-09] Implement External Metadata Lookup Services (ISBN, BGG, TMDB)
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/services/external/`
 - **Description:** Implement external API clients for media metadata retrieval:
   - **Books:** Open Library / Google Books API client for ISBN lookup.

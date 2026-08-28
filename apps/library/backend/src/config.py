@@ -25,6 +25,10 @@ class Settings(BaseSettings):
         "http://api.alfheim.loegien.localhost",
     ]
 
+    # External Metadata API Keys
+    GOOGLE_BOOKS_API_KEY: str | None = None
+    TMDB_API_KEY: str | None = None
+
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/library"
 
