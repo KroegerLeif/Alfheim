@@ -70,7 +70,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `caddy validate --config infrastructure/caddy/Caddyfile`
 
-### [ ] TASK-104: Database Migration Pipeline (Alembic)
+### [x] TASK-104: Database Migration Pipeline (Alembic)
 - **Domain/Layer:** Backend / Database
 - **Scope & Files:**
   - `apps/budget/backend/alembic.ini`
