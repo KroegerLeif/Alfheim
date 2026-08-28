@@ -1,0 +1,98 @@
+{
+  "library": {
+    "title": "Media & Library Hub",
+    "subtitle": "alfheim physical and digital media management",
+    "nav": {
+      "catalog": "Catalog",
+      "locations": "Locations",
+      "lending": "Lending",
+      "providers": "Streaming Providers"
+    },
+    "catalog": {
+      "title": "Media Catalog",
+      "subtitle": "Manage books, games, movies, and series",
+      "searchPlaceholder": "Search title, author, keyword...",
+      "filterAll": "All Media",
+      "filterBooks": "Books",
+      "filterBoardGames": "Board Games",
+      "filterVideoGames": "Video Games",
+      "filterMovies": "Movies",
+      "filterSeries": "TV Series",
+      "filterCookbooks": "Cookbooks Only",
+      "availableOnProviders": "Available on My Providers",
+      "noItemsFound": "No media items found.",
+      "addItem": "Add Media Item",
+      "players": "{min}-{max} Players",
+      "playersSingle": "{count} Player",
+      "runtime": "{minutes} mins",
+      "fsk": "Age {age}+"
+    },
+    "locations": {
+      "title": "Storage Locations",
+      "subtitle": "Hierarchical organization for books and games",
+      "addLocation": "Add Location",
+      "room": "Room",
+      "shelf": "Shelf / Cabinet",
+      "box": "Box / Bin",
+      "itemCount": "{count} items",
+      "noLocations": "No locations created.",
+      "createTitle": "Create New Location",
+      "name": "Location Name",
+      "parent": "Parent Location"
+    },
+    "lending": {
+      "title": "Lending Tracker",
+      "subtitle": "Overview of lent media and contacts",
+      "lendItem": "Lend Item",
+      "markReturned": "Mark as Returned",
+      "statusAvailable": "Available",
+      "statusLent": "Lent Out",
+      "statusOverdue": "Overdue",
+      "borrower": "Borrower / Contact",
+      "lentAt": "Lent On",
+      "dueDate": "Due Date",
+      "notes": "Notes",
+      "activeLoans": "Active Loans",
+      "history": "Lending History",
+      "noActiveLoans": "No items currently lent out."
+    },
+    "providers": {
+      "title": "Streaming & Subscriptions",
+      "subtitle": "Active household services for movies, series, and games",
+      "addProvider": "Add Provider",
+      "activeProviders": "Active Household Providers",
+      "typeMovie": "Movies & Series",
+      "typeGame": "Gaming Subscription",
+      "typeBoth": "Combined",
+      "noProviders": "No providers configured."
+    },
+    "manuals": {
+      "title": "Game Manual (PDF)",
+      "uploadBtn": "Upload Manual (PDF)",
+      "viewBtn": "View Manual",
+      "pdfOnly": "Only PDF files are allowed.",
+      "noManual": "No manual available."
+    },
+    "itemDialog": {
+      "createTitle": "Add New Media",
+      "editTitle": "Edit Media",
+      "lookupPlaceholder": "Search ISBN, BGG name, or TMDB title...",
+      "lookupBtn": "Lookup Metadata",
+      "autoFill": "Use Metadata",
+      "title": "Title",
+      "creator": "Author / Developer / Director",
+      "mediaType": "Media Type",
+      "location": "Location",
+      "isbn": "ISBN",
+      "minPlayers": "Min. Players",
+      "maxPlayers": "Max. Players",
+      "playingTime": "Play Time (mins)",
+      "fsk": "Age Rating",
+      "isCookbook": "Is Cookbook",
+      "description": "Description",
+      "coverUrl": "Cover Image URL",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
+  }
+}
