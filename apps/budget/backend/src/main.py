@@ -8,6 +8,7 @@ from src.core.database import init_db
 from src.features.accounts import router as accounts_router
 from src.features.plans import router as plans_router
 from src.features.pots import router as pots_router
+from src.features.transactions import router as transactions_router
 
 register_audit_hooks()
 
@@ -45,6 +46,12 @@ app.include_router(
     plans_router,
     prefix="/api/v1/plans",
     tags=["plans"],
+)
+
+app.include_router(
+    transactions_router,
+    prefix="/api/v1/transactions",
+    tags=["transactions"],
 )
 
 # Configure CORS middleware
