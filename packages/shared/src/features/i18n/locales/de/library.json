@@ -1,0 +1,98 @@
+{
+  "library": {
+    "title": "Medien- & Bibliothek-Hub",
+    "subtitle": "alfheim physische und digitale Medienverwaltung",
+    "nav": {
+      "catalog": "Katalog",
+      "locations": "Lagerorte",
+      "lending": "Ausleihe",
+      "providers": "Streaming-Anbieter"
+    },
+    "catalog": {
+      "title": "Medienkatalog",
+      "subtitle": "Bücher, Spiele, Filme und Serien verwalten",
+      "searchPlaceholder": "Titel, Autor, Schlagwort suchen...",
+      "filterAll": "Alle Medien",
+      "filterBooks": "Bücher",
+      "filterBoardGames": "Brettspiele",
+      "filterVideoGames": "Videospiele",
+      "filterMovies": "Filme",
+      "filterSeries": "Serien",
+      "filterCookbooks": "Nur Kochbücher",
+      "availableOnProviders": "Bei meinen Anbietern verfügbar",
+      "noItemsFound": "Keine Medienartikel gefunden.",
+      "addItem": "Neues Medium hinzufügen",
+      "players": "{min}-{max} Spieler",
+      "playersSingle": "{count} Spieler",
+      "runtime": "{minutes} Min.",
+      "fsk": "FSK {age}"
+    },
+    "locations": {
+      "title": "Lagerorte",
+      "subtitle": "Hierarchische Aufbewahrung von Büchern und Spielen",
+      "addLocation": "Lagerort hinzufügen",
+      "room": "Raum",
+      "shelf": "Regal / Schrank",
+      "box": "Kiste / Fach",
+      "itemCount": "{count} Artikel",
+      "noLocations": "Keine Lagerorte angelegt.",
+      "createTitle": "Neuen Lagerort erstellen",
+      "name": "Name des Lagerorts",
+      "parent": "Übergeordneter Ort"
+    },
+    "lending": {
+      "title": "Verleih-Tracker",
+      "subtitle": "Übersicht ausgeliehener Medien und Kontakte",
+      "lendItem": "Artikel ausleihen",
+      "markReturned": "Als zurückgegeben markieren",
+      "statusAvailable": "Verfügbar",
+      "statusLent": "Ausgeliehen",
+      "statusOverdue": "Überfällig",
+      "borrower": "Entleiher / Kontakt",
+      "lentAt": "Ausgeliehen am",
+      "dueDate": "Rückgabedatum",
+      "notes": "Notizen",
+      "activeLoans": "Aktive Ausleihen",
+      "history": "Verleih-Historie",
+      "noActiveLoans": "Derzeit sind keine Artikel ausgeliehen."
+    },
+    "providers": {
+      "title": "Streaming & Abonnements",
+      "subtitle": "Aktive Haushalts-Dienste für Filme, Serien und Spiele",
+      "addProvider": "Anbieter hinzufügen",
+      "activeProviders": "Aktive Haushalts-Anbieter",
+      "typeMovie": "Film & Serie",
+      "typeGame": "Gaming-Abo",
+      "typeBoth": "Kombiniert",
+      "noProviders": "Keine Anbieter konfiguriert."
+    },
+    "manuals": {
+      "title": "Spielanleitung (PDF)",
+      "uploadBtn": "Anleitung hochladen (PDF)",
+      "viewBtn": "Anleitung ansehen",
+      "pdfOnly": "Nur PDF-Dateien sind zulässig.",
+      "noManual": "Keine Anleitung vorhanden."
+    },
+    "itemDialog": {
+      "createTitle": "Neues Medium hinzufügen",
+      "editTitle": "Medium bearbeiten",
+      "lookupPlaceholder": "ISBN, BGG-Name oder TMDB-Titel suchen...",
+      "lookupBtn": "Metadaten suchen",
+      "autoFill": "Daten übernehmen",
+      "title": "Titel",
+      "creator": "Autor / Entwickler / Regisseur",
+      "mediaType": "Medientyp",
+      "location": "Lagerort",
+      "isbn": "ISBN",
+      "minPlayers": "Min. Spieler",
+      "maxPlayers": "Max. Spieler",
+      "playingTime": "Spieldauer (Min.)",
+      "fsk": "FSK / Altersfreigabe",
+      "isCookbook": "Ist ein Kochbuch",
+      "description": "Beschreibung",
+      "coverUrl": "Cover-Bild-URL",
+      "save": "Speichern",
+      "cancel": "Abbrechen"
+    }
+  }
+}

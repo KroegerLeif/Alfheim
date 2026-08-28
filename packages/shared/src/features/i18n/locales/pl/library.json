@@ -1,0 +1,98 @@
+{
+  "library": {
+    "title": "Centrum Mediów i Biblioteka",
+    "subtitle": "alfheim zarządzanie mediami fizycznymi i cyfrowymi",
+    "nav": {
+      "catalog": "Katalog",
+      "locations": "Lokalizacje",
+      "lending": "Wypożyczenia",
+      "providers": "Dostawcy Streamingowi"
+    },
+    "catalog": {
+      "title": "Katalog Mediów",
+      "subtitle": "Zarządzaj książkami, grami, filmami i serialami",
+      "searchPlaceholder": "Szukaj tytułu, autora, słowa kluczowego...",
+      "filterAll": "Wszystkie media",
+      "filterBooks": "Książki",
+      "filterBoardGames": "Gry planszowe",
+      "filterVideoGames": "Gry wideo",
+      "filterMovies": "Filmy",
+      "filterSeries": "Seriale",
+      "filterCookbooks": "Tylko książki kucharskie",
+      "availableOnProviders": "Dostępne u moich dostawców",
+      "noItemsFound": "Nie znaleziono żadnych pozycji.",
+      "addItem": "Dodaj pozycję",
+      "players": "{min}-{max} Graczy",
+      "playersSingle": "{count} Graczy",
+      "runtime": "{minutes} min",
+      "fsk": "Od {age} lat"
+    },
+    "locations": {
+      "title": "Miejsca Przechowywania",
+      "subtitle": "Hierarchiczna organizacja książek i gier",
+      "addLocation": "Dodaj lokalizację",
+      "room": "Pokój",
+      "shelf": "Regał / Szafka",
+      "box": "Pudełko / Pojemnik",
+      "itemCount": "{count} pozycji",
+      "noLocations": "Brak utworzonych lokalizacji.",
+      "createTitle": "Utwórz nową lokalizację",
+      "name": "Nazwa lokalizacji",
+      "parent": "Lokalizacja nadrzędna"
+    },
+    "lending": {
+      "title": "Śledzenie Wypożyczeń",
+      "subtitle": "Przegląd wypożyczonych mediów i kontaktów",
+      "lendItem": "Wypożycz pozycję",
+      "markReturned": "Oznacz jako zwrócone",
+      "statusAvailable": "Dostępne",
+      "statusLent": "Wypożyczone",
+      "statusOverdue": "Zaległe",
+      "borrower": "Wypożyczający / Kontakt",
+      "lentAt": "Data wypożyczenia",
+      "dueDate": "Termin zwrotu",
+      "notes": "Notatki",
+      "activeLoans": "Aktywne wypożyczenia",
+      "history": "Historia wypożyczeń",
+      "noActiveLoans": "Brak obecnie wypożyczonych pozycji."
+    },
+    "providers": {
+      "title": "Streaming i Subskrypcje",
+      "subtitle": "Aktywne usługi domowe dla filmów, seriali i gier",
+      "addProvider": "Dodaj dostawcę",
+      "activeProviders": "Aktywni dostawcy w gospodarstwie",
+      "typeMovie": "Filmy i Seriale",
+      "typeGame": "Subskrypcja gier",
+      "typeBoth": "Połączone",
+      "noProviders": "Brak skonfigurowanych dostawców."
+    },
+    "manuals": {
+      "title": "Instrukcja Gry (PDF)",
+      "uploadBtn": "Prześlij instrukcję (PDF)",
+      "viewBtn": "Zobacz instrukcję",
+      "pdfOnly": "Dozwolone są tylko pliki PDF.",
+      "noManual": "Brak dostępnej instrukcji."
+    },
+    "itemDialog": {
+      "createTitle": "Dodaj Nowe Media",
+      "editTitle": "Edytuj Media",
+      "lookupPlaceholder": "Szukaj ISBN, nazwy BGG lub tytułu TMDB...",
+      "lookupBtn": "Wyszukaj metadane",
+      "autoFill": "Użyj metadanych",
+      "title": "Tytuł",
+      "creator": "Autor / Twórca / Reżyser",
+      "mediaType": "Typ mediów",
+      "location": "Lokalizacja",
+      "isbn": "ISBN",
+      "minPlayers": "Min. liczba graczy",
+      "maxPlayers": "Maks. liczba graczy",
+      "playingTime": "Czas gry (min)",
+      "fsk": "Kategoria wiekowa",
+      "isCookbook": "Książka kucharska",
+      "description": "Opis",
+      "coverUrl": "URL okładki",
+      "save": "Zapisz",
+      "cancel": "Anuluj"
+    }
+  }
+}

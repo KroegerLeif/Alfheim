@@ -179,7 +179,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
 ### Phase 4: Frontend UI, Features & i18n
 
 #### [TASK-12] Implement i18n Dictionaries & Translation Wrappers
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `packages/shared/src/features/i18n/locales/{de,en,pl}/library.json`, `apps/library/frontend/src/i18n/`
 - **Description:** Add `library` localization dictionaries in German (DE), English (EN), and Polish (PL) under shared locales directory. Provide localized labels for media categories, lending statuses, locations, and provider filters.
 - **Definition of Done:**
