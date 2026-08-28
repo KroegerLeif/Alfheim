@@ -150,7 +150,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `cd apps/budget/backend && uv run pytest src/tests/test_pots.py`
 
-### [ ] TASK-303: Plans & Categories Allocation Domain
+### [x] TASK-303: Plans & Categories Allocation Domain
 - **Domain/Layer:** Backend / Plans
 - **Scope & Files:**
   - `apps/budget/backend/src/features/plans/models.py`
