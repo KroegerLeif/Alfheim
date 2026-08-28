@@ -226,7 +226,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 
 ## Phase 6: Frontend Feature Implementation
 
-### [ ] TASK-601: Next.js 16 App Router Setup & Auth Proxy
+### [x] TASK-601: Next.js 16 App Router Setup & Auth Proxy
 - **Domain/Layer:** Frontend / Setup
 - **Scope & Files:**
   - `apps/budget/frontend/package.json`
