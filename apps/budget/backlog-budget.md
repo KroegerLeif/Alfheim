@@ -46,7 +46,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
   - `cd apps/budget/backend && uv run ruff check .`
   - `cd apps/budget/backend && uv run pytest`
 
-### [ ] TASK-102: Docker Compose & Infrastructure Orchestration
+### [x] TASK-102: Docker Compose & Infrastructure Orchestration
 - **Domain/Layer:** Infrastructure / DevOps
 - **Scope & Files:**
   - `compose.yaml`
