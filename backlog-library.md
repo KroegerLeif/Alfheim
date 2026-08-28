@@ -103,7 +103,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Foreign key constraints and indexes (including `household_id` composite indexes) properly defined.
 
 #### [TASK-05] Implement Keycloak Auth & Multi-Tenancy Middleware Dependency
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/api/dependencies.py`
 - **Description:** Implement FastAPI dependency that extracts and validates Keycloak JWT token and `X-Household-ID` request header using `backend-shared`. Enforce household access control across all API routes.
 - **Definition of Done:**
