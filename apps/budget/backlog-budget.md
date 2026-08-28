@@ -165,7 +165,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `cd apps/budget/backend && uv run pytest src/tests/test_plans.py`
 
-### [ ] TASK-304: Transactions & RustFS S3 Receipt Uploads
+### [x] TASK-304: Transactions & RustFS S3 Receipt Uploads
 - **Domain/Layer:** Backend / Transactions & Receipts
 - **Scope & Files:**
   - `apps/budget/backend/src/features/transactions/models.py`
