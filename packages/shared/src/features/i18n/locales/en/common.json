@@ -58,7 +58,8 @@
     "brand_subtitles": {
       "dashboard": "Sovereign Portal",
       "pantry": "Inventory & Ledger",
-      "chores": "Gamified Habits"
+      "chores": "Gamified Habits",
+      "workout": "Strength & Progress"
     }
   },
   "catalog": {

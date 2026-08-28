@@ -115,6 +115,7 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |
 | **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` (`maintenance_postgres_data`) |
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
+| **`apps/workout`** | FastAPI, FastMCP (backend only — frontend deferred) | `api.alfheim.loegien.de/workout` | `workout-db` (`postgres_data_workout`, Port `5434`) |
 | **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
 | **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
 
@@ -245,6 +246,45 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 2. **Instance Uniqueness**: Only one instance per chore template can be scheduled for a given date (enforced via index uq_chore_instance_template_per_date).
 3. **Streak Integrity**: Streaks are incremented if all scheduled chores for a day are completed. If any chore is left uncompleted, it is marked as "missed" and the streak resets to 0 during the daily reset.
 4. **Self-Healing Reset**: If the system is offline, the daily reset runs retroactively on the first access of a household's chores list for that day.
+
+---
+
+## 🗄️ Database Schema Invariants (Workout Service)
+
+Backend + MCP server only (frontend deferred). No `households` table exists — `home_id` is an
+opaque UUID carried by the JWT/`X-Household-ID` header, matching Pantry/Chores.
+
+### Tables: `equipment`, `exercises`
+* Scoped via a `scope` enum (`system` | `household` | `user`); `home_id`/`owner_user_id` are
+  NULLABLE and set only for the matching scope. System rows are seeded at test/startup time and
+  read-only via the API.
+* `user_exercise_preferences` (UNIQUE `user_id`+`exercise_id`) carries each user's baseline
+  weight, read by the weight engine. `exercise_favorites` (UNIQUE `user_id`+`exercise_id`) is a
+  pure on/off join.
+
+### Tables: `plans`, `plan_days`, `plan_exercises`, `plan_sets`
+* `plans.is_shared` controls household-wide visibility; only the owner may write, even to a
+  shared plan.
+* `plan_sets.target_weight_type` (`absolute` | `default` | `offset`) drives the relative weight
+  engine — see `plans/services/weight_engine_service.py::resolve_target_weight`.
+
+### Tables: `workout_sessions`, `session_exercises`, `session_sets`
+* Structural clones of plan state at session-start (never live FKs into
+  `plan_exercises`/`plan_sets`) so editing/deleting a `Plan` never rewrites a past session —
+  `session_sets.target_weight_kg` stores the RESOLVED weight-engine number, not the type/offset.
+* `session_sets` has a partial-unique index on (`session_exercise_id`, `client_idempotency_key`)
+  WHERE the key is NOT NULL, backing the offline-sync ack endpoint
+  (`POST /sessions/{id}/sets/sync`).
+
+#### Invariant Rules:
+1. **MCP tenancy**: every MCP tool (per-feature and the composite `agent_tools` slice) takes
+   explicit `household_id`/`user_id` parameters and enforces the same service-layer filtering as
+   REST routes — unlike Pantry/Chores' MCP tools, which hardcode `MOCK_HOME_ID`.
+2. **403 vs 404**: cross-tenant `X-Household-ID` header mismatch is rejected at the auth-dependency
+   layer with 403 (see `backend_shared.dependencies`); a resource that exists but isn't visible to
+   the caller's household/user returns 404 at the resource layer.
+3. **No Alembic**: schema is managed via `SQLModel.metadata.create_all()`, matching every other
+   app in this monorepo.
 
 ---
 

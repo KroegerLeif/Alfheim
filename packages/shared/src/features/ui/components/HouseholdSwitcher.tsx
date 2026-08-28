@@ -40,8 +40,12 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fetch households from central dashboard backend using active frontend auth tokens
-    const token = sessionStorage.getItem('token_chores-frontend') ||
+    // Fetch households from central dashboard backend using active frontend auth tokens.
+    // Every app writes the shared 'alfheim_access_token' key alongside its own
+    // 'token_<app>-frontend' key, so prefer the shared one: the per-app keys below are a
+    // legacy fallback and must not be extended for each new app.
+    const token = sessionStorage.getItem('alfheim_access_token') ||
+                  sessionStorage.getItem('token_chores-frontend') ||
                   sessionStorage.getItem('token_maintenance-frontend') ||
                   sessionStorage.getItem('token_pantry-frontend') ||
                   sessionStorage.getItem('token_shopping-frontend');
