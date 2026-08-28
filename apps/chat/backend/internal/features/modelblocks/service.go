@@ -3,6 +3,7 @@ package modelblocks
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -417,8 +418,8 @@ func (s *service) DiscoverModels(ctx context.Context, req DiscoverRequest) (Disc
 	}
 
 	baseURL := "http://host.docker.internal:11434"
-	if req.BaseURL != nil && *req.BaseURL != "" {
-		baseURL = *req.BaseURL
+	if req.BaseURL != nil && strings.TrimSpace(*req.BaseURL) != "" {
+		baseURL = strings.TrimSpace(*req.BaseURL)
 	}
 	baseURL = strings.TrimRight(baseURL, "/")
 
@@ -449,12 +450,15 @@ func fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]s
 	client := &http.Client{}
 	resp, err := client.Do(httpReq)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || (checkCtx.Err() != nil && errors.Is(checkCtx.Err(), context.DeadlineExceeded)) {
+			return nil, fmt.Errorf("connection to ollama at %s timed out after 5s", baseURL)
+		}
 		return nil, fmt.Errorf("failed to connect to ollama at %s: %w", baseURL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("ollama /api/tags returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("ollama /api/tags at %s returned status %d", baseURL, resp.StatusCode)
 	}
 
 	var tags struct {
@@ -465,7 +469,7 @@ func fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]s
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
-		return nil, fmt.Errorf("failed to parse ollama tags response: %w", err)
+		return nil, fmt.Errorf("failed to parse ollama tags response from %s: %w", baseURL, err)
 	}
 
 	result := make([]string, 0, len(tags.Models))

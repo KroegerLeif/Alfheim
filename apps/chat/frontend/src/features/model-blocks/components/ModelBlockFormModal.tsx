@@ -85,10 +85,10 @@ export function ModelBlockFormModal({
             setDiscoverMessage(t("Chat.scanError"));
           }
         },
-        onError: () => {
+        onError: (err: any) => {
           setDiscoveredModels([]);
           setDiscoverStatus("error");
-          setDiscoverMessage(t("Chat.scanError"));
+          setDiscoverMessage(err?.message || t("Chat.scanError"));
         },
       }
     );
