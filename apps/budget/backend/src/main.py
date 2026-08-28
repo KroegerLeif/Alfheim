@@ -2,8 +2,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from src.core.audit import register_audit_hooks
 from src.core.config import settings
 from src.core.database import init_db
+
+register_audit_hooks()
 
 
 @asynccontextmanager
