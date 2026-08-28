@@ -166,7 +166,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Tests verify bucket paths, file validation (PDF only), and tenant isolation.
 
 #### [TASK-11] Implement Full-Text Search & Multi-Facet Filtering Engine
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/services/search.py`, `apps/library/backend/src/api/v1/search.py`
 - **Description:** Implement PostgreSQL full-text search (`tsvector` & Trigram similarity index) combined with multi-facet filters (e.g., "Funny movie under 90 min", "4-player game in max 45 min", JustWatch-style active provider filter).
 - **Definition of Done:**
