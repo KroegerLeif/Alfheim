@@ -133,7 +133,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `cd apps/budget/backend && uv run pytest src/tests/test_accounts.py`
 
-### [ ] TASK-302: Virtual Pots (Buckets) & Sinking Fund Calculator
+### [x] TASK-302: Virtual Pots (Buckets) & Sinking Fund Calculator
 - **Domain/Layer:** Backend / Pots
 - **Scope & Files:**
   - `apps/budget/backend/src/features/pots/models.py`
