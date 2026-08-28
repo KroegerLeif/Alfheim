@@ -188,7 +188,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. All UI strings use translation keys with zero hardcoded UI strings.
 
 #### [TASK-13] Implement Catalog Feature Slice & Item Cards
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/frontend/src/features/catalog/`
 - **Description:** Build catalog view with media tab filters (All, Books, Games, Movies/Series, Cookbooks). Display media items in responsive grids using `@alfheim/shared` Card, Badge, and Button primitives. Enforce 200 LOC per file limit.
 - **Definition of Done:**
