@@ -1524,14 +1524,18 @@ name = "library-backend"
 version = "0.1.0"
 source = { virtual = "apps/library/backend" }
 dependencies = [
+    { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
     { name = "pydantic-settings" },
+    { name = "sqlmodel" },
     { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "aiosqlite" },
+    { name = "greenlet" },
     { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -1541,14 +1545,18 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.39.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aiosqlite", specifier = ">=0.22.1" },
+    { name = "greenlet", specifier = ">=3.5.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },

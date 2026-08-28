@@ -5,14 +5,18 @@ description = "Backend microservice for the Alfheim Library application"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "asyncpg>=0.31.0",
     "backend-shared",
     "fastapi>=0.128.8",
     "pydantic-settings>=2.11.0",
+    "sqlmodel>=0.0.38",
     "uvicorn>=0.39.0",
 ]
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.22.1",
+    "greenlet>=3.5.1",
     "httpx>=0.28.1",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.4.0",
