@@ -94,7 +94,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
 ### Phase 2: Backend Core & Database Schema
 
 #### [TASK-04] Implement Database Models & Async SQLAlchemy Engine Setup
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/backend/src/db/`
 - **Description:** Set up PostgreSQL database models using Async SQLAlchemy. Models must include: `Location` (hierarchical parent-child), `Item` (with media type discriminators for Book, Game, Movie/Series, flags like `is_cookbook`, player counts, runtimes, FSK), `LendingRecord` (contact name, status `AVAILABLE`/`LENT_OUT`, lent date, optional `due_date`, notes), and `ProviderSubscription` (provider name, type, active status).
 - **Definition of Done:**
