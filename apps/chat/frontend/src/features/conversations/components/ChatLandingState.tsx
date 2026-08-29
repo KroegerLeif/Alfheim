@@ -34,9 +34,7 @@ export function ChatLandingState({
           <h2 className="text-xl font-bold text-[var(--text-main)]">
             {t("Chat.welcomeTitle")}
           </h2>
-          <p className="text-sm text-[var(--text-muted)]">
-            {t("Chat.noConversationSelected")}
-          </p>
+          <p className="text-sm text-[var(--text-muted)]">{t("Chat.noConversationSelected")}</p>
         </div>
 
         {currentModel ? (
