@@ -88,8 +88,7 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	handle /api/v1/chat* {
 		reverse_proxy chat-backend:8080
 	}
-	handle /chat/api/v1* {
-		uri strip_prefix /chat
+	handle_path /chat/api/v1* {
 		rewrite * /api/v1/chat{path}
 		reverse_proxy chat-backend:8080
 	}
@@ -188,8 +187,10 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy maintenance-backend:8000
 	}
 	handle_path /maintenance* {
+		rewrite * /api/v1{path}
 		reverse_proxy maintenance-backend:8000
 	}
+
 	# Budget API
 	handle_path /api/v1/budget* {
 		rewrite * /api/v1{path}
@@ -200,6 +201,7 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy budget-backend:8000
 	}
 	handle_path /budget* {
+		rewrite * /api/v1{path}
 		reverse_proxy budget-backend:8000
 	}
 
@@ -213,6 +215,7 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy workout-backend:8000
 	}
 	handle_path /workout* {
+		rewrite * /api/v1{path}
 		reverse_proxy workout-backend:8000
 	}
 
@@ -226,6 +229,7 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy pantry-backend:8000
 	}
 	handle_path /pantry* {
+		rewrite * /api/v1{path}
 		reverse_proxy pantry-backend:8000
 	}
 
@@ -239,10 +243,11 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy shopping-backend:8000
 	}
 	handle_path /shopping* {
+		rewrite * /api/v1{path}
 		reverse_proxy shopping-backend:8000
 	}
 
-	# Chores API (NO stripping - expects /api/v1/chores/*)
+	# Chores API
 	handle /api/v1/chores* {
 		reverse_proxy chores-backend:8000
 	}
@@ -250,11 +255,12 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		rewrite * /api/v1/chores{path}
 		reverse_proxy chores-backend:8000
 	}
-	handle /chores* {
+	handle_path /chores* {
+		rewrite * /api/v1/chores{path}
 		reverse_proxy chores-backend:8000
 	}
 
-	# Library API (NO stripping - expects /api/v1/library/*)
+	# Library API
 	handle /api/v1/library* {
 		reverse_proxy library-backend:8000
 	}
@@ -262,11 +268,12 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		rewrite * /api/v1/library{path}
 		reverse_proxy library-backend:8000
 	}
-	handle /library* {
+	handle_path /library* {
+		rewrite * /api/v1/library{path}
 		reverse_proxy library-backend:8000
 	}
 
-	# Chat API (NO stripping - Go backend expects /api/v1/chat/*)
+	# Chat API
 	handle /api/v1/chat* {
 		reverse_proxy chat-backend:8080
 	}
@@ -274,8 +281,12 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		rewrite * /api/v1/chat{path}
 		reverse_proxy chat-backend:8080
 	}
+	handle_path /chat* {
+		rewrite * /api/v1/chat{path}
+		reverse_proxy chat-backend:8080
+	}
 
-	# Dashboard Backend (NO stripping - Go backend expects /api/v1/apps, /profile, /households, /telemetry)
+	# Dashboard Backend (Go backend expects /api/v1/apps, /profile, /households, /telemetry)
 	handle /api/v1/* {
 		reverse_proxy dashboard-backend:8080
 	}
