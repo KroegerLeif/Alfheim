@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 
+from backend_shared import setup_telemetry, shutdown_telemetry
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.audit import register_audit_hooks
 from src.core.config import settings
-from src.core.database import init_db
+from src.core.database import engine, init_db
 from src.features.accounts import router as accounts_router
 from src.features.plans import router as plans_router
 from src.features.pots import router as pots_router
@@ -19,7 +20,7 @@ discover_and_import_mcp_tools()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for database initialization and FastMCP server."""
+    """Lifespan context manager for database initialization, FastMCP server, and telemetry cleanup."""
     # Initialize DB tables on application startup
     try:
         await init_db()
@@ -27,14 +28,20 @@ async def lifespan(app: FastAPI):
         # DB connection might fail in test environments where DB URL is not SQLite, handled gracefully
         pass
 
-    async with mcp.lifespan():
-        yield
+    try:
+        async with mcp.lifespan():
+            yield
+    finally:
+        shutdown_telemetry()
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
 )
+
+# Initialize OpenTelemetry and structured logging
+setup_telemetry(app, settings=settings, engine=engine)
 
 app.include_router(
     accounts_router,
