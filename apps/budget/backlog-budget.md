@@ -286,7 +286,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `cd core/dashboard/backend && go test -v -race -cover ./...`
 
-### [ ] TASK-703: Staged Boot Script (`scripts/up.sh`) Integration
+### [x] TASK-703: Staged Boot Script (`scripts/up.sh`) Integration
 - **Domain/Layer:** DevOps / Scripts
 - **Scope & Files:**
   - `scripts/up.sh`
