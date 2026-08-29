@@ -70,7 +70,19 @@
       "typeMovie": "Filmy i Seriale",
       "typeGame": "Subskrypcja gier",
       "typeBoth": "Połączone",
-      "noProviders": "Brak skonfigurowanych dostawców."
+      "noProviders": "Brak skonfigurowanych dostawców.",
+      "statusActive": "Aktywny",
+      "statusInactive": "Nieaktywny",
+      "activate": "Aktywuj",
+      "deactivate": "Dezaktywuj",
+      "delete": "Usuń",
+      "providerName": "Nazwa dostawcy",
+      "providerType": "Typ dostawcy",
+      "nameRequired": "Nazwa jest wymagana.",
+      "notesPlaceholder": "Opcjonalne notatki dotyczące subskrypcji",
+      "saving": "Zapisywanie...",
+      "loading": "Ładowanie dostawców...",
+      "loadError": "Błąd podczas ładowania dostawców streamingu."
     },
     "manuals": {
       "title": "Instrukcja Gry (PDF)",

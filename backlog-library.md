@@ -224,7 +224,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Status updates reactively across catalog views.
 
 #### [TASK-17] Implement Provider Configuration & JustWatch Filter UI
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/frontend/src/features/providers/`
 - **Description:** Build streaming provider manager page and catalog provider filter component. Users can toggle active household services (Netflix, Prime, Disney+, etc.) and filter catalog by "Available on My Providers".
 - **Definition of Done:**
