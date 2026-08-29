@@ -13,9 +13,7 @@ export function ClientHeader() {
       brandTitle="ALFHEIM // WORKOUT"
       brandSubtitle={t("header.brand_subtitles.workout")}
       showBackToDashboard={true}
-      backToDashboardHref={
-        process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"
-      }
+      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "/"}
       showHouseholdSwitcher={true}
       showLanguageSwitcher={true}
       showThemeToggle={true}
