@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: library
     ports:
-      - "5436:5432"
+      - "5438:5432"
     volumes:
       - postgres_data_library:/var/lib/postgresql/data
     healthcheck:

@@ -20,16 +20,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ## Reverse Proxy & Routing Audit (Caddy & Microfrontend Integrations)
 
-### 🔴 `[Routing/Caddy]` PostgreSQL Port Collision Between `library-db` and `budget-db`
-- **Severity:** Critical
-- **Root Cause / Findings:**
-  In `apps/library/compose.yml:9` and `apps/budget/compose.yml:9`, both database services expose port mapping `"5436:5432"`. When starting both services simultaneously with Docker Compose, host port 5436 conflicts, causing port binding failure for one of the database containers.
-- **Proposed Resolution:**
-  - [ ] Update host port mapping in `apps/library/compose.yml` to an unused host port (e.g., `"5438:5432"`).
-  - [ ] Verify database startup and healthchecks with `docker compose up library-db budget-db`.
-
----
-
 ### 🟠 `[Routing/Dashboard]` Cross-Microfrontend Navigation Fails via Next.js Router Links
 - **Severity:** High
 - **Root Cause / Findings:**
