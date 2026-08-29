@@ -5,7 +5,7 @@ import uuid
 
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import col, select
 from src.db.models import Item, MediaType, ProviderSubscription
 
 logger = logging.getLogger("library.backend.services.search")
@@ -52,18 +52,18 @@ async def search_items(
             stmt = stmt.where(
                 or_(
                     search_vector.op("@@")(ts_query),
-                    Item.title.ilike(pattern),
-                    Item.author_creator.ilike(pattern),
-                    Item.description.ilike(pattern),
+                    col(Item.title).ilike(pattern),
+                    col(Item.author_creator).ilike(pattern),
+                    col(Item.description).ilike(pattern),
                 )
             )
         else:
             pattern = f"%{q_clean}%"
             stmt = stmt.where(
                 or_(
-                    Item.title.ilike(pattern),
-                    Item.author_creator.ilike(pattern),
-                    Item.description.ilike(pattern),
+                    col(Item.title).ilike(pattern),
+                    col(Item.author_creator).ilike(pattern),
+                    col(Item.description).ilike(pattern),
                 )
             )
 
@@ -78,23 +78,23 @@ async def search_items(
     # Player count fit filter (e.g. "4-player game")
     if players is not None:
         stmt = stmt.where(
-            or_(Item.min_players.is_(None), Item.min_players <= players),
-            or_(Item.max_players.is_(None), Item.max_players >= players),
+            or_(col(Item.min_players).is_(None), col(Item.min_players) <= players),
+            or_(col(Item.max_players).is_(None), col(Item.max_players) >= players),
         )
 
     # Min/Max player constraints
     if min_players is not None:
-        stmt = stmt.where(Item.min_players.is_not(None), Item.min_players >= min_players)
+        stmt = stmt.where(col(Item.min_players).is_not(None), col(Item.min_players) >= min_players)
     if max_players is not None:
-        stmt = stmt.where(Item.max_players.is_not(None), Item.max_players <= max_players)
+        stmt = stmt.where(col(Item.max_players).is_not(None), col(Item.max_players) <= max_players)
 
     # Max duration filter (e.g. "under 90 min")
     if max_duration is not None:
-        stmt = stmt.where(Item.runtime_minutes.is_not(None), Item.runtime_minutes <= max_duration)
+        stmt = stmt.where(col(Item.runtime_minutes).is_not(None), col(Item.runtime_minutes) <= max_duration)
 
     # Age rating (FSK) filter
     if fsk_rating is not None:
-        stmt = stmt.where(Item.fsk_rating.is_not(None), Item.fsk_rating <= fsk_rating)
+        stmt = stmt.where(col(Item.fsk_rating).is_not(None), col(Item.fsk_rating) <= fsk_rating)
 
     # Specific streaming provider filter
     if provider_id is not None:
@@ -106,7 +106,7 @@ async def search_items(
             ProviderSubscription.household_id == household_id,
             ProviderSubscription.is_active == True,  # noqa: E712
         )
-        stmt = stmt.where(Item.provider_id.in_(active_provider_ids))
+        stmt = stmt.where(col(Item.provider_id).in_(active_provider_ids))
 
     # Calculate total matching items
     count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -114,7 +114,7 @@ async def search_items(
     total = total_res.scalar_one()
 
     # Fetch paginated results ordered by creation
-    paginated_stmt = stmt.order_by(Item.created_at.desc()).offset(skip).limit(limit)
+    paginated_stmt = stmt.order_by(col(Item.created_at).desc()).offset(skip).limit(limit)
     res = await session.execute(paginated_stmt)
     items = list(res.scalars().all())
 

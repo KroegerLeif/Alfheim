@@ -45,6 +45,7 @@ export function useLocations() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadLocations();
   }, [loadLocations]);
 

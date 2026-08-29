@@ -7,7 +7,7 @@ import {
   CatalogGrid,
   useCatalog,
 } from "@/features/catalog";
-import { LocationItem, MediaItem } from "@/features/catalog/types";
+import { MediaItem } from "@/features/catalog/types";
 import { ItemDialog } from "@/features/item-dialog";
 
 export default function CatalogPage() {

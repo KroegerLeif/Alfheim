@@ -55,6 +55,7 @@ export function ItemDialog({
 
   useEffect(() => {
     if (item) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         title: item.title,
         media_type: item.media_type,
