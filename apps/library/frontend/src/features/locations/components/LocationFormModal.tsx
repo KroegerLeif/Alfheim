@@ -57,6 +57,7 @@ export function LocationFormModal({
 
   useEffect(() => {
     if (locationToEdit) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(locationToEdit.name);
       setDescription(locationToEdit.description || "");
       setParentId(locationToEdit.parent_id || "");

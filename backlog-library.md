@@ -256,7 +256,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   4. CORS headers support `X-Household-Id`.
 
 #### [TASK-20] Execute Full Backend & Frontend Verification Suite
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** Monorepo root, `scripts/verify.sh`
 - **Description:** Run workspace verification scripts to validate Python backend pytest coverage, Go core dashboard tests, frontend TypeScript compilation, Vitest suites, and Ruff code formatting.
 - **Definition of Done:**

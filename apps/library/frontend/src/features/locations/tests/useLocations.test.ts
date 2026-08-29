@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useLocations } from "../hooks/useLocations";
 import * as locationsApi from "../api/locationsApi";
+import type { LocationNode } from "../types";
 
 vi.mock("../api/locationsApi");
 
@@ -35,7 +36,7 @@ describe("useLocations hook", () => {
   });
 
   it("fetches locations tree on mount", async () => {
-    vi.mocked(locationsApi.fetchLocationsTree).mockResolvedValue(mockLocationsTree as any);
+    vi.mocked(locationsApi.fetchLocationsTree).mockResolvedValue(mockLocationsTree as unknown as LocationNode[]);
 
     const { result } = renderHook(() => useLocations());
 
@@ -50,8 +51,8 @@ describe("useLocations hook", () => {
   });
 
   it("handles location creation", async () => {
-    vi.mocked(locationsApi.fetchLocationsTree).mockResolvedValue(mockLocationsTree as any);
-    vi.mocked(locationsApi.createLocation).mockResolvedValue({} as any);
+    vi.mocked(locationsApi.fetchLocationsTree).mockResolvedValue(mockLocationsTree as unknown as LocationNode[]);
+    vi.mocked(locationsApi.createLocation).mockResolvedValue({} as unknown as LocationNode);
 
     const { result } = renderHook(() => useLocations());
 
@@ -71,7 +72,7 @@ describe("useLocations hook", () => {
   });
 
   it("handles location deletion", async () => {
-    vi.mocked(locationsApi.fetchLocationsTree).mockResolvedValue(mockLocationsTree as any);
+    vi.mocked(locationsApi.fetchLocationsTree).mockResolvedValue(mockLocationsTree as unknown as LocationNode[]);
     vi.mocked(locationsApi.deleteLocation).mockResolvedValue();
 
     const { result } = renderHook(() => useLocations());

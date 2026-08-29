@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import col, select
 
 from src.api.dependencies import get_current_household_id
 from src.db.database import get_db_session
@@ -32,8 +32,8 @@ async def _get_item_or_404(
         Item.id == item_id,
         Item.household_id == household_id,
     )
-    result = await session.exec(statement)
-    item = result.one_or_none()
+    result = await session.execute(statement)
+    item = result.scalars().one_or_none()
     if not item:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -123,12 +123,12 @@ async def return_item(
             LendingRecord.item_id == item_id,
             LendingRecord.status == LendingStatus.LENT_OUT,
         )
-        .order_by(LendingRecord.created_at.desc())
+        .order_by(col(LendingRecord.created_at).desc())
     )
-    result = await session.exec(statement)
-    active_record = result.one_or_none()
+    result = await session.execute(statement)
+    active_record = result.scalars().one_or_none()
 
-    returned_timestamp = (payload and payload.returned_at) or datetime.now(UTC)
+    returned_timestamp = (payload.returned_at if payload else None) or datetime.now(UTC)
 
     if active_record:
         active_record.status = LendingStatus.AVAILABLE
@@ -189,17 +189,17 @@ async def list_lending_history(
     if item_id is not None:
         query = query.where(LendingRecord.item_id == item_id)
     if contact_name is not None:
-        query = query.where(LendingRecord.contact_name.icontains(contact_name))
+        query = query.where(col(LendingRecord.contact_name).ilike(f"%{contact_name}%"))
     if lending_status is not None:
         query = query.where(LendingRecord.status == lending_status)
 
     count_query = select(func.count()).select_from(query.subquery())
-    total_res = await session.exec(count_query)
-    total = total_res.one()
+    total_res = await session.execute(count_query)
+    total = total_res.scalar_one()
 
-    paginated_query = query.order_by(LendingRecord.lent_at.desc()).offset(skip).limit(limit)
-    result = await session.exec(paginated_query)
-    records = list(result.all())
+    paginated_query = query.order_by(col(LendingRecord.lent_at).desc()).offset(skip).limit(limit)
+    result = await session.execute(paginated_query)
+    records = list(result.scalars().all())
 
     return LendingRecordListResponse(
         records=records,

@@ -20,7 +20,7 @@ describe("useManual hook", () => {
 
   it("handles successful PDF manual upload", async () => {
     const onUpdated = vi.fn();
-    (manualsApi.uploadManual as any).mockResolvedValue({
+    vi.mocked(manualsApi.uploadManual).mockResolvedValue({
       item_id: itemId,
       manual_s3_key: "key/manual.pdf",
       filename: "manual.pdf",
@@ -43,7 +43,7 @@ describe("useManual hook", () => {
   });
 
   it("handles upload error gracefully", async () => {
-    (manualsApi.uploadManual as any).mockRejectedValue(
+    vi.mocked(manualsApi.uploadManual).mockRejectedValue(
       new Error("Network error")
     );
 
@@ -62,7 +62,7 @@ describe("useManual hook", () => {
   });
 
   it("fetches presigned download URL", async () => {
-    (manualsApi.getManualUrl as any).mockResolvedValue({
+    vi.mocked(manualsApi.getManualUrl).mockResolvedValue({
       item_id: itemId,
       download_url: "https://s3.example.com/manual.pdf",
       expires_in: 3600,
@@ -82,7 +82,7 @@ describe("useManual hook", () => {
 
   it("deletes manual and clears download url", async () => {
     const onUpdated = vi.fn();
-    (manualsApi.deleteManual as any).mockResolvedValue(undefined);
+    vi.mocked(manualsApi.deleteManual).mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useManual(itemId, onUpdated));
 

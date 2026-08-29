@@ -66,7 +66,7 @@ async def fetch_bgg_metadata(query: str) -> BoardGameLookupListResponse:
                 )
 
             # Limit to top 5 items for detailed lookup
-            game_ids = [item.get("id") for item in item_elems[:5] if item.get("id")]
+            game_ids = [gid for item in item_elems[:5] if (gid := item.get("id")) is not None]
             if not game_ids:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -114,35 +114,27 @@ async def fetch_bgg_metadata(query: str) -> BoardGameLookupListResponse:
                 max_players_elem = item.find("maxplayers")
                 playingtime_elem = item.find("playingtime")
 
-                min_players = (
-                    int(min_players_elem.get("value"))
-                    if min_players_elem is not None and min_players_elem.get("value", "").isdigit()
-                    else None
-                )
-                max_players = (
-                    int(max_players_elem.get("value"))
-                    if max_players_elem is not None and max_players_elem.get("value", "").isdigit()
-                    else None
-                )
-                runtime_minutes = (
-                    int(playingtime_elem.get("value"))
-                    if playingtime_elem is not None and playingtime_elem.get("value", "").isdigit()
-                    else None
-                )
+                min_val = min_players_elem.get("value") if min_players_elem is not None else None
+                max_val = max_players_elem.get("value") if max_players_elem is not None else None
+                play_val = playingtime_elem.get("value") if playingtime_elem is not None else None
+
+                min_players = int(min_val) if min_val and min_val.isdigit() else None
+                max_players = int(max_val) if max_val and max_val.isdigit() else None
+                runtime_minutes = int(play_val) if play_val and play_val.isdigit() else None
 
                 # Designers / Publishers
                 designers = [
-                    link.get("value")
+                    v
                     for link in item.findall("link")
-                    if link.get("type") == "boardgamedesigner" and link.get("value")
+                    if link.get("type") == "boardgamedesigner" and (v := link.get("value")) is not None
                 ]
                 author_creator = ", ".join(designers) if designers else None
 
                 # Categories
                 categories = [
-                    link.get("value")
+                    v
                     for link in item.findall("link")
-                    if link.get("type") == "boardgamecategory" and link.get("value")
+                    if link.get("type") == "boardgamecategory" and (v := link.get("value")) is not None
                 ]
 
                 results.append(
