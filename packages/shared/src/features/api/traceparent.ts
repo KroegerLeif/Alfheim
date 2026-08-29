@@ -19,9 +19,9 @@ function bytesToHex(bytes: Uint8Array): string {
  */
 export function generateW3CTraceparent(): string {
   const cryptoObj =
-    typeof crypto !== 'undefined' && crypto.getRandomValues
+    typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function'
       ? crypto
-      : typeof window !== 'undefined' && window.crypto
+      : typeof window !== 'undefined' && window.crypto && typeof window.crypto.getRandomValues === 'function'
         ? window.crypto
         : null;
 
