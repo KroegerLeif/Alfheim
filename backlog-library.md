@@ -246,7 +246,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
 ### Phase 5: Routing, Gateway, Dashboard Integration & E2E Verification
 
 #### [TASK-19] Configure Gateway Caddy Routing & Access Rules
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `infrastructure/caddy/Caddyfile`
 - **Description:** Update Caddy gateway configuration to proxy `/library*` to `library-frontend:3000` and `/api/v1/library*` to `library-backend:8000`. Set up bare path redirects to `/library/en`.
 - **Definition of Done:**
