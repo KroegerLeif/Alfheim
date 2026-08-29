@@ -267,7 +267,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 
 ## Phase 7: Ecosystem Integration & End-to-End Gate
 
-### [ ] TASK-701: Maintenance Reserve Cross-App Trigger
+### [x] TASK-701: Maintenance Reserve Cross-App Trigger
 - **Domain/Layer:** Cross-App / Integration
 - **Scope & Files:**
   - `apps/maintenance/backend/src/services/budget_client.py`
