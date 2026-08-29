@@ -215,7 +215,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. LOC per file remains strictly <= 200 LOC.
 
 #### [TASK-16] Implement Lending Drawer & Tracking UI
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/frontend/src/features/lending/`
 - **Description:** Build lending management drawer/modal to lend items out to contacts, set optional due dates, view active loans, and mark returned items.
 - **Definition of Done:**

@@ -1,14 +1,22 @@
 import React from "react";
-import { Badge, useTranslation } from "@alfheim/shared";
+import { Badge, Button, useTranslation } from "@alfheim/shared";
 import { MediaItem } from "../types";
 
 interface ItemCardProps {
   item: MediaItem;
   locationName?: string;
   onEdit?: () => void;
+  onLend?: (item: MediaItem) => void;
+  onReturn?: (item: MediaItem) => void;
 }
 
-export function ItemCard({ item, locationName, onEdit }: ItemCardProps) {
+export function ItemCard({
+  item,
+  locationName,
+  onEdit,
+  onLend,
+  onReturn,
+}: ItemCardProps) {
   const { t } = useTranslation();
 
   const renderMediaTypeBadge = () => {
@@ -144,6 +152,31 @@ export function ItemCard({ item, locationName, onEdit }: ItemCardProps) {
                   {spec}
                 </span>
               ))}
+            </div>
+          )}
+
+          {(onLend || onReturn) && (
+            <div className="pt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+              {!isLent && onLend && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => onLend(item)}
+                >
+                  {t("library.lending.lendItem")}
+                </Button>
+              )}
+              {isLent && onReturn && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => onReturn(item)}
+                >
+                  {t("library.lending.markReturned")}
+                </Button>
+              )}
             </div>
           )}
         </div>
