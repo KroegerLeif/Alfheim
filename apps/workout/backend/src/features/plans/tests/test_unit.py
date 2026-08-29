@@ -108,6 +108,57 @@ async def test_only_owner_can_update_shared_plan(db_session: AsyncSession):
     assert result.name == "Renamed"
 
 
+async def test_update_plan_with_nested_days(db_session: AsyncSession):
+    from src.features.plans.schemas import PlanUpdate
+
+    home_id = uuid.uuid4()
+    owner_id = uuid.uuid4()
+
+    plan = await PlanCrudService.create_plan(
+        db_session,
+        _nested_plan_payload(),
+        home_id,
+        owner_id,
+    )
+    assert len(plan.days) == 1
+    assert plan.days[0].label == "Push"
+
+    new_days = [
+        PlanDayCreate(
+            label="Pull",
+            exercises=[
+                PlanExerciseCreate(
+                    exercise_id=uuid.uuid4(),
+                    sets=[
+                        PlanSetCreate(target_reps=10, target_weight_type=TargetWeightType.DEFAULT),
+                        PlanSetCreate(target_reps=12, target_weight_type=TargetWeightType.DEFAULT),
+                    ],
+                )
+            ],
+        ),
+        PlanDayCreate(
+            label="Legs",
+            exercises=[],
+        ),
+    ]
+
+    updated = await PlanCrudService.update_plan(
+        db_session,
+        plan.id,
+        home_id,
+        owner_id,
+        PlanUpdate(name="Updated PPL", days=new_days),
+    )
+    assert updated is not None
+    assert updated.name == "Updated PPL"
+    assert len(updated.days) == 2
+    assert updated.days[0].label == "Pull"
+    assert len(updated.days[0].exercises) == 1
+    assert len(updated.days[0].exercises[0].sets) == 2
+    assert updated.days[1].label == "Legs"
+    assert len(updated.days[1].exercises) == 0
+
+
 async def test_add_and_delete_day(db_session: AsyncSession):
     home_id = uuid.uuid4()
     user_id = uuid.uuid4()

@@ -70,6 +70,7 @@ export interface PlanUpdate {
   description?: string | null;
   is_shared?: boolean;
   is_active?: boolean;
+  days?: PlanDayCreate[];
 }
 
 /**

@@ -160,6 +160,11 @@ class PlanCrudService:
             return None
 
         update_data = payload.model_dump(exclude_unset=True)
+        if "days" in update_data:
+            del update_data["days"]
+            if payload.days is not None:
+                plan.days = [_build_day(d, i) for i, d in enumerate(payload.days)]
+
         for key, value in update_data.items():
             setattr(plan, key, value)
 
