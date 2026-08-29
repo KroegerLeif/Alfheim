@@ -20,7 +20,7 @@
     "vpnNotice": {
       "badge": "Security Perimeter",
       "title": "Private Network Access Notice",
-      "description": "Production apps (Dashboard, Pantry, Shopping, Chores, Maintenance) run within an isolated WireGuard/Tailscale enclave. Direct access to live instances requires active VPN tunnel authorization.",
+      "description": "Production apps (Dashboard, Pantry, Shopping, Chores, Maintenance, Budget, Library, Workout, Chat) run within an isolated WireGuard/Tailscale enclave. Direct access to live instances requires active VPN tunnel authorization.",
       "gatewayInfo": "Public traffic is routed via Caddy Gateway with TLS termination."
     },
     "modules": {
@@ -54,6 +54,34 @@
         "description": "Recurring chore rotation, streak rewards, points system, and fair household member workload distribution.",
         "badge": "FastAPI + Next.js",
         "route": "/chores"
+      },
+      "budget": {
+        "name": "Budget & Treasury",
+        "tagline": "Accounts & Financial Planning",
+        "description": "Household financial accounts, sinking funds, virtual savings pots, monthly/event budget plans, and expense transaction ledgers.",
+        "badge": "FastAPI + Next.js",
+        "route": "/budget"
+      },
+      "library": {
+        "name": "Media & Library Hub",
+        "tagline": "Book & Media Collection",
+        "description": "Personal book library cataloging, reading progress tracking, item borrowing management, and metadata integration.",
+        "badge": "FastAPI + Next.js",
+        "route": "/library"
+      },
+      "workout": {
+        "name": "Workout Tracker",
+        "tagline": "Fitness & Strength Telemetry",
+        "description": "Custom exercise routine creation, set and rep logging, personal records tracking, and physical progression analytics.",
+        "badge": "FastAPI + Next.js",
+        "route": "/workout"
+      },
+      "chat": {
+        "name": "ALFI Chat",
+        "tagline": "Conversational AI & MCP Interface",
+        "description": "Multi-modal AI assistant interface powering ALFI, integrating MCP tool executions, real-time context streaming, and prompt orchestration.",
+        "badge": "Go + Next.js",
+        "route": "/chat"
       },
       "dashboard": {
         "name": "Control Plane",
