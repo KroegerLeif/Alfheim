@@ -150,10 +150,10 @@ describe("ModelBlockFormModal", () => {
       />
     );
 
-    fireEvent.change(screen.getByPlaceholderText("z. B. Gemma 2 9B oder Local Llama"), {
+    fireEvent.change(screen.getByPlaceholderText("placeholderDisplayName"), {
       target: { value: "New Model" },
     });
-    fireEvent.change(screen.getByPlaceholderText("z. B. llama3.1:8b, gemma2:9b, gpt-4o"), {
+    fireEvent.change(screen.getByPlaceholderText("placeholderModelIdentifier"), {
       target: { value: "mistral:7b" },
     });
 

@@ -65,6 +65,11 @@
     "noModelsConfiguredTitle": "No Model Configured",
     "noModelBlocksPrompt": "Add a local Ollama or cloud model to get started.",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "placeholderBaseUrl": "http://ollama:11434 or https://api.openai.com/v1",
+    "placeholderModelIdentifier": "e.g. llama3.1:8b, gemma2:9b, gpt-4o",
+    "placeholderDisplayName": "e.g. Gemma 2 9B or Local Llama",
+    "placeholderApiKeyKeep": "(Leave unchanged)",
+    "placeholderApiKeyOptional": "sk-... (optional for Ollama)"
   }
 }

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlfiAvatar, useTranslation } from "@alfheim/shared";
-import { Cpu, Plus } from "lucide-react";
 import { postMessage, streamAssistantReply } from "@/lib/api";
 import {
   useCreateConversation,
@@ -12,6 +11,7 @@ import {
 } from "@/features/conversations/services/conversationService";
 import { MessageItem } from "./MessageItem";
 import { ChatInput } from "./ChatInput";
+import { ChatLandingState } from "./ChatLandingState";
 
 interface ChatStreamViewProps {
   conversationId: string | null;
@@ -23,8 +23,6 @@ interface ChatStreamViewProps {
 /**
  * Renders a conversation's message history and attachments, driving the SSE
  * streaming endpoint to show assistant replies arriving incrementally.
- * When no conversation is selected, it renders an interactive landing state with
- * the ALFI mascot and instant chat input.
  */
 export function ChatStreamView({
   conversationId,
@@ -136,47 +134,13 @@ export function ChatStreamView({
 
   if (!effectiveConvoId) {
     return (
-      <div className="flex-1 flex flex-col h-full w-full min-w-0 bg-[var(--surface-canvas)]">
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-2xl mx-auto w-full">
-          <AlfiAvatar status="idle" size="lg" />
-          <div className="space-y-1.5 max-w-md">
-            <h2 className="text-xl font-bold text-[var(--text-main)]">
-              {t("Chat.welcomeTitle")}
-            </h2>
-            <p className="text-sm text-[var(--text-muted)]">
-              {t("Chat.noConversationSelected")}
-            </p>
-          </div>
-
-          {currentModel ? (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)] font-mono shadow-xs">
-              <Cpu className="w-3.5 h-3.5 text-[var(--primary-main)]" />
-              <span>{currentModel.display_name}</span>
-            </div>
-          ) : (
-            onOpenAddModel && (
-              <button
-                type="button"
-                onClick={onOpenAddModel}
-                className="px-3.5 py-2 rounded-xl bg-[var(--primary-main)] text-black text-xs font-bold flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t("Chat.addModelBlock")}</span>
-              </button>
-            )
-          )}
-
-          {streamError && (
-            <p className="text-sm text-red-400 max-w-md">{streamError}</p>
-          )}
-        </div>
-
-        {currentModel && (
-          <div className="w-full max-w-4xl mx-auto">
-            <ChatInput onSend={handleSend} disabled={isStreaming} />
-          </div>
-        )}
-      </div>
+      <ChatLandingState
+        currentModel={currentModel}
+        onOpenAddModel={onOpenAddModel}
+        streamError={streamError}
+        onSend={handleSend}
+        isStreaming={isStreaming}
+      />
     );
   }
 
