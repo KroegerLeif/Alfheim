@@ -61,4 +61,30 @@ describe('HouseholdSwitcher Component', () => {
     expect(localStorage.getItem('alfheim_active_household_id')).toBe('hh-2')
     expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'storage-household-changed' }))
   })
+
+  it('fetches households dynamically using token from alfheim_access_token or token_* session keys', async () => {
+    sessionStorage.setItem('token_custom_app-frontend', 'test-jwt-token')
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockHouseholds,
+    } as Response)
+
+    render(
+      <LanguageProvider defaultLanguage="en">
+        <HouseholdSwitcher />
+      </LanguageProvider>
+    )
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith('/api/v1/households/me', {
+        headers: {
+          Authorization: 'Bearer test-jwt-token',
+        },
+      })
+    })
+
+    fetchSpy.mockRestore()
+  })
 })

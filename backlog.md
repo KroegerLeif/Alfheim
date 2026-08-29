@@ -142,15 +142,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟠 `[UI/Auth]` `HouseholdSwitcher` Hardcodes Four Apps (`TD-SHARED-02`)
-- **Severity:** High
-- **Root Cause / Findings:**
-  `packages/shared/src/features/ui/components/HouseholdSwitcher.tsx` resolves authentication tokens by checking a hardcoded list of four session storage keys (`token_chores-frontend`, `token_maintenance-frontend`, `token_pantry-frontend`, `token_shopping-frontend`), making new micro-apps invisible to household switching.
-- **Proposed Resolution:**
-  - [ ] Update `HouseholdSwitcher` to fall back to the global `alfheim_access_token` key used across all frontend applications.
-
----
-
 ### 🟠 `[CI/CD]` Missing Frontend and Microservice CI Testing (`TD-CI-01`, `TD-CI-02`)
 - **Severity:** High
 - **Root Cause / Findings:**

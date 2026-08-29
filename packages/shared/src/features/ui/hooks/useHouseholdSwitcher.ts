@@ -27,6 +27,26 @@ function getKeycloakInstance() {
   return (window as unknown as KeycloakWindow).__keycloak_instance__;
 }
 
+function resolveSessionToken(): string | null {
+  if (typeof window === 'undefined' || !window.sessionStorage) return null;
+  const sharedToken = sessionStorage.getItem('alfheim_access_token');
+  if (sharedToken) return sharedToken;
+
+  try {
+    const len = sessionStorage.length ?? 0;
+    for (let i = 0; i < len; i++) {
+      const key = typeof sessionStorage.key === 'function' ? sessionStorage.key(i) : Object.keys(sessionStorage)[i];
+      if (key && key.startsWith('token_')) {
+        const val = sessionStorage.getItem(key);
+        if (val) return val;
+      }
+    }
+  } catch {
+    // Ignore cross-origin / storage errors
+  }
+  return null;
+}
+
 export function useHouseholdSwitcher() {
   const [households, setHouseholds] = useState<Household[]>(() => {
     if (typeof window !== 'undefined') {
@@ -65,19 +85,12 @@ export function useHouseholdSwitcher() {
             return keycloak.token;
           }
         } catch {
-          // Token update failed, fall back to storage
+          // Token update failed, fall back to storage resolution
         }
       }
       return (
         (typeof keycloak?.token === 'string' ? keycloak.token : null) ||
-        sessionStorage.getItem('token_chat-frontend') ||
-        sessionStorage.getItem('token_workout-frontend') ||
-        sessionStorage.getItem('token_dashboard-frontend') ||
-        sessionStorage.getItem('token_chores-frontend') ||
-        sessionStorage.getItem('token_maintenance-frontend') ||
-        sessionStorage.getItem('token_pantry-frontend') ||
-        sessionStorage.getItem('token_shopping-frontend') ||
-        sessionStorage.getItem('alfheim_access_token')
+        resolveSessionToken()
       );
     };
 

@@ -22,7 +22,7 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // Mock localStorage and sessionStorage globally for tests
-const localStorageMock = (function () {
+function createStorageMock() {
   let store: Record<string, string> = {}
   return {
     getItem: (key: string) => store[key] || null,
@@ -35,15 +35,19 @@ const localStorageMock = (function () {
     removeItem: (key: string) => {
       delete store[key]
     },
+    key: (index: number) => Object.keys(store)[index] || null,
+    get length() {
+      return Object.keys(store).length
+    },
   }
-})()
+}
 
 Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
+  value: createStorageMock(),
   writable: true,
 })
 Object.defineProperty(global, 'sessionStorage', {
-  value: localStorageMock,
+  value: createStorageMock(),
   writable: true,
 })
 
