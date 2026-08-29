@@ -1,23 +1,25 @@
 import logging
 from contextlib import asynccontextmanager
 
-from backend_shared import configure_logging
+from backend_shared import setup_telemetry, shutdown_telemetry
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.v1 import router as api_v1_router
+from src.config import settings
 
-# Initialize structured application logging
-configure_logging()
 logger = logging.getLogger("library.backend")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup and shutdown events."""
+    """Lifespan context manager for startup, shutdown events, and telemetry cleanup."""
     logger.info("Starting up Library Backend service...")
-    yield
-    logger.info("Shutting down Library Backend service...")
+    try:
+        yield
+    finally:
+        logger.info("Shutting down Library Backend service...")
+        shutdown_telemetry()
 
 
 app = FastAPI(
@@ -26,6 +28,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Initialize OpenTelemetry and structured logging
+setup_telemetry(app, settings=settings)
 
 # CORS configuration
 app.add_middleware(
