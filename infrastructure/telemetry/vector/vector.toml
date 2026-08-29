@@ -5,6 +5,12 @@
 type = "docker_logs"
 exclude_containers = ["vector-shipper"]
 
+[sources.docker_socket.multiline]
+start_pattern = '^[^\s\t]'
+condition_pattern = '^[\s\t]+|^\tat|^(Traceback \(most recent call last\):)'
+mode = "continue_through"
+timeout_ms = 1000
+
 [transforms.process_and_parse_logs]
 type = "remap"
 inputs = ["docker_socket"]
@@ -23,13 +29,46 @@ if parsed, err = parse_json(msg_str); err == null {
 # 2. Extract standard log metadata and normalize fields
 .service_name = .container_name
 
-# Normalize Log Severity Level
+# Normalize msg and message fields (map "msg" -> "message" if missing or from JSON)
+if .msg != null {
+  if .parsed_as_json == true || .message == null {
+    .message = string!(.msg)
+  }
+  del(.msg)
+}
+
+# Normalize Log Severity Level across Go slog, Python, and third-party containers
+log_level = null
 if .level != null {
-  .severity = downcase!(string!(.level))
+  log_level = string!(.level)
 } else if .severity != null {
-  .severity = downcase!(string!(.severity))
+  log_level = string!(.severity)
+} else if .log_level != null {
+  log_level = string!(.log_level)
+  del(.log_level)
+} else if .loglevel != null {
+  log_level = string!(.loglevel)
+  del(.loglevel)
+}
+
+if log_level != null {
+  log_level = downcase!(log_level)
+  if log_level == "warn" || log_level == "warning" {
+    log_level = "warn"
+  } else if log_level == "err" || log_level == "error" {
+    log_level = "error"
+  } else if log_level == "dbg" || log_level == "debug" {
+    log_level = "debug"
+  } else if log_level == "info" || log_level == "informational" {
+    log_level = "info"
+  } else if log_level == "crit" || log_level == "critical" || log_level == "fatal" {
+    log_level = "fatal"
+  }
+  .severity = log_level
+  .level = log_level
 } else {
   .severity = "info"
+  .level = "info"
 }
 
 # Preserve standard container attributes
