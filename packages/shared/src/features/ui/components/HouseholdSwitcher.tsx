@@ -85,10 +85,7 @@ export function HouseholdSwitcher({ className = '' }: { className?: string }) {
       };
 
       const runFetch = async () => {
-        const success = await fetchHouseholds('/api/v1/households/me');
-        if (!success) {
-          await fetchHouseholds('http://alfheim/api/v1/households/me');
-        }
+        await fetchHouseholds('/api/v1/households/me');
       };
 
       runFetch();
