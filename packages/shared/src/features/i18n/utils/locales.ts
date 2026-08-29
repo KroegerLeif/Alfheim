@@ -5,6 +5,7 @@ import dePantry from '../locales/de/pantry.json';
 import deMaintenance from '../locales/de/maintenance.json';
 import deChores from '../locales/de/chores.json';
 import deDocs from '../locales/de/docs.json';
+import deLibrary from '../locales/de/library.json';
 import deBudget from '../locales/de/budget.json';
 import deChat from '../locales/de/chat.json';
 import deWorkout from '../locales/de/workout.json';
@@ -16,6 +17,7 @@ import enPantry from '../locales/en/pantry.json';
 import enMaintenance from '../locales/en/maintenance.json';
 import enChores from '../locales/en/chores.json';
 import enDocs from '../locales/en/docs.json';
+import enLibrary from '../locales/en/library.json';
 import enBudget from '../locales/en/budget.json';
 import enChat from '../locales/en/chat.json';
 import enWorkout from '../locales/en/workout.json';
@@ -27,6 +29,7 @@ import plPantry from '../locales/pl/pantry.json';
 import plMaintenance from '../locales/pl/maintenance.json';
 import plChores from '../locales/pl/chores.json';
 import plDocs from '../locales/pl/docs.json';
+import plLibrary from '../locales/pl/library.json';
 import plBudget from '../locales/pl/budget.json';
 import plChat from '../locales/pl/chat.json';
 import plWorkout from '../locales/pl/workout.json';
@@ -59,6 +62,7 @@ export const deMessages = [
   deMaintenance,
   deChores,
   deDocs,
+  deLibrary,
   deBudget,
   deChat,
   deWorkout,
@@ -72,6 +76,7 @@ export const enMessages = [
   enMaintenance,
   enChores,
   enDocs,
+  enLibrary,
   enBudget,
   enChat,
   enWorkout,
@@ -85,6 +90,7 @@ export const plMessages = [
   plMaintenance,
   plChores,
   plDocs,
+  plLibrary,
   plBudget,
   plChat,
   plWorkout,

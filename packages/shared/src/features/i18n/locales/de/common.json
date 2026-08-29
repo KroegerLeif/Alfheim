@@ -60,7 +60,29 @@
       "pantry": "Bestand & Buchhaltung",
       "chores": "Spielerische Gewohnheiten",
       "chat": "KI-Assistent",
-      "workout": "Kraft & Fortschritt"
+      "workout": "Kraft & Fortschritt",
+      "library": "Medien- & Bibliothekszentrum"
+    }
+  },
+  "library": {
+    "nav": {
+      "title": "Bibliothek",
+      "catalog": "Katalog",
+      "locations": "Lagerorte",
+      "lending": "Ausleihe",
+      "providers": "Streaming-Dienste"
+    },
+    "titles": {
+      "catalog": "Medienkatalog",
+      "locations": "Lagerorte",
+      "lending": "Ausleih-Zentrum",
+      "providers": "Streaming-Anbieter"
+    },
+    "placeholders": {
+      "catalog": "Katalogansicht-Platzhalter für Bücher, Brettspiele, Videospiele, Filme und Serien.",
+      "locations": "Hierarchischer Lagerort-Manager-Platzhalter.",
+      "lending": "Ausleihverfolgung und Verlauf-Platzhalter.",
+      "providers": "Aktive Haushalts-Streaming- und Abonnementdienste-Platzhalter."
     }
   },
   "catalog": {

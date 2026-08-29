@@ -60,7 +60,29 @@
       "pantry": "Zapasy i Księga",
       "chores": "Grywalizacja Nawyków",
       "chat": "Asystent AI",
-      "workout": "Siła i Postęp"
+      "workout": "Siła i Postęp",
+      "library": "Centrum Mediów i Biblioteki"
+    }
+  },
+  "library": {
+    "nav": {
+      "title": "Biblioteka",
+      "catalog": "Katalog",
+      "locations": "Lokalizacje",
+      "lending": "Wypożyczenia",
+      "providers": "Dostawcy"
+    },
+    "titles": {
+      "catalog": "Katalog Mediów",
+      "locations": "Lokalizacje Przechowywania",
+      "lending": "Centrum Wypożyczeń",
+      "providers": "Dostawcy Strumieniowi"
+    },
+    "placeholders": {
+      "catalog": "Widok zastępczy katalogu dla książek, gier planszowych, gier wideo, filmów i seriali.",
+      "locations": "Miejse zastępcze zarządzania hierarchią lokalizacji.",
+      "lending": "Miejsce zastępcze śledzenia i historii wypożyczeń.",
+      "providers": "Miejsce zastępcze aktywnych usług strumieniowych i subskrypcyjnych."
     }
   },
   "catalog": {

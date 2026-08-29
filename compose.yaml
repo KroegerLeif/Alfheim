@@ -12,6 +12,7 @@ include:
   - ./apps/budget/compose.yml
   - ./apps/chat/compose.yml
   - ./apps/workout/compose.yml
+  - ./apps/library/compose.yml
 
 networks:
   gateway-net:
@@ -43,6 +44,9 @@ networks:
     external: true
   app-workout-net:
     name: app-workout-net
+    external: true
+  app-library-net:
+    name: app-library-net
     external: true
   observability-internal:
     name: observability-internal

@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --surface-canvas: #0f172a;
+    --text-main: #f8fafc;
+    --primary-main: #38bdf8;
+  }
+}
