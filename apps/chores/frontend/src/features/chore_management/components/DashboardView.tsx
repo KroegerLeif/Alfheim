@@ -11,7 +11,12 @@ import { useTranslation } from "@alfheim/shared";
 
 export function DashboardView() {
   const { t } = useTranslation();
-  const todayStr = formatDate(new Date());
+  const [todayStr] = useState(() => formatDate(new Date()));
+  const [tomorrowStr] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return formatDate(d);
+  });
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const { data: chores = [], isLoading: choresLoading, isError: choresError } = useTodayChores(selectedDate);
@@ -62,7 +67,7 @@ export function DashboardView() {
           <button
             onClick={() => handleDateChange(1)}
             className={`px-4 py-1.5 text-xs font-mono font-semibold uppercase rounded-md cursor-pointer ${
-              selectedDate === formatDate(new Date(Date.now() + 86400000))
+              selectedDate === tomorrowStr
                 ? "bg-[var(--primary-main)] text-black font-bold"
                 : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}

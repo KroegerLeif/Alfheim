@@ -58,7 +58,7 @@ export const choresClient = ky.create({
     afterResponse: [
       async (request, options, response) => {
         if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as any).__keycloak_instance__;
+          const keycloak = (window as unknown as Record<string, { updateToken?: (minValidity?: number) => Promise<boolean>; token?: string }>).__keycloak_instance__;
           if (keycloak && typeof keycloak.updateToken === "function") {
             try {
               const refreshed = await keycloak.updateToken(30);
