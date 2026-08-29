@@ -151,16 +151,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟠 `[CI/CD]` Missing Frontend and Microservice CI Testing (`TD-CI-01`, `TD-CI-02`)
-- **Severity:** High
-- **Root Cause / Findings:**
-  `.github/workflows/python-ci.yml` omits `apps/workout/backend` from its test matrix, and no GitHub Actions workflow exists for frontend TypeScript type-checking or Vitest tests.
-- **Proposed Resolution:**
-  - [ ] Add `apps/workout/backend` to `.github/workflows/python-ci.yml`.
-  - [ ] Create `.github/workflows/frontend-ci.yml` to run `pnpm -r exec tsc --noEmit` and `pnpm -r test`.
-
----
-
 ### 🟢 `[FE/Layout]` Pantry Layout Emits Duplicate `<html>` Tag (`TD-FE-02`)
 - **Severity:** Low
 - **Root Cause / Findings:**
