@@ -9,6 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(chat): ensure default ollama base url and fix full-width viewport layout`**
+  - Added `DefaultOllamaBaseURL` (`http://host.docker.internal:11434`) and scheme normalization (`NormalizeOllamaBaseURL`) across `apps/chat/backend/internal/shared/llm/ollama_provider.go` and `internal/features/modelblocks/service.go` to eliminate `unsupported protocol scheme ""` errors when connecting to Ollama.
+  - Removed nested `<html>` and `<body>` rendering in `apps/chat/frontend/src/app/layout.tsx` and `apps/pantry/frontend/src/app/layout.tsx`, fixing React Hydration error #418 and ensuring root layout returns children directly.
+  - Fixed full viewport width and height across `apps/chat`, `apps/pantry`, `apps/chores`, `apps/maintenance`, and `apps/shopping` by enforcing `min-h-screen h-screen w-full flex flex-col` on `body` and `AppShell`.
+  - Added `w-full` to `AppHeader` and `AppShell` main container to guarantee 100% viewport coverage across all apps.
 * **`fix(chat): handle ollama stream errors gracefully, fix layout width and hydration error`**
   - Streamlined Ollama and provider stream error propagation in `apps/chat/backend/internal/features/conversations/service.go` and `ollama_provider.go` to emit descriptive SSE error events to the client instead of unhandled 500 HTTP failures.
   - Aligned Keycloak token validation in `apps/chat/backend/internal/shared/middleware/auth.go` with dashboard backend standard by validating issuer, expiration, and signature without enforcing strict backend client audience.

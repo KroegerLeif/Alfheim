@@ -9,8 +9,24 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
+
+// DefaultOllamaBaseURL is the fallback URL when no specific host is provided.
+const DefaultOllamaBaseURL = "http://host.docker.internal:11434"
+
+// NormalizeOllamaBaseURL cleans and defaults the Ollama base URL, ensuring a scheme is present.
+func NormalizeOllamaBaseURL(rawURL string) string {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return DefaultOllamaBaseURL
+	}
+	if !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
+		rawURL = "http://" + rawURL
+	}
+	return strings.TrimRight(rawURL, "/")
+}
 
 // OllamaProvider talks to a local/self-hosted Ollama instance via its native
 // streaming /api/chat endpoint. Ollama requires no API key when kept inside the
@@ -26,7 +42,7 @@ type OllamaProvider struct {
 // NewOllamaProvider constructs a Provider backed by an Ollama server.
 func NewOllamaProvider(baseURL, model, apiKey string) *OllamaProvider {
 	return &OllamaProvider{
-		baseURL:    baseURL,
+		baseURL:    NormalizeOllamaBaseURL(baseURL),
 		model:      model,
 		apiKey:     apiKey,
 		httpClient: &http.Client{},
@@ -93,7 +109,8 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, req ChatRequest) (<-cha
 		return nil, fmt.Errorf("failed to marshal ollama chat request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/api/chat", bytes.NewReader(payload))
+	endpoint := strings.TrimRight(p.baseURL, "/") + "/api/chat"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct ollama chat request: %w", err)
 	}
@@ -198,7 +215,8 @@ func (p *OllamaProvider) HealthCheck(ctx context.Context) HealthResult {
 	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	httpReq, err := http.NewRequestWithContext(checkCtx, http.MethodGet, p.baseURL+"/api/tags", nil)
+	endpoint := strings.TrimRight(p.baseURL, "/") + "/api/tags"
+	httpReq, err := http.NewRequestWithContext(checkCtx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return HealthResult{Status: HealthStatusUnknown, Detail: fmt.Sprintf("failed to construct health check request: %v", err)}
 	}

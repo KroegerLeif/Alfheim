@@ -129,6 +129,17 @@ func (s *service) Create(ctx context.Context, userID, householdID string, req Cr
 		return ResponseDTO{}, err
 	}
 
+	baseURL := req.BaseURL
+	if req.ProviderType == llm.ProviderTypeOllama || req.ProviderType == "ollama" {
+		if baseURL == nil || strings.TrimSpace(*baseURL) == "" {
+			defaultURL := llm.DefaultOllamaBaseURL
+			baseURL = &defaultURL
+		} else {
+			normalized := llm.NormalizeOllamaBaseURL(*baseURL)
+			baseURL = &normalized
+		}
+	}
+
 	m := &ModelBlock{
 		ID:              uuid.NewString(),
 		OwnerUserID:     userID,
@@ -136,7 +147,7 @@ func (s *service) Create(ctx context.Context, userID, householdID string, req Cr
 		Visibility:      visibility,
 		ProviderType:    req.ProviderType,
 		DisplayName:     req.DisplayName,
-		BaseURL:         req.BaseURL,
+		BaseURL:         baseURL,
 		ModelIdentifier: req.ModelIdentifier,
 		APIKeyEncrypted: encryptedKey,
 		APIKeyKeyID:     s.encryptionKeyID,
@@ -165,7 +176,17 @@ func (s *service) Update(ctx context.Context, userID, householdID, id string, re
 		m.DisplayName = *req.DisplayName
 	}
 	if req.BaseURL != nil {
-		m.BaseURL = req.BaseURL
+		if m.ProviderType == llm.ProviderTypeOllama || m.ProviderType == "ollama" {
+			if strings.TrimSpace(*req.BaseURL) == "" {
+				defaultURL := llm.DefaultOllamaBaseURL
+				m.BaseURL = &defaultURL
+			} else {
+				normalized := llm.NormalizeOllamaBaseURL(*req.BaseURL)
+				m.BaseURL = &normalized
+			}
+		} else {
+			m.BaseURL = req.BaseURL
+		}
 	}
 	if req.ModelIdentifier != nil {
 		m.ModelIdentifier = *req.ModelIdentifier
@@ -282,6 +303,9 @@ func (s *service) buildProvider(m *ModelBlock) (llm.Provider, error) {
 	baseURL := ""
 	if m.BaseURL != nil {
 		baseURL = *m.BaseURL
+	}
+	if (m.ProviderType == llm.ProviderTypeOllama || m.ProviderType == "ollama") && strings.TrimSpace(baseURL) == "" {
+		baseURL = llm.DefaultOllamaBaseURL
 	}
 
 	return llm.NewProvider(m.ProviderType, baseURL, m.ModelIdentifier, apiKey)

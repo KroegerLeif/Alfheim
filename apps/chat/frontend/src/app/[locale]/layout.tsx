@@ -41,7 +41,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
         />
       </head>
       <body
-        className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black"
+        className="min-h-screen h-screen w-full flex flex-col bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black"
         suppressHydrationWarning
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
