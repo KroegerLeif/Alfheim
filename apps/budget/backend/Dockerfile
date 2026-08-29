@@ -8,20 +8,19 @@ WORKDIR /app
 
 # Copy root workspace and package configuration files to cache dependencies
 COPY pyproject.toml uv.lock ./
-COPY packages/backend-shared/pyproject.toml ./packages/backend-shared/
+COPY packages/backend-shared ./packages/backend-shared
 COPY apps/budget/backend/pyproject.toml ./apps/budget/backend/
 
 # Sync dependencies for budget-backend workspace package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --package budget-backend --no-install-project
+    uv sync --no-dev --package budget-backend --no-install-project --no-editable
 
-# Copy application and shared source files
-COPY packages/backend-shared ./packages/backend-shared
+# Copy application source files
 COPY apps/budget/backend ./apps/budget/backend
 
 # Run project sync to register the package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --package budget-backend
+    uv sync --no-dev --package budget-backend --no-editable
 
 # Final slim runtime container
 FROM python:3.12-alpine
