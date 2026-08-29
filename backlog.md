@@ -1,15 +1,9 @@
-# Alfheim — Living Tech-Debt Backlog
+# Alfheim — Living Tech-Debt & Monorepo Backlog
 
 **Status:** open / rolling
-**Convention:** `TD-<AREA>-<NN>`
+**Convention:** `TD-<AREA>-<NN>` or `[Category] Title`
 
-This is the **living** backlog for open technical debt. It is deliberately separate from
-[`AUDIT_MASTER_BACKLOG.md`](AUDIT_MASTER_BACKLOG.md), which is a frozen `v1.0.0` audit snapshot
-(ID scheme `AUDIT-<AREA>-<NN>`, all phases marked COMPLETED) and should be treated as a historical
-record rather than appended to.
-
-Items are logged as they are discovered during feature work. Each entry names how it was found so
-it can be re-verified independently.
+This is the **living** backlog for open technical debt, routing issues, missing documentation, feature sync gaps, and maintenance tasks. It is deliberately separate from [`AUDIT_MASTER_BACKLOG.md`](AUDIT_MASTER_BACKLOG.md), which is a frozen `v1.0.0` audit snapshot.
 
 ---
 
@@ -17,149 +11,178 @@ it can be re-verified independently.
 
 | Severity | Meaning |
 | :--- | :--- |
-| 🔴 **High** | Broken in production paths, or a security/tenancy gap |
-| 🟠 **Medium** | Violates a documented invariant; no user-visible breakage yet |
-| 🟡 **Low** | Inconsistency, dead code, or ergonomics |
+| 🔴 **Critical** | Prevents builds/deployments, causes port collisions, or breaches security/tenancy |
+| 🟠 **High** | Broken user-visible functionality, broken routing, or missing core features |
+| 🟡 **Medium** | Incomplete documentation, missing CI jobs, or architectural inconsistencies |
+| 🟢 **Low** | Dead code, minor lint issues, or ergonomic improvements |
 
 ---
 
-## Open Items
+## Reverse Proxy & Routing Audit (Caddy & Microfrontend Integrations)
 
-### 🔴 `TD-DOCKER-01` — Backend Dockerfiles do not build (pantry, chores, shopping, maintenance)
-
-**Discovered:** Phase 0 of the `apps/workout` backend build, by running `docker compose build pantry-backend`.
-
-Every existing app's backend declares `build.context: ./backend` in `apps/<app>/compose.yml`, but its
-`pyproject.toml` declares `backend-shared = { workspace = true }` — a uv workspace path dependency
-living at `packages/backend-shared`, outside that build context. The build fails at the first
-`uv sync`:
-
-```
-Failed to build `pantry-backend @ file:///app`
-├─▶ Failed to parse entry: `backend-shared`
-╰─▶ `backend-shared` references a workspace in `tool.uv.sources`, but is not a workspace member
-```
-
-None of the four backend images can currently be built via `docker compose build`.
-
-**Fix:** switch to a repo-root build context with an explicit dockerfile path. `apps/workout/backend/Dockerfile`
-plus `apps/workout/compose.yml` are a working reference (COPY root `pyproject.toml` +
-`packages/backend-shared` + the app manifest for layer caching, then `WORKDIR` into the app).
-
-**Affects:** `apps/{pantry,chores,shopping,maintenance}/backend/Dockerfile` and their `compose.yml`.
+### 🔴 `[Routing/Caddy]` PostgreSQL Port Collision Between `library-db` and `budget-db`
+- **Severity:** Critical
+- **Root Cause / Findings:**
+  In `apps/library/compose.yml:9` and `apps/budget/compose.yml:9`, both database services expose port mapping `"5436:5432"`. When starting both services simultaneously with Docker Compose, host port 5436 conflicts, causing port binding failure for one of the database containers.
+- **Proposed Resolution:**
+  - [ ] Update host port mapping in `apps/library/compose.yml` to an unused host port (e.g., `"5438:5432"`).
+  - [ ] Verify database startup and healthchecks with `docker compose up library-db budget-db`.
 
 ---
 
-### 🔴 `TD-MCP-01` — MCP tools bypass household isolation
-
-**Discovered:** while designing `apps/workout`'s MCP surface.
-
-`apps/pantry` and `apps/chores` MCP tools hardcode `MOCK_HOME_ID` / `MOCK_USER_ID` from
-`src/core/dependencies` instead of deriving tenant context from the caller. An agent invoking these
-tools operates against a fixed mock household regardless of who it is acting for — the REST routes
-enforce isolation, the MCP path does not.
-
-**Fix:** give every tool explicit `household_id` / `user_id` parameters passed straight into the same
-service-layer functions the routers use. `apps/workout/backend/src/features/*/mcp_tools.py` is the
-reference implementation.
-
-**Affects:** `apps/pantry/backend/src/features/*/mcp_tools.py`, `apps/chores/backend/src/features/*/mcp_tools.py`,
-and `apps/maintenance/backend/app/features/*/mcp_tools.py` (same pattern, unverified).
+### 🟠 `[Routing/Dashboard]` Cross-Microfrontend Navigation Fails via Next.js Router Links
+- **Severity:** High
+- **Root Cause / Findings:**
+  In `core/dashboard/frontend/src/features/apps/components/CoreAppsSection.tsx:106`, app launching is implemented using Next.js client-side router `<Link href={targetUrl}>`. When users click to open micro-apps (`/library`, `/pantry`, `/budget`, `/workout/de`, `/chores/de`), Next.js attempts internal SPA navigation within the Dashboard application rather than full-page browser navigation. Because these paths are separate microfrontends served by Caddy, client-side route resolution fails, causing 404 or page load errors.
+- **Proposed Resolution:**
+  - [ ] Replace `<Link href={targetUrl}>` in `CoreAppsSection.tsx` with standard HTML `<a>` tags or handle click events to perform native browser location redirects (`window.location.href = targetUrl`).
+  - [ ] Verify that clicking each Tier 1 core app card from the main dashboard navigates directly to the target microfrontend.
 
 ---
 
-### 🔴 `TD-SHARED-02` — `HouseholdSwitcher` token chain is a hardcoded four-app list
-
-**Discovered:** during the `apps/workout/frontend` reuse audit.
-
-`packages/shared/src/features/ui/components/HouseholdSwitcher.tsx:44-47` resolves the access token
-by trying exactly four session-storage keys (`token_chores-frontend`, `token_maintenance-frontend`,
-`token_pantry-frontend`, `token_shopping-frontend`). Any new app is invisible to it: the fetch is
-skipped, the component returns `null`, `alfheim_active_household_id` is never written, and every
-downstream API call ships without `X-Household-ID`.
-
-**Fix (short term):** append the new app's key. **Fix (proper):** fall back to the shared
-`alfheim_access_token` key that every app already writes, so the list stops needing maintenance.
+### 🟠 `[Routing/Caddy]` Inconsistent API Gateway Routing and Base Path Stripping Across Microservices
+- **Severity:** High
+- **Root Cause / Findings:**
+  In `infrastructure/caddy/Caddyfile`, API routing rules differ across services:
+  - Pantry, Shopping, Maintenance, Workout, and Budget use `handle_path` in Central API Gateway which strips prefix subpaths before forwarding to backends.
+  - Chores, Library, and Chat use `handle` without path stripping or custom rewrite rules.
+  In addition, `sanitizeUrl()` in `apps/pantry/frontend/src/core/api.ts` and `apps/shopping/frontend/src/lib/api.ts` strips `/api/v1` from `NEXT_PUBLIC_API_URL` (turning `http://api.alfheim.loegien.localhost/pantry/api/v1` into `http://api.alfheim.loegien.localhost/pantry/`). Calls such as `pantryClient.get("inventory/state")` issue requests to `/pantry/inventory/state`. Caddy strips `/pantry` and sends `/inventory/state` to `pantry-backend`, which expects `/api/v1/inventory/state`, causing 404 responses.
+- **Proposed Resolution:**
+  - [ ] Standardize API routing rules in `infrastructure/caddy/Caddyfile` for all microservices on both Frontend and Central API Gateway domains.
+  - [ ] Fix `sanitizeUrl()` across all frontend API clients (`apps/pantry/frontend/src/core/api.ts`, `apps/shopping/frontend/src/lib/api.ts`) to ensure requests preserve the mandatory `/api/v1` base path prefix.
 
 ---
 
-### 🟠 `TD-CI-02` — No frontend CI exists
-
-**Discovered:** while auditing `.github/workflows/` for the workout frontend.
-
-Only `python-ci.yml` and `deploy-docs.yml` exist. No TypeScript, Vitest, or ESLint job runs on any
-pull request — frontend regressions are caught only if a developer runs `./scripts/verify.sh --frontend`
-locally.
-
-**Fix:** add `frontend-ci.yml`. No per-app matrix is needed since both commands are already recursive
-over the pnpm workspace:
-
-```yaml
-run: pnpm -r exec tsc --noEmit
-run: pnpm -r test
-```
-
-Path filters: `apps/*/frontend/**`, `core/*/frontend/**`, `packages/shared/**`, `pnpm-lock.yaml`.
+### 🟠 `[Bug/Budget UI]` Budget Microfrontend UI is an Incomplete Placeholder
+- **Severity:** High
+- **Root Cause / Findings:**
+  In `apps/budget/frontend/src/app/[locale]/page.tsx` and `apps/budget/frontend/src/features/`, the Budget frontend UI consists of a placeholder shell displaying static click counters and active path labels. The backend domain features implemented in `apps/budget/backend/src/features/` (`accounts`, `pots`, `plans`, `transactions`) have no corresponding UI components or API integration.
+- **Proposed Resolution:**
+  - [ ] Create UI feature components under `apps/budget/frontend/src/features/` for Account Overview, Sinking Funds / Virtual Pots, Monthly/Event Budget Plans, and Transaction Ledger.
+  - [ ] Connect frontend components to `budget-backend` REST endpoints using a typed `ky` API client with Keycloak token and `X-Household-ID` propagation.
 
 ---
 
-### 🟠 `TD-CI-01` — `apps/workout/backend` missing from the Python CI matrix
+## Folder Documentation (`README.md` Audit)
 
-**Discovered:** while wiring the workout backend.
-
-`.github/workflows/python-ci.yml`'s `test-matrix` job enumerates services in a hardcoded list
-(`apps/{pantry,shopping,maintenance,chores}/backend`). `apps/workout/backend` is absent, so its 116
-tests never run in CI.
-
-**Fix:** add the entry. Consider globbing instead, so the list stops drifting from reality.
-
----
-
-### 🟠 `TD-NEXT-01` — Two frontends still use the deprecated `middleware.ts`
-
-**Discovered:** repo-wide scan for `proxy.ts` vs `middleware.ts`.
-
-`.ai/blueprints/new_app.md` states the Next.js 16 convention is `src/proxy.ts` and that
-`src/middleware.ts` "must **NOT** be used". `apps/chores`, `apps/pantry` and `apps/maintenance` comply;
-`apps/shopping/frontend/src/middleware.ts` and `core/dashboard/frontend/src/middleware.ts` do not,
-despite both running Next 16.2.11.
-
-**Fix:** rename to `src/proxy.ts` (contents are otherwise identical to the compliant apps).
+### 🟡 `[Docs/README]` Missing Architectural Root Directory Documentation
+- **Severity:** Medium
+- **Root Cause / Findings:**
+  Primary architectural directories lack top-level `README.md` files describing their boundaries, developer conventions, and exported packages/services:
+  - `apps/`: Container for domain microfrontends and microservice backends.
+  - `core/`: Container for central control plane services (`core/dashboard`).
+  - `packages/`: Workspace shared libraries (`@alfheim/shared` and `backend-shared`).
+  - `deploy/`: Server-level configuration and stack app manifests (`stack-apps.yaml`).
+  - `scripts/`: Monorepo orchestration and verification shell scripts.
+  - `websites/`: Public documentation and static web projects (`websites/docs`).
+- **Proposed Resolution:**
+  - [ ] Create `apps/README.md` documenting microservice design rules, FDD structure, and backend/frontend pairing.
+  - [ ] Create `core/README.md` explaining core platform services and registry configurations.
+  - [ ] Create `packages/README.md` documenting frontend `@alfheim/shared` UI/API primitives and Python `backend-shared` utilities.
+  - [ ] Create `deploy/README.md` documenting stack app configurations and deployment specifications.
+  - [ ] Create `scripts/README.md` documenting execution scripts (`up.sh`, `down.sh`, `seed.sh`, `verify.sh`, `setup-env.sh`).
+  - [ ] Create `websites/README.md` detailing the documentation site architecture and GitHub Pages deployment workflow.
 
 ---
 
-### 🟡 `TD-FE-01` — `apps/chores/frontend` has a lint script but no ESLint config
-
-`package.json` ships `"lint": "eslint"` while the app has no `eslint.config.mjs`, so the script cannot
-succeed. `apps/pantry/frontend/eslint.config.mjs` is the working reference.
-
----
-
-### 🟡 `TD-FE-02` — `apps/pantry/frontend` emits a duplicate `<html>` element
-
-`src/app/layout.tsx` returns `<html><body>{children}</body></html>` and `src/app/[locale]/layout.tsx`
-emits `<html>`/`<body>` again. `apps/chores/frontend/src/app/layout.tsx` (`return children`) is correct.
-
----
-
-### 🟡 `TD-FE-03` — Per-app `src/styles/theme.css` is dead code
-
-Both `apps/chores/frontend` and `apps/pantry/frontend` contain `src/styles/theme.css`, but neither
-`globals.css` imports it — while both reference `--font-heading` / `--font-body` / `--font-mono`,
-which are defined **only** in that unimported file. Those variables therefore resolve to nothing.
-
-**Fix:** either import the file or inline its `@theme` block into `globals.css`.
+### 🟡 `[Docs/README]` Missing Microservice and Infrastructure Module Documentation
+- **Severity:** Medium
+- **Root Cause / Findings:**
+  Several microservices and infrastructure components lack local `README.md` documentation detailing API endpoints, configuration parameters, and run instructions:
+  - App Roots: `apps/budget/`, `apps/library/`, `apps/workout/`, `apps/chat/`.
+  - App Subdirectories: `apps/budget/backend/`, `apps/budget/frontend/`, `apps/library/frontend/`.
+  - Infrastructure: `infrastructure/caddy/`, `infrastructure/keycloak/`, `infrastructure/postgres-iam/`, `infrastructure/rustfs/`.
+- **Proposed Resolution:**
+  - [ ] Add `README.md` files for all missing application root, backend, and frontend directories specifying purpose, environment variables, dependencies, and local dev commands.
+  - [ ] Add `README.md` files for infrastructure directories explaining Caddy reverse proxy mappings, Keycloak realm imports, IAM setup, and RustFS S3 configuration.
 
 ---
 
-### 🟡 `TD-SHARED-01` — Inconsistent theme-toggle semantics
+## Feature Inventory & GitHub Pages Sync
 
-`packages/shared`: `ThemeToggle` accepts a `showVariantToggle` prop that its body never reads, and
-`useTheme().toggleTheme()` flips the theme **variant** (nordic ↔ obsidian) while `ThemeToggle` flips the
-**mode** (dark ↔ light). Two different behaviors behind similar names.
+### 🟡 `[Docs/GitHub Pages]` GitHub Pages Documentation Desync for Recent Microservices
+- **Severity:** Medium
+- **Root Cause / Findings:**
+  The public documentation website in `websites/docs/src/components/sections/AppsGrid.tsx` includes only 5 applications (Pantry, Shopping, Maintenance, Chores, Dashboard). The 4 newer microservices (**Budget & Treasury**, **Media & Library Hub**, **Workout Tracker**, and **ALFI Chat**) are missing from the documentation grid, system architecture diagrams, and translation files (`websites/docs/src/i18n/locales/{de,en,pl}.json`).
+- **Proposed Resolution:**
+  - [ ] Add feature cards and metadata for Budget, Library, Workout, and Chat services to `websites/docs/src/components/sections/AppsGrid.tsx`.
+  - [ ] Add corresponding translation keys for all 4 missing services in `websites/docs/src/i18n/locales/en.json`, `de.json`, and `pl.json`.
+  - [ ] Update `ArchitectureSection.tsx` and `TechStackSection.tsx` in `websites/docs` to reflect all 8 active microservices.
 
 ---
 
-## Resolved
+## Dead Code, Orphan Files & Maintenance Tasks
 
-_None yet — items move here with the commit that closed them._
+### 🟢 `[Cleanup/Dead Code]` Unused Theme CSS Files in Pantry and Chores Frontends (`TD-FE-03`)
+- **Severity:** Low
+- **Root Cause / Findings:**
+  `apps/chores/frontend/src/styles/theme.css` and `apps/pantry/frontend/src/styles/theme.css` define CSS custom properties (`--font-heading`, `--font-body`, `--font-mono`), but neither `globals.css` nor any component imports them.
+- **Proposed Resolution:**
+  - [ ] Either import `theme.css` inside `globals.css` or inline the CSS variables and remove the redundant `theme.css` files.
+
+---
+
+### 🟡 `[Cleanup/Next.js]` Deprecated `middleware.ts` Files in Shopping and Dashboard Frontends (`TD-NEXT-01`)
+- **Severity:** Medium
+- **Root Cause / Findings:**
+  `apps/shopping/frontend/src/middleware.ts` and `core/dashboard/frontend/src/middleware.ts` use `middleware.ts`, which is deprecated in Next.js 16. Monorepo architecture standards specify using `src/proxy.ts`.
+- **Proposed Resolution:**
+  - [ ] Rename `apps/shopping/frontend/src/middleware.ts` to `apps/shopping/frontend/src/proxy.ts`.
+  - [ ] Rename `core/dashboard/frontend/src/middleware.ts` to `core/dashboard/frontend/src/proxy.ts`.
+
+---
+
+### 🟢 `[Cleanup/Lint]` Missing ESLint Configuration in Chores Frontend (`TD-FE-01`)
+- **Severity:** Low
+- **Root Cause / Findings:**
+  `apps/chores/frontend/package.json` specifies `"lint": "eslint"`, but the folder lacks an `eslint.config.mjs` file, causing lint executions to fail.
+- **Proposed Resolution:**
+  - [ ] Create `apps/chores/frontend/eslint.config.mjs` using `apps/pantry/frontend/eslint.config.mjs` as a template.
+
+---
+
+## Preserved Open Technical Debt Items
+
+### 🔴 `[Docker/Build]` Backend Dockerfiles Fail to Build Workspace Package (`TD-DOCKER-01`)
+- **Severity:** Critical
+- **Root Cause / Findings:**
+  Backend Dockerfiles in `apps/{pantry,chores,shopping,maintenance,library}` specify `build.context: ./backend` in `compose.yml`, which excludes `packages/backend-shared` from the build context and breaks `uv sync` workspace resolution.
+- **Proposed Resolution:**
+  - [ ] Update `compose.yml` and Dockerfiles for `pantry`, `chores`, `shopping`, `maintenance`, and `library` to set build context to repository root (`context: ../..`) and explicitly copy `packages/backend-shared`.
+
+---
+
+### 🔴 `[Security/Isolation]` MCP Tools Bypass Household Isolation (`TD-MCP-01`)
+- **Severity:** Critical
+- **Root Cause / Findings:**
+  MCP tool implementations in `apps/pantry`, `apps/chores`, and `apps/maintenance` hardcode `MOCK_HOME_ID` instead of deriving tenant context from request callers.
+- **Proposed Resolution:**
+  - [ ] Refactor MCP tools to accept explicit `household_id` and `user_id` parameters passed directly to underlying service functions.
+
+---
+
+### 🟠 `[UI/Auth]` `HouseholdSwitcher` Hardcodes Four Apps (`TD-SHARED-02`)
+- **Severity:** High
+- **Root Cause / Findings:**
+  `packages/shared/src/features/ui/components/HouseholdSwitcher.tsx` resolves authentication tokens by checking a hardcoded list of four session storage keys (`token_chores-frontend`, `token_maintenance-frontend`, `token_pantry-frontend`, `token_shopping-frontend`), making new micro-apps invisible to household switching.
+- **Proposed Resolution:**
+  - [ ] Update `HouseholdSwitcher` to fall back to the global `alfheim_access_token` key used across all frontend applications.
+
+---
+
+### 🟠 `[CI/CD]` Missing Frontend and Microservice CI Testing (`TD-CI-01`, `TD-CI-02`)
+- **Severity:** High
+- **Root Cause / Findings:**
+  `.github/workflows/python-ci.yml` omits `apps/workout/backend` from its test matrix, and no GitHub Actions workflow exists for frontend TypeScript type-checking or Vitest tests.
+- **Proposed Resolution:**
+  - [ ] Add `apps/workout/backend` to `.github/workflows/python-ci.yml`.
+  - [ ] Create `.github/workflows/frontend-ci.yml` to run `pnpm -r exec tsc --noEmit` and `pnpm -r test`.
+
+---
+
+### 🟢 `[FE/Layout]` Pantry Layout Emits Duplicate `<html>` Tag (`TD-FE-02`)
+- **Severity:** Low
+- **Root Cause / Findings:**
+  `apps/pantry/frontend/src/app/layout.tsx` returns `<html><body>{children}</body></html>` while `src/app/[locale]/layout.tsx` emits `<html>` and `<body>` tags a second time.
+- **Proposed Resolution:**
+  - [ ] Simplify `apps/pantry/frontend/src/app/layout.tsx` to return `{children}` directly.
