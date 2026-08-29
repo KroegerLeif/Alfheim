@@ -11,6 +11,7 @@ import {
   useTranslation,
 } from "@alfheim/shared";
 import { LocationItem, MediaItem } from "@/features/catalog/types";
+import { ManualSection } from "@/features/manuals";
 import { createItem, updateItem } from "./api/dialogApi";
 import { ItemFormFields } from "./ItemFormFields";
 import { MetadataLookupSection } from "./MetadataLookupSection";
@@ -119,6 +120,15 @@ export function ItemDialog({
               locations={locations}
             />
           </form>
+
+          {item && (formData.media_type === "GAME" || item.manual_s3_key) && (
+            <ManualSection
+              itemId={item.id}
+              itemTitle={item.title}
+              manualS3Key={item.manual_s3_key}
+              onManualUpdated={onSuccess}
+            />
+          )}
 
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
