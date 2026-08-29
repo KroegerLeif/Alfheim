@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from decimal import Decimal
 from uuid import UUID
 
@@ -151,7 +152,7 @@ class PlanService:
             categories=category_tree,
         )
 
-    def _build_category_tree(self, categories: list[PlanCategory]) -> list[PlanCategoryTreeRead]:
+    def _build_category_tree(self, categories: Sequence[PlanCategory]) -> list[PlanCategoryTreeRead]:
         """Private helper to construct category hierarchy tree from flat categories list."""
         nodes: dict[UUID, PlanCategoryTreeRead] = {
             cat.id: PlanCategoryTreeRead(

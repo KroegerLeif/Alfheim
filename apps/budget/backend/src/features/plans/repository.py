@@ -44,7 +44,7 @@ class PlanRepository:
         """List all plans for a specific household."""
         statement = select(Plan).where(Plan.household_id == household_id)
         if not include_inactive:
-            statement = statement.where(Plan.is_active.is_(True))
+            statement = statement.where(Plan.is_active == True)  # noqa: E712
         result = await self.session.exec(statement)
         return result.all()
 
