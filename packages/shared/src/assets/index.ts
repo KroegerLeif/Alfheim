@@ -69,6 +69,10 @@ export const BRAND_ASSETS = {
   siteWebmanifest: 'favicon_io/site.webmanifest',
 } as const;
 
+import posesData from './alfi/poses.json';
+
+export const ALFI_POSES: Record<string, string> = posesData;
+
 /**
  * Returns the resolved relative path for a given ALFI mascot state,
  * falling back safely to the idle asset if the state is unmapped.
@@ -78,9 +82,23 @@ export function getAlfiAssetPath(state: AlfiState = 'idle'): string {
 }
 
 /**
+ * Returns the embedded dog mascot data URI from the shared package,
+ * enabling immediate zero-configuration rendering across all apps,
+ * Docker containers, and GitHub Pages.
+ */
+export function getAlfiDataUri(state: AlfiState = 'idle'): string {
+  if (state === 'loading') return ALFI_POSES.speaking || ALFI_POSES.idle;
+  if (state === 'curious') return ALFI_POSES.listening || ALFI_POSES.idle;
+  return ALFI_POSES[state] || ALFI_POSES.idle || '';
+}
+
+/**
  * Returns the resolved relative path for an app icon,
  * falling back safely to dashboard if the slug is unmapped.
  */
 export function getAppIconPath(appSlug: AppSlug = 'dashboard'): string {
   return APP_ICONS[appSlug] || APP_ICONS.dashboard;
 }
+
+
+

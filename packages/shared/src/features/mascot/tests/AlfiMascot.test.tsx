@@ -66,11 +66,11 @@ describe('AlfiMascot Component', () => {
 describe('AlfiAvatar Component', () => {
   it('renders avatar with status indicators and status dot', () => {
     const { rerender } = render(<AlfiAvatar status="idle" size="md" />);
-    expect(screen.getByRole('img')).toHaveAttribute('data-status', 'idle');
+    expect(screen.getByTestId('alfi-avatar')).toHaveAttribute('data-status', 'idle');
     expect(screen.getByTestId('alfi-status-dot')).toHaveClass('bg-emerald-500');
 
     rerender(<AlfiAvatar status="thinking" size="lg" />);
-    expect(screen.getByRole('img')).toHaveAttribute('data-status', 'thinking');
+    expect(screen.getByTestId('alfi-avatar')).toHaveAttribute('data-status', 'thinking');
     expect(screen.getByTestId('alfi-status-dot')).toHaveClass('bg-amber-400');
 
     rerender(<AlfiAvatar status="streaming" size="sm" />);
