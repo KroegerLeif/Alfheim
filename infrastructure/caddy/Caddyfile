@@ -16,7 +16,8 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	redir /maintenance /maintenance/en 302
 	redir /maintenance/ /maintenance/en 302
 	redir /chores /chores/de 302
-	redir /chores/ /chores/de 302
+	redir /workout /workout/de 302
+	redir /workout/ /workout/de 302
 	redir /chat /chat/de 302
 	redir /chat/ /chat/de 302
 
@@ -51,6 +52,15 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	handle_path /shopping/api/v1* {
 		rewrite * /api/v1{path}
 		reverse_proxy shopping-backend:8000
+	}
+
+	handle_path /api/v1/workout* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
+	}
+	handle_path /workout/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
 	}
 
 	handle /api/v1/chores* {
@@ -91,6 +101,9 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	}
 	handle /chores* {
 		reverse_proxy chores-frontend:3000
+	}
+	handle /workout* {
+		reverse_proxy workout-frontend:3000
 	}
 	handle /chat* {
 		reverse_proxy chat-frontend:3000
@@ -148,6 +161,18 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 	}
 	handle_path /maintenance* {
 		reverse_proxy maintenance-backend:8000
+	}
+	# Workout API
+	handle_path /api/v1/workout* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
+	}
+	handle_path /workout/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
+	}
+	handle_path /workout* {
+		reverse_proxy workout-backend:8000
 	}
 
 	# Pantry API

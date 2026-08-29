@@ -71,6 +71,7 @@ export function useHouseholdSwitcher() {
       return (
         (typeof keycloak?.token === 'string' ? keycloak.token : null) ||
         sessionStorage.getItem('token_chat-frontend') ||
+        sessionStorage.getItem('token_workout-frontend') ||
         sessionStorage.getItem('token_dashboard-frontend') ||
         sessionStorage.getItem('token_chores-frontend') ||
         sessionStorage.getItem('token_maintenance-frontend') ||

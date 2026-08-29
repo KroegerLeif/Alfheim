@@ -389,7 +389,7 @@ docker info > /dev/null 2>&1 || fail "Docker daemon is not running. Start Docker
 ok "Docker daemon is reachable"
 
 # Pre-create all multi-zone external networks if not already present
-for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net app-chat-net observability-internal; do
+for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net app-chat-net app-workout-net observability-internal; do
   if ! docker network inspect "$net" > /dev/null 2>&1; then
     info "Creating external Docker network: $net"
     docker network create "$net"

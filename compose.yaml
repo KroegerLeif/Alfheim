@@ -10,6 +10,7 @@ include:
   - ./apps/shopping/compose.yml
   - ./apps/chores/compose.yml
   - ./apps/chat/compose.yml
+  - ./apps/workout/compose.yml
 
 networks:
   gateway-net:
@@ -35,6 +36,9 @@ networks:
     external: true
   app-chat-net:
     name: app-chat-net
+    external: true
+  app-workout-net:
+    name: app-workout-net
     external: true
   observability-internal:
     name: observability-internal

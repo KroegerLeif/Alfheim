@@ -192,6 +192,7 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |
 | **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` (`maintenance_postgres_data`) |
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
+| **`apps/workout`** | FastAPI, FastMCP (backend only — frontend deferred) | `api.alfheim.loegien.de/workout` | `workout-db` (`postgres_data_workout`, Port `5434`) |
 | **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
 | **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
 | **`apps/chat`** | Go, Next.js 16, OIDC | `alfheim.loegien.de/chat` / `api.alfheim.loegien.de/api/v1/chat` | `chat-db` (`chat_postgres_data`, Port `5436`) |
@@ -360,6 +361,45 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 12. `tool_round_limit` and `allowed_mcp_apps` live in a model block's `config_json` and are parsed into `llm.ProviderPolicy` by `modelblocks.parseProviderPolicy` (default round limit: 8). `llm.ProviderPolicy` lives in `internal/shared/llm` — not on the `modelblocks` or `conversations` domain types — specifically so both features can share it without one importing the other.
 13. `internal/features/conversations` never imports `internal/features/mcpservers` or `internal/shared/mcp`'s concrete `*mcp.ClientPool` type directly in its exported `Service`/`NewService` signature: it defines its own `MCPServerLister` and `MCPClientPool` consumer interfaces (`toolbridge.go`), satisfied structurally. `mcp.ClientPool.Get` returns the `mcp.ToolCaller` interface (not `*mcp.Client`) specifically so tests can substitute a fake without a real MCP server.
 14. `OpenAICompatibleProvider` (`internal/shared/llm/openai_compatible_provider.go`) expects `model_blocks.base_url` to be the API root **without** a trailing `/v1` (e.g. `https://api.openai.com`, not `.../v1`) — it appends `/v1/chat/completions` and `/v1/models` itself, per this phase's explicit spec. Streamed tool-call arguments arrive as fragmented JSON-string deltas keyed by index (unlike Ollama's single complete `tool_calls` list); they are buffered per index and only turned into `StreamChunk{ToolCall: ...}` once `finish_reason == "tool_calls"` (or the connection closes without an explicit `data: [DONE]` frame, which some providers omit).
+
+---
+
+## 🗄️ Database Schema Invariants (Workout Service)
+
+Backend + MCP server only (frontend deferred). No `households` table exists — `home_id` is an
+opaque UUID carried by the JWT/`X-Household-ID` header, matching Pantry/Chores.
+
+### Tables: `equipment`, `exercises`
+* Scoped via a `scope` enum (`system` | `household` | `user`); `home_id`/`owner_user_id` are
+  NULLABLE and set only for the matching scope. System rows are seeded at test/startup time and
+  read-only via the API.
+* `user_exercise_preferences` (UNIQUE `user_id`+`exercise_id`) carries each user's baseline
+  weight, read by the weight engine. `exercise_favorites` (UNIQUE `user_id`+`exercise_id`) is a
+  pure on/off join.
+
+### Tables: `plans`, `plan_days`, `plan_exercises`, `plan_sets`
+* `plans.is_shared` controls household-wide visibility; only the owner may write, even to a
+  shared plan.
+* `plan_sets.target_weight_type` (`absolute` | `default` | `offset`) drives the relative weight
+  engine — see `plans/services/weight_engine_service.py::resolve_target_weight`.
+
+### Tables: `workout_sessions`, `session_exercises`, `session_sets`
+* Structural clones of plan state at session-start (never live FKs into
+  `plan_exercises`/`plan_sets`) so editing/deleting a `Plan` never rewrites a past session —
+  `session_sets.target_weight_kg` stores the RESOLVED weight-engine number, not the type/offset.
+* `session_sets` has a partial-unique index on (`session_exercise_id`, `client_idempotency_key`)
+  WHERE the key is NOT NULL, backing the offline-sync ack endpoint
+  (`POST /sessions/{id}/sets/sync`).
+
+#### Invariant Rules:
+1. **MCP tenancy**: every MCP tool (per-feature and the composite `agent_tools` slice) takes
+   explicit `household_id`/`user_id` parameters and enforces the same service-layer filtering as
+   REST routes — unlike Pantry/Chores' MCP tools, which hardcode `MOCK_HOME_ID`.
+2. **403 vs 404**: cross-tenant `X-Household-ID` header mismatch is rejected at the auth-dependency
+   layer with 403 (see `backend_shared.dependencies`); a resource that exists but isn't visible to
+   the caller's household/user returns 404 at the resource layer.
+3. **No Alembic**: schema is managed via `SQLModel.metadata.create_all()`, matching every other
+   app in this monorepo.
 
 ---
 

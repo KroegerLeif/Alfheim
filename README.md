@@ -26,7 +26,8 @@ alfheim/
     ├── shopping/               # Shopping List Module
     ├── maintenance/            # Home Maintenance Tracker Module
     ├── chores/                 # Household Chores Module
-    └── chat/                   # ALFI Assistant & Chat Module
+    ├── chat/                   # ALFI Assistant & Chat Module
+    └── workout/                # Workout Tracker Module
 ```
 
 ---
@@ -50,7 +51,7 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 * **`gateway-net`**: Connects Caddy ingress gateway to frontends, Keycloak, RustFS S3, and backend API endpoints.
 * **`infra-net`**: Isolated infrastructure bridge connecting Keycloak, `postgres-iam`, and RustFS S3 backend ports.
 * **`core-net`**: Dedicated control plane network for `dashboard-backend` and `dashboard-db`.
-* **`app-<name>-net`**: App-isolated networks connecting microservice backends to their dedicated database containers (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`).
+* **`app-<name>-net`**: App-isolated networks connecting microservice backends to their dedicated database containers (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`, `app-workout-net`).
 * **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.
 
 ### C. Routing Matrix (Central Caddy Gateway)
@@ -64,6 +65,7 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `http://shopping-frontend:3010` | Served on `/shopping` basePath, 302 redirects bare path to `/shopping/en` |
 | `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `http://maintenance-frontend:3000`| Served on `/maintenance` basePath, 302 redirects bare path to `/maintenance/en` |
 | `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `http://chores-frontend:3000` | Served on `/chores` basePath, 302 redirects bare path to `/chores/de` |
+| `http://alfheim.loegien.localhost/workout` | `workout-frontend` | `http://workout-frontend:3000` | Served on `/workout` basePath, 302 redirects bare path to `/workout/de` |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `http://chat-frontend:3000` | Served on `/chat` basePath, 302 redirects bare path to `/chat/de` |
 | `http://alfheim.loegien.localhost/grafana` | `grafana` | `http://grafana:3000/grafana` | Observability & Telemetry UI (Keycloak SSO) |
 
@@ -78,6 +80,7 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `http://chores-backend:8000/api/v1/chores` | Native API route (no stripping). |
+| `http://api.alfheim.loegien.localhost/workout/api/v1/` | `workout-backend` | `http://workout-backend:8000/api/v1/` | Strips `/workout` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/api/v1/chat` | `chat-backend` | `http://chat-backend:8080/api/v1/chat` | Native Go API route (no stripping). |
 | `http://api.alfheim.loegien.localhost/api/v1/apps` | `dashboard-backend` | `http://dashboard-backend:8080/api/v1/apps` | Native Go API route (no stripping). |
 
@@ -161,7 +164,7 @@ The monorepo shares a centralized design system and dynamic theme engine through
 
 ## 6. Python Developer Tooling, Quality Gates & Testing
 
-The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`) are organized as a unified **`uv` workspace**.
+The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`, `apps/workout/backend`) are organized as a unified **`uv` workspace**.
 
 ### A. Environment Setup & Workspace Sync
 Install `uv` (>= 0.12+) and sync all workspace members from the repository root:
@@ -206,4 +209,7 @@ cd apps/maintenance/backend && uv run pytest --cov
 
 # Chores backend tests
 cd apps/chores/backend && uv run pytest --cov
+
+# Workout backend tests
+cd apps/workout/backend && uv run pytest --cov
 ```
