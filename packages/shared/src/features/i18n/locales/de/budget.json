@@ -1,0 +1,78 @@
+{
+  "budget": {
+    "title": "Budget & Finanzen",
+    "subtitle": "alfheim Haushaltsbudget & Vermögensverwaltung",
+    "navigation": {
+      "dashboard": "Dashboard",
+      "planning": "Budgetplanung",
+      "pots": "Virtuelle Töpfe",
+      "sankey": "Sankey Cashflow",
+      "analytics": "Vermögensanalyse",
+      "quickAdd": "Schnellbuchung",
+      "monthly": "Monat",
+      "event": "Event"
+    },
+    "accounts": {
+      "title": "Konten & Depots",
+      "subtitle": "Übersicht aller verknüpften Haushaltskonten",
+      "checking": "Girokonto",
+      "savings": "Tagesgeld & Sparkonto",
+      "buildingSavings": "Bausparvertrag",
+      "investment": "Depot & Wertpapiere",
+      "targetAmount": "Zielbetrag",
+      "maturityDate": "Fälligkeitsdatum",
+      "currentBalance": "Aktueller Kontostand",
+      "netWorth": "Gesamtvermögen",
+      "addAccount": "Konto hinzufügen"
+    },
+    "pots": {
+      "title": "Virtuelle Töpfe & Rücklagen",
+      "subtitle": "Prioritätsbasierte Anspar-Töpfe und Budgetkaskaden",
+      "priority": "Priorität",
+      "priorityCascade": "Kaskaden-Überlauf",
+      "targetRate": "Ziel-Sparrate",
+      "actualRate": "Aktuelle Sparrate",
+      "sinkingFund": "Ansparziel-Rechner",
+      "gapDetected": "Warnung: Sparlücke erkannt",
+      "maintenanceReserve": "Wartungsrücklage",
+      "unassignedBuffer": "Nicht zugewiesener Puffer",
+      "createPot": "Neuen Topf anlegen"
+    },
+    "plans": {
+      "title": "Budgetpläne & Kategorien",
+      "subtitle": "Monatliche Pläne und projektbasierte Event-Budgets",
+      "monthlyPlan": "Monatsbudget",
+      "eventPlan": "Event-Budget",
+      "allocated": "Zugewiesen",
+      "spent": "Ausgegeben",
+      "remaining": "Verbleibend",
+      "subcategories": "Unterkategorien",
+      "createPlan": "Neuen Plan erstellen"
+    },
+    "transactions": {
+      "title": "Transaktionen & Belege",
+      "subtitle": "Buchungen und OCR-Erfassung",
+      "quickAdd": "Schnellbuchung",
+      "income": "Einnahme",
+      "expense": "Ausgabe",
+      "transfer": "Umbuchung",
+      "receiptUpload": "Beleg hochladen",
+      "vendor": "Händler / Empfänger",
+      "lineItems": "Einzelpositionen",
+      "amount": "Betrag",
+      "date": "Datum",
+      "category": "Kategorie",
+      "account": "Konto",
+      "pot": "Topf",
+      "ocrProcessing": "Beleg wird per OCR analysiert...",
+      "success": "Transaktion erfolgreich gebucht"
+    },
+    "analytics": {
+      "title": "Finanzanalytik & Cashflow",
+      "subtitle": "Sankey-Diagramm und Net-Worth Verlauf",
+      "sankeyTitle": "Sankey Cashflow Visualisierung",
+      "netWorthTitle": "Entwicklung des Nettovermögens",
+      "spendingGap": "Ausgabenabweichungs-Analyse"
+    }
+  }
+}

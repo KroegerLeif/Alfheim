@@ -252,7 +252,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `pnpm --filter @alfheim/budget-frontend test`
 
-### [ ] TASK-603: i18n Dictionary Integration (DE, EN, PL)
+### [x] TASK-603: i18n Dictionary Integration (DE, EN, PL)
 - **Domain/Layer:** Shared / i18n
 - **Scope & Files:**
   - `packages/shared/src/features/i18n/locales/de/budget.json`
