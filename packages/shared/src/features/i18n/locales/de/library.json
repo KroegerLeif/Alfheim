@@ -70,7 +70,19 @@
       "typeMovie": "Film & Serie",
       "typeGame": "Gaming-Abo",
       "typeBoth": "Kombiniert",
-      "noProviders": "Keine Anbieter konfiguriert."
+      "noProviders": "Keine Anbieter konfiguriert.",
+      "statusActive": "Aktiv",
+      "statusInactive": "Inaktiv",
+      "activate": "Aktivieren",
+      "deactivate": "Deaktivieren",
+      "delete": "Löschen",
+      "providerName": "Name des Anbieters",
+      "providerType": "Anbietertyp",
+      "nameRequired": "Name ist erforderlich.",
+      "notesPlaceholder": "Optionale Notizen zum Abonnement",
+      "saving": "Speichert...",
+      "loading": "Anbieter werden geladen...",
+      "loadError": "Fehler beim Laden der Streaming-Anbieter."
     },
     "manuals": {
       "title": "Spielanleitung (PDF)",

@@ -70,7 +70,19 @@
       "typeMovie": "Movies & Series",
       "typeGame": "Gaming Subscription",
       "typeBoth": "Combined",
-      "noProviders": "No providers configured."
+      "noProviders": "No providers configured.",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete",
+      "providerName": "Provider Name",
+      "providerType": "Provider Type",
+      "nameRequired": "Name is required.",
+      "notesPlaceholder": "Optional notes about subscription",
+      "saving": "Saving...",
+      "loading": "Loading providers...",
+      "loadError": "Failed to load streaming providers."
     },
     "manuals": {
       "title": "Game Manual (PDF)",
