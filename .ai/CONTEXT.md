@@ -9,6 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`refactor(frontend): resolve code review issues, enforce 200 loc limits, and eliminate any types`**
+  - Extracted `ModelDiscoverySection.tsx` from `ModelBlockFormModal.tsx`, bringing both components under 190 LOC.
+  - Modularized `apps/chat/frontend/src/lib/api.ts` into specialized submodules (`client.ts`, `modelBlocks.ts`, `conversations.ts`, `attachments.ts`) with a clean facade module.
+  - Extracted `ChatLandingState.tsx` from `ChatStreamView.tsx`, reducing stream view to 181 LOC.
+  - Extracted `useHouseholdSwitcher.ts` custom hook from `HouseholdSwitcher.tsx`, removing hardcoded HTTP fallback URL and reducing component to 59 LOC.
+  - Replaced loose `any` typings with `KeycloakWindow` interface and strict error type guards across chat frontend and shared UI package.
+  - Added localized placeholder tokens across `de`, `en`, and `pl` dictionaries in `packages/shared/src/features/i18n/locales/*/chat.json`.
 * **`fix(chat): ensure default ollama base url and fix full-width viewport layout`**
   - Added `DefaultOllamaBaseURL` (`http://host.docker.internal:11434`) and scheme normalization (`NormalizeOllamaBaseURL`) across `apps/chat/backend/internal/shared/llm/ollama_provider.go` and `internal/features/modelblocks/service.go` to eliminate `unsupported protocol scheme ""` errors when connecting to Ollama.
   - Removed nested `<html>` and `<body>` rendering in `apps/chat/frontend/src/app/layout.tsx` and `apps/pantry/frontend/src/app/layout.tsx`, fixing React Hydration error #418 and ensuring root layout returns children directly.
