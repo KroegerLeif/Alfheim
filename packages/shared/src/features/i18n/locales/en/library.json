@@ -88,8 +88,17 @@
       "title": "Game Manual (PDF)",
       "uploadBtn": "Upload Manual (PDF)",
       "viewBtn": "View Manual",
+      "deleteBtn": "Delete Manual",
       "pdfOnly": "Only PDF files are allowed.",
-      "noManual": "No manual available."
+      "noManual": "No manual available.",
+      "uploading": "Uploading...",
+      "uploadSuccess": "Manual uploaded successfully.",
+      "uploadError": "Failed to upload manual PDF.",
+      "deleteSuccess": "Manual deleted.",
+      "deleteError": "Failed to delete manual.",
+      "deleteConfirm": "Are you sure you want to delete the manual for \"{title}\"?",
+      "loadUrlError": "Failed to load manual link.",
+      "openNewTab": "Open PDF in new tab"
     },
     "itemDialog": {
       "createTitle": "Add New Media",

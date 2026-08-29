@@ -88,8 +88,17 @@
       "title": "Instrukcja Gry (PDF)",
       "uploadBtn": "Prześlij instrukcję (PDF)",
       "viewBtn": "Zobacz instrukcję",
+      "deleteBtn": "Usuń instrukcję",
       "pdfOnly": "Dozwolone są tylko pliki PDF.",
-      "noManual": "Brak dostępnej instrukcji."
+      "noManual": "Brak dostępnej instrukcji.",
+      "uploading": "Przesyłanie...",
+      "uploadSuccess": "Instrukcja została pomyślnie przesłana.",
+      "uploadError": "Nie udało się przesłać pliku PDF instrukcji.",
+      "deleteSuccess": "Instrukcja usunięta.",
+      "deleteError": "Nie udało się usunąć instrukcji.",
+      "deleteConfirm": "Czy na pewno chcesz usunąć instrukcję dla \"{title}\"?",
+      "loadUrlError": "Nie udało się załadować linku do instrukcji.",
+      "openNewTab": "Otwórz PDF w nowej karcie"
     },
     "itemDialog": {
       "createTitle": "Dodaj Nowe Media",

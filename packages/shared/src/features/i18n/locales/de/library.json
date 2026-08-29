@@ -88,8 +88,17 @@
       "title": "Spielanleitung (PDF)",
       "uploadBtn": "Anleitung hochladen (PDF)",
       "viewBtn": "Anleitung ansehen",
+      "deleteBtn": "Anleitung löschen",
       "pdfOnly": "Nur PDF-Dateien sind zulässig.",
-      "noManual": "Keine Anleitung vorhanden."
+      "noManual": "Keine Anleitung vorhanden.",
+      "uploading": "Lädt hoch...",
+      "uploadSuccess": "Anleitung erfolgreich hochgeladen.",
+      "uploadError": "Fehler beim Hochladen der PDF-Anleitung.",
+      "deleteSuccess": "Anleitung gelöscht.",
+      "deleteError": "Fehler beim Löschen der Anleitung.",
+      "deleteConfirm": "Möchtest du die Anleitung für \"{title}\" wirklich löschen?",
+      "loadUrlError": "Fehler beim Laden des Anleitungs-Links.",
+      "openNewTab": "PDF in neuem Tab öffnen"
     },
     "itemDialog": {
       "createTitle": "Neues Medium hinzufügen",

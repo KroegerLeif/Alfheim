@@ -233,7 +233,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Component files strictly comply with 200 LOC limit.
 
 #### [TASK-18] Implement PDF Game Manual Viewer Component
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/frontend/src/features/manuals/`
 - **Description:** Build PDF manual uploader and viewer component for board games and video games.
 - **Definition of Done:**

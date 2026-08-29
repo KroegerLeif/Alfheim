@@ -101,6 +101,11 @@ export function ItemCard({
               📖 {t("library.catalog.filterCookbooks")}
             </Badge>
           )}
+          {item.manual_s3_key && (
+            <Badge className="bg-emerald-600 text-white border-none">
+              📄 {t("library.manuals.viewBtn")}
+            </Badge>
+          )}
         </div>
 
         <div className="absolute top-2 right-2 flex items-center gap-1">
