@@ -121,6 +121,8 @@ vi.mock('@alfheim/shared', async (importOriginal) => {
           'pantry.exportList': 'exportList',
           'pantry.filterCategory': 'All Categories',
           'pantry.filterLocation': 'All Locations',
+          'pantry.askAlfi': 'ALFI Assistent',
+          'pantry.askAlfiAboutProduct': 'ALFI zu diesem Produkt befragen',
           'nav.dashboard': 'dashboard',
           'nav.inventory': 'inventory',
         }

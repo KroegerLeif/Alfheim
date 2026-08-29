@@ -20,7 +20,7 @@ dependencies = [
     "opentelemetry-sdk>=1.44.0",
     "opentelemetry-instrumentation-fastapi>=0.65b0",
     "opentelemetry-exporter-otlp>=1.44.0",
-    "mcp[cli]>=1.28.1",
+    "fastmcp>=3.4.1",
 ]
 
 [dependency-groups]

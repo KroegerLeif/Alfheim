@@ -63,6 +63,21 @@ var CoreApps = []AppItem{
 		DisplayOrder: 4,
 	},
 	{
+		ID:           "chat",
+		Slug:         "chat",
+		Title:        "ALFI Chat",
+		Name:         "ALFI Chat",
+		Description:  "Intelligent household assistant with MCP tools and contextual chat.",
+		Icon:         "forum",
+		IconURL:      "forum",
+		URL:          "/chat",
+		AppURL:       "/chat",
+		Category:     "internal",
+		Tier:         TierCore,
+		Status:       "active",
+		DisplayOrder: 5,
+	},
+	{
 		ID:           "workout",
 		Slug:         "workout",
 		Title:        "Workout Tracker",
@@ -75,7 +90,7 @@ var CoreApps = []AppItem{
 		Category:     "internal",
 		Tier:         TierCore,
 		Status:       "active",
-		DisplayOrder: 5,
+		DisplayOrder: 6,
 	},
 	{
 		ID:           "todo",
@@ -90,6 +105,6 @@ var CoreApps = []AppItem{
 		Category:     "internal",
 		Tier:         TierCore,
 		Status:       "in_progress",
-		DisplayOrder: 6,
+		DisplayOrder: 7,
 	},
 }

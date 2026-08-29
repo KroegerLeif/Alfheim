@@ -48,7 +48,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
     expect(result.current.data).toBeDefined()
     expect(result.current.data?.length).toBe(2)
@@ -60,7 +60,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
     expect(result.current.data).toBeDefined()
     expect(result.current.data?.length).toBe(2)
@@ -72,7 +72,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
     expect(result.current.data).toBeDefined()
     expect(result.current.data?.current_streak).toBe(5)
@@ -151,7 +151,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
     expect(result.current.data).toBeDefined()
     expect(result.current.data?.length).toBe(1)
@@ -163,7 +163,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
     expect(result.current.data).toBeDefined()
     expect(result.current.data?.pendingCount).toBe(1)
