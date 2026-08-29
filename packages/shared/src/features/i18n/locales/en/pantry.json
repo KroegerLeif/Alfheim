@@ -236,6 +236,8 @@
     "metricStock": "Metric: Stock [Norm. Base Unit]",
     "sortedHighToLow": "Sorted: High-to-Low",
     "systemBrand": "ALFHEIM // OS",
-    "systemVersion": "Pantry System v1.0"
+    "systemVersion": "Pantry System v1.0",
+    "askAlfi": "ALFI Assistant",
+    "askAlfiAboutProduct": "Ask ALFI about this product"
   }
 }

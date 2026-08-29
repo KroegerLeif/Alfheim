@@ -1,9 +1,9 @@
 "use client";
 
-import { useTranslation } from "@alfheim/shared";
-import { Button, TableRow, TableCell } from "@alfheim/shared";
+import { useTranslation, Button, TableRow, TableCell, AlfiAvatar } from "@alfheim/shared";
 import { Plus, Minus, AlertTriangle } from "lucide-react";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
+import { usePantryChat } from "@/core/chatContext";
 
 interface InventoryTableRowProps {
   state: InventoryStateReadWithRelations;
@@ -13,12 +13,12 @@ interface InventoryTableRowProps {
 /**
  * InventoryTableRow
  * Renders a single inventory state row with product info, stock level alert badges,
- * expiration status, and quick IN/OUT action buttons.
+ * expiration status, contextual ALFI assistant trigger, and quick IN/OUT action buttons.
  */
 export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowProps) {
   const { t } = useTranslation();
+  const { openChat } = usePantryChat();
 
-  // Safe access with null guards — no non-null assertions
   const product = state.product;
   const location = state.location;
 
@@ -65,9 +65,32 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
         )}
       </TableCell>
 
-      {/* Quick actions */}
+      {/* Quick actions & ALFI trigger */}
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-2">
+          <Button
+            onClick={() =>
+              openChat({
+                sourceApp: "pantry",
+                entityType: "product",
+                entityId: product.id,
+                entityData: {
+                  name: product.name,
+                  barcode: product.barcode,
+                  quantity: state.quantity,
+                  location: location.name,
+                  base_unit: product.base_unit,
+                },
+              })
+            }
+            variant="outline"
+            size="sm"
+            aria-label={`${t("pantry.askAlfi")}: ${product.name}`}
+            title={t("pantry.askAlfiAboutProduct")}
+            className="h-8 px-2 border-[var(--border-subtle)] hover:border-[var(--primary-main)] bg-[var(--surface-card)] hover:bg-[var(--surface-canvas)] cursor-pointer"
+          >
+            <AlfiAvatar status="idle" size="sm" />
+          </Button>
           <Button onClick={() => onQuickAction("in")} variant="outline" size="sm"
             className="h-8 text-[10px] px-2.5 font-black uppercase tracking-wider text-emerald-400 border-emerald-800/40 bg-emerald-950/20 hover:bg-emerald-900/40 cursor-pointer">
             <Plus className="h-3 w-3 mr-0.5" />{t("pantry.actionIn")}

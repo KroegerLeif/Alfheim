@@ -1,0 +1,12 @@
+[
+  { "name": "Barbell", "category": "barbell" },
+  { "name": "Adjustable Dumbbells", "category": "dumbbell" },
+  { "name": "Flat Bench", "category": "bench" },
+  { "name": "Squat Rack", "category": "rack" },
+  { "name": "Pull-Up Bar", "category": "bodyweight" },
+  { "name": "Kettlebell", "category": "kettlebell" },
+  { "name": "Resistance Bands", "category": "bands" },
+  { "name": "Cable Machine", "category": "machine" },
+  { "name": "Bodyweight Only", "category": "bodyweight" },
+  { "name": "Treadmill", "category": "cardio" }
+]

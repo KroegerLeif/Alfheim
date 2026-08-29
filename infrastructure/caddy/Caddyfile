@@ -16,7 +16,89 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	redir /maintenance /maintenance/en 302
 	redir /maintenance/ /maintenance/en 302
 	redir /chores /chores/de 302
-	redir /chores/ /chores/de 302
+	redir /workout /workout/de 302
+	redir /workout/ /workout/de 302
+	redir /chat /chat/de 302
+	redir /chat/ /chat/de 302
+	redir /budget /budget/en 302
+	redir /budget/ /budget/en 302
+
+	# Keycloak IAM (Native subpath /auth - NO path stripping)
+	handle /auth* {
+		reverse_proxy keycloak:8080
+	}
+
+	# API Gateway Proxies on Frontend Domain (allows relative /api/v1/... calls without CORS)
+	handle_path /api/v1/maintenance* {
+		rewrite * /api/v1{path}
+		reverse_proxy maintenance-backend:8000
+	}
+	handle_path /maintenance/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy maintenance-backend:8000
+	}
+
+	handle_path /api/v1/pantry* {
+		rewrite * /api/v1{path}
+		reverse_proxy pantry-backend:8000
+	}
+	handle_path /pantry/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy pantry-backend:8000
+	}
+
+	handle_path /api/v1/shopping* {
+		rewrite * /api/v1{path}
+		reverse_proxy shopping-backend:8000
+	}
+	handle_path /shopping/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy shopping-backend:8000
+	}
+
+	handle_path /api/v1/workout* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
+	}
+	handle_path /workout/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
+	}
+
+	handle_path /api/v1/budget* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
+	}
+	handle_path /budget/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
+	}
+
+	handle /api/v1/chores* {
+		reverse_proxy chores-backend:8000
+	}
+	handle_path /chores/api/v1* {
+		rewrite * /api/v1/chores{path}
+		reverse_proxy chores-backend:8000
+	}
+
+	handle /api/v1/chat* {
+		reverse_proxy chat-backend:8080
+	}
+	handle /chat/api/v1* {
+		uri strip_prefix /chat
+		rewrite * /api/v1/chat{path}
+		reverse_proxy chat-backend:8080
+	}
+
+	handle /api/v1/* {
+		reverse_proxy dashboard-backend:8080
+	}
+
+	# RustFS S3 Storage Ingress Gateway & Presigned URL Handler
+	handle_path /storage* {
+		reverse_proxy rustfs:9000
+	}
 
 	# Microfrontend proxies (keep basePath prefix intact for Next.js apps)
 	handle /pantry* {
@@ -33,6 +115,12 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	}
 	handle /budget* {
 		reverse_proxy budget-frontend:3000
+	}
+	handle /workout* {
+		reverse_proxy workout-frontend:3000
+	}
+	handle /chat* {
+		reverse_proxy chat-frontend:3000
 	}
 	handle /grafana* {
 		reverse_proxy grafana:3000
@@ -76,31 +164,89 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 		reverse_proxy keycloak:8080
 	}
 
-	# Feature APIs with Path Stripping (FastAPI backends expect /api/v1/...)
-	handle_path /pantry* {
-		reverse_proxy pantry-backend:8000
+	# Maintenance API
+	handle_path /api/v1/maintenance* {
+		rewrite * /api/v1{path}
+		reverse_proxy maintenance-backend:8000
 	}
-	handle_path /shopping* {
-		reverse_proxy shopping-backend:8000
+	handle_path /maintenance/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy maintenance-backend:8000
 	}
 	handle_path /maintenance* {
 		reverse_proxy maintenance-backend:8000
+	}
+	# Budget API
+	handle_path /api/v1/budget* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
+	}
+	handle_path /budget/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
 	}
 	handle_path /budget* {
 		reverse_proxy budget-backend:8000
 	}
 
-	# Budget API (NO stripping variant)
-	handle /api/v1/budget* {
-		reverse_proxy budget-backend:8000
+	# Workout API
+	handle_path /api/v1/workout* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
+	}
+	handle_path /workout/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy workout-backend:8000
+	}
+	handle_path /workout* {
+		reverse_proxy workout-backend:8000
+	}
+
+	# Pantry API
+	handle_path /api/v1/pantry* {
+		rewrite * /api/v1{path}
+		reverse_proxy pantry-backend:8000
+	}
+	handle_path /pantry/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy pantry-backend:8000
+	}
+	handle_path /pantry* {
+		reverse_proxy pantry-backend:8000
+	}
+
+	# Shopping API
+	handle_path /api/v1/shopping* {
+		rewrite * /api/v1{path}
+		reverse_proxy shopping-backend:8000
+	}
+	handle_path /shopping/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy shopping-backend:8000
+	}
+	handle_path /shopping* {
+		reverse_proxy shopping-backend:8000
 	}
 
 	# Chores API (NO stripping - expects /api/v1/chores/*)
 	handle /api/v1/chores* {
 		reverse_proxy chores-backend:8000
 	}
+	handle_path /chores/api/v1* {
+		rewrite * /api/v1/chores{path}
+		reverse_proxy chores-backend:8000
+	}
 	handle /chores* {
 		reverse_proxy chores-backend:8000
+	}
+
+	# Chat API (NO stripping - Go backend expects /api/v1/chat/*)
+	handle /api/v1/chat* {
+		reverse_proxy chat-backend:8080
+	}
+	handle_path /chat/api/v1* {
+		rewrite * /api/v1/chat{path}
+		reverse_proxy chat-backend:8080
 	}
 
 	# Dashboard Backend (NO stripping - Go backend expects /api/v1/apps, /profile, /households, /telemetry)

@@ -5,6 +5,11 @@
 **Auditor:** Principal Software Architect, Frontend Specialist & Security Auditor
 **Scope:** Entire Alfheim Monorepo (`apps/`, `core/`, `packages/`, `infrastructure/`, `scripts/`, `.ai/`)
 
+> [!NOTE]
+> This document is a **frozen snapshot** of the `v1.0.0` audit; all 15 of its issues are remediated.
+> Open technical debt discovered after this audit is tracked in the living [`backlog.md`](backlog.md)
+> (ID scheme `TD-<AREA>-<NN>`). Do not append new items here.
+
 ---
 
 ## 1. Executive Monorepo Health Scorecard
@@ -34,7 +39,9 @@
 | `apps/shopping/frontend` | Next.js 14 / Vitest | ✅ | ✅ | **>65%** | Component test suites for `ItemRow`, `ListSelector`, `EinlagernModal`, and `ChecklistContainer`. |
 | `core/dashboard/backend` | Go / Chi / PGX | ✅ | ✅ | **>60%** | Table-driven HTTP handler & middleware test coverage across all domain packages. |
 | `core/dashboard/frontend` | Next.js 14 / Vitest | ✅ | ✅ | **>60%** | Full component coverage for `HouseholdDetailView`, `ContactModal`, `AddAppModal`, `SystemShellLogs`, `CustomThemeBuilder`. |
-| `packages/shared` | TS / React | ✅ | ✅ | **>80%** | Comprehensive unit & component tests for `useTranslation`, `ThemeContext`, `OSMMapViewer`, `HouseholdSwitcher`, `AppHeader`. |
+| `apps/chat/backend` | Go / Chi / PGX / S3 / MCP | ✅ | ✅ | **>70%** | Comprehensive unit & handler test coverage for model blocks, conversations, attachments, and MCP tools. |
+| `apps/chat/frontend` | Next.js 16 / Vitest | ✅ | ✅ | **>75%** | Test suites for chat stream view, conversation list, attachments, and model block management. |
+| `packages/shared` | TS / React | ✅ | ✅ | **>80%** | Comprehensive unit & component tests for `useTranslation`, `ThemeContext`, `OSMMapViewer`, `HouseholdSwitcher`, `AppHeader`, `ChatWidget`. |
 
 ---
 

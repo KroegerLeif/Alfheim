@@ -58,7 +58,9 @@
     "brand_subtitles": {
       "dashboard": "Suwerenny Portal",
       "pantry": "Zapasy i Księga",
-      "chores": "Grywalizacja Nawyków"
+      "chores": "Grywalizacja Nawyków",
+      "chat": "Asystent AI",
+      "workout": "Siła i Postęp"
     }
   },
   "catalog": {

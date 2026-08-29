@@ -14,17 +14,6 @@ apps:
     status: "active"
     display_order: 1
 
-  - id: "librechat"
-    title: "LibreChat AI"
-    slug: "librechat"
-    description: "Unified AI conversational interface with LLM provider routing."
-    icon: "psychology"
-    url: "http://alfheim.loegien.localhost/chat"
-    category: "external"
-    required_roles: []
-    status: "active"
-    display_order: 2
-
   - id: "plex"
     title: "Plex Media Server"
     slug: "plex"
@@ -34,7 +23,7 @@ apps:
     category: "external"
     required_roles: ["admin"]
     status: "in_progress"
-    display_order: 3
+    display_order: 2
 
   - id: "nextcloud"
     title: "Nextcloud Storage"
@@ -45,4 +34,4 @@ apps:
     category: "external"
     required_roles: []
     status: "in_progress"
-    display_order: 4
+    display_order: 3

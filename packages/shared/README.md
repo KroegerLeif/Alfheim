@@ -19,6 +19,7 @@ src/
 │   ├── layout/
 │   │   ├── Header/          # AppHeader, AuthControls, BackToDashboard
 │   │   ├── SidePanel/       # Reusable slide-over panel
+│   │   ├── ChatWidget/      # Universal ALFI AI Assistant drawer & Mascot
 │   │   └── AppShell/        # Base application shell wrapper
 │   └── ui/                  # Atomic primitives namespace
 ├── features/index.ts
@@ -37,6 +38,8 @@ import {
   useTheme,
   AppHeader,
   SidePanel,
+  ChatWidget,
+  AlfiAvatar,
   AppShell,
   ThemeToggle,
   LanguageSwitcher,

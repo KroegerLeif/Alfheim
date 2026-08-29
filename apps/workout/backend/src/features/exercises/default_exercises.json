@@ -1,0 +1,156 @@
+[
+  {
+    "name": "Barbell Bench Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders"],
+    "default_unit": "kg",
+    "instructions": "Lie on a flat bench, lower the bar to mid-chest, then press up to full arm extension."
+  },
+  {
+    "name": "Incline Dumbbell Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["shoulders", "triceps"],
+    "default_unit": "kg",
+    "instructions": "On an incline bench, press dumbbells from shoulder height to full extension above the chest."
+  },
+  {
+    "name": "Push-Up",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "core"],
+    "default_unit": "kg",
+    "instructions": "Lower the body toward the floor keeping a straight line from head to heels, then push back up."
+  },
+  {
+    "name": "Deadlift",
+    "primary_muscle": "back",
+    "secondary_muscles": ["hamstrings", "glutes", "traps", "forearms"],
+    "default_unit": "kg",
+    "instructions": "Hinge at the hips to grip the bar, keep a neutral spine, and stand up by driving through the floor."
+  },
+  {
+    "name": "Pull-Up",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "forearms"],
+    "default_unit": "kg",
+    "instructions": "Hang from a bar with an overhand grip and pull the chin above the bar."
+  },
+  {
+    "name": "Bent-Over Barbell Row",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "traps"],
+    "default_unit": "kg",
+    "instructions": "Hinge forward with a flat back and row the bar toward the lower ribcage."
+  },
+  {
+    "name": "Lat Pulldown",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps"],
+    "default_unit": "kg",
+    "instructions": "Pull the bar down toward the upper chest while keeping the torso upright."
+  },
+  {
+    "name": "Overhead Barbell Press",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["triceps", "core"],
+    "default_unit": "kg",
+    "instructions": "Press the bar from shoulder height to full overhead extension without arching the lower back."
+  },
+  {
+    "name": "Lateral Raise",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": [],
+    "default_unit": "kg",
+    "instructions": "Raise dumbbells out to the sides until arms are roughly parallel with the floor."
+  },
+  {
+    "name": "Barbell Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": ["forearms"],
+    "default_unit": "kg",
+    "instructions": "Curl the bar from full arm extension up to shoulder height, keeping elbows fixed at the sides."
+  },
+  {
+    "name": "Hammer Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": ["forearms"],
+    "default_unit": "kg",
+    "instructions": "Curl dumbbells with a neutral grip, keeping the wrists straight throughout the movement."
+  },
+  {
+    "name": "Triceps Pushdown",
+    "primary_muscle": "triceps",
+    "secondary_muscles": [],
+    "default_unit": "kg",
+    "instructions": "Using a cable machine, extend the arms downward until fully straight, then return with control."
+  },
+  {
+    "name": "Close-Grip Bench Press",
+    "primary_muscle": "triceps",
+    "secondary_muscles": ["chest", "shoulders"],
+    "default_unit": "kg",
+    "instructions": "Bench press with a shoulder-width grip, keeping elbows tucked close to the body."
+  },
+  {
+    "name": "Back Squat",
+    "primary_muscle": "quads",
+    "secondary_muscles": ["glutes", "hamstrings", "core"],
+    "default_unit": "kg",
+    "instructions": "With the bar on the upper back, squat down until thighs are parallel to the floor, then stand back up."
+  },
+  {
+    "name": "Leg Press",
+    "primary_muscle": "quads",
+    "secondary_muscles": ["glutes", "hamstrings"],
+    "default_unit": "kg",
+    "instructions": "Push the platform away using the legs until nearly extended, avoiding locking the knees."
+  },
+  {
+    "name": "Walking Lunge",
+    "primary_muscle": "quads",
+    "secondary_muscles": ["glutes", "hamstrings"],
+    "default_unit": "kg",
+    "instructions": "Step forward into a lunge, lowering the back knee toward the floor, and alternate legs while walking."
+  },
+  {
+    "name": "Romanian Deadlift",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": ["glutes", "back"],
+    "default_unit": "kg",
+    "instructions": "Hinge at the hips with a slight knee bend, lowering the bar along the legs, then return to standing."
+  },
+  {
+    "name": "Hip Thrust",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["hamstrings"],
+    "default_unit": "kg",
+    "instructions": "With upper back supported on a bench, drive the hips upward until the body forms a straight line."
+  },
+  {
+    "name": "Standing Calf Raise",
+    "primary_muscle": "calves",
+    "secondary_muscles": [],
+    "default_unit": "kg",
+    "instructions": "Rise up onto the toes as high as possible, then lower the heels back down with control."
+  },
+  {
+    "name": "Plank",
+    "primary_muscle": "core",
+    "secondary_muscles": ["shoulders"],
+    "default_unit": "kg",
+    "instructions": "Hold a straight-line position on the forearms and toes, bracing the core throughout."
+  },
+  {
+    "name": "Hanging Leg Raise",
+    "primary_muscle": "core",
+    "secondary_muscles": ["forearms"],
+    "default_unit": "kg",
+    "instructions": "Hang from a bar and raise the legs toward the chest while keeping the core braced."
+  },
+  {
+    "name": "Farmer's Carry",
+    "primary_muscle": "full_body",
+    "secondary_muscles": ["forearms", "traps", "core"],
+    "default_unit": "kg",
+    "instructions": "Carry a heavy weight in each hand for a set distance while maintaining an upright posture."
+  }
+]

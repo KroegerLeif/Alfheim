@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect, useRef } from "react";
 import Keycloak from "keycloak-js";
 import { AuthContext } from "@/core/authContext";
+import { PantryChatProvider } from "@/core/chatContext";
+import { PantryChatOverlay } from "@/components/shared/PantryChatOverlay";
 import { UserIdentity, useTranslation } from "@alfheim/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -169,7 +171,10 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, token, logout: handleLogout }}>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <PantryChatProvider>
+          {children}
+          <PantryChatOverlay />
+        </PantryChatProvider>
       </QueryClientProvider>
     </AuthContext.Provider>
   );

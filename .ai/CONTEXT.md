@@ -9,6 +9,83 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`refactor(frontend): resolve code review issues, enforce 200 loc limits, and eliminate any types`**
+  - Extracted `ModelDiscoverySection.tsx` from `ModelBlockFormModal.tsx`, bringing both components under 190 LOC.
+  - Modularized `apps/chat/frontend/src/lib/api.ts` into specialized submodules (`client.ts`, `modelBlocks.ts`, `conversations.ts`, `attachments.ts`) with a clean facade module.
+  - Extracted `ChatLandingState.tsx` from `ChatStreamView.tsx`, reducing stream view to 181 LOC.
+  - Extracted `useHouseholdSwitcher.ts` custom hook from `HouseholdSwitcher.tsx`, removing hardcoded HTTP fallback URL and reducing component to 59 LOC.
+  - Replaced loose `any` typings with `KeycloakWindow` interface and strict error type guards across chat frontend and shared UI package.
+  - Added localized placeholder tokens across `de`, `en`, and `pl` dictionaries in `packages/shared/src/features/i18n/locales/*/chat.json`.
+* **`fix(chat): ensure default ollama base url and fix full-width viewport layout`**
+  - Added `DefaultOllamaBaseURL` (`http://host.docker.internal:11434`) and scheme normalization (`NormalizeOllamaBaseURL`) across `apps/chat/backend/internal/shared/llm/ollama_provider.go` and `internal/features/modelblocks/service.go` to eliminate `unsupported protocol scheme ""` errors when connecting to Ollama.
+  - Removed nested `<html>` and `<body>` rendering in `apps/chat/frontend/src/app/layout.tsx` and `apps/pantry/frontend/src/app/layout.tsx`, fixing React Hydration error #418 and ensuring root layout returns children directly.
+  - Fixed full viewport width and height across `apps/chat`, `apps/pantry`, `apps/chores`, `apps/maintenance`, and `apps/shopping` by enforcing `min-h-screen h-screen w-full flex flex-col` on `body` and `AppShell`.
+  - Added `w-full` to `AppHeader` and `AppShell` main container to guarantee 100% viewport coverage across all apps.
+* **`fix(chat): handle ollama stream errors gracefully, fix layout width and hydration error`**
+  - Streamlined Ollama and provider stream error propagation in `apps/chat/backend/internal/features/conversations/service.go` and `ollama_provider.go` to emit descriptive SSE error events to the client instead of unhandled 500 HTTP failures.
+  - Aligned Keycloak token validation in `apps/chat/backend/internal/shared/middleware/auth.go` with dashboard backend standard by validating issuer, expiration, and signature without enforcing strict backend client audience.
+  - Attached `X-Household-ID` across chat frontend API requests, uploads, and SSE streams via `getActiveHouseholdId()`.
+  - Added token resolution and 401 retry handling across SPA tokens in `packages/shared/src/features/ui/components/HouseholdSwitcher.tsx` to resolve `/api/v1/households/me` 401 errors.
+  - Fixed chat layout width constraint, allowing full responsive container width with centered 4xl reading space, and added `suppressHydrationWarning` on `body` in `apps/chat/frontend/src/app/[locale]/layout.tsx`.
+* **`fix(auth): fix frontend token refresh in chat discovery and align caddy api routes across apps`**
+  - Implemented proactive Keycloak token refresh (`getFreshAuthToken`) and 401 retry in `apps/chat/frontend/src/lib/api.ts`.
+  - Configured relative API base URLs across chat and maintenance frontends to keep requests same-origin and avoid CORS/host mismatch issues.
+  - Added comprehensive `/api/v1/...` and `/<app>/api/v1...` reverse proxy and path rewrite rules in `infrastructure/caddy/Caddyfile` across frontend and API domains.
+* **`fix(chat): enable host-gateway resolution and improve discovery error handling`**
+  - Configured `extra_hosts: ["host.docker.internal:host-gateway"]` in `apps/chat/compose.yml` for reliable Linux and Docker Desktop host resolution.
+  - Hardened Ollama model discovery in `apps/chat/backend/internal/features/modelblocks/service.go` with 5s timeouts and descriptive network failure messages.
+  - Enhanced `ModelBlockFormModal.tsx` to surface exact API error descriptions directly in the UI.
+* **`feat(chat): fix material icon rendering and add ollama auto-discovery`**
+  - Included Google Material Symbols Outlined font across `apps/chat/frontend/src/app/[locale]/layout.tsx` and `globals.css` to fix icon rendering across header, navigation, and dropdowns.
+  - Implemented `POST /api/v1/chat/models/discover` backend discovery endpoint querying `{base_url}/api/tags` for installed Ollama models.
+  - Implemented one-click Ollama model auto-discovery and tag select dropdown with auto display naming in `ModelBlockFormModal`.
+  - Replaced plain text notice in `ConversationList` sidebar empty state with a styled card and "Add Model" CTA button triggering `ModelBlockFormModal`.
+  - Registered `chat-frontend` client in Keycloak `alfheim-realm.json` and synchronized dictionaries across `de`, `en`, and `pl`.
+* **`fix(mcp): resolve FastMCP import path and runtime dependencies across python backends`**
+  - Standardized FastMCP imports to `from fastmcp import FastMCP` in `apps/maintenance/backend/app/core/mcp.py`.
+  - Replaced legacy `mcp[cli]` dependency with `fastmcp>=3.4.1` in `apps/maintenance/backend/pyproject.toml` and synced `uv.lock`.
+  - Configured FastMCP HTTP server mount at `/mcp` with proper lifespan context management in `apps/maintenance/backend/app/main.py`.
+* **`refactor(chat): extract ModelBlockVisibilitySelector and clean setup-env formatting`**
+  - Extracted `ModelBlockVisibilitySelector` subcomponent in `apps/chat/frontend/src/features/model-blocks/components/` to cleanly decouple visibility toggle UI controls from `ModelBlockFormModal`.
+  - Added dedicated Vitest component tests in `ModelBlockManagement.test.tsx` verifying toggle callbacks and disabled state handling.
+  - Formatted `scripts/setup-env.sh` to remove trailing whitespace for flawless pre-commit hook execution.
+* **`chore(tooling): add setup-env script for automated env file scaffolding`**
+  - Created `scripts/setup-env.sh` to dynamically discover all `.env.example` templates across root, apps, core, packages, and infrastructure.
+  - Implemented safe default mode (copies missing `.env` files with green status output, skips existing `.env` with yellow `[SKIP]` notices).
+  - Implemented force mode (`--force` / `-f`) with automatic timestamped backups (`.env.bak.<timestamp>`).
+  - Added GOROOT environment guard to `scripts/verify.sh` to handle stale Homebrew Cellar paths.
+* **`feat(chat): enforce household sharing rules and permissions for model blocks`**
+  - Refined access rules and ownership permissions in `apps/chat/backend/internal/features/modelblocks/`: `Get` and `TriggerHealthCheck` allow owner and shared household members (`IsVisibleTo`), while `Update` and `Delete` strictly require ownership (`CanModify` -> `ErrForbidden`).
+  - Added `Get` endpoint (`GET /api/v1/chat/model-blocks/{id}`) and extended handler with household context propagation for health checks.
+  - Implemented `features/model-blocks/` frontend architecture (`ModelBlockCard`, `ModelBlockFormModal`, `ModelBlockManagementView`, `modelBlockService`) with clear badges ("Geteilt im Haushalt", "Privat", "System-Modell"), visibility switching, and conditional edit/delete actions.
+  - Added comprehensive unit and component test suites in backend (`service_test.go`, `handler_test.go`) and frontend (`ModelBlockManagement.test.tsx`).
+  - Added full i18n dictionaries across `de`, `en`, and `pl` for all model management interactions.
+* **`feat(deploy): configure compose, caddy routing, and tier-1 chat app registration`**
+  - Created `apps/chat/compose.yml` with `chat-db` (Postgres 16), `chat-backend` (Go), and `chat-frontend` (Next.js 16).
+  - Integrated `apps/chat/compose.yml` into root `compose.yaml` and declared `app-chat-net` bridge network.
+  - Added Stage 7 Chat App Slice to `scripts/up.sh` and teardown routines in `scripts/down.sh`.
+  - Configured Caddy reverse-proxy routing for `/chat*` and `/api/v1/chat*`.
+  - Removed orphaned `librechat` entry from `deploy/stack-apps.yaml` and registered `apps/chat` as Tier-1 Core App in `tier1_core_registry.go`.
+* **`feat(pantry): integrate alfi chatwidget with contextual product data`**
+  - Integrated `PantryChatProvider` and `PantryChatOverlay` into `apps/pantry/frontend/src/app/[locale]/providers.tsx`.
+  - Added ALFI assistant trigger button to `ClientHeader` using `actionsSlot` in `AppHeader`.
+  - Implemented dynamic contextual product triggering in `ProductList` and `InventoryTableRow` passing `entityType: "product"`, `entityId`, and `entityData` (name, barcode, brand, quantity, location).
+  - Added active household ID extraction from `localStorage` (`alfheim_active_household_id`) with event listener synchronization.
+  - Added `askAlfi` and `askAlfiAboutProduct` i18n keys across `de`, `en`, and `pl` `pantry.json` locale files.
+  - Added Vitest test suite in `chatContext.test.tsx` verifying Header trigger, product list context forwarding, and inventory table row context forwarding.
+* **`feat(shared): implement alfi chatwidget on sidepanel base`**
+  - Created `packages/shared/src/features/layout/ChatWidget/` with `ChatWidget`, `ChatWidgetHeader`, `ChatWidgetMessages`, `ChatWidgetInput`, `AlfiAvatar`, `useChatStream`, and `sseClient`.
+  - Implemented `AlfiAvatar` SVG mascot with interactive status states (`idle`, `thinking`, `tool_calling`, `streaming`).
+  - Added app context forwarding (`sourceApp`, `sourceContext`, `entityType`, `entityId`, `entityData`) to conversation creation API.
+  - Implemented SSE streaming reader in `sseClient.ts` with Bearer auth token resolution (from props or `sessionStorage` fallback).
+  - Added multi-language dictionary extensions across `de`, `en`, and `pl` in `chat.json`.
+  - Added Vitest and axe accessibility test suites in `ChatWidget.test.tsx`.
+* **`feat(chat): implement rustfs/s3 image attachments, upload flow, and message rendering`**
+  - Created `internal/shared/storage` S3 client wrapping AWS SDK v2 with idempotent bucket check (`EnsureBucketExists`), multipart upload, and tenant-isolated object key generator (`households/{household_id}/chat/...` and `users/{user_id}/chat/...`).
+  - Created `internal/features/attachments` with `POST /api/v1/chat/attachments` and `GET /api/v1/chat/attachments/{id}` endpoints persisting to Postgres `image_refs`.
+  - Updated `internal/features/conversations` to link uploaded `image_refs` when posting messages, returning attachments in `MessageResponseDTO`.
+  - Updated `apps/chat/frontend` with `ChatInput` file picker, live upload indicator, `AttachmentPreview` staging component, and `MessageItem` attachment rendering.
+  - Added unit and handler test suites for storage, attachments, and frontend components.
 * **`chore(test): configure pnpm allowBuilds for msw and harmonize vitest scripts`**
   - Configured `msw: true` under `allowBuilds` in `pnpm-workspace.yaml` for pnpm 11 security policy compatibility.
   - Added `"test": "vitest run"` and `"test:watch": "vitest"` across `maintenance-frontend`, `dashboard-frontend`, and `chores-frontend` (`--passWithNoTests`).
@@ -115,8 +192,10 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |
 | **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` (`maintenance_postgres_data`) |
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
+| **`apps/workout`** | FastAPI, FastMCP (backend only — frontend deferred) | `api.alfheim.loegien.de/workout` | `workout-db` (`postgres_data_workout`, Port `5434`) |
 | **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
 | **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
+| **`apps/chat`** | Go, Next.js 16, OIDC | `alfheim.loegien.de/chat` / `api.alfheim.loegien.de/api/v1/chat` | `chat-db` (`chat_postgres_data`, Port `5436`) |
 
 ### Docker Network Map:
 * **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Keycloak, RustFS S3, Grafana, and API Backends.
@@ -245,6 +324,82 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 2. **Instance Uniqueness**: Only one instance per chore template can be scheduled for a given date (enforced via index uq_chore_instance_template_per_date).
 3. **Streak Integrity**: Streaks are incremented if all scheduled chores for a day are completed. If any chore is left uncompleted, it is marked as "missed" and the streak resets to 0 during the daily reset.
 4. **Self-Healing Reset**: If the system is offline, the daily reset runs retroactively on the first access of a household's chores list for that day.
+
+---
+
+## 🗄️ Database Schema Invariants (Chat Service — `apps/chat/backend`, Go)
+
+> **Status**: Phase 0-6. Backend skeleton, migrations, JWT auth (issuer + audience), `/api/v1/chat/health`, the `internal/shared/llm` provider abstraction (**Ollama and OpenAI-compatible implemented**; Anthropic still returns a clear "not implemented yet" error), the `model-blocks` feature (CRUD, AES-256-GCM key encryption, ownership/sharing rules, on-demand health checks, ENV bootstrap seeding), the `conversations` feature (CRUD for conversations/messages, the `GET .../stream` SSE endpoint, and a full multi-round MCP tool-calling loop), the `mcpservers` registry feature (seeded from `CHAT_MCP_SERVERS`, admin enable/disable), `internal/shared/mcp` (a from-scratch Streamable HTTP client for the Fach-Apps' FastMCP servers), and `attachments` / `internal/shared/storage` (S3/RustFS storage client, idempotent bucket check, multipart upload, tenant-isolated object keys, and `image_refs` metadata persistence). Next.js 16 frontend (`apps/chat/frontend`) with conversation list, SSE chat streaming view, `ChatInput` file picker, `AttachmentPreview` staging component, and `MessageItem` attachment rendering. Not yet wired into `compose.yaml`, `scripts/up.sh`, or the Caddyfile.
+
+### Table: `model_blocks`
+* **`id`** (UUID, PK), **`owner_user_id`** (Keycloak sub), **`household_id`** (NULLABLE — NULL means private)
+* **`visibility`** (`private` | `shared`) — shared blocks are usable by household members but only editable by the owner
+* **`provider_type`** (`ollama` | `openai_compatible`, `anthropic` planned), **`base_url`**, **`model_identifier`**
+* **`api_key_encrypted`** (AES-256-GCM ciphertext, BYTEA, NULLABLE), **`api_key_key_id`** (default `v1`, enables future key rotation)
+* **`health_status`** (`ok` | `unreachable` | `auth_invalid` | `unknown`), **`health_checked_at`**, **`health_detail`**
+* **`is_bootstrap`** — set on the idempotent, first-startup-only upsert seeded from `CHAT_BOOTSTRAP_*` env vars
+
+### Table: `mcp_server_registry`
+* Seeded/re-synced on every startup from `CHAT_MCP_SERVERS` (`internal/features/mcpservers`) — `app_slug`, `internal_url` (e.g. `http://pantry-backend:8000/mcp`), `enabled`. Re-seeding upserts `internal_url` by `app_slug` but never resets an admin's `enabled` toggle. No MCP server code is added by this feature; `internal/shared/mcp` is a from-scratch Streamable HTTP **client** (initialize handshake, session id, JSON or SSE response bodies) that talks to the Fach-Apps' existing FastMCP servers.
+
+### Tables: `conversations`, `messages`, `image_refs`
+* `conversations.source_app`/`source_context` capture the host Fach-App and its context when opened from the embedded chat widget (vs. NULL for the full chat app).
+* `messages.role` in (`user`,`assistant`,`system`,`tool`); `image_refs.storage_key` points at RustFS.
+
+#### Invariant Rules:
+1. API key plaintext never leaves the backend — response DTOs expose only `has_api_key: bool`.
+2. Shared `model_blocks` are usable by household members; only `owner_user_id` may edit, delete, or trigger a health check (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
+3. Bootstrap blocks (`is_bootstrap = true`, `owner_user_id = "system"`) are the one exception: visible and modifiable by any authenticated user, since they have no natural personal owner. The one-time seed is tracked via the separate `bootstrap_state` table (not `model_blocks` row presence), so deleting/editing the seeded block never causes it to reappear on the next restart.
+4. `internal/shared/llm.Provider` is constructed with primitive params (provider type, base URL, model, API key) — never a `modelblocks.ModelBlock` — so `internal/shared/llm` has no dependency on `internal/features/modelblocks`.
+5. JWT validation in `internal/shared/middleware/auth.go` checks **both** issuer and audience (`KEYCLOAK_EXPECTED_AUDIENCE`), a deliberate divergence from `core/dashboard/backend`'s issuer-only check.
+6. Conversations are always personal (`owner_user_id` only) — unlike `model_blocks`, there is no household-shared visibility for a conversation itself; a household member with access to a shared model block still gets their own separate conversation using it.
+7. `GET /api/v1/chat/conversations/{id}/stream` requires the conversation's last message to be an unanswered `role='user'` message (`ErrNoPendingUserMessage` otherwise). The completed assistant reply is persisted via `AppendMessageAndTouchConversation` (single transaction: insert message + bump `conversations.updated_at`), using a fresh 5s `context.Background()` timeout independent of the HTTP request context, so a client disconnecting right as the stream finishes cannot cause the reply to be silently lost. A stream that ends in an `Err` chunk persists nothing.
+8. `internal/features/conversations` depends on `internal/shared/llm` and defines its own narrow `ModelBlockResolver` interface (satisfied structurally by `modelblocks.Service`) rather than importing `internal/features/modelblocks` — kept decoupled per this repo's Go interface convention (defined at the consumer).
+9. The chat-backend HTTP server sets a long `WriteTimeout` (10 minutes, see `cmd/server/main.go`) specifically because the SSE endpoint holds the response open for as long as the model takes to reply; `ReadTimeout` stays short (15s).
+10. The frontend cannot use the browser's native `EventSource` for streaming because it cannot send an `Authorization` header; `apps/chat/frontend/src/lib/api.ts`'s `streamAssistantReply` instead reads the `text/event-stream` response body manually via `fetch()` + `ReadableStream`.
+11. The tool-calling loop (`conversations.service.runToolLoop`) forwards every provider chunk live to the client (`delta`, `tool_call`) but deliberately **never forwards an intermediate round's `Done` chunk** — a round ending is not the same as the whole assistant turn ending. Only the final round (no more tool calls, or the round limit reached) emits the terminal `Done`/`Err` chunk that ends the SSE response.
+12. `tool_round_limit` and `allowed_mcp_apps` live in a model block's `config_json` and are parsed into `llm.ProviderPolicy` by `modelblocks.parseProviderPolicy` (default round limit: 8). `llm.ProviderPolicy` lives in `internal/shared/llm` — not on the `modelblocks` or `conversations` domain types — specifically so both features can share it without one importing the other.
+13. `internal/features/conversations` never imports `internal/features/mcpservers` or `internal/shared/mcp`'s concrete `*mcp.ClientPool` type directly in its exported `Service`/`NewService` signature: it defines its own `MCPServerLister` and `MCPClientPool` consumer interfaces (`toolbridge.go`), satisfied structurally. `mcp.ClientPool.Get` returns the `mcp.ToolCaller` interface (not `*mcp.Client`) specifically so tests can substitute a fake without a real MCP server.
+14. `OpenAICompatibleProvider` (`internal/shared/llm/openai_compatible_provider.go`) expects `model_blocks.base_url` to be the API root **without** a trailing `/v1` (e.g. `https://api.openai.com`, not `.../v1`) — it appends `/v1/chat/completions` and `/v1/models` itself, per this phase's explicit spec. Streamed tool-call arguments arrive as fragmented JSON-string deltas keyed by index (unlike Ollama's single complete `tool_calls` list); they are buffered per index and only turned into `StreamChunk{ToolCall: ...}` once `finish_reason == "tool_calls"` (or the connection closes without an explicit `data: [DONE]` frame, which some providers omit).
+
+---
+
+## 🗄️ Database Schema Invariants (Workout Service)
+
+Backend + MCP server only (frontend deferred). No `households` table exists — `home_id` is an
+opaque UUID carried by the JWT/`X-Household-ID` header, matching Pantry/Chores.
+
+### Tables: `equipment`, `exercises`
+* Scoped via a `scope` enum (`system` | `household` | `user`); `home_id`/`owner_user_id` are
+  NULLABLE and set only for the matching scope. System rows are seeded at test/startup time and
+  read-only via the API.
+* `user_exercise_preferences` (UNIQUE `user_id`+`exercise_id`) carries each user's baseline
+  weight, read by the weight engine. `exercise_favorites` (UNIQUE `user_id`+`exercise_id`) is a
+  pure on/off join.
+
+### Tables: `plans`, `plan_days`, `plan_exercises`, `plan_sets`
+* `plans.is_shared` controls household-wide visibility; only the owner may write, even to a
+  shared plan.
+* `plan_sets.target_weight_type` (`absolute` | `default` | `offset`) drives the relative weight
+  engine — see `plans/services/weight_engine_service.py::resolve_target_weight`.
+
+### Tables: `workout_sessions`, `session_exercises`, `session_sets`
+* Structural clones of plan state at session-start (never live FKs into
+  `plan_exercises`/`plan_sets`) so editing/deleting a `Plan` never rewrites a past session —
+  `session_sets.target_weight_kg` stores the RESOLVED weight-engine number, not the type/offset.
+* `session_sets` has a partial-unique index on (`session_exercise_id`, `client_idempotency_key`)
+  WHERE the key is NOT NULL, backing the offline-sync ack endpoint
+  (`POST /sessions/{id}/sets/sync`).
+
+#### Invariant Rules:
+1. **MCP tenancy**: every MCP tool (per-feature and the composite `agent_tools` slice) takes
+   explicit `household_id`/`user_id` parameters and enforces the same service-layer filtering as
+   REST routes — unlike Pantry/Chores' MCP tools, which hardcode `MOCK_HOME_ID`.
+2. **403 vs 404**: cross-tenant `X-Household-ID` header mismatch is rejected at the auth-dependency
+   layer with 403 (see `backend_shared.dependencies`); a resource that exists but isn't visible to
+   the caller's household/user returns 404 at the resource layer.
+3. **No Alembic**: schema is managed via `SQLModel.metadata.create_all()`, matching every other
+   app in this monorepo.
 
 ---
 
