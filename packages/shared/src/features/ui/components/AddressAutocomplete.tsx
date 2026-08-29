@@ -13,6 +13,26 @@ export interface AddressResult {
 	lng: number;
 }
 
+interface NominatimAddress {
+	road?: string;
+	street?: string;
+	pedestrian?: string;
+	suburb?: string;
+	house_number?: string;
+	postcode?: string;
+	city?: string;
+	town?: string;
+	village?: string;
+	country?: string;
+}
+
+interface NominatimSearchResult {
+	display_name: string;
+	lat: string;
+	lon: string;
+	address?: NominatimAddress;
+}
+
 interface AddressAutocompleteProps {
 	placeholder?: string;
 	initialValue?: string;
@@ -73,9 +93,9 @@ export function AddressAutocomplete({
 				if (!response.ok) {
 					throw new Error('Nominatim request failed');
 				}
-				const data = await response.json();
+				const data = (await response.json()) as NominatimSearchResult[];
 
-				const mapped = data.map((item: any) => {
+				const mapped: AddressResult[] = data.map((item: NominatimSearchResult) => {
 					const addr = item.address || {};
 					const road = addr.road || addr.street || addr.pedestrian || addr.suburb || '';
 					const houseNumber = addr.house_number || '';

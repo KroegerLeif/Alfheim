@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import type * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Marker definitions used by the OSM map component.
@@ -30,9 +31,9 @@ export function OSMMapViewer({
 	style = { height: '100%', width: '100%', borderRadius: '0.75rem', overflow: 'hidden' }
 }: OSMMapViewerProps) {
 	const mapContainerRef = useRef<HTMLDivElement>(null);
-	const mapRef = useRef<any>(null);
-	const leafletRef = useRef<any>(null);
-	const markersGroupRef = useRef<any>(null);
+	const mapRef = useRef<L.Map | null>(null);
+	const leafletRef = useRef<typeof L | null>(null);
+	const markersGroupRef = useRef<L.FeatureGroup | null>(null);
 	const [isMounted, setIsMounted] = useState(false);
 
 	// Refs to avoid dynamic closure race conditions during async Leaflet load
@@ -44,18 +45,23 @@ export function OSMMapViewer({
 	zoomRef.current = zoom;
 	markersRef.current = markers;
 
-	const syncMarkers = (map: any, L: any, group: any, markersList: MapMarker[]) => {
-		if (!map || !L || !group) return;
+	const syncMarkers = (
+		map: L.Map | null,
+		leafletInstance: typeof L | null,
+		group: L.FeatureGroup | null,
+		markersList: MapMarker[]
+	) => {
+		if (!map || !leafletInstance || !group) return;
 
 		// Clear existing layers in group
 		group.clearLayers();
 
 		markersList.forEach((m) => {
-			let markerOptions: any = {};
+			const markerOptions: L.MarkerOptions = {};
 
 			// If a custom color is defined, create a DivIcon with CSS styling
 			if (m.color) {
-				markerOptions.icon = L.divIcon({
+				markerOptions.icon = leafletInstance.divIcon({
 					className: 'custom-leaflet-marker',
 					html: `<div style="
 						background-color: ${m.color};
@@ -71,7 +77,7 @@ export function OSMMapViewer({
 				});
 			}
 
-			const marker = L.marker([m.lat, m.lng], markerOptions);
+			const marker = leafletInstance.marker([m.lat, m.lng], markerOptions);
 			if (m.popupContent) {
 				marker.bindPopup(`<div style="font-family: inherit; font-size: 11px; color: #1e293b;">${m.popupContent}</div>`);
 			}
@@ -106,7 +112,7 @@ export function OSMMapViewer({
 			leafletRef.current = L;
 
 			// Override default icon assets paths to load from cloud CDN
-			delete (L.Icon.Default.prototype as any)._getIconUrl;
+			delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 			L.Icon.Default.mergeOptions({
 				iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
 				iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -142,7 +148,7 @@ export function OSMMapViewer({
 			mapRef.current = map;
 
 			if (onMapClick && interactive) {
-				map.on('click', (e: any) => {
+				map.on('click', (e: L.LeafletMouseEvent) => {
 					onMapClick(e.latlng.lat, e.latlng.lng);
 				});
 			}
