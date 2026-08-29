@@ -37,6 +37,12 @@
       "itemCount": "{count} items",
       "noLocations": "No locations created.",
       "createTitle": "Create New Location",
+      "editTitle": "Edit Location",
+      "deleteTitle": "Delete Location",
+      "deleteConfirm": "Are you sure you want to delete location \"{name}\"?",
+      "delete": "Delete",
+      "deleteError": "Failed to delete location.",
+      "saveError": "Failed to save location.",
       "name": "Location Name",
       "parent": "Parent Location"
     },

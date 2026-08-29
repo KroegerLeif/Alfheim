@@ -37,6 +37,12 @@
       "itemCount": "{count} Artikel",
       "noLocations": "Keine Lagerorte angelegt.",
       "createTitle": "Neuen Lagerort erstellen",
+      "editTitle": "Lagerort bearbeiten",
+      "deleteTitle": "Lagerort löschen",
+      "deleteConfirm": "Möchtest du den Lagerort \"{name}\" wirklich löschen?",
+      "delete": "Löschen",
+      "deleteError": "Fehler beim Löschen des Lagerorts.",
+      "saveError": "Fehler beim Speichern des Lagerorts.",
       "name": "Name des Lagerorts",
       "parent": "Übergeordneter Ort"
     },

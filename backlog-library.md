@@ -206,7 +206,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Submits data to `/api/v1/library/items`.
 
 #### [TASK-15] Implement Location Manager & Hierarchical Tree View
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/frontend/src/features/locations/`
 - **Description:** Build location management interface for creating, editing, and viewing nested locations (Room -> Shelf -> Box). Display item count per location.
 - **Definition of Done:**

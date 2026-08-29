@@ -37,7 +37,13 @@
       "itemCount": "{count} pozycji",
       "noLocations": "Brak utworzonych lokalizacji.",
       "createTitle": "Utwórz nową lokalizację",
-      "name": "Name des Lagerorts",
+      "editTitle": "Edytuj lokalizację",
+      "deleteTitle": "Usuń lokalizację",
+      "deleteConfirm": "Czy na pewno chcesz usunąć lokalizację \"{name}\"?",
+      "delete": "Usuń",
+      "deleteError": "Nie udało się usunąć lokalizacji.",
+      "saveError": "Nie udało się zapisać lokalizacji.",
+      "name": "Nazwa lokalizacji",
       "parent": "Lokalizacja nadrzędna"
     },
     "lending": {
