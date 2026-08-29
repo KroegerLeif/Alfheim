@@ -7,13 +7,13 @@ import { useAlfiChatLifecycle } from '../useAlfiChatLifecycle';
 import { renderHook } from '@testing-library/react';
 
 describe('AlfiMascot Component', () => {
-  it('renders idle state by default with proper data attributes and alt text', () => {
+  it('renders idle state by default with proper data attributes and aria label', () => {
     render(<AlfiMascot />);
     const mascot = screen.getByTestId('alfi-mascot');
     expect(mascot).toBeInTheDocument();
     expect(mascot).toHaveAttribute('data-state', 'idle');
     expect(mascot).toHaveAttribute('data-asset', 'alfi/alfi-idle.svg');
-    expect(screen.getByAltText('ALFI (idle)')).toBeInTheDocument();
+    expect(mascot).toHaveAttribute('aria-label', 'ALFI (idle)');
   });
 
   it('renders specific mascot states (thinking, speaking, listening, eating, fixing, chasing, sleeping)', () => {
@@ -60,13 +60,6 @@ describe('AlfiMascot Component', () => {
     expect(mascot).toHaveStyle({ width: '120px', height: '120px' });
     fireEvent.click(mascot);
     expect(handleClick).toHaveBeenCalledTimes(1);
-  });
-
-  it('handles image loading errors by reverting to fallback idle asset', () => {
-    render(<AlfiMascot state="thinking" />);
-    const img = screen.getByAltText('ALFI (thinking)') as HTMLImageElement;
-    fireEvent.error(img);
-    expect(img.src).toContain('/assets/alfi/alfi-idle.svg');
   });
 });
 

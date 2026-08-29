@@ -158,13 +158,15 @@ export function ChatStreamView({
           ))}
 
           {isStreaming && (
-            <div className="max-w-3xl rounded-xl px-4 py-3 text-sm whitespace-pre-wrap bg-[var(--surface-card)] text-[var(--text-main)] border border-[var(--border-subtle)] shadow-xs">
-              {streamingText || (
-                <span className="text-[var(--text-muted)] flex items-center gap-2">
-                  <AlfiAvatar status="thinking" size="sm" />
-                  <span>{t("Chat.thinking")}</span>
-                </span>
-              )}
+            <div className="flex gap-3 w-full justify-start">
+              <AlfiAvatar status={streamingText ? "speaking" : "thinking"} size="sm" className="mt-1 shrink-0" />
+              <div className="max-w-3xl sm:max-w-4xl rounded-xl px-4 py-3 text-sm whitespace-pre-wrap bg-[var(--surface-card)] text-[var(--text-main)] border border-[var(--border-subtle)] shadow-xs">
+                {streamingText || (
+                  <span className="text-[var(--text-muted)] flex items-center gap-2">
+                    <span className="animate-pulse">{t("Chat.thinking")}</span>
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
