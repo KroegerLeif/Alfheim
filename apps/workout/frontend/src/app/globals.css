@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "@alfheim/shared/styles/theme.css";
-@import "../styles/theme.css";
 
 @layer base {
   body {
