@@ -81,6 +81,7 @@ export function useUpdatePlan(planId: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(planKeys.detail(householdId, planId), updated);
       queryClient.invalidateQueries({ queryKey: planKeys.lists(householdId) });
+      queryClient.invalidateQueries({ queryKey: planKeys.resolvedDays(householdId) });
     },
   });
 }

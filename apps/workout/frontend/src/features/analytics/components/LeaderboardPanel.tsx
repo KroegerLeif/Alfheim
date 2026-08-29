@@ -22,10 +22,7 @@ import { useLeaderboard } from "../hooks/useAnalytics";
 const USER_ID_DISPLAY_LENGTH = 8;
 
 /**
- * Household training-volume ranking. There is no `workout.*` translation key
- * for a bare "user"/"member" column header (see the feature report), so that
- * header's accessible name reuses `workout.leaderboard` rather than
- * inventing a new key; the icon carries the visible affordance instead.
+ * Household training-volume ranking.
  */
 export function LeaderboardPanel() {
   const { t } = useTranslation();
@@ -54,7 +51,7 @@ export function LeaderboardPanel() {
                 <TableHead>{t("workout.rank")}</TableHead>
                 <TableHead>
                   <User className="h-4 w-4" aria-hidden="true" />
-                  <span className="sr-only">{t("workout.leaderboard")}</span>
+                  <span className="sr-only">{t("workout.user")}</span>
                 </TableHead>
                 <TableHead>{t("workout.totalVolume")}</TableHead>
                 <TableHead>{t("workout.sessionCount")}</TableHead>

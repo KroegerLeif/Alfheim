@@ -63,13 +63,13 @@ class PlanCreate(SQLModel):
 
 
 class PlanUpdate(SQLModel):
-    """Metadata-only update. Nested day/exercise/set structure is edited via the
-    dedicated sub-resource endpoints (POST/DELETE .../days, .../exercises, .../sets)."""
+    """Update a plan's metadata and optionally replace its full nested days structure."""
 
     name: str | None = Field(default=None, min_length=1, max_length=150)
     description: str | None = Field(default=None, max_length=1000)
     is_shared: bool | None = Field(default=None)
     is_active: bool | None = Field(default=None)
+    days: list[PlanDayCreate] | None = Field(default=None)
 
 
 class PlanRead(SQLModel):

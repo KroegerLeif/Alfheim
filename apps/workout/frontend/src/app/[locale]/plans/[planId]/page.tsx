@@ -36,6 +36,7 @@ export default function PlanDetailPage({
         name: payload.name,
         description: payload.description,
         is_shared: payload.is_shared,
+        days: payload.days,
       });
       router.push("/plans");
     } catch (err) {
