@@ -236,6 +236,8 @@
     "metricStock": "Metryka: Zapasy [Norm. Jednostka Bazowa]",
     "sortedHighToLow": "Posortowane: Od najwyższych",
     "systemBrand": "ALFHEIM // OS",
-    "systemVersion": "System Spiżarni v1.0"
+    "systemVersion": "System Spiżarni v1.0",
+    "askAlfi": "Asystent ALFI",
+    "askAlfiAboutProduct": "Zapytaj ALFI o ten produkt"
   }
 }

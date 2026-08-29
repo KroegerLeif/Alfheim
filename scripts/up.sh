@@ -16,10 +16,14 @@
 #                      [live at http://alfheim/pantry after this stage]
 #   5. Maintenance   — maintenance-db  →  maintenance-backend  →  maintenance-frontend
 #                      [live at http://alfheim/maintenance after this stage]
-#   6. Chores        — chores-db  →  chores-backend
-#                      [live at http://alfheim/api/v1/chores after this stage]
-#   7. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
-#   8. Summary       — print accessible URLs with green checkmarks
+#   6. Chores        — chores-db  →  chores-backend  →  chores-frontend
+#                      [live at http://alfheim/chores after this stage]
+#   7. Budget        — budget-db  →  budget-backend  →  budget-frontend
+#                      [live at http://alfheim/budget after this stage]
+#   8. Chat          — chat-db  →  chat-backend  →  chat-frontend
+#                      [live at http://alfheim/chat after this stage]
+#   9. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
+#   10. Summary      — print accessible URLs with green checkmarks
 #
 # Usage:
 #   ./scripts/up.sh              # start stack (use cached images — no build)
@@ -59,6 +63,14 @@ for arg in "$@"; do
   case "$arg" in
     -b|--build)     BUILD=true ;;
     --skip-obs)     SKIP_OBS=true ;;
+    -h|--help)
+      echo "Usage: $0 [OPTIONS]"
+      echo "Options:"
+      echo "  -b, --build     Build images before starting"
+      echo "  --skip-obs      Skip observability stack"
+      echo "  -h, --help      Show this help message"
+      exit 0
+      ;;
     *) warn "Unknown argument: $arg" ;;
   esac
 done
@@ -387,7 +399,7 @@ docker info > /dev/null 2>&1 || fail "Docker daemon is not running. Start Docker
 ok "Docker daemon is reachable"
 
 # Pre-create all multi-zone external networks if not already present
-for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net observability-internal; do
+for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net app-budget-net app-chat-net app-workout-net observability-internal; do
   if ! docker network inspect "$net" > /dev/null 2>&1; then
     info "Creating external Docker network: $net"
     docker network create "$net"
@@ -409,8 +421,15 @@ dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "alfheim_keycloak" "keycloak" 180
 
 info "Synchronizing Keycloak clients (ensuring alfheim-grafana client exists) …"
-docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
-  --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1 || true
+local_kc_attempts=0
+while [[ ${local_kc_attempts} -lt 5 ]]; do
+  if docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+    --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1; then
+    break
+  fi
+  local_kc_attempts=$((local_kc_attempts + 1))
+  sleep 3
+done
 
 if ! docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfheim -q clientId=alfheim-grafana --fields id 2>/dev/null | grep -q 'id'; then
   docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh create clients -r alfheim \
@@ -537,12 +556,51 @@ wait_healthy "chores-frontend" "chores-frontend" 240
 notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
 
 # =============================================================================
-# STAGE 7 — Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
+# =============================================================================
+# STAGE 7 — Budget App Slice  (budget-db → budget-backend → budget-frontend)
+# =============================================================================
+step "STAGE 7 · Budget App Slice  (database · backend · frontend)"
+
+info "Starting budget-db …"
+dc up ${BUILD_FLAG} -d budget-db
+wait_healthy "budget-db" "budget-db" 60
+
+info "Starting budget-backend …"
+dc up ${BUILD_FLAG} -d budget-backend
+wait_healthy "budget-backend" "budget-backend" 180
+
+info "Starting budget-frontend …"
+dc up ${BUILD_FLAG} -d budget-frontend
+wait_healthy "budget-frontend" "budget-frontend" 240
+
+notice "🟢 Budget App is live at http://alfheim.loegien.localhost/budget"
+
+# =============================================================================
+# STAGE 8 — Chat App Slice  (chat-db → chat-backend → chat-frontend)
+# =============================================================================
+step "STAGE 8 · Chat App Slice  (database · backend · frontend)"
+
+info "Starting chat-db …"
+dc up ${BUILD_FLAG} -d chat-db
+wait_healthy "chat-db" "chat-db" 60
+
+info "Starting chat-backend …"
+dc up ${BUILD_FLAG} -d chat-backend
+wait_healthy "chat-backend" "chat-backend" 180
+
+info "Starting chat-frontend …"
+dc up ${BUILD_FLAG} -d chat-frontend
+wait_healthy "chat-frontend" "chat-frontend" 240
+
+notice "🟢 Chat App is live at http://alfheim.loegien.localhost/chat"
+
+# =============================================================================
+# STAGE 9 — Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
 # =============================================================================
 if [[ "${SKIP_OBS}" == "true" ]]; then
   warn "Skipping observability stack (--skip-obs flag set)"
 else
-  step "STAGE 7 · Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)"
+  step "STAGE 9 · Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)"
 
   info "Starting VictoriaMetrics & VictoriaLogs …"
   if dc up ${BUILD_FLAG} -d victoriametrics victorialogs; then
@@ -565,9 +623,9 @@ else
 fi
 
 # =============================================================================
-# STAGE 8 — Summary
+# STAGE 10 — Summary
 # =============================================================================
-step "STAGE 8 · Stack fully operational 🚀"
+step "STAGE 10 · Stack fully operational 🚀"
 
 echo ""
 echo -e "  ${BOLD}${GREEN}✔  Alfheim is running!${RESET}"
@@ -578,12 +636,15 @@ echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim.loegien.
 echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim.loegien.localhost/pantry${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim.loegien.localhost/maintenance${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim.loegien.localhost/chores${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Budget       →  ${BOLD}http://alfheim.loegien.localhost/budget${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chat         →  ${BOLD}http://alfheim.loegien.localhost/chat${RESET}"
 if [[ "${SKIP_OBS}" != "true" ]]; then
   echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}http://alfheim.loegien.localhost/grafana${RESET}"
 fi
 echo ""
 echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://api.alfheim.loegien.localhost/auth${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chat API           →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1/chat${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
 echo ""
 echo -e "  ${DIM}Useful commands:${RESET}"

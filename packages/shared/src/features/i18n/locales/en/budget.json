@@ -1,0 +1,78 @@
+{
+  "budget": {
+    "title": "Budget & Treasury",
+    "subtitle": "alfheim household budget & asset management",
+    "navigation": {
+      "dashboard": "Dashboard",
+      "planning": "Budget Planning",
+      "pots": "Virtual Pots",
+      "sankey": "Sankey Cashflow",
+      "analytics": "Net-Worth Analytics",
+      "quickAdd": "Quick-Add",
+      "monthly": "Monthly",
+      "event": "Event"
+    },
+    "accounts": {
+      "title": "Accounts & Portfolios",
+      "subtitle": "Overview of all connected household accounts",
+      "checking": "Checking Account",
+      "savings": "Savings Account",
+      "buildingSavings": "Building Savings Contract",
+      "investment": "Investment Portfolio",
+      "targetAmount": "Target Amount",
+      "maturityDate": "Maturity Date",
+      "currentBalance": "Current Balance",
+      "netWorth": "Total Net Worth",
+      "addAccount": "Add Account"
+    },
+    "pots": {
+      "title": "Virtual Pots & Reserves",
+      "subtitle": "Priority-based savings buckets and budget cascades",
+      "priority": "Priority",
+      "priorityCascade": "Cascade Overflow",
+      "targetRate": "Target Savings Rate",
+      "actualRate": "Actual Savings Rate",
+      "sinkingFund": "Sinking Fund Calculator",
+      "gapDetected": "Warning: Savings gap detected",
+      "maintenanceReserve": "Maintenance Reserve",
+      "unassignedBuffer": "Unassigned Buffer",
+      "createPot": "Create New Pot"
+    },
+    "plans": {
+      "title": "Budget Plans & Categories",
+      "subtitle": "Monthly recurring plans and project-based event budgets",
+      "monthlyPlan": "Monthly Budget",
+      "eventPlan": "Event Budget",
+      "allocated": "Allocated",
+      "spent": "Spent",
+      "remaining": "Remaining",
+      "subcategories": "Subcategories",
+      "createPlan": "Create New Plan"
+    },
+    "transactions": {
+      "title": "Transactions & Receipts",
+      "subtitle": "Bookings and OCR receipt processing",
+      "quickAdd": "Quick-Add Transaction",
+      "income": "Income",
+      "expense": "Expense",
+      "transfer": "Transfer",
+      "receiptUpload": "Upload Receipt",
+      "vendor": "Vendor / Payee",
+      "lineItems": "Line Items",
+      "amount": "Amount",
+      "date": "Date",
+      "category": "Category",
+      "account": "Account",
+      "pot": "Pot",
+      "ocrProcessing": "Analyzing receipt with OCR...",
+      "success": "Transaction successfully recorded"
+    },
+    "analytics": {
+      "title": "Financial Analytics & Cashflow",
+      "subtitle": "Sankey diagram and net-worth tracking",
+      "sankeyTitle": "Sankey Cashflow Visualization",
+      "netWorthTitle": "Net Worth Growth",
+      "spendingGap": "Spending Gap Analysis"
+    }
+  }
+}

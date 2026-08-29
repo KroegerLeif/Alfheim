@@ -1,0 +1,78 @@
+{
+  "budget": {
+    "title": "Budżet i Skarbiec",
+    "subtitle": "Zarządzanie budżetem domowym i majątkiem alfheim",
+    "navigation": {
+      "dashboard": "Pulpit",
+      "planning": "Planowanie Budżetu",
+      "pots": "Wirtualne Skarpety",
+      "sankey": "Przepływy Sankey",
+      "analytics": "Analityka Majątku Netto",
+      "quickAdd": "Szybka Transakcja",
+      "monthly": "Miesiąc",
+      "event": "Wydarzenie"
+    },
+    "accounts": {
+      "title": "Konta i Portfele",
+      "subtitle": "Przegląd wszystkich połączonych kont domowych",
+      "checking": "Konto Osobiste",
+      "savings": "Konto Oszczędnościowe",
+      "buildingSavings": "Kontrakt Budowlano-Oszczędnościowy",
+      "investment": "Portfel Inwestycyjny",
+      "targetAmount": "Kwota Docelowa",
+      "maturityDate": "Data Zapadalności",
+      "currentBalance": "Aktualne Saldo",
+      "netWorth": "Majątek Netto Ogółem",
+      "addAccount": "Dodaj Konto"
+    },
+    "pots": {
+      "title": "Wirtualne Skarpety i Rezerwy",
+      "subtitle": "Priorytetyzowane skarpety oszczędnościowe i kaskady budżetowe",
+      "priority": "Priorytet",
+      "priorityCascade": "Kaskada Przelewania",
+      "targetRate": "Docelowa Stopa Oszczędności",
+      "actualRate": "Rzeczywista Stopa Oszczędności",
+      "sinkingFund": "Kalkulator Funduszu Celowego",
+      "gapDetected": "Ostrzeżenie: Wykryto lukę w oszczędnościach",
+      "maintenanceReserve": "Rezerwa Konserwacyjna",
+      "unassignedBuffer": "Bufor Nieprzypisany",
+      "createPot": "Utwórz Nową Skarpetę"
+    },
+    "plans": {
+      "title": "Plany Budżetowe i Kategorie",
+      "subtitle": "Miesięczne plany odnawialne i budżety projektowe",
+      "monthlyPlan": "Budżet Miesięczny",
+      "eventPlan": "Budżet Wydarzenia",
+      "allocated": "Przydzielono",
+      "spent": "Wydano",
+      "remaining": "Pozostało",
+      "subcategories": "Podkategorie",
+      "createPlan": "Utwórz Nowy Plan"
+    },
+    "transactions": {
+      "title": "Transakcje i Paragony",
+      "subtitle": "Księgowanie i przetwarzanie paragonów OCR",
+      "quickAdd": "Szybka Transakcja",
+      "income": "Przychód",
+      "expense": "Wydatek",
+      "transfer": "Przelew",
+      "receiptUpload": "Prześlij Paragon",
+      "vendor": "Sprzedawca / Odbiorca",
+      "lineItems": "Pozycje na Paragonie",
+      "amount": "Kwota",
+      "date": "Data",
+      "category": "Kategoria",
+      "account": "Konto",
+      "pot": "Skarpeta",
+      "ocrProcessing": "Analizowanie paragonu przez OCR...",
+      "success": "Transakcja została pomyślnie zarejestrowana"
+    },
+    "analytics": {
+      "title": "Analityka Finansowa i Przepływy",
+      "subtitle": "Wykres Sankeya i śledzenie majątku netto",
+      "sankeyTitle": "Wizualizacja Przepływów Sankey",
+      "netWorthTitle": "Wzrost Majątku Netto",
+      "spendingGap": "Analiza Luki Wydań"
+    }
+  }
+}

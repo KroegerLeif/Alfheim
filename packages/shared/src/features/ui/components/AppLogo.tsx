@@ -39,6 +39,17 @@ const APP_GLYPHS: Record<string, React.ReactNode> = {
       <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
     </svg>
   ),
+  workout: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <path d="m6.5 6.5 11 11"/>
+      <path d="m21 21-1-1"/>
+      <path d="m3 3 1 1"/>
+      <path d="m18 22 4-4"/>
+      <path d="m2 6 4-4"/>
+      <path d="m3 10 7-7"/>
+      <path d="m14 21 7-7"/>
+    </svg>
+  ),
   dashboard: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
       <rect width="7" height="9" x="3" y="3" rx="1"/>
