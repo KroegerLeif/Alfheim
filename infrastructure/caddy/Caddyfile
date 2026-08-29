@@ -20,6 +20,8 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	redir /workout/ /workout/de 302
 	redir /chat /chat/de 302
 	redir /chat/ /chat/de 302
+	redir /budget /budget/en 302
+	redir /budget/ /budget/en 302
 
 	# Keycloak IAM (Native subpath /auth - NO path stripping)
 	handle /auth* {
@@ -63,6 +65,15 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 		reverse_proxy workout-backend:8000
 	}
 
+	handle_path /api/v1/budget* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
+	}
+	handle_path /budget/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
+	}
+
 	handle /api/v1/chores* {
 		reverse_proxy chores-backend:8000
 	}
@@ -101,6 +112,9 @@ http://alfheim.loegien.de, http://alfheim.loegien.localhost, http://alfheim {
 	}
 	handle /chores* {
 		reverse_proxy chores-frontend:3000
+	}
+	handle /budget* {
+		reverse_proxy budget-frontend:3000
 	}
 	handle /workout* {
 		reverse_proxy workout-frontend:3000
@@ -162,6 +176,19 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost, http://api.
 	handle_path /maintenance* {
 		reverse_proxy maintenance-backend:8000
 	}
+	# Budget API
+	handle_path /api/v1/budget* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
+	}
+	handle_path /budget/api/v1* {
+		rewrite * /api/v1{path}
+		reverse_proxy budget-backend:8000
+	}
+	handle_path /budget* {
+		reverse_proxy budget-backend:8000
+	}
+
 	# Workout API
 	handle_path /api/v1/workout* {
 		rewrite * /api/v1{path}

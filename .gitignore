@@ -24,3 +24,6 @@ Thumbs.db
 **/.coverage.*
 **/coverage.xml
 **/coverage/
+*.db
+*.sqlite
+*.sqlite3

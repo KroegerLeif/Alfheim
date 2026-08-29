@@ -1,0 +1,96 @@
+services:
+  budget-db:
+    image: postgres:16-alpine
+    container_name: budget-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: budget
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data_budget:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d budget"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-budget-net
+    stop_grace_period: 10s
+
+  budget-backend:
+    build:
+      context: ../..
+      dockerfile: apps/budget/backend/Dockerfile
+    container_name: budget-backend
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@budget-db:5432/budget
+      - KEYCLOAK_URL=http://keycloak:8080/auth
+      - KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET_NAME=budget-receipts
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=budget-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      budget-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-budget-net
+      - observability-internal
+
+  budget-frontend:
+    build:
+      context: ../..
+      dockerfile: apps/budget/frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_BUDGET_API_URL:-http://api.alfheim.loegien.localhost/budget/api/v1}
+        - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+        - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
+    container_name: budget-frontend
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      budget-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/budget/en || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway-net
+      - observability-internal
+
+volumes:
+  postgres_data_budget:
+
+networks:
+  gateway-net:
+    name: gateway-net
+    external: true
+  app-budget-net:
+    name: app-budget-net
+    external: true
+  observability-internal:
+    name: observability-internal
+    external: true

@@ -9,6 +9,7 @@ include:
   - ./apps/pantry/compose.yml
   - ./apps/shopping/compose.yml
   - ./apps/chores/compose.yml
+  - ./apps/budget/compose.yml
   - ./apps/chat/compose.yml
   - ./apps/workout/compose.yml
 
@@ -33,6 +34,9 @@ networks:
     external: true
   app-maintenance-net:
     name: app-maintenance-net
+    external: true
+  app-budget-net:
+    name: app-budget-net
     external: true
   app-chat-net:
     name: app-chat-net
