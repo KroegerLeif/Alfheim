@@ -8,10 +8,11 @@ import { AttachmentPreview, type StagedAttachment } from "./AttachmentPreview";
 
 interface ChatInputProps {
   onSend: (content: string, attachmentIds: string[]) => void;
+  onTypingChange?: (isTyping: boolean) => void;
   disabled?: boolean;
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onTypingChange, disabled }: ChatInputProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [staged, setStaged] = useState<StagedAttachment[]>([]);
@@ -79,6 +80,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
     setInput("");
     setStaged([]);
+    onTypingChange?.(false);
     onSend(content, attachmentIds);
   };
 
@@ -110,7 +112,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         <input
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setInput(val);
+            onTypingChange?.(val.trim().length > 0);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
