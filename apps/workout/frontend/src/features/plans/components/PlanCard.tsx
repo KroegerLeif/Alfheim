@@ -47,7 +47,7 @@ export function PlanCard({ plan, onStartSession, isStarting }: PlanCardProps) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)]">
             <Calendar className="h-3.5 w-3.5 text-[var(--primary-main)]" />
-            <span>{days.length} {t("workout.plansTitle")}</span>
+            <span>{days.length} {t("workout.daysCount")}</span>
           </div>
 
           <div className="flex flex-wrap gap-1.5">

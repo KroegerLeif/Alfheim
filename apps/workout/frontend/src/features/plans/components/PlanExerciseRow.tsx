@@ -2,7 +2,7 @@
 
 import { Button, Checkbox, Input, Select, useTranslation } from "@alfheim/shared";
 import { Plus, Trash2 } from "lucide-react";
-import type { ExerciseRead } from "@/features/exercises/types";
+import { MUSCLE_GROUP_LABEL_KEYS, type ExerciseRead } from "@/features/exercises/types";
 import type { PlanExerciseRead, PlanSetCreate, TargetWeightType } from "../types";
 
 interface PlanExerciseRowProps {
@@ -34,7 +34,7 @@ export function PlanExerciseRow({
           <h4 className="text-sm font-bold text-[var(--text-primary)]">{exerciseName}</h4>
           {foundExercise && (
             <p className="text-[10px] uppercase font-mono text-[var(--text-muted)]">
-              {t(`workout.muscle${foundExercise.primary_muscle.charAt(0).toUpperCase() + foundExercise.primary_muscle.slice(1)}` as any)}
+              {t(MUSCLE_GROUP_LABEL_KEYS[foundExercise.primary_muscle])}
             </p>
           )}
         </div>
