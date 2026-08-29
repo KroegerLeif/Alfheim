@@ -5,9 +5,10 @@ import { MediaItem } from "../types";
 interface ItemCardProps {
   item: MediaItem;
   locationName?: string;
+  onEdit?: () => void;
 }
 
-export function ItemCard({ item, locationName }: ItemCardProps) {
+export function ItemCard({ item, locationName, onEdit }: ItemCardProps) {
   const { t } = useTranslation();
 
   const renderMediaTypeBadge = () => {
@@ -61,7 +62,10 @@ export function ItemCard({ item, locationName }: ItemCardProps) {
 
   return (
     <div
+      onClick={onEdit}
       className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-lg ${
+        onEdit ? "cursor-pointer" : ""
+      } ${
         item.is_cookbook
           ? "border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent"
           : "border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)]"
@@ -91,7 +95,7 @@ export function ItemCard({ item, locationName }: ItemCardProps) {
           )}
         </div>
 
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex items-center gap-1">
           <span
             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
               isLent

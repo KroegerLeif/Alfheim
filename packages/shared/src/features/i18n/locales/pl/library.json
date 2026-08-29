@@ -37,7 +37,7 @@
       "itemCount": "{count} pozycji",
       "noLocations": "Brak utworzonych lokalizacji.",
       "createTitle": "Utwórz nową lokalizację",
-      "name": "Nazwa lokalizacji",
+      "name": "Name des Lagerorts",
       "parent": "Lokalizacja nadrzędna"
     },
     "lending": {
@@ -83,6 +83,7 @@
       "creator": "Autor / Twórca / Reżyser",
       "mediaType": "Typ mediów",
       "location": "Lokalizacja",
+      "noLocation": "-- Brak lokalizacji --",
       "isbn": "ISBN",
       "minPlayers": "Min. liczba graczy",
       "maxPlayers": "Maks. liczba graczy",
@@ -92,7 +93,12 @@
       "description": "Opis",
       "coverUrl": "URL okładki",
       "save": "Zapisz",
-      "cancel": "Anuluj"
+      "cancel": "Anuluj",
+      "lookupIsbnLabel": "ISBN (Książka)",
+      "lookupBggLabel": "BGG (Gra planszowa)",
+      "lookupTmdbLabel": "TMDB (Film/Serial)",
+      "lookupError": "Nie udało się pobrać metadanych. Spróbuj wprowadzić dane ręcznie.",
+      "saveError": "Nie udało się zapisać pozycji. Sprawdź wprowadzone dane."
     }
   }
 }

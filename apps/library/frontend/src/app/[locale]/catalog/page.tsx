@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Button, useTranslation } from "@alfheim/shared";
 import {
   CatalogFilterBar,
   CatalogGrid,
   useCatalog,
 } from "@/features/catalog";
+import { LocationItem, MediaItem } from "@/features/catalog/types";
+import { ItemDialog } from "@/features/item-dialog";
 
 export default function CatalogPage() {
   const { t } = useTranslation();
@@ -22,7 +24,22 @@ export default function CatalogPage() {
     items,
     isLoading,
     locationsMap,
+    locations,
+    refetch,
   } = useCatalog();
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<MediaItem | null>(null);
+
+  const handleOpenAddDialog = () => {
+    setEditingItem(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = (item: MediaItem) => {
+    setEditingItem(item);
+    setIsDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
@@ -36,7 +53,7 @@ export default function CatalogPage() {
           </p>
         </div>
 
-        <Button type="button" variant="default" size="sm">
+        <Button type="button" variant="default" size="sm" onClick={handleOpenAddDialog}>
           + {t("library.catalog.addItem")}
         </Button>
       </div>
@@ -56,6 +73,15 @@ export default function CatalogPage() {
         items={items}
         isLoading={isLoading}
         locationsMap={locationsMap}
+        onEditItem={handleOpenEditDialog}
+      />
+
+      <ItemDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        item={editingItem}
+        locations={locations}
+        onSuccess={refetch}
       />
     </div>
   );

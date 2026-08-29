@@ -83,6 +83,7 @@
       "creator": "Autor / Entwickler / Regisseur",
       "mediaType": "Medientyp",
       "location": "Lagerort",
+      "noLocation": "-- Kein Lagerort --",
       "isbn": "ISBN",
       "minPlayers": "Min. Spieler",
       "maxPlayers": "Max. Spieler",
@@ -92,7 +93,12 @@
       "description": "Beschreibung",
       "coverUrl": "Cover-Bild-URL",
       "save": "Speichern",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "lookupIsbnLabel": "ISBN (Buch)",
+      "lookupBggLabel": "BGG (Brettspiel)",
+      "lookupTmdbLabel": "TMDB (Film/Serie)",
+      "lookupError": "Metadaten konnten nicht geladen werden. Bitte manuelle Eingabe nutzen.",
+      "saveError": "Fehler beim Speichern. Bitte Eingaben prüfen."
     }
   }
 }
