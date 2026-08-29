@@ -19,6 +19,14 @@ type Service interface {
 	// ListEnabledServers returns the currently enabled servers as mcp.ServerRef values,
 	// for the chat engine's tool-calling bridge to dial directly.
 	ListEnabledServers(ctx context.Context) ([]mcp.ServerRef, error)
+	// DiagnoseServers runs a connectivity ping and tool discovery audit across all
+	// registered MCP servers, reporting latency, reachability, and active tools.
+	DiagnoseServers(ctx context.Context, pool MCPClientPool) ([]ServerDiagnosticDTO, error)
+}
+
+// MCPClientPool abstracts the client pool to resolve ToolCaller instances by endpoint URL.
+type MCPClientPool interface {
+	Get(endpointURL string) mcp.ToolCaller
 }
 
 type service struct {
@@ -92,5 +100,42 @@ func (s *service) ListEnabledServers(ctx context.Context) ([]mcp.ServerRef, erro
 	for _, srv := range servers {
 		out = append(out, mcp.ServerRef{ID: srv.ID, Slug: srv.AppSlug, EndpointURL: srv.InternalURL})
 	}
+	return out, nil
+}
+
+func (s *service) DiagnoseServers(ctx context.Context, pool MCPClientPool) ([]ServerDiagnosticDTO, error) {
+	servers, err := s.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]ServerDiagnosticDTO, 0, len(servers))
+	for _, srv := range servers {
+		diag := ServerDiagnosticDTO{
+			ID:          srv.ID,
+			AppSlug:     srv.AppSlug,
+			EndpointURL: srv.InternalURL,
+			Enabled:     srv.Enabled,
+		}
+
+		if !srv.Enabled {
+			diag.Reachable = false
+			diag.Error = "server is disabled in registry"
+			out = append(out, diag)
+			continue
+		}
+
+		client := pool.Get(srv.InternalURL)
+		pingResult := client.Ping(ctx)
+		diag.Reachable = pingResult.Reachable
+		diag.LatencyMs = pingResult.LatencyMs
+		diag.ToolsCount = pingResult.ToolsCount
+		diag.Tools = pingResult.Tools
+		diag.ProtocolVer = pingResult.ProtocolVer
+		diag.Error = pingResult.Error
+
+		out = append(out, diag)
+	}
+
 	return out, nil
 }

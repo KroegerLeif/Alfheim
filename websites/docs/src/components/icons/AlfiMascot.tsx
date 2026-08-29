@@ -4,7 +4,7 @@ import alfiIdle from '@alfheim/shared/assets/alfi/alfi-idle.svg';
 import alfiThinking from '@alfheim/shared/assets/alfi/alfi-thinking.svg';
 import alfiSleeping from '@alfheim/shared/assets/alfi/alfi-sleeping.svg';
 import alfiSpeaking from '@alfheim/shared/assets/alfi/alfi-speaking.svg';
-import alfiListening from '@alfheim/shared/assets/alfi/alfi-listenig.svg';
+import alfiListening from '@alfheim/shared/assets/alfi/alfi-listening.svg';
 import alfiEating from '@alfheim/shared/assets/alfi/alfi-eating.svg';
 import alfiFixing from '@alfheim/shared/assets/alfi/alfi-fixing.svg';
 import alfiChasing from '@alfheim/shared/assets/alfi/alfi-chasing.svg';

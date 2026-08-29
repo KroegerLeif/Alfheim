@@ -1,6 +1,6 @@
 "use client";
 
-import { AlfiAvatar, useTranslation } from "@alfheim/shared";
+import { AlfiMascot, useTranslation } from "@alfheim/shared";
 import { Cpu, Plus } from "lucide-react";
 import type { ModelBlock } from "@/features/conversations/types";
 import { ChatInput } from "./ChatInput";
@@ -15,7 +15,7 @@ interface ChatLandingStateProps {
 
 /**
  * Renders the empty landing state when no conversation is selected,
- * displaying the ALFI avatar, model selection indicator, and direct input.
+ * displaying the ALFI mascot illustration, model selection indicator, and direct input.
  */
 export function ChatLandingState({
   currentModel,
@@ -29,7 +29,7 @@ export function ChatLandingState({
   return (
     <div className="flex-1 flex flex-col h-full w-full min-w-0 bg-[var(--surface-canvas)]">
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-2xl mx-auto w-full">
-        <AlfiAvatar status="idle" size="lg" />
+        <AlfiMascot state="idle" size="lg" />
         <div className="space-y-1.5 max-w-md">
           <h2 className="text-xl font-bold text-[var(--text-main)]">
             {t("Chat.welcomeTitle")}

@@ -30,3 +30,17 @@ func ToResponse(s *Server) ResponseDTO {
 type SetEnabledRequest struct {
 	Enabled bool `json:"enabled"`
 }
+
+// ServerDiagnosticDTO reports live reachability, latency, and tool discovery details for an MCP server.
+type ServerDiagnosticDTO struct {
+	ID          string   `json:"id"`
+	AppSlug     string   `json:"app_slug"`
+	EndpointURL string   `json:"endpoint_url"`
+	Enabled     bool     `json:"enabled"`
+	Reachable   bool     `json:"reachable"`
+	LatencyMs   int64    `json:"latency_ms"`
+	ToolsCount  int      `json:"tools_count"`
+	Tools       []string `json:"tools,omitempty"`
+	ProtocolVer string   `json:"protocol_version,omitempty"`
+	Error       string   `json:"error,omitempty"`
+}

@@ -85,13 +85,40 @@ func main() {
 	// MCP Servers Registry (bridges to the Fach-Apps' FastMCP servers)
 	mcpServersRepo := mcpservers.NewRepository(dbClient.Pool)
 	mcpServersService := mcpservers.NewService(mcpServersRepo, log)
-	mcpServersHandler := mcpservers.NewHandler(mcpServersService)
 	mcpClientPool := mcp.NewClientPool()
+	mcpServersHandler := mcpservers.NewHandler(mcpServersService, mcpClientPool)
 
 	if err := mcpServersService.SeedFromEnv(ctx, cfg.MCPServersSpec); err != nil {
 		log.Error("failed to seed mcp server registry from CHAT_MCP_SERVERS", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	// Non-blocking background health diagnostic for all registered MCP servers
+	go func() {
+		diagCtx, diagCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer diagCancel()
+		diags, err := mcpServersService.DiagnoseServers(diagCtx, mcpClientPool)
+		if err != nil {
+			log.Warn("startup mcp server diagnostic check encountered error", slog.String("error", err.Error()))
+			return
+		}
+		for _, d := range diags {
+			if d.Reachable {
+				log.Info("mcp server online",
+					slog.String("app_slug", d.AppSlug),
+					slog.String("endpoint", d.EndpointURL),
+					slog.Int64("latency_ms", d.LatencyMs),
+					slog.Int("tools_count", d.ToolsCount),
+				)
+			} else {
+				log.Warn("mcp server offline or degraded (chat fallback active)",
+					slog.String("app_slug", d.AppSlug),
+					slog.String("endpoint", d.EndpointURL),
+					slog.String("error", d.Error),
+				)
+			}
+		}
+	}()
 
 	// S3 / RustFS Storage Client
 	storageClient, err := storage.NewClient(ctx, cfg.Storage)
