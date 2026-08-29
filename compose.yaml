@@ -9,33 +9,37 @@ include:
   - ./apps/pantry/compose.yml
   - ./apps/shopping/compose.yml
   - ./apps/chores/compose.yml
+  - ./apps/chat/compose.yml
   - ./apps/workout/compose.yml
 
 networks:
   gateway-net:
     name: gateway-net
-    driver: bridge
+    external: true
   infra-net:
     name: infra-net
-    driver: bridge
+    external: true
   core-net:
     name: core-net
-    driver: bridge
+    external: true
   app-pantry-net:
     name: app-pantry-net
-    driver: bridge
+    external: true
   app-shopping-net:
     name: app-shopping-net
-    driver: bridge
+    external: true
   app-chores-net:
     name: app-chores-net
-    driver: bridge
+    external: true
   app-maintenance-net:
     name: app-maintenance-net
-    driver: bridge
+    external: true
+  app-chat-net:
+    name: app-chat-net
+    external: true
   app-workout-net:
     name: app-workout-net
-    driver: bridge
+    external: true
   observability-internal:
     name: observability-internal
     external: true

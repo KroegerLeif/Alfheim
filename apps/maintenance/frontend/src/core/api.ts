@@ -15,18 +15,12 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
       resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
     }
   }
-  if (resolved.endsWith("/")) {
-    resolved = resolved.slice(0, -1);
-  }
-  if (resolved.endsWith("/api/v1")) {
-    resolved = resolved.slice(0, -7);
-  }
-  return resolved + "/";
+  return resolved.endsWith("/") ? resolved : resolved + "/";
 };
 
 const MAINTENANCE_API_URL = sanitizeUrl(
   process.env.NEXT_PUBLIC_API_URL,
-  "http://api.alfheim.loegien.localhost/maintenance/api/v1"
+  "/api/v1/maintenance"
 );
 
 /**

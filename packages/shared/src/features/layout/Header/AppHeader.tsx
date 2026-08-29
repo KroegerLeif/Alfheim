@@ -66,7 +66,7 @@ export function AppHeader({
   const resolvedBackHref = backToDashboardHref ?? getFallbackDashboardUrl();
 
   return (
-    <header className={`h-16 bg-[var(--surface-card)] border-b border-[var(--border-subtle)] px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 select-none transition-colors duration-200 ${className}`}>
+    <header className={`h-16 w-full bg-[var(--surface-card)] border-b border-[var(--border-subtle)] px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 select-none transition-colors duration-200 ${className}`}>
       {/* Left side: [Back to Dashboard] -> [App Logo Badge] -> [App Title · Subtitle Breadcrumb] */}
       <div className="flex items-center gap-3">
         {/* 1. Back Link to Dashboard */}

@@ -60,20 +60,20 @@ done
 step "Tearing down Alfheim Stack"
 
 info "Gracefully stopping frontends & backends …"
-docker compose -f "${COMPOSE_FILE}" stop chores-frontend maintenance-frontend pantry-frontend shopping-frontend dashboard-frontend chores-backend maintenance-backend pantry-backend shopping-backend dashboard-backend || true
+docker compose -f "${COMPOSE_FILE}" stop chat-frontend chores-frontend maintenance-frontend pantry-frontend shopping-frontend dashboard-frontend chat-backend chores-backend maintenance-backend pantry-backend shopping-backend dashboard-backend || true
 
 info "Gracefully stopping Keycloak IAM & RustFS Storage …"
 docker compose -f "${COMPOSE_FILE}" stop keycloak postgres-iam rustfs || true
 
 info "Gracefully stopping databases …"
-docker compose -f "${COMPOSE_FILE}" stop chores-db maintenance-db pantry-db shopping-db dashboard-db || true
+docker compose -f "${COMPOSE_FILE}" stop chat-db chores-db maintenance-db pantry-db shopping-db dashboard-db || true
 
 info "Tearing down container stack and cleaning resources …"
 docker compose -f "${COMPOSE_FILE}" down ${REMOVE_VOLUMES} --remove-orphans
 
 if [[ "${PURGE_NETWORKS}" == "true" ]]; then
   info "Cleaning up external docker networks …"
-  for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net observability-internal; do
+  for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net app-chat-net observability-internal; do
     if docker network inspect "$net" >/dev/null 2>&1; then
       docker network rm "$net" 2>/dev/null || true
       ok "Removed external network: $net"

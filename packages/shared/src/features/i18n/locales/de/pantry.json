@@ -236,6 +236,8 @@
     "metricStock": "Metrik: Bestand [Norm. Basiseinheit]",
     "sortedHighToLow": "Sortiert: Hoch-zu-Niedrig",
     "systemBrand": "ALFHEIM // OS",
-    "systemVersion": "Vorratsschrank System v1.0"
+    "systemVersion": "Vorratsschrank System v1.0",
+    "askAlfi": "ALFI Assistent",
+    "askAlfiAboutProduct": "ALFI zu diesem Produkt befragen"
   }
 }

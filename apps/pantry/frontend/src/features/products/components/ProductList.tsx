@@ -1,9 +1,10 @@
 "use client";
 
-import { useTranslation } from "@alfheim/shared";
+import { AlfiAvatar, useTranslation } from "@alfheim/shared";
 import { Loader2 } from "lucide-react";
 import { ProductRead } from "@/features/products/types";
 import { CategoryRead } from "@/features/categories/types";
+import { usePantryChat } from "@/core/chatContext";
 
 interface ProductListProps {
   products: ProductRead[];
@@ -13,10 +14,11 @@ interface ProductListProps {
 
 /**
  * ProductList
- * Renders the scrollable product blueprint feed with metadata spec rows.
+ * Renders the scrollable product blueprint feed with metadata spec rows and contextual ALFI triggers.
  */
 export function ProductList({ products, categories, isLoading }: ProductListProps) {
   const { t } = useTranslation();
+  const { openChat } = usePantryChat();
 
   if (isLoading) {
     return (
@@ -40,8 +42,10 @@ export function ProductList({ products, categories, isLoading }: ProductListProp
       {products.map((product) => {
         const category = categories.find((cat) => cat.id === product.category_id);
         return (
-          <div key={product.id}
-            className="border border-[var(--border-subtle)] p-4 bg-[var(--surface-card)] hover:border-[var(--border-accent)] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-lg shadow-sm">
+          <div
+            key={product.id}
+            className="border border-[var(--border-subtle)] p-4 bg-[var(--surface-card)] hover:border-[var(--border-accent)] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-lg shadow-sm"
+          >
             <div className="space-y-1.5 flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-heading text-lg font-bold uppercase truncate tracking-wide text-[var(--text-main)]">{product.name}</span>
@@ -56,6 +60,29 @@ export function ProductList({ products, categories, isLoading }: ProductListProp
                 <div><span className="font-bold text-[var(--text-main)]">{t("pantry.minStockLabel")}:</span>{" "}<span className="truncate block font-mono">{product.minimum_stock} {product.base_unit}</span></div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                openChat({
+                  sourceApp: "pantry",
+                  entityType: "product",
+                  entityId: product.id,
+                  entityData: {
+                    name: product.name,
+                    barcode: product.barcode,
+                    brand: product.brand,
+                    minimum_stock: product.minimum_stock,
+                    base_unit: product.base_unit,
+                  },
+                })
+              }
+              aria-label={`${t("pantry.askAlfi")}: ${product.name}`}
+              title={t("pantry.askAlfiAboutProduct")}
+              className="p-1.5 rounded-lg border border-[var(--border-subtle)] hover:border-[var(--primary-main)] bg-[var(--surface-canvas)] hover:bg-[var(--surface-card)] transition-colors cursor-pointer shrink-0 self-start md:self-center flex items-center gap-1.5"
+            >
+              <AlfiAvatar status="idle" size="sm" />
+            </button>
           </div>
         );
       })}

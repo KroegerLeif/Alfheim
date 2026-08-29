@@ -39,7 +39,9 @@
 | `apps/shopping/frontend` | Next.js 14 / Vitest | ✅ | ✅ | **>65%** | Component test suites for `ItemRow`, `ListSelector`, `EinlagernModal`, and `ChecklistContainer`. |
 | `core/dashboard/backend` | Go / Chi / PGX | ✅ | ✅ | **>60%** | Table-driven HTTP handler & middleware test coverage across all domain packages. |
 | `core/dashboard/frontend` | Next.js 14 / Vitest | ✅ | ✅ | **>60%** | Full component coverage for `HouseholdDetailView`, `ContactModal`, `AddAppModal`, `SystemShellLogs`, `CustomThemeBuilder`. |
-| `packages/shared` | TS / React | ✅ | ✅ | **>80%** | Comprehensive unit & component tests for `useTranslation`, `ThemeContext`, `OSMMapViewer`, `HouseholdSwitcher`, `AppHeader`. |
+| `apps/chat/backend` | Go / Chi / PGX / S3 / MCP | ✅ | ✅ | **>70%** | Comprehensive unit & handler test coverage for model blocks, conversations, attachments, and MCP tools. |
+| `apps/chat/frontend` | Next.js 16 / Vitest | ✅ | ✅ | **>75%** | Test suites for chat stream view, conversation list, attachments, and model block management. |
+| `packages/shared` | TS / React | ✅ | ✅ | **>80%** | Comprehensive unit & component tests for `useTranslation`, `ThemeContext`, `OSMMapViewer`, `HouseholdSwitcher`, `AppHeader`, `ChatWidget`. |
 
 ---
 

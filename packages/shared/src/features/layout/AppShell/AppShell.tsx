@@ -15,11 +15,11 @@ export interface AppShellProps {
  */
 export function AppShell({ header, sidebar, className = '', children }: AppShellProps) {
   return (
-    <div className={`min-h-screen flex flex-col bg-[var(--surface-canvas)] text-[var(--text-main)] transition-colors duration-200 ${className}`}>
+    <div className={`w-full min-h-screen h-screen flex flex-col bg-[var(--surface-canvas)] text-[var(--text-main)] transition-colors duration-200 ${className}`}>
       {header}
-      <div className="flex-1 flex min-w-0 overflow-hidden">
+      <div className="flex-1 w-full flex min-w-0 min-h-0 overflow-hidden">
         {sidebar}
-        <main className="flex-1 min-w-0 overflow-y-auto">
+        <main className="flex-1 w-full min-w-0 min-h-0 flex flex-col overflow-y-auto">
           {children}
         </main>
       </div>
