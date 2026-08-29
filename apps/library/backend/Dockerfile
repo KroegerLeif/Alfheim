@@ -9,18 +9,18 @@ WORKDIR /app
 # Copy root workspace and package configuration files to cache dependencies
 COPY pyproject.toml uv.lock ./
 COPY packages/backend-shared ./packages/backend-shared
-COPY apps/pantry/backend/pyproject.toml ./apps/pantry/backend/
+COPY apps/library/backend/pyproject.toml ./apps/library/backend/
 
-# Sync dependencies for pantry-backend workspace package
+# Sync dependencies for library-backend workspace package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --package pantry-backend --no-install-project --no-editable
+    uv sync --no-dev --package library-backend --no-install-project --no-editable
 
 # Copy application source files
-COPY apps/pantry/backend ./apps/pantry/backend
+COPY apps/library/backend ./apps/library/backend
 
 # Run project sync to register the package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --package pantry-backend --no-editable
+    uv sync --no-dev --package library-backend --no-editable
 
 # Final slim runtime container
 FROM python:3.12-alpine
@@ -29,12 +29,12 @@ WORKDIR /app
 
 # Copy virtualenv and executable files from builder
 COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/apps/pantry/backend /app/apps/pantry/backend
+COPY --from=builder /app/apps/library/backend /app/apps/library/backend
 
 # Inject virtualenv into system PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-WORKDIR /app/apps/pantry/backend
+WORKDIR /app/apps/library/backend
 
 # Expose FastAPI application port
 EXPOSE 8000

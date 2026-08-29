@@ -133,15 +133,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ## Preserved Open Technical Debt Items
 
-### 🔴 `[Docker/Build]` Backend Dockerfiles Fail to Build Workspace Package (`TD-DOCKER-01`)
-- **Severity:** Critical
-- **Root Cause / Findings:**
-  Backend Dockerfiles in `apps/{pantry,chores,shopping,maintenance,library}` specify `build.context: ./backend` in `compose.yml`, which excludes `packages/backend-shared` from the build context and breaks `uv sync` workspace resolution.
-- **Proposed Resolution:**
-  - [ ] Update `compose.yml` and Dockerfiles for `pantry`, `chores`, `shopping`, `maintenance`, and `library` to set build context to repository root (`context: ../..`) and explicitly copy `packages/backend-shared`.
-
----
-
 ### 🔴 `[Security/Isolation]` MCP Tools Bypass Household Isolation (`TD-MCP-01`)
 - **Severity:** Critical
 - **Root Cause / Findings:**
