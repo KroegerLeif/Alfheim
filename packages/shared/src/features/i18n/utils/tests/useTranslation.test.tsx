@@ -11,7 +11,7 @@ describe('useTranslation Hook', () => {
     document.cookie = 'NEXT_LOCALE=; path=/; max-age=0'
   })
 
-  it('defaults to German language and translates common keys', () => {
+  it('defaults to German language and translates common and budget keys', () => {
     const { result } = renderHook(() => useTranslation())
 
     expect(result.current.language).toBe('de')
@@ -23,6 +23,9 @@ describe('useTranslation Hook', () => {
     expect(result.current.t('auth.securing_session')).toBe('Sitzung mit Keycloak wird gesichert...')
     expect(result.current.t('dashboard.contact.categories.business')).toBe('Unternehmen')
     expect(result.current.t('dashboard.household.roles.member')).toBe('MITGLIED')
+    expect(result.current.t('budget.title')).toBe('Budget & Finanzen')
+    expect(result.current.t('budget.accounts.checking')).toBe('Girokonto')
+    expect(result.current.t('budget.pots.sinkingFund')).toBe('Ansparziel-Rechner')
   })
 
   it('translates keys in English when language is set to en', () => {
@@ -40,6 +43,9 @@ describe('useTranslation Hook', () => {
     expect(result.current.t('auth.securing_session')).toBe('Securing session with Keycloak...')
     expect(result.current.t('dashboard.contact.categories.business')).toBe('Business')
     expect(result.current.t('dashboard.household.roles.member')).toBe('MEMBER')
+    expect(result.current.t('budget.title')).toBe('Budget & Treasury')
+    expect(result.current.t('budget.accounts.checking')).toBe('Checking Account')
+    expect(result.current.t('budget.pots.sinkingFund')).toBe('Sinking Fund Calculator')
   })
 
   it('translates keys in Polish when language is set to pl', () => {
@@ -57,6 +63,9 @@ describe('useTranslation Hook', () => {
     expect(result.current.t('auth.securing_session')).toBe('Zabezpieczanie sesji z Keycloak...')
     expect(result.current.t('dashboard.contact.categories.business')).toBe('Firma')
     expect(result.current.t('dashboard.household.roles.member')).toBe('CZŁONEK')
+    expect(result.current.t('budget.title')).toBe('Budżet i Skarbiec')
+    expect(result.current.t('budget.accounts.checking')).toBe('Konto Osobiste')
+    expect(result.current.t('budget.pots.sinkingFund')).toBe('Kalkulator Funduszu Celowego')
   })
 
   it('interpolates dynamic parameters into translated messages', () => {
