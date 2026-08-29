@@ -1,6 +1,7 @@
 "use client";
 
-import { AlfiMascot, useTranslation } from "@alfheim/shared";
+import { useState } from "react";
+import { AlfiMascot, useAlfiChatLifecycle, useTranslation } from "@alfheim/shared";
 import { Cpu, Plus } from "lucide-react";
 import type { ModelBlock } from "@/features/conversations/types";
 import { ChatInput } from "./ChatInput";
@@ -15,7 +16,7 @@ interface ChatLandingStateProps {
 
 /**
  * Renders the empty landing state when no conversation is selected,
- * displaying the ALFI mascot illustration, model selection indicator, and direct input.
+ * displaying the perched ALFI companion mascot, model selection indicator, and direct input.
  */
 export function ChatLandingState({
   currentModel,
@@ -25,17 +26,25 @@ export function ChatLandingState({
   isStreaming,
 }: ChatLandingStateProps) {
   const { t } = useTranslation();
+  const [isTyping, setIsTyping] = useState(false);
+
+  const mascotState = useAlfiChatLifecycle({
+    isTyping,
+    isThinking: isStreaming,
+    isStreaming,
+    isError: Boolean(streamError),
+  });
 
   return (
     <div className="flex-1 flex flex-col h-full w-full min-w-0 bg-[var(--surface-canvas)]">
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-2xl mx-auto w-full">
-        <AlfiMascot state="idle" size="lg" />
-        <div className="space-y-1.5 max-w-md">
-          <h2 className="text-xl font-bold text-[var(--text-main)]">
+        <AlfiMascot state={mascotState} size="md" showHalo={true} />
+        <div className="space-y-1 max-w-md">
+          <h2 className="text-lg font-bold text-[var(--text-main)]">
             {t("Chat.welcomeTitle")}
           </h2>
-          <p className="text-sm text-[var(--text-muted)]">
-            {t("Chat.noConversationSelected")}
+          <p className="text-xs text-[var(--text-muted)]">
+            {isTyping ? t("Chat.statusListening") : t("Chat.welcomeGeneric")}
           </p>
         </div>
 
@@ -64,7 +73,7 @@ export function ChatLandingState({
 
       {currentModel && (
         <div className="w-full max-w-4xl mx-auto">
-          <ChatInput onSend={onSend} disabled={isStreaming} />
+          <ChatInput onSend={onSend} onTypingChange={setIsTyping} disabled={isStreaming} />
         </div>
       )}
     </div>

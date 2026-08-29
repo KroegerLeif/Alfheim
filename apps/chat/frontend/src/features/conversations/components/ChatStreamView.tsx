@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlfiAvatar, useTranslation } from "@alfheim/shared";
+import { AlfiAvatar, AlfiMascot, useAlfiChatLifecycle, useTranslation } from "@alfheim/shared";
 import { postMessage, streamAssistantReply } from "@/lib/api";
 import {
   useCreateConversation,
@@ -22,7 +22,7 @@ interface ChatStreamViewProps {
 
 /**
  * Renders a conversation's message history and attachments, driving the SSE
- * streaming endpoint to show assistant replies arriving incrementally.
+ * streaming endpoint to show assistant replies arriving incrementally with a perched ALFI companion.
  */
 export function ChatStreamView({
   conversationId,
@@ -39,9 +39,18 @@ export function ChatStreamView({
   const [activeConvoId, setActiveConvoId] = useState<string | null>(conversationId);
   const [streamingText, setStreamingText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Derive dynamic mascot state from real-time chat lifecycle
+  const mascotState = useAlfiChatLifecycle({
+    isTyping,
+    isThinking: isStreaming && !streamingText,
+    isStreaming: isStreaming && Boolean(streamingText),
+    isError: Boolean(streamError),
+  });
 
   // Sync internal active conversation ID when prop changes
   useEffect(() => {
@@ -60,6 +69,14 @@ export function ChatStreamView({
   const effectiveConvoId = activeConvoId ?? conversationId;
   const currentModel =
     modelBlocks?.find((b) => b.id === selectedModelBlockId) || modelBlocks?.[0];
+
+  const getCompanionStatusText = () => {
+    if (streamError) return t("Chat.streamError");
+    if (isStreaming && !streamingText) return t("Chat.statusThinking");
+    if (isStreaming) return t("Chat.statusSpeaking");
+    if (isTyping) return t("Chat.statusListening");
+    return t("Chat.statusIdle");
+  };
 
   const invalidateMessages = (targetId?: string) => {
     const id = targetId || effectiveConvoId;
@@ -146,6 +163,26 @@ export function ChatStreamView({
 
   return (
     <div className="flex-1 flex flex-col h-full w-full min-w-0 bg-[var(--surface-canvas)]">
+      {/* Perched ALFI Companion Top Bar */}
+      <div className="border-b border-[var(--border-subtle)] bg-[var(--surface-canvas)]/90 backdrop-blur-sm px-4 py-2 flex items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <AlfiMascot state={mascotState} size="sm" showHalo={true} />
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[var(--text-main)]">ALFI</span>
+              {currentModel && (
+                <span className="text-[10px] text-[var(--text-muted)] font-mono px-1.5 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border-subtle)]">
+                  {currentModel.display_name}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-[var(--primary-main)] transition-colors duration-300">
+              {getCompanionStatusText()}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-4xl mx-auto w-full space-y-4">
           {isLoading && <p className="text-sm text-[var(--text-muted)]">…</p>}
@@ -176,7 +213,7 @@ export function ChatStreamView({
       </div>
 
       <div className="w-full max-w-4xl mx-auto">
-        <ChatInput onSend={handleSend} disabled={isStreaming} />
+        <ChatInput onSend={handleSend} onTypingChange={setIsTyping} disabled={isStreaming} />
       </div>
     </div>
   );
