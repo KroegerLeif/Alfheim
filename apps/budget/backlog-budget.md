@@ -295,7 +295,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `./scripts/up.sh --help`
 
-### [ ] TASK-704: Full Workspace Verification Gate
+### [x] TASK-704: Full Workspace Verification Gate
 - **Domain/Layer:** Quality Gate
 - **Scope & Files:** Workspace-wide
 - **Requirements & Business Logic:**

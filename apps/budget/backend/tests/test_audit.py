@@ -47,6 +47,7 @@ async def test_audit_log_on_create(db_session: AsyncSession):
     repo = AuditRepository(db_session)
     logs = await repo.get_by_household(household_id)
 
+    assert entity.id is not None
     assert len(logs) == 1
     log = logs[0]
     assert log.action == "CREATE"
@@ -80,12 +81,15 @@ async def test_audit_log_on_update(db_session: AsyncSession):
     entity.amount = 250.0
     await db_session.commit()
 
+    assert entity.id is not None
     repo = AuditRepository(db_session)
     logs = await repo.get_by_entity("DummySampleEntity", entity.id)
 
     assert len(logs) == 2
     update_log = logs[0]  # Ordered by timestamp desc
     assert update_log.action == "UPDATE"
+    assert update_log.old_values is not None
+    assert update_log.new_values is not None
     assert update_log.old_values["name"] == "Old Name"
     assert update_log.old_values["amount"] == 100.0
     assert update_log.new_values["name"] == "Updated Name"

@@ -3,7 +3,7 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.audit.models import AuditLog
 
@@ -26,7 +26,7 @@ class AuditRepository:
         statement = (
             select(AuditLog)
             .where(AuditLog.household_id == household_id)
-            .order_by(AuditLog.timestamp.desc())
+            .order_by(col(AuditLog.timestamp).desc())
             .offset(offset)
             .limit(limit)
         )
@@ -38,7 +38,7 @@ class AuditRepository:
         statement = (
             select(AuditLog)
             .where(AuditLog.entity_name == entity_name, AuditLog.entity_id == entity_id)
-            .order_by(AuditLog.timestamp.desc())
+            .order_by(col(AuditLog.timestamp).desc())
             .limit(limit)
         )
         result = await self.session.exec(statement)

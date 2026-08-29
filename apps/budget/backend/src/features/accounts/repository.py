@@ -37,7 +37,7 @@ class AccountRepository:
         """List all accounts for a specific household."""
         statement = select(Account).where(Account.household_id == household_id)
         if not include_inactive:
-            statement = statement.where(Account.is_active.is_(True))
+            statement = statement.where(Account.is_active == True)  # noqa: E712
         result = await self.session.exec(statement)
         return result.all()
 

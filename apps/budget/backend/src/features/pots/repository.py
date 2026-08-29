@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.pots.models import Pot, PotCreate, PotUpdate
 
@@ -38,7 +38,7 @@ class PotRepository:
         statement = select(Pot).where(
             Pot.name == name,
             Pot.household_id == household_id,
-            Pot.is_active.is_(True),
+            Pot.is_active == True,  # noqa: E712
         )
         result = await self.session.exec(statement)
         return result.first()
@@ -47,7 +47,7 @@ class PotRepository:
         """List all pots for a specific household."""
         statement = select(Pot).where(Pot.household_id == household_id)
         if not include_inactive:
-            statement = statement.where(Pot.is_active.is_(True))
+            statement = statement.where(Pot.is_active == True)  # noqa: E712
         result = await self.session.exec(statement)
         return result.all()
 
@@ -57,9 +57,9 @@ class PotRepository:
             select(Pot)
             .where(
                 Pot.household_id == household_id,
-                Pot.is_active.is_(True),
+                Pot.is_active == True,  # noqa: E712
             )
-            .order_by(Pot.priority.asc(), Pot.created_at.asc())
+            .order_by(col(Pot.priority).asc(), col(Pot.created_at).asc())
         )
         result = await self.session.exec(statement)
         return result.all()
