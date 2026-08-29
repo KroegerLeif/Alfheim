@@ -83,6 +83,7 @@
       "creator": "Author / Developer / Director",
       "mediaType": "Media Type",
       "location": "Location",
+      "noLocation": "-- No Location --",
       "isbn": "ISBN",
       "minPlayers": "Min. Players",
       "maxPlayers": "Max. Players",
@@ -92,7 +93,12 @@
       "description": "Description",
       "coverUrl": "Cover Image URL",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "lookupIsbnLabel": "ISBN (Book)",
+      "lookupBggLabel": "BGG (Board Game)",
+      "lookupTmdbLabel": "TMDB (Movie/Series)",
+      "lookupError": "Failed to fetch metadata. Please try manual entry.",
+      "saveError": "Failed to save item. Please check inputs and try again."
     }
   }
 }

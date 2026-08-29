@@ -7,12 +7,14 @@ interface CatalogGridProps {
   items: MediaItem[];
   isLoading: boolean;
   locationsMap: Map<string, string>;
+  onEditItem?: (item: MediaItem) => void;
 }
 
 export function CatalogGrid({
   items,
   isLoading,
   locationsMap,
+  onEditItem,
 }: CatalogGridProps) {
   const { t } = useTranslation();
 
@@ -59,6 +61,7 @@ export function CatalogGrid({
           key={item.id}
           item={item}
           locationName={item.location_id ? locationsMap.get(item.location_id) : undefined}
+          onEdit={onEditItem ? () => onEditItem(item) : undefined}
         />
       ))}
     </div>

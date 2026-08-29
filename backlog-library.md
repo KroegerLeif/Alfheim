@@ -197,7 +197,7 @@ The `library` application is a Tier-1 Core Native App within the Alfheim househo
   3. Every file in `src/features/catalog/` strictly stays under 200 LOC.
 
 #### [TASK-14] Implement Metadata Lookup & Add/Edit Item Modals
-- **Status:** [ ] Offen
+- **Status:** [x] Abgeschlossen
 - **Scope:** `apps/library/frontend/src/features/item-dialog/`
 - **Description:** Implement dialog for adding/editing items with integrated ISBN / BGG / TMDB quick-lookup buttons to auto-populate form fields.
 - **Definition of Done:**

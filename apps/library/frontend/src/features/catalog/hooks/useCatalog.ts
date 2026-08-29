@@ -56,6 +56,7 @@ export function useCatalog() {
     isLoading: itemsQuery.isLoading,
     isError: itemsQuery.isError,
     error: itemsQuery.error,
+    locations: locationsQuery.data ?? [],
     locationsMap,
     refetch: itemsQuery.refetch,
   };
