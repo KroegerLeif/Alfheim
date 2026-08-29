@@ -112,16 +112,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟡 `[Cleanup/Next.js]` Deprecated `middleware.ts` Files in Shopping and Dashboard Frontends (`TD-NEXT-01`)
-- **Severity:** Medium
-- **Root Cause / Findings:**
-  `apps/shopping/frontend/src/middleware.ts` and `core/dashboard/frontend/src/middleware.ts` use `middleware.ts`, which is deprecated in Next.js 16. Monorepo architecture standards specify using `src/proxy.ts`.
-- **Proposed Resolution:**
-  - [ ] Rename `apps/shopping/frontend/src/middleware.ts` to `apps/shopping/frontend/src/proxy.ts`.
-  - [ ] Rename `core/dashboard/frontend/src/middleware.ts` to `core/dashboard/frontend/src/proxy.ts`.
-
----
-
 ### 🟢 `[Cleanup/Lint]` Missing ESLint Configuration in Chores Frontend (`TD-FE-01`)
 - **Severity:** Low
 - **Root Cause / Findings:**
