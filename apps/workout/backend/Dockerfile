@@ -21,14 +21,14 @@ WORKDIR /app/apps/workout/backend
 
 # Sync dependencies (excluding development libraries and the project itself)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-install-project
+    uv sync --no-dev --no-install-project --no-editable
 
 # Copy application source files
 COPY apps/workout/backend/. .
 
 # Run project sync to register the package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev
+    uv sync --no-dev --no-editable
 
 # Final slim runtime container
 FROM python:3.12-alpine
@@ -36,7 +36,7 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # Copy virtualenv and executable files from builder
-COPY --from=builder /app/apps/workout/backend/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/apps/workout/backend/src /app/src
 COPY --from=builder /app/apps/workout/backend/main.py /app/main.py
 
