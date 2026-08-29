@@ -9,6 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(mascot): refactor alfi mascot assets, extensible renderer, persona prompt and mcp diagnostic`**
+  - Cleaned up SVG asset typo `alfi-listenig.svg` -> `alfi-listening.svg` and centralized application icons in `packages/shared/src/assets/apps/`.
+  - Implemented extensible `AlfiMascot`, `AlfiAvatar`, and `useAlfiChatLifecycle` hook in `@alfheim/shared` supporting 8 canonical mascot states with smooth transitions and layout shift prevention.
+  - Defined dedicated `alfi_system.md` persona prompt with smart-home domain mastery, ALF-inspired humor (Melmac memories, cat protection, midnight snack cravings), and strict multilingual i18n detection.
+  - Implemented MCP server ping, latency measurement, and health diagnostic routine with `GET /api/v1/chat/mcp-servers/diagnostics`, startup background logging, and `./scripts/diagnose-mcp.sh` diagnostic runner.
 * **`refactor(frontend): resolve code review issues, enforce 200 loc limits, and eliminate any types`**
   - Extracted `ModelDiscoverySection.tsx` from `ModelBlockFormModal.tsx`, bringing both components under 190 LOC.
   - Modularized `apps/chat/frontend/src/lib/api.ts` into specialized submodules (`client.ts`, `modelBlocks.ts`, `conversations.ts`, `attachments.ts`) with a clean facade module.
