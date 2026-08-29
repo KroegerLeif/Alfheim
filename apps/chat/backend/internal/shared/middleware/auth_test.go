@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func generateJWKSServer(t *testing.T, keyID string) (*rsa.PrivateKey, *httptest.Server) {
@@ -286,6 +288,38 @@ func TestRequestLoggerAndCORS(t *testing.T) {
 		}
 		if rec.Code != http.StatusAccepted {
 			t.Errorf("expected status %d, got %d", http.StatusAccepted, rec.Code)
+		}
+	})
+
+	t.Run("RequestLogger extracts traceparent header into context and log output", func(t *testing.T) {
+		var buf bytes.Buffer
+		jsonLog := slog.New(slog.NewJSONHandler(&buf, nil))
+		loggerMw := RequestLogger(jsonLog)
+
+		expectedTraceID := "4bf92f3577b34da6a3ce929d0e0e4736"
+		expectedSpanID := "00f067aa0ba902b7"
+		traceparentHeader := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+
+		var capturedSpanContext trace.SpanContext
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedSpanContext = trace.SpanContextFromContext(r.Context())
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/trace-test", nil)
+		req.Header.Set("traceparent", traceparentHeader)
+		rec := httptest.NewRecorder()
+
+		loggerMw(next).ServeHTTP(rec, req)
+
+		if !capturedSpanContext.IsValid() {
+			t.Fatalf("expected valid span context in downstream handler context")
+		}
+		if got := capturedSpanContext.TraceID().String(); got != expectedTraceID {
+			t.Errorf("expected trace ID %s, got %s", expectedTraceID, got)
+		}
+		if got := capturedSpanContext.SpanID().String(); got != expectedSpanID {
+			t.Errorf("expected span ID %s, got %s", expectedSpanID, got)
 		}
 	})
 
