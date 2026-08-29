@@ -22,8 +22,8 @@ services:
 
   library-backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/library/backend/Dockerfile
     container_name: library-backend
     restart: always
     environment:
