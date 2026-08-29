@@ -2,7 +2,6 @@ import uuid
 from datetime import date
 
 from src.core.database import async_session_factory
-from src.core.dependencies import MOCK_HOME_ID
 from src.features.inventory.alert_service import AlertService
 from src.features.inventory.exceptions import InventoryError
 from src.features.inventory.schemas import InventoryTransactionCreate
@@ -12,6 +11,7 @@ from src.mcp.server import mcp
 
 @mcp.tool()
 async def record_inventory_movement(
+    household_id: str,
     product_id: str,
     location_id: str,
     transaction_type: str,
@@ -24,6 +24,7 @@ async def record_inventory_movement(
     """Record a physical inventory movement (IN, OUT, WASTE, RECONCILIATION).
 
     Parameters:
+    - household_id: UUID string of the household space.
     - product_id: UUID of the target product blueprint.
     - location_id: UUID of the storage location.
     - transaction_type: Type of movement ('in', 'out', 'waste', 'reconciliation').
@@ -34,6 +35,7 @@ async def record_inventory_movement(
     - notes: Optional text note detailing transaction reasons.
     """
     try:
+        home_uuid = uuid.UUID(household_id)
         payload = InventoryTransactionCreate(
             product_id=uuid.UUID(product_id),
             location_id=uuid.UUID(location_id),
@@ -49,7 +51,7 @@ async def record_inventory_movement(
             ledger = await InventoryService.create_transaction(
                 session=session,
                 payload=payload,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
             )
             return (
                 f"Success: Recorded {transaction_type.upper()} transaction {ledger.id}. "
@@ -66,23 +68,26 @@ async def record_inventory_movement(
 
 @mcp.tool()
 async def get_current_inventory(
+    household_id: str,
     product_id: str | None = None,
     location_id: str | None = None,
 ) -> str:
     """Retrieve the real-time cached inventory levels.
 
     Parameters:
+    - household_id: UUID string of the household space.
     - product_id: Optional UUID to filter results by a specific product.
     - location_id: Optional UUID to filter results by a specific location.
     """
     try:
+        home_uuid = uuid.UUID(household_id)
         p_uuid = uuid.UUID(product_id) if product_id else None
         l_uuid = uuid.UUID(location_id) if location_id else None
 
         async with async_session_factory() as session:
             states = await InventoryService.get_current_state(
                 session=session,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
                 product_id=p_uuid,
                 location_id=l_uuid,
             )
@@ -109,13 +114,18 @@ async def get_current_inventory(
 
 
 @mcp.tool()
-async def get_low_stock_alerts() -> str:
-    """List all products currently below their minimum stock thresholds."""
+async def get_low_stock_alerts(household_id: str) -> str:
+    """List all products currently below their minimum stock thresholds.
+
+    Parameters:
+    - household_id: UUID string of the household space.
+    """
     try:
+        home_uuid = uuid.UUID(household_id)
         async with async_session_factory() as session:
             low_stock_items = await AlertService.get_low_stock_items(
                 session=session,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
             )
 
             if not low_stock_items:
@@ -136,13 +146,18 @@ async def get_low_stock_alerts() -> str:
 
 
 @mcp.tool()
-async def get_inventory_expiration_summary() -> str:
-    """Summarize inventory items grouped by their expiration status (Expired, Valid, Untracked)."""
+async def get_inventory_expiration_summary(household_id: str) -> str:
+    """Summarize inventory items grouped by their expiration status (Expired, Valid, Untracked).
+
+    Parameters:
+    - household_id: UUID string of the household space.
+    """
     try:
+        home_uuid = uuid.UUID(household_id)
         async with async_session_factory() as session:
             summary = await AlertService.get_expiration_summary(
                 session=session,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
             )
 
             lines = []
