@@ -55,26 +55,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ## Folder Documentation (`README.md` Audit)
 
-### 🟡 `[Docs/README]` Missing Architectural Root Directory Documentation
-- **Severity:** Medium
-- **Root Cause / Findings:**
-  Primary architectural directories lack top-level `README.md` files describing their boundaries, developer conventions, and exported packages/services:
-  - `apps/`: Container for domain microfrontends and microservice backends.
-  - `core/`: Container for central control plane services (`core/dashboard`).
-  - `packages/`: Workspace shared libraries (`@alfheim/shared` and `backend-shared`).
-  - `deploy/`: Server-level configuration and stack app manifests (`stack-apps.yaml`).
-  - `scripts/`: Monorepo orchestration and verification shell scripts.
-  - `websites/`: Public documentation and static web projects (`websites/docs`).
-- **Proposed Resolution:**
-  - [ ] Create `apps/README.md` documenting microservice design rules, FDD structure, and backend/frontend pairing.
-  - [ ] Create `core/README.md` explaining core platform services and registry configurations.
-  - [ ] Create `packages/README.md` documenting frontend `@alfheim/shared` UI/API primitives and Python `backend-shared` utilities.
-  - [ ] Create `deploy/README.md` documenting stack app configurations and deployment specifications.
-  - [ ] Create `scripts/README.md` documenting execution scripts (`up.sh`, `down.sh`, `seed.sh`, `verify.sh`, `setup-env.sh`).
-  - [ ] Create `websites/README.md` detailing the documentation site architecture and GitHub Pages deployment workflow.
-
----
-
 ### 🟡 `[Docs/README]` Missing Microservice and Infrastructure Module Documentation
 - **Severity:** Medium
 - **Root Cause / Findings:**
