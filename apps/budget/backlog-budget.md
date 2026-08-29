@@ -277,7 +277,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
 - **Verification:**
   - `cd apps/budget/backend && uv run pytest`
 
-### [ ] TASK-702: Dashboard Core App Registration
+### [x] TASK-702: Dashboard Core App Registration
 - **Domain/Layer:** Core / Registry
 - **Scope & Files:**
   - `core/dashboard/backend/internal/features/apps/tier1_core_registry.go`
