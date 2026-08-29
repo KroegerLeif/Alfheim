@@ -75,17 +75,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟡 `[Docs/README]` Missing Microservice and Infrastructure Module Documentation
-- **Severity:** Medium
-- **Root Cause / Findings:**
-  Several microservices and infrastructure components lack local `README.md` documentation detailing API endpoints, configuration parameters, and run instructions:
-  - App Roots: `apps/budget/`, `apps/library/`, `apps/workout/`, `apps/chat/`.
-  - App Subdirectories: `apps/budget/backend/`, `apps/budget/frontend/`, `apps/library/frontend/`.
-  - Infrastructure: `infrastructure/caddy/`, `infrastructure/keycloak/`, `infrastructure/postgres-iam/`, `infrastructure/rustfs/`.
-- **Proposed Resolution:**
-  - [ ] Add `README.md` files for all missing application root, backend, and frontend directories specifying purpose, environment variables, dependencies, and local dev commands.
-  - [ ] Add `README.md` files for infrastructure directories explaining Caddy reverse proxy mappings, Keycloak realm imports, IAM setup, and RustFS S3 configuration.
-
 ---
 
 ## Feature Inventory & GitHub Pages Sync
