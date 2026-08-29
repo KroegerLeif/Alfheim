@@ -241,7 +241,7 @@ This document serves as the deterministic, modular, phase-based roadmap for auto
   - `pnpm --filter @alfheim/budget-frontend check-types`
   - `pnpm --filter @alfheim/budget-frontend build`
 
-### [ ] TASK-602: Mobile Bottom-Tab & Responsive Layout Shell
+### [x] TASK-602: Mobile Bottom-Tab & Responsive Layout Shell
 - **Domain/Layer:** Frontend / Navigation
 - **Scope & Files:**
   - `apps/budget/frontend/src/features/navigation/MobileTabBar.tsx`
