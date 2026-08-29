@@ -6,17 +6,21 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"go.opentelemetry.io/otel/propagation"
 )
 
-// RequestLogger creates a chi middleware for structured request logging.
+// RequestLogger creates a chi middleware for structured request logging and W3C trace propagation.
 func RequestLogger(log *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := propagation.TraceContext{}.Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+			r = r.WithContext(ctx)
+
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			t1 := time.Now()
 
 			defer func() {
-				log.Info("http request",
+				log.InfoContext(r.Context(), "http request",
 					slog.String("method", r.Method),
 					slog.String("path", r.URL.Path),
 					slog.Int("status", ww.Status()),
