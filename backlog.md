@@ -92,17 +92,16 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ## Dead Code, Orphan Files & Maintenance Tasks
 
-### 🟡 `[Cleanup/Next.js]` Deprecated `middleware.ts` Files in Shopping and Dashboard Frontends (`TD-NEXT-01`)
-- **Severity:** Medium
+### 🟢 `[Cleanup/Dead Code]` Unused Theme CSS Files in Pantry and Chores Frontends (`TD-FE-03`)
+- **Severity:** Low
 - **Root Cause / Findings:**
-  `apps/shopping/frontend/src/middleware.ts` and `core/dashboard/frontend/src/middleware.ts` use `middleware.ts`, which is deprecated in Next.js 16. Monorepo architecture standards specify using `src/proxy.ts`.
+  `apps/chores/frontend/src/styles/theme.css` and `apps/pantry/frontend/src/styles/theme.css` define CSS custom properties (`--font-heading`, `--font-body`, `--font-mono`), but neither `globals.css` nor any component imports them.
 - **Proposed Resolution:**
-  - [ ] Rename `apps/shopping/frontend/src/middleware.ts` to `apps/shopping/frontend/src/proxy.ts`.
-  - [ ] Rename `core/dashboard/frontend/src/middleware.ts` to `core/dashboard/frontend/src/proxy.ts`.
+  - [ ] Either import `theme.css` inside `globals.css` or inline the CSS variables and remove the redundant `theme.css` files.
 
 ---
 
-### 🟢 `[Tooling/Frontend]` Missing `check-types` Scripts Across Microfrontends (`TD-FE-04`)
+### 🟢 `[Cleanup/Lint]` Missing ESLint Configuration in Chores Frontend (`TD-FE-01`)
 - **Severity:** Low
 - **Root Cause / Findings:**
   Only `apps/library/frontend`, `apps/budget/frontend`, and `apps/chores/frontend` declare a `"check-types": "tsc --noEmit"` script in `package.json`. Other microfrontends (`maintenance`, `shopping`, `workout`, `pantry`, `chat`, `dashboard`) rely solely on workspace-wide `pnpm check-types` or `tsc` commands without a local script target.
