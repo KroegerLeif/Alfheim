@@ -20,7 +20,7 @@
     "vpnNotice": {
       "badge": "Obwód bezpieczeństwa",
       "title": "Dostęp do sieci prywatnej",
-      "description": "Aplikacje produkcyjne (Dashboard, Spiżarnia, Zakupy, Obowiązki, Konserwacja) działają w izolowanej enklawie VPN. Bezpośredni dostęp wymaga aktywnego tunelu WireGuard/Tailscale.",
+      "description": "Aplikacje produkcyjne (Dashboard, Spiżarnia, Zakupy, Obowiązki, Konserwacja, Budżet, Biblioteka, Trening, Czat) działają w izolowanej enklawie VPN. Bezpośredni dostęp wymaga aktywnego tunelu WireGuard/Tailscale.",
       "gatewayInfo": "Ruch publiczny jest kierowany przez bramę Caddy z terminacją TLS."
     },
     "modules": {
@@ -54,6 +54,34 @@
         "description": "Cykliczna rotacja obowiązków, nagrody za serie (streak), system punktowy i sprawiedliwy podział pracy.",
         "badge": "FastAPI + Next.js",
         "route": "/chores"
+      },
+      "budget": {
+        "name": "Budżet i Skarbiec",
+        "tagline": "Konta i planowanie finansowe",
+        "description": "Konta finansowe gospodarstwa domowego, wirtualne skarbonki, miesięczne plany budżetowe i rejestr transakcji.",
+        "badge": "FastAPI + Next.js",
+        "route": "/budget"
+      },
+      "library": {
+        "name": "Biblioteka i Media",
+        "tagline": "Kolekcja książek i mediów",
+        "description": "Katalogowanie księgozbioru, śledzenie postępów w czytaniu, zarządzanie wypożyczeniami i pobieranie metadanych.",
+        "badge": "FastAPI + Next.js",
+        "route": "/library"
+      },
+      "workout": {
+        "name": "Dziennik Treningowy",
+        "tagline": "Telemetria treningu i siły",
+        "description": "Planowanie treningów, rejestrowanie serii i powtórzeń, śledzenie rekordów osobistych i analiza postępów.",
+        "badge": "FastAPI + Next.js",
+        "route": "/workout"
+      },
+      "chat": {
+        "name": "ALFI Czat",
+        "tagline": "Konwersacyjna sztuczna inteligencja i interfejs MCP",
+        "description": "Wielomodalny interfejs asystenta AI z integracją narzędzi MCP, strumieniowaniem kontekstu i orkiestracją zapytań.",
+        "badge": "Go + Next.js",
+        "route": "/chat"
       },
       "dashboard": {
         "name": "Panel Główny",

@@ -160,6 +160,10 @@ func (f *fakeToolCaller) CallTool(ctx context.Context, toolName string, argument
 	return "", false, nil
 }
 
+func (f *fakeToolCaller) Ping(ctx context.Context) mcp.DiagnosticResult {
+	return mcp.DiagnosticResult{Reachable: true, ToolsCount: len(f.tools)}
+}
+
 // fakeClientPool hands out a fixed set of fakeToolCaller instances by endpoint URL.
 type fakeClientPool struct {
 	byURL map[string]mcp.ToolCaller

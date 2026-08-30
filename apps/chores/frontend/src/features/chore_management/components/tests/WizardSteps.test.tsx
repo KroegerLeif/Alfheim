@@ -49,7 +49,7 @@ describe('WizardSteps Component', () => {
       replace: vi.fn(),
       prefetch: vi.fn(),
       back: vi.fn(),
-    } as any)
+    } as unknown as ReturnType<typeof navigationModule.useRouter>)
 
     renderWithProviders(<WizardSteps />)
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation, AppLogo } from "@alfheim/shared";
 import { Link, usePathname } from "@/navigation";
 import { cn } from "@/core/utils";
@@ -17,14 +17,13 @@ import { useTodayChores } from "@/features/chore_management/services/choresServi
 export function Sidebar() {
   const { t } = useTranslation();
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("alfheim_chores_sidebar_collapsed");
-    if (saved !== null) {
-      setIsCollapsed(saved === "true");
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("alfheim_chores_sidebar_collapsed");
+      return saved === "true";
     }
-  }, []);
+    return false;
+  });
 
   const toggleCollapse = () => {
     setIsCollapsed((prev) => {

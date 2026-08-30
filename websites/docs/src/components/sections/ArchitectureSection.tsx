@@ -112,7 +112,7 @@ export const ArchitectureSection: React.FC = () => {
           </div>
           <div className="p-4 rounded-xl bg-[#0b1326] border border-purple-500/30">
             <div className="font-bold text-purple-400 text-sm">app-*-net</div>
-            <div className="text-[#8b949e] mt-1">Per-App Isolated Backends &amp; DBs</div>
+            <div className="text-[#8b949e] mt-1">8 Microservice Backends &amp; DBs</div>
             <div className="mt-3 text-[11px] text-purple-400/80">Zero Cross-App DB Coupling</div>
           </div>
         </div>

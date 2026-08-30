@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"alfheim/chat/internal/features/mcpservers"
+	"alfheim/chat/internal/shared/mcp"
 )
 
 // fakeRepository is an in-memory Repository double for unit-testing the service
@@ -194,5 +195,80 @@ func TestService_SetEnabled_NotFound(t *testing.T) {
 
 	if _, err := svc.SetEnabled(context.Background(), "does-not-exist", true); err != mcpservers.ErrNotFound {
 		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+type fakeTestPool struct {
+	results map[string]mcp.DiagnosticResult
+}
+
+func (f *fakeTestPool) Get(endpointURL string) mcp.ToolCaller {
+	return &fakeTestToolCaller{res: f.results[endpointURL]}
+}
+
+type fakeTestToolCaller struct {
+	res mcp.DiagnosticResult
+}
+
+func (f *fakeTestToolCaller) ListTools(ctx context.Context) ([]mcp.Tool, error) {
+	return nil, nil
+}
+
+func (f *fakeTestToolCaller) CallTool(ctx context.Context, name string, args map[string]any) (string, bool, error) {
+	return "", false, nil
+}
+
+func (f *fakeTestToolCaller) Ping(ctx context.Context) mcp.DiagnosticResult {
+	return f.res
+}
+
+func TestService_DiagnoseServers(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+
+	if err := svc.SeedFromEnv(ctx, "pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Disable chores
+	list, _ := svc.List(ctx)
+	for _, s := range list {
+		if s.AppSlug == "chores" {
+			_, _ = svc.SetEnabled(ctx, s.ID, false)
+		}
+	}
+
+	pool := &fakeTestPool{
+		results: map[string]mcp.DiagnosticResult{
+			"http://pantry-backend:8000/mcp": {
+				Reachable:   true,
+				LatencyMs:   15,
+				ToolsCount:  2,
+				Tools:       []string{"pantry_list", "pantry_add"},
+				ProtocolVer: "2024-11-05",
+			},
+		},
+	}
+
+	diags, err := svc.DiagnoseServers(ctx, pool)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("expected 2 diagnostics, got %d", len(diags))
+	}
+
+	for _, d := range diags {
+		if d.AppSlug == "pantry" {
+			if !d.Reachable || d.ToolsCount != 2 {
+				t.Errorf("expected pantry to be reachable with 2 tools, got %+v", d)
+			}
+		} else if d.AppSlug == "chores" {
+			if d.Enabled || d.Reachable {
+				t.Errorf("expected chores to be disabled and unreachable, got %+v", d)
+			}
+		}
 	}
 }
