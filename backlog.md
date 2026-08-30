@@ -43,16 +43,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟠 `[Bug/Budget UI]` Budget Microfrontend UI is an Incomplete Placeholder
-- **Severity:** High
-- **Root Cause / Findings:**
-  In `apps/budget/frontend/src/app/[locale]/page.tsx` and `apps/budget/frontend/src/features/`, the Budget frontend UI consists of a placeholder shell displaying static click counters and active path labels. The backend domain features implemented in `apps/budget/backend/src/features/` (`accounts`, `pots`, `plans`, `transactions`) have no corresponding UI components or API integration.
-- **Proposed Resolution:**
-  - [ ] Create UI feature components under `apps/budget/frontend/src/features/` for Account Overview, Sinking Funds / Virtual Pots, Monthly/Event Budget Plans, and Transaction Ledger.
-  - [ ] Connect frontend components to `budget-backend` REST endpoints using a typed `ky` API client with Keycloak token and `X-Household-ID` propagation.
-
----
-
 ## Folder Documentation (`README.md` Audit)
 
 ### 🟡 `[Docs/README]` Missing Architectural Root Directory Documentation
