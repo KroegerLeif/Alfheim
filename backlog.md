@@ -113,12 +113,13 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 ## Preserved Open Technical Debt Items
 
 
-### 🟠 `[UI/Auth]` `HouseholdSwitcher` Hardcodes Four Apps (`TD-SHARED-02`)
+### 🟠 `[CI/CD]` Missing Frontend and Microservice CI Testing (`TD-CI-01`, `TD-CI-02`)
 - **Severity:** High
 - **Root Cause / Findings:**
-  `packages/shared/src/features/ui/components/HouseholdSwitcher.tsx` resolves authentication tokens by checking a hardcoded list of four session storage keys (`token_chores-frontend`, `token_maintenance-frontend`, `token_pantry-frontend`, `token_shopping-frontend`), making new micro-apps invisible to household switching.
+  `.github/workflows/python-ci.yml` omits `apps/workout/backend` from its test matrix, and no GitHub Actions workflow exists for frontend TypeScript type-checking or Vitest tests.
 - **Proposed Resolution:**
-  - [ ] Update `HouseholdSwitcher` to fall back to the global `alfheim_access_token` key used across all frontend applications.
+  - [ ] Add `apps/workout/backend` to `.github/workflows/python-ci.yml`.
+  - [ ] Create `.github/workflows/frontend-ci.yml` to run `pnpm -r exec tsc --noEmit` and `pnpm -r test`.
 
 ---
 
