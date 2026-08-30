@@ -141,10 +141,3 @@ This is the **living** backlog for open technical debt, routing issues, missing 
   - [ ] Create `.github/workflows/frontend-ci.yml` to run `pnpm -r exec tsc --noEmit` and `pnpm -r test`.
 
 ---
-
-### 🟢 `[FE/Layout]` Pantry Layout Emits Duplicate `<html>` Tag (`TD-FE-02`)
-- **Severity:** Low
-- **Root Cause / Findings:**
-  `apps/pantry/frontend/src/app/layout.tsx` returns `<html><body>{children}</body></html>` while `src/app/[locale]/layout.tsx` emits `<html>` and `<body>` tags a second time.
-- **Proposed Resolution:**
-  - [ ] Simplify `apps/pantry/frontend/src/app/layout.tsx` to return `{children}` directly.
