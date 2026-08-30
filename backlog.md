@@ -92,15 +92,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ## Dead Code, Orphan Files & Maintenance Tasks
 
-### 🟢 `[Cleanup/Dead Code]` Unused Theme CSS Files in Pantry and Chores Frontends (`TD-FE-03`)
-- **Severity:** Low
-- **Root Cause / Findings:**
-  `apps/chores/frontend/src/styles/theme.css` and `apps/pantry/frontend/src/styles/theme.css` define CSS custom properties (`--font-heading`, `--font-body`, `--font-mono`), but neither `globals.css` nor any component imports them.
-- **Proposed Resolution:**
-  - [ ] Either import `theme.css` inside `globals.css` or inline the CSS variables and remove the redundant `theme.css` files.
-
----
-
 ### 🟡 `[Cleanup/Next.js]` Deprecated `middleware.ts` Files in Shopping and Dashboard Frontends (`TD-NEXT-01`)
 - **Severity:** Medium
 - **Root Cause / Findings:**
