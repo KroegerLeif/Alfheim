@@ -55,25 +55,29 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ## Folder Documentation (`README.md` Audit)
 
-### 🟡 `[Docs/README]` Missing Architectural Root Directory Documentation
+### 🟡 `[Docs/README]` Missing Microservice and Infrastructure Module Documentation
 - **Severity:** Medium
 - **Root Cause / Findings:**
-  Primary architectural directories lack top-level `README.md` files describing their boundaries, developer conventions, and exported packages/services:
-  - `apps/`: Container for domain microfrontends and microservice backends.
-  - `core/`: Container for central control plane services (`core/dashboard`).
-  - `packages/`: Workspace shared libraries (`@alfheim/shared` and `backend-shared`).
-  - `deploy/`: Server-level configuration and stack app manifests (`stack-apps.yaml`).
-  - `scripts/`: Monorepo orchestration and verification shell scripts.
-  - `websites/`: Public documentation and static web projects (`websites/docs`).
+  Several microservices and infrastructure components lack local `README.md` documentation detailing API endpoints, configuration parameters, and run instructions:
+  - App Roots: `apps/budget/`, `apps/library/`, `apps/workout/`, `apps/chat/`.
+  - App Subdirectories: `apps/budget/backend/`, `apps/budget/frontend/`, `apps/library/frontend/`.
+  - Infrastructure: `infrastructure/caddy/`, `infrastructure/keycloak/`, `infrastructure/postgres-iam/`, `infrastructure/rustfs/`.
 - **Proposed Resolution:**
-  - [ ] Create `apps/README.md` documenting microservice design rules, FDD structure, and backend/frontend pairing.
-  - [ ] Create `core/README.md` explaining core platform services and registry configurations.
-  - [ ] Create `packages/README.md` documenting frontend `@alfheim/shared` UI/API primitives and Python `backend-shared` utilities.
-  - [ ] Create `deploy/README.md` documenting stack app configurations and deployment specifications.
-  - [ ] Create `scripts/README.md` documenting execution scripts (`up.sh`, `down.sh`, `seed.sh`, `verify.sh`, `setup-env.sh`).
-  - [ ] Create `websites/README.md` detailing the documentation site architecture and GitHub Pages deployment workflow.
+  - [ ] Add `README.md` files for all missing application root, backend, and frontend directories specifying purpose, environment variables, dependencies, and local dev commands.
+  - [ ] Add `README.md` files for infrastructure directories explaining Caddy reverse proxy mappings, Keycloak realm imports, IAM setup, and RustFS S3 configuration.
 
 ---
+
+## Feature Inventory & GitHub Pages Sync
+
+### 🟡 `[Docs/GitHub Pages]` GitHub Pages Documentation Desync for Recent Microservices
+- **Severity:** Medium
+- **Root Cause / Findings:**
+  The public documentation website in `websites/docs/src/components/sections/AppsGrid.tsx` includes only 5 applications (Pantry, Shopping, Maintenance, Chores, Dashboard). The 4 newer microservices (**Budget & Treasury**, **Media & Library Hub**, **Workout Tracker**, and **ALFI Chat**) are missing from the documentation grid, system architecture diagrams, and translation files (`websites/docs/src/i18n/locales/{de,en,pl}.json`).
+- **Proposed Resolution:**
+  - [ ] Add feature cards and metadata for Budget, Library, Workout, and Chat services to `websites/docs/src/components/sections/AppsGrid.tsx`.
+  - [ ] Add corresponding translation keys for all 4 missing services in `websites/docs/src/i18n/locales/en.json`, `de.json`, and `pl.json`.
+  - [ ] Update `ArchitectureSection.tsx` and `TechStackSection.tsx` in `websites/docs` to reflect all 8 active microservices.
 
 ---
 
