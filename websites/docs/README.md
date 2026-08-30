@@ -47,7 +47,7 @@ Vector emblems and mascot states are centralized in `packages/shared/src/assets/
   - `alfi-idle.svg`: Ambient idle state with floating orbit.
   - `alfi-thinking.svg`: Violet analytical state with rotated orbit.
   - `alfi-speaking.svg`: Active conversational / voice assistant state.
-  - `alfi-listenig.svg`: Inquisitive listening / audio sensor state.
+  - `alfi-listening.svg`: Inquisitive listening / audio sensor state.
   - `alfi-eating.svg`: Pantry & recipe culinary state.
   - `alfi-fixing.svg`: Maintenance & repair mechanic state with wrench.
   - `alfi-chasing.svg`: Household chores & gamified streaks state.

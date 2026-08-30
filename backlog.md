@@ -92,35 +92,26 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟡 `[Cleanup/Next.js]` Deprecated `middleware.ts` Files in Shopping and Dashboard Frontends (`TD-NEXT-01`)
-- **Severity:** Medium
-- **Root Cause / Findings:**
-  `apps/shopping/frontend/src/middleware.ts` and `core/dashboard/frontend/src/middleware.ts` use `middleware.ts`, which is deprecated in Next.js 16. Monorepo architecture standards specify using `src/proxy.ts`.
-- **Proposed Resolution:**
-  - [ ] Rename `apps/shopping/frontend/src/middleware.ts` to `apps/shopping/frontend/src/proxy.ts`.
-  - [ ] Rename `core/dashboard/frontend/src/middleware.ts` to `core/dashboard/frontend/src/proxy.ts`.
-
----
-
 ### 🟢 `[Cleanup/Lint]` Missing ESLint Configuration in Chores Frontend (`TD-FE-01`)
 - **Severity:** Low
 - **Root Cause / Findings:**
-  `apps/chores/frontend/package.json` specifies `"lint": "eslint"`, but the folder lacks an `eslint.config.mjs` file, causing lint executions to fail.
+  Only `apps/library/frontend`, `apps/budget/frontend`, and `apps/chores/frontend` declare a `"check-types": "tsc --noEmit"` script in `package.json`. Other microfrontends (`maintenance`, `shopping`, `workout`, `pantry`, `chat`, `dashboard`) rely solely on workspace-wide `pnpm check-types` or `tsc` commands without a local script target.
 - **Proposed Resolution:**
-  - [ ] Create `apps/chores/frontend/eslint.config.mjs` using `apps/pantry/frontend/eslint.config.mjs` as a template.
+  - [ ] Add `"check-types": "tsc --noEmit"` script to all microfrontend `package.json` files.
+
+---
+
+### 🟢 `[Cleanup/Lint]` Accumulated Frontend Lint Errors and Warnings Across Microfrontends (`TD-FE-05`)
+- **Severity:** Low
+- **Root Cause / Findings:**
+  Multiple frontend microservices (`maintenance`, `shopping`, `pantry`, `chat`, `budget`, `dashboard`) contain accumulated ESLint errors (`@typescript-eslint/no-explicit-any`, `react-hooks/set-state-in-effect`, `@typescript-eslint/no-require-imports`) preventing clean execution of `pnpm lint`.
+- **Proposed Resolution:**
+  - [ ] Refactor TypeScript types, effect hooks, and import statements in each microfrontend to achieve zero-warning ESLint execution.
 
 ---
 
 ## Preserved Open Technical Debt Items
 
-### 🔴 `[Security/Isolation]` MCP Tools Bypass Household Isolation (`TD-MCP-01`)
-- **Severity:** Critical
-- **Root Cause / Findings:**
-  MCP tool implementations in `apps/pantry`, `apps/chores`, and `apps/maintenance` hardcode `MOCK_HOME_ID` instead of deriving tenant context from request callers.
-- **Proposed Resolution:**
-  - [ ] Refactor MCP tools to accept explicit `household_id` and `user_id` parameters passed directly to underlying service functions.
-
----
 
 ### 🟠 `[UI/Auth]` `HouseholdSwitcher` Hardcodes Four Apps (`TD-SHARED-02`)
 - **Severity:** High
@@ -140,10 +131,3 @@ This is the **living** backlog for open technical debt, routing issues, missing 
   - [ ] Create `.github/workflows/frontend-ci.yml` to run `pnpm -r exec tsc --noEmit` and `pnpm -r test`.
 
 ---
-
-### 🟢 `[FE/Layout]` Pantry Layout Emits Duplicate `<html>` Tag (`TD-FE-02`)
-- **Severity:** Low
-- **Root Cause / Findings:**
-  `apps/pantry/frontend/src/app/layout.tsx` returns `<html><body>{children}</body></html>` while `src/app/[locale]/layout.tsx` emits `<html>` and `<body>` tags a second time.
-- **Proposed Resolution:**
-  - [ ] Simplify `apps/pantry/frontend/src/app/layout.tsx` to return `{children}` directly.

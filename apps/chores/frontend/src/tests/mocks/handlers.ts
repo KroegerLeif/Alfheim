@@ -83,7 +83,7 @@ export const handlers = [
   }),
 
   http.post(/\/templates$/, async ({ request }) => {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as Record<string, unknown>
     return HttpResponse.json(
       {
         id: 'tpl-new',
@@ -108,7 +108,7 @@ export const handlers = [
   }),
 
   http.post(/\/instances\/([^\/]+)\/assign/, async ({ params, request }) => {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as Record<string, unknown>
     const id = params[0] as string
     return HttpResponse.json({
       ...mockInstances[0],

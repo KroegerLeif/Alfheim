@@ -20,7 +20,7 @@
     "vpnNotice": {
       "badge": "Sicherheits-Perimeter",
       "title": "Hinweis zum privaten Netzwerkzugriff",
-      "description": "Produktions-Apps (Dashboard, Vorratskammer, Einkaufsliste, Aufgaben, Wartung) laufen innerhalb einer isolierten WireGuard/Tailscale-Enklave. Der Direktzugriff erfordert einen aktiven VPN-Tunnel.",
+      "description": "Produktions-Apps (Dashboard, Vorratskammer, Einkaufsliste, Aufgaben, Wartung, Budget, Bibliothek, Workout, Chat) laufen innerhalb einer isolierten WireGuard/Tailscale-Enklave. Der Direktzugriff erfordert einen aktiven VPN-Tunnel.",
       "gatewayInfo": "Öffentlicher Datenverkehr wird über das Caddy Gateway mit TLS-Terminierung geroutet."
     },
     "modules": {
@@ -54,6 +54,34 @@
         "description": "Wiederkehrende Aufgabenrotation, Streak-Belohnungen, Punktesystem und faire Lastenverteilung.",
         "badge": "FastAPI + Next.js",
         "route": "/chores"
+      },
+      "budget": {
+        "name": "Budget & Finanzen",
+        "tagline": "Konten & Finanzplanung",
+        "description": "Haushaltskonten, Sparziele, virtuelle Töpfe, monatliche Budgetpläne und Ausgaben-Transaktionsbuch.",
+        "badge": "FastAPI + Next.js",
+        "route": "/budget"
+      },
+      "library": {
+        "name": "Medien- & Bibliotheks-Hub",
+        "tagline": "Bücher- & Mediensammlung",
+        "description": "Persönliche Buchverwaltung, Lesefortschritts-Tracking, Leihverwaltung und Metadaten-Integration.",
+        "badge": "FastAPI + Next.js",
+        "route": "/library"
+      },
+      "workout": {
+        "name": "Workout Tracker",
+        "tagline": "Fitness & Kraft-Telemetrie",
+        "description": "Erstellung von Trainingsplänen, Protokollierung von Sätzen und Wiederholungen, Rekorde-Tracking und Fortschrittsanalysen.",
+        "badge": "FastAPI + Next.js",
+        "route": "/workout"
+      },
+      "chat": {
+        "name": "ALFI Chat",
+        "tagline": "Konversations-KI & MCP-Schnittstelle",
+        "description": "Multimodale KI-Assistentenschnittstelle für ALFI mit MCP-Tool-Ausführung, Echtzeit-Kontext-Streaming und Prompt-Orchestrierung.",
+        "badge": "Go + Next.js",
+        "route": "/chat"
       },
       "dashboard": {
         "name": "Control Plane",

@@ -43,6 +43,49 @@ func NewClient(endpointURL string) *Client {
 	}
 }
 
+// DiagnosticResult captures reachability, latency, and registered tools for an MCP endpoint.
+type DiagnosticResult struct {
+	Reachable   bool     `json:"reachable"`
+	LatencyMs   int64    `json:"latency_ms"`
+	ToolsCount  int      `json:"tools_count"`
+	Tools       []string `json:"tools,omitempty"`
+	ProtocolVer string   `json:"protocol_version,omitempty"`
+	Error       string   `json:"error,omitempty"`
+}
+
+// Ping performs a lightweight handshake and tool discovery check against the MCP server,
+// measuring round-trip latency and validating session initialization.
+func (c *Client) Ping(ctx context.Context) DiagnosticResult {
+	start := time.Now()
+	tools, err := c.ListTools(ctx)
+	latency := time.Since(start).Milliseconds()
+
+	if err != nil {
+		return DiagnosticResult{
+			Reachable: false,
+			LatencyMs: latency,
+			Error:     err.Error(),
+		}
+	}
+
+	toolNames := make([]string, 0, len(tools))
+	for _, t := range tools {
+		toolNames = append(toolNames, t.Name)
+	}
+
+	c.mu.Lock()
+	protoVer := c.negotiatedVer
+	c.mu.Unlock()
+
+	return DiagnosticResult{
+		Reachable:   true,
+		LatencyMs:   latency,
+		ToolsCount:  len(tools),
+		Tools:       toolNames,
+		ProtocolVer: protoVer,
+	}
+}
+
 // ListTools returns the MCP server's available tools, performing the initialize
 // handshake on first use and caching the result for toolsCacheTTL to avoid
 // re-querying on every single chat turn.

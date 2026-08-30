@@ -194,4 +194,37 @@ func TestClient_Unreachable(t *testing.T) {
 	if _, err := client.ListTools(context.Background()); err == nil {
 		t.Fatalf("expected an error when the mcp server is unreachable")
 	}
+
+	diag := client.Ping(context.Background())
+	if diag.Reachable {
+		t.Errorf("expected reachable to be false for unreachable server")
+	}
+	if diag.Error == "" {
+		t.Errorf("expected error message in diagnostic result")
+	}
+}
+
+func TestClient_Ping_Success(t *testing.T) {
+	tools := []Tool{
+		{Name: "get_stock", Description: "look up pantry stock", InputSchema: map[string]any{"type": "object"}},
+		{Name: "add_stock", Description: "add pantry stock", InputSchema: map[string]any{"type": "object"}},
+	}
+	server, _ := newTestMCPServer(t, tools, callToolResult{})
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	diag := client.Ping(context.Background())
+
+	if !diag.Reachable {
+		t.Fatalf("expected server to be reachable, got error: %s", diag.Error)
+	}
+	if diag.ToolsCount != 2 {
+		t.Errorf("expected 2 tools, got %d", diag.ToolsCount)
+	}
+	if len(diag.Tools) != 2 || diag.Tools[0] != "get_stock" {
+		t.Errorf("expected tools list, got %+v", diag.Tools)
+	}
+	if diag.ProtocolVer == "" {
+		t.Errorf("expected negotiated protocol version")
+	}
 }
