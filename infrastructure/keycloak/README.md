@@ -33,6 +33,7 @@ Configured in `infrastructure/keycloak/.env.example` / `.env`:
 `alfheim-realm.json` contains pre-configured client definitions, scopes, and test users:
 - **Clients**: `chat-backend`, `dashboard-frontend`, `pantry-frontend`, `shopping-frontend`, etc.
 - **Import Location**: Mounted read-only into `/opt/keycloak/data/import/alfheim-realm.json` in `infrastructure/compose.yml`.
+- **Theme Providers Location**: Mounted read-only from `./keycloak/providers` into `/opt/keycloak/providers` in `infrastructure/compose.yml`.
 - **Command Flag**: Keycloak container starts with `start-dev --import-realm`.
 
 ---
