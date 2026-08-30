@@ -30,18 +30,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟠 `[Routing/Caddy]` Inconsistent API Gateway Routing and Base Path Stripping Across Microservices
-- **Severity:** High
-- **Root Cause / Findings:**
-  In `infrastructure/caddy/Caddyfile`, API routing rules differ across services:
-  - Pantry, Shopping, Maintenance, Workout, and Budget use `handle_path` in Central API Gateway which strips prefix subpaths before forwarding to backends.
-  - Chores, Library, and Chat use `handle` without path stripping or custom rewrite rules.
-  In addition, `sanitizeUrl()` in `apps/pantry/frontend/src/core/api.ts` and `apps/shopping/frontend/src/lib/api.ts` strips `/api/v1` from `NEXT_PUBLIC_API_URL` (turning `http://api.alfheim.loegien.localhost/pantry/api/v1` into `http://api.alfheim.loegien.localhost/pantry/`). Calls such as `pantryClient.get("inventory/state")` issue requests to `/pantry/inventory/state`. Caddy strips `/pantry` and sends `/inventory/state` to `pantry-backend`, which expects `/api/v1/inventory/state`, causing 404 responses.
-- **Proposed Resolution:**
-  - [ ] Standardize API routing rules in `infrastructure/caddy/Caddyfile` for all microservices on both Frontend and Central API Gateway domains.
-  - [ ] Fix `sanitizeUrl()` across all frontend API clients (`apps/pantry/frontend/src/core/api.ts`, `apps/shopping/frontend/src/lib/api.ts`) to ensure requests preserve the mandatory `/api/v1` base path prefix.
-
----
 
 ### 🟠 `[Bug/Budget UI]` Budget Microfrontend UI is an Incomplete Placeholder
 - **Severity:** High
