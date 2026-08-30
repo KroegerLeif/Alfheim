@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --surface-canvas: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-elevated: #f1f5f9;
+  --primary-main: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent-mint: #10b981;
+  --accent-cyan: #06b6d4;
+  --accent-gold: #f59e0b;
+  --border-subtle: #e2e8f0;
+  --border-accent: #cbd5e1;
+  --text-main: #0f172a;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-faint: #cbd5e1;
+
+  --background: var(--surface-canvas);
+  --foreground: var(--text-main);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-main);
+  --border: var(--border-subtle);
+  --primary: var(--primary-main);
+  --ring: var(--primary-main);
+}
+
+.dark {
+  --surface-canvas: #090d16;
+  --surface-card: #111827;
+  --surface-elevated: #1f2937;
+  --primary-main: #3b82f6;
+  --primary-hover: #60a5fa;
+  --accent-mint: #34d399;
+  --accent-cyan: #22d3ee;
+  --accent-gold: #fbbf24;
+  --border-subtle: #1f2937;
+  --border-accent: #374151;
+  --text-main: #f8fafc;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-faint: #334155;
+
+  --background: var(--surface-canvas);
+  --foreground: var(--text-main);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-main);
+  --border: var(--border-subtle);
+  --primary: var(--primary-main);
+  --ring: var(--primary-main);
+}
+
+body {
+  background-color: var(--surface-canvas);
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}

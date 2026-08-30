@@ -5,6 +5,7 @@ packages:
   - 'core/*/frontend'
   - 'packages/*'
   - 'websites/*'
+  - 'infrastructure/keycloak/theme'
 allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
