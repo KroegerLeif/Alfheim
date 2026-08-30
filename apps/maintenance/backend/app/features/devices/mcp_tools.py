@@ -15,10 +15,11 @@ from app.features.devices.service import DeviceService
 
 
 @mcp_server.tool()
-async def get_device_status(device_name: str) -> dict[str, Any]:
-    """Return the active health state, notes, and outstanding tasks for a named device.
+async def get_device_status(household_id: int, device_name: str) -> dict[str, Any]:
+    """Return the active health state, notes, and outstanding tasks for a named device within a household.
 
     Args:
+        household_id: Integer ID of the household space.
         device_name: Full or partial name of the device to look up.
 
     Returns:
@@ -26,7 +27,7 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
     """
     try:
         async with async_session_factory() as session:
-            all_devices = await DeviceService.get_devices(session)
+            all_devices = await DeviceService.get_devices(session, household_id=household_id)
 
         # Filter by name matching (case-insensitive partial match)
         matching = [d for d in all_devices if device_name.lower() in d.name.lower()]
@@ -91,11 +92,11 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
 
 
 @mcp_server.tool()
-async def list_devices(household_id: int | None = None) -> dict[str, Any]:
-    """Retrieve all registered devices, optionally filtered by household.
+async def list_devices(household_id: int) -> dict[str, Any]:
+    """Retrieve all registered devices for a specific household.
 
     Args:
-        household_id: Optional integer ID of the household to filter by.
+        household_id: Integer ID of the household to filter by.
     """
     try:
         async with async_session_factory() as session:
@@ -120,15 +121,19 @@ async def list_devices(household_id: int | None = None) -> dict[str, Any]:
 
 
 @mcp_server.tool()
-async def get_device_detail(device_id: int) -> dict[str, Any]:
-    """Fetch complete metadata and steps for a specific device by ID.
+async def get_device_detail(household_id: int, device_id: int) -> dict[str, Any]:
+    """Fetch complete metadata and steps for a specific device by ID, enforcing household isolation.
 
     Args:
+        household_id: Integer ID of the household space.
         device_id: The primary key integer ID of the target device.
     """
     try:
         async with async_session_factory() as session:
             device = await DeviceService.get_device_by_id(session, device_id=device_id)
+
+        if device.household_id != household_id:
+            return {"error": f"Device with ID {device_id} not found or not authorized for household {household_id}."}
 
         return {
             "id": device.id,

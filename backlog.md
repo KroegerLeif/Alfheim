@@ -122,14 +122,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ## Preserved Open Technical Debt Items
 
-### 🔴 `[Security/Isolation]` MCP Tools Bypass Household Isolation (`TD-MCP-01`)
-- **Severity:** Critical
-- **Root Cause / Findings:**
-  MCP tool implementations in `apps/pantry`, `apps/chores`, and `apps/maintenance` hardcode `MOCK_HOME_ID` instead of deriving tenant context from request callers.
-- **Proposed Resolution:**
-  - [ ] Refactor MCP tools to accept explicit `household_id` and `user_id` parameters passed directly to underlying service functions.
-
----
 
 ### 🟠 `[UI/Auth]` `HouseholdSwitcher` Hardcodes Four Apps (`TD-SHARED-02`)
 - **Severity:** High
