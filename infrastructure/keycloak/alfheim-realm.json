@@ -36,7 +36,6 @@
   "resetPasswordAllowed": true,
   "loginTheme": "alfheim",
   "accountTheme": "alfheim",
-  "userProfileEnabled": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "permanentLockout": false,
@@ -2467,6 +2466,7 @@
   "dockerAuthenticationFlow": "docker auth",
   "firstBrokerLoginFlow": "first broker login",
   "attributes": {
+    "userProfileEnabled": "true",
     "cibaBackchannelTokenDeliveryMode": "poll",
     "cibaExpiresIn": "120",
     "cibaAuthRequestedUserHint": "login_hint",
