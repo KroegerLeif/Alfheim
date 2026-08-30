@@ -40,6 +40,8 @@ import {
   SidePanel,
   ChatWidget,
   AlfiAvatar,
+  AlfiMascot,
+  useAlfiChatLifecycle,
   AppShell,
   ThemeToggle,
   LanguageSwitcher,

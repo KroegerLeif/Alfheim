@@ -7,7 +7,7 @@ export function useAssignChoreInstance() {
   const queryClient = useQueryClient();
   const activeHouseholdId = useActiveHouseholdId();
 
-  return useMutation<ChoreInstanceRead, Error, { id: string; assignedTo: string | null; dueDate?: string }, any>({
+  return useMutation<ChoreInstanceRead, Error, { id: string; assignedTo: string | null; dueDate?: string }, { prevInstances?: ChoreInstanceRead[]; key: readonly unknown[] }>({
     mutationFn: ({ id, assignedTo }) =>
       choresClient
         .post(`instances/${id}/assign`, { json: { assigned_to: assignedTo } })
@@ -44,7 +44,7 @@ export function useCompleteChoreInstance() {
   const queryClient = useQueryClient();
   const activeHouseholdId = useActiveHouseholdId();
 
-  return useMutation<ChoreInstanceRead, Error, { id: string; dueDate?: string }, any>({
+  return useMutation<ChoreInstanceRead, Error, { id: string; dueDate?: string }, { prevInstances?: ChoreInstanceRead[]; key: readonly unknown[] }>({
     mutationFn: ({ id }) =>
       choresClient
         .post(`instances/${id}/complete`)

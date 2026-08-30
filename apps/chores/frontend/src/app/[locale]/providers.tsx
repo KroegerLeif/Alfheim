@@ -42,7 +42,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       });
 
       setKeycloakInstance(keycloak);
-      (window as any).__keycloak_instance__ = keycloak;
+      (window as unknown as Record<string, unknown>).__keycloak_instance__ = keycloak;
 
       const cleanQueryParams = () => {
         if (typeof window !== "undefined") {
@@ -78,13 +78,14 @@ export default function Providers({ children }: { children: ReactNode }) {
             sessionStorage.setItem("alfheim_access_token", currentToken);
 
             if (keycloak.tokenParsed) {
-              const parsed = keycloak.tokenParsed as any;
+              const parsed = keycloak.tokenParsed as Record<string, unknown>;
+              const name = typeof parsed.name === "string" ? parsed.name : (typeof parsed.preferred_username === "string" ? parsed.preferred_username : "User");
               setUser({
-                name: parsed.name || parsed.preferred_username || "User",
-                preferred_username: parsed.preferred_username,
-                email: parsed.email,
-                given_name: parsed.given_name,
-                family_name: parsed.family_name,
+                name,
+                preferred_username: typeof parsed.preferred_username === "string" ? parsed.preferred_username : undefined,
+                email: typeof parsed.email === "string" ? parsed.email : undefined,
+                given_name: typeof parsed.given_name === "string" ? parsed.given_name : undefined,
+                family_name: typeof parsed.family_name === "string" ? parsed.family_name : undefined,
               });
             }
 

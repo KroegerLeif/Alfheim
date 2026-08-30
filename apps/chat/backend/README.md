@@ -45,10 +45,15 @@ GET    /api/v1/chat/conversations/{id}/messages
 POST   /api/v1/chat/conversations/{id}/messages
 GET    /api/v1/chat/conversations/{id}/stream   (SSE: event: delta|tool_call|done|error)
 GET    /api/v1/chat/mcp-servers
+GET    /api/v1/chat/mcp-servers/diagnostics
 PATCH  /api/v1/chat/mcp-servers/{id}            (body: {"enabled": bool})
 POST   /api/v1/chat/attachments                 (Multipart Form: file, returns AttachmentResponseDTO)
 GET    /api/v1/chat/attachments/{id}            (returns AttachmentResponseDTO with public URL)
 ```
+
+### ALFI Persona Prompt & i18n
+The chat engine embeds the canonical ALFI system prompt specification (`prompts/alfi_system.md`) which establishes ALFI's smart-home domain mastery, witty ALF-inspired personality traits (Melmac memories, cat protection, midnight snacks), and strict automatic language detection and mirroring (German by default, English, Polish).
+
 
 ### MCP tool-calling loop
 

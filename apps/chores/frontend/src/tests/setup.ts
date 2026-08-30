@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import React, { ComponentProps } from 'react'
 import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import * as matchers from 'vitest-axe/matchers'
 import { server } from './mocks/server'
@@ -60,8 +61,7 @@ vi.mock('next/navigation', () => ({
 
 // Mock @/navigation
 vi.mock('@/navigation', () => ({
-  Link: ({ children, ...props }: any) => {
-    const React = require('react')
+  Link: ({ children, ...props }: ComponentProps<'a'>) => {
     return React.createElement('a', props, children)
   },
   useRouter() {
@@ -82,8 +82,7 @@ vi.mock('@/navigation', () => ({
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => 'en',
-  Link: ({ children, ...props }: any) => {
-    const React = require('react')
+  Link: ({ children, ...props }: ComponentProps<'a'>) => {
     return React.createElement('a', props, children)
   },
   useRouter() {
@@ -99,7 +98,7 @@ vi.mock('next-intl', () => ({
 
 // Mock @alfheim/shared translation hook
 vi.mock('@alfheim/shared', async () => {
-  const actual = await vi.importActual<any>('@alfheim/shared')
+  const actual = await vi.importActual<Record<string, unknown>>('@alfheim/shared')
   return {
     ...actual,
     useTranslation: () => ({
