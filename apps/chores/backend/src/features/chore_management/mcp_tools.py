@@ -3,7 +3,6 @@ from datetime import date
 
 from sqlmodel import select
 from src.core.database import async_session_factory
-from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
 from src.features.chore_management.schemas import ChoreAssignRequest
 from src.features.chore_management.service import ChoreService
@@ -11,13 +10,18 @@ from src.mcp.server import mcp
 
 
 @mcp.tool()
-async def get_daily_chores_overview() -> str:
-    """Retrieve an overview of today's chores status (completed, pending, streaks) for the household."""
+async def get_daily_chores_overview(household_id: str) -> str:
+    """Retrieve an overview of today's chores status (completed, pending, streaks) for the household.
+
+    Parameters:
+    - household_id: UUID string of the household.
+    """
     try:
+        home_uuid = uuid.UUID(household_id)
         async with async_session_factory() as session:
             summary = await ChoreService.get_integrations_summary(
                 session=session,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
             )
 
             lines = [
@@ -49,17 +53,21 @@ async def get_daily_chores_overview() -> str:
 
 
 @mcp.tool()
-async def complete_chore_by_name(chore_name: str) -> str:
+async def complete_chore_by_name(household_id: str, user_id: str, chore_name: str) -> str:
     """Complete a pending chore instance by searching for its template name.
 
     Parameters:
+    - household_id: UUID string of the household.
+    - user_id: UUID string of the user completing the chore.
     - chore_name: The name of the chore template (e.g. 'Wash Dishes').
     """
     try:
+        home_uuid = uuid.UUID(household_id)
+        user_uuid = uuid.UUID(user_id)
         async with async_session_factory() as session:
             # 1. Find template first
             t_stmt = select(ChoreTemplate).where(
-                ChoreTemplate.home_id == MOCK_HOME_ID,
+                ChoreTemplate.home_id == home_uuid,
                 ChoreTemplate.name == chore_name,
             )
             t_res = await session.exec(t_stmt)
@@ -70,10 +78,10 @@ async def complete_chore_by_name(chore_name: str) -> str:
             # 2. Find today's pending instance
             today_date = date.today()
             # Ensure generated
-            await ChoreService.ensure_household_reset(session, MOCK_HOME_ID, today_date)
+            await ChoreService.ensure_household_reset(session, home_uuid, today_date)
 
             inst_stmt = select(ChoreInstance).where(
-                ChoreInstance.home_id == MOCK_HOME_ID,
+                ChoreInstance.home_id == home_uuid,
                 ChoreInstance.template_id == template.id,
                 ChoreInstance.due_date == today_date,
             )
@@ -89,8 +97,8 @@ async def complete_chore_by_name(chore_name: str) -> str:
             updated = await ChoreService.complete_chore_instance(
                 session=session,
                 instance_id=instance.id,
-                completed_by=MOCK_USER_ID,
-                home_id=MOCK_HOME_ID,
+                completed_by=user_uuid,
+                home_id=home_uuid,
             )
             return f"Success: Completed chore '{chore_name}' (Instance ID: {updated.id}) and awarded {updated.points_awarded} points!"
 
@@ -99,14 +107,16 @@ async def complete_chore_by_name(chore_name: str) -> str:
 
 
 @mcp.tool()
-async def assign_chore(chore_instance_id: str, user_id: str) -> str:
+async def assign_chore(household_id: str, chore_instance_id: str, user_id: str) -> str:
     """Assign a scheduled chore instance to a household member.
 
     Parameters:
+    - household_id: UUID string of the household.
     - chore_instance_id: UUID string of the chore instance.
     - user_id: UUID string of the user to assign the chore to.
     """
     try:
+        home_uuid = uuid.UUID(household_id)
         inst_uuid = uuid.UUID(chore_instance_id)
         user_uuid = uuid.UUID(user_id)
 
@@ -116,7 +126,7 @@ async def assign_chore(chore_instance_id: str, user_id: str) -> str:
                 session=session,
                 instance_id=inst_uuid,
                 payload=payload,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
             )
             return f"Success: Assigned chore instance {updated.id} to user {user_uuid}."
 

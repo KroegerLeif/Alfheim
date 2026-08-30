@@ -158,11 +158,23 @@ class TaskService:
         session: AsyncSession,
         step_id: int,
         payload: TaskStateUpdate,
+        household_id: int | None = None,
     ) -> MaintenanceStep:
         """Persist lightweight step updates (comments, supply dates, supply items)."""
-        step = await session.get(MaintenanceStep, step_id)
+        statement = (
+            select(MaintenanceStep)
+            .options(selectinload(cast(Any, MaintenanceStep.device)))
+            .where(MaintenanceStep.id == step_id)
+        )
+        res = await session.exec(statement)
+        step = res.first()
         if not step:
             raise StepNotFoundError(f"MaintenanceStep {step_id} not found")
+
+        if household_id is not None and step.device and step.device.household_id != household_id:
+            raise StepNotFoundError(
+                f"MaintenanceStep {step_id} not found or not authorized for household {household_id}"
+            )
 
         if payload.comment is not None:
             step.description = payload.comment
@@ -177,8 +189,8 @@ class TaskService:
         return step
 
     @staticmethod
-    async def get_overdue_tasks(session: AsyncSession) -> list[dict[str, Any]]:
-        """Fetch all maintenance steps currently overdue across all devices."""
+    async def get_overdue_tasks(session: AsyncSession, household_id: int | None = None) -> list[dict[str, Any]]:
+        """Fetch all maintenance steps currently overdue across all devices, optionally filtered by household_id."""
         statement = select(MaintenanceStep).options(selectinload(cast(Any, MaintenanceStep.device)))
         result = await session.exec(statement)
         all_steps = list(result.all())
@@ -187,6 +199,8 @@ class TaskService:
         overdue: list[dict[str, Any]] = []
 
         for step in all_steps:
+            if household_id is not None and step.device and step.device.household_id != household_id:
+                continue
             if not step.supply_needed_date:
                 continue
             try:

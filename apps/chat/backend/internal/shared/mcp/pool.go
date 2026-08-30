@@ -11,6 +11,7 @@ import (
 type ToolCaller interface {
 	ListTools(ctx context.Context) ([]Tool, error)
 	CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error)
+	Ping(ctx context.Context) DiagnosticResult
 }
 
 // ServerRef identifies a single registered MCP server for the bridge to talk to.

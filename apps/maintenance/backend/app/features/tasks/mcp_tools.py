@@ -16,15 +16,18 @@ from app.features.tasks.service import TaskService
 
 
 @mcp_server.tool()
-async def list_overdue_tasks() -> dict[str, Any]:
-    """Return all maintenance steps that are currently overdue across all devices.
+async def list_overdue_tasks(household_id: int) -> dict[str, Any]:
+    """Return all maintenance steps that are currently overdue for a specific household.
+
+    Args:
+        household_id: Integer ID of the household to filter by.
 
     Returns:
         Structured dictionary with total overdue count and detailed list of tasks.
     """
     try:
         async with async_session_factory() as session:
-            tasks = await TaskService.get_overdue_tasks(session)
+            tasks = await TaskService.get_overdue_tasks(session, household_id=household_id)
 
         return {
             "as_of": datetime.date.today().isoformat(),
@@ -37,14 +40,16 @@ async def list_overdue_tasks() -> dict[str, Any]:
 
 @mcp_server.tool()
 async def update_task_state_tool(
+    household_id: int,
     step_id: int,
     comment: str | None = None,
     supply_needed_date: str | None = None,
     supply_item: str | None = None,
 ) -> dict[str, Any]:
-    """Update a specific maintenance step's inspection note, due date, or supply item.
+    """Update a specific maintenance step's inspection note, due date, or supply item, enforcing household isolation.
 
     Args:
+        household_id: Integer ID of the household space.
         step_id: The integer ID of the target MaintenanceStep.
         comment: Optional inspection note or description override.
         supply_needed_date: Optional YYYY-MM-DD next due date string.
@@ -57,7 +62,7 @@ async def update_task_state_tool(
             supply_item=supply_item,
         )
         async with async_session_factory() as session:
-            step = await TaskService.update_task_state(session, step_id, payload)
+            step = await TaskService.update_task_state(session, step_id, payload, household_id=household_id)
 
         return {
             "success": True,

@@ -44,7 +44,7 @@ export function useShoppingIntegration() {
         totalLists = data.length;
         for (const list of data) {
           if (Array.isArray(list.items)) {
-            pendingCount += list.items.filter((item: any) => !item.is_completed).length;
+            pendingCount += list.items.filter((item: Record<string, unknown>) => !item.is_completed).length;
           }
         }
       }

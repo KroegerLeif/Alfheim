@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'apps/*/backend/**'
+      - 'packages/backend-shared/**'
       - 'pyproject.toml'
       - 'uv.lock'
       - 'ruff.toml'
@@ -16,6 +17,7 @@ on:
       - main
     paths:
       - 'apps/*/backend/**'
+      - 'packages/backend-shared/**'
       - 'pyproject.toml'
       - 'uv.lock'
       - 'ruff.toml'
@@ -87,6 +89,9 @@ jobs:
           - apps/shopping/backend
           - apps/maintenance/backend
           - apps/chores/backend
+          - apps/workout/backend
+          - apps/budget/backend
+          - apps/library/backend
     defaults:
       run:
         working-directory: ${{ matrix.service }}

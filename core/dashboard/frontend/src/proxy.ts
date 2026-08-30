@@ -4,9 +4,9 @@ import type { NextRequest } from 'next/server';
 const locales = ['de', 'en', 'pl'];
 
 /**
- * Next.js Middleware handling locale-prefixed path rewrites and access controls.
+ * Route & Auth Proxy handling locale-prefixed path rewrites and access controls.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if pathname starts with a locale prefix (e.g. /de/household)
@@ -27,6 +27,8 @@ export function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
+
+export default proxy;
 
 export const config = {
   matcher: [

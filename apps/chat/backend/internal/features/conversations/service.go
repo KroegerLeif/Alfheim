@@ -185,7 +185,7 @@ func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID,
 	}
 
 	tools, toolServers := buildToolDefinitions(ctx, s.mcpServers, s.mcpPool, policy.AllowedMCPApps, s.log)
-	messages := toLLMMessages(history)
+	messages := BuildLLMMessages(history)
 
 	out := make(chan llm.StreamChunk, 1)
 

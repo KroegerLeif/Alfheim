@@ -13,7 +13,8 @@ import {
   useDeleteChoreTemplate,
   useTaskTimeline,
 } from '../choresService'
-import { useShoppingIntegration, useMaintenanceIntegration } from '../integrationService'
+import { useShoppingIntegration } from '../integrationService'
+import { ChoreTemplateRead, ChoreInstanceRead } from '../../types'
 import { createTestQueryClient } from '../../../../tests/test-utils'
 
 function createWrapper(queryClient: QueryClient) {
@@ -84,7 +85,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    let createdData: any = null
+    let createdData: ChoreTemplateRead | null = null
     await act(async () => {
       createdData = await result.current.mutateAsync({
         name: 'Take out Trash',
@@ -95,8 +96,9 @@ describe('choresService Hooks', () => {
     })
 
     expect(createdData).toBeDefined()
-    expect(createdData.name).toBe('Take out Trash')
-    expect(createdData.id).toBe('tpl-new')
+    const template = createdData as ChoreTemplateRead | null
+    expect(template?.name).toBe('Take out Trash')
+    expect(template?.id).toBe('tpl-new')
   })
 
   it('useAssignChoreInstance updates chore assignee with optimistic update', async () => {
@@ -104,7 +106,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    let assignedData: any = null
+    let assignedData: ChoreInstanceRead | null = null
     await act(async () => {
       assignedData = await result.current.mutateAsync({
         id: 'inst-1',
@@ -114,7 +116,8 @@ describe('choresService Hooks', () => {
     })
 
     expect(assignedData).toBeDefined()
-    expect(assignedData.assigned_to).toBe('user-2')
+    const instance = assignedData as ChoreInstanceRead | null
+    expect(instance?.assigned_to).toBe('user-2')
   })
 
   it('useCompleteChoreInstance completes chore instance', async () => {
@@ -122,7 +125,7 @@ describe('choresService Hooks', () => {
       wrapper: createWrapper(queryClient),
     })
 
-    let completedData: any = null
+    let completedData: ChoreInstanceRead | null = null
     await act(async () => {
       completedData = await result.current.mutateAsync({
         id: 'inst-1',
@@ -131,7 +134,8 @@ describe('choresService Hooks', () => {
     })
 
     expect(completedData).toBeDefined()
-    expect(completedData.status).toBe('completed')
+    const completedInstance = completedData as ChoreInstanceRead | null
+    expect(completedInstance?.status).toBe('completed')
   })
 
   it('useDeleteChoreTemplate successfully deletes template', async () => {

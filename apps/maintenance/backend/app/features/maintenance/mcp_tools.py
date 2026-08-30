@@ -13,11 +13,11 @@ from app.features.maintenance.service import MaintenanceService
 
 
 @mcp_server.tool()
-async def get_maintenance_summary_tool(household_id: int | None = None) -> dict[str, Any]:
-    """Retrieve an aggregate maintenance health summary for all devices grouped by household.
+async def get_maintenance_summary_tool(household_id: int) -> dict[str, Any]:
+    """Retrieve an aggregate maintenance health summary for devices in a target household.
 
     Args:
-        household_id: Optional integer ID of the household to filter by.
+        household_id: Integer ID of the household to filter by.
     """
     try:
         async with async_session_factory() as session:

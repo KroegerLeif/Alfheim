@@ -1,7 +1,6 @@
 import uuid
 
 from src.core.database import async_session_factory
-from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.locations.models import LocationCreate, LocationUpdate
 from src.features.locations.service import LocationService
 from src.mcp.server import mcp
@@ -9,22 +8,25 @@ from src.mcp.server import mcp
 
 @mcp.tool()
 async def list_locations(
+    household_id: str,
     name: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> str:
-    """Retrieve all storage locations in the current home space.
+    """Retrieve all storage locations in the household space.
 
     Parameters:
+    - household_id: UUID string of the household space.
     - name: Optional exact name to filter locations.
     - limit: Maximum number of locations to return (default 100).
     - offset: Number of records to skip (default 0).
     """
     try:
+        home_uuid = uuid.UUID(household_id)
         async with async_session_factory() as session:
             locations = await LocationService.list_locations(
                 session=session,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
                 name=name,
                 limit=limit,
                 offset=offset,
@@ -45,19 +47,21 @@ async def list_locations(
 
 
 @mcp.tool()
-async def get_location(location_id: str) -> str:
+async def get_location(household_id: str, location_id: str) -> str:
     """Retrieve details of a specific storage location by ID.
 
     Parameters:
+    - household_id: UUID string of the household space.
     - location_id: UUID string of the storage location.
     """
     try:
+        home_uuid = uuid.UUID(household_id)
         loc_uuid = uuid.UUID(location_id)
         async with async_session_factory() as session:
             loc = await LocationService.get_location(
                 session=session,
                 location_id=loc_uuid,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
             )
 
             if not loc:
@@ -79,23 +83,29 @@ async def get_location(location_id: str) -> str:
 
 @mcp.tool()
 async def create_location(
+    household_id: str,
+    user_id: str,
     name: str,
     description: str | None = None,
 ) -> str:
-    """Create a new storage location inside the home space.
+    """Create a new storage location inside the household space.
 
     Parameters:
+    - household_id: UUID string of the household space.
+    - user_id: UUID string of the creating user.
     - name: Name of the physical storage location (e.g. 'Pantry Shelf B', 'Kitchen Freezer').
     - description: Optional details or notes describing the location.
     """
     try:
+        home_uuid = uuid.UUID(household_id)
+        user_uuid = uuid.UUID(user_id)
         payload = LocationCreate(name=name, description=description)
         async with async_session_factory() as session:
             loc = await LocationService.create_location(
                 session=session,
                 payload=payload,
-                owner_id=MOCK_USER_ID,
-                home_id=MOCK_HOME_ID,
+                owner_id=user_uuid,
+                home_id=home_uuid,
             )
             return f"Success: Created location '{loc.name}' with ID {loc.id}."
 
@@ -107,6 +117,7 @@ async def create_location(
 
 @mcp.tool()
 async def update_location(
+    household_id: str,
     location_id: str,
     name: str | None = None,
     description: str | None = None,
@@ -114,11 +125,13 @@ async def update_location(
     """Update details of a custom storage location (System locations cannot be updated).
 
     Parameters:
+    - household_id: UUID string of the household space.
     - location_id: UUID string of the location to update.
     - name: Optional new name of the location.
     - description: Optional new description/details of the location.
     """
     try:
+        home_uuid = uuid.UUID(household_id)
         loc_uuid = uuid.UUID(location_id)
         payload = LocationUpdate(name=name, description=description)
 
@@ -126,7 +139,7 @@ async def update_location(
             loc = await LocationService.update_location(
                 session=session,
                 location_id=loc_uuid,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
                 payload=payload,
             )
 
@@ -142,19 +155,21 @@ async def update_location(
 
 
 @mcp.tool()
-async def delete_location(location_id: str) -> str:
+async def delete_location(household_id: str, location_id: str) -> str:
     """Delete a custom storage location, moving any contents to 'Backlog' system location.
 
     Parameters:
+    - household_id: UUID string of the household space.
     - location_id: UUID string of the storage location to delete.
     """
     try:
+        home_uuid = uuid.UUID(household_id)
         loc_uuid = uuid.UUID(location_id)
         async with async_session_factory() as session:
             success = await LocationService.delete_location(
                 session=session,
                 location_id=loc_uuid,
-                home_id=MOCK_HOME_ID,
+                home_id=home_uuid,
             )
 
             if not success:
