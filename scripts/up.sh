@@ -416,6 +416,11 @@ info "Starting postgres-iam …"
 dc up ${BUILD_FLAG} -d postgres-iam
 wait_healthy "alfheim_postgres_iam" "postgres-iam" 60
 
+if [[ ! -f "infrastructure/keycloak/providers/alfheim-theme.jar" ]]; then
+  info "Keycloak theme JAR not found. Building theme..."
+  pnpm run build:theme
+fi
+
 info "Starting keycloak (realm import may take up to 90 s on first boot) …"
 dc up ${BUILD_FLAG} -d keycloak
 wait_healthy "alfheim_keycloak" "keycloak" 180

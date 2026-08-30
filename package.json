@@ -2,6 +2,7 @@
   "name": "alfheim",
   "private": true,
   "scripts": {
+    "build:theme": "pnpm --filter @alfheim/keycloak-theme build",
     "check-types": "pnpm -r exec tsc --noEmit"
   },
   "devDependencies": {
