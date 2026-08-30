@@ -21,10 +21,14 @@ FROM alpine:3.20 AS runner
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata \
+    && addgroup -S -g 10001 appgroup \
+    && adduser -S -u 10001 -G appgroup appuser
 
-COPY --from=builder /app/chat-backend /app/chat-backend
-COPY --from=builder /app/migrations /app/migrations
+COPY --from=builder --chown=appuser:appgroup /app/chat-backend /app/chat-backend
+COPY --from=builder --chown=appuser:appgroup /app/migrations /app/migrations
+
+USER appuser
 
 EXPOSE 8080
 

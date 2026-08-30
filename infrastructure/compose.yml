@@ -8,10 +8,14 @@ services:
     restart: unless-stopped
     env_file:
       - ./postgres-iam/.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-alfheim_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-super_secret_local_password}
+      POSTGRES_DB: ${POSTGRES_DB:-keycloak_db}
     volumes:
       - ./postgres-iam/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U alfheim_admin -d keycloak_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alfheim_admin} -d ${POSTGRES_DB:-keycloak_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,9 +32,15 @@ services:
     env_file:
       - ./keycloak/.env
     environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: ${KC_DB:-postgres}
+      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres-iam:5432/${POSTGRES_DB:-keycloak_db}}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-${POSTGRES_USER:-alfheim_admin}}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-super_secret_local_password}}
       KC_HTTP_RELATIVE_PATH: "/auth"
       KC_PROXY: "edge"
-      KC_HOSTNAME_URL: "http://api.alfheim.loegien.localhost/auth"
+      KC_HOSTNAME_URL: "${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}"
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"

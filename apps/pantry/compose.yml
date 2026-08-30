@@ -4,13 +4,13 @@ services:
     container_name: pantry-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: pantry
+      POSTGRES_USER: ${PANTRY_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${PANTRY_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${PANTRY_POSTGRES_DB:-pantry}
     volumes:
       - pantry_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d pantry"]
+      test: ["CMD-SHELL", "pg_isready -U ${PANTRY_POSTGRES_USER:-postgres} -d ${PANTRY_POSTGRES_DB:-pantry}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,9 +27,9 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@pantry-db:5432/pantry
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-postgres}:${PANTRY_POSTGRES_PASSWORD:-postgres}@pantry-db:5432/${PANTRY_POSTGRES_DB:-pantry}}
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=pantry-backend
     healthcheck:

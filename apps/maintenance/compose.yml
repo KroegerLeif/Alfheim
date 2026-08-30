@@ -4,13 +4,13 @@ services:
     container_name: maintenance-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: maintenance
+      POSTGRES_USER: ${MAINTENANCE_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${MAINTENANCE_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${MAINTENANCE_POSTGRES_DB:-maintenance}
     volumes:
       - maintenance_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d maintenance"]
+      test: ["CMD-SHELL", "pg_isready -U ${MAINTENANCE_POSTGRES_USER:-postgres} -d ${MAINTENANCE_POSTGRES_DB:-maintenance}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,10 +25,10 @@ services:
     container_name: maintenance-backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@maintenance-db:5432/maintenance
-      - KEYCLOAK_URL=http://keycloak:8080/auth
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-postgres}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@maintenance-db:5432/${MAINTENANCE_POSTGRES_DB:-maintenance}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=maintenance-backend
     healthcheck:

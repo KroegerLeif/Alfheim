@@ -80,10 +80,10 @@ To ensure production stability on a home server, the repository requires the fol
 
 ## 4. Phase-by-Phase Remediation Plan
 
-- [ ] **Phase 1: Critical Fixes & Secrets Cleanup**
-  - [ ] Add unprivileged users (`USER appuser`) to all Go and Python backend Dockerfiles.
-  - [ ] Externalize all hardcoded DB credentials (`DATABASE_URL`), Keycloak secrets, and S3 keys across Compose files into `.env` variables with strong defaults.
-  - [ ] Harden RustFS and Grafana default admin credentials in `.env.example`.
+- [x] **Phase 1: Critical Fixes & Secrets Cleanup**
+  - [x] Add unprivileged users (`USER appuser`) to all Go and Python backend Dockerfiles.
+  - [x] Externalize all hardcoded DB credentials (`DATABASE_URL`), Keycloak secrets, and S3 keys across Compose files into `.env` variables with strong defaults.
+  - [x] Harden RustFS and Grafana default admin credentials in `.env.example`.
 
 - [ ] **Phase 2: Networking, Auth & Infrastructure**
   - [ ] Update `infrastructure/caddy/Caddyfile` to add active health checks (`lb_try_duration`, `fail_duration`) for microservice reverse proxies.
