@@ -77,19 +77,6 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-## Feature Inventory & GitHub Pages Sync
-
-### 🟡 `[Docs/GitHub Pages]` GitHub Pages Documentation Desync for Recent Microservices
-- **Severity:** Medium
-- **Root Cause / Findings:**
-  The public documentation website in `websites/docs/src/components/sections/AppsGrid.tsx` includes only 5 applications (Pantry, Shopping, Maintenance, Chores, Dashboard). The 4 newer microservices (**Budget & Treasury**, **Media & Library Hub**, **Workout Tracker**, and **ALFI Chat**) are missing from the documentation grid, system architecture diagrams, and translation files (`websites/docs/src/i18n/locales/{de,en,pl}.json`).
-- **Proposed Resolution:**
-  - [ ] Add feature cards and metadata for Budget, Library, Workout, and Chat services to `websites/docs/src/components/sections/AppsGrid.tsx`.
-  - [ ] Add corresponding translation keys for all 4 missing services in `websites/docs/src/i18n/locales/en.json`, `de.json`, and `pl.json`.
-  - [ ] Update `ArchitectureSection.tsx` and `TechStackSection.tsx` in `websites/docs` to reflect all 8 active microservices.
-
----
-
 ## Dead Code, Orphan Files & Maintenance Tasks
 
 ### 🟢 `[Cleanup/Dead Code]` Unused Theme CSS Files in Pantry and Chores Frontends (`TD-FE-03`)
