@@ -111,12 +111,21 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟢 `[Cleanup/Lint]` Missing ESLint Configuration in Chores Frontend (`TD-FE-01`)
+### 🟢 `[Tooling/Frontend]` Missing `check-types` Scripts Across Microfrontends (`TD-FE-04`)
 - **Severity:** Low
 - **Root Cause / Findings:**
-  `apps/chores/frontend/package.json` specifies `"lint": "eslint"`, but the folder lacks an `eslint.config.mjs` file, causing lint executions to fail.
+  Only `apps/library/frontend`, `apps/budget/frontend`, and `apps/chores/frontend` declare a `"check-types": "tsc --noEmit"` script in `package.json`. Other microfrontends (`maintenance`, `shopping`, `workout`, `pantry`, `chat`, `dashboard`) rely solely on workspace-wide `pnpm check-types` or `tsc` commands without a local script target.
 - **Proposed Resolution:**
-  - [ ] Create `apps/chores/frontend/eslint.config.mjs` using `apps/pantry/frontend/eslint.config.mjs` as a template.
+  - [ ] Add `"check-types": "tsc --noEmit"` script to all microfrontend `package.json` files.
+
+---
+
+### 🟢 `[Cleanup/Lint]` Accumulated Frontend Lint Errors and Warnings Across Microfrontends (`TD-FE-05`)
+- **Severity:** Low
+- **Root Cause / Findings:**
+  Multiple frontend microservices (`maintenance`, `shopping`, `pantry`, `chat`, `budget`, `dashboard`) contain accumulated ESLint errors (`@typescript-eslint/no-explicit-any`, `react-hooks/set-state-in-effect`, `@typescript-eslint/no-require-imports`) preventing clean execution of `pnpm lint`.
+- **Proposed Resolution:**
+  - [ ] Refactor TypeScript types, effect hooks, and import statements in each microfrontend to achieve zero-warning ESLint execution.
 
 ---
 

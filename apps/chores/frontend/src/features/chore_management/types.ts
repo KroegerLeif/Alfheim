@@ -1,5 +1,3 @@
-import { Language } from "@alfheim/shared";
-
 export interface ChoreTemplateRead {
   id: string;
   home_id: string;

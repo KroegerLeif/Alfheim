@@ -9,8 +9,6 @@ export function useActiveHouseholdId() {
   });
 
   useEffect(() => {
-    setActiveId(localStorage.getItem("alfheim_active_household_id"));
-
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "alfheim_active_household_id") {
         setActiveId(e.newValue);
