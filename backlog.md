@@ -122,12 +122,9 @@ This is the **living** backlog for open technical debt, routing issues, missing 
 
 ---
 
-### 🟠 `[CI/CD]` Missing Frontend and Microservice CI Testing (`TD-CI-01`, `TD-CI-02`)
-- **Severity:** High
+### 🟢 `[FE/Layout]` Pantry Layout Emits Duplicate `<html>` Tag (`TD-FE-02`)
+- **Severity:** Low
 - **Root Cause / Findings:**
-  `.github/workflows/python-ci.yml` omits `apps/workout/backend` from its test matrix, and no GitHub Actions workflow exists for frontend TypeScript type-checking or Vitest tests.
+  `apps/pantry/frontend/src/app/layout.tsx` returns `<html><body>{children}</body></html>` while `src/app/[locale]/layout.tsx` emits `<html>` and `<body>` tags a second time.
 - **Proposed Resolution:**
-  - [ ] Add `apps/workout/backend` to `.github/workflows/python-ci.yml`.
-  - [ ] Create `.github/workflows/frontend-ci.yml` to run `pnpm -r exec tsc --noEmit` and `pnpm -r test`.
-
----
+  - [ ] Simplify `apps/pantry/frontend/src/app/layout.tsx` to return `{children}` directly.

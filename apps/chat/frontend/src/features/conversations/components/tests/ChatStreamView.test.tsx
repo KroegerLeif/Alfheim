@@ -38,7 +38,7 @@ describe("ChatStreamView", () => {
 
     render(<ChatStreamView conversationId={null} />, { wrapper: createQueryWrapper() });
 
-    expect(screen.getByText("noConversationSelected")).toBeInTheDocument();
+    expect(screen.getByText(/noConversationSelected/i)).toBeInTheDocument();
   });
 
   it("renders existing messages with image attachments", () => {
