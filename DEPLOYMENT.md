@@ -47,7 +47,17 @@ To ensure production stability on homelab server nodes, the repository uses the 
 
 ---
 
-## 4. Phase-by-Phase Roadmap to v0.1.0 Beta Release
+## 4. Phase-by-Phase Remediation Plan
+
+- [x] **Phase 1: Critical Fixes & Secrets Cleanup**
+  - [x] Add unprivileged users (`USER appuser`) to all Go and Python backend Dockerfiles.
+  - [x] Externalize all hardcoded DB credentials (`DATABASE_URL`), Keycloak secrets, and S3 keys across Compose files into `.env` variables with strong defaults.
+  - [x] Harden RustFS and Grafana default admin credentials in `.env.example`.
+
+- [ ] **Phase 2: Networking, Auth & Infrastructure**
+  - [ ] Update `infrastructure/caddy/Caddyfile` to add active health checks (`lb_try_duration`, `fail_duration`) for microservice reverse proxies.
+  - [ ] Dynamic domain resolution in `infrastructure/keycloak/alfheim-realm.json` supporting custom homelab LAN domains/IPs.
+  - [ ] Harmonize container network definitions across `compose.yaml` and subsystem Compose files.
 
 - [x] **Phase 1: Code Base Verification & Test Suite Integrity**
   - [x] Workspace-wide frontend typechecking (`tsc --noEmit`).

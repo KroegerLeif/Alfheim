@@ -4,15 +4,15 @@ services:
     container_name: budget-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: budget
+      POSTGRES_USER: ${BUDGET_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${BUDGET_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${BUDGET_POSTGRES_DB:-budget}
     ports:
       - "5436:5432"
     volumes:
       - postgres_data_budget:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d budget"]
+      test: ["CMD-SHELL", "pg_isready -U ${BUDGET_POSTGRES_USER:-postgres} -d ${BUDGET_POSTGRES_DB:-budget}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,17 +27,18 @@ services:
     container_name: budget-backend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@budget-db:5432/budget
-      - KEYCLOAK_URL=http://keycloak:8080/auth
-      - KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-postgres}:${BUDGET_POSTGRES_PASSWORD:-postgres}@budget-db:5432/${BUDGET_POSTGRES_DB:-budget}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
-      - S3_ENDPOINT_URL=http://minio:9000
-      - S3_BUCKET_NAME=budget-receipts
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-budget-receipts}
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=budget-backend
     healthcheck:
@@ -65,7 +66,8 @@ services:
     container_name: budget-frontend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     depends_on:
       budget-backend:
         condition: service_healthy

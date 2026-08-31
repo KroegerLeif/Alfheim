@@ -27,14 +27,19 @@ FROM python:3.12-alpine
 
 WORKDIR /app
 
+RUN addgroup -S -g 10001 appgroup \
+    && adduser -S -u 10001 -G appgroup appuser
+
 # Copy virtualenv and executable files from builder
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/apps/chores/backend /app/apps/chores/backend
+COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appgroup /app/apps/chores/backend /app/apps/chores/backend
 
 # Inject virtualenv into system PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app/apps/chores/backend
+
+USER appuser
 
 # Expose FastAPI application port
 EXPOSE 8000
