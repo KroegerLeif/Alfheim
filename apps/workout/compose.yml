@@ -4,15 +4,15 @@ services:
     container_name: workout-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: workout
+      POSTGRES_USER: ${WORKOUT_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${WORKOUT_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${WORKOUT_POSTGRES_DB:-workout}
     ports:
       - "5434:5432"
     volumes:
       - postgres_data_workout:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d workout"]
+      test: ["CMD-SHELL", "pg_isready -U ${WORKOUT_POSTGRES_USER:-postgres} -d ${WORKOUT_POSTGRES_DB:-workout}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,10 +27,10 @@ services:
     container_name: workout-backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@workout-db:5432/workout
-      - KEYCLOAK_URL=http://keycloak:8080/auth
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-postgres}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@workout-db:5432/${WORKOUT_POSTGRES_DB:-workout}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=workout-backend
     healthcheck:

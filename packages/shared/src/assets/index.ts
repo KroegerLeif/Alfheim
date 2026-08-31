@@ -99,6 +99,3 @@ export function getAlfiDataUri(state: AlfiState = 'idle'): string {
 export function getAppIconPath(appSlug: AppSlug = 'dashboard'): string {
   return APP_ICONS[appSlug] || APP_ICONS.dashboard;
 }
-
-
-

@@ -4,13 +4,13 @@ services:
     container_name: chat-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: chat_db
+      POSTGRES_USER: ${CHAT_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CHAT_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${CHAT_POSTGRES_DB:-chat_db}
     volumes:
       - chat_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d chat_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${CHAT_POSTGRES_USER:-postgres} -d ${CHAT_POSTGRES_DB:-chat_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,15 +27,16 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - PORT=8080
-      - DATABASE_URL=postgres://postgres:postgres@chat-db:5432/chat_db?sslmode=disable
-      - KEYCLOAK_BASE_URL=http://keycloak:8080/auth
-      - KEYCLOAK_REALM=alfheim
-      - S3_ENDPOINT=http://rustfs:9000
-      - S3_PUBLIC_URL=http://api.alfheim.loegien.localhost/storage
-      - CHAT_MCP_SERVERS=pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp
+      - DATABASE_URL=${DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
+      - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}
+      - S3_PUBLIC_URL=${S3_PUBLIC_URL:-http://api.alfheim.loegien.localhost/storage}
+      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
       interval: 5s
@@ -61,7 +62,8 @@ services:
     container_name: chat-frontend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     depends_on:
       chat-backend:
         condition: service_healthy

@@ -116,21 +116,21 @@ services:
         max-size: "20m"
         max-file: "3"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
       - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
       - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=alfheim-grafana
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=alfheim-grafana-secret
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=${GRAFANA_KEYCLOAK_CLIENT_ID:-alfheim-grafana}
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_KEYCLOAK_CLIENT_SECRET:-alfheim-grafana-secret}
       - GF_AUTH_GENERIC_OAUTH_SCOPES=openid email profile
-      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=http://api.alfheim.loegien.localhost/auth/realms/alfheim/protocol/openid-connect/auth
-      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/token
-      - GF_AUTH_GENERIC_OAUTH_API_URL=http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/userinfo
-      - GF_AUTH_GENERIC_OAUTH_SIGNOUT_REDIRECT_URL=http://api.alfheim.loegien.localhost/auth/realms/alfheim/protocol/openid-connect/logout?post_logout_redirect_uri=http%3A%2F%2Fapi.alfheim.loegien.localhost%2Fgrafana%2Flogin
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}/realms/alfheim/protocol/openid-connect/auth
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}/realms/alfheim/protocol/openid-connect/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}/realms/alfheim/protocol/openid-connect/userinfo
+      - GF_AUTH_GENERIC_OAUTH_SIGNOUT_REDIRECT_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}/realms/alfheim/protocol/openid-connect/logout?post_logout_redirect_uri=http%3A%2F%2Fapi.alfheim.loegien.localhost%2Fgrafana%2Flogin
       - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'admin') && 'Admin' || contains(realm_access.roles[*], 'editor') && 'Editor' || 'Viewer'
       - GF_AUTH_GENERIC_OAUTH_USE_REFRESH_TOKEN=true
     volumes:

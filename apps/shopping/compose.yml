@@ -4,13 +4,13 @@ services:
     container_name: shopping-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: shopping
+      POSTGRES_USER: ${SHOPPING_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${SHOPPING_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${SHOPPING_POSTGRES_DB:-shopping}
     volumes:
       - postgres_data_shopping:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d shopping"]
+      test: ["CMD-SHELL", "pg_isready -U ${SHOPPING_POSTGRES_USER:-postgres} -d ${SHOPPING_POSTGRES_DB:-shopping}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,14 +25,15 @@ services:
     container_name: shopping-backend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@shopping-db:5432/shopping
-      - PANTRY_BACKEND_URL=http://pantry-backend:8000
-      - KEYCLOAK_URL=http://keycloak:8080/auth
-      - KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-postgres}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@shopping-db:5432/${SHOPPING_POSTGRES_DB:-shopping}}
+      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=shopping-backend
     healthcheck:
@@ -61,7 +62,8 @@ services:
     container_name: shopping-frontend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     depends_on:
       shopping-backend:
         condition: service_healthy

@@ -4,15 +4,15 @@ services:
     container_name: library-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: library
+      POSTGRES_USER: ${LIBRARY_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${LIBRARY_POSTGRES_DB:-library}
     ports:
       - "5438:5432"
     volumes:
       - postgres_data_library:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d library"]
+      test: ["CMD-SHELL", "pg_isready -U ${LIBRARY_POSTGRES_USER:-postgres} -d ${LIBRARY_POSTGRES_DB:-library}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,9 +27,9 @@ services:
     container_name: library-backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@library-db:5432/library
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-postgres}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@library-db:5432/${LIBRARY_POSTGRES_DB:-library}}
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=library-backend
     healthcheck:
