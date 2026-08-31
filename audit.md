@@ -31,7 +31,7 @@ To maintain a clean `main` branch, all legacy audit snapshots, living backlogs, 
 | `AUDIT_MASTER_BACKLOG.md` | Legacy frozen v1.0.0 architectural audit snapshot | Consolidated into `audit.md` | ❌ Deleted |
 | `FRONTEND_AUDIT_REPORT.md` | Dedicated frontend i18n & FDD audit log | Consolidated into `audit.md` | ❌ Deleted |
 | `backlog.md` | Living tech-debt tracking backlog | Consolidated into `audit.md` | ❌ Deleted |
-| `DEPLOYMENT.md` | Deployment readiness audit & v0.1.0 roadmap | Consolidated into `audit.md` | ❌ Deleted |
+| `DEPLOYMENT.md` | Deployment readiness audit & v0.1.0 roadmap | Updated as deployment guide for `v0.1.0 Beta` | 🔄 Updated |
 | `apps/pantry/run-all-tests.sh` | Redundant ad-hoc shell script | Replaced by `./scripts/verify.sh` | ❌ Deleted |
 | `apps/pantry/run-frontend-tests.sh` | Redundant ad-hoc shell script | Replaced by `./scripts/verify.sh` | ❌ Deleted |
 | `apps/pantry/run-tests.sh` | Redundant ad-hoc shell script | Replaced by `./scripts/verify.sh` | ❌ Deleted |
