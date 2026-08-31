@@ -29,10 +29,16 @@ import (
 )
 
 func main() {
+	if err := run(context.Background()); err != nil {
+		fmt.Printf("application stopped with error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run(parentCtx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("failed to load application configuration: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to load application configuration: %w", err)
 	}
 
 	log := logger.Init(cfg.Environment)
@@ -41,14 +47,14 @@ func main() {
 		slog.String("port", cfg.Port),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(parentCtx, 30*time.Second)
 	defer cancel()
 
 	// Initialize PostgreSQL DB Pool
 	dbClient, err := db.NewClient(ctx, cfg.Database, log)
 	if err != nil {
 		log.Error("failed to connect to database", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	defer dbClient.Close()
 
@@ -62,17 +68,80 @@ func main() {
 	auth, err := setupAuthenticator(cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
+	r := buildRouter(log, dbClient, auth, kcClient, cfg.StackAppsPath)
+
+	// HTTP Server & Graceful Shutdown
+	srv := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	g, gCtx := errgroup.WithContext(parentCtx)
+
+	g.Go(func() error {
+		log.Info("http server listening", slog.String("port", cfg.Port))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("http server error: %w", err)
+		}
+		return nil
+	})
+
+	// Interrupt listener
+	g.Go(func() error {
+		shutdownSignal := make(chan os.Signal, 1)
+		signal.Notify(shutdownSignal, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+		select {
+		case <-gCtx.Done():
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer shutdownCancel()
+			_ = srv.Shutdown(shutdownCtx)
+			return gCtx.Err()
+		case sig := <-shutdownSignal:
+			log.Info("received shutdown signal, initiating graceful stop", slog.String("signal", sig.String()))
+
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer shutdownCancel()
+
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				return fmt.Errorf("server graceful shutdown failed: %w", err)
+			}
+			log.Info("server shutdown complete")
+			return nil
+		}
+	})
+
+	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		log.Error("application stopped with error", slog.String("error", err.Error()))
+		return err
+	}
+
+	log.Info("dashboard-backend service stopped cleanly")
+	return nil
+}
+
+// setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
+func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	return middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
+}
+
+// buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
+func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, kcClient *keycloak.Client, stackAppsPath string) http.Handler {
 	// Initialize Repositories
-	profileRepo := profile.NewRepository(dbClient.Pool)
-	householdRepo := household.NewRepository(dbClient.Pool)
-	appsRepo := apps.NewRepository(dbClient.Pool)
-	contactRepo := contact.NewRepository(dbClient.Pool)
+	var pool = dbClient.Pool
+	profileRepo := profile.NewRepository(pool)
+	householdRepo := household.NewRepository(pool)
+	appsRepo := apps.NewRepository(pool)
+	contactRepo := contact.NewRepository(pool)
 
 	// Initialize Stack Apps Loader for Tier 2 integrations
-	stackLoader := apps.NewStackAppsLoader(cfg.StackAppsPath, log)
+	stackLoader := apps.NewStackAppsLoader(stackAppsPath, log)
 
 	// Initialize Services
 	profileService := profile.NewService(profileRepo, kcClient, log)
@@ -103,18 +172,23 @@ func main() {
 
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := dbClient.Pool.Ping(r.Context()); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte(`{"status":"unready","database":"disconnected"}`))
-			return
+		if pool != nil {
+			if err := pool.Ping(r.Context()); err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(`{"status":"unready","database":"disconnected"}`))
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ready","database":"connected"}`))
 	})
 
 	// Auth Middleware enforcing OIDC JWT validation and household role resolution
-	roleMw := middleware.HouseholdRoleMiddleware(dbClient.Pool, log)
+	roleMw := middleware.HouseholdRoleMiddleware(pool, log)
 	authMw := func(next http.Handler) http.Handler {
+		if auth == nil {
+			return roleMw(next)
+		}
 		return auth.AuthenticateMiddleware(roleMw(next))
 	}
 
@@ -125,56 +199,5 @@ func main() {
 	contactHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
 
-	// HTTP Server & Graceful Shutdown
-	srv := &http.Server{
-		Addr:         ":" + cfg.Port,
-		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
-	}
-
-	g, gCtx := errgroup.WithContext(context.Background())
-
-	g.Go(func() error {
-		log.Info("http server listening", slog.String("port", cfg.Port))
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("http server error: %w", err)
-		}
-		return nil
-	})
-
-	// Interrupt listener
-	g.Go(func() error {
-		shutdownSignal := make(chan os.Signal, 1)
-		signal.Notify(shutdownSignal, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-		select {
-		case <-gCtx.Done():
-			return gCtx.Err()
-		case sig := <-shutdownSignal:
-			log.Info("received shutdown signal, initiating graceful stop", slog.String("signal", sig.String()))
-
-			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer shutdownCancel()
-
-			if err := srv.Shutdown(shutdownCtx); err != nil {
-				return fmt.Errorf("server graceful shutdown failed: %w", err)
-			}
-			log.Info("server shutdown complete")
-			return nil
-		}
-	})
-
-	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
-		log.Error("application stopped with error", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	log.Info("dashboard-backend service stopped cleanly")
-}
-
-// setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
-func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
+	return r
 }

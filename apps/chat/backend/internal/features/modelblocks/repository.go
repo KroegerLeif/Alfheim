@@ -8,6 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"alfheim/chat/internal/shared/db"
 )
 
 // Repository defines data access operations for model blocks.
@@ -30,12 +32,16 @@ type Repository interface {
 }
 
 type repository struct {
-	pool *pgxpool.Pool
+	db db.DBTX
 }
 
 // NewRepository initializes a PostgreSQL-backed model block repository.
 func NewRepository(pool *pgxpool.Pool) Repository {
-	return &repository{pool: pool}
+	return &repository{db: pool}
+}
+
+func newRepositoryWithDB(db db.DBTX) Repository {
+	return &repository{db: db}
 }
 
 const modelBlockColumns = `
@@ -70,7 +76,7 @@ func (r *repository) Create(ctx context.Context, m *ModelBlock) error {
 	m.CreatedAt = now
 	m.UpdatedAt = now
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := r.db.Exec(ctx, query,
 		m.ID, m.OwnerUserID, m.HouseholdID, m.Visibility, m.ProviderType, m.DisplayName, m.BaseURL,
 		m.ModelIdentifier, m.APIKeyEncrypted, m.APIKeyKeyID, m.ConfigJSON, m.HealthStatus,
 		m.IsBootstrap, m.CreatedAt, m.UpdatedAt,
@@ -84,7 +90,7 @@ func (r *repository) Create(ctx context.Context, m *ModelBlock) error {
 func (r *repository) GetByID(ctx context.Context, id string) (*ModelBlock, error) {
 	query := `SELECT` + modelBlockColumns + `FROM model_blocks WHERE id = $1`
 
-	m, err := scanModelBlock(r.pool.QueryRow(ctx, query, id))
+	m, err := scanModelBlock(r.db.QueryRow(ctx, query, id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
@@ -103,7 +109,7 @@ func (r *repository) ListVisibleTo(ctx context.Context, userID, householdID stri
 		ORDER BY created_at ASC
 	`
 
-	rows, err := r.pool.Query(ctx, query, userID, householdID)
+	rows, err := r.db.Query(ctx, query, userID, householdID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list model blocks visible to user %s: %w", userID, err)
 	}
@@ -138,7 +144,7 @@ func (r *repository) Update(ctx context.Context, m *ModelBlock) error {
 		WHERE id = $9
 	`
 
-	res, err := r.pool.Exec(ctx, query,
+	res, err := r.db.Exec(ctx, query,
 		m.DisplayName, m.BaseURL, m.ModelIdentifier, m.APIKeyEncrypted, m.APIKeyKeyID,
 		m.Visibility, m.HouseholdID, m.ConfigJSON, m.ID,
 	)
@@ -152,7 +158,7 @@ func (r *repository) Update(ctx context.Context, m *ModelBlock) error {
 }
 
 func (r *repository) Delete(ctx context.Context, id string) error {
-	res, err := r.pool.Exec(ctx, `DELETE FROM model_blocks WHERE id = $1`, id)
+	res, err := r.db.Exec(ctx, `DELETE FROM model_blocks WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete model block %s: %w", id, err)
 	}
@@ -163,7 +169,7 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 }
 
 func (r *repository) UpdateHealth(ctx context.Context, id string, status HealthStatus, detail *string, checkedAt time.Time) error {
-	res, err := r.pool.Exec(ctx, `
+	res, err := r.db.Exec(ctx, `
 		UPDATE model_blocks SET health_status = $1, health_detail = $2, health_checked_at = $3
 		WHERE id = $4
 	`, status, detail, checkedAt, id)
@@ -178,7 +184,7 @@ func (r *repository) UpdateHealth(ctx context.Context, id string, status HealthS
 
 func (r *repository) HasBootstrapRun(ctx context.Context, key string) (bool, error) {
 	var exists bool
-	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM bootstrap_state WHERE key = $1)`, key).Scan(&exists)
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM bootstrap_state WHERE key = $1)`, key).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("failed to check bootstrap state for key %s: %w", key, err)
 	}
@@ -186,7 +192,7 @@ func (r *repository) HasBootstrapRun(ctx context.Context, key string) (bool, err
 }
 
 func (r *repository) CreateBootstrap(ctx context.Context, key string, m *ModelBlock) error {
-	tx, err := r.pool.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin bootstrap transaction: %w", err)
 	}

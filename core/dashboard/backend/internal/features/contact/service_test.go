@@ -255,3 +255,91 @@ func TestContactService_ContactOperations(t *testing.T) {
 		t.Errorf("expected 0 contacts, got %d", len(contacts))
 	}
 }
+
+func TestContactService_EdgeCases(t *testing.T) {
+	ctx := context.Background()
+	repo := newMockRepository()
+	hhRepo := newMockHouseholdRepo()
+	hhRepo.members["hh-1"] = map[string]household.HouseholdRole{"user-1": household.RoleOwner}
+	hhRepo.members["hh-2"] = map[string]household.HouseholdRole{"user-1": household.RoleOwner}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := contact.NewService(repo, hhRepo, logger)
+
+	t.Run("CreateCategory empty name error", func(t *testing.T) {
+		_, err := svc.CreateCategory(ctx, "user-1", "hh-1", contact.CreateCategoryRequest{Name: ""})
+		if err == nil {
+			t.Fatal("expected error on empty category name")
+		}
+	})
+
+	t.Run("UpdateCategory empty name or wrong household", func(t *testing.T) {
+		cat, _ := svc.CreateCategory(ctx, "user-1", "hh-1", contact.CreateCategoryRequest{Name: "Cat1"})
+
+		_, err := svc.UpdateCategory(ctx, "user-1", "hh-2", cat.ID, contact.CreateCategoryRequest{Name: "Cat1"})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+
+		_, err = svc.UpdateCategory(ctx, "user-1", "hh-1", cat.ID, contact.CreateCategoryRequest{Name: ""})
+		if err == nil {
+			t.Fatal("expected error on empty category name update")
+		}
+	})
+
+	t.Run("DeleteCategory wrong household", func(t *testing.T) {
+		cat, _ := svc.CreateCategory(ctx, "user-1", "hh-1", contact.CreateCategoryRequest{Name: "CatDel"})
+		err := svc.DeleteCategory(ctx, "user-1", "hh-2", cat.ID)
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+
+	t.Run("CreateContact with category belonging to another household", func(t *testing.T) {
+		cat, _ := svc.CreateCategory(ctx, "user-1", "hh-2", contact.CreateCategoryRequest{Name: "HH2 Cat"})
+		catID := cat.ID
+
+		_, err := svc.CreateContact(ctx, "user-1", "hh-1", contact.CreateContactRequest{
+			Name:       "Test",
+			CategoryID: &catID,
+		})
+		if err == nil {
+			t.Fatal("expected error creating contact with category from another household")
+		}
+	})
+
+	t.Run("CreateContact empty name", func(t *testing.T) {
+		_, err := svc.CreateContact(ctx, "user-1", "hh-1", contact.CreateContactRequest{Name: ""})
+		if err == nil {
+			t.Fatal("expected error on empty contact name")
+		}
+	})
+
+	t.Run("UpdateContact wrong household or category", func(t *testing.T) {
+		c, _ := svc.CreateContact(ctx, "user-1", "hh-1", contact.CreateContactRequest{Name: "Contact1"})
+		cat2, _ := svc.CreateCategory(ctx, "user-1", "hh-2", contact.CreateCategoryRequest{Name: "HH2 Cat"})
+		cat2ID := cat2.ID
+
+		_, err := svc.UpdateContact(ctx, "user-1", "hh-2", c.ID, contact.CreateContactRequest{Name: "Updated"})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+
+		_, err = svc.UpdateContact(ctx, "user-1", "hh-1", c.ID, contact.CreateContactRequest{Name: ""})
+		if err == nil {
+			t.Fatal("expected error on empty contact name update")
+		}
+
+		_, err = svc.UpdateContact(ctx, "user-1", "hh-1", c.ID, contact.CreateContactRequest{Name: "Valid", CategoryID: &cat2ID})
+		if err == nil {
+			t.Fatal("expected error updating contact with cross-tenant category")
+		}
+	})
+
+	t.Run("DeleteContact wrong household", func(t *testing.T) {
+		c, _ := svc.CreateContact(ctx, "user-1", "hh-1", contact.CreateContactRequest{Name: "ContactDel"})
+		err := svc.DeleteContact(ctx, "user-1", "hh-2", c.ID)
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+}

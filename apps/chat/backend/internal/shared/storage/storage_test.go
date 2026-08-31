@@ -206,4 +206,56 @@ func TestStorageClientOperations(t *testing.T) {
 			t.Fatalf("expected upload error, got nil")
 		}
 	})
+
+	t.Run("EnsureBucketExists head error and create error", func(t *testing.T) {
+		mock := &mockS3API{
+			headBucketFunc: func(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
+				return nil, errors.New("random head bucket error")
+			},
+			createBucketFunc: func(ctx context.Context, params *s3.CreateBucketInput, optFns ...func(*s3.Options)) (*s3.CreateBucketOutput, error) {
+				return nil, errors.New("fallback create error")
+			},
+		}
+		client := NewWithAPI(mock, cfg)
+		if err := client.EnsureBucketExists(context.Background()); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("EnsureBucketExists create error", func(t *testing.T) {
+		mock := &mockS3API{
+			headBucketFunc: func(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
+				return nil, &mockSmithyAPIError{code: "NotFound", message: "Not Found"}
+			},
+			createBucketFunc: func(ctx context.Context, params *s3.CreateBucketInput, optFns ...func(*s3.Options)) (*s3.CreateBucketOutput, error) {
+				return nil, errors.New("create bucket error")
+			},
+		}
+		client := NewWithAPI(mock, cfg)
+		if err := client.EnsureBucketExists(context.Background()); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("Delete error", func(t *testing.T) {
+		mock := &mockS3API{
+			deleteObjectFunc: func(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error) {
+				return nil, errors.New("delete error")
+			},
+		}
+		client := NewWithAPI(mock, cfg)
+		if err := client.Delete(context.Background(), "key"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("NewClient initializes client", func(t *testing.T) {
+		c, err := NewClient(context.Background(), cfg)
+		if err != nil {
+			t.Fatalf("unexpected error initializing storage client: %v", err)
+		}
+		if c == nil {
+			t.Fatal("expected non-nil client")
+		}
+	})
 }

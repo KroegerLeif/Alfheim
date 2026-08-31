@@ -217,3 +217,41 @@ func TestHandler_StreamRejectsMissingModelBlockBeforeHeadersSent(t *testing.T) {
 		t.Errorf("expected a normal JSON error response before streaming starts, got Content-Type %q", ct)
 	}
 }
+
+func TestHandler_UnauthorizedRequests(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo, &fakeResolver{})
+	handler := conversations.NewHandler(svc)
+
+	noAuthRouter := chi.NewRouter()
+	noAuthMw := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+	handler.RegisterRoutes(noAuthRouter, noAuthMw)
+
+	endpoints := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/chat/conversations"},
+		{http.MethodPost, "/api/v1/chat/conversations"},
+		{http.MethodDelete, "/api/v1/chat/conversations/c1"},
+		{http.MethodGet, "/api/v1/chat/conversations/c1/messages"},
+		{http.MethodPost, "/api/v1/chat/conversations/c1/messages"},
+		{http.MethodGet, "/api/v1/chat/conversations/c1/stream"},
+	}
+
+	for _, ep := range endpoints {
+		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
+			req := httptest.NewRequest(ep.method, ep.path, nil)
+			rec := httptest.NewRecorder()
+			noAuthRouter.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Errorf("expected 401 Unauthorized for %s %s, got %d", ep.method, ep.path, rec.Code)
+			}
+		})
+	}
+}

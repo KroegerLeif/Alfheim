@@ -8,6 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"alfheim/dashboard/internal/shared/db"
 )
 
 // Repository defines CRUD operations for contact categories and contact records.
@@ -26,12 +28,16 @@ type Repository interface {
 }
 
 type repository struct {
-	pool *pgxpool.Pool
+	db db.DBTX
 }
 
 // NewRepository initializes a PostgreSQL implementation of Contact Repository.
 func NewRepository(pool *pgxpool.Pool) Repository {
-	return &repository{pool: pool}
+	return &repository{db: pool}
+}
+
+func newRepositoryWithDB(db db.DBTX) Repository {
+	return &repository{db: db}
 }
 
 func (r *repository) CreateCategory(ctx context.Context, cat *ContactCategory) error {
@@ -40,7 +46,7 @@ func (r *repository) CreateCategory(ctx context.Context, cat *ContactCategory) e
 		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
 		RETURNING created_at, updated_at
 	`
-	return r.pool.QueryRow(ctx, query, cat.ID, cat.HouseholdID, cat.Name, cat.Icon, cat.Color).Scan(&cat.CreatedAt, &cat.UpdatedAt)
+	return r.db.QueryRow(ctx, query, cat.ID, cat.HouseholdID, cat.Name, cat.Icon, cat.Color).Scan(&cat.CreatedAt, &cat.UpdatedAt)
 }
 
 func (r *repository) GetCategories(ctx context.Context, householdID string) ([]*ContactCategory, error) {
@@ -50,7 +56,7 @@ func (r *repository) GetCategories(ctx context.Context, householdID string) ([]*
 		WHERE household_id = $1
 		ORDER BY name ASC
 	`
-	rows, err := r.pool.Query(ctx, query, householdID)
+	rows, err := r.db.Query(ctx, query, householdID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query contact categories: %w", err)
 	}
@@ -74,7 +80,7 @@ func (r *repository) GetCategoryByID(ctx context.Context, id string) (*ContactCa
 		WHERE id = $1
 	`
 	cat := &ContactCategory{}
-	err := r.pool.QueryRow(ctx, query, id).Scan(&cat.ID, &cat.HouseholdID, &cat.Name, &cat.Icon, &cat.Color, &cat.CreatedAt, &cat.UpdatedAt)
+	err := r.db.QueryRow(ctx, query, id).Scan(&cat.ID, &cat.HouseholdID, &cat.Name, &cat.Icon, &cat.Color, &cat.CreatedAt, &cat.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrCategoryNotFound
@@ -90,7 +96,7 @@ func (r *repository) UpdateCategory(ctx context.Context, cat *ContactCategory) e
 		SET name = $1, icon = $2, color = $3, updated_at = NOW()
 		WHERE id = $4
 	`
-	cmd, err := r.pool.Exec(ctx, query, cat.Name, cat.Icon, cat.Color, cat.ID)
+	cmd, err := r.db.Exec(ctx, query, cat.Name, cat.Icon, cat.Color, cat.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update contact category: %w", err)
 	}
@@ -102,7 +108,7 @@ func (r *repository) UpdateCategory(ctx context.Context, cat *ContactCategory) e
 
 func (r *repository) DeleteCategory(ctx context.Context, id string) error {
 	query := `DELETE FROM contact_categories WHERE id = $1`
-	cmd, err := r.pool.Exec(ctx, query, id)
+	cmd, err := r.db.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete contact category: %w", err)
 	}
@@ -123,7 +129,7 @@ func (r *repository) CreateContact(ctx context.Context, c *Contact) error {
 		return fmt.Errorf("failed to marshal contact links: %w", err)
 	}
 
-	return r.pool.QueryRow(ctx, query,
+	return r.db.QueryRow(ctx, query,
 		c.ID, c.HouseholdID, c.CategoryID, c.Name, c.Phone, c.Email,
 		c.Address, c.Latitude, c.Longitude, c.Description, linksJSON,
 		c.Icon, c.AvatarURL,
@@ -137,7 +143,7 @@ func (r *repository) GetContacts(ctx context.Context, householdID string) ([]*Co
 		WHERE household_id = $1
 		ORDER BY name ASC
 	`
-	rows, err := r.pool.Query(ctx, query, householdID)
+	rows, err := r.db.Query(ctx, query, householdID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query contacts: %w", err)
 	}
@@ -175,7 +181,7 @@ func (r *repository) GetContactByID(ctx context.Context, id string) (*Contact, e
 	`
 	c := &Contact{}
 	var linksBytes []byte
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRow(ctx, query, id).Scan(
 		&c.ID, &c.HouseholdID, &c.CategoryID, &c.Name, &c.Phone, &c.Email,
 		&c.Address, &c.Latitude, &c.Longitude, &c.Description, &linksBytes,
 		&c.Icon, &c.AvatarURL, &c.CreatedAt, &c.UpdatedAt,
@@ -207,7 +213,7 @@ func (r *repository) UpdateContact(ctx context.Context, c *Contact) error {
 		return fmt.Errorf("failed to marshal contact links: %w", err)
 	}
 
-	cmd, err := r.pool.Exec(ctx, query,
+	cmd, err := r.db.Exec(ctx, query,
 		c.CategoryID, c.Name, c.Phone, c.Email, c.Address,
 		c.Latitude, c.Longitude, c.Description, linksJSON, c.Icon, c.AvatarURL, c.ID,
 	)
@@ -222,7 +228,7 @@ func (r *repository) UpdateContact(ctx context.Context, c *Contact) error {
 
 func (r *repository) DeleteContact(ctx context.Context, id string) error {
 	query := `DELETE FROM contacts WHERE id = $1`
-	cmd, err := r.pool.Exec(ctx, query, id)
+	cmd, err := r.db.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete contact: %w", err)
 	}

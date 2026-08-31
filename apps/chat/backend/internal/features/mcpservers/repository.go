@@ -8,6 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"alfheim/chat/internal/shared/db"
 )
 
 // Repository defines data access operations for the MCP server registry.
@@ -23,12 +25,16 @@ type Repository interface {
 }
 
 type repository struct {
-	pool *pgxpool.Pool
+	db db.DBTX
 }
 
 // NewRepository initializes a PostgreSQL-backed MCP server registry repository.
 func NewRepository(pool *pgxpool.Pool) Repository {
-	return &repository{pool: pool}
+	return &repository{db: pool}
+}
+
+func newRepositoryWithDB(db db.DBTX) Repository {
+	return &repository{db: db}
 }
 
 const serverColumns = `
@@ -55,7 +61,7 @@ func (r *repository) UpsertFromSeed(ctx context.Context, appSlug, internalURL st
 			internal_url = EXCLUDED.internal_url,
 			updated_at = EXCLUDED.updated_at
 	`
-	_, err := r.pool.Exec(ctx, query, appSlug, internalURL, now)
+	_, err := r.db.Exec(ctx, query, appSlug, internalURL, now)
 	if err != nil {
 		return fmt.Errorf("failed to upsert mcp server registry entry for %s: %w", appSlug, err)
 	}
@@ -71,7 +77,7 @@ func (r *repository) ListEnabled(ctx context.Context) ([]*Server, error) {
 }
 
 func (r *repository) query(ctx context.Context, sql string) ([]*Server, error) {
-	rows, err := r.pool.Query(ctx, sql)
+	rows, err := r.db.Query(ctx, sql)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query mcp server registry: %w", err)
 	}
@@ -94,7 +100,7 @@ func (r *repository) query(ctx context.Context, sql string) ([]*Server, error) {
 func (r *repository) GetByID(ctx context.Context, id string) (*Server, error) {
 	query := `SELECT` + serverColumns + `FROM mcp_server_registry WHERE id = $1`
 
-	s, err := scanServer(r.pool.QueryRow(ctx, query, id))
+	s, err := scanServer(r.db.QueryRow(ctx, query, id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
@@ -105,7 +111,7 @@ func (r *repository) GetByID(ctx context.Context, id string) (*Server, error) {
 }
 
 func (r *repository) SetEnabled(ctx context.Context, id string, enabled bool) error {
-	res, err := r.pool.Exec(ctx, `UPDATE mcp_server_registry SET enabled = $1, updated_at = NOW() WHERE id = $2`, enabled, id)
+	res, err := r.db.Exec(ctx, `UPDATE mcp_server_registry SET enabled = $1, updated_at = NOW() WHERE id = $2`, enabled, id)
 	if err != nil {
 		return fmt.Errorf("failed to update enabled state for mcp server %s: %w", id, err)
 	}

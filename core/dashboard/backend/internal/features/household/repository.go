@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"alfheim/dashboard/internal/shared/db"
 )
 
 // Repository persistence contract for household entities and invitations.
@@ -23,10 +25,14 @@ type Repository interface {
 }
 
 type repository struct {
-	pool *pgxpool.Pool
+	db db.DBTX
 }
 
 // NewRepository initializes PostgreSQL-backed repository for households.
 func NewRepository(pool *pgxpool.Pool) Repository {
-	return &repository{pool: pool}
+	return &repository{db: pool}
+}
+
+func newRepositoryWithDB(db db.DBTX) Repository {
+	return &repository{db: db}
 }

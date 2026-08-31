@@ -17,7 +17,7 @@ func (r *repository) CreateInvite(ctx context.Context, invite *Invite) error {
 	if invite.CreatedAt.IsZero() {
 		invite.CreatedAt = time.Now()
 	}
-	_, err := r.pool.Exec(ctx, query,
+	_, err := r.db.Exec(ctx, query,
 		invite.Token,
 		invite.HouseholdID,
 		invite.InviterID,
@@ -41,7 +41,7 @@ func (r *repository) GetInviteByToken(ctx context.Context, token string) (*Invit
 	`
 	i := &Invite{}
 	var roleStr string
-	err := r.pool.QueryRow(ctx, query, token).Scan(
+	err := r.db.QueryRow(ctx, query, token).Scan(
 		&i.Token,
 		&i.HouseholdID,
 		&i.InviterID,
@@ -67,7 +67,7 @@ func (r *repository) IncrementInviteUses(ctx context.Context, token string) erro
 		SET uses = uses + 1
 		WHERE token = $1
 	`
-	_, err := r.pool.Exec(ctx, query, token)
+	_, err := r.db.Exec(ctx, query, token)
 	if err != nil {
 		return fmt.Errorf("failed to increment invite uses: %w", err)
 	}

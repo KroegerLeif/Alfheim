@@ -10,7 +10,7 @@ import (
 )
 
 func (r *repository) CreateHouseholdTx(ctx context.Context, h *Household, ownerEmail, ownerUsername string) error {
-	tx, err := r.pool.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to start household creation transaction: %w", err)
 	}
@@ -64,7 +64,7 @@ func (r *repository) GetHouseholdByID(ctx context.Context, id string) (*Househol
 		WHERE id = $1
 	`
 	h := &Household{}
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRow(ctx, query, id).Scan(
 		&h.ID, &h.Name, &h.Slug, &h.OwnerID,
 		&h.Street, &h.Zip, &h.City, &h.Country, &h.Latitude, &h.Longitude,
 		&h.CreatedAt, &h.UpdatedAt,
@@ -86,7 +86,7 @@ func (r *repository) GetHouseholdsByUserID(ctx context.Context, userID string) (
 		WHERE hm.user_id = $1
 		ORDER BY h.created_at DESC
 	`
-	rows, err := r.pool.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query households for user %s: %w", userID, err)
 	}
@@ -115,7 +115,7 @@ func (r *repository) UpdateHouseholdAddress(ctx context.Context, id string, stre
 		SET street = $1, zip = $2, city = $3, country = $4, latitude = $5, longitude = $6, updated_at = NOW()
 		WHERE id = $7
 	`
-	cmd, err := r.pool.Exec(ctx, query, street, zip, city, country, latitude, longitude, id)
+	cmd, err := r.db.Exec(ctx, query, street, zip, city, country, latitude, longitude, id)
 	if err != nil {
 		return fmt.Errorf("failed to update household address: %w", err)
 	}

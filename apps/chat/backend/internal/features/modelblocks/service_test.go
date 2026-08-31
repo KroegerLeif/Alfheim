@@ -214,6 +214,44 @@ func TestService_CreateAndList(t *testing.T) {
 	})
 }
 
+func TestService_ResolveProviderAndPolicy(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	ctx := context.Background()
+
+	configJSON := json.RawMessage(`{"tool_round_limit":12,"allowed_mcp_apps":["budget","calendar"]}`)
+	created, err := svc.Create(ctx, "user-1", "hh-1", modelblocks.CreateRequest{
+		ProviderType:    "ollama",
+		DisplayName:     "Ollama Policy",
+		ModelIdentifier: "llama3.2",
+		Visibility:      modelblocks.VisibilityShared,
+		ConfigJSON:      configJSON,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error creating model block: %v", err)
+	}
+
+	provider, policy, err := svc.ResolveProvider(ctx, "user-1", "hh-1", created.ID)
+	if err != nil {
+		t.Fatalf("unexpected error resolving provider: %v", err)
+	}
+	if provider == nil {
+		t.Fatal("expected non-nil provider")
+	}
+	if policy.ToolRoundLimit != 12 {
+		t.Errorf("expected tool_round_limit 12, got %d", policy.ToolRoundLimit)
+	}
+	if len(policy.AllowedMCPApps) != 2 || policy.AllowedMCPApps[0] != "budget" {
+		t.Errorf("unexpected allowed mcp apps: %+v", policy.AllowedMCPApps)
+	}
+
+	// Test ResolveProvider forbidden for user in another household
+	_, _, err = svc.ResolveProvider(ctx, "other-user", "hh-99", created.ID)
+	if err != modelblocks.ErrForbidden {
+		t.Errorf("expected ErrForbidden, got %v", err)
+	}
+}
+
 func TestService_UpdateOwnershipRules(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
