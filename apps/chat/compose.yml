@@ -27,7 +27,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
@@ -61,7 +62,8 @@ services:
     container_name: chat-frontend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     depends_on:
       chat-backend:
         condition: service_healthy

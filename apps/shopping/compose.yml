@@ -25,7 +25,8 @@ services:
     container_name: shopping-backend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-postgres}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@shopping-db:5432/${SHOPPING_POSTGRES_DB:-shopping}}
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
@@ -61,7 +62,8 @@ services:
     container_name: shopping-frontend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     depends_on:
       shopping-backend:
         condition: service_healthy

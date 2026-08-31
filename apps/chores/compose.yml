@@ -55,7 +55,8 @@ services:
     container_name: chores-frontend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     depends_on:
       chores-backend:
         condition: service_healthy

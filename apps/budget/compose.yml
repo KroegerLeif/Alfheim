@@ -27,7 +27,8 @@ services:
     container_name: budget-backend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-postgres}:${BUDGET_POSTGRES_PASSWORD:-postgres}@budget-db:5432/${BUDGET_POSTGRES_DB:-budget}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
@@ -65,7 +66,8 @@ services:
     container_name: budget-frontend
     restart: always
     env_file:
-      - .env
+      - path: .env
+        required: false
     depends_on:
       budget-backend:
         condition: service_healthy
