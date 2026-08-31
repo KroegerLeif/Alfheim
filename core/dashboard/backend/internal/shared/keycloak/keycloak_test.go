@@ -2,8 +2,11 @@ package keycloak
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -113,5 +116,71 @@ func TestUpdateUser_Unreachable(t *testing.T) {
 	err := client.UpdateUser(ctx, user)
 	if err == nil {
 		t.Fatal("expected error when updating user with unreachable Keycloak server, got nil")
+	}
+}
+
+func TestKeycloakClient_Success(t *testing.T) {
+	ctx := context.Background()
+	testLogger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/realms/alfheim/protocol/openid-connect/token" {
+			_ = json.NewEncoder(w).Encode(gocloak.JWT{
+				AccessToken: "test-kc-admin-token",
+				ExpiresIn:   3600,
+			})
+			return
+		}
+		if r.URL.Path == "/admin/realms/alfheim/users/u-100" {
+			if r.Method == http.MethodGet {
+				_ = json.NewEncoder(w).Encode(gocloak.User{
+					ID:        gocloak.StringP("u-100"),
+					Username:  gocloak.StringP("user100"),
+					FirstName: gocloak.StringP("First"),
+					LastName:  gocloak.StringP("Last"),
+				})
+				return
+			}
+			if r.Method == http.MethodPut {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer ts.Close()
+
+	cfg := config.KeycloakConfig{
+		BaseURL:      ts.URL,
+		Realm:        "alfheim",
+		ClientID:     "client",
+		ClientSecret: "secret",
+	}
+
+	client := NewClient(cfg, testLogger)
+
+	// 1. GetAdminToken live login
+	token, err := client.GetAdminToken(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error getting admin token: %v", err)
+	}
+	if token != "test-kc-admin-token" {
+		t.Errorf("expected test-kc-admin-token, got %s", token)
+	}
+
+	// 2. GetUserByID
+	user, err := client.GetUserByID(ctx, "u-100")
+	if err != nil {
+		t.Fatalf("unexpected error getting user by id: %v", err)
+	}
+	if gocloak.PString(user.Username) != "user100" {
+		t.Errorf("expected user100, got %s", gocloak.PString(user.Username))
+	}
+
+	// 3. UpdateUser
+	err = client.UpdateUser(ctx, gocloak.User{ID: gocloak.StringP("u-100"), FirstName: gocloak.StringP("Updated")})
+	if err != nil {
+		t.Fatalf("unexpected error updating user: %v", err)
 	}
 }

@@ -14,7 +14,7 @@ func (r *repository) AddMember(ctx context.Context, m *Member) error {
 		INSERT INTO household_members (household_id, user_id, role)
 		VALUES ($1, $2, $3)
 	`
-	_, err := r.pool.Exec(ctx, query, m.HouseholdID, m.UserID, string(m.Role))
+	_, err := r.db.Exec(ctx, query, m.HouseholdID, m.UserID, string(m.Role))
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -30,7 +30,7 @@ func (r *repository) RemoveMember(ctx context.Context, householdID string, userI
 		DELETE FROM household_members
 		WHERE household_id = $1 AND user_id = $2
 	`
-	cmd, err := r.pool.Exec(ctx, query, householdID, userID)
+	cmd, err := r.db.Exec(ctx, query, householdID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to remove member: %w", err)
 	}
@@ -46,7 +46,7 @@ func (r *repository) UpdateMemberRole(ctx context.Context, householdID string, u
 		SET role = $1
 		WHERE household_id = $2 AND user_id = $3
 	`
-	cmd, err := r.pool.Exec(ctx, query, string(role), householdID, userID)
+	cmd, err := r.db.Exec(ctx, query, string(role), householdID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update member role: %w", err)
 	}
@@ -63,7 +63,7 @@ func (r *repository) GetMemberRole(ctx context.Context, householdID string, user
 		WHERE household_id = $1 AND user_id = $2
 	`
 	var roleStr string
-	err := r.pool.QueryRow(ctx, query, householdID, userID).Scan(&roleStr)
+	err := r.db.QueryRow(ctx, query, householdID, userID).Scan(&roleStr)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", ErrUnauthorizedHouseholdAccess
@@ -86,7 +86,7 @@ func (r *repository) GetMembers(ctx context.Context, householdID string) ([]*Mem
 		WHERE hm.household_id = $1
 		ORDER BY hm.joined_at ASC
 	`
-	rows, err := r.pool.Query(ctx, query, householdID)
+	rows, err := r.db.Query(ctx, query, householdID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query household members: %w", err)
 	}

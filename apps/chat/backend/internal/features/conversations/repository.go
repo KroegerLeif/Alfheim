@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"alfheim/chat/internal/shared/db"
 	"alfheim/chat/internal/shared/storage"
 )
 
@@ -28,13 +29,17 @@ type Repository interface {
 }
 
 type repository struct {
-	pool    *pgxpool.Pool
+	db      db.DBTX
 	storage storage.Client
 }
 
 // NewRepository initializes a PostgreSQL-backed conversations repository.
 func NewRepository(pool *pgxpool.Pool, storageClient storage.Client) Repository {
-	return &repository{pool: pool, storage: storageClient}
+	return &repository{db: pool, storage: storageClient}
+}
+
+func newRepositoryWithDB(dbtx db.DBTX, storageClient storage.Client) Repository {
+	return &repository{db: dbtx, storage: storageClient}
 }
 
 const conversationColumns = `
@@ -77,7 +82,7 @@ func (r *repository) CreateConversation(ctx context.Context, c *Conversation) er
 		INSERT INTO conversations (id, owner_user_id, household_id, source_app, source_context, model_block_id, title, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
-	_, err := r.pool.Exec(ctx, query,
+	_, err := r.db.Exec(ctx, query,
 		c.ID, c.OwnerUserID, c.HouseholdID, c.SourceApp, c.SourceContext, c.ModelBlockID, c.Title, c.CreatedAt, c.UpdatedAt,
 	)
 	if err != nil {
@@ -89,7 +94,7 @@ func (r *repository) CreateConversation(ctx context.Context, c *Conversation) er
 func (r *repository) GetConversationByID(ctx context.Context, id string) (*Conversation, error) {
 	query := `SELECT` + conversationColumns + `FROM conversations WHERE id = $1`
 
-	c, err := scanConversation(r.pool.QueryRow(ctx, query, id))
+	c, err := scanConversation(r.db.QueryRow(ctx, query, id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
@@ -102,7 +107,7 @@ func (r *repository) GetConversationByID(ctx context.Context, id string) (*Conve
 func (r *repository) ListConversationsByOwner(ctx context.Context, ownerUserID string) ([]*Conversation, error) {
 	query := `SELECT` + conversationColumns + `FROM conversations WHERE owner_user_id = $1 ORDER BY updated_at DESC`
 
-	rows, err := r.pool.Query(ctx, query, ownerUserID)
+	rows, err := r.db.Query(ctx, query, ownerUserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list conversations for user %s: %w", ownerUserID, err)
 	}
@@ -123,7 +128,7 @@ func (r *repository) ListConversationsByOwner(ctx context.Context, ownerUserID s
 }
 
 func (r *repository) DeleteConversation(ctx context.Context, id string) error {
-	res, err := r.pool.Exec(ctx, `DELETE FROM conversations WHERE id = $1`, id)
+	res, err := r.db.Exec(ctx, `DELETE FROM conversations WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete conversation %s: %w", id, err)
 	}
@@ -136,7 +141,7 @@ func (r *repository) DeleteConversation(ctx context.Context, id string) error {
 func (r *repository) CreateMessage(ctx context.Context, m *Message, attachmentIDs ...string) error {
 	m.CreatedAt = time.Now()
 
-	tx, err := r.pool.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -169,7 +174,7 @@ func (r *repository) CreateMessage(ctx context.Context, m *Message, attachmentID
 func (r *repository) ListMessages(ctx context.Context, conversationID string) ([]*Message, error) {
 	query := `SELECT` + messageColumns + `FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC`
 
-	rows, err := r.pool.Query(ctx, query, conversationID)
+	rows, err := r.db.Query(ctx, query, conversationID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list messages for conversation %s: %w", conversationID, err)
 	}
@@ -195,7 +200,7 @@ func (r *repository) ListMessages(ctx context.Context, conversationID string) ([
 
 	if len(messageIDs) > 0 {
 		attQuery := `SELECT id, message_id, storage_key, mime_type, size_bytes, created_at FROM image_refs WHERE message_id = ANY($1) ORDER BY created_at ASC`
-		attRows, err := r.pool.Query(ctx, attQuery, messageIDs)
+		attRows, err := r.db.Query(ctx, attQuery, messageIDs)
 		if err == nil {
 			defer attRows.Close()
 			for attRows.Next() {
@@ -220,7 +225,7 @@ func (r *repository) ListMessages(ctx context.Context, conversationID string) ([
 func (r *repository) AppendMessageAndTouchConversation(ctx context.Context, m *Message) error {
 	m.CreatedAt = time.Now()
 
-	tx, err := r.pool.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}

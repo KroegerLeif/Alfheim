@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"alfheim/dashboard/internal/shared/db"
 )
 
 // Repository database access contract for user preferences and user custom links.
@@ -21,12 +23,16 @@ type Repository interface {
 }
 
 type repository struct {
-	pool *pgxpool.Pool
+	db db.DBTX
 }
 
 // NewRepository initializes PostgreSQL repository for 3-tier user preferences & user links.
 func NewRepository(pool *pgxpool.Pool) Repository {
-	return &repository{pool: pool}
+	return &repository{db: pool}
+}
+
+func newRepositoryWithDB(db db.DBTX) Repository {
+	return &repository{db: db}
 }
 
 func (r *repository) GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error) {
@@ -41,7 +47,7 @@ func (r *repository) GetUserPreferences(ctx context.Context, userID string) (*Us
 		HiddenAppIDs: []string{},
 	}
 
-	err := r.pool.QueryRow(ctx, query, userID).Scan(
+	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&pref.UserID,
 		&pref.HiddenAppIDs,
 		&pref.CreatedAt,
@@ -74,7 +80,7 @@ func (r *repository) UpdateUserPreferences(ctx context.Context, userID string, h
 	`
 
 	pref := &UserPreferences{}
-	err := r.pool.QueryRow(ctx, query, userID, hiddenAppIDs).Scan(
+	err := r.db.QueryRow(ctx, query, userID, hiddenAppIDs).Scan(
 		&pref.UserID,
 		&pref.HiddenAppIDs,
 		&pref.CreatedAt,
@@ -96,7 +102,7 @@ func (r *repository) GetUserLinks(ctx context.Context, userID string) ([]*UserLi
 		ORDER BY display_order ASC, title ASC
 	`
 
-	rows, err := r.pool.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user links for user %s: %w", userID, err)
 	}
@@ -133,7 +139,7 @@ func (r *repository) GetUserLinkByID(ctx context.Context, id string, userID stri
 	`
 
 	link := &UserLink{}
-	err := r.pool.QueryRow(ctx, query, id, userID).Scan(
+	err := r.db.QueryRow(ctx, query, id, userID).Scan(
 		&link.ID,
 		&link.UserID,
 		&link.Title,
@@ -163,7 +169,7 @@ func (r *repository) CreateUserLink(ctx context.Context, link *UserLink) error {
 		RETURNING id, created_at, updated_at
 	`
 
-	err := r.pool.QueryRow(
+	err := r.db.QueryRow(
 		ctx,
 		query,
 		link.UserID,
@@ -189,7 +195,7 @@ func (r *repository) UpdateUserLink(ctx context.Context, link *UserLink) error {
 		WHERE id = $6 AND user_id = $7
 	`
 
-	tag, err := r.pool.Exec(
+	tag, err := r.db.Exec(
 		ctx,
 		query,
 		link.Title,
@@ -215,7 +221,7 @@ func (r *repository) UpdateUserLink(ctx context.Context, link *UserLink) error {
 func (r *repository) DeleteUserLink(ctx context.Context, id string, userID string) error {
 	query := `DELETE FROM user_links WHERE id = $1 AND user_id = $2`
 
-	tag, err := r.pool.Exec(ctx, query, id, userID)
+	tag, err := r.db.Exec(ctx, query, id, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete user link %s: %w", id, err)
 	}

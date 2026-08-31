@@ -97,3 +97,38 @@ func TestTraceHandler_NoSpanContext(t *testing.T) {
 		t.Errorf("unexpected span_id in log record when no span context present")
 	}
 }
+
+func TestTraceHandler_WithAttrsAndWithGroup(t *testing.T) {
+	var buf bytes.Buffer
+	baseHandler := slog.NewJSONHandler(&buf, nil)
+	handler := &traceHandler{Handler: baseHandler}
+
+	hAttrs := handler.WithAttrs([]slog.Attr{slog.String("custom_key", "custom_val")})
+	loggerAttrs := slog.New(hAttrs)
+	loggerAttrs.InfoContext(context.Background(), "test attrs")
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+		t.Fatalf("failed to unmarshal JSON output: %v", err)
+	}
+	if got, want := result["custom_key"], "custom_val"; got != want {
+		t.Errorf("expected custom_key %q, got %v", want, got)
+	}
+
+	buf.Reset()
+	hGroup := handler.WithGroup("mygroup")
+	loggerGroup := slog.New(hGroup)
+	loggerGroup.InfoContext(context.Background(), "test group", slog.String("sub_key", "sub_val"))
+
+	var groupResult map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &groupResult); err != nil {
+		t.Fatalf("failed to unmarshal JSON output: %v", err)
+	}
+	grpMap, ok := groupResult["mygroup"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected mygroup to be map[string]interface{}, got %T", groupResult["mygroup"])
+	}
+	if got, want := grpMap["sub_key"], "sub_val"; got != want {
+		t.Errorf("expected sub_key %q inside mygroup, got %v", want, got)
+	}
+}

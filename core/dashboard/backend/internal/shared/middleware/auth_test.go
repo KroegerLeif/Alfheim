@@ -283,6 +283,19 @@ func TestHouseholdRoleMiddleware(t *testing.T) {
 		}
 	})
 
+	t.Run("passes through when subject present but household_id is empty and no header", func(t *testing.T) {
+		claims := &UserClaims{Subject: "user-1"}
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req = req.WithContext(context.WithValue(req.Context(), UserContextKey, claims))
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200 OK, got %d", rec.Code)
+		}
+	})
+
 	t.Run("passes through when claims present but no household_id or subject", func(t *testing.T) {
 		claims := &UserClaims{Subject: ""}
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)

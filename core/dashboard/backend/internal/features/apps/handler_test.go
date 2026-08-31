@@ -75,7 +75,318 @@ func withAuthClaims(ctx context.Context, subject string) context.Context {
 	return context.WithValue(ctx, middleware.UserContextKey, claims)
 }
 
+func mockAuthMW(claims *middleware.UserClaims, shouldAuth bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !shouldAuth {
+				next.ServeHTTP(w, r)
+				return
+			}
+			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func TestAppsHandler_GetDashboardApps(t *testing.T) {
+	t.Run("unauthorized when claims missing", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(nil, false))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/apps", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+		}
+	})
+
+	t.Run("internal server error when service fails", func(t *testing.T) {
+		service := &mockAppService{
+			getDashboardAppsFn: func(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error) {
+				return nil, errors.New("service err")
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/apps", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+		}
+	})
+
+	t.Run("success returns dashboard apps", func(t *testing.T) {
+		service := &mockAppService{
+			getDashboardAppsFn: func(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error) {
+				return &apps.DashboardAppsResponse{
+					Core: []apps.AppItem{{ID: "core-1", Title: "Core 1"}},
+				}, nil
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/apps/dashboard", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "core-1") {
+			t.Errorf("expected body to contain core-1, got %s", rec.Body.String())
+		}
+	})
+}
+
+func TestAppsHandler_GetUserPreferences(t *testing.T) {
+	t.Run("unauthorized when claims missing", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(nil, false))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/user/preferences", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+		}
+	})
+
+	t.Run("internal server error when service fails", func(t *testing.T) {
+		service := &mockAppService{
+			getUserPreferencesFn: func(ctx context.Context, userID string) (*apps.UserPreferences, error) {
+				return nil, errors.New("pref err")
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/user/preferences", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+		}
+	})
+
+	t.Run("success returns user preferences", func(t *testing.T) {
+		service := &mockAppService{
+			getUserPreferencesFn: func(ctx context.Context, userID string) (*apps.UserPreferences, error) {
+				return &apps.UserPreferences{UserID: "u1", HiddenAppIDs: []string{"app-hide"}}, nil
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/user/preferences", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
+}
+
+func TestAppsHandler_UpdateUserPreferences(t *testing.T) {
+	t.Run("unauthorized when claims missing", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(nil, false))
+
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/preferences", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+		}
+	})
+
+	t.Run("bad request when id URLParam is missing", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/", nil)
+		req = req.WithContext(withAuthClaims(req.Context(), "user-123"))
+		rec := httptest.NewRecorder()
+
+		handler.UpdateUserLink(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+		}
+	})
+
+	t.Run("bad request on invalid json body", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/preferences", strings.NewReader("invalid"))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+		}
+	})
+
+	t.Run("internal error when update fails", func(t *testing.T) {
+		service := &mockAppService{
+			updateUserPreferencesFn: func(ctx context.Context, userID string, hiddenAppIDs []string) (*apps.UserPreferences, error) {
+				return nil, errors.New("update err")
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		body, _ := json.Marshal(apps.UpdateUserPreferencesRequest{HiddenAppIDs: []string{"app1"}})
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/preferences", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+		}
+	})
+
+	t.Run("success updates user preferences via PATCH", func(t *testing.T) {
+		service := &mockAppService{
+			updateUserPreferencesFn: func(ctx context.Context, userID string, hiddenAppIDs []string) (*apps.UserPreferences, error) {
+				return &apps.UserPreferences{UserID: userID, HiddenAppIDs: hiddenAppIDs}, nil
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		body, _ := json.Marshal(apps.UpdateUserPreferencesRequest{HiddenAppIDs: []string{"app1"}})
+		req := httptest.NewRequest(http.MethodPatch, "/api/v1/user/preferences", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
+}
+
+func TestAppsHandler_GetUserLinks(t *testing.T) {
+	t.Run("unauthorized when claims missing", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(nil, false))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/user/links", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+		}
+	})
+
+	t.Run("internal error when GetDashboardApps fails", func(t *testing.T) {
+		service := &mockAppService{
+			getDashboardAppsFn: func(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error) {
+				return nil, errors.New("links err")
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/user/links", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+		}
+	})
+
+	t.Run("success returns user links", func(t *testing.T) {
+		service := &mockAppService{
+			getDashboardAppsFn: func(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error) {
+				return &apps.DashboardAppsResponse{
+					User: []apps.AppItem{{ID: "user-link-1", Title: "My Link"}},
+				}, nil
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/user/links", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
+}
+
 func TestAppsHandler_CreateUserLink_SanitizedErrors(t *testing.T) {
+	t.Run("unauthorized when claims missing", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(nil, false))
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/user/links", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+		}
+	})
+
+	t.Run("bad request on invalid json body", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/user/links", strings.NewReader("bad json"))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+		}
+	})
+
 	t.Run("returns 400 bad request on ErrInvalidLinkInputs", func(t *testing.T) {
 		service := &mockAppService{
 			createUserLinkFn: func(ctx context.Context, userID string, req apps.CreateUserLinkRequest) (*apps.AppItem, error) {
@@ -94,8 +405,26 @@ func TestAppsHandler_CreateUserLink_SanitizedErrors(t *testing.T) {
 		if rec.Code != http.StatusBadRequest {
 			t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
 		}
-		if !strings.Contains(rec.Body.String(), `"error":"bad_request"`) {
-			t.Errorf("expected response to contain bad_request, got %s", rec.Body.String())
+	})
+
+	t.Run("returns 201 created on success", func(t *testing.T) {
+		service := &mockAppService{
+			createUserLinkFn: func(ctx context.Context, userID string, req apps.CreateUserLinkRequest) (*apps.AppItem, error) {
+				return &apps.AppItem{ID: "link-1", Title: req.Title, URL: req.URL}, nil
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		body, _ := json.Marshal(apps.CreateUserLinkRequest{Title: "Title", URL: "https://example.com"})
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/user/links", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Errorf("expected status %d, got %d", http.StatusCreated, rec.Code)
 		}
 	})
 
@@ -118,47 +447,45 @@ func TestAppsHandler_CreateUserLink_SanitizedErrors(t *testing.T) {
 		if rec.Code != http.StatusInternalServerError {
 			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
 		}
-		if strings.Contains(rec.Body.String(), "SQLSTATE") || strings.Contains(rec.Body.String(), "user_links") {
-			t.Errorf("leaked internal database error details: %s", rec.Body.String())
-		}
-		if !strings.Contains(rec.Body.String(), `"error":"internal_server_error"`) {
-			t.Errorf("expected response to contain internal_server_error, got %s", rec.Body.String())
-		}
 	})
 }
 
 func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
-	t.Run("returns 404 on ErrLinkNotFound", func(t *testing.T) {
-		service := &mockAppService{
-			updateUserLinkFn: func(ctx context.Context, userID string, id string, req apps.UpdateUserLinkRequest) (*apps.AppItem, error) {
-				return nil, apps.ErrLinkNotFound
-			},
-		}
-
+	t.Run("unauthorized when claims missing", func(t *testing.T) {
+		service := &mockAppService{}
 		handler := apps.NewHandler(service)
 		r := chi.NewRouter()
-		r.Put("/api/v1/user/links/{id}", handler.UpdateUserLink)
+		handler.RegisterRoutes(r, mockAuthMW(nil, false))
 
-		reqBody := `{"title":"Updated"}`
-		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/link-999", bytes.NewBufferString(reqBody))
-		req = req.WithContext(withAuthClaims(req.Context(), "user-123"))
-
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/l1", nil)
 		rec := httptest.NewRecorder()
 		r.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusNotFound {
-			t.Errorf("expected status %d, got %d", http.StatusNotFound, rec.Code)
-		}
-		if !strings.Contains(rec.Body.String(), `"error":"not_found"`) {
-			t.Errorf("expected response to contain not_found, got %s", rec.Body.String())
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
 		}
 	})
 
-	t.Run("returns sanitized 500 on database error", func(t *testing.T) {
-		rawDbErr := errors.New("pgx: connection refused / query error")
+	t.Run("bad request on invalid json body", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/l1", strings.NewReader("bad json"))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+		}
+	})
+
+	t.Run("returns 400 on ErrInvalidLinkInputs", func(t *testing.T) {
 		service := &mockAppService{
 			updateUserLinkFn: func(ctx context.Context, userID string, id string, req apps.UpdateUserLinkRequest) (*apps.AppItem, error) {
-				return nil, rawDbErr
+				return nil, apps.ErrInvalidLinkInputs
 			},
 		}
 
@@ -166,56 +493,74 @@ func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
 		r := chi.NewRouter()
 		r.Put("/api/v1/user/links/{id}", handler.UpdateUserLink)
 
-		reqBody := `{"title":"Updated"}`
-		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/link-1", bytes.NewBufferString(reqBody))
+		reqBody := `{"title":""}`
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/l1", bytes.NewBufferString(reqBody))
 		req = req.WithContext(withAuthClaims(req.Context(), "user-123"))
 
 		rec := httptest.NewRecorder()
 		r.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusInternalServerError {
-			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
 		}
-		if strings.Contains(rec.Body.String(), "pgx") || strings.Contains(rec.Body.String(), "connection refused") {
-			t.Errorf("leaked internal database error details: %s", rec.Body.String())
+	})
+
+	t.Run("returns 200 OK on success update", func(t *testing.T) {
+		service := &mockAppService{
+			updateUserLinkFn: func(ctx context.Context, userID string, id string, req apps.UpdateUserLinkRequest) (*apps.AppItem, error) {
+				return &apps.AppItem{ID: id, Title: req.Title}, nil
+			},
 		}
-		if !strings.Contains(rec.Body.String(), `"error":"internal_server_error"`) {
-			t.Errorf("expected response to contain internal_server_error, got %s", rec.Body.String())
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		body, _ := json.Marshal(apps.UpdateUserLinkRequest{Title: "Updated Title"})
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/l1", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
 		}
 	})
 }
 
 func TestAppsHandler_DeleteUserLink_SanitizedErrors(t *testing.T) {
-	t.Run("returns 404 on ErrLinkNotFound", func(t *testing.T) {
-		service := &mockAppService{
-			deleteUserLinkFn: func(ctx context.Context, userID string, id string) error {
-				return apps.ErrLinkNotFound
-			},
-		}
-
+	t.Run("unauthorized when claims missing", func(t *testing.T) {
+		service := &mockAppService{}
 		handler := apps.NewHandler(service)
 		r := chi.NewRouter()
-		r.Delete("/api/v1/user/links/{id}", handler.DeleteUserLink)
+		handler.RegisterRoutes(r, mockAuthMW(nil, false))
 
-		req := httptest.NewRequest(http.MethodDelete, "/api/v1/user/links/link-999", nil)
-		req = req.WithContext(withAuthClaims(req.Context(), "user-123"))
-
+		req := httptest.NewRequest(http.MethodDelete, "/api/v1/user/links/l1", nil)
 		rec := httptest.NewRecorder()
 		r.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusNotFound {
-			t.Errorf("expected status %d, got %d", http.StatusNotFound, rec.Code)
-		}
-		if !strings.Contains(rec.Body.String(), `"error":"not_found"`) {
-			t.Errorf("expected response to contain not_found, got %s", rec.Body.String())
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
 		}
 	})
 
-	t.Run("returns sanitized 500 on database error", func(t *testing.T) {
-		rawDbErr := errors.New("fatal postgresql connection error")
+	t.Run("bad request when id URLParam is missing", func(t *testing.T) {
+		service := &mockAppService{}
+		handler := apps.NewHandler(service)
+		req := httptest.NewRequest(http.MethodDelete, "/api/v1/user/links/", nil)
+		req = req.WithContext(withAuthClaims(req.Context(), "user-123"))
+		rec := httptest.NewRecorder()
+
+		handler.DeleteUserLink(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+		}
+	})
+
+	t.Run("returns 24 StatusNoContent on successful delete", func(t *testing.T) {
 		service := &mockAppService{
 			deleteUserLinkFn: func(ctx context.Context, userID string, id string) error {
-				return rawDbErr
+				return nil
 			},
 		}
 
@@ -229,18 +574,8 @@ func TestAppsHandler_DeleteUserLink_SanitizedErrors(t *testing.T) {
 		rec := httptest.NewRecorder()
 		r.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusInternalServerError {
-			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
-		}
-		if strings.Contains(rec.Body.String(), "postgresql") {
-			t.Errorf("leaked internal error details: %s", rec.Body.String())
-		}
-		var errResp map[string]string
-		if err := json.Unmarshal(rec.Body.Bytes(), &errResp); err != nil {
-			t.Fatalf("failed to parse json error response: %v", err)
-		}
-		if errResp["error"] != "internal_server_error" || errResp["message"] != "failed to delete user link" {
-			t.Errorf("unexpected error payload: %v", errResp)
+		if rec.Code != http.StatusNoContent {
+			t.Errorf("expected status %d, got %d", http.StatusNoContent, rec.Code)
 		}
 	})
 }

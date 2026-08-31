@@ -8,6 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"alfheim/dashboard/internal/shared/db"
 )
 
 // Repository defines data access operations for user profiles.
@@ -18,12 +20,16 @@ type Repository interface {
 }
 
 type repository struct {
-	pool *pgxpool.Pool
+	db db.DBTX
 }
 
 // NewRepository initializes a PostgreSQL-backed profile repository.
 func NewRepository(pool *pgxpool.Pool) Repository {
-	return &repository{pool: pool}
+	return &repository{db: pool}
+}
+
+func newRepositoryWithDB(db db.DBTX) Repository {
+	return &repository{db: db}
 }
 
 func (r *repository) GetByID(ctx context.Context, id string) (*Profile, error) {
@@ -34,7 +40,7 @@ func (r *repository) GetByID(ctx context.Context, id string) (*Profile, error) {
 	`
 
 	p := &Profile{}
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRow(ctx, query, id).Scan(
 		&p.ID,
 		&p.Email,
 		&p.Username,
@@ -73,7 +79,7 @@ func (r *repository) Upsert(ctx context.Context, profile *Profile) error {
 	}
 	profile.UpdatedAt = now
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := r.db.Exec(ctx, query,
 		profile.ID,
 		profile.Email,
 		profile.Username,
@@ -98,7 +104,7 @@ func (r *repository) Update(ctx context.Context, profile *Profile) error {
 		WHERE id = $4
 	`
 
-	res, err := r.pool.Exec(ctx, query, profile.FirstName, profile.LastName, profile.AvatarURL, profile.ID)
+	res, err := r.db.Exec(ctx, query, profile.FirstName, profile.LastName, profile.AvatarURL, profile.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update user profile %s: %w", profile.ID, err)
 	}

@@ -284,3 +284,125 @@ func TestHouseholdService_UpdateHouseholdAddress(t *testing.T) {
 		t.Errorf("expected Zurich, got %s", repo.households[hhID].City)
 	}
 }
+
+func TestHouseholdInvite_IsValid(t *testing.T) {
+	t.Run("valid invite", func(t *testing.T) {
+		inv := &household.Invite{
+			ExpiresAt: time.Now().Add(time.Hour),
+			MaxUses:   5,
+			Uses:      2,
+		}
+		if !inv.IsValid() {
+			t.Errorf("expected invite to be valid")
+		}
+	})
+
+	t.Run("expired invite", func(t *testing.T) {
+		inv := &household.Invite{
+			ExpiresAt: time.Now().Add(-time.Hour),
+			MaxUses:   5,
+			Uses:      0,
+		}
+		if inv.IsValid() {
+			t.Errorf("expected expired invite to be invalid")
+		}
+	})
+
+	t.Run("max uses reached", func(t *testing.T) {
+		inv := &household.Invite{
+			ExpiresAt: time.Now().Add(time.Hour),
+			MaxUses:   2,
+			Uses:      2,
+		}
+		if inv.IsValid() {
+			t.Errorf("expected invite with max uses reached to be invalid")
+		}
+	})
+}
+
+func TestHouseholdService_EdgeCases(t *testing.T) {
+	repo := newMockRepository()
+	discardLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := household.NewService(repo, discardLogger)
+	ctx := context.Background()
+
+	ownerID := "owner-1"
+	memberID := "member-1"
+	hhID := "hh-edge-1"
+	repo.households[hhID] = &household.Household{ID: hhID, OwnerID: ownerID}
+	repo.members[hhID] = map[string]household.HouseholdRole{
+		ownerID:  household.RoleOwner,
+		memberID: household.RoleMember,
+	}
+
+	t.Run("CreateInvite zero TTL uses default 24h", func(t *testing.T) {
+		inv, err := svc.CreateInvite(ctx, ownerID, household.CreateInviteRequest{
+			HouseholdID: hhID,
+			Role:        "MEMBER",
+			TTLMinutes:  0,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error on zero TTL default: %v", err)
+		}
+		if inv.Token == "" {
+			t.Errorf("expected valid invite token")
+		}
+	})
+
+	t.Run("CreateInvite non-admin requester", func(t *testing.T) {
+		_, err := svc.CreateInvite(ctx, memberID, household.CreateInviteRequest{
+			HouseholdID: hhID,
+			Role:        "MEMBER",
+			TTLMinutes:  30,
+		})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+
+	t.Run("JoinHousehold invalid token", func(t *testing.T) {
+		_, err := svc.JoinHousehold(ctx, "new-user", "non-existent-token")
+		if err != household.ErrInviteNotFound {
+			t.Errorf("expected ErrInviteNotFound, got %v", err)
+		}
+
+		repo.invites["expired-token"] = &household.Invite{
+			Token:       "expired-token",
+			HouseholdID: hhID,
+			ExpiresAt:   time.Now().Add(-time.Hour),
+		}
+		_, err = svc.JoinHousehold(ctx, "new-user", "expired-token")
+		if err != household.ErrInviteExpiredOrInvalid {
+			t.Errorf("expected ErrInviteExpiredOrInvalid, got %v", err)
+		}
+	})
+
+	t.Run("UpdateMemberRole trying to change owner role", func(t *testing.T) {
+		err := svc.UpdateMemberRole(ctx, ownerID, hhID, ownerID, household.RoleMember)
+		if err == nil || err.Error() != "cannot change role of household owner" {
+			t.Errorf("expected cannot change role error, got %v", err)
+		}
+	})
+
+	t.Run("UpdateMemberRole non-owner requester", func(t *testing.T) {
+		err := svc.UpdateMemberRole(ctx, memberID, hhID, memberID, household.RoleAdmin)
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+
+	t.Run("RemoveMember non-owner requester removing another non-owner", func(t *testing.T) {
+		repo.members[hhID]["member-2"] = household.RoleMember
+		err := svc.RemoveMember(ctx, memberID, hhID, "member-2")
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+
+	t.Run("UpdateHouseholdAddress non-owner requester", func(t *testing.T) {
+		err := svc.UpdateHouseholdAddress(ctx, memberID, hhID, household.UpdateHouseholdAddressRequest{City: "Test"})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+}
