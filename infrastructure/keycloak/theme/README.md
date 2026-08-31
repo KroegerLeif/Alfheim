@@ -51,13 +51,13 @@ Build the Keycloakify theme resources and compile the JAR package:
 pnpm build
 ```
 
-This generates the JAR package at `dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar`.
+This generates the JAR package at `dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar` and copies it to `infrastructure/keycloak/providers/alfheim-theme.jar`.
 
 ---
 
 ## 🐳 Docker Integration & Mailpit Local Testing
 
-Keycloak is configured in `infrastructure/compose.yml` to automatically mount the compiled theme JAR into Keycloak's `/opt/keycloak/providers/` directory.
+Keycloak is configured in `infrastructure/compose.yml` to automatically mount the `./keycloak/providers` directory into Keycloak's `/opt/keycloak/providers/` directory.
 
 ### Local SMTP & Mailpit
 A `mailpit` container service is included in `infrastructure/compose.yml` to capture emails during local development:

@@ -59,7 +59,7 @@ services:
       start_period: 45s
     volumes:
       - ./keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
-      - ./keycloak/theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar:/opt/keycloak/providers/alfheim-theme.jar:ro
+      - ./keycloak/providers:/opt/keycloak/providers:ro
     depends_on:
       postgres-iam:
         condition: service_healthy

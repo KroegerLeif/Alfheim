@@ -9,6 +9,9 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(keycloak): move userProfileEnabled to realm attributes in alfheim-realm.json`**
+  - Moved invalid top-level `"userProfileEnabled": true` property from `RealmRepresentation` root to `"attributes": { "userProfileEnabled": "true", ... }` in `infrastructure/keycloak/alfheim-realm.json`.
+  - Resolved Jackson deserialization error (`Unrecognized field "userProfileEnabled"`) and crash loop during Keycloak Quarkus container startup and realm import.
 * **`feat(mascot): refactor alfi mascot assets, extensible renderer, persona prompt and mcp diagnostic`**
   - Cleaned up SVG asset typo `alfi-listenig.svg` -> `alfi-listening.svg` and centralized application icons in `packages/shared/src/assets/apps/`.
   - Implemented extensible `AlfiMascot`, `AlfiAvatar`, and `useAlfiChatLifecycle` hook in `@alfheim/shared` supporting 8 canonical mascot states with smooth transitions and layout shift prevention.
