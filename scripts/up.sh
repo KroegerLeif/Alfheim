@@ -7,7 +7,7 @@
 #
 # Pipeline stages:
 #   0. Pre-flight    — validate Docker network prerequisites
-#   1. IAM Core      — postgres-iam  →  keycloak  →  traefik
+#   1. IAM Core      — postgres-iam  →  keycloak  →  rustfs  →  caddy
 #   2. Dashboard     — dashboard-db  →  dashboard-backend  →  dashboard-frontend
 #                      [live at http://alfheim/ after this stage]
 #   3. Shopping      — shopping-db  →  shopping-backend  →  shopping-frontend
@@ -88,7 +88,7 @@ COMPOSE_FILE="${REPO_ROOT}/compose.yaml"
 cd "${REPO_ROOT}"
 
 # ---------------------------------------------------------------------------
-# Spinner — overwrites the current line until the caller calls spin_stop
+# Spinner & Cleanup Trap
 # ---------------------------------------------------------------------------
 _SPINNER_PID=""
 
@@ -104,17 +104,26 @@ spin_start() {
     done
   ) &
   _SPINNER_PID=$!
-  disown "${_SPINNER_PID}" 2>/dev/null || true
+  disown "${_SPINNER_PID}" 2>/devnull || true
 }
 
 spin_stop() {
   if [[ -n "${_SPINNER_PID}" ]]; then
-    kill "${_SPINNER_PID}" 2>/dev/null || true
-    wait "${_SPINNER_PID}" 2>/dev/null || true
+    kill "${_SPINNER_PID}" 2>/devnull || true
+    wait "${_SPINNER_PID}" 2>/devnull || true
     _SPINNER_PID=""
     printf "\r\033[K"  # clear spinner line
   fi
 }
+
+cleanup() {
+  local exit_code=$?
+  spin_stop
+  if [[ ${exit_code} -ne 0 ]]; then
+    echo -e "\n${RED}✖  Boot process encountered an error and aborted (exit code: ${exit_code}).${RESET}" >&2
+  fi
+}
+trap cleanup ERR EXIT INT TERM
 
 # ---------------------------------------------------------------------------
 # wait_healthy — blocks until a container reports "healthy" via docker inspect
@@ -134,7 +143,7 @@ wait_healthy() {
   spin_start "Waiting for ${label} …"
 
   while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null || echo "missing")
+    status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/devnull || echo "missing")
 
     case "${status}" in
       healthy)
@@ -162,7 +171,7 @@ wait_healthy() {
 
 # ---------------------------------------------------------------------------
 # wait_running — blocks until a container's state is "running"
-# Used for services without a HEALTHCHECK (e.g. traefik, vector)
+# Used for services without a HEALTHCHECK
 #
 # Arguments:
 #   $1 — container name
@@ -179,7 +188,7 @@ wait_running() {
   spin_start "Waiting for ${label} to start …"
 
   while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/devnull || echo "missing")
 
     case "${state}" in
       running)
@@ -222,11 +231,11 @@ wait_one_shot() {
   spin_start "Waiting for ${label} to complete …"
 
   while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/devnull || echo "missing")
 
     if [[ "${state}" == "exited" ]]; then
       spin_stop
-      exit_code=$(docker inspect --format='{{.State.ExitCode}}' "${container}" 2>/dev/null || echo "1")
+      exit_code=$(docker inspect --format='{{.State.ExitCode}}' "${container}" 2>/devnull || echo "1")
       if [[ "${exit_code}" == "0" ]]; then
         ok "${label} completed successfully"
         return 0
@@ -241,124 +250,6 @@ wait_one_shot() {
 
   spin_stop
   fail "Timed out after ${timeout}s waiting for ${label} to complete."
-}
-
-# ---------------------------------------------------------------------------
-# wait_healthy_soft — soft version of wait_healthy that logs warnings instead of exiting
-# ---------------------------------------------------------------------------
-wait_healthy_soft() {
-  local container="$1"
-  local label="$2"
-  local timeout="${3:-120}"
-  local elapsed=0
-  local status=""
-
-  spin_start "Waiting for ${label} …"
-
-  while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null || echo "missing")
-
-    case "${status}" in
-      healthy)
-        spin_stop
-        ok "${label} is healthy"
-        return 0
-        ;;
-      unhealthy)
-        spin_stop
-        warn "${label} reported UNHEALTHY"
-        return 1
-        ;;
-      missing)
-        spin_stop
-        warn "Container '${container}' not found."
-        return 1
-        ;;
-    esac
-
-    sleep 3
-    elapsed=$(( elapsed + 3 ))
-  done
-
-  spin_stop
-  warn "Timed out after ${timeout}s waiting for ${label} to become healthy."
-  return 1
-}
-
-# ---------------------------------------------------------------------------
-# wait_running_soft — soft version of wait_running
-# ---------------------------------------------------------------------------
-wait_running_soft() {
-  local container="$1"
-  local label="$2"
-  local timeout="${3:-60}"
-  local elapsed=0
-  local state=""
-
-  spin_start "Waiting for ${label} to start …"
-
-  while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
-
-    case "${state}" in
-      running)
-        spin_stop
-        ok "${label} is running"
-        return 0
-        ;;
-      exited|dead)
-        spin_stop
-        warn "${label} exited unexpectedly"
-        return 1
-        ;;
-      missing)
-        # Container may not be created yet; keep waiting
-        ;;
-    esac
-
-    sleep 2
-    elapsed=$(( elapsed + 2 ))
-  done
-
-  spin_stop
-  warn "Timed out after ${timeout}s waiting for ${label} to start."
-  return 1
-}
-
-# ---------------------------------------------------------------------------
-# wait_one_shot_soft — soft version of wait_one_shot
-# ---------------------------------------------------------------------------
-wait_one_shot_soft() {
-  local container="$1"
-  local label="$2"
-  local timeout="${3:-120}"
-  local elapsed=0
-  local state="" exit_code=""
-
-  spin_start "Waiting for ${label} to complete …"
-
-  while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
-
-    if [[ "${state}" == "exited" ]]; then
-      spin_stop
-      exit_code=$(docker inspect --format='{{.State.ExitCode}}' "${container}" 2>/dev/null || echo "1")
-      if [[ "${exit_code}" == "0" ]]; then
-        ok "${label} completed successfully"
-        return 0
-      else
-        warn "${label} exited with code ${exit_code}"
-        return 1
-      fi
-    fi
-
-    sleep 3
-    elapsed=$(( elapsed + 3 ))
-  done
-
-  spin_stop
-  warn "Timed out after ${timeout}s waiting for ${label} to complete."
-  return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -427,17 +318,31 @@ wait_healthy "alfheim_keycloak" "keycloak" 180
 
 info "Synchronizing Keycloak clients (ensuring alfheim-grafana client exists) …"
 local_kc_attempts=0
-while [[ ${local_kc_attempts} -lt 5 ]]; do
+max_kc_attempts=15
+authenticated=false
+
+spin_start "Authenticating with Keycloak CLI …"
+while [[ ${local_kc_attempts} -lt ${max_kc_attempts} ]]; do
   if docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
     --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1; then
+    authenticated=true
+    spin_stop
     break
   fi
   local_kc_attempts=$((local_kc_attempts + 1))
   sleep 3
 done
 
-if ! docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfheim -q clientId=alfheim-grafana --fields id 2>/dev/null | grep -q 'id'; then
-  docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh create clients -r alfheim \
+if [[ "${authenticated}" != "true" ]]; then
+  spin_stop
+  fail "Failed to authenticate with Keycloak CLI (kcadm.sh) after ${max_kc_attempts} attempts."
+fi
+
+client_id=$(docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfheim -q clientId=alfheim-grafana --fields id 2>/dev/null | grep -o '"id" : "[^"]*"' | cut -d'"' -f4 || true)
+
+if [[ -z "${client_id}" ]]; then
+  info "Registering alfheim-grafana client in Keycloak …"
+  if docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh create clients -r alfheim \
     -s clientId=alfheim-grafana \
     -s name="Grafana Observability" \
     -s rootUrl="http://alfheim.loegien.localhost/grafana" \
@@ -449,8 +354,11 @@ if ! docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfh
     -s directAccessGrantsEnabled=true \
     -s 'redirectUris=["http://alfheim.loegien.localhost/grafana/login/generic_oauth","http://api.alfheim.loegien.localhost/grafana/login/generic_oauth","http://localhost:3000/grafana/login/generic_oauth","http://alfheim.loegien.de/grafana/login/generic_oauth","http://api.alfheim.loegien.de/grafana/login/generic_oauth","http://localhost:3000/*"]' \
     -s 'webOrigins=["*"]' \
-    -s 'attributes."post.logout.redirect.uris"="+"' >/dev/null 2>&1 || true
-  ok "Keycloak alfheim-grafana client registered"
+    -s 'attributes."post.logout.redirect.uris"="+"' >/dev/null; then
+    ok "Keycloak alfheim-grafana client registered successfully"
+  else
+    fail "Failed to register Keycloak alfheim-grafana client."
+  fi
 else
   ok "Keycloak alfheim-grafana client verified"
 fi
@@ -461,7 +369,7 @@ wait_healthy "alfheim_rustfs" "rustfs" 60
 
 info "Starting caddy reverse proxy gateway …"
 dc up ${BUILD_FLAG} -d caddy
-wait_running "alfheim_caddy" "caddy" 30
+wait_healthy "alfheim_caddy" "caddy" 60
 
 notice "🟢 IAM Core, RustFS Storage & Caddy Ingress Gateway Ready"
 
@@ -561,7 +469,6 @@ wait_healthy "chores-frontend" "chores-frontend" 240
 notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
 
 # =============================================================================
-# =============================================================================
 # STAGE 7 — Budget App Slice  (budget-db → budget-backend → budget-frontend)
 # =============================================================================
 step "STAGE 7 · Budget App Slice  (database · backend · frontend)"
@@ -608,21 +515,15 @@ else
   step "STAGE 9 · Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)"
 
   info "Starting VictoriaMetrics & VictoriaLogs …"
-  if dc up ${BUILD_FLAG} -d victoriametrics victorialogs; then
-    wait_healthy_soft "victoriametrics" "VictoriaMetrics" 60
-    wait_running_soft "victorialogs"     "VictoriaLogs"    60
-  else
-    warn "Failed to launch VictoriaMetrics or VictoriaLogs containers"
-  fi
+  dc up ${BUILD_FLAG} -d victoriametrics victorialogs
+  wait_healthy "victoriametrics" "VictoriaMetrics" 60
+  wait_healthy "victorialogs"     "VictoriaLogs"    60
 
   info "Starting OTel Collector, Vector log shipper, and Grafana …"
-  if dc up ${BUILD_FLAG} -d otel-collector vector grafana; then
-    wait_running_soft "otel-collector"  "OTel Collector" 30 || true
-    wait_running_soft "vector-shipper"   "Vector"         30 || true
-    wait_running_soft "alfheim_grafana"  "Grafana"        30 || true
-  else
-    warn "Failed to launch OTel Collector, Vector, or Grafana containers"
-  fi
+  dc up ${BUILD_FLAG} -d otel-collector vector grafana
+  wait_healthy "otel-collector"  "OTel Collector" 60
+  wait_healthy "vector-shipper"   "Vector"         60
+  wait_healthy "alfheim_grafana"  "Grafana"        60
 
   notice "🟢 Observability Stack (VictoriaStack Live)"
 fi

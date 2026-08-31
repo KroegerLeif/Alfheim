@@ -34,7 +34,7 @@ services:
       start_period: 10s
 
   victorialogs:
-    image: victoriametrics/victoria-logs:latest
+    image: victoriametrics/victoria-logs:v1.36.0
     container_name: victorialogs
     restart: unless-stopped
     logging:
@@ -57,6 +57,12 @@ services:
           memory: 256M
     networks:
       - observability-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.119.0
@@ -77,11 +83,17 @@ services:
           memory: 192M
     networks:
       - observability-internal
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       victoriametrics:
         condition: service_healthy
       victorialogs:
-        condition: service_started
+        condition: service_healthy
 
   vector:
     image: timberio/vector:0.39.0-alpine
@@ -102,9 +114,15 @@ services:
           memory: 128M
     networks:
       - observability-internal
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/bin/wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       otel-collector:
-        condition: service_started
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:latest
@@ -145,11 +163,17 @@ services:
     networks:
       - observability-internal
       - gateway-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       victoriametrics:
         condition: service_healthy
       victorialogs:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   victoriametrics_data:

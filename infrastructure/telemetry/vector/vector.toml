@@ -1,6 +1,10 @@
 # infrastructure/telemetry/vector/vector.toml
 # Log collector and parser for Alfheim Docker containers
 
+[api]
+enabled = true
+address = "127.0.0.1:8686"
+
 [sources.docker_socket]
 type = "docker_logs"
 exclude_containers = ["vector-shipper"]
