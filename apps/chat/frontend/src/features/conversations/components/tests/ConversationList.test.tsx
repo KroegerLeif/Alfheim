@@ -55,7 +55,7 @@ describe("ConversationList", () => {
     expect(onSelect).toHaveBeenCalledWith("c1");
   });
 
-  it("creates a conversation with the selected model block", () => {
+  it("creates a conversation with the selected model block and handles model selection", () => {
     ;(useConversations as Mock).mockReturnValue({ data: [], isLoading: false });
     ;(useModelBlocks as Mock).mockReturnValue({
       data: [{ id: "mb-1", display_name: "Local Llama" }],
