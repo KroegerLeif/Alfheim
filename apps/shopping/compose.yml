@@ -28,7 +28,7 @@ services:
       - path: .env
         required: false
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-postgres}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@shopping-db:5432/${SHOPPING_POSTGRES_DB:-shopping}}
+      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-postgres}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@shopping-db:5432/${SHOPPING_POSTGRES_DB:-shopping}}
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}

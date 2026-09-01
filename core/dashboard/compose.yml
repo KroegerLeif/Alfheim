@@ -26,7 +26,7 @@ services:
     restart: always
     environment:
       - PORT=8080
-      - DATABASE_URL=${DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-postgres}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@dashboard-db:5432/${DASHBOARD_POSTGRES_DB:-dashboard_db}?sslmode=disable}
+      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-postgres}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@dashboard-db:5432/${DASHBOARD_POSTGRES_DB:-dashboard_db}?sslmode=disable}
       - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
     healthcheck:

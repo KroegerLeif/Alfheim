@@ -21,10 +21,9 @@ inputs = ["docker_socket"]
 source = '''
 # 1. Parse JSON logs from applications if possible
 # (Pantry, Shopping, Chores, Maintenance, Dashboard log in structured JSON)
-msg_str = string!(.message)
-if parsed, err = parse_json(msg_str); err == null {
-  # Merge parsed attributes into root structure
-  . = merge(., parsed)
+parsed, err = parse_json(string!(.message))
+if err == null {
+  ., err = merge(., parsed)
   .parsed_as_json = true
 } else {
   .parsed_as_json = false
@@ -89,15 +88,10 @@ del(.image)
 '''
 
 [sinks.otel_collector_logs]
-type = "opentelemetry"
-inputs = ["process_and_parse_logs"]
-
-[sinks.otel_collector_logs.protocol]
 type = "http"
+inputs = ["process_and_parse_logs"]
 uri = "http://otel-collector:4318/v1/logs"
-
-[sinks.otel_collector_logs.encoding]
-codec = "otlp"
+encoding.codec = "json"
 
 [sinks.otel_collector_logs.batch]
 max_events = 500

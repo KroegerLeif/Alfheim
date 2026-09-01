@@ -25,7 +25,7 @@ services:
     container_name: chores-backend
     restart: always
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-postgres}:${CHORES_POSTGRES_PASSWORD:-postgres}@chores-db:5432/${CHORES_POSTGRES_DB:-chores}}
+      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-postgres}:${CHORES_POSTGRES_PASSWORD:-postgres}@chores-db:5432/${CHORES_POSTGRES_DB:-chores}}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true

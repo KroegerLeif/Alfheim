@@ -25,7 +25,7 @@ services:
     container_name: maintenance-backend
     restart: always
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-postgres}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@maintenance-db:5432/${MAINTENANCE_POSTGRES_DB:-maintenance}}
+      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-postgres}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@maintenance-db:5432/${MAINTENANCE_POSTGRES_DB:-maintenance}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
