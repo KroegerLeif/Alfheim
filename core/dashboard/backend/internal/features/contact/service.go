@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/google/uuid"
 	"alfheim/dashboard/internal/features/household"
+	"github.com/google/uuid"
 )
 
 // Service coordinates business actions on contacts and contact categories.

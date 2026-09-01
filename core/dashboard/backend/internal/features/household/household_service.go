@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"alfheim/dashboard/internal/shared/middleware"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
-	"alfheim/dashboard/internal/shared/middleware"
 )
 
 func formatSlug(s string) string {

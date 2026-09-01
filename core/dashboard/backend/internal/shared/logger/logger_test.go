@@ -56,8 +56,8 @@ func TestTraceHandler_AppendsTraceAndSpanID(t *testing.T) {
 	}
 
 	sc := trace.NewSpanContext(trace.SpanContextConfig{
-		TraceID: traceID,
-		SpanID:  spanID,
+		TraceID:    traceID,
+		SpanID:     spanID,
 		TraceFlags: trace.FlagsSampled,
 	})
 

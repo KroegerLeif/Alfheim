@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
 	"alfheim/dashboard/internal/shared/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
 type mockService struct {

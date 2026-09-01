@@ -156,7 +156,6 @@ func main() {
 	mcpServersHandler.RegisterRoutes(r, authMw)
 	attachmentsHandler.RegisterRoutes(r, authMw)
 
-
 	// HTTP Server & Graceful Shutdown.
 	// WriteTimeout is generous because the SSE streaming endpoint holds the response
 	// open for as long as the model takes to finish generating; ReadTimeout stays

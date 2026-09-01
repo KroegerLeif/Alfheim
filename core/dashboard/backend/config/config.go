@@ -10,10 +10,10 @@ import (
 
 // Config encapsulates all backend service configurations.
 type Config struct {
-	Environment string
-	Port        string
-	Database    DatabaseConfig
-	Keycloak    KeycloakConfig
+	Environment   string
+	Port          string
+	Database      DatabaseConfig
+	Keycloak      KeycloakConfig
 	StackAppsPath string
 }
 
@@ -56,8 +56,8 @@ func Load() (*Config, error) {
 	stackAppsPath := getEnv("STACK_APPS_PATH", "deploy/stack-apps.yaml")
 
 	cfg := &Config{
-		Environment: env,
-		Port:        port,
+		Environment:   env,
+		Port:          port,
 		StackAppsPath: stackAppsPath,
 		Database: DatabaseConfig{
 			URL:             dbURL,

@@ -98,7 +98,6 @@ func (m *mockRepository) DeleteContact(ctx context.Context, id string) error {
 	return contact.ErrContactNotFound
 }
 
-
 type mockHouseholdRepo struct {
 	members map[string]map[string]household.HouseholdRole
 }
@@ -110,17 +109,35 @@ func newMockHouseholdRepo() *mockHouseholdRepo {
 }
 
 // Dummy implementations for household.Repository interface
-func (m *mockHouseholdRepo) CreateHouseholdTx(ctx context.Context, h *household.Household, ownerEmail, ownerUsername string) error { return nil }
-func (m *mockHouseholdRepo) GetHouseholdByID(ctx context.Context, id string) (*household.Household, error) { return nil, nil }
-func (m *mockHouseholdRepo) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*household.Household, error) { return nil, nil }
+func (m *mockHouseholdRepo) CreateHouseholdTx(ctx context.Context, h *household.Household, ownerEmail, ownerUsername string) error {
+	return nil
+}
+func (m *mockHouseholdRepo) GetHouseholdByID(ctx context.Context, id string) (*household.Household, error) {
+	return nil, nil
+}
+func (m *mockHouseholdRepo) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*household.Household, error) {
+	return nil, nil
+}
 func (m *mockHouseholdRepo) AddMember(ctx context.Context, mem *household.Member) error { return nil }
-func (m *mockHouseholdRepo) RemoveMember(ctx context.Context, householdID string, userID string) error { return nil }
-func (m *mockHouseholdRepo) UpdateMemberRole(ctx context.Context, householdID string, userID string, role household.HouseholdRole) error { return nil }
-func (m *mockHouseholdRepo) GetMembers(ctx context.Context, householdID string) ([]*household.Member, error) { return nil, nil }
-func (m *mockHouseholdRepo) CreateInvite(ctx context.Context, invite *household.Invite) error { return nil }
-func (m *mockHouseholdRepo) GetInviteByToken(ctx context.Context, token string) (*household.Invite, error) { return nil, nil }
+func (m *mockHouseholdRepo) RemoveMember(ctx context.Context, householdID string, userID string) error {
+	return nil
+}
+func (m *mockHouseholdRepo) UpdateMemberRole(ctx context.Context, householdID string, userID string, role household.HouseholdRole) error {
+	return nil
+}
+func (m *mockHouseholdRepo) GetMembers(ctx context.Context, householdID string) ([]*household.Member, error) {
+	return nil, nil
+}
+func (m *mockHouseholdRepo) CreateInvite(ctx context.Context, invite *household.Invite) error {
+	return nil
+}
+func (m *mockHouseholdRepo) GetInviteByToken(ctx context.Context, token string) (*household.Invite, error) {
+	return nil, nil
+}
 func (m *mockHouseholdRepo) IncrementInviteUses(ctx context.Context, token string) error { return nil }
-func (m *mockHouseholdRepo) UpdateHouseholdAddress(ctx context.Context, id string, street, zip, city, country string, latitude, longitude *float64) error { return nil }
+func (m *mockHouseholdRepo) UpdateHouseholdAddress(ctx context.Context, id string, street, zip, city, country string, latitude, longitude *float64) error {
+	return nil
+}
 
 func (m *mockHouseholdRepo) GetMemberRole(ctx context.Context, householdID string, userID string) (household.HouseholdRole, error) {
 	if roles, ok := m.members[householdID]; ok {
@@ -198,7 +215,7 @@ func TestContactService_ContactOperations(t *testing.T) {
 	repo := newMockRepository()
 	hhRepo := newMockHouseholdRepo()
 	hhRepo.members["hh-1"] = map[string]household.HouseholdRole{
-		"user-1": household.RoleAdmin,
+		"user-1":     household.RoleAdmin,
 		"user-guest": household.RoleGuest, // Guests cannot modify contacts
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
