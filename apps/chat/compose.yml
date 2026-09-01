@@ -31,7 +31,7 @@ services:
         required: false
     environment:
       - PORT=8080
-      - DATABASE_URL=${DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
+      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
       - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}

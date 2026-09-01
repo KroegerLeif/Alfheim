@@ -27,7 +27,7 @@ services:
     container_name: workout-backend
     restart: always
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-postgres}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@workout-db:5432/${WORKOUT_POSTGRES_DB:-workout}}
+      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-postgres}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@workout-db:5432/${WORKOUT_POSTGRES_DB:-workout}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}

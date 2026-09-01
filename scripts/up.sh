@@ -104,13 +104,13 @@ spin_start() {
     done
   ) &
   _SPINNER_PID=$!
-  disown "${_SPINNER_PID}" 2>/devnull || true
+  disown "${_SPINNER_PID}" 2>/dev/null || true
 }
 
 spin_stop() {
   if [[ -n "${_SPINNER_PID}" ]]; then
-    kill "${_SPINNER_PID}" 2>/devnull || true
-    wait "${_SPINNER_PID}" 2>/devnull || true
+    kill "${_SPINNER_PID}" 2>/dev/null || true
+    wait "${_SPINNER_PID}" 2>/dev/null || true
     _SPINNER_PID=""
     printf "\r\033[K"  # clear spinner line
   fi
@@ -143,7 +143,7 @@ wait_healthy() {
   spin_start "Waiting for ${label} …"
 
   while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/devnull || echo "missing")
+    status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null || echo "missing")
 
     case "${status}" in
       healthy)
@@ -188,7 +188,7 @@ wait_running() {
   spin_start "Waiting for ${label} to start …"
 
   while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/devnull || echo "missing")
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
 
     case "${state}" in
       running)
@@ -231,11 +231,11 @@ wait_one_shot() {
   spin_start "Waiting for ${label} to complete …"
 
   while [[ "${elapsed}" -lt "${timeout}" ]]; do
-    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/devnull || echo "missing")
+    state=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
 
     if [[ "${state}" == "exited" ]]; then
       spin_stop
-      exit_code=$(docker inspect --format='{{.State.ExitCode}}' "${container}" 2>/devnull || echo "1")
+      exit_code=$(docker inspect --format='{{.State.ExitCode}}' "${container}" 2>/dev/null || echo "1")
       if [[ "${exit_code}" == "0" ]]; then
         ok "${label} completed successfully"
         return 0
@@ -521,9 +521,9 @@ else
 
   info "Starting OTel Collector, Vector log shipper, and Grafana …"
   dc up ${BUILD_FLAG} -d otel-collector vector grafana
-  wait_healthy "otel-collector"  "OTel Collector" 60
+  wait_running "otel-collector"  "OTel Collector" 60
   wait_healthy "vector-shipper"   "Vector"         60
-  wait_healthy "alfheim_grafana"  "Grafana"        60
+  wait_healthy "alfheim_grafana"  "Grafana"        120
 
   notice "🟢 Observability Stack (VictoriaStack Live)"
 fi

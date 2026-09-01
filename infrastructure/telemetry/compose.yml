@@ -83,12 +83,6 @@ services:
           memory: 192M
     networks:
       - observability-internal
-    healthcheck:
-      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     depends_on:
       victoriametrics:
         condition: service_healthy
@@ -104,25 +98,26 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
+    command: ["--config", "/etc/vector/vector.toml"]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./vector/vector.toml:/etc/vector/vector.toml:ro
     deploy:
       resources:
         limits:
-          cpus: "0.20"
-          memory: 128M
+          cpus: "0.50"
+          memory: 256M
     networks:
       - observability-internal
     healthcheck:
-      test: ["CMD-SHELL", "/usr/bin/wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
     depends_on:
       otel-collector:
-        condition: service_healthy
+        condition: service_started
 
   grafana:
     image: grafana/grafana:latest
@@ -138,7 +133,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
+      - GF_PLUGINS_PREINSTALL=victoriametrics-logs-datasource
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
       - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
       - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
@@ -158,17 +153,17 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.40"
-          memory: 256M
+          cpus: "1.00"
+          memory: 512M
     networks:
       - observability-internal
       - gateway-net
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
-      interval: 5s
-      timeout: 5s
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/grafana/api/health || exit 1"]
+      interval: 10s
+      timeout: 10s
       retries: 5
-      start_period: 15s
+      start_period: 120s
     depends_on:
       victoriametrics:
         condition: service_healthy
