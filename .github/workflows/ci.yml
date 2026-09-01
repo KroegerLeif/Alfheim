@@ -1,0 +1,208 @@
+name: Alfheim Unified CI Quality Gates & Smoke Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Path Filtering
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      go: ${{ steps.filter.outputs.go }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      shared: ${{ steps.filter.outputs.shared }}
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Changed Paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            python:
+              - 'apps/*/backend/**'
+              - 'packages/backend-shared/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'ruff.toml'
+            go:
+              - 'apps/chat/backend/**'
+              - 'core/dashboard/backend/**'
+            frontend:
+              - 'apps/*/frontend/**'
+              - 'core/*/frontend/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            shared:
+              - 'packages/**'
+              - '.github/workflows/ci.yml'
+              - '.pre-commit-config.yaml'
+            docker:
+              - 'compose.yaml'
+              - 'deploy/**'
+              - 'infrastructure/**'
+              - 'scripts/**'
+
+  python-ci:
+    name: Python Quality Gate & Pytest Matrix
+    needs: changes
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.base_ref == 'main' || needs.changes.outputs.python == 'true' || needs.changes.outputs.shared == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - apps/pantry/backend
+          - apps/shopping/backend
+          - apps/maintenance/backend
+          - apps/chores/backend
+          - apps/workout/backend
+          - apps/budget/backend
+          - apps/library/backend
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync Root Workspace
+        run: uv sync --all-packages --all-groups
+
+      - name: Run Ruff Linter
+        run: uv run ruff check .
+
+      - name: Run Ruff Formatter Check
+        run: uv run ruff format --check .
+
+      - name: Run ty Type Checker
+        run: uv run ty check
+
+      - name: Run Pytest with 95% Coverage Gate (${{ matrix.service }})
+        working-directory: ${{ matrix.service }}
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=95
+
+  go-ci:
+    name: Go Quality Gate & Test Matrix
+    needs: changes
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.base_ref == 'main' || needs.changes.outputs.go == 'true' || needs.changes.outputs.shared == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - apps/chat/backend
+          - core/dashboard/backend
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: '${{ matrix.service }}/go.mod'
+          cache-dependency-path: '${{ matrix.service }}/go.sum'
+
+      - name: Verify Go Formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "The following Go files are not formatted:"
+            gofmt -l .
+            exit 1
+          fi
+
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Run Go Tests with Race Detector & Coverage Gate (≥95%)
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+          COVERAGE=$(go tool cover -func=coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
+          echo "Total Go test coverage: ${COVERAGE}%"
+          awk -v cov="$COVERAGE" 'BEGIN { if (cov < 95.0) { print "Go test coverage " cov "% is below required 95% gate!"; exit 1 } }'
+
+  frontend-ci:
+    name: Frontend Quality Gate & Vitest Suite
+    needs: changes
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.base_ref == 'main' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.shared == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript Type Check
+        run: pnpm check-types
+
+      - name: Run Vitest Suite with 90% Coverage Gate
+        run: pnpm -r test -- --coverage
+
+  container-smoke-test:
+    name: Headless Container Smoke Test
+    needs: [changes, python-ci, go-ci, frontend-ci]
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Environment Files
+        run: |
+          cp .env.example .env
+
+      - name: Build and Spin Up Minimal Compose Stack
+        run: |
+          docker compose up -d --build
+          echo "Waiting for services to spin up..."
+          sleep 15
+
+      - name: Verify Gateway & Key Endpoints Response
+        run: |
+          echo "Testing Caddy Gateway HTTP Health Check..."
+          curl --fail --show-error --location --retry 5 --retry-connrefused http://localhost/
+
+      - name: Clean Up Docker Resources
+        if: always()
+        run: |
+          docker compose down -v

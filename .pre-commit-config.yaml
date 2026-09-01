@@ -1,3 +1,5 @@
+default_stages: [pre-commit]
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -12,9 +14,70 @@ repos:
       - id: detect-private-key
       - id: check-case-conflict
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+  - repo: local
     hooks:
-      - id: ruff
-        args: [--fix]
+      - id: git-diff-check
+        name: git diff --check
+        entry: git diff --check
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: ruff-check
+        name: ruff check (python)
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+
       - id: ruff-format
+        name: ruff format (python)
+        entry: uv run ruff format
+        language: system
+        types: [python]
+
+      - id: ty-check
+        name: ty type check (python)
+        entry: uv run ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: gofmt
+        name: gofmt (go)
+        entry: gofmt -w
+        language: system
+        types: [go]
+
+      - id: go-vet-chat
+        name: go vet (apps/chat/backend)
+        entry: bash -c 'cd apps/chat/backend && go vet ./...'
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-vet-dashboard
+        name: go vet (core/dashboard/backend)
+        entry: bash -c 'cd core/dashboard/backend && go vet ./...'
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: prettier
+        name: prettier (frontend)
+        entry: pnpm exec prettier --write
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json, css, scss, markdown, yaml]
+        files: ^(apps/|core/|packages/|websites/|deploy/)
+
+      - id: eslint
+        name: eslint (frontend)
+        entry: pnpm exec eslint --fix
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        files: ^(apps/|core/|packages/|websites/)
+
+      - id: commit-msg-hook
+        name: commit-msg conventional commits & AI trailer check
+        entry: scripts/hooks/commit-msg
+        language: script
+        stages: [commit-msg]

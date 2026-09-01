@@ -1,0 +1,43 @@
+#!/bin/sh
+# POSIX-compliant commit-msg hook for Alfheim repository
+
+COMMIT_MSG_FILE="$1"
+
+if [ -z "$COMMIT_MSG_FILE" ] || [ ! -f "$COMMIT_MSG_FILE" ]; then
+    echo "ERROR: Commit message file not found or not specified." >&2
+    exit 1
+fi
+
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+FIRST_LINE=$(head -n 1 "$COMMIT_MSG_FILE")
+
+# 1. Enforce Conventional Commits format on the first line (summary)
+CONVENTIONAL_PATTERN="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_\/\.-]+\))?!?: .+$"
+
+if ! echo "$FIRST_LINE" | grep -Eq "$CONVENTIONAL_PATTERN"; then
+    echo "=========================================================================" >&2
+    echo "ERROR: Invalid commit message format." >&2
+    echo "Commit summary must follow Conventional Commits specification:" >&2
+    echo "  <type>[optional scope]: <description>" >&2
+    echo "" >&2
+    echo "Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert" >&2
+    echo "Example: feat(auth): implement OIDC token validation" >&2
+    echo "Received: '$FIRST_LINE'" >&2
+    echo "=========================================================================" >&2
+    exit 1
+fi
+
+# 2. Reject AI-generated co-author signatures, trailers, and session tags
+# Forbidden patterns include AI co-authors, bot emojis, session tags, generator signatures.
+if echo "$COMMIT_MSG" | grep -Eqi "(Co-authored-by:.*(Claude|ChatGPT|Copilot|Cursor|GPT|Assistant|Anthropic|OpenAI|Bot|AI))|(Claude-Session:)|(Generated-by:)|(AI-generated)|🤖"; then
+    echo "=========================================================================" >&2
+    echo "ERROR: Forbidden AI co-author tag or signature detected." >&2
+    echo "Alfheim commit policy strictly prohibits AI co-author signatures, trailers," >&2
+    echo "and AI session metadata in git commit messages." >&2
+    echo "" >&2
+    echo "Please remove any AI trailers (e.g. Co-authored-by: Claude..., Claude-Session:, 🤖, etc.)." >&2
+    echo "=========================================================================" >&2
+    exit 1
+fi
+
+exit 0
