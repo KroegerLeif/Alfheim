@@ -8,22 +8,13 @@
 .DS_Store
 Thumbs.db
 
-# Environment & Python Venvs
+# Environment
 **/.env
 **/.venv/
-.venv/
-
-# Caches
-**/.ty_cache/
-.ty_cache/
-**/.pre-commit-cache/
 
 # Build/Cache/Logs
 **/node_modules/
-node_modules/
 **/.next/
-**/dist/
-**/.turbo/
 **/tsconfig.tsbuildinfo
 **/__pycache__/
 **/.ruff_cache/
