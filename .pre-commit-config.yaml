@@ -8,9 +8,9 @@ repos:
         exclude: ^apps/.*/templates/
       - id: check-json
       - id: check-added-large-files
+        args: [--maxkb=1000]
       - id: check-merge-conflict
       - id: detect-private-key
-      - id: check-case-conflict
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.15
@@ -18,3 +18,32 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: python-ty-check
+        name: Python Type Check (ty)
+        entry: uv run ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+        verbose: true
+
+      - id: go-fmt
+        name: Go Format (gofmt)
+        entry: bash -c 'for d in apps/chat/backend core/dashboard/backend; do (cd $d && gofmt -w .); done'
+        language: system
+        files: \.go$
+
+      - id: go-vet
+        name: Go Vet
+        entry: bash -c 'for d in apps/chat/backend core/dashboard/backend; do (cd $d && go vet ./...); done'
+        language: system
+        files: \.go$
+
+      - id: frontend-prettier-lint
+        name: Frontend Formatting & Linting
+        entry: pnpm lint
+        language: system
+        files: \.(ts|tsx|js|jsx|json|css|md)$
+        pass_filenames: false

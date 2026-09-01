@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Read the commit message from file ($1)
+commit_msg_file="$1"
+
+if [[ ! -f "$commit_msg_file" ]]; then
+    echo "Error: Commit message file '$commit_msg_file' not found." >&2
+    exit 1
+fi
+
+commit_msg=$(cat "$commit_msg_file")
+first_line=$(head -n 1 "$commit_msg_file")
+
+# Validation 1: Conventional Commits
+# Regex: ^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .{1,100}$
+conventional_regex="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .{1,100}$"
+
+if [[ ! "$first_line" =~ $conventional_regex ]]; then
+    echo "ERROR: Invalid commit message format." >&2
+    echo "The commit subject must follow Conventional Commits standard:" >&2
+    echo "  <type>[optional scope]: <description>" >&2
+    echo "Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert" >&2
+    echo "Description must be 1-100 characters long." >&2
+    echo "Example: feat(auth): add MFA support" >&2
+    exit 1
+fi
+
+# Validation 2: AI Signature & Trailer Blocker
+# Banned strings: Co-authored-by:, Claude, ChatGPT, Cursor, 🤖, Claude-Session:, Generated-by:, AI-Assisted:, Copilot
+banned_patterns=(
+    "Co-authored-by:"
+    "Claude"
+    "ChatGPT"
+    "Cursor"
+    "🤖"
+    "Claude-Session:"
+    "Generated-by:"
+    "AI-Assisted:"
+    "Copilot"
+)
+
+for pattern in "${banned_patterns[@]}"; do
+    if echo "$commit_msg" | grep -F -q "$pattern"; then
+        echo "ERROR: Banned AI commit trailer or signature detected ('$pattern')." >&2
+        echo "AI commit trailers, co-author signatures, and AI bot emojis are strictly banned per Alfheim repository rules." >&2
+        echo "Please remove any AI attribution or trailers from your commit message." >&2
+        exit 1
+    fi
+done
+
+exit 0
