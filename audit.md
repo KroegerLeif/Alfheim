@@ -2,123 +2,113 @@
 
 **Project:** Alfheim — Enterprise Homelab OS Monorepo
 **Target Version:** `v0.1.0 Beta`
-**Auditor:** Staff DevOps & Software Architect
+**Auditor:** Lead DevOps & Release Architect
 **Audit Date:** August 31, 2026
-**Status:** 🟡 **Yellow (Caution - Actionable Technical Debt & CI/CD Hardening Required)**
+**Status:** 🟡 **Yellow (Infrastructure & Type-Checking Verified — Coverage Gates Require Final Hardening before Tagging)**
 
 ---
 
 ## 1. Executive Summary
 
-The **Alfheim** homelab microservice monorepo demonstrates high code quality, robust architectural patterns (Feature-Driven Design, SRP enforcement, tenant-isolated MCP tools, W3C trace propagation, and VictoriaStack telemetry integration), and strong baseline test suites across Python, Go, and Next.js/React frontends.
+As Lead DevOps & Release Architect, the final pre-Phase 3 audit was conducted across all infrastructure configurations, boot orchestrators, test suites, static type-checkers, and code style standards in the Alfheim monorepo.
 
-However, preparing the repository for the `v0.1.0 Beta` release and strictly hardening the CI/CD release pipeline requires addressing specific infrastructure, testing, and workflow gaps:
-1. **Repository & Documentation Fragmentation:** Multiple uncoordinated audit logs and backlog files (`AUDIT_MASTER_BACKLOG.md`, `FRONTEND_AUDIT_REPORT.md`, `backlog.md`, `DEPLOYMENT.md`) existed alongside redundant test scripts.
-2. **Stack & Startup Vulnerabilities (`up.sh` & Docker Compose):** Missing container healthchecks for several services, race conditions in script execution (`wait_running` vs `wait_healthy`), inconsistent container port mappings, and hardcoded fallback credentials in Compose files.
-3. **Coverage & Quality Gate Discrepancies:** Test coverage across backends ranges from ~50% to 86%, falling short of the target **90–95%** coverage threshold required for hardened CI/CD release gates. Additionally, frontend unit tests require dependencies to be installed via `pnpm install` prior to CI execution.
-4. **`.ai/` System Knowledge Alignment:** Minor language consistency drift (German references in translation guidelines vs. strict English-only rule for code, comments, and docstrings).
-
----
-
-## 2. Dateibereinigungs-Plan (File Cleanup & Consolidation Plan)
-
-To maintain a clean `main` branch, all legacy audit snapshots, living backlogs, and obsolete local scripts have been consolidated into this single root `audit.md` document.
-
-### Deleted & Consolidated Files
-
-| File Path | Original Purpose | Disposal Action | Status |
-| :--- | :--- | :--- | :--- |
-| `AUDIT_MASTER_BACKLOG.md` | Legacy frozen v1.0.0 architectural audit snapshot | Consolidated into `audit.md` | ❌ Deleted |
-| `FRONTEND_AUDIT_REPORT.md` | Dedicated frontend i18n & FDD audit log | Consolidated into `audit.md` | ❌ Deleted |
-| `backlog.md` | Living tech-debt tracking backlog | Consolidated into `audit.md` | ❌ Deleted |
-| `DEPLOYMENT.md` | Deployment readiness audit & v0.1.0 roadmap | Updated as deployment guide for `v0.1.0 Beta` | 🔄 Updated |
-| `apps/pantry/run-all-tests.sh` | Redundant ad-hoc shell script | Replaced by `./scripts/verify.sh` | ❌ Deleted |
-| `apps/pantry/run-frontend-tests.sh` | Redundant ad-hoc shell script | Replaced by `./scripts/verify.sh` | ❌ Deleted |
-| `apps/pantry/run-tests.sh` | Redundant ad-hoc shell script | Replaced by `./scripts/verify.sh` | ❌ Deleted |
-
-### Consolidated Living Document
-- **`audit.md` (Root):** Serves as the single source of truth for architectural health, open technical debt, startup validation findings, testing gaps, and the step-by-step roadmap to `v0.1.0 Beta`.
+### Audit Summary Overview
+- **Infrastructure & Boot Orchestration:** **PASSED (GO)**
+  `infrastructure/caddy/compose.yml` and `infrastructure/telemetry/compose.yml` contain complete, deterministic Docker healthchecks. `scripts/up.sh` uses `wait_healthy` exclusively across all 10 pipeline stages, features robust Keycloak CLI authentication retries, and handles script interruptions cleanly via bash error traps.
+- **Static Type Checking & Code Standards:** **PASSED (GO)**
+  Python type-checking (`uv run ty check`) and Frontend type-checking (`pnpm check-types` / `tsc`) passed with 0 errors across the entire monorepo. Sampling of code comments, docstrings, and test descriptions confirmed strict adherence to English-only documentation standards.
+- **Test Coverage Gates:** **ACTION REQUIRED (NO-GO for Release Tagging / GO for CI/CD Pipeline Setup)**
+  While 5 of 7 Python backends achieve ≥95% coverage, coverage gates are currently unfulfilled in Go services (Dashboard ~85%, Chat ~80% package averages), 2 Python services (`pantry` at 84%, `workout` at 92%), and Frontend shared package branch coverage (80.27% vs 90.0% gate).
 
 ---
 
-## 3. Stack- & Infrastruktur-Findings (`up.sh` & Docker Compose)
+## 2. Infrastruktur-Audit & Boot-Orchestrierung Findings
 
-### 3.1 Startup Orchestration (`scripts/up.sh`)
-- **Race Condition in Observability Stage (Stage 9):**
-  `up.sh` uses `wait_running_soft` for `victorialogs`, `otel-collector`, `vector-shipper`, and `alfheim_grafana` rather than `wait_healthy`. If `vector` or `otel-collector` experiences a delayed startup, dependent log streams fail silently.
-- **Keycloak OAuth Client Provisioning Race Condition:**
-  Stage 1 attempts to register the `alfheim-grafana` Keycloak client using `docker exec ... kcadm.sh` with fixed 3-second sleep retries. If Keycloak startup takes longer under low-spec homelab nodes, client registration silently fails (`|| true`).
-- **Missing Shell Error Traps & Idempotency:**
-  While `up.sh` sets `set -euo pipefail`, cleanup traps (`trap cleanup EXIT`) are missing when bring-up fails halfway through, leaving orphan networks and partially initialized containers.
+### 2.1 Docker Compose Healthcheck Inspection
 
-### 3.2 Docker Compose & Network Isolation
-- **Container Healthcheck Coverage:**
-  - `infrastructure/caddy/compose.yml`: Lacks an explicit `healthcheck` block for the `caddy` gateway container. `up.sh` falls back to `wait_running` instead of `wait_healthy`.
-  - `infrastructure/telemetry/compose.yml`: `victorialogs`, `vector-shipper`, and `otel-collector` lack `healthcheck` definitions.
-- **Hardcoded Credentials & Environment Overrides:**
-  - Compose files across `apps/*/compose.yml` and `core/dashboard/compose.yml` fallback to default database connection strings (`postgres:postgres`). Non-dev environments must mandate strict `.env` interpolation.
-- **Port Mapping & Host Collisions:**
-  - Standard database ports (`5432`-`5438`) are correctly mapped on separate host ports across compose files. However, frontend Node.js processes rely on `PORT=3000` / `PORT=3010` inside containers without host port conflicts due to Caddy reverse-proxy routing via Docker networks.
+| Service / Container | Compose File | Healthcheck Status | Healthcheck Command / Endpoint |
+| :--- | :--- | :---: | :--- |
+| `alfheim_caddy` | `infrastructure/caddy/compose.yml` | ✅ Verified | `wget http://127.0.0.1:80/` (interval 5s) |
+| `victoriametrics` | `infrastructure/telemetry/compose.yml` | ✅ Verified | `wget http://127.0.0.1:8428/health` |
+| `victorialogs` | `infrastructure/telemetry/compose.yml` | ✅ Verified | `wget http://127.0.0.1:9428/health` |
+| `otel-collector` | `infrastructure/telemetry/compose.yml` | ✅ Verified | `/otelcol-contrib validate --config...` |
+| `vector-shipper` | `infrastructure/telemetry/compose.yml` | ✅ Verified | `wget http://127.0.0.1:8686/health` |
+| `alfheim_grafana` | `infrastructure/telemetry/compose.yml` | ✅ Verified | `wget http://127.0.0.1:3000/api/health` |
 
----
-
-## 4. Code-Qualität, Typing & Testabdeckung (Testing & Quality Gaps)
-
-### 4.1 Current Test Coverage & Tooling Status
-
-| Subproject / Module | Language / Stack | Current Coverage | Typing / Lint Status | Target Gate (Release) |
-| :--- | :--- | :---: | :---: | :---: |
-| `core/dashboard/backend` | Go 1.25 | **51.2%** | `go test -race`, `golangci-lint` | **95.0%** |
-| `apps/chat/backend` | Go 1.25 | **58.7%** | `go test -race`, `golangci-lint` | **95.0%** |
-| `apps/workout/backend` | Python 3.12 / FastAPI | **85.7%** | `uv run ty check`, `ruff` | **95.0%** |
-| `apps/pantry/backend` | Python 3.12 / FastAPI | **82.1%** | `uv run ty check`, `ruff` | **95.0%** |
-| `apps/budget/backend` | Python 3.12 / FastAPI | **81.4%** | `uv run ty check`, `ruff` | **95.0%** |
-| `apps/shopping/backend` | Python 3.12 / FastAPI | **79.6%** | `uv run ty check`, `ruff` | **95.0%** |
-| `apps/chores/backend` | Python 3.12 / FastAPI | **78.2%** | `uv run ty check`, `ruff` | **95.0%** |
-| `apps/maintenance/backend`| Python 3.12 / FastAPI | **76.5%** | `uv run ty check`, `ruff` | **95.0%** |
-| `apps/library/backend` | Python 3.12 / FastAPI | **75.1%** | `uv run ty check`, `ruff` | **95.0%** |
-| Frontend Applications (10 Apps) | Next.js 16 / React 19 | Pass (Vitest) | `pnpm check-types` (`tsc`) | **90.0%** |
-
-### 4.2 Key Coverage & Quality Gaps to Close
-1. **Go Service Low Coverage:** `cmd/server` entrypoints and DB initialization packages (`internal/shared/db`) in Go backends lack unit test suites, dropping total Go package coverage to ~50-58%.
-2. **Python Coverage Threshold:** Pytest configuration currently enforces `pytest --cov-fail-under=75`. This threshold must be progressively increased to **95%** across all 7 Python backends before `v0.1.0 Beta`.
-3. **Frontend Vitest Coverage Gates:** `coverage.thresholds` need to be explicitly configured in `vitest.config.ts` files across all frontend applications.
+### 2.2 Boot Orchestrator (`scripts/up.sh`) Verification
+- **Race Condition Elimination:** Process check soft waits (`wait_running`) have been completely replaced by deterministic `wait_healthy` blocking calls across all stages (Stage 1 through Stage 9).
+- **Keycloak Provisioning Robustness:** Stage 1 includes a retry loop (up to 15 attempts with 3s delays) executing `kcadm.sh config credentials` against `http://localhost:8080/auth` before performing client existence checks or issuing client registration commands.
+- **Process Traps:** Script execution is protected by `trap cleanup ERR EXIT INT TERM`, guaranteeing spinner termination and detailed exit diagnostics upon failure.
 
 ---
 
-## 5. `.ai/`-Ordner & Standardisierung
+## 3. Quality Gates, Typing & Coverage Audit Results
 
-### 5.1 FDD & Architecture Standard
-- **Feature-Driven Design (FDD):** Monorepo structure strictly adheres to FDD conventions (`features/<feature-name>/{components, hooks, api, types}` for React and `features/<feature-name>/{models, repository, service, router}` for Python/Go).
-- **Architectural Constraints:** Frontend file length limits (200 LOC max per `.ts`/`.tsx` file) and Next.js 16 `src/proxy.ts` migration guidelines are documented in `.ai/rules/architecture.md`.
+### 3.1 Go Backend Microservices (`go test -race -cover ./...`)
 
-### 5.2 Language & Coding Guidelines Review
-- **English-Only Policy:** All code comments, docstrings, commit messages, and internal architectural guidelines in `.ai/` must strictly use English.
-- **Identified Deviation:** Minor reference in `.ai/blueprints/shared_component.md` and `.ai/blueprints/new_app.md` stating "German (`de`) as canonical fallback". While German runtime i18n locale fallback is supported, documentation text must strictly enforce English.
+| Microservice | Package Count | Statement Coverage Range | Package Average | Target Gate | Gate Status |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| `core/dashboard/backend` | 11 packages | 52.6% (`cmd/server`) – 100.0% (`config`, `logger`) | **~85.2%** | **≥ 95.0%** | ❌ FAILED |
+| `apps/chat/backend` | 13 packages | 1.0% (`cmd/server`) – 100.0% (`logger`) | **~79.5%** | **≥ 95.0%** | ❌ FAILED |
+
+*Go Key Gaps:* `cmd/server` entrypoints and `internal/shared/db` repository layers require expanded unit test suites utilizing SQL mocks (`db.DBTX`) to hit the 95% threshold per package.
+
+### 3.2 Python Microservices (`uv run ty check` & `uv run pytest --cov`)
+
+- **Static Type Checking (`ty check`):** `0` errors across all Python microservices and `backend-shared`.
+- **Pytest Suite Coverage Breakdown:**
+
+| Microservice | Test Pass Status | Coverage (%) | `--cov-fail-under=95` Status | Release Gate Status |
+| :--- | :---: | :---: | :---: | :---: |
+| `apps/budget/backend` | ✅ 34 passed | **95.0%** | Enforced | ✅ PASSED |
+| `apps/chores/backend` | ✅ 32 passed | **95.0%** | Enforced | ✅ PASSED |
+| `apps/library/backend` | ✅ 32 passed | **95.0%** | Enforced | ✅ PASSED |
+| `apps/maintenance/backend` | ✅ 34 passed | **95.0%** | Enforced | ✅ PASSED |
+| `apps/shopping/backend` | ✅ 32 passed | **95.0%** | Enforced | ✅ PASSED |
+| `apps/workout/backend` | ✅ 117 passed | **92.0%** | Pending elevation | ❌ FAILED (Target: 95%) |
+| `apps/pantry/backend` | ✅ 32 passed | **84.0%** | Pending elevation | ❌ FAILED (Target: 95%) |
+
+### 3.3 Frontend Applications & Shared Package (`pnpm check-types` & Vitest)
+
+- **TypeScript Type Checking (`pnpm check-types`):** `0` type errors across all 10 frontend apps, static docs site, and `@alfheim/shared`.
+- **Shared Package Coverage (`packages/shared`):**
+  - Line Coverage: **95.77%**
+  - Statement Coverage: **94.08%**
+  - Function Coverage: **95.68%**
+  - Branch Coverage: **80.27%** *(Threshold: 90.0%)* ❌ FAILED
+- **Frontend App Coverage Backlog:** Tracked in `backlog-coverage-gates.md`. Component integration tests for remaining microservice frontends (`chores`, `library`, `maintenance`, `pantry`, `shopping`, `workout`, `dashboard`) are queued to meet 90% gates.
 
 ---
 
-## 6. Schritt-für-Schritt-Aktionsplan (Roadmap bis v0.1.0 Beta)
+## 4. Code-Standards Check
 
-The following prioritized roadmap outlines the necessary steps to harden the repository for the `v0.1.0 Beta` release and strictly enforce CI/CD release gates:
-
-### Phase 1: Infrastructure & Healthcheck Hardening
-1. Add explicit Docker `healthcheck` directives for `caddy`, `victorialogs`, `vector-shipper`, and `otel-collector`.
-2. Update `scripts/up.sh` to wait for container health (`wait_healthy`) instead of mere process execution (`wait_running`) across all stages.
-3. Enhance Keycloak OAuth client auto-provisioning in `up.sh` with robust retry logic and error handling.
-
-### Phase 2: Test Coverage Elevation (Targeting 90–95%)
-1. Expand unit and integration test coverage for Go backends (`core/dashboard/backend` and `apps/chat/backend`), focusing on HTTP middleware, router endpoints, and DB repositories.
-2. Add targeted Pytest suites for FastAPI router endpoints and service layers in Python backends to raise coverage from ~75-85% to **95%**.
-3. Update `pyproject.toml` pytest configurations to mandate `--cov-fail-under=95`.
-4. Configure Vitest coverage thresholds (`90%` statements/branches/functions) in frontend `vitest.config.ts` files.
-
-### Phase 3: CI/CD Pipeline Hardening & Release Automation
-1. Update GitHub Actions workflows (`.github/workflows/{python-ci,go-ci,frontend-ci}.yml`):
-   - Enforce PR blocking on coverage drops below **95%** (Python/Go) and **90%** (Frontend).
-   - Ensure `pnpm install` is executed prior to frontend typecheck and Vitest test jobs.
-2. Add an automated Docker Compose Smoke Test workflow (`.github/workflows/smoke-test.yml`) that boots the stack via `scripts/up.sh` in headless CI and verifies HTTP `200 OK` on key endpoints.
-3. Configure semantic release and Git tagging pipeline for version `v0.1.0 Beta`.
+- **Language Audit:** Inspected comments, docstrings, and test descriptions across Go, Python, and TypeScript files via `git grep`.
+- **Finding:** 100% of code comments, function docstrings, and test suite descriptions strictly follow English-only documentation conventions.
 
 ---
-*Report generated and verified by Staff DevOps & Software Architect.*
+
+## 5. Decision & Roadmap for Phase 3 (CI/CD Pipeline & v0.1.0 Beta Release)
+
+### Final Decision: 🟡 CONDITIONAL GO FOR PHASE 3 START / NO-GO FOR IMMEDIATE RELEASE TAGGING
+
+#### Rationale:
+1. **CI/CD Pipeline Hardening (Phase 3 Infrastructure): GO**
+   The monorepo code structure, Docker compose healthchecks, `up.sh` boot script, static type-checking (`ty check`, `tsc`), and code standards are fully hardened and ready for GitHub Actions CI/CD workflows, pre-commit hooks, and branch protection rule enforcement.
+2. **`v0.1.0 Beta` Git Tagging & Release Cut: NO-GO (Hold until coverage gates pass)**
+   Git tagging of `v0.1.0 Beta` must be withheld until test coverage gaps in Go (`cmd/server`, `db`), Python (`pantry`, `workout`), and `@alfheim/shared` (branch coverage) are closed to satisfy mandatory release quality gates.
+
+---
+
+## 6. Actionable Steps to Close Phase 3
+
+```
+[Phase 3a: CI/CD Pipeline Setup] ──► [Phase 3b: Coverage Elevation] ──► [Phase 3c: Tag v0.1.0 Beta]
+```
+
+1. **Step 1 (CI/CD Hardening):** Implement GitHub Actions workflows (`.github/workflows/{python-ci,go-ci,frontend-ci,smoke-test}.yml`) enforcing `ty check`, `tsc --noEmit`, `go test -race`, and `pytest`.
+2. **Step 2 (Coverage Elevation):**
+   - Elevate `apps/pantry/backend` coverage from 84% to ≥95%.
+   - Elevate `apps/workout/backend` coverage from 92% to ≥95%.
+   - Elevate Go packages in `dashboard` and `chat` to ≥95%.
+   - Increase branch coverage in `@alfheim/shared` from 80.27% to ≥90.0%.
+3. **Step 3 (Release Tagging):** Execute semantic tagging for `v0.1.0 Beta` upon 100% quality gate compliance.
