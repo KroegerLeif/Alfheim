@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "build:theme": "pnpm --filter @alfheim/keycloak-theme build",
-    "check-types": "pnpm -r exec tsc --noEmit"
+    "check-types": "pnpm -r exec tsc --noEmit",
+    "lint": "pnpm -r --if-present run lint",
+    "vitest": "pnpm -r exec vitest"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10"
