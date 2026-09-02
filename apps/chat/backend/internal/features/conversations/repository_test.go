@@ -27,11 +27,11 @@ type mockRows struct {
 	err   error
 }
 
-func (m *mockRows) Close()                               {}
-func (m *mockRows) Err() error                           { return m.err }
-func (m *mockRows) CommandTag() pgconn.CommandTag        { return pgconn.NewCommandTag("") }
+func (m *mockRows) Close()                                       {}
+func (m *mockRows) Err() error                                   { return m.err }
+func (m *mockRows) CommandTag() pgconn.CommandTag                { return pgconn.NewCommandTag("") }
 func (m *mockRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
-func (m *mockRows) Conn() *pgx.Conn                      { return nil }
+func (m *mockRows) Conn() *pgx.Conn                              { return nil }
 
 func (m *mockRows) Next() bool {
 	if m.err != nil || m.idx >= len(m.items) {
@@ -76,7 +76,7 @@ func (m *mockRows) Scan(dest ...any) error {
 }
 
 func (m *mockRows) Values() ([]any, error) { return nil, nil }
-func (m *mockRows) RawValues() [][]byte   { return nil }
+func (m *mockRows) RawValues() [][]byte    { return nil }
 
 type mockTx struct {
 	execFunc func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
@@ -89,8 +89,8 @@ func (m *mockTx) CopyFrom(ctx context.Context, tableName pgx.Identifier, columnN
 	return 0, nil
 }
 func (m *mockTx) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults { return nil }
-func (m *mockTx) LargeObjects() pgx.LargeObjects                              { return pgx.LargeObjects{} }
-func (m *mockTx) Conn() *pgx.Conn                                            { return nil }
+func (m *mockTx) LargeObjects() pgx.LargeObjects                               { return pgx.LargeObjects{} }
+func (m *mockTx) Conn() *pgx.Conn                                              { return nil }
 func (m *mockTx) Prepare(ctx context.Context, name, sql string) (*pgconn.StatementDescription, error) {
 	return nil, nil
 }
@@ -100,7 +100,9 @@ func (m *mockTx) Exec(ctx context.Context, sql string, arguments ...any) (pgconn
 	}
 	return pgconn.NewCommandTag(""), nil
 }
-func (m *mockTx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) { return nil, nil }
+func (m *mockTx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+	return nil, nil
+}
 func (m *mockTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	return &mockRow{}
 }

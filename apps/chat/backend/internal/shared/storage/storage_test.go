@@ -53,9 +53,9 @@ type mockSmithyAPIError struct {
 	message string
 }
 
-func (m *mockSmithyAPIError) Error() string   { return m.message }
-func (m *mockSmithyAPIError) ErrorCode() string { return m.code }
-func (m *mockSmithyAPIError) ErrorMessage() string { return m.message }
+func (m *mockSmithyAPIError) Error() string                 { return m.message }
+func (m *mockSmithyAPIError) ErrorCode() string             { return m.code }
+func (m *mockSmithyAPIError) ErrorMessage() string          { return m.message }
 func (m *mockSmithyAPIError) ErrorFault() smithy.ErrorFault { return smithy.FaultClient }
 
 func TestKeyGenerationAndSanitization(t *testing.T) {

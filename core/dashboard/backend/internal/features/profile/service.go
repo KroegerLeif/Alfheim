@@ -5,10 +5,10 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/Nerzal/gocloak/v13"
-	"golang.org/x/sync/errgroup"
 	"alfheim/dashboard/internal/shared/keycloak"
 	"alfheim/dashboard/internal/shared/middleware"
+	"github.com/Nerzal/gocloak/v13"
+	"golang.org/x/sync/errgroup"
 )
 
 // Service defines domain logic for user profile syncing and management.

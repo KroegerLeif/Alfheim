@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nerzal/gocloak/v13"
 	"alfheim/dashboard/config"
+	"github.com/Nerzal/gocloak/v13"
 )
 
 // Client wraps the gocloak client and manages service-account admin tokens.

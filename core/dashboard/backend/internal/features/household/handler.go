@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"alfheim/dashboard/internal/shared/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler manages HTTP endpoints for the household domain.

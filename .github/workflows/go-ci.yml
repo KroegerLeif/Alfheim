@@ -48,7 +48,7 @@ jobs:
           cache-dependency-path: '${{ matrix.service }}/go.sum'
 
       - name: Check Code Formatting (gofmt)
-        run: test -z $(gofmt -l .)
+        run: test -z "$(gofmt -l .)"
 
       - name: Run Go Vet
         run: go vet ./...
