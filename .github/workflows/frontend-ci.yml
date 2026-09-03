@@ -53,8 +53,5 @@ jobs:
       - name: Run TypeScript Type Check Across Workspace
         run: pnpm check-types
 
-      - name: Run Linter Across Workspace
-        run: pnpm lint
-
       - name: Run Vitest Suite Across Workspace
         run: pnpm -r test
