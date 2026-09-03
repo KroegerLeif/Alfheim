@@ -42,8 +42,10 @@ backend-shared = { workspace = true }
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "auto"
+addopts = "--cov-fail-under=95"
 
 [tool.coverage.run]
+source = ["src"]
 omit = [
     "**/mcp_tools.py",
     "**/seeder.py",
