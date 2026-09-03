@@ -46,11 +46,11 @@ func (m *mockStorageClient) GetPublicURL(key string) string {
 }
 
 type mockRepository struct {
-	createImageRefFunc         func(ctx context.Context, ref *ImageRef) error
-	getImageRefByIDFunc        func(ctx context.Context, id string) (*ImageRef, error)
+	createImageRefFunc           func(ctx context.Context, ref *ImageRef) error
+	getImageRefByIDFunc          func(ctx context.Context, id string) (*ImageRef, error)
 	listImageRefsByMessageIDFunc func(ctx context.Context, messageID string) ([]*ImageRef, error)
-	listImageRefsByIDsFunc     func(ctx context.Context, ids []string) ([]*ImageRef, error)
-	linkImageRefsToMessageFunc func(ctx context.Context, messageID string, ids []string) error
+	listImageRefsByIDsFunc       func(ctx context.Context, ids []string) ([]*ImageRef, error)
+	linkImageRefsToMessageFunc   func(ctx context.Context, messageID string, ids []string) error
 }
 
 func (m *mockRepository) CreateImageRef(ctx context.Context, ref *ImageRef) error {

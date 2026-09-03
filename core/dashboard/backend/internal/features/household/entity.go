@@ -15,18 +15,18 @@ const (
 
 // Household represents a household business domain entity.
 type Household struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Slug      string     `json:"slug"`
-	OwnerID   string     `json:"owner_id"`
-	Street    string     `json:"street"`
-	Zip       string     `json:"zip"`
-	City      string     `json:"city"`
-	Country   string     `json:"country"`
-	Latitude  *float64   `json:"latitude"`
-	Longitude *float64   `json:"longitude"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	OwnerID   string    `json:"owner_id"`
+	Street    string    `json:"street"`
+	Zip       string    `json:"zip"`
+	City      string    `json:"city"`
+	Country   string    `json:"country"`
+	Latitude  *float64  `json:"latitude"`
+	Longitude *float64  `json:"longitude"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // Member represents a user's membership in a household with optional profile details.

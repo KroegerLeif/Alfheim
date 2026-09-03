@@ -17,8 +17,8 @@ import (
 )
 
 type mockService struct {
-	syncProfileFunc func(ctx context.Context, claims *middleware.UserClaims) (*profile.Profile, error)
-	getProfileFunc  func(ctx context.Context, id string) (*profile.Profile, error)
+	syncProfileFunc   func(ctx context.Context, claims *middleware.UserClaims) (*profile.Profile, error)
+	getProfileFunc    func(ctx context.Context, id string) (*profile.Profile, error)
 	updateProfileFunc func(ctx context.Context, id string, dto profile.UpdateDTO) (*profile.Profile, error)
 }
 

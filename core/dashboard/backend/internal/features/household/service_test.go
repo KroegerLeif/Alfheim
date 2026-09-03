@@ -238,7 +238,7 @@ func TestHouseholdService_UpdateMemberRole(t *testing.T) {
 
 	repo.households[hhID] = &household.Household{ID: hhID, OwnerID: ownerID}
 	repo.members[hhID] = map[string]household.HouseholdRole{
-		ownerID: household.RoleOwner,
+		ownerID:  household.RoleOwner,
 		targetID: household.RoleMember,
 	}
 
@@ -268,11 +268,11 @@ func TestHouseholdService_UpdateHouseholdAddress(t *testing.T) {
 	lat := 47.3769
 	lon := 8.5417
 	req := household.UpdateHouseholdAddressRequest{
-		Street: "Bahnhofstrasse",
-		Zip: "8001",
-		City: "Zurich",
-		Country: "Switzerland",
-		Latitude: &lat,
+		Street:    "Bahnhofstrasse",
+		Zip:       "8001",
+		City:      "Zurich",
+		Country:   "Switzerland",
+		Latitude:  &lat,
 		Longitude: &lon,
 	}
 

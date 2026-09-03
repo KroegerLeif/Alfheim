@@ -27,11 +27,11 @@ type mockRows struct {
 	err   error
 }
 
-func (m *mockRows) Close()                               {}
-func (m *mockRows) Err() error                           { return m.err }
-func (m *mockRows) CommandTag() pgconn.CommandTag        { return pgconn.NewCommandTag("") }
+func (m *mockRows) Close()                                       {}
+func (m *mockRows) Err() error                                   { return m.err }
+func (m *mockRows) CommandTag() pgconn.CommandTag                { return pgconn.NewCommandTag("") }
 func (m *mockRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
-func (m *mockRows) Conn() *pgx.Conn                      { return nil }
+func (m *mockRows) Conn() *pgx.Conn                              { return nil }
 
 func (m *mockRows) Next() bool {
 	if m.err != nil || m.idx >= len(m.items) {
@@ -72,7 +72,7 @@ func (m *mockRows) Scan(dest ...any) error {
 }
 
 func (m *mockRows) Values() ([]any, error) { return nil, nil }
-func (m *mockRows) RawValues() [][]byte   { return nil }
+func (m *mockRows) RawValues() [][]byte    { return nil }
 
 type mockDBTX struct {
 	queryRowFunc func(ctx context.Context, sql string, args ...any) pgx.Row

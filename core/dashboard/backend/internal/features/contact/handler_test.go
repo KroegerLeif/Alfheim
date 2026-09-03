@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
 	"alfheim/dashboard/internal/features/household"
 	"alfheim/dashboard/internal/shared/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
 type mockService struct {
@@ -21,7 +21,7 @@ type mockService struct {
 	deleteCategoryFn func(ctx context.Context, requesterID, householdID, catID string) error
 
 	createContactFn func(ctx context.Context, requesterID, householdID string, req CreateContactRequest) (*Contact, error)
-	getContactsFn  func(ctx context.Context, requesterID, householdID string) ([]*Contact, error)
+	getContactsFn   func(ctx context.Context, requesterID, householdID string) ([]*Contact, error)
 	updateContactFn func(ctx context.Context, requesterID, householdID, contactID string, req CreateContactRequest) (*Contact, error)
 	deleteContactFn func(ctx context.Context, requesterID, householdID, contactID string) error
 }

@@ -20,8 +20,8 @@ import (
 )
 
 type mockProfileRepository struct {
-	profiles map[string]*profile.Profile
-	getErr   error
+	profiles  map[string]*profile.Profile
+	getErr    error
 	upsertErr error
 	updateErr error
 }
