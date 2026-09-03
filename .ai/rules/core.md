@@ -13,30 +13,43 @@ All codebase architectures must be organized around **business domains (features
 ---
 
 ## 2. In-Code Comments & Language Requirements
-* **Strict English Rule**: All code comments, docstrings, variable names, function names, types, log messages, and error messages MUST be written strictly in **English**.
+* **Strict English Rule**: All code comments, docstrings, variable names, function names, types, log messages, error messages, and commit messages MUST be written strictly in **English**.
 * **Self-Documenting Code**: Write expressive, clean, and self-documenting code. Use comments to explain *why* non-obvious design choices were made.
 * **API Documentation**: Public functions, classes, interfaces, and API endpoints must include clear, concise comments/docstrings explaining arguments, return values, and exceptions.
 
 ---
 
-## 3. Git Hygiene & Conventional Commits
+## 3. Git Hygiene, Commit Guidelines & Branching Strategy
+
+### Commit Message Formatting
 All commit messages must strictly adhere to the Conventional Commits specification in English:
 ```text
 <type>(<scope>): <short summary in imperative mood>
 
 [optional body providing technical details]
 ```
+
 ### Allowed Types:
 * `feat`: A new feature for the user or system.
 * `fix`: A bug fix.
 * `docs`: Documentation changes only.
 * `style`: Formatting/styling changes that do not affect code logic.
-* `refactor`: Code change that neither fixes a bag nor adds a feature.
+* `refactor`: Code change that neither fixes a bug nor adds a feature.
 * `perf`: Code change that improves performance.
 * `test`: Adding missing tests or correcting existing tests.
 * `build`: Changes that affect the build system or external dependencies.
 * `ci`: Changes to CI configuration scripts and workflows.
 * `chore`: Maintenance tasks or updates to auxiliary tools.
+
+### Ban on AI Commit Trailers and Signatures
+To maintain repository integrity and clear authorship history, all commit messages MUST NOT contain:
+* AI co-author trailers or attribution lines (e.g., `Co-authored-by:`, `Claude-Session:`, `Generated-by:`).
+* AI bot emojis or signatures (e.g., `🤖`, `Cursor`, etc.).
+
+### Branching and Release Strategy
+* **Active Feature Development**: All active development, feature implementations, and bug fixes take place on `dev` or dedicated feature branches (e.g., `feature/<name>`, `fix/<name>`).
+* **Protected Release Branch**: `main` is a protected release branch. Direct commits to `main` are strictly prohibited.
+* **Release Merges & Quality Gates**: Merges into `main` require approved pull requests and passing CI quality gates (including static type checking, linting, security scans, and test coverage enforcement).
 
 ---
 
