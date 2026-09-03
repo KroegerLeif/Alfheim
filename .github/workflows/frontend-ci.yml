@@ -40,8 +40,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -58,5 +56,5 @@ jobs:
       - name: Run Linter Across Workspace
         run: pnpm lint
 
-      - name: Run Vitest Suite with Coverage Across Workspace
-        run: pnpm vitest run --coverage
+      - name: Run Vitest Suite Across Workspace
+        run: pnpm -r test
