@@ -9,6 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(deploy): use official upstream images in compose.prod.yaml and automate base url derivation`**
+  - Updated standard 3rd-party infrastructure services in `compose.prod.yaml` to official upstream registry images (`caddy:2-alpine`, `quay.io/keycloak/keycloak:26.1`, `minio/minio:latest`, `victoriametrics/victoria-metrics:v1.99.0`, `victoriametrics/victoria-logs:v0.25.0`, `otel/opentelemetry-collector-contrib:0.100.0`, `grafana/grafana:11.0.0`, `axllent/mailpit:v1.18`, and `postgres:16-alpine` for all 10 databases), isolating GHCR tags strictly to the 18 custom Alfheim microservices.
+  - Enhanced `scripts/init-env.sh` with `--base-url` CLI support and interactive prompt defaulting to `https://alfheim.loegien.de`.
+  - Implemented automated scheme, naked host, and apex domain derivation, exporting `${ALFHEIM_BASE_URL}`-derived sub-route API variables across `.env` and `.env.example` without `localhost` residue.
+  - Aligned environment interpolation in `compose.prod.yaml` to fall back to `${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}`.
 * **`feat(release): add public launch pipeline, production compose, and home-server installer`**
   - Configured `.github/workflows/release.yml` with semver tag trigger (`v*.*.*`), GHCR container builds across 18 services with `max-parallel: 4` concurrency limits and GHA layer caching.
   - Created standalone `compose.prod.yaml` referencing pre-built GHCR images with environment tag overrides, healthchecks, restart policies, and named persistent data volumes.

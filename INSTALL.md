@@ -79,11 +79,11 @@ chmod +x init-env.sh
 Run the cryptographic secret generator:
 
 ```bash
-# Non-interactive generation (defaults to localhost)
+# Non-interactive generation (defaults to https://alfheim.loegien.de)
 ./init-env.sh --auto
 
-# Or interactive generation with your custom domain / IP:
-./init-env.sh --domain home.myhomelab.net
+# Or generation with custom base URL / domain:
+./init-env.sh --base-url https://home.myhomelab.net
 ```
 
 ### 4. Review Configuration (`.env`)
@@ -93,8 +93,8 @@ nano .env
 ```
 
 Key environment options:
-* `NEXT_PUBLIC_FRONTEND_URL`: Your server's external web address (e.g. `http://home.lan` or `http://192.168.1.100`).
-* `KEYCLOAK_PUBLIC_URL`: URL to access the Keycloak IAM server (e.g. `http://home.lan/auth`).
+* `ALFHEIM_BASE_URL`: Root URL of your server (e.g. `https://alfheim.loegien.de` or `http://192.168.1.100`), from which all frontend and API routes are derived.
+* `KEYCLOAK_PUBLIC_URL`: URL to access Keycloak IAM (defaults to `${ALFHEIM_BASE_URL}/auth`).
 * `CHAT_ENCRYPTION_KEY`: Auto-generated 32-byte base64 key for securing LLM API keys at rest with AES-256-GCM.
 
 ### 5. Start Alfheim Stack

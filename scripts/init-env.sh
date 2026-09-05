@@ -3,13 +3,15 @@
 # alfheim: Production Environment Initialization & Secret Generator
 # ==============================================================================
 # Generates a secure, production-grade .env file from .env.example with
-# cryptographically strong random passwords, encryption keys, and domain config.
+# cryptographically strong random passwords, encryption keys, and single-root
+# URL derivation for all frontend and API microservice endpoints.
 #
 # Usage:
-#   ./scripts/init-env.sh                 # Interactive mode
-#   ./scripts/init-env.sh --auto          # Non-interactive automatic generation
-#   ./scripts/init-env.sh --domain my.os  # Set target domain non-interactively
-#   ./scripts/init-env.sh -f / --force    # Overwrite existing .env
+#   ./scripts/init-env.sh                                   # Interactive mode
+#   ./scripts/init-env.sh --auto                            # Non-interactive generation (default: https://alfheim.loegien.de)
+#   ./scripts/init-env.sh --base-url https://my.os          # Set base URL non-interactively
+#   ./scripts/init-env.sh --domain my.os                    # Set target domain (backwards compatible)
+#   ./scripts/init-env.sh -f / --force                      # Overwrite existing .env
 # ==============================================================================
 
 set -euo pipefail
@@ -38,7 +40,7 @@ TARGET_DIR="${ALFHEIM_INSTALL_DIR:-$(pwd)}"
 TEMPLATE_FILE="${TARGET_DIR}/.env.example"
 OUTPUT_FILE="${TARGET_DIR}/.env"
 
-# If running inside repo, fallback to script directory parent
+# If running inside repo or external directory, fallback to script directory parent
 if [[ ! -f "$TEMPLATE_FILE" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -74,6 +76,7 @@ generate_base64_32() {
 # ------------------------------------------------------------------------------
 AUTO_MODE=false
 FORCE=false
+CUSTOM_BASE_URL=""
 CUSTOM_DOMAIN=""
 
 show_help() {
@@ -81,10 +84,11 @@ show_help() {
 Usage: $(basename "$0") [OPTIONS]
 
 Options:
-  -a, --auto            Run non-interactively and generate secure defaults
-  -d, --domain <domain> Configure the base domain (default: localhost)
-  -f, --force           Overwrite existing .env file
-  -h, --help            Show this help message
+  -a, --auto                  Run non-interactively and generate secure defaults
+  -b, --base-url <url>        Configure root base URL (default: https://alfheim.loegien.de)
+  -d, --domain <domain>       Configure domain / host (backwards compatible)
+  -f, --force                 Overwrite existing .env file
+  -h, --help                  Show this help message
 USAGE
   exit 0
 }
@@ -95,9 +99,21 @@ while [[ $# -gt 0 ]]; do
       AUTO_MODE=true
       shift
       ;;
+    -b|--base-url)
+      CUSTOM_BASE_URL="$2"
+      shift 2
+      ;;
+    --base-url=*)
+      CUSTOM_BASE_URL="${1#*=}"
+      shift
+      ;;
     -d|--domain)
       CUSTOM_DOMAIN="$2"
       shift 2
+      ;;
+    --domain=*)
+      CUSTOM_DOMAIN="${1#*=}"
+      shift
       ;;
     -f|--force)
       FORCE=true
@@ -139,23 +155,71 @@ echo -e "${BOLD}${CYAN}  Alfheim: Production Secret & Environment Initializer${R
 echo -e "${BOLD}${MAGENTA}==============================================================================${RESET}\n"
 
 # ------------------------------------------------------------------------------
-# Domain Configuration
+# Base URL & Domain Derivation
 # ------------------------------------------------------------------------------
-DOMAIN="localhost"
-if [[ -n "$CUSTOM_DOMAIN" ]]; then
-  DOMAIN="$CUSTOM_DOMAIN"
+DEFAULT_BASE_URL="https://alfheim.loegien.de"
+BASE_URL=""
+
+if [[ -n "${CUSTOM_BASE_URL}" ]]; then
+  BASE_URL="$CUSTOM_BASE_URL"
+elif [[ -n "${CUSTOM_DOMAIN}" ]]; then
+  if [[ "$CUSTOM_DOMAIN" =~ ^https?:// ]]; then
+    BASE_URL="$CUSTOM_DOMAIN"
+  else
+    BASE_URL="https://${CUSTOM_DOMAIN}"
+  fi
 elif [[ "$AUTO_MODE" == false ]]; then
-  read -r -p "Enter server domain or IP [default: localhost]: " user_domain
-  if [[ -n "$user_domain" ]]; then
-    DOMAIN="$user_domain"
+  read -r -p "Enter root Base URL [default: ${DEFAULT_BASE_URL}]: " user_url
+  if [[ -n "$user_url" ]]; then
+    BASE_URL="$user_url"
+  else
+    BASE_URL="${ALFHEIM_BASE_URL:-$DEFAULT_BASE_URL}"
+  fi
+else
+  BASE_URL="${ALFHEIM_BASE_URL:-$DEFAULT_BASE_URL}"
+fi
+
+# Strip trailing slashes
+BASE_URL="${BASE_URL%/}"
+
+# Ensure scheme is present (default to https://)
+if [[ ! "$BASE_URL" =~ ^https?:// ]]; then
+  BASE_URL="https://${BASE_URL}"
+fi
+
+# Parse scheme
+if [[ "$BASE_URL" =~ ^(https?):// ]]; then
+  SCHEME="${BASH_REMATCH[1]}"
+else
+  SCHEME="https"
+fi
+
+# Extract host and optional port
+HOST_PORT="${BASE_URL#*://}"
+HOST_PORT="${HOST_PORT%%/*}"
+HOST_HEADER="$HOST_PORT"
+
+# Extract naked hostname without port for domain calculations
+NAKED_HOST="${HOST_HEADER%%:*}"
+
+# Derive apex domain
+if [[ "$NAKED_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  # IPv4 address
+  DOMAIN="$NAKED_HOST"
+else
+  DOT_COUNT=$(awk -F. '{print NF-1}' <<< "$NAKED_HOST")
+  if [[ "$DOT_COUNT" -ge 2 ]]; then
+    # e.g. alfheim.loegien.de -> loegien.de
+    DOMAIN=$(echo "$NAKED_HOST" | sed -E 's/^[^.]+\.//')
+  else
+    # e.g. loegien.de or localhost
+    DOMAIN="$NAKED_HOST"
   fi
 fi
 
-FRONTEND_URL="http://${DOMAIN}"
-API_URL="http://${DOMAIN}"
-KEYCLOAK_URL="http://${DOMAIN}/auth"
-
-log_info "Configuring domain: ${BOLD}${DOMAIN}${RESET}"
+log_info "Configuring Base URL:    ${BOLD}${BASE_URL}${RESET}"
+log_info "Derived Host Header:     ${BOLD}${HOST_HEADER}${RESET}"
+log_info "Derived Apex Domain:     ${BOLD}${DOMAIN}${RESET}"
 log_info "Generating cryptographically secure secrets..."
 
 # Generate Secrets
@@ -194,10 +258,28 @@ sed \
   -e "s|^LIBRARY_POSTGRES_PASSWORD=.*|LIBRARY_POSTGRES_PASSWORD=${LIBRARY_PW}|" \
   -e "s|^GRAFANA_ADMIN_PASSWORD=.*|GRAFANA_ADMIN_PASSWORD=${GRAFANA_PW}|" \
   -e "s|^GRAFANA_KEYCLOAK_CLIENT_SECRET=.*|GRAFANA_KEYCLOAK_CLIENT_SECRET=${GRAFANA_CLIENT_SECRET}|" \
-  -e "s|^NEXT_PUBLIC_FRONTEND_URL=.*|NEXT_PUBLIC_FRONTEND_URL=${FRONTEND_URL}|" \
-  -e "s|^NEXT_PUBLIC_API_GATEWAY_URL=.*|NEXT_PUBLIC_API_GATEWAY_URL=${API_URL}|" \
-  -e "s|^KEYCLOAK_PUBLIC_URL=.*|KEYCLOAK_PUBLIC_URL=${KEYCLOAK_URL}|" \
+  -e "s|^ALFHEIM_BASE_URL=.*|ALFHEIM_BASE_URL=${BASE_URL}|" \
+  -e "s|^DOMAIN=.*|DOMAIN=${DOMAIN}|" \
+  -e "s|^HOST_HEADER=.*|HOST_HEADER=${HOST_HEADER}|" \
+  -e "s|^NEXT_PUBLIC_FRONTEND_URL=.*|NEXT_PUBLIC_FRONTEND_URL=\${ALFHEIM_BASE_URL}|" \
+  -e "s|^NEXT_PUBLIC_API_GATEWAY_URL=.*|NEXT_PUBLIC_API_GATEWAY_URL=\${ALFHEIM_BASE_URL}/api|" \
+  -e "s|^KEYCLOAK_PUBLIC_URL=.*|KEYCLOAK_PUBLIC_URL=\${ALFHEIM_BASE_URL}/auth|" \
+  -e "s|^S3_PUBLIC_URL=.*|S3_PUBLIC_URL=\${ALFHEIM_BASE_URL}/storage|" \
+  -e "s|^NEXT_PUBLIC_PANTRY_API_URL=.*|NEXT_PUBLIC_PANTRY_API_URL=\${ALFHEIM_BASE_URL}/api/pantry/api/v1|" \
+  -e "s|^NEXT_PUBLIC_SHOPPING_API_URL=.*|NEXT_PUBLIC_SHOPPING_API_URL=\${ALFHEIM_BASE_URL}/api/shopping/api/v1|" \
+  -e "s|^NEXT_PUBLIC_CHORES_API_URL=.*|NEXT_PUBLIC_CHORES_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/chores|" \
+  -e "s|^NEXT_PUBLIC_MAINTENANCE_API_URL=.*|NEXT_PUBLIC_MAINTENANCE_API_URL=\${ALFHEIM_BASE_URL}/api/maintenance/api/v1|" \
+  -e "s|^NEXT_PUBLIC_CHAT_API_URL=.*|NEXT_PUBLIC_CHAT_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/chat|" \
+  -e "s|^NEXT_PUBLIC_DASHBOARD_API_URL=.*|NEXT_PUBLIC_DASHBOARD_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1|" \
+  -e "s|^NEXT_PUBLIC_WORKOUT_API_URL=.*|NEXT_PUBLIC_WORKOUT_API_URL=\${ALFHEIM_BASE_URL}/api/workout/api/v1|" \
+  -e "s|^NEXT_PUBLIC_LIBRARY_API_URL=.*|NEXT_PUBLIC_LIBRARY_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/library|" \
+  -e "s|^NEXT_PUBLIC_BUDGET_API_URL=.*|NEXT_PUBLIC_BUDGET_API_URL=\${ALFHEIM_BASE_URL}/api/budget/api/v1|" \
   "$TEMPLATE_FILE" > "$OUTPUT_FILE"
+
+# Fallback injection if template was missing base URL keys
+if ! grep -q '^ALFHEIM_BASE_URL=' "$OUTPUT_FILE"; then
+  printf "\nALFHEIM_BASE_URL=%s\nDOMAIN=%s\nHOST_HEADER=%s\n" "${BASE_URL}" "${DOMAIN}" "${HOST_HEADER}" >> "$OUTPUT_FILE"
+fi
 
 # Restrict file permissions to current user only (0600)
 chmod 600 "$OUTPUT_FILE"
@@ -205,7 +287,11 @@ chmod 600 "$OUTPUT_FILE"
 log_success "Production environment file generated: ${BOLD}${OUTPUT_FILE}${RESET}"
 log_success "File permissions set to 0600 (owner read/write only)"
 
-echo -e "\n${BOLD}Generated Credentials Summary (Stored in .env):${RESET}"
+echo -e "\n${BOLD}Generated Credentials & URL Summary (Stored in .env):${RESET}"
+echo -e "  Base URL:                  ${CYAN}${BASE_URL}${RESET}"
+echo -e "  Host Header:               ${CYAN}${HOST_HEADER}${RESET}"
+echo -e "  Domain:                    ${CYAN}${DOMAIN}${RESET}"
+echo -e "  Keycloak Public Auth URL:  ${CYAN}${BASE_URL}/auth${RESET}"
 echo -e "  Keycloak Admin User:       ${CYAN}admin${RESET}"
 echo -e "  Keycloak Admin Password:   ${YELLOW}${KC_ADMIN_PW}${RESET}"
 echo -e "  Grafana Admin User:        ${CYAN}admin${RESET}"
