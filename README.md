@@ -2,6 +2,31 @@
 
 This is the central orchestration repository for `alfheim`, managing common infrastructure (identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
+[![Release](https://img.shields.io/badge/release-v0.1.0--beta.1-blue.svg)](https://github.com/KroegerLeif/Alfheim/releases)
+[![Installation](https://img.shields.io/badge/docs-INSTALL.md-success.svg)](INSTALL.md)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+---
+
+## ⚡ Quickstart & Installation
+
+Alfheim is designed for effortless self-hosting on your home server (Debian, Ubuntu, Proxmox LXC/VM, Raspberry Pi).
+
+### One-Command Home Server Installer
+Run the official POSIX installer to scaffold configuration, download production container definitions, and automatically generate cryptographically secure secrets:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/scripts/install.sh | bash
+```
+
+Once installed, start the entire platform with:
+```bash
+cd ~/alfheim
+docker compose -f compose.prod.yaml up -d
+```
+
+👉 **For detailed prerequisites, manual deployment steps, and backup strategies, consult the [Self-Hosting & Installation Guide (INSTALL.md)](INSTALL.md).**
+
 ---
 
 ## 1. Directory Structure & Compose Layout

@@ -8,8 +8,25 @@
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment & Secrets
 **/.env
+**/.env.*
+!**/.env.example
+*.key
+*.pem
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Local data & storage
+**/data/
+**/rustfs_data/
+**/caddy_data/
+**/caddy_config/
+**/volumes/
+
+# Python Virtual Environments
 **/.venv/
 
 # Build/Cache/Logs
