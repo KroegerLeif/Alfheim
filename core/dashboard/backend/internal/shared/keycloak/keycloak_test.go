@@ -221,4 +221,3 @@ func TestKeycloakClient_TokenFailureBranches(t *testing.T) {
 		}
 	})
 }
-

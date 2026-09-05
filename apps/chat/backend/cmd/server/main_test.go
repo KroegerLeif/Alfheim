@@ -343,4 +343,3 @@ func TestMain_Function(t *testing.T) {
 		t.Errorf("expected exit code 1, got %d", exitCode)
 	}
 }
-

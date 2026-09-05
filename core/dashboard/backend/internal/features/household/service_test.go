@@ -440,4 +440,3 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 		}
 	})
 }
-

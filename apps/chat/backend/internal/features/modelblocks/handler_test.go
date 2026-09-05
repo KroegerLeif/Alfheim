@@ -463,4 +463,3 @@ func TestHandler_ServiceErrorsAndWriteServiceError(t *testing.T) {
 		}
 	})
 }
-

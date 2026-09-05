@@ -827,4 +827,3 @@ func TestHouseholdHandler_MissingHouseholdID(t *testing.T) {
 		}
 	})
 }
-

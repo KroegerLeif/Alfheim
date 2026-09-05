@@ -1104,4 +1104,3 @@ func TestToResponse_NilConfigJSON(t *testing.T) {
 		t.Errorf("expected {}, got %s", string(resp.ConfigJSON))
 	}
 }
-

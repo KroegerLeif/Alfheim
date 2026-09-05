@@ -291,5 +291,3 @@ func TestRunMigrations_TableDriven(t *testing.T) {
 		}
 	})
 }
-
-
