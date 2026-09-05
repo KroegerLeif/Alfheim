@@ -1,0 +1,155 @@
+name: Production Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-images:
+    name: Build & Push (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          # Core Platform Services
+          - name: dashboard-backend
+            context: core/dashboard/backend
+            dockerfile: core/dashboard/backend/Dockerfile
+          - name: dashboard-frontend
+            context: .
+            dockerfile: core/dashboard/frontend/Dockerfile
+
+          # Chat Assistant Service
+          - name: chat-backend
+            context: apps/chat/backend
+            dockerfile: apps/chat/backend/Dockerfile
+          - name: chat-frontend
+            context: .
+            dockerfile: apps/chat/frontend/Dockerfile
+
+          # Pantry Management Service
+          - name: pantry-backend
+            context: .
+            dockerfile: apps/pantry/backend/Dockerfile
+          - name: pantry-frontend
+            context: .
+            dockerfile: apps/pantry/frontend/Dockerfile
+
+          # Shopping List Service
+          - name: shopping-backend
+            context: .
+            dockerfile: apps/shopping/backend/Dockerfile
+          - name: shopping-frontend
+            context: .
+            dockerfile: apps/shopping/frontend/Dockerfile
+
+          # Maintenance & Devices Service
+          - name: maintenance-backend
+            context: .
+            dockerfile: apps/maintenance/backend/Dockerfile
+          - name: maintenance-frontend
+            context: .
+            dockerfile: apps/maintenance/frontend/Dockerfile
+
+          # Household Chores Service
+          - name: chores-backend
+            context: .
+            dockerfile: apps/chores/backend/Dockerfile
+          - name: chores-frontend
+            context: .
+            dockerfile: apps/chores/frontend/Dockerfile
+
+          # Budget & Finance Service
+          - name: budget-backend
+            context: .
+            dockerfile: apps/budget/backend/Dockerfile
+          - name: budget-frontend
+            context: .
+            dockerfile: apps/budget/frontend/Dockerfile
+
+          # Workout Tracking Service
+          - name: workout-backend
+            context: .
+            dockerfile: apps/workout/backend/Dockerfile
+          - name: workout-frontend
+            context: .
+            dockerfile: apps/workout/frontend/Dockerfile
+
+          # Media Library Service
+          - name: library-backend
+            context: .
+            dockerfile: apps/library/backend/Dockerfile
+          - name: library-frontend
+            context: .
+            dockerfile: apps/library/frontend/Dockerfile
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Lowercase Repository Name
+        run: |
+          echo "IMAGE_REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Container Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}:${{ github.ref_name }}
+            ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}:latest
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  publish-release:
+    name: Publish Official GitHub Release
+    needs: build-images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release & Attach Production Artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
+          files: |
+            compose.prod.yaml
+            scripts/install.sh
+            scripts/init-env.sh
+            .env.example
+            infrastructure/caddy/Caddyfile
+            infrastructure/keycloak/alfheim-realm.json
+            infrastructure/telemetry/collector/config.yaml

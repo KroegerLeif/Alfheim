@@ -9,6 +9,13 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(release): add public launch pipeline, production compose, and home-server installer`**
+  - Configured `.github/workflows/release.yml` with semver tag trigger (`v*.*.*`), GHCR container builds across 18 services with `max-parallel: 4` concurrency limits and GHA layer caching.
+  - Created standalone `compose.prod.yaml` referencing pre-built GHCR images with environment tag overrides, healthchecks, restart policies, and named persistent data volumes.
+  - Created POSIX-compliant `scripts/install.sh` single-command home-server installer with ANSI color status formatting and asset downloads.
+  - Created `scripts/init-env.sh` cryptographic secret generator generating 24-character random passwords, 32-byte AES-256-GCM chat encryption keys, and setting strict `chmod 600` permissions on `.env`.
+  - Created comprehensive self-hosting installation guide `INSTALL.md` and linked prominently in `README.md`.
+  - Hardened `.gitignore` against environment files, private keys (`*.key`, `*.pem`), certificates, and volume directories.
 * **`fix(keycloak): move userProfileEnabled to realm attributes in alfheim-realm.json`**
   - Moved invalid top-level `"userProfileEnabled": true` property from `RealmRepresentation` root to `"attributes": { "userProfileEnabled": "true", ... }` in `infrastructure/keycloak/alfheim-realm.json`.
   - Resolved Jackson deserialization error (`Unrecognized field "userProfileEnabled"`) and crash loop during Keycloak Quarkus container startup and realm import.
