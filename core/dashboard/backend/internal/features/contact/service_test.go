@@ -277,7 +277,11 @@ func TestContactService_EdgeCases(t *testing.T) {
 	ctx := context.Background()
 	repo := newMockRepository()
 	hhRepo := newMockHouseholdRepo()
-	hhRepo.members["hh-1"] = map[string]household.HouseholdRole{"user-1": household.RoleOwner}
+	hhRepo.members["hh-1"] = map[string]household.HouseholdRole{
+		"user-1":      household.RoleOwner,
+		"user-member": household.RoleMember,
+		"user-guest":  household.RoleGuest,
+	}
 	hhRepo.members["hh-2"] = map[string]household.HouseholdRole{"user-1": household.RoleOwner}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := contact.NewService(repo, hhRepo, logger)
@@ -357,6 +361,54 @@ func TestContactService_EdgeCases(t *testing.T) {
 		err := svc.DeleteContact(ctx, "user-1", "hh-2", c.ID)
 		if err != household.ErrUnauthorizedHouseholdAccess {
 			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+
+	t.Run("Unauthorized role checks across service methods", func(t *testing.T) {
+		// user-guest has RoleGuest
+		// user-unauthorized is not in household
+		_, err := svc.GetCategories(ctx, "user-unauthorized", "hh-1")
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for GetCategories, got %v", err)
+		}
+
+		_, err = svc.GetContacts(ctx, "user-unauthorized", "hh-1")
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for GetContacts, got %v", err)
+		}
+
+		// Member cannot create, update, or delete categories
+		_, err = svc.CreateCategory(ctx, "user-member", "hh-1", contact.CreateCategoryRequest{Name: "Cat"})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for CreateCategory, got %v", err)
+		}
+
+		cat, _ := svc.CreateCategory(ctx, "user-1", "hh-1", contact.CreateCategoryRequest{Name: "CatTest"})
+		_, err = svc.UpdateCategory(ctx, "user-member", "hh-1", cat.ID, contact.CreateCategoryRequest{Name: "Updated"})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for UpdateCategory, got %v", err)
+		}
+
+		err = svc.DeleteCategory(ctx, "user-member", "hh-1", cat.ID)
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for DeleteCategory, got %v", err)
+		}
+
+		// Guest cannot create, update, or delete contacts
+		_, err = svc.CreateContact(ctx, "user-guest", "hh-1", contact.CreateContactRequest{Name: "Cont"})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for CreateContact, got %v", err)
+		}
+
+		c, _ := svc.CreateContact(ctx, "user-1", "hh-1", contact.CreateContactRequest{Name: "ContTest"})
+		_, err = svc.UpdateContact(ctx, "user-guest", "hh-1", c.ID, contact.CreateContactRequest{Name: "Updated"})
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for UpdateContact, got %v", err)
+		}
+
+		err = svc.DeleteContact(ctx, "user-guest", "hh-1", c.ID)
+		if err != household.ErrUnauthorizedHouseholdAccess {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess for DeleteContact, got %v", err)
 		}
 	})
 }

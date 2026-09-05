@@ -80,9 +80,11 @@ func (s *service) getLocalSystemLogs() *LogsResponse {
 	}
 }
 
+var procMeminfoPath = "/proc/meminfo"
+
 func getSystemMemoryUsage() (float64, float64, float64) {
 	// Attempt reading /proc/meminfo
-	data, err := os.ReadFile("/proc/meminfo")
+	data, err := os.ReadFile(procMeminfoPath)
 	if err == nil {
 		var memTotal, memAvailable float64
 		lines := strings.Split(string(data), "\n")

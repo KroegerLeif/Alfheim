@@ -41,6 +41,8 @@ type s3Client struct {
 	cfg config.StorageConfig
 }
 
+var loadAWSConfig = awsconfig.LoadDefaultConfig
+
 // NewClient initializes a new S3/RustFS storage client from configuration.
 func NewClient(ctx context.Context, cfg config.StorageConfig) (Client, error) {
 	credProvider := credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, "")
@@ -53,7 +55,7 @@ func NewClient(ctx context.Context, cfg config.StorageConfig) (Client, error) {
 		}, nil
 	})
 
-	awsCfg, err := awsconfig.LoadDefaultConfig(
+	awsCfg, err := loadAWSConfig(
 		ctx,
 		awsconfig.WithRegion(cfg.Region),
 		awsconfig.WithCredentialsProvider(credProvider),

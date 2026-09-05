@@ -1,7 +1,9 @@
 package crypto
 
 import (
+	"crypto/cipher"
 	"encoding/base64"
+	"errors"
 	"testing"
 )
 
@@ -93,4 +95,48 @@ func TestEncryptDecrypt(t *testing.T) {
 			t.Errorf("expected error decrypting undersized ciphertext")
 		}
 	})
+
+	t.Run("fails to encrypt with invalid key size", func(t *testing.T) {
+		if _, err := Encrypt([]byte("too-short"), "data"); err == nil {
+			t.Errorf("expected error encrypting with invalid key length")
+		}
+	})
+
+	t.Run("fails to decrypt with invalid key size", func(t *testing.T) {
+		if _, err := Decrypt([]byte("too-short"), []byte("somedata")); err == nil {
+			t.Errorf("expected error decrypting with invalid key length")
+		}
+	})
+
+	t.Run("fails when randReader returns error", func(t *testing.T) {
+		orig := randReader
+		defer func() { randReader = orig }()
+
+		randReader = &errReader{}
+		if _, err := Encrypt(key, "data"); err == nil {
+			t.Errorf("expected error when randReader fails")
+		}
+	})
+
+	t.Run("fails when newGCM returns error on Encrypt and Decrypt", func(t *testing.T) {
+		orig := newGCM
+		defer func() { newGCM = orig }()
+
+		newGCM = func(cipher.Block) (cipher.AEAD, error) {
+			return nil, errors.New("simulated gcm construction error")
+		}
+
+		if _, err := Encrypt(key, "data"); err == nil {
+			t.Errorf("expected error from Encrypt when newGCM fails")
+		}
+		if _, err := Decrypt(key, []byte("somelongerciphertext")); err == nil {
+			t.Errorf("expected error from Decrypt when newGCM fails")
+		}
+	})
+}
+
+type errReader struct{}
+
+func (e *errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("entropy source depleted")
 }

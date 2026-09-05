@@ -389,3 +389,86 @@ func TestNewRepository(t *testing.T) {
 		t.Fatal("expected non-nil repository")
 	}
 }
+
+func TestRepository_DBErrors(t *testing.T) {
+	ctx := context.Background()
+	dbErr := errors.New("underlying postgres connection died")
+
+	t.Run("GetCategoryByID underlying DB error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return dbErr }}
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		_, err := repo.GetCategoryByID(ctx, "cat-1")
+		if err == nil || errors.Is(err, ErrCategoryNotFound) {
+			t.Errorf("expected underlying DB error, got %v", err)
+		}
+	})
+
+	t.Run("UpdateCategory exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		err := repo.UpdateCategory(ctx, &ContactCategory{ID: "cat-1"})
+		if err == nil || errors.Is(err, ErrCategoryNotFound) {
+			t.Errorf("expected underlying DB error, got %v", err)
+		}
+	})
+
+	t.Run("DeleteCategory exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		err := repo.DeleteCategory(ctx, "cat-1")
+		if err == nil || errors.Is(err, ErrCategoryNotFound) {
+			t.Errorf("expected underlying DB error, got %v", err)
+		}
+	})
+
+	t.Run("GetContactByID underlying DB error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return dbErr }}
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		_, err := repo.GetContactByID(ctx, "c-1")
+		if err == nil || errors.Is(err, ErrContactNotFound) {
+			t.Errorf("expected underlying DB error, got %v", err)
+		}
+	})
+
+	t.Run("UpdateContact exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		err := repo.UpdateContact(ctx, &Contact{ID: "c-1"})
+		if err == nil || errors.Is(err, ErrContactNotFound) {
+			t.Errorf("expected underlying DB error, got %v", err)
+		}
+	})
+
+	t.Run("DeleteContact exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		err := repo.DeleteContact(ctx, "c-1")
+		if err == nil || errors.Is(err, ErrContactNotFound) {
+			t.Errorf("expected underlying DB error, got %v", err)
+		}
+	})
+}

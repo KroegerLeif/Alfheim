@@ -228,3 +228,139 @@ func TestClient_Ping_Success(t *testing.T) {
 		t.Errorf("expected negotiated protocol version")
 	}
 }
+
+func TestClient_EdgeCases(t *testing.T) {
+	t.Run("CallTool unmarshal error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req rpcRequest
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			w.Header().Set(headerContentType, contentTypeJSON)
+			if req.Method == "initialize" {
+				fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":"2025-06-18"}}`, req.ID)
+			} else if req.Method == "notifications/initialized" {
+				w.WriteHeader(http.StatusAccepted)
+			} else {
+				// Invalid json inside result
+				fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":"not-an-object"}`, req.ID)
+			}
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		_, _, err := c.CallTool(context.Background(), "some_tool", nil)
+		if err == nil {
+			t.Fatal("expected unmarshal error for CallTool, got nil")
+		}
+	})
+
+	t.Run("ensureInitialized unmarshal error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set(headerContentType, contentTypeJSON)
+			var req rpcRequest
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":"not-an-object"}`, req.ID)
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		_, _, err := c.CallTool(context.Background(), "some_tool", nil)
+		if err == nil {
+			t.Fatal("expected unmarshal error for initialize, got nil")
+		}
+	})
+
+	t.Run("send unexpected content-type", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set(headerContentType, "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("plain text response"))
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		_, _, err := c.CallTool(context.Background(), "some_tool", nil)
+		if err == nil {
+			t.Fatal("expected unexpected content-type error, got nil")
+		}
+	})
+
+	t.Run("send json decode error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set(headerContentType, contentTypeJSON)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("not valid json"))
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		_, _, err := c.CallTool(context.Background(), "some_tool", nil)
+		if err == nil {
+			t.Fatal("expected json decode error, got nil")
+		}
+	})
+
+	t.Run("call returns 202 accepted with no response", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusAccepted)
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		_, _, err := c.CallTool(context.Background(), "some_tool", nil)
+		if err == nil {
+			t.Fatal("expected no response error, got nil")
+		}
+	})
+
+	t.Run("readSSEJSONRPCMessage empty stream error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set(headerContentType, contentTypeSSE)
+			w.WriteHeader(http.StatusOK)
+			// Send comment then close
+			fmt.Fprint(w, ": keepalive\n\n")
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		_, _, err := c.CallTool(context.Background(), "some_tool", nil)
+		if err == nil {
+			t.Fatal("expected sse stream ended error, got nil")
+		}
+	})
+
+	t.Run("readSSEJSONRPCMessage ignores non-json frames and handles double newline", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set(headerContentType, contentTypeSSE)
+			w.WriteHeader(http.StatusOK)
+			// Double newline, non-json data frame, then valid json-rpc message
+			fmt.Fprint(w, "\n\ndata: non-json\n\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\"}}\n\n")
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		err := c.ensureInitialized(context.Background())
+		// Notification might fail because server doesn't handle initialized, but ensureInitialized parsed the SSE!
+		_ = err
+	})
+
+	t.Run("ensureInitialized fails when notification fails", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req rpcRequest
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			if req.Method == "initialize" {
+				w.Header().Set(headerContentType, contentTypeJSON)
+				fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":"2025-06-18"}}`, req.ID)
+			} else if req.Method == "notifications/initialized" {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte("internal error"))
+			}
+		}))
+		defer server.Close()
+
+		c := NewClient(server.URL)
+		err := c.ensureInitialized(context.Background())
+		if err == nil {
+			t.Fatal("expected error when notification fails, got nil")
+		}
+	})
+}

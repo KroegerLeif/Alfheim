@@ -575,3 +575,492 @@ func TestService_ToolCallingLoop(t *testing.T) {
 		}
 	})
 }
+
+func TestService_StreamAssistantReply_ChatStreamInitialFailure(t *testing.T) {
+	repo := newFakeRepository()
+	provider := &errorProvider{err: errors.New("connection refused")}
+	svc := newTestService(repo, &fakeResolver{provider: provider})
+	ctx := context.Background()
+
+	modelBlockID := "mb-1"
+	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+	chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+	if err != nil {
+		t.Fatalf("unexpected synchronous error: %v", err)
+	}
+
+	received := drainChunks(t, chunks, 2*time.Second)
+	if len(received) == 0 {
+		t.Fatal("expected at least one chunk")
+	}
+	last := received[len(received)-1]
+	if last.Err == nil {
+		t.Error("expected error in last chunk")
+	}
+}
+
+// errorProvider is an llm.Provider whose ChatStream always fails.
+type errorProvider struct {
+	err error
+}
+
+func (p *errorProvider) Name() string { return "error" }
+func (p *errorProvider) ChatStream(ctx context.Context, req llm.ChatRequest) (<-chan llm.StreamChunk, error) {
+	return nil, p.err
+}
+func (p *errorProvider) HealthCheck(ctx context.Context) llm.HealthResult {
+	return llm.HealthResult{Status: llm.HealthStatusUnreachable}
+}
+
+func TestService_StreamAssistantReply_EmptyContent(t *testing.T) {
+	repo := newFakeRepository()
+	provider := fakeProviderOnce([]llm.StreamChunk{
+		{Done: true, Usage: &llm.Usage{TotalTokens: 1}},
+	})
+	svc := newTestService(repo, &fakeResolver{provider: provider})
+	ctx := context.Background()
+
+	modelBlockID := "mb-1"
+	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+	chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	received := drainChunks(t, chunks, 2*time.Second)
+	if len(received) != 1 {
+		t.Fatalf("expected 1 chunk, got %d", len(received))
+	}
+	if !received[0].Done {
+		t.Error("expected done chunk")
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	if len(repo.messages[created.ID]) != 1 {
+		t.Errorf("expected only user message, got %d messages", len(repo.messages[created.ID]))
+	}
+}
+
+func TestService_DeleteConversation_RepoDeleteError(t *testing.T) {
+	repo := &failingDeleteRepo{fakeRepository: newFakeRepository()}
+	svc := newTestService(repo, &fakeResolver{})
+	ctx := context.Background()
+
+	modelBlockID := "mb-1"
+	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+
+	err := svc.DeleteConversation(ctx, "user-1", created.ID)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+type failingDeleteRepo struct {
+	*fakeRepository
+}
+
+func (f *failingDeleteRepo) DeleteConversation(ctx context.Context, id string) error {
+	return errors.New("delete failed")
+}
+
+func TestService_BuildToolDefinitions_EdgeCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("lister error returns nil", func(t *testing.T) {
+		repo := newFakeRepository()
+		lister := &errorServerLister{err: errors.New("list error")}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{}}
+		svc := newTestServiceWithTools(repo, &fakeResolver{provider: fakeProviderOnce([]llm.StreamChunk{{Done: true}})}, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		drainChunks(t, chunks, 2*time.Second)
+	})
+
+	t.Run("ListTools error skips server", func(t *testing.T) {
+		repo := newFakeRepository()
+		server := mcp.ServerRef{ID: "srv-1", Slug: "app1", EndpointURL: "http://app1/mcp"}
+		lister := &fakeServerLister{servers: []mcp.ServerRef{server}}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{
+			server.EndpointURL: &errorToolCaller{err: errors.New("tool list error")},
+		}}
+		svc := newTestServiceWithTools(repo, &fakeResolver{provider: fakeProviderOnce([]llm.StreamChunk{{Done: true}})}, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		drainChunks(t, chunks, 2*time.Second)
+	})
+
+	t.Run("duplicate tool name across servers keeps first", func(t *testing.T) {
+		repo := newFakeRepository()
+		srv1 := mcp.ServerRef{ID: "srv-1", Slug: "app1", EndpointURL: "http://app1/mcp"}
+		srv2 := mcp.ServerRef{ID: "srv-2", Slug: "app2", EndpointURL: "http://app2/mcp"}
+		lister := &fakeServerLister{servers: []mcp.ServerRef{srv1, srv2}}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{
+			srv1.EndpointURL: &fakeToolCaller{tools: []mcp.Tool{{Name: "dup_tool", Description: "first"}}},
+			srv2.EndpointURL: &fakeToolCaller{tools: []mcp.Tool{{Name: "dup_tool", Description: "second"}}},
+		}}
+		svc := newTestServiceWithTools(repo, &fakeResolver{provider: fakeProviderOnce([]llm.StreamChunk{{Done: true}})}, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		drainChunks(t, chunks, 2*time.Second)
+	})
+
+	t.Run("allowedApps filters servers", func(t *testing.T) {
+		repo := newFakeRepository()
+		srv1 := mcp.ServerRef{ID: "srv-1", Slug: "allowed", EndpointURL: "http://allowed/mcp"}
+		srv2 := mcp.ServerRef{ID: "srv-2", Slug: "blocked", EndpointURL: "http://blocked/mcp"}
+		lister := &fakeServerLister{servers: []mcp.ServerRef{srv1, srv2}}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{
+			srv1.EndpointURL: &fakeToolCaller{tools: []mcp.Tool{{Name: "allowed_tool", Description: "allowed"}}},
+			srv2.EndpointURL: &fakeToolCaller{tools: []mcp.Tool{{Name: "blocked_tool", Description: "blocked"}}},
+		}}
+		resolver := &fakeResolver{
+			provider: fakeProviderOnce([]llm.StreamChunk{{Done: true}}),
+			policy:   llm.ProviderPolicy{AllowedMCPApps: []string{"allowed"}},
+		}
+		svc := newTestServiceWithTools(repo, resolver, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		drainChunks(t, chunks, 2*time.Second)
+	})
+}
+
+type errorServerLister struct {
+	err error
+}
+
+func (e *errorServerLister) ListEnabledServers(ctx context.Context) ([]mcp.ServerRef, error) {
+	return nil, e.err
+}
+
+type errorToolCaller struct {
+	err error
+}
+
+func (e *errorToolCaller) ListTools(ctx context.Context) ([]mcp.Tool, error) {
+	return nil, e.err
+}
+func (e *errorToolCaller) CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
+	return "", false, e.err
+}
+func (e *errorToolCaller) Ping(ctx context.Context) mcp.DiagnosticResult {
+	return mcp.DiagnosticResult{Reachable: false}
+}
+
+func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("unknown tool returns error text", func(t *testing.T) {
+		repo := newFakeRepository()
+		provider := &fakeProvider{rounds: [][]llm.StreamChunk{
+			{
+				{ToolCall: &llm.ToolCallRequest{ID: "call_0", ToolName: "unknown_tool"}},
+				{Done: true},
+			},
+			{{DeltaText: "OK"}, {Done: true}},
+		}}
+		lister := &fakeServerLister{servers: []mcp.ServerRef{}}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{}}
+		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		drainChunks(t, chunks, 2*time.Second)
+	})
+
+	t.Run("MCP call error returns error text", func(t *testing.T) {
+		repo := newFakeRepository()
+		srv := mcp.ServerRef{ID: "srv-1", Slug: "app1", EndpointURL: "http://app1/mcp"}
+		provider := &fakeProvider{rounds: [][]llm.StreamChunk{
+			{
+				{ToolCall: &llm.ToolCallRequest{ID: "call_0", ToolName: "failing_tool"}},
+				{Done: true},
+			},
+			{{DeltaText: "handled"}, {Done: true}},
+		}}
+		lister := &fakeServerLister{servers: []mcp.ServerRef{srv}}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{
+			srv.EndpointURL: &fakeToolCallerWithCallError{
+				tools: []mcp.Tool{{Name: "failing_tool", Description: "fails"}},
+				err:   errors.New("mcp error"),
+			},
+		}}
+		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		drainChunks(t, chunks, 2*time.Second)
+	})
+
+	t.Run("MCP call isError result", func(t *testing.T) {
+		repo := newFakeRepository()
+		srv := mcp.ServerRef{ID: "srv-1", Slug: "app1", EndpointURL: "http://app1/mcp"}
+		provider := &fakeProvider{rounds: [][]llm.StreamChunk{
+			{
+				{ToolCall: &llm.ToolCallRequest{ID: "call_0", ToolName: "error_tool"}},
+				{Done: true},
+			},
+			{{DeltaText: "handled"}, {Done: true}},
+		}}
+		lister := &fakeServerLister{servers: []mcp.ServerRef{srv}}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{
+			srv.EndpointURL: &isErrorToolCaller{
+				tools: []mcp.Tool{{Name: "error_tool", Description: "returns isError"}},
+			},
+		}}
+		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		drainChunks(t, chunks, 2*time.Second)
+	})
+
+	t.Run("ChatStream fails on continuation round", func(t *testing.T) {
+		repo := newFakeRepository()
+		srv := mcp.ServerRef{ID: "srv-1", Slug: "app1", EndpointURL: "http://app1/mcp"}
+		callCount := 0
+		provider := &failOnSecondCallProvider{
+			first: []llm.StreamChunk{
+				{ToolCall: &llm.ToolCallRequest{ID: "call_0", ToolName: "my_tool"}},
+				{Done: true},
+			},
+			callCount: &callCount,
+		}
+		lister := &fakeServerLister{servers: []mcp.ServerRef{srv}}
+		pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{
+			srv.EndpointURL: &fakeToolCaller{
+				tools:       []mcp.Tool{{Name: "my_tool", Description: "tool"}},
+				callResults: map[string]string{"my_tool": "result"},
+			},
+		}}
+		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
+
+		modelBlockID := "mb-1"
+		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		received := drainChunks(t, chunks, 2*time.Second)
+		last := received[len(received)-1]
+		if last.Err == nil || !last.Done {
+			t.Fatalf("expected terminal error chunk, got %+v", last)
+		}
+	})
+}
+
+type fakeToolCallerWithCallError struct {
+	tools []mcp.Tool
+	err   error
+}
+
+func (f *fakeToolCallerWithCallError) ListTools(ctx context.Context) ([]mcp.Tool, error) {
+	return f.tools, nil
+}
+func (f *fakeToolCallerWithCallError) CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
+	return "", false, f.err
+}
+func (f *fakeToolCallerWithCallError) Ping(ctx context.Context) mcp.DiagnosticResult {
+	return mcp.DiagnosticResult{Reachable: true}
+}
+
+type isErrorToolCaller struct {
+	tools []mcp.Tool
+}
+
+func (f *isErrorToolCaller) ListTools(ctx context.Context) ([]mcp.Tool, error) {
+	return f.tools, nil
+}
+func (f *isErrorToolCaller) CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
+	return "tool reported error", true, nil
+}
+func (f *isErrorToolCaller) Ping(ctx context.Context) mcp.DiagnosticResult {
+	return mcp.DiagnosticResult{Reachable: true}
+}
+
+type failOnSecondCallProvider struct {
+	first     []llm.StreamChunk
+	callCount *int
+}
+
+func (p *failOnSecondCallProvider) Name() string { return "fail-on-second" }
+func (p *failOnSecondCallProvider) ChatStream(ctx context.Context, req llm.ChatRequest) (<-chan llm.StreamChunk, error) {
+	*p.callCount++
+	if *p.callCount > 1 {
+		return nil, errors.New("connection lost")
+	}
+	out := make(chan llm.StreamChunk, len(p.first))
+	for _, c := range p.first {
+		out <- c
+	}
+	close(out)
+	return out, nil
+}
+func (p *failOnSecondCallProvider) HealthCheck(ctx context.Context) llm.HealthResult {
+	return llm.HealthResult{Status: llm.HealthStatusOK}
+}
+
+func TestToMessageResponse_WithAttachments(t *testing.T) {
+	m := &conversations.Message{
+		ID:             "m1",
+		ConversationID: "c1",
+		Role:           conversations.RoleUser,
+		Content:        "hello",
+		Attachments: []conversations.MessageAttachment{
+			{ID: "a1", StorageKey: "key1", MimeType: "image/png", SizeBytes: 100, URL: "http://test/key1"},
+		},
+	}
+	dto := conversations.ToMessageResponse(m)
+	if len(dto.Attachments) != 1 {
+		t.Errorf("expected 1 attachment, got %d", len(dto.Attachments))
+	}
+	if dto.Attachments[0].ID != "a1" {
+		t.Errorf("expected attachment ID a1, got %s", dto.Attachments[0].ID)
+	}
+}
+
+// failingListRepo always errors on ListConversationsByOwner and ListMessages.
+type failingListRepo struct {
+	*fakeRepository
+}
+
+func (f *failingListRepo) ListConversationsByOwner(ctx context.Context, ownerUserID string) ([]*conversations.Conversation, error) {
+	return nil, errors.New("list convos error")
+}
+
+func (f *failingListRepo) ListMessages(ctx context.Context, conversationID string) ([]*conversations.Message, error) {
+	return nil, errors.New("list messages error")
+}
+
+func TestService_ListConversations_RepoError(t *testing.T) {
+	repo := &failingListRepo{fakeRepository: newFakeRepository()}
+	svc := newTestService(repo, &fakeResolver{})
+
+	_, err := svc.ListConversations(context.Background(), "user-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestService_ListMessages_RepoError(t *testing.T) {
+	repo := &failingListRepo{fakeRepository: newFakeRepository()}
+	svc := newTestService(repo, &fakeResolver{})
+	ctx := context.Background()
+
+	modelBlockID := "mb-1"
+	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+
+	_, err := svc.ListMessages(ctx, "user-1", created.ID)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+// failingCreateRepo always errors on CreateConversation.
+type failingCreateRepo struct {
+	*fakeRepository
+}
+
+func (f *failingCreateRepo) CreateConversation(ctx context.Context, c *conversations.Conversation) error {
+	return errors.New("create error")
+}
+
+func TestService_CreateConversation_RepoError(t *testing.T) {
+	repo := &failingCreateRepo{fakeRepository: newFakeRepository()}
+	svc := newTestService(repo, &fakeResolver{})
+
+	modelBlockID := "mb-1"
+	_, err := svc.CreateConversation(context.Background(), "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestService_DeleteConversation_NotFound(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo, &fakeResolver{})
+
+	err := svc.DeleteConversation(context.Background(), "user-1", "nonexistent")
+	if !errors.Is(err, conversations.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestService_PostMessage_NotFound(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo, &fakeResolver{})
+
+	_, err := svc.PostMessage(context.Background(), "user-1", "nonexistent", conversations.CreateMessageRequest{Content: "hello"})
+	if !errors.Is(err, conversations.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestBuildLLMMessages_WithToolCallsJSON(t *testing.T) {
+	toolCallsJSON := []byte(`[{"ID":"call_1","ToolName":"foo","Arguments":{}}]`)
+	messages := []*conversations.Message{
+		{ID: "m1", Role: conversations.RoleUser, Content: "hello"},
+		{ID: "m2", Role: conversations.RoleAssistant, Content: "let me check", ToolCallsJSON: toolCallsJSON},
+	}
+
+	result := conversations.BuildLLMMessages(messages)
+	// Should have system prompt + user + assistant = 3 messages
+	if len(result) != 3 {
+		t.Fatalf("expected 3 messages, got %d", len(result))
+	}
+	if result[0].Role != llm.RoleSystem {
+		t.Errorf("expected system prompt as first message, got role %s", result[0].Role)
+	}
+}
+
+func TestBuildLLMMessages_WithExistingSystemPrompt(t *testing.T) {
+	messages := []*conversations.Message{
+		{ID: "m0", Role: conversations.RoleSystem, Content: "custom system prompt"},
+		{ID: "m1", Role: conversations.RoleUser, Content: "hello"},
+	}
+
+	result := conversations.BuildLLMMessages(messages)
+	// Should NOT add a system prompt since one exists
+	if len(result) != 2 {
+		t.Fatalf("expected 2 messages (no extra system prompt), got %d", len(result))
+	}
+}

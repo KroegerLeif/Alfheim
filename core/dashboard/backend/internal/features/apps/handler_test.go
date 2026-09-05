@@ -525,6 +525,69 @@ func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
 			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
 		}
 	})
+
+	t.Run("returns 404 when link not found on update", func(t *testing.T) {
+		service := &mockAppService{
+			updateUserLinkFn: func(ctx context.Context, userID string, id string, req apps.UpdateUserLinkRequest) (*apps.AppItem, error) {
+				return nil, apps.ErrLinkNotFound
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		body, _ := json.Marshal(apps.UpdateUserLinkRequest{Title: "Title", URL: "http://example.com"})
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/nonexistent", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected status 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("returns 400 on invalid link inputs", func(t *testing.T) {
+		service := &mockAppService{
+			updateUserLinkFn: func(ctx context.Context, userID string, id string, req apps.UpdateUserLinkRequest) (*apps.AppItem, error) {
+				return nil, apps.ErrInvalidLinkInputs
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		body, _ := json.Marshal(apps.UpdateUserLinkRequest{Title: "", URL: ""})
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/l1", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("returns 500 on internal service error during update", func(t *testing.T) {
+		service := &mockAppService{
+			updateUserLinkFn: func(ctx context.Context, userID string, id string, req apps.UpdateUserLinkRequest) (*apps.AppItem, error) {
+				return nil, errors.New("db failure")
+			},
+		}
+		handler := apps.NewHandler(service)
+		claims := &middleware.UserClaims{Subject: "u1"}
+		r := chi.NewRouter()
+		handler.RegisterRoutes(r, mockAuthMW(claims, true))
+
+		body, _ := json.Marshal(apps.UpdateUserLinkRequest{Title: "Title", URL: "http://example.com"})
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/user/links/l1", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", rec.Code)
+		}
+	})
 }
 
 func TestAppsHandler_DeleteUserLink_SanitizedErrors(t *testing.T) {
@@ -557,7 +620,7 @@ func TestAppsHandler_DeleteUserLink_SanitizedErrors(t *testing.T) {
 		}
 	})
 
-	t.Run("returns 24 StatusNoContent on successful delete", func(t *testing.T) {
+	t.Run("returns 204 StatusNoContent on successful delete", func(t *testing.T) {
 		service := &mockAppService{
 			deleteUserLinkFn: func(ctx context.Context, userID string, id string) error {
 				return nil
@@ -576,6 +639,50 @@ func TestAppsHandler_DeleteUserLink_SanitizedErrors(t *testing.T) {
 
 		if rec.Code != http.StatusNoContent {
 			t.Errorf("expected status %d, got %d", http.StatusNoContent, rec.Code)
+		}
+	})
+
+	t.Run("returns 404 when link not found on delete", func(t *testing.T) {
+		service := &mockAppService{
+			deleteUserLinkFn: func(ctx context.Context, userID string, id string) error {
+				return apps.ErrLinkNotFound
+			},
+		}
+
+		handler := apps.NewHandler(service)
+		r := chi.NewRouter()
+		r.Delete("/api/v1/user/links/{id}", handler.DeleteUserLink)
+
+		req := httptest.NewRequest(http.MethodDelete, "/api/v1/user/links/nonexistent", nil)
+		req = req.WithContext(withAuthClaims(req.Context(), "user-123"))
+
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected status 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("returns 500 when service fails on delete", func(t *testing.T) {
+		service := &mockAppService{
+			deleteUserLinkFn: func(ctx context.Context, userID string, id string) error {
+				return errors.New("db delete failed")
+			},
+		}
+
+		handler := apps.NewHandler(service)
+		r := chi.NewRouter()
+		r.Delete("/api/v1/user/links/{id}", handler.DeleteUserLink)
+
+		req := httptest.NewRequest(http.MethodDelete, "/api/v1/user/links/link-1", nil)
+		req = req.WithContext(withAuthClaims(req.Context(), "user-123"))
+
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", rec.Code)
 		}
 	})
 }

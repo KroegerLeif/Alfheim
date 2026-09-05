@@ -201,4 +201,58 @@ func TestGetAttachment(t *testing.T) {
 			t.Errorf("expected ErrAttachmentNotFound, got %v", err)
 		}
 	})
+
+	t.Run("repo creation failure triggers storage delete rollback", func(t *testing.T) {
+		deletedKey := ""
+		mockStorage := &mockStorageClient{
+			uploadFunc: func(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
+				return nil
+			},
+			deleteFunc: func(ctx context.Context, key string) error {
+				deletedKey = key
+				return nil
+			},
+		}
+		mockRepo := &mockRepository{
+			createImageRefFunc: func(ctx context.Context, ref *ImageRef) error {
+				return errors.New("db insert failure")
+			},
+		}
+		svc := NewService(mockRepo, mockStorage, log)
+		_, err := svc.UploadAttachment(context.Background(), "user-1", nil, "photo.png", "image/png", bytes.NewReader(samplePNG), int64(len(samplePNG)))
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if deletedKey == "" {
+			t.Errorf("expected rollback delete to be called")
+		}
+	})
+}
+
+func TestEnsureStorageReady(t *testing.T) {
+	log := slog.Default()
+
+	t.Run("nil storage client", func(t *testing.T) {
+		svc := NewService(&mockRepository{}, nil, log)
+		if err := svc.EnsureStorageReady(context.Background()); err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+	})
+
+	t.Run("valid storage client calls EnsureBucketExists", func(t *testing.T) {
+		called := false
+		mockStorage := &mockStorageClient{
+			ensureBucketExistsFunc: func(ctx context.Context) error {
+				called = true
+				return nil
+			},
+		}
+		svc := NewService(&mockRepository{}, mockStorage, log)
+		if err := svc.EnsureStorageReady(context.Background()); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !called {
+			t.Errorf("expected EnsureBucketExists to be called")
+		}
+	})
 }

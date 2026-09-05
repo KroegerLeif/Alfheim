@@ -183,4 +183,41 @@ func TestKeycloakClient_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error updating user: %v", err)
 	}
+
+	// 4. GetUserByID with not-found user
+	_, err = client.GetUserByID(ctx, "u-not-found")
+	if err == nil {
+		t.Fatal("expected error for nonexistent user, got nil")
+	}
+
+	// 5. UpdateUser with not-found user
+	err = client.UpdateUser(ctx, gocloak.User{ID: gocloak.StringP("u-not-found")})
+	if err == nil {
+		t.Fatal("expected error for nonexistent user update, got nil")
+	}
+}
+
+func TestKeycloakClient_TokenFailureBranches(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	testLogger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	cfg := config.KeycloakConfig{
+		BaseURL: "http://127.0.0.1:59999/auth",
+	}
+	client := NewClient(cfg, testLogger)
+
+	t.Run("GetUserByID returns error when token fails", func(t *testing.T) {
+		_, err := client.GetUserByID(ctx, "u-1")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("UpdateUser returns error when token fails", func(t *testing.T) {
+		err := client.UpdateUser(ctx, gocloak.User{ID: gocloak.StringP("u-1")})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
 }

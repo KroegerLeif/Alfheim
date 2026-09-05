@@ -226,3 +226,84 @@ func Test3TierAppService_UserPreferences(t *testing.T) {
 		t.Errorf("expected [shopping, pantry], got %v", updated.HiddenAppIDs)
 	}
 }
+
+func Test3TierAppService_PermissionsAndValidationEdgeCases(t *testing.T) {
+	repo := newMockRepository()
+	stackLoader := &mockStackLoader{
+		apps: []apps.StackAppConfig{
+			{
+				ID:            "admin-tool",
+				Title:         "Admin Tool",
+				URL:           "http://admin.local",
+				RequiredRoles: []string{"role_admin"},
+			},
+		},
+	}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := apps.NewService(repo, stackLoader, logger)
+	ctx := context.Background()
+
+	t.Run("alfheim_admin sees all stack apps", func(t *testing.T) {
+		resp, err := svc.GetDashboardApps(ctx, "user-admin", []string{"alfheim_admin"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		found := false
+		for _, a := range resp.Stack {
+			if a.ID == "admin-tool" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected alfheim_admin to see admin-tool")
+		}
+	})
+
+	t.Run("matching required role sees stack app", func(t *testing.T) {
+		resp, err := svc.GetDashboardApps(ctx, "user-role", []string{"role_admin"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		found := false
+		for _, a := range resp.Stack {
+			if a.ID == "admin-tool" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected user with role_admin to see admin-tool")
+		}
+	})
+
+	t.Run("non-matching role does not see stack app", func(t *testing.T) {
+		resp, err := svc.GetDashboardApps(ctx, "user-regular", []string{"viewer"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		for _, a := range resp.Stack {
+			if a.ID == "admin-tool" {
+				t.Errorf("did not expect regular viewer to see admin-tool")
+			}
+		}
+	})
+
+	t.Run("CreateUserLink invalid inputs", func(t *testing.T) {
+		_, err := svc.CreateUserLink(ctx, "user-1", apps.CreateUserLinkRequest{Title: "", URL: "http://example.com"})
+		if err != apps.ErrInvalidLinkInputs {
+			t.Errorf("expected ErrInvalidLinkInputs, got %v", err)
+		}
+		_, err = svc.CreateUserLink(ctx, "user-1", apps.CreateUserLinkRequest{Title: "Title", URL: ""})
+		if err != apps.ErrInvalidLinkInputs {
+			t.Errorf("expected ErrInvalidLinkInputs, got %v", err)
+		}
+	})
+
+	t.Run("UpdateUserLink not found for nonexistent link", func(t *testing.T) {
+		_, err := svc.UpdateUserLink(ctx, "user-1", "nonexistent-link", apps.UpdateUserLinkRequest{Title: "Title", URL: "http://example.com"})
+		if err != apps.ErrLinkNotFound {
+			t.Errorf("expected ErrLinkNotFound, got %v", err)
+		}
+	})
+}

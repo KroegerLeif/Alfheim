@@ -804,3 +804,26 @@ func TestHouseholdHandler_RegisterRoutes(t *testing.T) {
 		t.Errorf("expected status 200 from registered route, got %d", rec.Code)
 	}
 }
+
+func TestHouseholdHandler_MissingHouseholdID(t *testing.T) {
+	handler := NewHandler(&mockService{})
+	ctx := context.WithValue(context.Background(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"})
+
+	t.Run("GetHouseholdDetails missing id", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/details", nil).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.GetHouseholdDetails(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("UpdateHouseholdAddress missing id", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPut, "/address", strings.NewReader(`{"city":"Test"}`)).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.UpdateHouseholdAddress(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+}

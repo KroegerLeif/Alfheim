@@ -1,9 +1,14 @@
 package mcpservers_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -270,5 +275,121 @@ func TestService_DiagnoseServers(t *testing.T) {
 				t.Errorf("expected chores to be disabled and unreachable, got %+v", d)
 			}
 		}
+	}
+}
+
+// errorRepo always returns errors for all methods.
+type errorRepo struct {
+	err error
+}
+
+func (e *errorRepo) UpsertFromSeed(ctx context.Context, appSlug, internalURL string) error {
+	return e.err
+}
+func (e *errorRepo) List(ctx context.Context) ([]*mcpservers.Server, error) {
+	return nil, e.err
+}
+func (e *errorRepo) ListEnabled(ctx context.Context) ([]*mcpservers.Server, error) {
+	return nil, e.err
+}
+func (e *errorRepo) GetByID(ctx context.Context, id string) (*mcpservers.Server, error) {
+	return nil, e.err
+}
+func (e *errorRepo) SetEnabled(ctx context.Context, id string, enabled bool) error {
+	return e.err
+}
+
+func TestService_ListRepoError(t *testing.T) {
+	svc := newTestService(&errorRepo{err: errors.New("db error")})
+	_, err := svc.List(context.Background())
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestService_ListEnabledServersRepoError(t *testing.T) {
+	svc := newTestService(&errorRepo{err: errors.New("db error")})
+	_, err := svc.ListEnabledServers(context.Background())
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestService_SeedFromEnv_UpsertError(t *testing.T) {
+	svc := newTestService(&errorRepo{err: errors.New("upsert error")})
+	err := svc.SeedFromEnv(context.Background(), "app=http://app:8080")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestService_DiagnoseServers_RepoError(t *testing.T) {
+	svc := newTestService(&errorRepo{err: errors.New("db error")})
+	_, err := svc.DiagnoseServers(context.Background(), &fakeDiagPool{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestHandler_ListServiceError(t *testing.T) {
+	svc := newTestService(&errorRepo{err: errors.New("db error")})
+	router := newTestRouter(svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/mcp-servers", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", rec.Code)
+	}
+}
+
+func TestHandler_DiagnosticsServiceError(t *testing.T) {
+	svc := newTestService(&errorRepo{err: errors.New("db error")})
+	router := newTestRouter(svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/mcp-servers/diagnostics", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", rec.Code)
+	}
+}
+
+func TestHandler_SetEnabled_BadJSON(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	router := newTestRouter(svc)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/chat/mcp-servers/s1", bytes.NewReader([]byte("invalid")))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestHandler_SetEnabled_InternalError(t *testing.T) {
+	svc := newTestService(&errorRepo{err: errors.New("db error")})
+	router := newTestRouter(svc)
+
+	body, _ := json.Marshal(mcpservers.SetEnabledRequest{Enabled: true})
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/chat/mcp-servers/s1", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", rec.Code)
+	}
+}
+
+func TestService_SeedFromEnv_SkipsEmptyEntries(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	// Spec with empty entries between commas
+	if err := svc.SeedFromEnv(context.Background(), "app=http://app:8080,,"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	list, _ := svc.List(context.Background())
+	if len(list) != 1 {
+		t.Errorf("expected 1 server, got %d", len(list))
 	}
 }

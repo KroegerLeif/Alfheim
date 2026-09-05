@@ -29,11 +29,34 @@ import (
 	"alfheim/chat/internal/shared/storage"
 )
 
+var (
+	osExit          = os.Exit
+	configLoad      = config.Load
+	newDBClient     = db.NewClient
+	setupAuth       = setupAuthenticator
+	newStorage      = storage.NewClient
+	ensureBootstrap = func(ctx context.Context, s modelblocks.Service, seed modelblocks.BootstrapSeed) error {
+		return s.EnsureBootstrap(ctx, seed)
+	}
+	seedMCPServers = func(ctx context.Context, s mcpservers.Service, spec string) error {
+		return s.SeedFromEnv(ctx, spec)
+	}
+	diagnoseMCPServers = func(ctx context.Context, s mcpservers.Service, pool mcpservers.MCPClientPool) ([]mcpservers.ServerDiagnosticDTO, error) {
+		return s.DiagnoseServers(ctx, pool)
+	}
+)
+
 func main() {
-	cfg, err := config.Load()
+	if err := run(context.Background()); err != nil {
+		fmt.Printf("application stopped with error: %v\n", err)
+		osExit(1)
+	}
+}
+
+func run(parentCtx context.Context) error {
+	cfg, err := configLoad()
 	if err != nil {
-		fmt.Printf("failed to load application configuration: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to load application configuration: %w", err)
 	}
 
 	log := logger.Init(cfg.Environment)
@@ -42,14 +65,14 @@ func main() {
 		slog.String("port", cfg.Port),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(parentCtx, 30*time.Second)
 	defer cancel()
 
 	// Initialize PostgreSQL DB Pool
-	dbClient, err := db.NewClient(ctx, cfg.Database, log)
+	dbClient, err := newDBClient(ctx, cfg.Database, log)
 	if err != nil {
 		log.Error("failed to connect to database", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	defer dbClient.Close()
 
@@ -59,10 +82,10 @@ func main() {
 	}
 
 	// OIDC JWT Authenticator (validates issuer AND audience against Keycloak JWKS).
-	auth, err := setupAuthenticator(cfg, log)
+	auth, err := setupAuth(cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 	authMw := auth.AuthenticateMiddleware
 
@@ -72,14 +95,14 @@ func main() {
 	modelBlocksHandler := modelblocks.NewHandler(modelBlocksService)
 
 	// Seed the ENV-configured fallback model block on first startup only.
-	if err := modelBlocksService.EnsureBootstrap(ctx, modelblocks.BootstrapSeed{
+	if err := ensureBootstrap(ctx, modelBlocksService, modelblocks.BootstrapSeed{
 		Provider:      cfg.Bootstrap.Provider,
 		OllamaBaseURL: cfg.Bootstrap.OllamaBaseURL,
 		OllamaModel:   cfg.Bootstrap.OllamaModel,
 		APIKey:        cfg.Bootstrap.APIKey,
 	}); err != nil {
 		log.Error("failed to seed bootstrap model block", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to seed bootstrap model block: %w", err)
 	}
 
 	// MCP Servers Registry (bridges to the Fach-Apps' FastMCP servers)
@@ -88,16 +111,16 @@ func main() {
 	mcpClientPool := mcp.NewClientPool()
 	mcpServersHandler := mcpservers.NewHandler(mcpServersService, mcpClientPool)
 
-	if err := mcpServersService.SeedFromEnv(ctx, cfg.MCPServersSpec); err != nil {
+	if err := seedMCPServers(ctx, mcpServersService, cfg.MCPServersSpec); err != nil {
 		log.Error("failed to seed mcp server registry from CHAT_MCP_SERVERS", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to seed mcp server registry: %w", err)
 	}
 
 	// Non-blocking background health diagnostic for all registered MCP servers
 	go func() {
-		diagCtx, diagCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		diagCtx, diagCancel := context.WithTimeout(parentCtx, 10*time.Second)
 		defer diagCancel()
-		diags, err := mcpServersService.DiagnoseServers(diagCtx, mcpClientPool)
+		diags, err := diagnoseMCPServers(diagCtx, mcpServersService, mcpClientPool)
 		if err != nil {
 			log.Warn("startup mcp server diagnostic check encountered error", slog.String("error", err.Error()))
 			return
@@ -121,7 +144,7 @@ func main() {
 	}()
 
 	// S3 / RustFS Storage Client
-	storageClient, err := storage.NewClient(ctx, cfg.Storage)
+	storageClient, err := newStorage(ctx, cfg.Storage)
 	if err != nil {
 		log.Warn("failed to initialize storage client; attachments may be unavailable", slog.String("error", err.Error()))
 	}
@@ -140,26 +163,9 @@ func main() {
 	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, log)
 	conversationsHandler := conversations.NewHandler(conversationsService)
 
-	// Router Setup
-	r := chi.NewRouter()
-	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.CORS)
-	r.Use(middleware.RequestLogger(log))
-
-	// Health Check Endpoint (unauthenticated, mirrors the compose healthcheck path
-	// used by the other FastAPI backends: /api/v1/health, scoped here under /chat).
-	r.Get("/api/v1/chat/health", healthHandler(dbClient))
-
-	// Feature Domain Routes
-	modelBlocksHandler.RegisterRoutes(r, authMw)
-	conversationsHandler.RegisterRoutes(r, authMw)
-	mcpServersHandler.RegisterRoutes(r, authMw)
-	attachmentsHandler.RegisterRoutes(r, authMw)
+	r := buildRouter(log, dbClient, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler)
 
 	// HTTP Server & Graceful Shutdown.
-	// WriteTimeout is generous because the SSE streaming endpoint holds the response
-	// open for as long as the model takes to finish generating; ReadTimeout stays
-	// short since it only bounds reading the (small) request body/headers.
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,
@@ -168,7 +174,7 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	g, gCtx := errgroup.WithContext(context.Background())
+	g, gCtx := errgroup.WithContext(parentCtx)
 
 	g.Go(func() error {
 		log.Info("http server listening", slog.String("port", cfg.Port))
@@ -184,6 +190,9 @@ func main() {
 
 		select {
 		case <-gCtx.Done():
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer shutdownCancel()
+			_ = srv.Shutdown(shutdownCtx)
 			return gCtx.Err()
 		case sig := <-shutdownSignal:
 			log.Info("received shutdown signal, initiating graceful stop", slog.String("signal", sig.String()))
@@ -201,10 +210,45 @@ func main() {
 
 	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 		log.Error("application stopped with error", slog.String("error", err.Error()))
-		os.Exit(1)
+		return err
 	}
 
 	log.Info("chat-backend service stopped cleanly")
+	return nil
+}
+
+// buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
+func buildRouter(
+	log *slog.Logger,
+	dbClient *db.Client,
+	authMw func(http.Handler) http.Handler,
+	modelBlocksHandler *modelblocks.Handler,
+	conversationsHandler *conversations.Handler,
+	mcpServersHandler *mcpservers.Handler,
+	attachmentsHandler *attachments.Handler,
+) http.Handler {
+	r := chi.NewRouter()
+	r.Use(chimiddleware.Recoverer)
+	r.Use(middleware.CORS)
+	r.Use(middleware.RequestLogger(log))
+
+	r.Get("/api/v1/chat/health", healthHandler(dbClient))
+
+	if authMw != nil {
+		if modelBlocksHandler != nil {
+			modelBlocksHandler.RegisterRoutes(r, authMw)
+		}
+		if conversationsHandler != nil {
+			conversationsHandler.RegisterRoutes(r, authMw)
+		}
+		if mcpServersHandler != nil {
+			mcpServersHandler.RegisterRoutes(r, authMw)
+		}
+		if attachmentsHandler != nil {
+			attachmentsHandler.RegisterRoutes(r, authMw)
+		}
+	}
+	return r
 }
 
 // setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
@@ -217,7 +261,7 @@ func healthHandler(dbClient *db.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := dbClient.Pool.Ping(r.Context()); err != nil {
+		if dbClient == nil || dbClient.Pool == nil || dbClient.Pool.Ping(r.Context()) != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_ = json.NewEncoder(w).Encode(map[string]string{
 				"status":   "degraded",

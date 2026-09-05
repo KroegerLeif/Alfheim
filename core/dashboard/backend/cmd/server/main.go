@@ -28,10 +28,16 @@ import (
 	"alfheim/dashboard/internal/shared/middleware"
 )
 
+var (
+	osExit      = os.Exit
+	newDBClient = db.NewClient
+	setupAuth   = setupAuthenticator
+)
+
 func main() {
 	if err := run(context.Background()); err != nil {
 		fmt.Printf("application stopped with error: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 }
 
@@ -51,7 +57,7 @@ func run(parentCtx context.Context) error {
 	defer cancel()
 
 	// Initialize PostgreSQL DB Pool
-	dbClient, err := db.NewClient(ctx, cfg.Database, log)
+	dbClient, err := newDBClient(ctx, cfg.Database, log)
 	if err != nil {
 		log.Error("failed to connect to database", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to connect to database: %w", err)
@@ -65,7 +71,7 @@ func run(parentCtx context.Context) error {
 
 	// Keycloak Admin client & Authenticator
 	kcClient := keycloak.NewClient(cfg.Keycloak, log)
-	auth, err := setupAuthenticator(cfg, log)
+	auth, err := setupAuth(cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to initialize authenticator: %w", err)

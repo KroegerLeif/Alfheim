@@ -265,3 +265,157 @@ func TestOpenAICompatibleProvider_HealthCheck(t *testing.T) {
 		}
 	})
 }
+
+func TestOpenAICompatibleProvider_ReplayMessagesAndErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"content\":\"OK\"},\"index\":0}]}\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer server.Close()
+
+	provider := NewOpenAICompatibleProvider(server.URL, "gpt-4.1", "sk-test")
+
+	// Message sequence covering System, User, Assistant with ToolCalls (including unmarshalable args), and Tool result with ToolCallID
+	req := ChatRequest{
+		Messages: []Message{
+			{Role: RoleSystem, Content: "You are a helpful assistant."},
+			{Role: RoleUser, Content: "Find something"},
+			{
+				Role: RoleAssistant,
+				ToolCalls: []ToolCallRequest{
+					{
+						ID:        "tc-1",
+						ToolName:  "tool1",
+						Arguments: map[string]any{"key": "val"},
+					},
+					{
+						ID:        "tc-2",
+						ToolName:  "tool2",
+						Arguments: map[string]any{"bad": make(chan int)}, // forces marshal error -> "{}"
+					},
+				},
+			},
+			{
+				Role:       RoleTool,
+				Content:    `{"result":"found"}`,
+				ToolCallID: "tc-1",
+			},
+		},
+		Stream: true,
+	}
+
+	ch, err := provider.ChatStream(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	chunks := drainStream(t, ch, 2*time.Second)
+	if len(chunks) == 0 {
+		t.Fatal("expected chunks from stream")
+	}
+
+	// Server returning 500 error
+	errServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal openai error"))
+	}))
+	defer errServer.Close()
+
+	errProvider := NewOpenAICompatibleProvider(errServer.URL, "gpt-4.1", "sk-test")
+	_, err = errProvider.ChatStream(context.Background(), ChatRequest{
+		Messages: []Message{{Role: RoleUser, Content: "hi"}},
+		Stream:   true,
+	})
+	if err == nil {
+		t.Errorf("expected error when openai server returns 500, got nil")
+	}
+}
+
+func TestOpenAICompatibleProvider_EdgeCases(t *testing.T) {
+	t.Run("returns error when server connection fails in ChatStream", func(t *testing.T) {
+		p := NewOpenAICompatibleProvider("http://127.0.0.1:54321", "gpt-4.1", "sk-test")
+		_, err := p.ChatStream(context.Background(), ChatRequest{
+			Messages: []Message{{Role: RoleUser, Content: "hi"}},
+			Stream:   true,
+		})
+		if err == nil {
+			t.Errorf("expected connection error, got nil")
+		}
+	})
+
+	t.Run("handles corrupt json in health check", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`not-json`))
+		}))
+		defer server.Close()
+
+		p := NewOpenAICompatibleProvider(server.URL, "gpt-4.1", "sk-test")
+		res := p.HealthCheck(context.Background())
+		if res.Status != HealthStatusUnknown {
+			t.Errorf("expected HealthStatusUnknown on corrupt json, got %s", res.Status)
+		}
+	})
+
+	t.Run("handles malformed json in stream chunk", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			fmt.Fprint(w, "data: not-json\n\n")
+		}))
+		defer server.Close()
+
+		p := NewOpenAICompatibleProvider(server.URL, "gpt-4.1", "sk-test")
+		ch, err := p.ChatStream(context.Background(), ChatRequest{
+			Messages: []Message{{Role: RoleUser, Content: "hi"}},
+			Stream:   true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		chunks := drainStream(t, ch, 2*time.Second)
+		foundErr := false
+		for _, c := range chunks {
+			if c.Err != nil {
+				foundErr = true
+				break
+			}
+		}
+		if !foundErr {
+			t.Errorf("expected error chunk for malformed stream line")
+		}
+	})
+
+	t.Run("handles tool call with empty ID and corrupt args falling back cleanly", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			// No id supplied -> fallback to call_%d
+			fmt.Fprint(w, `data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"name":"foo","arguments":"not-json-args"}}]},"index":0}]}`+"\n\n")
+			// Empty choices with usage
+			fmt.Fprint(w, `data: {"choices":[],"usage":{"total_tokens":10}}`+"\n\n")
+			fmt.Fprint(w, "data: [DONE]\n\n")
+		}))
+		defer server.Close()
+
+		p := NewOpenAICompatibleProvider(server.URL, "gpt-4.1", "sk-test")
+		ch, err := p.ChatStream(context.Background(), ChatRequest{
+			Messages: []Message{{Role: RoleUser, Content: "hi"}},
+			Stream:   true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		chunks := drainStream(t, ch, 2*time.Second)
+		var tc *ToolCallRequest
+		for _, c := range chunks {
+			if c.ToolCall != nil {
+				tc = c.ToolCall
+			}
+		}
+		if tc == nil {
+			t.Fatal("expected tool call chunk")
+		}
+		if tc.ID != "call_0" {
+			t.Errorf("expected fallback ID call_0, got %s", tc.ID)
+		}
+	})
+}

@@ -160,6 +160,87 @@ func TestRepository_Households(t *testing.T) {
 		}
 	})
 
+	t.Run("CreateHouseholdTx failure branches", func(t *testing.T) {
+		// 1. Begin error
+		dbtxBeginErr := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) {
+				return nil, errors.New("cannot begin tx")
+			},
+		}
+		repo := newRepositoryWithDB(dbtxBeginErr)
+		err := repo.CreateHouseholdTx(ctx, &Household{ID: "h1"}, "email", "user")
+		if err == nil {
+			t.Fatal("expected error on begin failure")
+		}
+
+		// 2. ensureUserProfile error
+		mtxExecErr := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("profile exec failed")
+			},
+		}
+		repo = newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtxExecErr, nil }})
+		err = repo.CreateHouseholdTx(ctx, &Household{ID: "h1"}, "email", "user")
+		if err == nil {
+			t.Fatal("expected error on profile exec failure")
+		}
+
+		// 3. insertHousehold unique slug violation (23505)
+		mtxSlugErr := &mockTx{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error {
+					return &pgconn.PgError{Code: "23505"}
+				}}
+			},
+		}
+		repo = newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtxSlugErr, nil }})
+		err = repo.CreateHouseholdTx(ctx, &Household{ID: "h1"}, "email", "user")
+		if !errors.Is(err, ErrHouseholdSlugExists) {
+			t.Fatalf("expected ErrHouseholdSlugExists, got %v", err)
+		}
+
+		// 4. insertHousehold other error
+		mtxHhErr := &mockTx{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error {
+					return errors.New("insert household failed")
+				}}
+			},
+		}
+		repo = newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtxHhErr, nil }})
+		err = repo.CreateHouseholdTx(ctx, &Household{ID: "h1"}, "email", "user")
+		if err == nil {
+			t.Fatal("expected error on insert household failure")
+		}
+
+		// 5. insertOwnerMember error
+		calls := 0
+		mtxOwnerErr := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				calls++
+				if calls > 1 {
+					return pgconn.NewCommandTag(""), errors.New("owner member assign failed")
+				}
+				return pgconn.NewCommandTag(""), nil
+			},
+		}
+		repo = newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtxOwnerErr, nil }})
+		err = repo.CreateHouseholdTx(ctx, &Household{ID: "h1"}, "email", "user")
+		if err == nil {
+			t.Fatal("expected error on owner member failure")
+		}
+
+		// 6. Commit error
+		mtxCommitErr := &mockTx{
+			commitErr: errors.New("commit failed"),
+		}
+		repo = newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtxCommitErr, nil }})
+		err = repo.CreateHouseholdTx(ctx, &Household{ID: "h1"}, "email", "user")
+		if err == nil {
+			t.Fatal("expected error on commit failure")
+		}
+	})
+
 	t.Run("GetHouseholdByID not found and success", func(t *testing.T) {
 		dbtxNF := &mockDBTX{
 			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
@@ -345,6 +426,111 @@ func TestRepository_Members(t *testing.T) {
 		}
 		if err := repo.RemoveMember(ctx, "h1", "u1"); err != nil {
 			t.Fatalf("unexpected RemoveMember err: %v", err)
+		}
+	})
+	t.Run("Members error branches", func(t *testing.T) {
+		dbErr := errors.New("database failure")
+		dbtxErr := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return dbErr }}
+			},
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return nil, dbErr
+			},
+		}
+		repo := newRepositoryWithDB(dbtxErr)
+
+		if err := repo.AddMember(ctx, &Member{HouseholdID: "h1", UserID: "u1"}); err == nil {
+			t.Error("expected error from AddMember")
+		}
+		if err := repo.RemoveMember(ctx, "h1", "u1"); err == nil {
+			t.Error("expected error from RemoveMember")
+		}
+		if err := repo.UpdateMemberRole(ctx, "h1", "u1", RoleAdmin); err == nil {
+			t.Error("expected error from UpdateMemberRole")
+		}
+		if _, err := repo.GetMemberRole(ctx, "h1", "u1"); err == nil {
+			t.Error("expected error from GetMemberRole")
+		}
+		if _, err := repo.GetMembers(ctx, "h1"); err == nil {
+			t.Error("expected error from GetMembers")
+		}
+
+		// Test GetMemberRole pgx.ErrNoRows returns ErrUnauthorizedHouseholdAccess
+		dbtxNoRows := &mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return pgx.ErrNoRows }}
+			},
+		}
+		repoNoRows := newRepositoryWithDB(dbtxNoRows)
+		if _, err := repoNoRows.GetMemberRole(ctx, "h1", "u1"); !errors.Is(err, ErrUnauthorizedHouseholdAccess) {
+			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
+		}
+	})
+}
+
+func TestRepository_InvitesAndAddressErrors(t *testing.T) {
+	ctx := context.Background()
+	dbErr := errors.New("db failure")
+
+	t.Run("CreateInvite error", func(t *testing.T) {
+		repo := newRepositoryWithDB(&mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+		})
+		err := repo.CreateInvite(ctx, &Invite{HouseholdID: "h1"})
+		if err == nil {
+			t.Fatal("expected error from CreateInvite")
+		}
+	})
+
+	t.Run("GetInviteByToken underlying DB error", func(t *testing.T) {
+		repo := newRepositoryWithDB(&mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return dbErr }}
+			},
+		})
+		_, err := repo.GetInviteByToken(ctx, "token")
+		if err == nil || errors.Is(err, ErrInviteNotFound) {
+			t.Fatalf("expected DB error, got %v", err)
+		}
+	})
+
+	t.Run("IncrementInviteUses error", func(t *testing.T) {
+		repo := newRepositoryWithDB(&mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+		})
+		err := repo.IncrementInviteUses(ctx, "token")
+		if err == nil {
+			t.Fatal("expected error from IncrementInviteUses")
+		}
+	})
+
+	t.Run("UpdateHouseholdAddress 0 rows affected and error", func(t *testing.T) {
+		repoZero := newRepositoryWithDB(&mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag("UPDATE 0"), nil
+			},
+		})
+		err := repoZero.UpdateHouseholdAddress(ctx, "h1", "st", "1000", "City", "CH", nil, nil)
+		if !errors.Is(err, ErrHouseholdNotFound) {
+			t.Errorf("expected ErrHouseholdNotFound, got %v", err)
+		}
+
+		repoErr := newRepositoryWithDB(&mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), dbErr
+			},
+		})
+		err = repoErr.UpdateHouseholdAddress(ctx, "h1", "st", "1000", "City", "CH", nil, nil)
+		if err == nil || errors.Is(err, ErrHouseholdNotFound) {
+			t.Errorf("expected DB error, got %v", err)
 		}
 	})
 }

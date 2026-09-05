@@ -31,6 +31,10 @@ type Client struct {
 	log  *slog.Logger
 }
 
+var newPoolWithConfig = func(ctx context.Context, config *pgxpool.Config) (*pgxpool.Pool, error) {
+	return pgxpool.NewWithConfig(ctx, config)
+}
+
 // NewClient initializes a pgxpool PostgreSQL connection pool and verifies connectivity.
 func NewClient(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*Client, error) {
 	poolCfg, err := pgxpool.ParseConfig(cfg.URL)
@@ -42,7 +46,7 @@ func NewClient(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger)
 	poolCfg.MinConns = cfg.MinConns
 	poolCfg.MaxConnLifetime = cfg.MaxConnLifetime
 
-	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
+	pool, err := newPoolWithConfig(ctx, poolCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create postgresql connection pool: %w", err)
 	}
@@ -63,6 +67,15 @@ func NewClient(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger)
 	}, nil
 }
 
+type migrator interface {
+	Up() error
+	Close() (error, error)
+}
+
+var newMigrate = func(sourceURL, dbURL string) (migrator, error) {
+	return migrate.New(sourceURL, dbURL)
+}
+
 // RunMigrations executes up-migrations located in the specified directory using golang-migrate.
 func (c *Client) RunMigrations(dbURL string, migrationsDir string) error {
 	absPath, err := filepath.Abs(migrationsDir)
@@ -71,7 +84,7 @@ func (c *Client) RunMigrations(dbURL string, migrationsDir string) error {
 	}
 
 	sourceURL := fmt.Sprintf("file://%s", absPath)
-	m, err := migrate.New(sourceURL, dbURL)
+	m, err := newMigrate(sourceURL, dbURL)
 	if err != nil {
 		return fmt.Errorf("failed to create golang-migrate instance: %w", err)
 	}
