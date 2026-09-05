@@ -224,6 +224,14 @@ func TestHouseholdService_GetUserHouseholds(t *testing.T) {
 	if len(list) != 2 {
 		t.Errorf("expected 2 households, got %d", len(list))
 	}
+
+	emptyList, err := svc.GetUserHouseholds(ctx, "nonexistent-user")
+	if err != nil {
+		t.Fatalf("expected no error for nonexistent user, got %v", err)
+	}
+	if len(emptyList) != 0 {
+		t.Errorf("expected 0 households, got %d", len(emptyList))
+	}
 }
 
 func TestHouseholdService_UpdateMemberRole(t *testing.T) {
@@ -405,4 +413,31 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 			t.Errorf("expected ErrUnauthorizedHouseholdAccess, got %v", err)
 		}
 	})
+
+	t.Run("CreateHousehold validation edge cases", func(t *testing.T) {
+		claims := &middleware.UserClaims{Subject: "u1", Email: "u1@e.com", PreferredUsername: "u1"}
+		_, err := svc.CreateHousehold(ctx, claims, household.CreateHouseholdRequest{Name: ""})
+		if err == nil {
+			t.Fatal("expected error on empty household name, got nil")
+		}
+
+		_, err = svc.CreateHousehold(ctx, claims, household.CreateHouseholdRequest{Name: "???"})
+		if err == nil {
+			t.Fatal("expected error on invalid slug characters, got nil")
+		}
+	})
+
+	t.Run("RemoveMember cannot remove owner and self removal allowed", func(t *testing.T) {
+		err := svc.RemoveMember(ctx, ownerID, hhID, ownerID)
+		if err != household.ErrCannotRemoveOwner {
+			t.Errorf("expected ErrCannotRemoveOwner, got %v", err)
+		}
+
+		// User leaving household
+		err = svc.RemoveMember(ctx, memberID, hhID, memberID)
+		if err != nil {
+			t.Errorf("expected member to be able to leave household, got %v", err)
+		}
+	})
 }
+

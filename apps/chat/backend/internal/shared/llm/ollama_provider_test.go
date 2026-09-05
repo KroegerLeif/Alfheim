@@ -242,3 +242,200 @@ func TestNewProvider(t *testing.T) {
 		}
 	})
 }
+
+func TestNormalizeOllamaBaseURL(t *testing.T) {
+	if got := NormalizeOllamaBaseURL(""); got != DefaultOllamaBaseURL {
+		t.Errorf("expected default URL, got %s", got)
+	}
+	if got := NormalizeOllamaBaseURL("  "); got != DefaultOllamaBaseURL {
+		t.Errorf("expected default URL for whitespace, got %s", got)
+	}
+	if got := NormalizeOllamaBaseURL("localhost:11434/"); got != "http://localhost:11434" {
+		t.Errorf("expected prefixed scheme, got %s", got)
+	}
+	if got := NormalizeOllamaBaseURL("https://my-ollama.internal:11434/"); got != "https://my-ollama.internal:11434" {
+		t.Errorf("expected https scheme preserved, got %s", got)
+	}
+}
+
+func TestOllamaProvider_ChatStream_ReplayAssistantToolCallsAndErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-ndjson")
+		fmt.Fprintln(w, `{"message":{"role":"assistant","content":"Done"},"done":true}`)
+	}))
+	defer server.Close()
+
+	provider := NewOllamaProvider(server.URL, "llama3.1:8b", "")
+
+	// Replay assistant tool calls
+	req := ChatRequest{
+		Messages: []Message{
+			{
+				Role: RoleAssistant,
+				ToolCalls: []ToolCallRequest{
+					{
+						ID:       "call-1",
+						ToolName: "test_tool",
+						Arguments: map[string]any{
+							"param": "value",
+						},
+					},
+				},
+			},
+			{
+				Role:    RoleUser,
+				Content: "continue",
+			},
+		},
+		Tools: []ToolDefinition{
+			{Name: "test_tool", Description: "desc", Parameters: map[string]any{"type": "object"}},
+		},
+		Stream: true,
+	}
+
+	ch, err := provider.ChatStream(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	chunks := drainStream(t, ch, 2*time.Second)
+	if len(chunks) == 0 {
+		t.Fatal("expected at least one chunk")
+	}
+
+	// Test non-200 error from server
+	errServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal error"))
+	}))
+	defer errServer.Close()
+
+	errProvider := NewOllamaProvider(errServer.URL, "llama3.1:8b", "")
+	_, err = errProvider.ChatStream(context.Background(), ChatRequest{
+		Messages: []Message{{Role: RoleUser, Content: "hi"}},
+		Stream:   true,
+	})
+	if err == nil {
+		t.Errorf("expected error when server returns 500, got nil")
+	}
+}
+
+func TestOllamaProvider_EdgeCases(t *testing.T) {
+	t.Run("sends auth header when apiKey is configured", func(t *testing.T) {
+		var receivedAuth string
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedAuth = r.Header.Get("Authorization")
+			w.Header().Set("Content-Type", "application/x-ndjson")
+			fmt.Fprintln(w, `{"message":{"role":"assistant","content":"ok"},"done":true}`)
+		}))
+		defer server.Close()
+
+		p := NewOllamaProvider(server.URL, "llama3.1:8b", "secret-token")
+		ch, err := p.ChatStream(context.Background(), ChatRequest{
+			Messages: []Message{{Role: RoleUser, Content: "hi"}},
+			Stream:   true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		drainStream(t, ch, 2*time.Second)
+		if receivedAuth != "Bearer secret-token" {
+			t.Errorf("expected auth header Bearer secret-token, got %s", receivedAuth)
+		}
+
+		// HealthCheck with auth
+		serverHealth := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Authorization") != "Bearer secret-token" {
+				t.Errorf("expected auth header on health check, got %s", r.Header.Get("Authorization"))
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"models":[]}`))
+		}))
+		defer serverHealth.Close()
+
+		pHealth := NewOllamaProvider(serverHealth.URL, "llama3.1:8b", "secret-token")
+		res := pHealth.HealthCheck(context.Background())
+		if res.Status != HealthStatusOK {
+			t.Errorf("expected HealthStatusOK, got %s", res.Status)
+		}
+	})
+
+	t.Run("handles corrupt json in health check", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`not valid json`))
+		}))
+		defer server.Close()
+
+		p := NewOllamaProvider(server.URL, "llama3.1:8b", "")
+		res := p.HealthCheck(context.Background())
+		if res.Status != HealthStatusUnknown {
+			t.Errorf("expected unknown status on corrupt json, got %s", res.Status)
+		}
+	})
+
+	t.Run("handles stream ending without done flag cleanly", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/x-ndjson")
+			fmt.Fprintln(w, "") // empty line
+			fmt.Fprintln(w, `{"message":{"role":"assistant","content":"partial content"}}`)
+			// Stream closes without done: true
+		}))
+		defer server.Close()
+
+		p := NewOllamaProvider(server.URL, "llama3.1:8b", "")
+		ch, err := p.ChatStream(context.Background(), ChatRequest{
+			Messages: []Message{{Role: RoleUser, Content: "hi"}},
+			Stream:   true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		chunks := drainStream(t, ch, 2*time.Second)
+		if len(chunks) == 0 {
+			t.Fatal("expected chunks")
+		}
+		last := chunks[len(chunks)-1]
+		if !last.Done {
+			t.Errorf("expected last chunk to be marked done")
+		}
+	})
+
+	t.Run("returns error when server connection fails in ChatStream", func(t *testing.T) {
+		p := NewOllamaProvider("http://127.0.0.1:54321", "llama3.1:8b", "")
+		_, err := p.ChatStream(context.Background(), ChatRequest{
+			Messages: []Message{{Role: RoleUser, Content: "hi"}},
+			Stream:   true,
+		})
+		if err == nil {
+			t.Errorf("expected connection error, got nil")
+		}
+	})
+
+	t.Run("handles corrupt json line midstream", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/x-ndjson")
+			fmt.Fprintln(w, `{"message":{"role":"assistant","content":"start"}`) // malformed JSON
+		}))
+		defer server.Close()
+
+		p := NewOllamaProvider(server.URL, "llama3.1:8b", "")
+		ch, err := p.ChatStream(context.Background(), ChatRequest{
+			Messages: []Message{{Role: RoleUser, Content: "hi"}},
+			Stream:   true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		chunks := drainStream(t, ch, 2*time.Second)
+		foundErr := false
+		for _, c := range chunks {
+			if c.Err != nil {
+				foundErr = true
+				break
+			}
+		}
+		if !foundErr {
+			t.Errorf("expected error chunk for malformed json stream line")
+		}
+	})
+}

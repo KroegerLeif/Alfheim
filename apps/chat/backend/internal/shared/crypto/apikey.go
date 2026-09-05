@@ -29,6 +29,11 @@ func DecodeKey(base64Key string) ([]byte, error) {
 	return key, nil
 }
 
+var (
+	randReader = rand.Reader
+	newGCM     = cipher.NewGCM
+)
+
 // Encrypt seals plaintext (e.g. a provider API key) using AES-256-GCM.
 // The returned ciphertext is prefixed with the randomly generated nonce.
 func Encrypt(key []byte, plaintext string) ([]byte, error) {
@@ -37,13 +42,13 @@ func Encrypt(key []byte, plaintext string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to construct aes cipher: %w", err)
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := newGCM(block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct gcm mode: %w", err)
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	if _, err := io.ReadFull(randReader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate random nonce: %w", err)
 	}
 
@@ -58,7 +63,7 @@ func Decrypt(key []byte, ciphertext []byte) (string, error) {
 		return "", fmt.Errorf("failed to construct aes cipher: %w", err)
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := newGCM(block)
 	if err != nil {
 		return "", fmt.Errorf("failed to construct gcm mode: %w", err)
 	}

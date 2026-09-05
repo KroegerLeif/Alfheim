@@ -12,7 +12,7 @@ import (
 
 	"github.com/MicahParks/keyfunc/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 )
 
 type contextKey string
@@ -165,9 +165,14 @@ func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 	return uc
 }
 
+// HouseholdRoleDB represents the minimal database interface needed to query household roles.
+type HouseholdRoleDB interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 // HouseholdRoleMiddleware queries the database to find the user's role for the active household
 // and injects it into both the request context claims and request headers.
-func HouseholdRoleMiddleware(db *pgxpool.Pool, log *slog.Logger) func(http.Handler) http.Handler {
+func HouseholdRoleMiddleware(db HouseholdRoleDB, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, err := GetUserClaims(r.Context())
@@ -182,7 +187,7 @@ func HouseholdRoleMiddleware(db *pgxpool.Pool, log *slog.Logger) func(http.Handl
 				householdID = r.Header.Get("X-Household-ID")
 			}
 
-			if householdID != "" && claims.Subject != "" {
+			if db != nil && householdID != "" && claims.Subject != "" {
 				var role string
 				query := `SELECT role FROM household_members WHERE household_id = $1 AND user_id = $2`
 				err := db.QueryRow(r.Context(), query, householdID, claims.Subject).Scan(&role)

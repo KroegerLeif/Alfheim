@@ -255,3 +255,175 @@ func TestHandler_UnauthorizedRequests(t *testing.T) {
 		})
 	}
 }
+
+// errorService is a Service that always returns the configured error for every method.
+type errorService struct {
+	err error
+}
+
+func (e *errorService) ListConversations(ctx context.Context, userID string) ([]conversations.ConversationResponseDTO, error) {
+	return nil, e.err
+}
+func (e *errorService) CreateConversation(ctx context.Context, userID, householdID string, req conversations.CreateConversationRequest) (conversations.ConversationResponseDTO, error) {
+	return conversations.ConversationResponseDTO{}, e.err
+}
+func (e *errorService) DeleteConversation(ctx context.Context, userID, id string) error {
+	return e.err
+}
+func (e *errorService) ListMessages(ctx context.Context, userID, conversationID string) ([]conversations.MessageResponseDTO, error) {
+	return nil, e.err
+}
+func (e *errorService) PostMessage(ctx context.Context, userID, conversationID string, req conversations.CreateMessageRequest) (conversations.MessageResponseDTO, error) {
+	return conversations.MessageResponseDTO{}, e.err
+}
+func (e *errorService) StreamAssistantReply(ctx context.Context, userID, householdID, conversationID string) (<-chan llm.StreamChunk, error) {
+	return nil, e.err
+}
+
+func TestHandler_ListServiceError(t *testing.T) {
+	svc := &errorService{err: errors.New("db error")}
+	claims := &middleware.UserClaims{Subject: "u1"}
+	router := newTestRouter(svc, claims)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", rec.Code)
+	}
+}
+
+func TestHandler_CreateBadJSON(t *testing.T) {
+	svc := &errorService{err: nil}
+	claims := &middleware.UserClaims{Subject: "u1"}
+	router := newTestRouter(svc, claims)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/conversations", bytes.NewReader([]byte("not json")))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestHandler_PostMessageBadJSON(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo, &fakeResolver{})
+	claims := &middleware.UserClaims{Subject: "u1"}
+	router := newTestRouter(svc, claims)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/conversations/c1/messages", bytes.NewReader([]byte("{invalid")))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestHandler_WriteServiceErrorMappings(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		wantCode int
+	}{
+		{"NotFound", conversations.ErrNotFound, http.StatusNotFound},
+		{"Forbidden", conversations.ErrForbidden, http.StatusForbidden},
+		{"ModelBlockRequired", conversations.ErrModelBlockRequired, http.StatusBadRequest},
+		{"EmptyMessageContent", conversations.ErrEmptyMessageContent, http.StatusBadRequest},
+		{"NoPendingUserMessage", conversations.ErrNoPendingUserMessage, http.StatusBadRequest},
+		{"ModelBlockUnavailable", conversations.ErrModelBlockUnavailable, http.StatusUnprocessableEntity},
+		{"GenericError", errors.New("other"), http.StatusInternalServerError},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &errorService{err: tt.err}
+			claims := &middleware.UserClaims{Subject: "u1"}
+			router := newTestRouter(svc, claims)
+
+			// Test via Delete handler which calls writeServiceError directly
+			req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/conversations/c1", nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != tt.wantCode {
+				t.Errorf("expected %d, got %d", tt.wantCode, rec.Code)
+			}
+		})
+	}
+}
+
+func TestHandler_StreamToolCallSSEEvent(t *testing.T) {
+	repo := newFakeRepository()
+	// Multi-round: round 1 = tool call, round 2 = text answer
+	provider := &fakeProvider{rounds: [][]llm.StreamChunk{
+		{
+			{ToolCall: &llm.ToolCallRequest{ID: "call_1", ToolName: "get_stock", Arguments: map[string]any{"item": "milk"}}},
+			{Done: true},
+		},
+		{
+			{DeltaText: "Result"},
+			{Done: true, Usage: &llm.Usage{TotalTokens: 5}},
+		},
+	}}
+	svc := newTestService(repo, &fakeResolver{provider: provider})
+	claims := &middleware.UserClaims{Subject: "u1"}
+	router := newTestRouter(svc, claims)
+
+	modelBlockID := "mb-1"
+	created, _ := svc.CreateConversation(context.Background(), "u1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	svc.PostMessage(context.Background(), "u1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/"+created.ID+"/stream", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "event: tool_call") {
+		t.Errorf("expected tool_call event, got: %s", body)
+	}
+	if !strings.Contains(body, "event: delta") {
+		t.Errorf("expected delta event, got: %s", body)
+	}
+	if !strings.Contains(body, "event: done") {
+		t.Errorf("expected done event, got: %s", body)
+	}
+}
+
+func TestHandler_ListMessagesServiceError(t *testing.T) {
+	svc := &errorService{err: conversations.ErrNotFound}
+	claims := &middleware.UserClaims{Subject: "u1"}
+	router := newTestRouter(svc, claims)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/c1/messages", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestHandler_PostMessageServiceError(t *testing.T) {
+	svc := &errorService{err: conversations.ErrForbidden}
+	claims := &middleware.UserClaims{Subject: "u1"}
+	router := newTestRouter(svc, claims)
+
+	body, _ := json.Marshal(conversations.CreateMessageRequest{Content: "hello"})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/conversations/c1/messages", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}
+
+func TestHandler_StreamServiceError(t *testing.T) {
+	svc := &errorService{err: conversations.ErrModelBlockUnavailable}
+	claims := &middleware.UserClaims{Subject: "u1", HouseholdID: "hh-1"}
+	router := newTestRouter(svc, claims)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/c1/stream", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rec.Code)
+	}
+}

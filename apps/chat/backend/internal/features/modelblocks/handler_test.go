@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"alfheim/chat/internal/features/modelblocks"
+	"alfheim/chat/internal/shared/llm"
 	"alfheim/chat/internal/shared/middleware"
 )
 
@@ -278,3 +281,186 @@ func TestHandler_DiscoverModels(t *testing.T) {
 		t.Errorf("unexpected models returned: %+v", resp.Models)
 	}
 }
+
+func TestHandler_UnauthorizedRequests(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	router := newTestRouter(svc, nil) // no claims
+
+	endpoints := []struct {
+		method string
+		path   string
+		body   []byte
+	}{
+		{http.MethodGet, "/api/v1/chat/model-blocks", nil},
+		{http.MethodGet, "/api/v1/chat/model-blocks/b1", nil},
+		{http.MethodPost, "/api/v1/chat/model-blocks", []byte(`{}`)},
+		{http.MethodPatch, "/api/v1/chat/model-blocks/b1", []byte(`{}`)},
+		{http.MethodDelete, "/api/v1/chat/model-blocks/b1", nil},
+		{http.MethodPost, "/api/v1/chat/model-blocks/b1/health-check", nil},
+		{http.MethodPost, "/api/v1/chat/models/discover", []byte(`{}`)},
+	}
+
+	for _, ep := range endpoints {
+		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
+			var body io.Reader
+			if ep.body != nil {
+				body = bytes.NewReader(ep.body)
+			}
+			req := httptest.NewRequest(ep.method, ep.path, body)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != http.StatusUnauthorized {
+				t.Errorf("expected 401 Unauthorized for %s %s, got %d", ep.method, ep.path, rec.Code)
+			}
+		})
+	}
+}
+
+func TestHandler_BadJSONPayloads(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+	claims := &middleware.UserClaims{Subject: "user-1", HouseholdID: "hh-1"}
+	router := newTestRouter(svc, claims)
+
+	t.Run("Create bad json", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/model-blocks", bytes.NewReader([]byte("{bad-json")))
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("Update bad json", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPatch, "/api/v1/chat/model-blocks/b1", bytes.NewReader([]byte("{bad-json")))
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("Discover bad json", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/models/discover", bytes.NewReader([]byte("{bad-json")))
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+}
+
+// errorModelBlockService is a mock service for testing error mapping
+type errorModelBlockService struct {
+	err error
+}
+
+func (e *errorModelBlockService) List(ctx context.Context, userID, householdID string) ([]modelblocks.ResponseDTO, error) {
+	return nil, e.err
+}
+func (e *errorModelBlockService) Get(ctx context.Context, userID, householdID, id string) (modelblocks.ResponseDTO, error) {
+	return modelblocks.ResponseDTO{}, e.err
+}
+func (e *errorModelBlockService) Create(ctx context.Context, userID, householdID string, req modelblocks.CreateRequest) (modelblocks.ResponseDTO, error) {
+	return modelblocks.ResponseDTO{}, e.err
+}
+func (e *errorModelBlockService) Update(ctx context.Context, userID, householdID, id string, req modelblocks.UpdateRequest) (modelblocks.ResponseDTO, error) {
+	return modelblocks.ResponseDTO{}, e.err
+}
+func (e *errorModelBlockService) Delete(ctx context.Context, userID, id string) error {
+	return e.err
+}
+func (e *errorModelBlockService) TriggerHealthCheck(ctx context.Context, userID, householdID, id string) (modelblocks.ResponseDTO, error) {
+	return modelblocks.ResponseDTO{}, e.err
+}
+func (e *errorModelBlockService) DiscoverModels(ctx context.Context, req modelblocks.DiscoverRequest) (modelblocks.DiscoverResponse, error) {
+	return modelblocks.DiscoverResponse{}, e.err
+}
+func (e *errorModelBlockService) EnsureBootstrap(ctx context.Context, seed modelblocks.BootstrapSeed) error {
+	return e.err
+}
+func (e *errorModelBlockService) ResolveProvider(ctx context.Context, userID, householdID, id string) (llm.Provider, llm.ProviderPolicy, error) {
+	return nil, llm.ProviderPolicy{}, e.err
+}
+
+func TestHandler_ServiceErrorsAndWriteServiceError(t *testing.T) {
+	claims := &middleware.UserClaims{Subject: "user-1", HouseholdID: "hh-1"}
+
+	tests := []struct {
+		name     string
+		err      error
+		wantCode int
+	}{
+		{"NotFound", modelblocks.ErrNotFound, http.StatusNotFound},
+		{"Forbidden", modelblocks.ErrForbidden, http.StatusForbidden},
+		{"MissingHouseholdID", modelblocks.ErrMissingHouseholdID, http.StatusBadRequest},
+		{"InvalidVisibility", modelblocks.ErrInvalidVisibility, http.StatusBadRequest},
+		{"InvalidProviderType", modelblocks.ErrInvalidProviderType, http.StatusBadRequest},
+		{"EncryptionKeyMissing", modelblocks.ErrEncryptionKeyMissing, http.StatusUnprocessableEntity},
+		{"GenericError", errors.New("something went wrong"), http.StatusInternalServerError},
+	}
+
+	for _, tt := range tests {
+		t.Run("Get "+tt.name, func(t *testing.T) {
+			svc := &errorModelBlockService{err: tt.err}
+			router := newTestRouter(svc, claims)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/model-blocks/b1", nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != tt.wantCode {
+				t.Errorf("expected status %d, got %d", tt.wantCode, rec.Code)
+			}
+		})
+	}
+
+	t.Run("List service error", func(t *testing.T) {
+		svc := &errorModelBlockService{err: errors.New("db error")}
+		router := newTestRouter(svc, claims)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/model-blocks", nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", rec.Code)
+		}
+	})
+
+	t.Run("Discover service error", func(t *testing.T) {
+		svc := &errorModelBlockService{err: errors.New("discovery error")}
+		router := newTestRouter(svc, claims)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/models/discover", bytes.NewReader([]byte(`{}`)))
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadGateway {
+			t.Errorf("expected status 502, got %d", rec.Code)
+		}
+	})
+
+	t.Run("Delete generic service error", func(t *testing.T) {
+		svc := &errorModelBlockService{err: errors.New("delete error")}
+		router := newTestRouter(svc, claims)
+
+		req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/model-blocks/b1", nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", rec.Code)
+		}
+	})
+
+	t.Run("TriggerHealthCheck service error", func(t *testing.T) {
+		svc := &errorModelBlockService{err: modelblocks.ErrNotFound}
+		router := newTestRouter(svc, claims)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/model-blocks/b1/health-check", nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected status 404, got %d", rec.Code)
+		}
+	})
+}
+

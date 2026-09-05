@@ -254,3 +254,135 @@ func TestNewRepository(t *testing.T) {
 		t.Fatal("expected non-nil repository")
 	}
 }
+
+func TestRepository_ErrorBranches(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("Create exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("insert error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.Create(ctx, &ModelBlock{ID: "mb1"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("Update exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("update error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.Update(ctx, &ModelBlock{ID: "mb1"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("Delete exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("delete error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.Delete(ctx, "mb1"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("UpdateHealth exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("update health error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.UpdateHealth(ctx, "mb1", HealthStatusOK, nil, time.Now()); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("ListVisibleTo query error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return nil, errors.New("query error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if _, err := repo.ListVisibleTo(ctx, "u1", "hh1"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("ListVisibleTo rows iteration error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return &mockRows{err: errors.New("iteration error")}, nil
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if _, err := repo.ListVisibleTo(ctx, "u1", "hh1"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("HasBootstrapRun scan error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return errors.New("scan error") }}
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		_, err := repo.HasBootstrapRun(ctx, "k1")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("GetByID scan error (not ErrNoRows)", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return errors.New("scan error") }}
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		_, err := repo.GetByID(ctx, "mb1")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if errors.Is(err, ErrNotFound) {
+			t.Errorf("expected non-ErrNotFound error")
+		}
+	})
+
+	t.Run("CreateBootstrap begin error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) {
+				return nil, errors.New("begin error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.CreateBootstrap(ctx, "k1", &ModelBlock{ID: "mb-boot"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("CreateBootstrap tx exec error", func(t *testing.T) {
+		mtx := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("exec error")
+			},
+		}
+		dbtx := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil },
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.CreateBootstrap(ctx, "k1", &ModelBlock{ID: "mb-boot"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}

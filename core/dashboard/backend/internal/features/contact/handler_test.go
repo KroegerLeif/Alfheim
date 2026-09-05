@@ -834,3 +834,45 @@ func TestContactHandler_RegisterRoutes(t *testing.T) {
 		t.Errorf("expected status 200 from registered contact route, got %d", rec.Code)
 	}
 }
+
+func TestContactHandler_MissingHouseholdID(t *testing.T) {
+	handler := NewHandler(&mockService{})
+	ctx := context.WithValue(context.Background(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"})
+
+	t.Run("CreateCategory missing household id", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/categories", strings.NewReader(`{"name":"test"}`)).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.CreateCategory(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("GetCategories missing household id", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/categories", nil).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.GetCategories(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("CreateContact missing household id", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/contacts", strings.NewReader(`{"name":"test"}`)).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.CreateContact(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("GetContacts missing household id", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/contacts", nil).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.GetContacts(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+}
+

@@ -299,3 +299,160 @@ func TestNewRepository(t *testing.T) {
 		t.Fatal("expected non-nil repository")
 	}
 }
+
+func TestRepository_ErrorBranches(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("CreateConversation exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("insert error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		err := repo.CreateConversation(ctx, &Conversation{ID: "c1"})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("GetConversationByID scan error (not ErrNoRows)", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return errors.New("scan error") }}
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		_, err := repo.GetConversationByID(ctx, "c1")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if errors.Is(err, ErrNotFound) {
+			t.Errorf("expected non-ErrNotFound error, got ErrNotFound")
+		}
+	})
+
+	t.Run("ListConversationsByOwner rows iteration error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return &mockRows{err: errors.New("iteration error")}, nil
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		_, err := repo.ListConversationsByOwner(ctx, "u1")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("DeleteConversation exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("delete error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		if err := repo.DeleteConversation(ctx, "c1"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("DeleteConversation 0 rows affected returns ErrNotFound", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag("DELETE 0"), nil
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		if err := repo.DeleteConversation(ctx, "c1"); !errors.Is(err, ErrNotFound) {
+			t.Errorf("expected ErrNotFound, got %v", err)
+		}
+	})
+
+	t.Run("CreateMessage begin error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) {
+				return nil, errors.New("begin error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		if err := repo.CreateMessage(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("CreateMessage tx exec error", func(t *testing.T) {
+		mtx := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("tx exec error")
+			},
+		}
+		dbtx := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil },
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		if err := repo.CreateMessage(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("ListMessages rows iteration error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return &mockRows{err: errors.New("iteration error")}, nil
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		_, err := repo.ListMessages(ctx, "c1")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("AppendMessageAndTouchConversation begin error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) {
+				return nil, errors.New("begin error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		if err := repo.AppendMessageAndTouchConversation(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("AppendMessageAndTouchConversation insert error", func(t *testing.T) {
+		mtx := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("insert error")
+			},
+		}
+		dbtx := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil },
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		if err := repo.AppendMessageAndTouchConversation(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("AppendMessageAndTouchConversation 0 rows affected returns ErrNotFound", func(t *testing.T) {
+		callCount := 0
+		mtx := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				callCount++
+				if callCount == 1 {
+					return pgconn.NewCommandTag("INSERT 0 1"), nil
+				}
+				return pgconn.NewCommandTag("UPDATE 0"), nil
+			},
+		}
+		dbtx := &mockDBTX{
+			beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil },
+		}
+		repo := newRepositoryWithDB(dbtx, nil)
+		if err := repo.AppendMessageAndTouchConversation(ctx, &Message{ID: "m1", ConversationID: "c1"}); !errors.Is(err, ErrNotFound) {
+			t.Errorf("expected ErrNotFound, got %v", err)
+		}
+	})
+}

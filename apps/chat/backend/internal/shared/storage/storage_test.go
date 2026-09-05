@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 
@@ -256,6 +258,66 @@ func TestStorageClientOperations(t *testing.T) {
 		}
 		if c == nil {
 			t.Fatal("expected non-nil client")
+		}
+	})
+
+	t.Run("Upload with empty contentType", func(t *testing.T) {
+		mock := &mockS3API{
+			putObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+				if params.ContentType != nil {
+					t.Errorf("expected nil ContentType, got %v", params.ContentType)
+				}
+				return &s3.PutObjectOutput{}, nil
+			},
+		}
+		client := NewWithAPI(mock, cfg)
+		err := client.Upload(context.Background(), "key", bytes.NewReader([]byte("data")), 4, "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("EnsureBucketExists creates bucket when NoSuchBucket", func(t *testing.T) {
+		mock := &mockS3API{
+			headBucketFunc: func(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
+				return nil, &mockSmithyAPIError{code: "NoSuchBucket", message: "No such bucket"}
+			},
+			createBucketFunc: func(ctx context.Context, params *s3.CreateBucketInput, optFns ...func(*s3.Options)) (*s3.CreateBucketOutput, error) {
+				return &s3.CreateBucketOutput{}, nil
+			},
+		}
+		client := NewWithAPI(mock, cfg)
+		if err := client.EnsureBucketExists(context.Background()); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("EnsureBucketExists creates bucket when 404", func(t *testing.T) {
+		mock := &mockS3API{
+			headBucketFunc: func(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
+				return nil, &mockSmithyAPIError{code: "404 Not Found", message: "Not Found"}
+			},
+			createBucketFunc: func(ctx context.Context, params *s3.CreateBucketInput, optFns ...func(*s3.Options)) (*s3.CreateBucketOutput, error) {
+				return &s3.CreateBucketOutput{}, nil
+			},
+		}
+		client := NewWithAPI(mock, cfg)
+		if err := client.EnsureBucketExists(context.Background()); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("NewClient returns error when loadAWSConfig fails", func(t *testing.T) {
+		orig := loadAWSConfig
+		defer func() { loadAWSConfig = orig }()
+
+		loadAWSConfig = func(ctx context.Context, optFns ...func(*awsconfig.LoadOptions) error) (aws.Config, error) {
+			return aws.Config{}, errors.New("simulated aws config load error")
+		}
+
+		_, err := NewClient(context.Background(), cfg)
+		if err == nil {
+			t.Fatal("expected error from NewClient, got nil")
 		}
 	})
 }

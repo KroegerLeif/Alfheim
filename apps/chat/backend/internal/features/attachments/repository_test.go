@@ -184,6 +184,73 @@ func TestRepository_Attachments(t *testing.T) {
 			t.Fatalf("unexpected list2 error: %v list: %+v", err, list2)
 		}
 	})
+
+	t.Run("DB error cases and empty inputs", func(t *testing.T) {
+		dbtxErr := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("exec error")
+			},
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return errors.New("queryRow scan error") }}
+			},
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return nil, errors.New("query error")
+			},
+		}
+		repoErr := newRepositoryWithDB(dbtxErr)
+
+		// CreateImageRef error
+		if err := repoErr.CreateImageRef(ctx, &ImageRef{ID: "1"}); err == nil {
+			t.Errorf("expected CreateImageRef error, got nil")
+		}
+
+		// GetImageRefByID error
+		if _, err := repoErr.GetImageRefByID(ctx, "1"); err == nil {
+			t.Errorf("expected GetImageRefByID error, got nil")
+		}
+
+		// ListImageRefsByMessageID query error
+		if _, err := repoErr.ListImageRefsByMessageID(ctx, "m1"); err == nil {
+			t.Errorf("expected ListImageRefsByMessageID error, got nil")
+		}
+
+		// ListImageRefsByIDs empty ids returns empty slice
+		listEmpty, err := repoErr.ListImageRefsByIDs(ctx, []string{})
+		if err != nil || len(listEmpty) != 0 {
+			t.Errorf("expected empty list with no error, got %v list: %v", err, listEmpty)
+		}
+
+		// ListImageRefsByIDs query error
+		if _, err := repoErr.ListImageRefsByIDs(ctx, []string{"id1"}); err == nil {
+			t.Errorf("expected ListImageRefsByIDs error, got nil")
+		}
+
+		// LinkImageRefsToMessage empty ids returns nil
+		if err := repoErr.LinkImageRefsToMessage(ctx, "m1", []string{}); err != nil {
+			t.Errorf("expected nil error on empty ids, got %v", err)
+		}
+
+		// LinkImageRefsToMessage exec error
+		if err := repoErr.LinkImageRefsToMessage(ctx, "m1", []string{"id1"}); err == nil {
+			t.Errorf("expected LinkImageRefsToMessage error, got nil")
+		}
+
+		// Rows iteration error
+		dbtxIterErr := &mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return &mockRows{
+					err: errors.New("iterator error"),
+				}, nil
+			},
+		}
+		repoIterErr := newRepositoryWithDB(dbtxIterErr)
+		if _, err := repoIterErr.ListImageRefsByMessageID(ctx, "m1"); err == nil {
+			t.Errorf("expected iterator error, got nil")
+		}
+		if _, err := repoIterErr.ListImageRefsByIDs(ctx, []string{"id1"}); err == nil {
+			t.Errorf("expected iterator error, got nil")
+		}
+	})
 }
 
 func TestNewRepository(t *testing.T) {

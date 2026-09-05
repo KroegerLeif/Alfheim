@@ -196,3 +196,74 @@ func TestNewRepository(t *testing.T) {
 		t.Fatal("expected non-nil repository")
 	}
 }
+
+func TestRepository_ErrorBranches(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("UpsertFromSeed exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("insert error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.UpsertFromSeed(ctx, "app", "http://app:8080"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("SetEnabled exec error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag(""), errors.New("update error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if err := repo.SetEnabled(ctx, "s1", true); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("GetByID scan error (not ErrNoRows)", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				return &mockRow{scanFunc: func(dest ...any) error { return errors.New("scan error") }}
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		_, err := repo.GetByID(ctx, "s1")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if errors.Is(err, ErrNotFound) {
+			t.Errorf("expected non-ErrNotFound error")
+		}
+	})
+
+	t.Run("query (List/ListEnabled) query error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return nil, errors.New("query error")
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if _, err := repo.List(ctx); err == nil {
+			t.Fatal("expected error from List, got nil")
+		}
+		if _, err := repo.ListEnabled(ctx); err == nil {
+			t.Fatal("expected error from ListEnabled, got nil")
+		}
+	})
+
+	t.Run("query rows iteration error", func(t *testing.T) {
+		dbtx := &mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return &mockRows{err: errors.New("iteration error")}, nil
+			},
+		}
+		repo := newRepositoryWithDB(dbtx)
+		if _, err := repo.List(ctx); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
