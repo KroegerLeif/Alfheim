@@ -1,0 +1,868 @@
+# ==============================================================================
+# alfheim: Production Docker Compose Orchestration (compose.prod.yaml)
+# ==============================================================================
+# Single-host production deployment for self-hosted home servers.
+# Uses pre-built container images from GitHub Container Registry (ghcr.io).
+#
+# Usage:
+#   docker compose -f compose.prod.yaml up -d
+#   docker compose -f compose.prod.yaml down
+#   docker compose -f compose.prod.yaml pull
+# ==============================================================================
+
+name: alfheim-prod
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. INGRESS GATEWAY & REVERSE PROXY
+  # ----------------------------------------------------------------------------
+  caddy:
+    image: caddy:latest
+    container_name: alfheim_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 2. IAM (IDENTITY & ACCESS MANAGEMENT) & CENTRAL STORAGE
+  # ----------------------------------------------------------------------------
+  postgres-iam:
+    image: postgres:16-alpine
+    container_name: alfheim_postgres_iam
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-alfheim_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-super_secret_local_password}
+      POSTGRES_DB: ${POSTGRES_DB:-keycloak_db}
+    volumes:
+      - postgres_iam_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alfheim_admin} -d ${POSTGRES_DB:-keycloak_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - infra-net
+    stop_grace_period: 10s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.4
+    container_name: alfheim_keycloak
+    init: true
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: ${KC_DB:-postgres}
+      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres-iam:5432/keycloak_db}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-alfheim_admin}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-super_secret_local_password}
+      KC_HTTP_RELATIVE_PATH: "/auth"
+      KC_PROXY: "edge"
+      KC_HOSTNAME_URL: "${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      SMTP_HOST: "${SMTP_HOST:-mailpit}"
+      SMTP_PORT: "${SMTP_PORT:-1025}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM: "${SMTP_FROM:-noreply@alfheim.local}"
+    volumes:
+      - ./keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
+      - ./keycloak/providers:/opt/keycloak/providers:ro
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 5s
+      retries: 15
+      start_period: 45s
+    depends_on:
+      postgres-iam:
+        condition: service_healthy
+    networks:
+      - infra-net
+      - gateway-net
+    stop_grace_period: 10s
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: alfheim_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - infra-net
+      - gateway-net
+    stop_grace_period: 5s
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: alfheim_rustfs
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ROOT_USER:-minioadmin}
+      RUSTFS_SECRET_KEY: ${S3_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${S3_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - infra-net
+      - gateway-net
+    stop_grace_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # 3. OBSERVABILITY & TELEMETRY
+  # ----------------------------------------------------------------------------
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics
+    restart: unless-stopped
+    command:
+      - "-retentionPeriod=14d"
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-httpListenAddr=:8428"
+    volumes:
+      - victoriametrics_data:/victoria-metrics-data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - observability-internal
+
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.36.0
+    container_name: victorialogs
+    restart: unless-stopped
+    command:
+      - "-retentionPeriod=7d"
+      - "-storageDataPath=/victoria-logs-data"
+      - "-httpListenAddr=:9428"
+    volumes:
+      - victorialogs_data:/victoria-logs-data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - observability-internal
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.119.0
+    container_name: otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./infrastructure/telemetry/collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:13133/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      victorialogs:
+        condition: service_healthy
+    networks:
+      - observability-internal
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: alfheim_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gateway-net
+      - observability-internal
+
+  # ----------------------------------------------------------------------------
+  # 4. CONTROL PLANE: DASHBOARD SERVICE
+  # ----------------------------------------------------------------------------
+  dashboard-db:
+    image: postgres:16-alpine
+    container_name: dashboard-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DASHBOARD_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${DASHBOARD_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${DASHBOARD_POSTGRES_DB:-dashboard_db}
+    volumes:
+      - dashboard_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DASHBOARD_POSTGRES_USER:-postgres} -d ${DASHBOARD_POSTGRES_DB:-dashboard_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - core-net
+    stop_grace_period: 10s
+
+  dashboard-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-backend:${IMAGE_TAG:-latest}
+    container_name: dashboard-backend
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-postgres}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@dashboard-db:5432/${DASHBOARD_POSTGRES_DB:-dashboard_db}?sslmode=disable}
+      - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      dashboard-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - core-net
+
+  dashboard-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-frontend:${IMAGE_TAG:-latest}
+    container_name: dashboard-frontend
+    restart: unless-stopped
+    depends_on:
+      dashboard-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 5. CHAT ASSISTANT SERVICE
+  # ----------------------------------------------------------------------------
+  chat-db:
+    image: postgres:16-alpine
+    container_name: chat-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${CHAT_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CHAT_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${CHAT_POSTGRES_DB:-chat_db}
+    volumes:
+      - chat_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CHAT_POSTGRES_USER:-postgres} -d ${CHAT_POSTGRES_DB:-chat_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-chat-net
+    stop_grace_period: 10s
+
+  chat-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-backend:${IMAGE_TAG:-latest}
+    container_name: chat-backend
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - PORT=8080
+      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
+      - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}
+      - S3_PUBLIC_URL=${S3_PUBLIC_URL:-http://api.alfheim.loegien.localhost/storage}
+      - CHAT_ENCRYPTION_KEY=${CHAT_ENCRYPTION_KEY:-}
+      - CHAT_ENCRYPTION_KEY_ID=${CHAT_ENCRYPTION_KEY_ID:-v1}
+      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    depends_on:
+      chat-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-chat-net
+      - observability-internal
+
+  chat-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-frontend:${IMAGE_TAG:-latest}
+    container_name: chat-frontend
+    restart: unless-stopped
+    depends_on:
+      chat-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 6. PANTRY MANAGEMENT SERVICE
+  # ----------------------------------------------------------------------------
+  pantry-db:
+    image: postgres:16-alpine
+    container_name: pantry-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PANTRY_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${PANTRY_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${PANTRY_POSTGRES_DB:-pantry}
+    volumes:
+      - pantry_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PANTRY_POSTGRES_USER:-postgres} -d ${PANTRY_POSTGRES_DB:-pantry}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-pantry-net
+    stop_grace_period: 10s
+
+  pantry-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-backend:${IMAGE_TAG:-latest}
+    container_name: pantry-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-postgres}:${PANTRY_POSTGRES_PASSWORD:-postgres}@pantry-db:5432/${PANTRY_POSTGRES_DB:-pantry}}
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=pantry-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      pantry-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-pantry-net
+      - observability-internal
+
+  pantry-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-frontend:${IMAGE_TAG:-latest}
+    container_name: pantry-frontend
+    restart: unless-stopped
+    depends_on:
+      pantry-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/pantry/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 7. SHOPPING LIST SERVICE
+  # ----------------------------------------------------------------------------
+  shopping-db:
+    image: postgres:16-alpine
+    container_name: shopping-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SHOPPING_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${SHOPPING_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${SHOPPING_POSTGRES_DB:-shopping}
+    volumes:
+      - postgres_data_shopping:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SHOPPING_POSTGRES_USER:-postgres} -d ${SHOPPING_POSTGRES_DB:-shopping}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-shopping-net
+    stop_grace_period: 10s
+
+  shopping-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-backend:${IMAGE_TAG:-latest}
+    container_name: shopping-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-postgres}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@shopping-db:5432/${SHOPPING_POSTGRES_DB:-shopping}}
+      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=shopping-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      shopping-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-shopping-net
+      - observability-internal
+
+  shopping-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-frontend:${IMAGE_TAG:-latest}
+    container_name: shopping-frontend
+    restart: unless-stopped
+    depends_on:
+      shopping-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3010
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 8. MAINTENANCE & DEVICES SERVICE
+  # ----------------------------------------------------------------------------
+  maintenance-db:
+    image: postgres:16-alpine
+    container_name: maintenance-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${MAINTENANCE_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${MAINTENANCE_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${MAINTENANCE_POSTGRES_DB:-maintenance}
+    volumes:
+      - maintenance_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MAINTENANCE_POSTGRES_USER:-postgres} -d ${MAINTENANCE_POSTGRES_DB:-maintenance}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-maintenance-net
+    stop_grace_period: 10s
+
+  maintenance-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-backend:${IMAGE_TAG:-latest}
+    container_name: maintenance-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-postgres}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@maintenance-db:5432/${MAINTENANCE_POSTGRES_DB:-maintenance}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=maintenance-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      maintenance-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-maintenance-net
+      - observability-internal
+
+  maintenance-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-frontend:${IMAGE_TAG:-latest}
+    container_name: maintenance-frontend
+    restart: unless-stopped
+    depends_on:
+      maintenance-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 9. HOUSEHOLD CHORES SERVICE
+  # ----------------------------------------------------------------------------
+  chores-db:
+    image: postgres:16-alpine
+    container_name: chores-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${CHORES_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CHORES_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${CHORES_POSTGRES_DB:-chores}
+    volumes:
+      - postgres_data_chores:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CHORES_POSTGRES_USER:-postgres} -d ${CHORES_POSTGRES_DB:-chores}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-chores-net
+    stop_grace_period: 10s
+
+  chores-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-backend:${IMAGE_TAG:-latest}
+    container_name: chores-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-postgres}:${CHORES_POSTGRES_PASSWORD:-postgres}@chores-db:5432/${CHORES_POSTGRES_DB:-chores}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=chores-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/chores/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      chores-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-chores-net
+      - observability-internal
+
+  chores-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-frontend:${IMAGE_TAG:-latest}
+    container_name: chores-frontend
+    restart: unless-stopped
+    depends_on:
+      chores-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chores/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 10. BUDGET & FINANCE SERVICE
+  # ----------------------------------------------------------------------------
+  budget-db:
+    image: postgres:16-alpine
+    container_name: budget-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${BUDGET_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${BUDGET_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${BUDGET_POSTGRES_DB:-budget}
+    volumes:
+      - postgres_data_budget:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BUDGET_POSTGRES_USER:-postgres} -d ${BUDGET_POSTGRES_DB:-budget}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-budget-net
+    stop_grace_period: 10s
+
+  budget-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-backend:${IMAGE_TAG:-latest}
+    container_name: budget-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-postgres}:${BUDGET_POSTGRES_PASSWORD:-postgres}@budget-db:5432/${BUDGET_POSTGRES_DB:-budget}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://rustfs:9000}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-budget-receipts}
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=budget-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      budget-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-budget-net
+      - observability-internal
+
+  budget-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-frontend:${IMAGE_TAG:-latest}
+    container_name: budget-frontend
+    restart: unless-stopped
+    depends_on:
+      budget-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/budget/en || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway-net
+      - observability-internal
+
+  # ----------------------------------------------------------------------------
+  # 11. WORKOUT TRACKING SERVICE
+  # ----------------------------------------------------------------------------
+  workout-db:
+    image: postgres:16-alpine
+    container_name: workout-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${WORKOUT_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${WORKOUT_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${WORKOUT_POSTGRES_DB:-workout}
+    volumes:
+      - postgres_data_workout:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WORKOUT_POSTGRES_USER:-postgres} -d ${WORKOUT_POSTGRES_DB:-workout}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-workout-net
+    stop_grace_period: 10s
+
+  workout-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-backend:${IMAGE_TAG:-latest}
+    container_name: workout-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-postgres}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@workout-db:5432/${WORKOUT_POSTGRES_DB:-workout}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=workout-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      workout-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-workout-net
+      - observability-internal
+
+  workout-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-frontend:${IMAGE_TAG:-latest}
+    container_name: workout-frontend
+    restart: unless-stopped
+    depends_on:
+      workout-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/workout/de || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway-net
+
+  # ----------------------------------------------------------------------------
+  # 12. MEDIA LIBRARY SERVICE
+  # ----------------------------------------------------------------------------
+  library-db:
+    image: postgres:16-alpine
+    container_name: library-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${LIBRARY_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${LIBRARY_POSTGRES_DB:-library}
+    volumes:
+      - postgres_data_library:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LIBRARY_POSTGRES_USER:-postgres} -d ${LIBRARY_POSTGRES_DB:-library}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-library-net
+    stop_grace_period: 10s
+
+  library-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-backend:${IMAGE_TAG:-latest}
+    container_name: library-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-postgres}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@library-db:5432/${LIBRARY_POSTGRES_DB:-library}}
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_SERVICE_NAME=library-backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      library-db:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - app-library-net
+      - observability-internal
+
+  library-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-frontend:${IMAGE_TAG:-latest}
+    container_name: library-frontend
+    restart: unless-stopped
+    depends_on:
+      library-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/library/en || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway-net
+
+# ==============================================================================
+# VOLUMES & PERSISTENT DATA
+# ==============================================================================
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_iam_data:
+  rustfs_data:
+  victoriametrics_data:
+  victorialogs_data:
+  grafana_data:
+  dashboard_postgres_data:
+  chat_postgres_data:
+  pantry_postgres_data:
+  postgres_data_shopping:
+  maintenance_postgres_data:
+  postgres_data_chores:
+  postgres_data_budget:
+  postgres_data_workout:
+  postgres_data_library:
+
+# ==============================================================================
+# DOCKER NETWORKS
+# ==============================================================================
+networks:
+  gateway-net:
+    driver: bridge
+  infra-net:
+    driver: bridge
+  core-net:
+    driver: bridge
+  app-chat-net:
+    driver: bridge
+  app-pantry-net:
+    driver: bridge
+  app-shopping-net:
+    driver: bridge
+  app-maintenance-net:
+    driver: bridge
+  app-chores-net:
+    driver: bridge
+  app-budget-net:
+    driver: bridge
+  app-workout-net:
+    driver: bridge
+  app-library-net:
+    driver: bridge
+  observability-internal:
+    driver: bridge
