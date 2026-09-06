@@ -89,11 +89,11 @@ services:
       - ./keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
       - ./keycloak/providers:/opt/keycloak/providers:ro
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/realms/master HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/realms/alfheim HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 25
-      start_period: 45s
+      start_period: 30s
     depends_on:
       postgres-iam:
         condition: service_healthy
