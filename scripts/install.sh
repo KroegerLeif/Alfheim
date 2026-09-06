@@ -36,6 +36,8 @@ _SPINNER_PID=""
 
 spin_start() {
   local label="$1"
+  local start_time
+  start_time=$(date +%s)
   if [[ ! -t 1 ]]; then
     echo -e "  ${CYAN}…${RESET}  ${label}"
     return 0
@@ -44,7 +46,10 @@ spin_start() {
   (
     local i=0
     while true; do
-      printf "\r  ${CYAN}%s${RESET}  %s " "${frames[$((i % ${#frames[@]}))]}" "$label"
+      local now
+      now=$(date +%s)
+      local elapsed=$(( now - start_time ))
+      printf "\r  ${CYAN}%s${RESET}  %s ${DIM}(%ds)${RESET} " "${frames[$((i % ${#frames[@]}))]}" "$label" "${elapsed}"
       i=$((i + 1))
       sleep 0.1
     done
@@ -117,6 +122,59 @@ wait_healthy() {
 
   spin_stop
   log_error "Timed out after ${timeout}s waiting for ${label} to become healthy."
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# wait_keycloak_ready — resilient polling loop for Keycloak IAM Core
+# ------------------------------------------------------------------------------
+wait_keycloak_ready() {
+  local container="${1:-alfheim_keycloak}"
+  local label="${2:-Keycloak IAM Core}"
+  local timeout="${3:-180}"
+  local interval=5
+  local elapsed=0
+
+  spin_start "Waiting for ${label} to bootstrap …"
+
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
+    # 1. Fail immediately only if container crashed or stopped unexpectedly
+    local container_status
+    container_status=$(docker inspect --format='{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")
+    if [[ "${container_status}" == "exited" || "${container_status}" == "dead" ]]; then
+      spin_stop
+      log_error "${label} stopped unexpectedly (Status: ${container_status}) — inspect logs with: docker logs ${container}"
+      return 1
+    fi
+
+    # 2. Check if Docker healthcheck status reports healthy
+    local health_status
+    health_status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "${container}" 2>/dev/null || echo "missing")
+    if [[ "${health_status}" == "healthy" ]]; then
+      spin_stop
+      log_success "${label} is healthy via Docker healthcheck (${elapsed}s)"
+      return 0
+    fi
+
+    # 3. Direct curl/nc/tcp check against http://127.0.0.1:8080/auth/realms/alfheim inside container
+    if docker exec "${container}" curl -s -f -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/auth/realms/alfheim 2>/dev/null | grep -q "^200$" \
+       || docker exec "${container}" bash -c "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/realms/alfheim HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'" 2>/dev/null \
+       || docker exec "${container}" sh -c "echo -e 'GET /auth/realms/alfheim HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' | nc -w 2 127.0.0.1 8080 2>/dev/null | grep -q '200 OK'" 2>/dev/null; then
+      spin_stop
+      log_success "${label} is responding with HTTP 200 (${elapsed}s)"
+      return 0
+    fi
+
+    if [[ ! -t 1 ]] && (( elapsed > 0 && elapsed % 15 == 0 )); then
+      log_info "Still waiting for ${label} (${elapsed}s / ${timeout}s) …"
+    fi
+
+    sleep "${interval}"
+    elapsed=$(( elapsed + interval ))
+  done
+
+  spin_stop
+  log_error "Timed out after ${timeout}s waiting for ${label} to become ready."
   return 1
 }
 
@@ -317,9 +375,9 @@ if [[ "${START_STACK}" == "true" ]]; then
 
   # Stage 2: IAM Core (Keycloak)
   stage_step "2/3" "Identity & Access Management (Keycloak Bootstrap)"
-  log_info "Starting Keycloak IAM (Quarkus cold boot and realm import may take 45-90s)..."
+  log_info "Starting Keycloak IAM (Quarkus cold boot and realm import may take 45-120s)..."
   dc up -d keycloak
-  wait_healthy "alfheim_keycloak" "Keycloak IAM Core" 180
+  wait_keycloak_ready "alfheim_keycloak" "Keycloak IAM Core" 180
   log_success "Identity Provider (Keycloak) is fully healthy and ready for token issuance"
 
   # Stage 3: Backends, Frontends, Telemetry & Caddy Ingress Gateway
@@ -328,8 +386,8 @@ if [[ "${START_STACK}" == "true" ]]; then
   dc up -d
 
   wait_healthy "alfheim_caddy" "Caddy Ingress Gateway" 60
-  wait_healthy "dashboard-backend" "Dashboard Control Plane Backend" 90
-  wait_healthy "dashboard-frontend" "Dashboard Frontend" 60
+  wait_healthy "dashboard-backend" "Dashboard Control Plane Backend" 180
+  wait_healthy "dashboard-frontend" "Dashboard Frontend" 120
   log_success "All application services, backends, and ingress proxy are online"
 fi
 
