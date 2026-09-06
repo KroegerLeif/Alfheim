@@ -9,6 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`feat(deploy): implement resilient healthcheck dependencies and staged startup`**
+  - Added robust Keycloak HTTP readiness healthcheck in `compose.prod.yaml` (`KC_HEALTH_ENABLED: "true"`, probing port 9000 `/auth/health/ready` with fallback to port 8080 `/auth/realms/master`, 45s start period, 25 retries).
+  - Increased PostgreSQL database healthcheck `start_period` to `30s` and `retries` to `10` across all 10 databases to prevent failure during cold `initdb`.
+  - Added `keycloak` and `<service>-db` `service_healthy` conditions in `depends_on` across all services consuming Keycloak JWKS (`dashboard-backend` and all 8 microservice backends), completely resolving cold-boot race conditions.
+  - Enhanced `scripts/install.sh` with staged startup pipeline mirroring `scripts/up.sh` (databases -> Keycloak -> backends/frontends/ingress) with terminal progress spinners, healthcheck polling, and clear ANSI status outputs.
 * **`fix(deploy): use official upstream images in compose.prod.yaml and automate base url derivation`**
   - Updated standard 3rd-party infrastructure services in `compose.prod.yaml` to official upstream registry images (`caddy:2-alpine`, `quay.io/keycloak/keycloak:26.1`, `minio/minio:latest`, `victoriametrics/victoria-metrics:v1.99.0`, `victoriametrics/victoria-logs:v0.25.0`, `otel/opentelemetry-collector-contrib:0.100.0`, `grafana/grafana:11.0.0`, `axllent/mailpit:v1.18`, and `postgres:16-alpine` for all 10 databases), isolating GHCR tags strictly to the 18 custom Alfheim microservices.
   - Enhanced `scripts/init-env.sh` with `--base-url` CLI support and interactive prompt defaulting to `https://alfheim.loegien.de`.
