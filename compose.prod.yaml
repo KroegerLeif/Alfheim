@@ -157,7 +157,7 @@ services:
       - observability-internal
 
   victorialogs:
-    image: victoriametrics/victoria-logs:v0.25.0
+    image: victoriametrics/victoria-logs:v0.25.0-victorialogs
     container_name: victorialogs
     restart: unless-stopped
     command:
