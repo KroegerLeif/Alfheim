@@ -9,6 +9,9 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(keycloak): configure hostname options and proxy headers for keycloak 26`**
+  - Resolved `ERROR: hostname-backchannel-dynamic must be set to false when no hostname is provided` runtime crash during Keycloak 26 cold boot by explicitly configuring `KC_HOSTNAME: "${KEYCLOAK_HOSTNAME:-auth.alfheim.loegien.de}"` and `KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"`.
+  - Configured modern Quarkus/Keycloak 26 proxy headers (`KC_PROXY_HEADERS: "xforwarded"`, `KC_HTTP_ENABLED: "true"`), cleaned up legacy v1 hostname flags, and registered `KEYCLOAK_HOSTNAME` in `.env.example`.
 * **`feat(deploy): implement resilient healthcheck dependencies and staged startup`**
   - Added robust Keycloak HTTP readiness healthcheck in `compose.prod.yaml` (`KC_HEALTH_ENABLED: "true"`, probing port 9000 `/auth/health/ready` with fallback to port 8080 `/auth/realms/master`, 45s start period, 25 retries).
   - Increased PostgreSQL database healthcheck `start_period` to `30s` and `retries` to `10` across all 10 databases to prevent failure during cold `initdb`.
