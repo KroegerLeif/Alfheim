@@ -53,7 +53,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alfheim_admin} -d ${POSTGRES_DB:-keycloak_db}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - infra-net
     stop_grace_period: 10s
@@ -72,12 +73,13 @@ services:
       KC_DB_USERNAME: ${KC_DB_USERNAME:-alfheim_admin}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD:-super_secret_local_password}
       KC_HTTP_RELATIVE_PATH: "/auth"
-      KC_PROXY: "edge"
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: "xforwarded"
+      KC_HOSTNAME: "${KEYCLOAK_HOSTNAME:-auth.alfheim.loegien.de}"
       KC_HOSTNAME_URL: "${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}"
       KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
-      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"
       SMTP_HOST: "${SMTP_HOST:-mailpit}"
       SMTP_PORT: "${SMTP_PORT:-1025}"
       SMTP_USER: "${SMTP_USER:-}"
@@ -87,9 +89,10 @@ services:
       - ./keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
       - ./keycloak/providers:/opt/keycloak/providers:ro
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/realms/master HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
       interval: 5s
-      retries: 15
+      timeout: 5s
+      retries: 25
       start_period: 45s
     depends_on:
       postgres-iam:
@@ -235,7 +238,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${DASHBOARD_POSTGRES_USER:-postgres} -d ${DASHBOARD_POSTGRES_DB:-dashboard_db}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - core-net
     stop_grace_period: 10s
@@ -255,6 +259,8 @@ services:
       timeout: 5s
       retries: 5
     depends_on:
+      keycloak:
+        condition: service_healthy
       dashboard-db:
         condition: service_healthy
     networks:
@@ -297,7 +303,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${CHAT_POSTGRES_USER:-postgres} -d ${CHAT_POSTGRES_DB:-chat_db}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-chat-net
     stop_grace_period: 10s
@@ -325,6 +332,8 @@ services:
       retries: 10
       start_period: 10s
     depends_on:
+      keycloak:
+        condition: service_healthy
       chat-db:
         condition: service_healthy
     networks:
@@ -368,7 +377,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${PANTRY_POSTGRES_USER:-postgres} -d ${PANTRY_POSTGRES_DB:-pantry}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-pantry-net
     stop_grace_period: 10s
@@ -379,6 +389,8 @@ services:
     restart: unless-stopped
     environment:
       - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-postgres}:${PANTRY_POSTGRES_PASSWORD:-postgres}@pantry-db:5432/${PANTRY_POSTGRES_DB:-pantry}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -390,6 +402,8 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
+      keycloak:
+        condition: service_healthy
       pantry-db:
         condition: service_healthy
     networks:
@@ -433,7 +447,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${SHOPPING_POSTGRES_USER:-postgres} -d ${SHOPPING_POSTGRES_DB:-shopping}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-shopping-net
     stop_grace_period: 10s
@@ -458,6 +473,8 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
+      keycloak:
+        condition: service_healthy
       shopping-db:
         condition: service_healthy
     networks:
@@ -501,7 +518,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${MAINTENANCE_POSTGRES_USER:-postgres} -d ${MAINTENANCE_POSTGRES_DB:-maintenance}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-maintenance-net
     stop_grace_period: 10s
@@ -525,6 +543,8 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
+      keycloak:
+        condition: service_healthy
       maintenance-db:
         condition: service_healthy
     networks:
@@ -568,7 +588,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${CHORES_POSTGRES_USER:-postgres} -d ${CHORES_POSTGRES_DB:-chores}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-chores-net
     stop_grace_period: 10s
@@ -592,6 +613,8 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
+      keycloak:
+        condition: service_healthy
       chores-db:
         condition: service_healthy
     networks:
@@ -635,7 +658,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${BUDGET_POSTGRES_USER:-postgres} -d ${BUDGET_POSTGRES_DB:-budget}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-budget-net
     stop_grace_period: 10s
@@ -663,6 +687,8 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
+      keycloak:
+        condition: service_healthy
       budget-db:
         condition: service_healthy
     networks:
@@ -706,7 +732,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${WORKOUT_POSTGRES_USER:-postgres} -d ${WORKOUT_POSTGRES_DB:-workout}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-workout-net
     stop_grace_period: 10s
@@ -718,6 +745,7 @@ services:
     environment:
       - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-postgres}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@workout-db:5432/${WORKOUT_POSTGRES_DB:-workout}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -729,6 +757,8 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
+      keycloak:
+        condition: service_healthy
       workout-db:
         condition: service_healthy
     networks:
@@ -771,7 +801,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${LIBRARY_POSTGRES_USER:-postgres} -d ${LIBRARY_POSTGRES_DB:-library}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - app-library-net
     stop_grace_period: 10s
@@ -782,6 +813,8 @@ services:
     restart: unless-stopped
     environment:
       - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-postgres}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@library-db:5432/${LIBRARY_POSTGRES_DB:-library}}
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -793,6 +826,8 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
+      keycloak:
+        condition: service_healthy
       library-db:
         condition: service_healthy
     networks:

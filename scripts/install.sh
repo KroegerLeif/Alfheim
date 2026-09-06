@@ -27,6 +27,144 @@ log_info()    { echo -e "${CYAN}▶${RESET}  $*"; }
 log_success() { echo -e "${GREEN}✔${RESET}  $*"; }
 log_warn()    { echo -e "${YELLOW}⚠${RESET}  $*"; }
 log_error()   { echo -e "${RED}✖${RESET}  $*" >&2; }
+stage_step()  { echo -e "\n${BOLD}${CYAN}━━━ Stage $1: $2 ━━━${RESET}"; }
+
+# ------------------------------------------------------------------------------
+# Progress Spinner & Signal Cleanup
+# ------------------------------------------------------------------------------
+_SPINNER_PID=""
+
+spin_start() {
+  local label="$1"
+  if [[ ! -t 1 ]]; then
+    echo -e "  ${CYAN}…${RESET}  ${label}"
+    return 0
+  fi
+  local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  (
+    local i=0
+    while true; do
+      printf "\r  ${CYAN}%s${RESET}  %s " "${frames[$((i % ${#frames[@]}))]}" "$label"
+      i=$((i + 1))
+      sleep 0.1
+    done
+  ) &
+  _SPINNER_PID=$!
+  disown "${_SPINNER_PID}" 2>/dev/null || true
+}
+
+spin_stop() {
+  if [[ -n "${_SPINNER_PID}" ]]; then
+    kill "${_SPINNER_PID}" 2>/dev/null || true
+    wait "${_SPINNER_PID}" 2>/dev/null || true
+    _SPINNER_PID=""
+    if [[ -t 1 ]]; then
+      printf "\r\033[K"  # clear spinner line
+    fi
+  fi
+}
+
+cleanup() {
+  spin_stop
+}
+trap cleanup EXIT INT TERM
+
+# ------------------------------------------------------------------------------
+# wait_healthy — blocks until container reports healthy or running
+# ------------------------------------------------------------------------------
+wait_healthy() {
+  local container="$1"
+  local label="$2"
+  local timeout="${3:-120}"
+  local elapsed=0
+  local status=""
+
+  spin_start "Waiting for ${label} …"
+
+  while [[ "${elapsed}" -lt "${timeout}" ]]; do
+    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container}" 2>/dev/null || echo "missing")
+
+    case "${status}" in
+      healthy)
+        spin_stop
+        log_success "${label} is healthy (${elapsed}s)"
+        return 0
+        ;;
+      running)
+        if ! docker inspect --format='{{json .State.Health}}' "${container}" 2>/dev/null | grep -q 'Status'; then
+          spin_stop
+          log_success "${label} is running (${elapsed}s)"
+          return 0
+        fi
+        ;;
+      unhealthy)
+        spin_stop
+        log_error "${label} reported UNHEALTHY — inspect logs with: docker logs ${container}"
+        return 1
+        ;;
+      exited|dead)
+        spin_stop
+        log_error "${label} stopped unexpectedly — inspect logs with: docker logs ${container}"
+        return 1
+        ;;
+      missing)
+        ;;
+    esac
+
+    sleep 2
+    elapsed=$(( elapsed + 2 ))
+  done
+
+  spin_stop
+  log_error "Timed out after ${timeout}s waiting for ${label} to become healthy."
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# Argument Parsing
+# ------------------------------------------------------------------------------
+START_STACK=true
+ENV_INIT_FLAGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-start|--skip-start)
+      START_STACK=false
+      shift
+      ;;
+    --auto|--interactive)
+      ENV_INIT_FLAGS+=("$1")
+      shift
+      ;;
+    --base-url)
+      if [[ $# -ge 2 ]]; then
+        ENV_INIT_FLAGS+=("$1" "$2")
+        shift 2
+      else
+        ENV_INIT_FLAGS+=("$1")
+        shift
+      fi
+      ;;
+    -h|--help)
+      echo "Usage: $0 [OPTIONS]"
+      echo "Options:"
+      echo "  --skip-start, --no-start   Scaffold configuration and secrets without starting containers"
+      echo "  --auto                     Non-interactive environment setup (default)"
+      echo "  --interactive              Interactive environment setup"
+      echo "  --base-url <url>           Specify base URL (e.g. https://alfheim.example.com)"
+      echo "  -h, --help                 Show this help message"
+      exit 0
+      ;;
+    *)
+      ENV_INIT_FLAGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ "${ALFHEIM_SKIP_START:-false}" == "true" ]]; then
+  START_STACK=false
+fi
 
 # ------------------------------------------------------------------------------
 # Banner
@@ -136,36 +274,116 @@ chmod +x "${INSTALL_DIR}/init-env.sh"
 # ------------------------------------------------------------------------------
 echo -e "\n${BOLD}Initializing Environment & Secrets...${RESET}"
 cd "${INSTALL_DIR}"
-ALFHEIM_INSTALL_DIR="${INSTALL_DIR}" "${INSTALL_DIR}/init-env.sh" ${INSTALL_ENV_FLAGS:---auto}
+if [[ ${#ENV_INIT_FLAGS[@]} -eq 0 ]]; then
+  ALFHEIM_INSTALL_DIR="${INSTALL_DIR}" "${INSTALL_DIR}/init-env.sh" --auto
+else
+  ALFHEIM_INSTALL_DIR="${INSTALL_DIR}" "${INSTALL_DIR}/init-env.sh" "${ENV_INIT_FLAGS[@]}"
+fi
 
 # ------------------------------------------------------------------------------
-# 5. Success Feedback & Next Steps
+# 5. Staged Stack Startup (Resilient Cold-Boot Orchestration)
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}${GREEN}==============================================================================${RESET}"
-echo -e "${BOLD}${GREEN}  ✔ Alfheim installation prepared successfully!${RESET}"
-echo -e "${BOLD}${GREEN}==============================================================================${RESET}\n"
+if [[ "${START_STACK}" == "true" ]]; then
+  echo -e "\n${BOLD}Orchestrating Resilient Staged Boot...${RESET}"
 
-echo -e "${BOLD}Installed Files in ${INSTALL_DIR}:${RESET}"
-echo -e "  ├── ${CYAN}compose.prod.yaml${RESET}                     # Multi-service production compose"
-echo -e "  ├── ${CYAN}.env${RESET}                                  # Production secrets (chmod 600)"
-echo -e "  ├── ${CYAN}Caddyfile${RESET}                             # Central ingress reverse-proxy configuration"
-echo -e "  ├── ${CYAN}init-env.sh${RESET}                           # Secret generator utility"
-echo -e "  ├── ${CYAN}keycloak/alfheim-realm.json${RESET}           # OIDC realm definition"
-echo -e "  └── ${CYAN}infrastructure/telemetry/collector/config.yaml${RESET}"
-echo ""
-echo -e "${BOLD}Next Steps to Launch Alfheim:${RESET}"
-echo -e "  1. Switch to the installation directory:"
-echo -e "     ${CYAN}cd ${INSTALL_DIR}${RESET}"
-echo ""
-echo -e "  2. (Optional) Review or adjust environment settings:"
-echo -e "     ${CYAN}nano .env${RESET}"
-echo ""
-echo -e "  3. Start all platform services:"
-echo -e "     ${CYAN}docker compose -f compose.prod.yaml up -d${RESET}"
-echo ""
-echo -e "  4. Follow container startup logs:"
-echo -e "     ${CYAN}docker compose -f compose.prod.yaml logs -f${RESET}"
-echo ""
-echo -e "  5. Access Alfheim Dashboard:"
-echo -e "     ${GREEN}http://localhost${RESET} (or your configured server domain / IP)"
-echo ""
+  dc() {
+    docker compose -f "${INSTALL_DIR}/compose.prod.yaml" "$@"
+  }
+
+  # Stage 1: Database Tier
+  stage_step "1/3" "Database & Storage Tier (Cold initdb Resilience)"
+  log_info "Launching 10 PostgreSQL databases, MinIO S3, and Mailpit..."
+  dc up -d postgres-iam dashboard-db chat-db pantry-db shopping-db maintenance-db chores-db budget-db workout-db library-db rustfs mailpit
+
+  databases=(
+    "alfheim_postgres_iam:IAM Postgres (Keycloak)"
+    "dashboard-db:Dashboard Database"
+    "chat-db:Chat Database"
+    "pantry-db:Pantry Database"
+    "shopping-db:Shopping Database"
+    "maintenance-db:Maintenance Database"
+    "chores-db:Chores Database"
+    "budget-db:Budget Database"
+    "workout-db:Workout Database"
+    "library-db:Library Database"
+  )
+
+  for db_entry in "${databases[@]}"; do
+    container="${db_entry%%:*}"
+    label="${db_entry#*:}"
+    wait_healthy "${container}" "${label}" 90
+  done
+  log_success "Database & Storage Tier is fully healthy"
+
+  # Stage 2: IAM Core (Keycloak)
+  stage_step "2/3" "Identity & Access Management (Keycloak Bootstrap)"
+  log_info "Starting Keycloak IAM (Quarkus cold boot and realm import may take 45-90s)..."
+  dc up -d keycloak
+  wait_healthy "alfheim_keycloak" "Keycloak IAM Core" 180
+  log_success "Identity Provider (Keycloak) is fully healthy and ready for token issuance"
+
+  # Stage 3: Backends, Frontends, Telemetry & Caddy Ingress Gateway
+  stage_step "3/3" "Application Services & Ingress Gateway"
+  log_info "Starting microservice backends, frontends, telemetry, and Caddy ingress gateway..."
+  dc up -d
+
+  wait_healthy "alfheim_caddy" "Caddy Ingress Gateway" 60
+  wait_healthy "dashboard-backend" "Dashboard Control Plane Backend" 90
+  wait_healthy "dashboard-frontend" "Dashboard Frontend" 60
+  log_success "All application services, backends, and ingress proxy are online"
+fi
+
+# ------------------------------------------------------------------------------
+# 6. Success Feedback & Next Steps
+# ------------------------------------------------------------------------------
+APP_URL=$(grep -E '^ALFHEIM_BASE_URL=' "${INSTALL_DIR}/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "")
+APP_URL="${APP_URL:-http://localhost}"
+
+if [[ "${START_STACK}" == "true" ]]; then
+  echo -e "\n${BOLD}${GREEN}==============================================================================${RESET}"
+  echo -e "${BOLD}${GREEN}  ✔ Alfheim Smart Home OS is live and ready!${RESET}"
+  echo -e "${BOLD}${GREEN}==============================================================================${RESET}\n"
+
+  echo -e "${BOLD}Platform Access URLs:${RESET}"
+  echo -e "  • ${BOLD}Alfheim Dashboard:${RESET}     ${GREEN}${APP_URL}${RESET}"
+  echo -e "  • ${BOLD}Keycloak Admin:${RESET}        ${CYAN}${APP_URL}/auth/admin/${RESET}"
+  echo -e "  • ${BOLD}Grafana Telemetry:${RESET}     ${CYAN}${APP_URL}/grafana/${RESET}"
+  echo -e "  • ${BOLD}Mailpit UI:${RESET}            ${CYAN}${APP_URL}:8025${RESET}"
+  echo ""
+  echo -e "${BOLD}Operational Commands:${RESET}"
+  echo -e "  • Switch to app directory:   ${CYAN}cd ${INSTALL_DIR}${RESET}"
+  echo -e "  • View real-time logs:       ${CYAN}docker compose -f compose.prod.yaml logs -f${RESET}"
+  echo -e "  • Check service health:      ${CYAN}docker compose -f compose.prod.yaml ps${RESET}"
+  echo -e "  • Stop platform:             ${CYAN}docker compose -f compose.prod.yaml down${RESET}"
+  echo -e "  • Restart platform:          ${CYAN}docker compose -f compose.prod.yaml up -d${RESET}"
+  echo ""
+else
+  echo -e "\n${BOLD}${GREEN}==============================================================================${RESET}"
+  echo -e "${BOLD}${GREEN}  ✔ Alfheim installation prepared successfully!${RESET}"
+  echo -e "${BOLD}${GREEN}==============================================================================${RESET}\n"
+
+  echo -e "${BOLD}Installed Files in ${INSTALL_DIR}:${RESET}"
+  echo -e "  ├── ${CYAN}compose.prod.yaml${RESET}                     # Multi-service production compose"
+  echo -e "  ├── ${CYAN}.env${RESET}                                  # Production secrets (chmod 600)"
+  echo -e "  ├── ${CYAN}Caddyfile${RESET}                             # Central ingress reverse-proxy configuration"
+  echo -e "  ├── ${CYAN}init-env.sh${RESET}                           # Secret generator utility"
+  echo -e "  ├── ${CYAN}keycloak/alfheim-realm.json${RESET}           # OIDC realm definition"
+  echo -e "  └── ${CYAN}infrastructure/telemetry/collector/config.yaml${RESET}"
+  echo ""
+  echo -e "${BOLD}Next Steps to Launch Alfheim:${RESET}"
+  echo -e "  1. Switch to the installation directory:"
+  echo -e "     ${CYAN}cd ${INSTALL_DIR}${RESET}"
+  echo ""
+  echo -e "  2. (Optional) Review or adjust environment settings:"
+  echo -e "     ${CYAN}nano .env${RESET}"
+  echo ""
+  echo -e "  3. Start all platform services (resilient healthcheck orchestration):"
+  echo -e "     ${CYAN}docker compose -f compose.prod.yaml up -d${RESET}"
+  echo ""
+  echo -e "  4. Follow container startup logs:"
+  echo -e "     ${CYAN}docker compose -f compose.prod.yaml logs -f${RESET}"
+  echo ""
+  echo -e "  5. Access Alfheim Dashboard:"
+  echo -e "     ${GREEN}${APP_URL}${RESET}"
+  echo ""
+fi
