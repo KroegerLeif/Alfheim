@@ -29,7 +29,7 @@ ARG NEXT_PUBLIC_FRONTEND_URL
 ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
 
 WORKDIR /app/apps/library/frontend
-RUN pnpm run build
+RUN mkdir -p public && pnpm run build
 
 # Stage 3: Runner
 FROM node:22-alpine AS runner
