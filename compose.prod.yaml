@@ -255,9 +255,10 @@ services:
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -279,10 +280,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
@@ -327,10 +328,10 @@ services:
       - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -353,10 +354,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
@@ -397,10 +398,10 @@ services:
       - OTEL_SERVICE_NAME=pantry-backend
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -423,10 +424,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/pantry/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
@@ -468,10 +469,10 @@ services:
       - OTEL_SERVICE_NAME=shopping-backend
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -494,10 +495,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
@@ -538,10 +539,10 @@ services:
       - OTEL_SERVICE_NAME=maintenance-backend
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -564,10 +565,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
@@ -608,10 +609,10 @@ services:
       - OTEL_SERVICE_NAME=chores-backend
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/chores/health')\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -634,10 +635,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chores/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
@@ -682,10 +683,10 @@ services:
       - OTEL_SERVICE_NAME=budget-backend
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -708,9 +709,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/budget/en || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
       - observability-internal
@@ -752,10 +754,10 @@ services:
       - OTEL_SERVICE_NAME=workout-backend
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -778,9 +780,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/workout/de || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
@@ -821,10 +824,10 @@ services:
       - OTEL_SERVICE_NAME=library-backend
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     depends_on:
       keycloak:
         condition: service_healthy
@@ -847,9 +850,10 @@ services:
       - NODE_OPTIONS=--max-http-header-size=65536
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/library/en || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
     networks:
       - gateway-net
 
