@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 export interface KeycloakUserInfo {
+  id?: string;
   username: string;
   name: string;
   email?: string;
@@ -12,6 +13,7 @@ export interface KeycloakUserInfo {
 
 export function useKeycloakUser(): KeycloakUserInfo {
   const [userInfo, setUserInfo] = useState<KeycloakUserInfo>({
+    id: undefined,
     username: "User",
     name: "User",
     avatarInitials: "U",
@@ -25,10 +27,21 @@ export function useKeycloakUser(): KeycloakUserInfo {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const updateFromKeycloak = () => {
-      const keycloak = (window as any).__keycloak_instance__;
+      const keycloak = (window as unknown as {
+        __keycloak_instance__?: {
+          tokenParsed?: {
+            sub?: string;
+            preferred_username?: string;
+            given_name?: string;
+            name?: string;
+            email?: string;
+          };
+          logout?: (options?: { redirectUri?: string }) => void;
+        };
+      }).__keycloak_instance__;
       if (keycloak && keycloak.tokenParsed) {
+        const id = keycloak.tokenParsed.sub;
         const username =
           keycloak.tokenParsed.preferred_username ||
           keycloak.tokenParsed.given_name ||
@@ -43,6 +56,7 @@ export function useKeycloakUser(): KeycloakUserInfo {
           .slice(0, 2);
 
         setUserInfo({
+          id,
           username,
           name,
           email,

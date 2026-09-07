@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -52,7 +53,13 @@ func Load() (*Config, error) {
 	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "dashboard-backend")
 	keycloakClientSecret := getEnv("KEYCLOAK_CLIENT_SECRET", "")
 	keycloakJWKSURL := getEnv("KEYCLOAK_JWKS_URL", fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakBaseURL, keycloakRealm))
-	expectedIssuer := getEnv("KEYCLOAK_PUBLIC_ISSUER", fmt.Sprintf("http://api.alfheim.loegien.localhost/auth/realms/%s", keycloakRealm))
+	defaultExpectedIssuer := fmt.Sprintf("http://api.alfheim.loegien.localhost/auth/realms/%s", keycloakRealm)
+	if publicURL := getEnv("KEYCLOAK_PUBLIC_URL", ""); publicURL != "" {
+		defaultExpectedIssuer = fmt.Sprintf("%s/realms/%s", strings.TrimRight(publicURL, "/"), keycloakRealm)
+	} else if baseURL := getEnv("ALFHEIM_BASE_URL", ""); baseURL != "" {
+		defaultExpectedIssuer = fmt.Sprintf("%s/auth/realms/%s", strings.TrimRight(baseURL, "/"), keycloakRealm)
+	}
+	expectedIssuer := getEnv("KEYCLOAK_PUBLIC_ISSUER", defaultExpectedIssuer)
 	stackAppsPath := getEnv("STACK_APPS_PATH", "deploy/stack-apps.yaml")
 
 	cfg := &Config{

@@ -1,4 +1,5 @@
 import ky from "ky";
+import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 export class ApiError extends Error {
   status?: number;
@@ -18,14 +19,13 @@ export class ApiError extends Error {
  * which keeps request paths readable and matches the pantry convention.
  */
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
 
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved =
-        (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
 
@@ -40,7 +40,7 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
 
 const BASE_URL = sanitizeUrl(
   process.env.NEXT_PUBLIC_API_URL,
-  "http://api.alfheim.loegien.localhost/workout/api/v1"
+  "/workout/api/v1"
 );
 
 const handleResponseError = async (response: Response) => {

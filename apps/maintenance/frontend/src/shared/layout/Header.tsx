@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { AppHeader, useTranslation } from "@alfheim/shared";
+import { AppHeader, useTranslation, resolveFrontendUrl } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useLayout, NavOption } from "./LayoutContext";
 import { useAuth } from "@/core/auth/AuthContext";
@@ -59,7 +59,7 @@ export function Header() {
       brandTitle="ALFHEIM // MAINTENANCE"
       brandSubtitle={titleMap[activeNav] || "Device & Service Registry"}
       showBackToDashboard={true}
-      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
+      backToDashboardHref={resolveFrontendUrl()}
       user={authUser}
       onLogout={logout}
       notificationSlot={

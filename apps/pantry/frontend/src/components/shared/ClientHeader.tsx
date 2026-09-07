@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/core/authContext";
 import { usePantryChat } from "@/core/chatContext";
-import { AlfiAvatar, AppHeader, useTranslation } from "@alfheim/shared";
+import { AlfiAvatar, AppHeader, useTranslation, resolveFrontendUrl } from "@alfheim/shared";
 
 export function ClientHeader() {
   const { user, logout } = useAuth();
@@ -15,7 +15,7 @@ export function ClientHeader() {
       brandTitle="ALFHEIM // PANTRY"
       brandSubtitle={t("header.brand_subtitles.pantry")}
       showBackToDashboard={true}
-      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
+      backToDashboardHref={resolveFrontendUrl()}
       showHouseholdSwitcher={true}
       showLanguageSwitcher={true}
       showThemeToggle={true}

@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider as SharedThemeProvider, useTranslation } from "@alfheim/shared";
+import { ThemeProvider as SharedThemeProvider, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
 import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
 import Keycloak from "keycloak-js";
 
@@ -54,7 +54,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       initializedRef.current = true;
 
       const keycloak = new Keycloak({
-        url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://api.alfheim.loegien.localhost/auth",
+        url: resolveKeycloakUrl(),
         realm: "alfheim",
         clientId: "shopping-frontend",
       });

@@ -1,14 +1,15 @@
 import ky from 'ky';
+import { resolveApiUrl, resolveFrontendUrl } from '@alfheim/shared';
 import { getInMemoryToken, setInMemoryToken } from '@/core/providers/AuthProvider';
 
 // Sanitize and resolve base host URLs to bypass client-side path mutations
-const sanitizeBaseUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+const sanitizeBaseUrl = (url: string | undefined) => {
+  let resolved = resolveApiUrl('/api/v1', url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   if (resolved.endsWith("/")) {
@@ -21,7 +22,7 @@ const sanitizeBaseUrl = (url: string | undefined, defaultFallback: string) => {
   return resolved + "/";
 };
 
-const BASE_URL = sanitizeBaseUrl(process.env.NEXT_PUBLIC_API_URL, 'http://api.alfheim.loegien.localhost/api/v1');
+const BASE_URL = sanitizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
 
 /**
  * Get Bearer auth token dynamically from in-memory AuthProvider state.

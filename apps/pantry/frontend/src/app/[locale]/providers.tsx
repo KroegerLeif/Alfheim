@@ -6,7 +6,7 @@ import Keycloak from "keycloak-js";
 import { AuthContext } from "@/core/authContext";
 import { PantryChatProvider } from "@/core/chatContext";
 import { PantryChatOverlay } from "@/components/shared/PantryChatOverlay";
-import { UserIdentity, useTranslation } from "@alfheim/shared";
+import { UserIdentity, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -38,7 +38,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       initializedRef.current = true;
 
       const keycloak = new Keycloak({
-        url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://api.alfheim.loegien.localhost/auth",
+        url: resolveKeycloakUrl(),
         realm: "alfheim",
         clientId: "pantry-frontend",
       });

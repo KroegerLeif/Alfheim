@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect, useRef } from "react";
 import Keycloak from "keycloak-js";
 import { AuthContext } from "@/core/authContext";
-import { Spinner, UserIdentity, useTranslation } from "@alfheim/shared";
+import { Spinner, UserIdentity, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
 
 const TOKEN_KEY = "token_workout-frontend";
 const SHARED_TOKEN_KEY = "alfheim_access_token";
@@ -40,7 +40,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     initializedRef.current = true;
 
     const keycloak = new Keycloak({
-      url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://api.alfheim.loegien.localhost/auth",
+      url: resolveKeycloakUrl(),
       realm: "alfheim",
       clientId: "workout-frontend",
     });

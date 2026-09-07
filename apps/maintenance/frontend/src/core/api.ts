@@ -1,4 +1,5 @@
 import ky from "ky";
+import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 export interface ApiError {
   status?: number;
@@ -7,12 +8,12 @@ export interface ApiError {
 
 // Sanitize and resolve base host URLs to bypass client-side path mutations
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   return resolved.endsWith("/") ? resolved : resolved + "/";

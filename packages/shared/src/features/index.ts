@@ -5,3 +5,4 @@ export * from './layout';
 export * from './ui';
 export * from './finance';
 export * from './mascot';
+export * from './config';
