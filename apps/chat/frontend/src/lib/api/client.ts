@@ -1,4 +1,5 @@
 import type { ApiErrorPayload } from "@/features/conversations/types";
+import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 export interface KeycloakWindow extends Window {
   __keycloak_instance__?: {
@@ -15,12 +16,12 @@ function getKeycloakInstance() {
 }
 
 export function sanitizeUrl(url: string | undefined, defaultFallback: string): string {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   if (resolved.endsWith("/")) {

@@ -23,6 +23,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      ALFHEIM_HOST: "${ALFHEIM_HOST:-alfheim.loegien.de}"
+      CADDY_TLS_DIRECTIVE: "${CADDY_TLS_DIRECTIVE:-}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -53,8 +56,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alfheim_admin} -d ${POSTGRES_DB:-keycloak_db}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - infra-net
     stop_grace_period: 10s
@@ -91,9 +94,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/realms/alfheim HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
       interval: 5s
-      timeout: 5s
-      retries: 25
-      start_period: 30s
+      timeout: 10s
+      retries: 35
+      start_period: 180s
     depends_on:
       postgres-iam:
         condition: service_healthy
@@ -238,8 +241,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${DASHBOARD_POSTGRES_USER:-postgres} -d ${DASHBOARD_POSTGRES_DB:-dashboard_db}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - core-net
     stop_grace_period: 10s
@@ -253,11 +256,13 @@ services:
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-postgres}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@dashboard-db:5432/${DASHBOARD_POSTGRES_DB:-dashboard_db}?sslmode=disable}
       - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
+      - KEYCLOAK_PUBLIC_ISSUER=${KEYCLOAK_PUBLIC_ISSUER:-${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}/realms/alfheim}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -278,11 +283,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -304,8 +313,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${CHAT_POSTGRES_USER:-postgres} -d ${CHAT_POSTGRES_DB:-chat_db}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-chat-net
     stop_grace_period: 10s
@@ -321,6 +330,8 @@ services:
       - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
       - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
+      - KEYCLOAK_PUBLIC_ISSUER=${KEYCLOAK_PUBLIC_ISSUER:-${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}/realms/alfheim}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}
       - S3_PUBLIC_URL=${S3_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/storage}
       - CHAT_ENCRYPTION_KEY=${CHAT_ENCRYPTION_KEY:-}
@@ -330,7 +341,7 @@ services:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -352,11 +363,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -378,8 +393,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${PANTRY_POSTGRES_USER:-postgres} -d ${PANTRY_POSTGRES_DB:-pantry}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-pantry-net
     stop_grace_period: 10s
@@ -400,7 +415,7 @@ services:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -422,11 +437,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/pantry/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -448,8 +467,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${SHOPPING_POSTGRES_USER:-postgres} -d ${SHOPPING_POSTGRES_DB:-shopping}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-shopping-net
     stop_grace_period: 10s
@@ -471,7 +490,7 @@ services:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -493,11 +512,15 @@ services:
     environment:
       - PORT=3010
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -519,8 +542,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${MAINTENANCE_POSTGRES_USER:-postgres} -d ${MAINTENANCE_POSTGRES_DB:-maintenance}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-maintenance-net
     stop_grace_period: 10s
@@ -541,7 +564,7 @@ services:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -563,11 +586,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -589,8 +616,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${CHORES_POSTGRES_USER:-postgres} -d ${CHORES_POSTGRES_DB:-chores}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-chores-net
     stop_grace_period: 10s
@@ -608,10 +635,10 @@ services:
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=chores-backend
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/chores/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -633,11 +660,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chores/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -659,8 +690,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${BUDGET_POSTGRES_USER:-postgres} -d ${BUDGET_POSTGRES_DB:-budget}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-budget-net
     stop_grace_period: 10s
@@ -685,7 +716,7 @@ services:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -707,11 +738,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/budget/en || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -734,8 +769,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${WORKOUT_POSTGRES_USER:-postgres} -d ${WORKOUT_POSTGRES_DB:-workout}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-workout-net
     stop_grace_period: 10s
@@ -756,7 +791,7 @@ services:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -778,11 +813,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/workout/de || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net
@@ -804,8 +843,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${LIBRARY_POSTGRES_USER:-postgres} -d ${LIBRARY_POSTGRES_DB:-library}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     networks:
       - app-library-net
     stop_grace_period: 10s
@@ -826,7 +865,7 @@ services:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     depends_on:
       keycloak:
@@ -848,11 +887,15 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/library/en || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
       start_period: 180s
     networks:
       - gateway-net

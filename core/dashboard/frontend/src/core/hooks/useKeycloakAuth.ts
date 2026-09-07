@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Keycloak from 'keycloak-js';
+import { resolveKeycloakUrl } from '@alfheim/shared';
 import { UserIdentityClaims, setInMemoryToken } from '../providers/AuthProvider';
 
 export function useKeycloakAuth() {
@@ -18,7 +19,7 @@ export function useKeycloakAuth() {
     initializedRef.current = true;
 
     const keycloak = new Keycloak({
-      url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://api.alfheim.loegien.localhost/auth',
+      url: resolveKeycloakUrl(),
       realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'alfheim',
       clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'dashboard-frontend',
     });

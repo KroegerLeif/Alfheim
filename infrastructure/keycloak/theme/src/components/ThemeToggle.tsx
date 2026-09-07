@@ -3,8 +3,8 @@ import { Moon, Sun } from "lucide-react";
 
 export function ThemeToggle() {
   const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    const stored = localStorage.getItem("alfheim_theme");
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return false;
+    const stored = window.localStorage.getItem("alfheim_theme");
     if (stored) return stored === "dark";
     if (window.matchMedia) {
       return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -16,10 +16,14 @@ export function ThemeToggle() {
     const root = document.documentElement;
     if (isDark) {
       root.classList.add("dark");
-      localStorage.setItem("alfheim_theme", "dark");
+      if (typeof window !== "undefined" && typeof window.localStorage !== "undefined") {
+        window.localStorage.setItem("alfheim_theme", "dark");
+      }
     } else {
       root.classList.remove("dark");
-      localStorage.setItem("alfheim_theme", "light");
+      if (typeof window !== "undefined" && typeof window.localStorage !== "undefined") {
+        window.localStorage.setItem("alfheim_theme", "light");
+      }
     }
   }, [isDark]);
 

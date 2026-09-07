@@ -1,4 +1,5 @@
 import ky from "ky";
+import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 export interface ApiError {
   status?: number;
@@ -6,18 +7,18 @@ export interface ApiError {
 }
 
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   return resolved.endsWith("/") ? resolved : resolved + "/";
 };
 
-const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://api.alfheim.loegien.localhost/api/v1/chores");
+const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "/api/v1/chores");
 
 const handleResponseError = async (response: Response) => {
   let message = "chores.error.unrecognized_error";

@@ -1,13 +1,14 @@
 import ky from "ky";
+import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 // Sanitize and resolve base host URLs to bypass client-side path mutations
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   if (resolved.endsWith("/")) {
@@ -19,7 +20,7 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
   return resolved + "/";
 };
 
-const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://api.alfheim.loegien.localhost/pantry/api/v1");
+const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "/pantry/api/v1");
 
 export const pantryClient = ky.create({
   prefixUrl: BASE_URL,

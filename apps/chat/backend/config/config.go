@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"alfheim/chat/internal/shared/crypto"
@@ -82,7 +83,13 @@ func Load() (*Config, error) {
 	keycloakRealm := getEnv("KEYCLOAK_REALM", "alfheim")
 	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "chat-backend")
 	keycloakJWKSURL := getEnv("KEYCLOAK_JWKS_URL", fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakBaseURL, keycloakRealm))
-	expectedIssuer := getEnv("KEYCLOAK_PUBLIC_ISSUER", fmt.Sprintf("http://api.alfheim.loegien.localhost/auth/realms/%s", keycloakRealm))
+	defaultExpectedIssuer := fmt.Sprintf("http://api.alfheim.loegien.localhost/auth/realms/%s", keycloakRealm)
+	if publicURL := getEnv("KEYCLOAK_PUBLIC_URL", ""); publicURL != "" {
+		defaultExpectedIssuer = fmt.Sprintf("%s/realms/%s", strings.TrimRight(publicURL, "/"), keycloakRealm)
+	} else if baseURL := getEnv("ALFHEIM_BASE_URL", ""); baseURL != "" {
+		defaultExpectedIssuer = fmt.Sprintf("%s/auth/realms/%s", strings.TrimRight(baseURL, "/"), keycloakRealm)
+	}
+	expectedIssuer := getEnv("KEYCLOAK_PUBLIC_ISSUER", defaultExpectedIssuer)
 
 	encryptionKeyB64 := getEnv("CHAT_ENCRYPTION_KEY", "")
 	encryptionKeyID := getEnv("CHAT_ENCRYPTION_KEY_ID", "v1")
@@ -93,7 +100,12 @@ func Load() (*Config, error) {
 	s3BucketName := getEnv("S3_BUCKET_NAME", "alfheim-assets")
 	s3UseSSL := getEnvAsBool("S3_USE_SSL", false)
 	s3Region := getEnv("S3_REGION", "us-east-1")
-	s3PublicURL := getEnv("S3_PUBLIC_URL", "http://api.alfheim.loegien.localhost/storage")
+
+	defaultS3PublicURL := "http://api.alfheim.loegien.localhost/storage"
+	if baseURL := getEnv("ALFHEIM_BASE_URL", ""); baseURL != "" {
+		defaultS3PublicURL = fmt.Sprintf("%s/storage", strings.TrimRight(baseURL, "/"))
+	}
+	s3PublicURL := getEnv("S3_PUBLIC_URL", defaultS3PublicURL)
 
 	cfg := &Config{
 		Environment: env,

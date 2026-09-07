@@ -1,4 +1,5 @@
-import ky, { HTTPError } from "ky";
+import ky from "ky";
+import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 export interface ApiError {
   status?: number;
@@ -7,12 +8,12 @@ export interface ApiError {
 
 // Sanitize and resolve base host URLs to bypass client-side path mutations
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   if (resolved.endsWith("/")) {
@@ -24,8 +25,8 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
   return resolved + "/";
 };
 
-const SHOPPING_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "http://api.alfheim.loegien.localhost/shopping/api/v1");
-const PANTRY_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_PANTRY_API_URL, "http://api.alfheim.loegien.localhost/pantry/api/v1");
+const SHOPPING_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "/shopping/api/v1");
+const PANTRY_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_PANTRY_API_URL, "/pantry/api/v1");
 
 /**
  * Normalizes HTTP error payloads from FastAPI and throws custom ApiError objects.
@@ -72,7 +73,13 @@ export const shoppingClient = ky.create({
     afterResponse: [
       async (request, options, response) => {
         if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as any).__keycloak_instance__;
+          const keycloak = (window as unknown as {
+            __keycloak_instance__?: {
+              updateToken: (minValidity: number) => Promise<boolean>;
+              token?: string;
+              login?: () => void;
+            };
+          }).__keycloak_instance__;
           if (keycloak && typeof keycloak.updateToken === "function") {
             try {
               const refreshed = await keycloak.updateToken(30);
@@ -120,7 +127,13 @@ export const pantryClient = ky.create({
     afterResponse: [
       async (request, options, response) => {
         if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as any).__keycloak_instance__;
+          const keycloak = (window as unknown as {
+            __keycloak_instance__?: {
+              updateToken: (minValidity: number) => Promise<boolean>;
+              token?: string;
+              login?: () => void;
+            };
+          }).__keycloak_instance__;
           if (keycloak && typeof keycloak.updateToken === "function") {
             try {
               const refreshed = await keycloak.updateToken(30);

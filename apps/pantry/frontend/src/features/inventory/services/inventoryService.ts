@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { resolveApiUrl } from "@alfheim/shared";
 import { pantryClient } from "@/core/api";
 import {
   InventoryStateReadWithRelations,
@@ -142,9 +143,10 @@ export async function pushLowStockToShoppingApp(): Promise<{ success: boolean; p
     };
 
     try {
-      const targetUrl = process.env.NEXT_PUBLIC_SHOPPING_API_URL
+      const shoppingBase = process.env.NEXT_PUBLIC_SHOPPING_API_URL
         ? `${process.env.NEXT_PUBLIC_SHOPPING_API_URL}/items`
-        : "http://api.alfheim.loegien.localhost/shopping/api/v1/items";
+        : undefined;
+      const targetUrl = resolveApiUrl("/shopping/api/v1/items", shoppingBase);
 
       const res = await fetch(targetUrl, {
         method: "POST",
