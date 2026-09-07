@@ -487,10 +487,14 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "alfheim-grafana-secret",
       "redirectUris": [
-        "http://api.alfheim.loegien.localhost/grafana/login/generic_oauth",
-        "http://alfheim.loegien.localhost/grafana/login/generic_oauth",
-        "http://api.alfheim.loegien.de/grafana/login/generic_oauth",
+        "https://alfheim.loegien.de/grafana/login/generic_oauth",
         "http://alfheim.loegien.de/grafana/login/generic_oauth",
+        "https://api.alfheim.loegien.de/grafana/login/generic_oauth",
+        "http://api.alfheim.loegien.de/grafana/login/generic_oauth",
+        "https://alfheim.loegien.localhost/grafana/login/generic_oauth",
+        "http://alfheim.loegien.localhost/grafana/login/generic_oauth",
+        "https://api.alfheim.loegien.localhost/grafana/login/generic_oauth",
+        "http://api.alfheim.loegien.localhost/grafana/login/generic_oauth",
         "http://localhost:3000/grafana/login/generic_oauth",
         "http://localhost:3000/*"
       ],
@@ -535,10 +539,14 @@
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://alfheim.loegien.localhost/*",
+        "https://alfheim.loegien.de/*",
         "http://alfheim.loegien.de/*",
+        "https://alfheim.loegien.localhost/*",
+        "http://alfheim.loegien.localhost/*",
+        "https://alfheim/*",
         "http://alfheim/*",
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "https://*"
       ],
       "webOrigins": [
         "*"
@@ -554,7 +562,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/*",
+        "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -581,9 +589,14 @@
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://alfheim.loegien.localhost/pantry/*",
+        "https://alfheim.loegien.de/pantry/*",
         "http://alfheim.loegien.de/pantry/*",
-        "http://alfheim/pantry/*"
+        "https://alfheim.loegien.localhost/pantry/*",
+        "http://alfheim.loegien.localhost/pantry/*",
+        "https://alfheim/pantry/*",
+        "http://alfheim/pantry/*",
+        "http://localhost:3000/pantry/*",
+        "https://*/pantry/*"
       ],
       "webOrigins": [
         "*"
@@ -599,7 +612,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/pantry/*",
+        "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -626,10 +639,15 @@
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://alfheim.loegien.localhost/chores/*",
+        "https://alfheim.loegien.de/chores/*",
         "http://alfheim.loegien.de/chores/*",
+        "https://alfheim.loegien.localhost/chores/*",
+        "http://alfheim.loegien.localhost/chores/*",
+        "https://alfheim/chores/*",
         "http://alfheim/chores/*",
-        "http://localhost/chores/*"
+        "http://localhost:3000/chores/*",
+        "http://localhost/chores/*",
+        "https://*/chores/*"
       ],
       "webOrigins": [
         "*"
@@ -645,7 +663,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/chores/*",
+        "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -672,9 +690,14 @@
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://alfheim.loegien.localhost/shopping/*",
+        "https://alfheim.loegien.de/shopping/*",
         "http://alfheim.loegien.de/shopping/*",
-        "http://alfheim/shopping/*"
+        "https://alfheim.loegien.localhost/shopping/*",
+        "http://alfheim.loegien.localhost/shopping/*",
+        "https://alfheim/shopping/*",
+        "http://alfheim/shopping/*",
+        "http://localhost:3010/shopping/*",
+        "https://*/shopping/*"
       ],
       "webOrigins": [
         "*"
@@ -690,7 +713,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/shopping/*",
+        "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -717,9 +740,14 @@
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://alfheim.loegien.localhost/maintenance/*",
+        "https://alfheim.loegien.de/maintenance/*",
         "http://alfheim.loegien.de/maintenance/*",
-        "http://alfheim/maintenance/*"
+        "https://alfheim.loegien.localhost/maintenance/*",
+        "http://alfheim.loegien.localhost/maintenance/*",
+        "https://alfheim/maintenance/*",
+        "http://alfheim/maintenance/*",
+        "http://localhost:3000/maintenance/*",
+        "https://*/maintenance/*"
       ],
       "webOrigins": [
         "*"
@@ -735,7 +763,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/maintenance/*",
+        "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
@@ -762,10 +790,15 @@
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://alfheim.loegien.localhost/chat/*",
+        "https://alfheim.loegien.de/chat/*",
         "http://alfheim.loegien.de/chat/*",
+        "https://alfheim.loegien.localhost/chat/*",
+        "http://alfheim.loegien.localhost/chat/*",
+        "https://alfheim/chat/*",
         "http://alfheim/chat/*",
-        "http://localhost/chat/*"
+        "http://localhost:3000/chat/*",
+        "http://localhost/chat/*",
+        "https://*/chat/*"
       ],
       "webOrigins": [
         "*"
@@ -781,7 +814,160 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://alfheim.loegien.localhost/chat/*",
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "id": "workout-frontend-client",
+      "clientId": "workout-frontend",
+      "name": "Workout Frontend",
+      "rootUrl": "http://alfheim.loegien.localhost/workout",
+      "baseUrl": "/workout/",
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://alfheim.loegien.de/workout/*",
+        "http://alfheim.loegien.de/workout/*",
+        "https://alfheim.loegien.localhost/workout/*",
+        "http://alfheim.loegien.localhost/workout/*",
+        "https://alfheim/workout/*",
+        "http://alfheim/workout/*",
+        "http://localhost:3000/workout/*",
+        "http://localhost/workout/*",
+        "https://*/workout/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "id": "library-frontend-client",
+      "clientId": "library-frontend",
+      "name": "Library Frontend",
+      "rootUrl": "http://alfheim.loegien.localhost/library",
+      "baseUrl": "/library/",
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://alfheim.loegien.de/library/*",
+        "http://alfheim.loegien.de/library/*",
+        "https://alfheim.loegien.localhost/library/*",
+        "http://alfheim.loegien.localhost/library/*",
+        "https://alfheim/library/*",
+        "http://alfheim/library/*",
+        "http://localhost:3000/library/*",
+        "http://localhost/library/*",
+        "https://*/library/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "id": "budget-frontend-client",
+      "clientId": "budget-frontend",
+      "name": "Budget Frontend",
+      "rootUrl": "http://alfheim.loegien.localhost/budget",
+      "baseUrl": "/budget/",
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://alfheim.loegien.de/budget/*",
+        "http://alfheim.loegien.de/budget/*",
+        "https://alfheim.loegien.localhost/budget/*",
+        "http://alfheim.loegien.localhost/budget/*",
+        "https://alfheim/budget/*",
+        "http://alfheim/budget/*",
+        "http://localhost:3000/budget/*",
+        "http://localhost/budget/*",
+        "https://*/budget/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [

@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { resolveFrontendUrl } from "@alfheim/shared";
 import { useActiveHouseholdId } from "./choresService";
 
 const getApiUrl = (path: string) => {
   if (typeof window !== "undefined") {
     return window.location.origin + path;
   }
-  return (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + path;
+  return resolveFrontendUrl() + path;
 };
 
 export interface ShoppingIntegrationData {

@@ -1,14 +1,13 @@
 import ky from "ky";
+import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved =
-        (process.env.NEXT_PUBLIC_FRONTEND_URL ||
-          "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   if (resolved.endsWith("/")) {
@@ -22,7 +21,7 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
 
 const BASE_URL = sanitizeUrl(
   process.env.NEXT_PUBLIC_API_URL,
-  "http://api.alfheim.loegien.localhost/api/v1/library"
+  "/api/v1/library"
 );
 
 export const libraryClient = ky.create({

@@ -38,6 +38,16 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
+        <script
+          id="alfheim-runtime-env"
+          dangerouslySetInnerHTML={{
+            __html: `window.__ALFHEIM_ENV__ = ${JSON.stringify({
+              KEYCLOAK_URL: process.env.KEYCLOAK_PUBLIC_URL || process.env.NEXT_PUBLIC_KEYCLOAK_URL || '',
+              FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.ALFHEIM_BASE_URL || '',
+              API_URL: process.env.NEXT_PUBLIC_API_URL || '',
+            })};`,
+          }}
+        />
       </head>
       <body
         className="h-full bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black"

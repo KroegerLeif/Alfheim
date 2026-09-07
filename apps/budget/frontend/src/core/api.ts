@@ -1,5 +1,5 @@
 import ky from "ky";
-import { createTraceparentHook } from "@alfheim/shared";
+import { createTraceparentHook, resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
 export class ApiError extends Error {
   status?: number;
@@ -11,13 +11,12 @@ export class ApiError extends Error {
 }
 
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = url || defaultFallback;
+  let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
     if (typeof window !== "undefined") {
       resolved = window.location.origin + resolved;
     } else {
-      resolved =
-        (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost") + resolved;
+      resolved = resolveFrontendUrl() + resolved;
     }
   }
   if (resolved.endsWith("/")) {
@@ -31,7 +30,7 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
 
 const BASE_URL = sanitizeUrl(
   process.env.NEXT_PUBLIC_API_URL,
-  "http://api.alfheim.loegien.localhost/budget/api/v1"
+  "/budget/api/v1"
 );
 
 const handleResponseError = async (response: Response) => {
@@ -73,7 +72,12 @@ export const budgetClient = ky.create({
     afterResponse: [
       async (request, options, response) => {
         if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as any).__keycloak_instance__;
+          const keycloak = (window as unknown as {
+            __keycloak_instance__?: {
+              updateToken: (minValidity: number) => Promise<boolean>;
+              token?: string;
+            };
+          }).__keycloak_instance__;
           if (keycloak && typeof keycloak.updateToken === "function") {
             try {
               const refreshed = await keycloak.updateToken(30);

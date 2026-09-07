@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Keycloak from "keycloak-js";
+import { resolveKeycloakUrl } from "@alfheim/shared";
 import { UserProfile } from "./AuthContext";
 
 export function useMaintenanceKeycloak() {
@@ -47,7 +48,7 @@ export function useMaintenanceKeycloak() {
       initializedRef.current = true;
 
       const keycloak = new Keycloak({
-        url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://api.alfheim.loegien.localhost/auth",
+        url: resolveKeycloakUrl(),
         realm: "alfheim",
         clientId: "maintenance-frontend",
       });

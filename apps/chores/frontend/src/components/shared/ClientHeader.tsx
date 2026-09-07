@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/core/authContext";
-import { AppHeader, useTranslation } from "@alfheim/shared";
+import { AppHeader, useTranslation, resolveFrontendUrl } from "@alfheim/shared";
 
 export function ClientHeader() {
   const { user, logout } = useAuth();
@@ -13,7 +13,7 @@ export function ClientHeader() {
       brandTitle="ALFHEIM // CHORES"
       brandSubtitle={t("header.brand_subtitles.chores")}
       showBackToDashboard={true}
-      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
+      backToDashboardHref={resolveFrontendUrl()}
       showHouseholdSwitcher={true}
       showLanguageSwitcher={true}
       showThemeToggle={true}

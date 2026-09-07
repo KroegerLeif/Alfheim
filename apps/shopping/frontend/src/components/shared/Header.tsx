@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
-import { AppHeader } from "@alfheim/shared";
+import { AppHeader, resolveFrontendUrl } from "@alfheim/shared";
 import { useSidebar } from "@/app/[locale]/providers";
 import { useKeycloakUser } from "@/lib/useKeycloakUser";
 
@@ -15,6 +15,7 @@ export function Header() {
   const user = useKeycloakUser();
 
   const authUser = user ? {
+    id: user.id,
     name: user.name,
     preferred_username: user.username,
     email: user.email,
@@ -26,7 +27,7 @@ export function Header() {
       brandTitle="ALFHEIM // SHOPPING"
       brandSubtitle={tNav("subtitle") || "Smart Grocery List"}
       showBackToDashboard={true}
-      backToDashboardHref={process.env.NEXT_PUBLIC_FRONTEND_URL || "http://alfheim.loegien.localhost"}
+      backToDashboardHref={resolveFrontendUrl()}
       leftSlot={
         !isSidebarOpen ? (
           <button
