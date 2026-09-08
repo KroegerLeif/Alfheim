@@ -9,6 +9,11 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(ci): update smoke test caddy probe endpoint and wire prod startup test into verify.sh`**
+  - Updated `.github/workflows/smoke-test.yml` health verification retry loop to probe `http://127.0.0.1:80/livez` instead of `http://127.0.0.1/`, eliminating 502 Bad Gateway timeouts caused by unstarted downstream frontend services.
+  - Aligned standalone Caddy compose healthcheck in `infrastructure/caddy/compose.yml` to test `/livez`.
+  - Added dedicated step in `.github/workflows/smoke-test.yml` running `./scripts/test-prod-startup.sh` for end-to-end production core stack validation in CI.
+  - Integrated `--smoke` / `--prod-startup` flags and Docker availability guards into unified `scripts/verify.sh` runner.
 * **`fix(deploy): resolve production compose startup race conditions, dns aliasing, and mount parity`**
   - Configured comprehensive network aliases (`postgres-iam`, `*-db`) across all 10 attached bridge networks on `postgres-core`, ensuring backward-compatible database resolution.
   - Standardized all host configuration volume mounts in `compose.prod.yaml` (`Caddyfile`, Keycloak realm JSON and providers) to the canonical `./infrastructure/...` repository layout.
