@@ -7,8 +7,13 @@
 # =============================================================================
 # 1. FRONTEND DOMAIN (alfheim.loegien.de & local development)
 # =============================================================================
-http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegien.de}, http://alfheim.loegien.localhost, https://alfheim.loegien.localhost, http://alfheim, https://alfheim {
+http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegien.de}, http://alfheim.loegien.localhost, https://alfheim.loegien.localhost, http://alfheim, https://alfheim, http://localhost, http://127.0.0.1 {
 	{$CADDY_TLS_DIRECTIVE:}
+
+	# Dedicated Ingress Gateway Healthcheck Endpoint (isolated from downstream services)
+	handle /livez {
+		respond "OK" 200
+	}
 
 	# Exact locale redirects for bare base paths
 	redir /pantry /pantry/en 302

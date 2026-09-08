@@ -167,8 +167,102 @@ if [[ ! -f "$TEMPLATE_FILE" ]]; then
   exit 1
 fi
 
+# ------------------------------------------------------------------------------
+# Legacy Environment Migration
+# ------------------------------------------------------------------------------
+migrate_existing_env() {
+  local env_file="$1"
+  local migrated=false
+
+  # 1. Migrate legacy database host: postgres-iam -> postgres-core
+  if grep -q "postgres-iam" "$env_file"; then
+    sed -i.bak -e 's|postgres-iam|postgres-core|g' "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+    log_warn "Migrated legacy database host 'postgres-iam' -> 'postgres-core' in $(basename "$env_file")"
+  fi
+
+  # 2. Migrate legacy IAM database name & user
+  if grep -qE '^KC_DB_URL=.*keycloak_db' "$env_file"; then
+    sed -i.bak -e 's|/keycloak_db|/alfheim_iam|g' "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+    log_warn "Migrated legacy IAM database 'keycloak_db' -> 'alfheim_iam' in $(basename "$env_file")"
+  fi
+  if grep -qE '^KC_DB_USERNAME=alfheim_admin' "$env_file"; then
+    sed -i.bak -e 's|^KC_DB_USERNAME=alfheim_admin|KC_DB_USERNAME=iam_user|g' "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+    log_warn "Migrated legacy KC_DB_USERNAME 'alfheim_admin' -> 'iam_user' in $(basename "$env_file")"
+  fi
+  if grep -qE '^IAM_POSTGRES_USER=alfheim_admin' "$env_file"; then
+    sed -i.bak -e 's|^IAM_POSTGRES_USER=alfheim_admin|IAM_POSTGRES_USER=iam_user|g' "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+  fi
+  if grep -qE '^POSTGRES_DB=keycloak_db' "$env_file"; then
+    sed -i.bak -e 's|^POSTGRES_DB=keycloak_db|POSTGRES_DB=postgres|g' "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+  fi
+
+  # 3. Migrate legacy app database names
+  local legacy_dbs=(
+    "DASHBOARD_POSTGRES_DB=dashboard_db:DASHBOARD_POSTGRES_DB=alfheim_dashboard"
+    "PANTRY_POSTGRES_DB=pantry:PANTRY_POSTGRES_DB=alfheim_pantry"
+    "SHOPPING_POSTGRES_DB=shopping:SHOPPING_POSTGRES_DB=alfheim_shopping"
+    "MAINTENANCE_POSTGRES_DB=maintenance:MAINTENANCE_POSTGRES_DB=alfheim_maintenance"
+    "CHORES_POSTGRES_DB=chores:CHORES_POSTGRES_DB=alfheim_chores"
+    "BUDGET_POSTGRES_DB=budget:BUDGET_POSTGRES_DB=alfheim_budget"
+    "CHAT_POSTGRES_DB=chat_db:CHAT_POSTGRES_DB=alfheim_chat"
+    "WORKOUT_POSTGRES_DB=workout:WORKOUT_POSTGRES_DB=alfheim_workout"
+    "LIBRARY_POSTGRES_DB=library:LIBRARY_POSTGRES_DB=alfheim_library"
+  )
+
+  for pair in "${legacy_dbs[@]}"; do
+    local old_val="${pair%%:*}"
+    local new_val="${pair##*:}"
+    if grep -q "^${old_val}" "$env_file"; then
+      sed -i.bak -e "s|^${old_val}|${new_val}|g" "$env_file" && rm -f "${env_file}.bak"
+      migrated=true
+    fi
+  done
+
+  # 4. Migrate legacy app database users (postgres -> <app>_user)
+  local legacy_users=(
+    "DASHBOARD_POSTGRES_USER=postgres:DASHBOARD_POSTGRES_USER=dashboard_user"
+    "PANTRY_POSTGRES_USER=postgres:PANTRY_POSTGRES_USER=pantry_user"
+    "SHOPPING_POSTGRES_USER=postgres:SHOPPING_POSTGRES_USER=shopping_user"
+    "MAINTENANCE_POSTGRES_USER=postgres:MAINTENANCE_POSTGRES_USER=maintenance_user"
+    "CHORES_POSTGRES_USER=postgres:CHORES_POSTGRES_USER=chores_user"
+    "BUDGET_POSTGRES_USER=postgres:BUDGET_POSTGRES_USER=budget_user"
+    "CHAT_POSTGRES_USER=postgres:CHAT_POSTGRES_USER=chat_user"
+    "WORKOUT_POSTGRES_USER=postgres:WORKOUT_POSTGRES_USER=workout_user"
+    "LIBRARY_POSTGRES_USER=postgres:LIBRARY_POSTGRES_USER=library_user"
+  )
+
+  for pair in "${legacy_users[@]}"; do
+    local old_user="${pair%%:*}"
+    local new_user="${pair##*:}"
+    if grep -q "^${old_user}" "$env_file"; then
+      sed -i.bak -e "s|^${old_user}|${new_user}|g" "$env_file" && rm -f "${env_file}.bak"
+      migrated=true
+    fi
+  done
+
+  # 5. Inject missing IAM_POSTGRES_* variables if not present
+  if ! grep -q "^IAM_POSTGRES_USER=" "$env_file"; then
+    echo "IAM_POSTGRES_USER=iam_user" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^IAM_POSTGRES_DB=" "$env_file"; then
+    echo "IAM_POSTGRES_DB=alfheim_iam" >> "$env_file"
+    migrated=true
+  fi
+
+  if [[ "$migrated" == true ]]; then
+    log_success "Successfully migrated legacy database configuration in $(basename "$env_file")"
+  fi
+}
+
 if [[ -f "$OUTPUT_FILE" && "$FORCE" != true ]]; then
   log_warn "Target environment file '$OUTPUT_FILE' already exists."
+  migrate_existing_env "$OUTPUT_FILE"
   if [[ "$AUTO_MODE" == true ]]; then
     log_info "Skipping secret generation. Use --force to regenerate."
     exit 0
