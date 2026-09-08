@@ -3,7 +3,7 @@
 This is the central orchestration repository for `alfheim`, managing common infrastructure (identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
 [![Release](https://img.shields.io/badge/release-v0.1.0--beta.1-blue.svg)](https://github.com/KroegerLeif/Alfheim/releases)
-[![Installation](https://img.shields.io/badge/docs-INSTALL.md-success.svg)](INSTALL.md)
+[![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -25,7 +25,7 @@ cd ~/alfheim
 docker compose -f compose.prod.yaml up -d
 ```
 
-👉 **For detailed prerequisites, manual deployment steps, and backup strategies, consult the [Self-Hosting & Installation Guide (INSTALL.md)](INSTALL.md).**
+👉 **For detailed prerequisites, manual deployment steps, and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/how-to/homelab-deployment.md).**
 
 ---
 
