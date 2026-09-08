@@ -9,6 +9,15 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(deploy): resolve production compose startup race conditions, dns aliasing, and mount parity`**
+  - Configured comprehensive network aliases (`postgres-iam`, `*-db`) across all 10 attached bridge networks on `postgres-core`, ensuring backward-compatible database resolution.
+  - Standardized all host configuration volume mounts in `compose.prod.yaml` (`Caddyfile`, Keycloak realm JSON and providers) to the canonical `./infrastructure/...` repository layout.
+  - Added dedicated `/livez` 200 respond handler in `infrastructure/caddy/Caddyfile` and decoupled Caddy healthcheck from downstream frontend services.
+  - Removed invalid shell healthcheck from distroless `otel-collector` service definition.
+  - Standardized frontend healthchecks across `budget-frontend`, `workout-frontend`, and `library-frontend` to Node-native http probes.
+  - Added automated legacy database host and database name migration logic to `scripts/init-env.sh`.
+  - Aligned download targets in `scripts/install.sh` with the canonical repository hierarchy.
+  - Created `scripts/test-prod-startup.sh` preflight and smoke-test verification harness with health polling and clean teardown traps.
 * **`fix(keycloak): configure hostname options and proxy headers for keycloak 26`**
   - Resolved `ERROR: hostname-backchannel-dynamic must be set to false when no hostname is provided` runtime crash during Keycloak 26 cold boot by explicitly configuring `KC_HOSTNAME: "${KEYCLOAK_HOSTNAME:-auth.alfheim.loegien.de}"` and `KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"`.
   - Configured modern Quarkus/Keycloak 26 proxy headers (`KC_PROXY_HEADERS: "xforwarded"`, `KC_HTTP_ENABLED: "true"`), cleaned up legacy v1 hostname flags, and registered `KEYCLOAK_HOSTNAME` in `.env.example`.

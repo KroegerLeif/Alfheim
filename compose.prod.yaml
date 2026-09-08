@@ -27,15 +27,15 @@ services:
       ALFHEIM_HOST: "${ALFHEIM_HOST:-alfheim.loegien.de}"
       CADDY_TLS_DIRECTIVE: "${CADDY_TLS_DIRECTIVE:-}"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80/ || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80/livez || exit 1"]
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 5s
+      retries: 10
+      start_period: 10s
     networks:
       - gateway-net
 
@@ -80,16 +80,46 @@ services:
       retries: 15
       start_period: 30s
     networks:
-      - infra-net
-      - core-net
-      - app-pantry-net
-      - app-shopping-net
-      - app-chores-net
-      - app-maintenance-net
-      - app-budget-net
-      - app-chat-net
-      - app-workout-net
-      - app-library-net
+      infra-net:
+        aliases:
+          - postgres-core
+          - postgres-iam
+      core-net:
+        aliases:
+          - postgres-core
+          - dashboard-db
+      app-pantry-net:
+        aliases:
+          - postgres-core
+          - pantry-db
+      app-shopping-net:
+        aliases:
+          - postgres-core
+          - shopping-db
+      app-chores-net:
+        aliases:
+          - postgres-core
+          - chores-db
+      app-maintenance-net:
+        aliases:
+          - postgres-core
+          - maintenance-db
+      app-budget-net:
+        aliases:
+          - postgres-core
+          - budget-db
+      app-chat-net:
+        aliases:
+          - postgres-core
+          - chat-db
+      app-workout-net:
+        aliases:
+          - postgres-core
+          - workout-db
+      app-library-net:
+        aliases:
+          - postgres-core
+          - library-db
     stop_grace_period: 10s
 
   keycloak:
@@ -119,8 +149,8 @@ services:
       SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
       SMTP_FROM: "${SMTP_FROM:-noreply@alfheim.local}"
     volumes:
-      - ./keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
-      - ./keycloak/providers:/opt/keycloak/providers:ro
+      - ./infrastructure/keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
+      - ./infrastructure/keycloak/providers:/opt/keycloak/providers:ro
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/realms/alfheim HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
       interval: 5s
@@ -218,12 +248,6 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./infrastructure/telemetry/collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:13133/ || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     depends_on:
       victoriametrics:
         condition: service_healthy
@@ -633,7 +657,7 @@ services:
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/budget/en || exit 1"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/budget/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
       retries: 20
@@ -688,7 +712,7 @@ services:
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/workout/de || exit 1"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/workout/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
       retries: 20
@@ -742,7 +766,7 @@ services:
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/library/en || exit 1"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/library/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
       timeout: 10s
       retries: 20
@@ -767,26 +791,38 @@ volumes:
 # ==============================================================================
 networks:
   gateway-net:
+    name: gateway-net
     driver: bridge
   infra-net:
+    name: infra-net
     driver: bridge
   core-net:
+    name: core-net
     driver: bridge
   app-chat-net:
+    name: app-chat-net
     driver: bridge
   app-pantry-net:
+    name: app-pantry-net
     driver: bridge
   app-shopping-net:
+    name: app-shopping-net
     driver: bridge
   app-maintenance-net:
+    name: app-maintenance-net
     driver: bridge
   app-chores-net:
+    name: app-chores-net
     driver: bridge
   app-budget-net:
+    name: app-budget-net
     driver: bridge
   app-workout-net:
+    name: app-workout-net
     driver: bridge
   app-library-net:
+    name: app-library-net
     driver: bridge
   observability-internal:
+    name: observability-internal
     driver: bridge
