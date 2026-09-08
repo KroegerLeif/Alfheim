@@ -82,8 +82,8 @@ Run the cryptographic secret generator:
 # Non-interactive generation (defaults to https://alfheim.loegien.de)
 ./init-env.sh --auto
 
-# Or generation with custom base URL / domain:
-./init-env.sh --base-url https://home.myhomelab.net
+# Or generation with custom base URL / domain and registry overrides:
+./init-env.sh --base-url https://home.myhomelab.net --registry ghcr.io --repo myuser/alfheim --tag v0.1.0-beta.1
 ```
 
 ### 4. Review Configuration (`.env`)
@@ -94,6 +94,9 @@ nano .env
 
 Key environment options:
 * `ALFHEIM_BASE_URL`: Root URL of your server (e.g. `https://alfheim.loegien.de` or `http://192.168.1.100`), from which all frontend and API routes are derived.
+* `IMAGE_REGISTRY`: Container registry for prebuilt images (auto-derived from Git remote; default: `ghcr.io`).
+* `IMAGE_REPO`: Container repository namespace (auto-derived from Git remote; default: `kroegerleif/alfheim`).
+* `IMAGE_TAG`: Target image version tag (default: `latest`).
 * `KEYCLOAK_PUBLIC_URL`: URL to access Keycloak IAM (defaults to `${ALFHEIM_BASE_URL}/auth`).
 * `CHAT_ENCRYPTION_KEY`: Auto-generated 32-byte base64 key for securing LLM API keys at rest with AES-256-GCM.
 

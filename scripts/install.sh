@@ -203,6 +203,33 @@ while [[ $# -gt 0 ]]; do
         shift
       fi
       ;;
+    -r|--registry|--image-registry)
+      if [[ $# -ge 2 ]]; then
+        ENV_INIT_FLAGS+=("$1" "$2")
+        shift 2
+      else
+        ENV_INIT_FLAGS+=("$1")
+        shift
+      fi
+      ;;
+    --repo|--image-repo)
+      if [[ $# -ge 2 ]]; then
+        ENV_INIT_FLAGS+=("$1" "$2")
+        shift 2
+      else
+        ENV_INIT_FLAGS+=("$1")
+        shift
+      fi
+      ;;
+    --tag|--image-tag)
+      if [[ $# -ge 2 ]]; then
+        ENV_INIT_FLAGS+=("$1" "$2")
+        shift 2
+      else
+        ENV_INIT_FLAGS+=("$1")
+        shift
+      fi
+      ;;
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo "Options:"
@@ -210,6 +237,9 @@ while [[ $# -gt 0 ]]; do
       echo "  --auto                     Non-interactive environment setup (default)"
       echo "  --interactive              Interactive environment setup"
       echo "  --base-url <url>           Specify base URL (e.g. https://alfheim.example.com)"
+      echo "  --registry <registry>      Specify image registry (e.g. ghcr.io)"
+      echo "  --repo <repo>              Specify image repo (e.g. kroegerleif/alfheim)"
+      echo "  --tag <tag>                Specify image tag (e.g. latest)"
       echo "  -h, --help                 Show this help message"
       exit 0
       ;;
@@ -368,6 +398,23 @@ if [[ "${START_STACK}" == "true" ]]; then
 
   # Stage 3: Backends, Frontends, Telemetry & Caddy Ingress Gateway
   stage_step "3/3" "Application Services & Ingress Gateway"
+  PULL_REGISTRY=$(grep -E '^IMAGE_REGISTRY=' "${INSTALL_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "ghcr.io")
+  PULL_REPO=$(grep -E '^IMAGE_REPO=' "${INSTALL_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "kroegerleif/alfheim")
+  PULL_TAG=$(grep -E '^IMAGE_TAG=' "${INSTALL_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "latest")
+
+  log_info "Pre-pulling application container images (${PULL_REGISTRY}/${PULL_REPO} tag: ${PULL_TAG})..."
+  spin_start "Pulling container images from ${PULL_REGISTRY}/${PULL_REPO} …"
+  if dc pull >/dev/null 2>&1; then
+    spin_stop
+    log_success "All container images successfully pulled from ${PULL_REGISTRY}/${PULL_REPO}"
+  else
+    spin_stop
+    log_error "Failed to pull application container images from ${PULL_REGISTRY}/${PULL_REPO}:${PULL_TAG}."
+    log_error "Please verify image tag existence, network access, or registry credentials, then retry:"
+    log_error "  cd ${INSTALL_DIR} && docker compose -f compose.prod.yaml pull"
+    exit 1
+  fi
+
   log_info "Starting microservice backends, frontends, telemetry, and Caddy ingress gateway..."
   dc up -d
 
