@@ -1,51 +1,100 @@
-# Pantry App — Why It Exists
+# Digital Pantry Application (`apps/pantry/`)
 
-> **This README answers WHY this application exists.** For implementation details, see [`frontend/README.md`](./frontend/README.md) and [`backend/README.md`](./backend/README.md).
-
----
-
-## 🥫 Purpose
-
-The **Pantry App** (`apps/pantry`) is the household inventory management service for the Alfheim monorepo. It solves the problem of **household stock blindness** — the inability to know what you have, what's expiring, and what you need to restock — with a structured, data-driven approach.
+> **TL;DR:** Multi-tenant household inventory, stock tracking, expiration alert, and barcode lookup service for Alfheim.
 
 ---
 
-## 🎯 Core Value Proposition
+## 📋 Table of Contents
+- [Purpose & Core Value](#purpose--core-value)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Ingress Routing & Environment Configuration](#ingress-routing--environment-configuration)
+- [Local Development & Commands](#local-development--commands)
+- [Domain Model & Key Concepts](#domain-model--key-concepts)
+- [Testing & Quality Gates](#testing--quality-gates)
 
-| Problem | Solution |
+---
+
+## 🎯 Purpose & Core Value
+
+| Need / Problem | Solution / Capability |
 | :--- | :--- |
-| Don't know what's in the pantry | Real-time inventory state with location-aware batch tracking |
+| Don't know what's in the pantry | Real-time stock tracking with location-aware batch management |
 | Food expires unnoticed | Expiration date tracking with urgency-sorted alerts feed |
-| Restocking is reactive, not proactive | Minimum stock quotas → automatic shopping list sync |
-| No visibility on consumption patterns | Monthly consumption analytics (OUT/WASTE movements) |
-| Inventory spread across multiple locations | Multi-location storage layout with per-location alarm badges |
+| Restocking is reactive | Minimum stock quotas with automatic shopping list sync |
+| No consumption visibility | Monthly consumption analytics (OUT/WASTE movements) |
+| Multiple storage areas | Multi-location storage layout (Fridge, Cabinet, Backlog) |
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture & Tech Stack
 
+- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), Pint unit conversion, and FastMCP AI tools.
+- **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
+- **Database:** Dedicated PostgreSQL 16 container (`pantry-db`).
+
+### FDD Domain Features (`src/features/`)
+- `locations`: Physical and virtual storage places (Cabinet, Fridge, Pantry). System default locations (Backlog) are protected against accidental deletion.
+- `categories`: Tag classification groups for products.
+- `products`: Master product blueprints (EAN/UPC barcode lookup, brand, base unit). Barcoded items promote to global system templates. Open Food Facts API integration.
+- `inventory`: Stock ledger transactions (IN, OUT, WASTE) and live inventory state cache. Enforces ACID safety write locks (`SELECT FOR UPDATE`).
+
+---
+
+## 🌐 Ingress Routing & Environment Configuration
+
+### Gateway & Network Matrix
+| Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
+| :--- | :--- | :--- | :--- |
+| `pantry-db` | 5432 | Internal `app-pantry-net` | PostgreSQL 16 Database |
+| `pantry-backend` | 8000 | `/pantry/api/v1` | FastAPI REST API & FastMCP Server |
+| `pantry-frontend` | 3000 | `alfheim.loegien.localhost/pantry` | Next.js Microfrontend |
+
+### Essential Environment Variables
+| Variable | Default / Example | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@pantry-db:5432/pantry` | Async PostgreSQL connection string |
+| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth endpoint |
+| `NEXT_PUBLIC_PANTRY_API_URL` | `http://api.alfheim.loegien.localhost/pantry/api/v1` | Browser API gateway endpoint |
+
+---
+
+## 🚀 Local Development & Commands
+
+### 1. Run via Docker Compose
+```bash
+docker compose up -d
 ```
-apps/pantry/
-├── backend/          # FastAPI service (inventory state, transactions, products, locations)
-├── frontend/         # Next.js 15 App Router (inventory table, dashboard, analytics)
-└── compose.yml       # Service orchestration (backend, frontend, postgres)
+
+### 2. Run Backend Locally
+```bash
+cd backend
+uv sync
+uv run uvicorn src.main:app --reload --port 8000
 ```
 
-The app follows the **Feature-Driven Design (FDD)** pattern defined in `.ai/rules/architecture.md`.
+### 3. Run Frontend Locally
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
 
 ---
 
-## 🔗 Integration Points
+## 🔑 Domain Model & Key Concepts
 
-- **Keycloak OIDC**: JWT authentication (`api.alfheim.loegien.localhost/auth`). `household_id` claim scopes all data to the active household.
-- **Shopping App**: Low-stock items are exported cross-service via `pushLowStockToShoppingApp()`.
-- **Caddy Gateway**: Ingress at `alfheim.loegien.localhost/pantry` (frontend) and `api.alfheim.loegien.localhost/pantry/api/v1` (backend, path-stripped via `handle_path`).
+- **Product Blueprint** (`products`): Master data definition (name, brand, barcode, base unit, min stock quota).
+- **Inventory State** (`inventory_states`): Live stock cache for a `(product, location, batch_code)` tuple.
+- **Transaction Ledger** (`inventory_transactions`): Immutable audit log recording every IN, OUT, and WASTE stock movement.
 
 ---
 
-## 🔑 Key Concepts
+## 🧪 Testing & Quality Gates
 
-- **Product Blueprint** (`products`): The master data definition (name, brand, barcode, base unit, min stock). Global templates + custom household entries.
-- **Inventory State** (`inventory_states`): The live stock quantity for a `(product, location, batch_code)` tuple.
-- **Transaction** (`inventory_transactions`): Immutable ledger entries recording every IN/OUT/WASTE movement.
-- **Location** (`locations`): Physical or virtual storage zones (e.g. `Fridge`, `Pantry Cabinet`, `Backlog`).
+```bash
+# Execute Backend Pytest Suite & Coverage
+cd backend && uv run pytest --cov
+
+# Execute Frontend Typecheck & Vitest Suite
+cd frontend && pnpm check-types && pnpm test
+```
