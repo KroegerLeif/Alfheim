@@ -66,7 +66,9 @@ jobs:
 
       - name: Teardown Caddy Gateway
         if: always()
-        run: docker compose -f infrastructure/caddy/compose.yml down -v
+        run: |
+          docker compose -f infrastructure/caddy/compose.yml down -v
+          docker network rm gateway-net || true
 
       - name: Production Core Stack Smoke Test
         run: ./scripts/test-prod-startup.sh
