@@ -14,8 +14,180 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check-ancestry:
+    name: Verify Release Tag Ancestry on Main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository with Full History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Main Branch
+        run: git fetch origin main:main
+
+      - name: Check Branch Ancestry
+        run: |
+          echo "Verifying if tagged commit ${{ github.sha }} belongs to main history..."
+          if ! git merge-base --is-ancestor ${{ github.sha }} main; then
+            echo "Error: Tagged commit ${{ github.sha }} is not an ancestor of origin/main."
+            echo "Release tags must originate from the main branch."
+            exit 1
+          fi
+          echo "Branch ancestry check passed: Tagged commit belongs to main."
+
+  python-quality:
+    name: Python Quality Gate (Ruff & Ty)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12 and uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - name: Sync Root Workspace
+        run: uv sync --all-packages --all-groups
+
+      - name: Run Ruff Linter
+        run: uv run ruff check .
+
+      - name: Run Ruff Formatter Check
+        run: uv run ruff format --check .
+
+      - name: Run ty Type Checker
+        run: uv run ty check
+
+  python-tests:
+    name: Pytest & Coverage (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - apps/pantry/backend
+          - apps/shopping/backend
+          - apps/maintenance/backend
+          - apps/chores/backend
+          - apps/workout/backend
+          - apps/budget/backend
+          - apps/library/backend
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12 and uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - name: Sync Backend Dependencies
+        run: uv sync --all-groups
+
+      - name: Run Pytest with Coverage
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=95
+
+  go-tests:
+    name: Go Test Matrix (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - apps/chat/backend
+          - core/dashboard/backend
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: '${{ matrix.service }}/go.sum'
+
+      - name: Check Code Formatting (gofmt)
+        run: test -z "$(gofmt -l .)"
+
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Run Go Unit & Integration Tests with Race Detector & Coverage
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+  frontend-tests:
+    name: Frontend Quality Gate & Vitest Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript Type Check Across Workspace
+        run: pnpm check-types
+
+      - name: Run Vitest Suite Across Workspace
+        run: pnpm -r test
+
+  build-theme:
+    name: Compile Keycloak Theme
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compile Keycloak Theme
+        run: pnpm run build:theme
+
+      - name: Upload Keycloak Theme Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: keycloak-theme-jar
+          path: infrastructure/keycloak/providers/alfheim-theme.jar
+          if-no-files-found: error
+
   build-images:
     name: Build & Push (${{ matrix.name }})
+    needs:
+      - check-ancestry
+      - python-quality
+      - python-tests
+      - go-tests
+      - frontend-tests
+      - build-theme
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -98,6 +270,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Download Keycloak Theme Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: keycloak-theme-jar
+          path: infrastructure/keycloak/providers
+
       - name: Lowercase Repository Name
         run: |
           echo "IMAGE_REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
@@ -129,13 +307,19 @@ jobs:
 
   publish-release:
     name: Publish Official GitHub Release
-    needs: build-images
+    needs: [build-images, build-theme]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Download Keycloak Theme Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: keycloak-theme-jar
+          path: infrastructure/keycloak/providers
 
       - name: Create GitHub Release & Attach Production Artifacts
         uses: softprops/action-gh-release@v2
@@ -152,4 +336,5 @@ jobs:
             .env.example
             infrastructure/caddy/Caddyfile
             infrastructure/keycloak/alfheim-realm.json
+            infrastructure/keycloak/providers/alfheim-theme.jar
             infrastructure/telemetry/collector/config.yaml

@@ -5,7 +5,7 @@ This directory contains the foundational infrastructure for the IAM of `alfheim`
 We utilize a "Database per Service" architecture. Keycloak is isolated with its own dedicated PostgreSQL instance to minimize blast radius and ensure loose coupling.
 
 ## Services
-* **PostgreSQL (`postgres-iam`)**: Persistent relational database for Keycloak. Data is stored locally via a Docker volume bind mount (`./postgres-iam/data`).
+* **PostgreSQL (`postgres-core`)**: Persistent relational database cluster for Keycloak, dashboard control plane, and microservices. Data is stored locally via a Docker volume bind mount (`./postgres/data`).
 * **Keycloak (`keycloak`)**: The central IAM provider managing realms, clients, and users.
 
 ## Prerequisites

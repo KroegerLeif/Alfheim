@@ -1,99 +1,111 @@
-# Alfheim OS Dashboard Micro-Service (`apps/dashboard`)
+# Central Dashboard Control Plane (`core/dashboard/`)
 
-The Dashboard is the central control plane, authentication entrypoint, and telemetry interface for the `alfheim` platform. It comprises a Go control plane backend and a React/Next.js frontend.
+> **TL;DR:** Central control plane, landing page launcher, application registry, household manager, and telemetry interface for the Alfheim platform.
 
 ---
 
-## 🏛️ 3-Tier Application & Link Architecture
+## 📋 Table of Contents
+- [Purpose & Core Value](#purpose--core-value)
+- [3-Tier Application Registry Architecture](#3-tier-application-registry-architecture)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Ingress Routing & Environment Configuration](#ingress-routing--environment-configuration)
+- [Local Development & Commands](#local-development--commands)
+- [Database Schema (PostgreSQL)](#database-schema-postgresql)
+- [Testing & Quality Gates](#testing--quality-gates)
+
+---
+
+## 🎯 Purpose & Core Value
+
+| Need / Problem | Solution / Capability |
+| :--- | :--- |
+| Single entry point for all home apps | Centralized dashboard launcher rendering registered microservices |
+| Mixed ecosystem (Native vs. Homelab) | 3-Tier Application Registry (Native Core Apps, Stack YAML, User Bookmarks) |
+| Multi-household management | Household creation, invitation management, and member role assignment |
+| System health visibility | Platform telemetry endpoints for system metrics (CPU, RAM) and logs |
+
+---
+
+## 🏛️ 3-Tier Application Registry Architecture
 
 The platform organizes applications, portals, and bookmarks into three distinct architectural tiers:
 
-```mermaid
-flowchart TD
-    subgraph Tier 1: Core Apps
-        T1[Native Microservices e.g., pantry, shopping, maintenance, chores]
-        T1 -->|Pre-built in Go| T1_Reg[tier1_core_registry.go]
-        T1_Reg -->|User Toggle| T1_Pref[user_preferences DB Table]
-    end
+1. **Tier 1 (Core Apps):** Native monorepo microservices registered in Go (`internal/features/apps/tier1_core_registry.go`). Visible to all authenticated users; visibility can be toggled per user in `user_preferences`.
+2. **Tier 2 (Stack Apps / Integrations):** External homelab stack applications configured via server-level [`deploy/stack-apps.yaml`](../../deploy/stack-apps.yaml) and filtered dynamically by Keycloak OIDC roles.
+3. **Tier 3 (User Links):** Personal custom bookmarks stored in PostgreSQL `user_links` (`GET/POST/PUT/DELETE /api/v1/user/links`).
 
-    subgraph Tier 2: Stack Integrations
-        T2[Server Integrations e.g., Home Assistant, LibreChat, Plex]
-        T2 -->|Loaded at Boot| T2_Yaml[deploy/stack-apps.yaml]
-        T2_Yaml -->|Filtered by| Keycloak[Keycloak OIDC Roles]
-    end
+---
 
-    subgraph Tier 3: Personal User Links
-        T3[Custom Bookmarks e.g., Google Drive, Docs]
-        T3 -->|Stored in DB| T3_DB[user_links DB Table]
-        T3_DB -->|User CRUD| T3_API[REST API /api/v1/user/links]
-    end
+## 🏗️ Architecture & Tech Stack
 
-    T1 --> UnifiedAPI[GET /api/v1/apps/dashboard]
-    T2 --> UnifiedAPI
-    T3 --> UnifiedAPI
+- **Backend:** Go 1.25 REST API backend utilizing Chi router, PostgreSQL (`pgxpool`), and Keycloak OIDC middleware.
+- **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
+- **Database:** Hosted on `postgres-core` (`alfheim_dashboard` database, owned by `dashboard_user`).
+
+### FDD Domain Features (`internal/features/`)
+- `apps`: Unified 3-Tier application registry handlers and YAML loaders.
+- `household`: Household creation, member role management, invite token generation, and contact directory.
+- `profile`: User profile auto-synchronization between Keycloak OIDC claims and PostgreSQL.
+- `telemetry`: System metrics and log queries.
+
+---
+
+## 🌐 Ingress Routing & Environment Configuration
+
+### Gateway & Network Matrix
+| Service | Internal Port | Host Mapping / Gateway Route | Description |
+| :--- | :--- | :--- | :--- |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/households` | Go REST API Control Plane |
+| `dashboard-frontend` | 3000 | `alfheim.loegien.localhost/` | Next.js Landing Page Control Plane |
+
+### Essential Environment Variables
+| Variable | Default / Example | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgres://dashboard_user:postgres@postgres-core:5432/alfheim_dashboard?sslmode=disable` | PostgreSQL connection string |
+| `STACK_APPS_PATH` | `deploy/stack-apps.yaml` | Path to Tier 2 stack integrations manifest |
+| `KEYCLOAK_BASE_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth server endpoint |
+| `NEXT_PUBLIC_API_URL` | `http://api.alfheim.loegien.localhost` | Browser API gateway endpoint |
+
+---
+
+## 🚀 Local Development & Commands
+
+### 1. Run via Docker Compose
+```bash
+docker compose up -d
 ```
 
-1. **Tier 1 (Core Apps):**
-   - Pre-defined natively in Go backend code ([`tier1_core_registry.go`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/internal/features/apps/tier1_core_registry.go)).
-   - Visible to all authenticated users by default.
-   - Users can hide/show specific Core Apps in their personal settings modal, stored in PostgreSQL `user_preferences`.
-
-2. **Tier 2 (Stack Apps / Integrations):**
-   - Configured via server-level YAML file ([`deploy/stack-apps.yaml`](file:///Users/leifkroeger/Dev/loeger-os/deploy/stack-apps.yaml)).
-   - Loaded into memory at backend startup.
-   - Filtered dynamically based on Keycloak OIDC roles (`required_roles`).
-   - Read-only for standard users (managed via server deployment config).
-
-3. **Tier 3 (User Links):**
-   - Stored in PostgreSQL `user_links` table linked to `user_id` (Keycloak `sub`).
-   - Fully CRUD-capable per user (`GET/POST/PUT/DELETE /api/v1/user/links`).
-
----
-
-## 🏗️ Architecture & Network Communication (Caddy Gateway)
-
-The frontend and backend services run in isolated Docker containers, coordinated by Caddy as the central ingress reverse proxy:
-
-```mermaid
-graph TD
-    Client[Web Browser Client] -->|Frontend Host: alfheim.loegien.localhost| Caddy[Caddy Reverse Proxy]
-    Client -->|API Host: api.alfheim.loegien.localhost| Caddy
-    Caddy -->|/api/v1/apps| GoBackend[Go Backend Control Plane :8080]
-    Caddy -->|/ (Fallback)| NextFrontend[Next.js Frontend :3000]
-    GoBackend -->|SQL| Postgres[(PostgreSQL DB)]
-    GoBackend -->|OIDC Token Validation| Keycloak[Keycloak OIDC]
+### 2. Run Go Backend Locally
+```bash
+cd backend
+go run cmd/server/main.go
 ```
 
-### Routing Rules (Ingress vs. Application)
-- **Ingress Gateway (Caddy)**: Routes domain requests across `alfheim.loegien.localhost` (frontends) and `api.alfheim.loegien.localhost` (backends). Routes Go backend endpoints (`/api/v1/apps`, `/api/v1/user/preferences`, `/api/v1/user/links`, `/profile`, `/households`, `/telemetry`) to `dashboard-backend:8080`.
-- **Application Page Routing (Next.js)**: Handles all internal route paths (`/`, `/household`, `/profile`, `/settings`).
+### 3. Run Next.js Frontend Locally
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
 
 ---
 
-## 📦 Monorepo Separation of Concerns & FDD
+## 🗄️ Database Schema (PostgreSQL)
 
-### 1. `@alfheim/shared` UI Library (Workspace Package)
-- Located in [`packages/shared/`](file:///Users/leifkroeger/Dev/loeger-os/packages/shared).
-- Statically agnostic UI widgets (`Sidebar`, `Header`, `BottomNavBar`), localization, and presentation components.
-
-### 2. Core Engine Layer (`apps/dashboard/frontend/src/core/`)
-- Global core logic such as centralized HTTP `ky` instance [`client.ts`](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/src/core/api/client.ts) and state providers.
-
-### 3. Local Feature Modules (`apps/dashboard/frontend/src/features/`)
-- Business capability folders (`apps`, `household`, `contact`, `profile`).
-- Strict FDD boundaries; feature modules export clean contracts via barrel `index.ts`.
+The Go control plane initializes three core tables via SQL migrations:
+* `user_profiles`: Local synced user profiles from Keycloak OIDC claims (`id`, `email`, `username`, `first_name`, `last_name`).
+* `user_preferences`: User dashboard settings and hidden core app IDs (`hidden_app_ids TEXT[]`).
+* `user_links`: Personal custom bookmarks (`title`, `url`, `icon`, `category`, `display_order`).
 
 ---
 
-## 🎨 Stacking Contexts & Z-Index Layer Standards
+## 🧪 Testing & Quality Gates
 
-- **Map Isolation**: Wrap map elements in parent containers using `relative z-0 isolate overflow-hidden`.
-- **Modal Backdrops**: All full-screen overlays use `z-[9999]` and fixed positioning.
+```bash
+# Run Go unit & integration tests with race detector
+cd backend && go test -race -cover ./...
 
----
-
-## 📑 System Documentation
-
-For detailed analysis and specifications, please refer to:
-- [Go Backend Architecture README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/backend/README.md)
-- [React/Next.js Frontend Architecture README](file:///Users/leifkroeger/Dev/loeger-os/apps/dashboard/frontend/README.md)
+# Run Frontend typecheck & tests
+cd frontend && pnpm check-types && pnpm test
+```

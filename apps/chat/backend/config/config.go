@@ -73,7 +73,7 @@ func Load() (*Config, error) {
 	port := getEnv("PORT", "8080")
 	env := getEnv("ENVIRONMENT", "development")
 
-	dbURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/chat_db?sslmode=disable")
+	dbURL := getEnv("DATABASE_URL", "postgres://chat_user:postgres@localhost:5432/alfheim_chat?sslmode=disable")
 	maxConns := getEnvAsInt32("DB_MAX_CONNS", 25)
 	minConns := getEnvAsInt32("DB_MIN_CONNS", 5)
 	maxConnLifetimeMinutes := getEnvAsInt32("DB_MAX_CONN_LIFETIME_MINUTES", 30)

@@ -203,6 +203,33 @@ while [[ $# -gt 0 ]]; do
         shift
       fi
       ;;
+    -r|--registry|--image-registry)
+      if [[ $# -ge 2 ]]; then
+        ENV_INIT_FLAGS+=("$1" "$2")
+        shift 2
+      else
+        ENV_INIT_FLAGS+=("$1")
+        shift
+      fi
+      ;;
+    --repo|--image-repo)
+      if [[ $# -ge 2 ]]; then
+        ENV_INIT_FLAGS+=("$1" "$2")
+        shift 2
+      else
+        ENV_INIT_FLAGS+=("$1")
+        shift
+      fi
+      ;;
+    --tag|--image-tag)
+      if [[ $# -ge 2 ]]; then
+        ENV_INIT_FLAGS+=("$1" "$2")
+        shift 2
+      else
+        ENV_INIT_FLAGS+=("$1")
+        shift
+      fi
+      ;;
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo "Options:"
@@ -210,6 +237,9 @@ while [[ $# -gt 0 ]]; do
       echo "  --auto                     Non-interactive environment setup (default)"
       echo "  --interactive              Interactive environment setup"
       echo "  --base-url <url>           Specify base URL (e.g. https://alfheim.example.com)"
+      echo "  --registry <registry>      Specify image registry (e.g. ghcr.io)"
+      echo "  --repo <repo>              Specify image repo (e.g. kroegerleif/alfheim)"
+      echo "  --tag <tag>                Specify image tag (e.g. latest)"
       echo "  -h, --help                 Show this help message"
       exit 0
       ;;
@@ -278,6 +308,7 @@ log_info "Target directory: ${BOLD}${INSTALL_DIR}${RESET}"
 
 mkdir -p "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}/keycloak/providers"
+mkdir -p "${INSTALL_DIR}/infrastructure/postgres"
 mkdir -p "${INSTALL_DIR}/infrastructure/telemetry/collector"
 
 # ------------------------------------------------------------------------------
@@ -321,11 +352,14 @@ echo -e "\n${BOLD}Fetching Production Artifacts...${RESET}"
 fetch_asset "compose.prod.yaml" "${INSTALL_DIR}/compose.prod.yaml"
 fetch_asset ".env.example" "${INSTALL_DIR}/.env.example"
 fetch_asset "scripts/init-env.sh" "${INSTALL_DIR}/init-env.sh"
+fetch_asset "infrastructure/postgres/init-multiple-dbs.sh" "${INSTALL_DIR}/infrastructure/postgres/init-multiple-dbs.sh"
 fetch_asset "infrastructure/caddy/Caddyfile" "${INSTALL_DIR}/Caddyfile"
 fetch_asset "infrastructure/keycloak/alfheim-realm.json" "${INSTALL_DIR}/keycloak/alfheim-realm.json"
+fetch_asset "infrastructure/keycloak/providers/alfheim-theme.jar" "${INSTALL_DIR}/keycloak/providers/alfheim-theme.jar"
 fetch_asset "infrastructure/telemetry/collector/config.yaml" "${INSTALL_DIR}/infrastructure/telemetry/collector/config.yaml"
 
 chmod +x "${INSTALL_DIR}/init-env.sh"
+chmod +x "${INSTALL_DIR}/infrastructure/postgres/init-multiple-dbs.sh"
 
 # ------------------------------------------------------------------------------
 # 4. Generate Production Environment & Secrets
@@ -350,27 +384,10 @@ if [[ "${START_STACK}" == "true" ]]; then
 
   # Stage 1: Database Tier
   stage_step "1/3" "Database & Storage Tier (Cold initdb Resilience)"
-  log_info "Launching 10 PostgreSQL databases, MinIO S3, and Mailpit..."
-  dc up -d postgres-iam dashboard-db chat-db pantry-db shopping-db maintenance-db chores-db budget-db workout-db library-db rustfs mailpit
+  log_info "Launching PostgreSQL Core Database Cluster, MinIO S3, and Mailpit..."
+  dc up -d postgres-core rustfs mailpit
 
-  databases=(
-    "alfheim_postgres_iam:IAM Postgres (Keycloak)"
-    "dashboard-db:Dashboard Database"
-    "chat-db:Chat Database"
-    "pantry-db:Pantry Database"
-    "shopping-db:Shopping Database"
-    "maintenance-db:Maintenance Database"
-    "chores-db:Chores Database"
-    "budget-db:Budget Database"
-    "workout-db:Workout Database"
-    "library-db:Library Database"
-  )
-
-  for db_entry in "${databases[@]}"; do
-    container="${db_entry%%:*}"
-    label="${db_entry#*:}"
-    wait_healthy "${container}" "${label}" 90
-  done
+  wait_healthy "alfheim_postgres_core" "PostgreSQL Core Database" 90
   log_success "Database & Storage Tier is fully healthy"
 
   # Stage 2: IAM Core (Keycloak)
@@ -382,6 +399,23 @@ if [[ "${START_STACK}" == "true" ]]; then
 
   # Stage 3: Backends, Frontends, Telemetry & Caddy Ingress Gateway
   stage_step "3/3" "Application Services & Ingress Gateway"
+  PULL_REGISTRY=$(grep -E '^IMAGE_REGISTRY=' "${INSTALL_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "ghcr.io")
+  PULL_REPO=$(grep -E '^IMAGE_REPO=' "${INSTALL_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "kroegerleif/alfheim")
+  PULL_TAG=$(grep -E '^IMAGE_TAG=' "${INSTALL_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "latest")
+
+  log_info "Pre-pulling application container images (${PULL_REGISTRY}/${PULL_REPO} tag: ${PULL_TAG})..."
+  spin_start "Pulling container images from ${PULL_REGISTRY}/${PULL_REPO} …"
+  if dc pull >/dev/null 2>&1; then
+    spin_stop
+    log_success "All container images successfully pulled from ${PULL_REGISTRY}/${PULL_REPO}"
+  else
+    spin_stop
+    log_error "Failed to pull application container images from ${PULL_REGISTRY}/${PULL_REPO}:${PULL_TAG}."
+    log_error "Please verify image tag existence, network access, or registry credentials, then retry:"
+    log_error "  cd ${INSTALL_DIR} && docker compose -f compose.prod.yaml pull"
+    exit 1
+  fi
+
   log_info "Starting microservice backends, frontends, telemetry, and Caddy ingress gateway..."
   dc up -d
 
@@ -426,6 +460,7 @@ else
   echo -e "  ├── ${CYAN}Caddyfile${RESET}                             # Central ingress reverse-proxy configuration"
   echo -e "  ├── ${CYAN}init-env.sh${RESET}                           # Secret generator utility"
   echo -e "  ├── ${CYAN}keycloak/alfheim-realm.json${RESET}           # OIDC realm definition"
+  echo -e "  ├── ${CYAN}keycloak/providers/alfheim-theme.jar${RESET}  # Compiled Keycloak theme"
   echo -e "  └── ${CYAN}infrastructure/telemetry/collector/config.yaml${RESET}"
   echo ""
   echo -e "${BOLD}Next Steps to Launch Alfheim:${RESET}"

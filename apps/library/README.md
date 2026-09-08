@@ -1,68 +1,94 @@
 # Media & Library Hub Application (`apps/library/`)
 
-The **Library App** is the digital media catalog and book/media tracking service for the Alfheim monorepo. It manages household physical books, digital media, reading progress, lending logs, and wishlist items.
+> **TL;DR:** Digital media catalog, book and movie tracking, loan management, reading progress log, and wishlist service for Alfheim.
 
 ---
 
-## 🎯 Purpose & Value Proposition
+## 📋 Table of Contents
+- [Purpose & Core Value](#purpose--core-value)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Ingress Routing & Environment Configuration](#ingress-routing--environment-configuration)
+- [Local Development & Commands](#local-development--commands)
+- [Domain Features](#domain-features)
+- [Testing & Quality Gates](#testing--quality-gates)
 
-| Need | Solution |
+---
+
+## 🎯 Purpose & Core Value
+
+| Need / Problem | Solution / Capability |
 | :--- | :--- |
 | Book & Media Tracking | Unified media item catalog (Books, Movies, Audiobooks) |
 | Reading Progress | Reading session logs, page tracking, and completion status |
 | Borrowing & Lending | Loan tracker for items lent to friends or borrowed from libraries |
-| Wishlist & Recommendations | Household shared wishlist with ISBN/OpenLibrary metadata sync |
+| Wishlist & Recommendations | Shared household wishlist with ISBN/OpenLibrary metadata sync |
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture & Tech Stack
 
-```
-apps/library/
-├── backend/          # FastAPI microservice (Media catalog, Loan management, Progress logs)
-├── frontend/         # Next.js 16 App Router MFE (Port 3000, routed at /library)
-└── compose.yml       # Container orchestration (library-db, library-backend, library-frontend)
-```
+- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and OpenLibrary API client.
+- **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
+- **Database:** Hosted on `postgres-core` (`alfheim_library` database, owned by `library_user`).
 
 ---
 
-## 🌐 Ingress Routing & Ports
+## 🌐 Ingress Routing & Environment Configuration
 
-| Service | Internal Port | Host Mapping / Gateway Route | Protocol / Description |
+### Gateway & Network Matrix
+| Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `library-db` | 5432 | `5438:5432` | PostgreSQL 16 database |
-| `library-backend` | 8000 | `/library/api/v1` or `/api/v1/library` | FastAPI REST API |
-| `library-frontend` | 3000 | `alfheim.loegien.localhost/library` | Next.js MFE |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `library-backend` | 8000 | `/library/api/v1` | FastAPI REST API |
+| `library-frontend` | 3000 | `alfheim.loegien.localhost/library` | Next.js Microfrontend |
+
+### Essential Environment Variables
+| Variable | Default / Example | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql+asyncpg://library_user:postgres@postgres-core:5432/alfheim_library` | Async PostgreSQL connection string |
+| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Keycloak backend auth endpoint |
+| `NEXT_PUBLIC_LIBRARY_API_URL` | `http://api.alfheim.loegien.localhost/library/api/v1` | Browser API gateway endpoint |
 
 ---
 
-## 🔑 Environment Variables
+## 🚀 Local Development & Commands
 
-- `DATABASE_URL`: PostgreSQL connection string (`postgresql+asyncpg://postgres:postgres@library-db:5432/library`).
-- `NEXT_PUBLIC_LIBRARY_API_URL`: Browser API gateway endpoint (`http://api.alfheim.loegien.localhost/api/v1/library`).
-- `KEYCLOAK_PUBLIC_URL`: Browser Keycloak auth endpoint (`http://api.alfheim.loegien.localhost/auth`).
-
----
-
-## 🚀 Local Run & Test Commands
-
-### Docker Compose
+### 1. Run via Docker Compose
 ```bash
 docker compose up -d
 ```
 
-### Backend Development
+### 2. Run Backend Locally
 ```bash
-cd apps/library/backend
+cd backend
 uv sync
 uv run uvicorn src.main:app --reload --port 8000
-PYTHONPATH=. uv run pytest --cov
 ```
 
-### Frontend Development
+### 3. Run Frontend Locally
 ```bash
-cd apps/library/frontend
+cd frontend
 pnpm install
 pnpm dev
-pnpm test
+```
+
+---
+
+## 📁 Domain Features (`src/features/`)
+
+- `media`: Physical and digital media item catalog with OpenLibrary ISBN lookup.
+- `loans`: Loan tracking for items borrowed from external libraries or lent to friends.
+- `progress`: Reading and viewing progress logs, page/minute tracking.
+- `wishlist`: Shared household wishlist for upcoming media purchases.
+
+---
+
+## 🧪 Testing & Quality Gates
+
+```bash
+# Execute Backend Pytest Suite & Coverage
+cd backend && uv run pytest --cov
+
+# Execute Frontend Typecheck & Vitest Suite
+cd frontend && pnpm check-types && pnpm test
 ```

@@ -7,20 +7,20 @@
 #
 # Pipeline stages:
 #   0. Pre-flight    — validate Docker network prerequisites
-#   1. IAM Core      — postgres-iam  →  keycloak  →  rustfs  →  caddy
-#   2. Dashboard     — dashboard-db  →  dashboard-backend  →  dashboard-frontend
+#   1. IAM Core      — postgres-core  →  keycloak  →  rustfs  →  caddy
+#   2. Dashboard     — dashboard-backend  →  dashboard-frontend
 #                      [live at http://alfheim/ after this stage]
-#   3. Shopping      — shopping-db  →  shopping-backend  →  shopping-frontend
+#   3. Shopping      — shopping-backend  →  shopping-frontend
 #                      [live at http://alfheim/shopping after this stage]
-#   4. Pantry        — pantry-db  →  pantry-backend  →  pantry-frontend
+#   4. Pantry        — pantry-backend  →  pantry-frontend
 #                      [live at http://alfheim/pantry after this stage]
-#   5. Maintenance   — maintenance-db  →  maintenance-backend  →  maintenance-frontend
+#   5. Maintenance   — maintenance-backend  →  maintenance-frontend
 #                      [live at http://alfheim/maintenance after this stage]
-#   6. Chores        — chores-db  →  chores-backend  →  chores-frontend
+#   6. Chores        — chores-backend  →  chores-frontend
 #                      [live at http://alfheim/chores after this stage]
-#   7. Budget        — budget-db  →  budget-backend  →  budget-frontend
+#   7. Budget        — budget-backend  →  budget-frontend
 #                      [live at http://alfheim/budget after this stage]
-#   8. Chat          — chat-db  →  chat-backend  →  chat-frontend
+#   8. Chat          — chat-backend  →  chat-frontend
 #                      [live at http://alfheim/chat after this stage]
 #   9. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
 #   10. Summary      — print accessible URLs with green checkmarks
@@ -290,7 +290,7 @@ docker info > /dev/null 2>&1 || fail "Docker daemon is not running. Start Docker
 ok "Docker daemon is reachable"
 
 # Pre-create all multi-zone external networks if not already present
-for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net app-budget-net app-chat-net app-workout-net observability-internal; do
+for net in gateway-net infra-net core-net app-pantry-net app-shopping-net app-chores-net app-maintenance-net app-budget-net app-chat-net app-workout-net app-library-net observability-internal; do
   if ! docker network inspect "$net" > /dev/null 2>&1; then
     info "Creating external Docker network: $net"
     docker network create "$net"
@@ -299,13 +299,13 @@ done
 ok "Docker networks are ready"
 
 # =============================================================================
-# STAGE 1 — IAM Core, S3 Storage & Ingress Gateway  (postgres-iam → keycloak → rustfs → caddy)
+# STAGE 1 — IAM Core, S3 Storage & Ingress Gateway  (postgres-core → keycloak → rustfs → caddy)
 # =============================================================================
-step "STAGE 1 · IAM Core, S3 Storage & Ingress Gateway  (postgres-iam · keycloak · rustfs · caddy)"
+step "STAGE 1 · IAM Core, S3 Storage & Ingress Gateway  (postgres-core · keycloak · rustfs · caddy)"
 
-info "Starting postgres-iam …"
-dc up ${BUILD_FLAG} -d postgres-iam
-wait_healthy "alfheim_postgres_iam" "postgres-iam" 60
+info "Starting postgres-core …"
+dc up ${BUILD_FLAG} -d postgres-core
+wait_healthy "alfheim_postgres_core" "postgres-core" 60
 
 if [[ ! -f "infrastructure/keycloak/providers/alfheim-theme.jar" ]]; then
   info "Keycloak theme JAR not found. Building theme..."
@@ -374,13 +374,9 @@ wait_healthy "alfheim_caddy" "caddy" 60
 notice "🟢 IAM Core, RustFS Storage & Caddy Ingress Gateway Ready"
 
 # =============================================================================
-# STAGE 2 — Dashboard App Slice  (dashboard-db → dashboard-backend → dashboard-frontend)
+# STAGE 2 — Dashboard App Slice  (dashboard-backend → dashboard-frontend)
 # =============================================================================
-step "STAGE 2 · Dashboard App Slice  (database · backend · frontend)"
-
-info "Starting dashboard-db …"
-dc up ${BUILD_FLAG} -d dashboard-db
-wait_healthy "dashboard-db" "dashboard-db" 60
+step "STAGE 2 · Dashboard App Slice  (backend · frontend)"
 
 info "Starting dashboard-backend …"
 dc up ${BUILD_FLAG} -d dashboard-backend
@@ -393,13 +389,9 @@ wait_healthy "dashboard-frontend" "dashboard-frontend" 240
 notice "🟢 Dashboard is live at http://alfheim/"
 
 # =============================================================================
-# STAGE 3 — Shopping App Slice  (shopping-db → shopping-backend → shopping-frontend)
+# STAGE 3 — Shopping App Slice  (shopping-backend → shopping-frontend)
 # =============================================================================
-step "STAGE 3 · Shopping App Slice  (database · backend · frontend)"
-
-info "Starting shopping-db …"
-dc up ${BUILD_FLAG} -d shopping-db
-wait_healthy "shopping-db" "shopping-db" 60
+step "STAGE 3 · Shopping App Slice  (backend · frontend)"
 
 info "Starting shopping-backend …"
 dc up ${BUILD_FLAG} -d shopping-backend
@@ -412,13 +404,9 @@ wait_healthy "shopping-frontend" "shopping-frontend" 240
 notice "🟢 Shopping App is live at http://alfheim/shopping"
 
 # =============================================================================
-# STAGE 4 — Pantry App Slice  (pantry-db → pantry-backend → pantry-frontend)
+# STAGE 4 — Pantry App Slice  (pantry-backend → pantry-frontend)
 # =============================================================================
-step "STAGE 4 · Pantry App Slice  (database · backend · frontend)"
-
-info "Starting pantry-db …"
-dc up ${BUILD_FLAG} -d pantry-db
-wait_healthy "pantry-db" "pantry-db" 60
+step "STAGE 4 · Pantry App Slice  (backend · frontend)"
 
 info "Starting pantry-backend …"
 dc up ${BUILD_FLAG} -d pantry-backend
@@ -431,13 +419,9 @@ wait_healthy "pantry-frontend" "pantry-frontend" 240
 notice "🟢 Pantry App is live at http://alfheim/pantry"
 
 # =============================================================================
-# STAGE 5 — Maintenance App Slice  (maintenance-db → maintenance-backend → maintenance-frontend)
+# STAGE 5 — Maintenance App Slice  (maintenance-backend → maintenance-frontend)
 # =============================================================================
-step "STAGE 5 · Maintenance App Slice  (database · backend · frontend)"
-
-info "Starting maintenance-db …"
-dc up ${BUILD_FLAG} -d maintenance-db
-wait_healthy "maintenance-db" "maintenance-db" 60
+step "STAGE 5 · Maintenance App Slice  (backend · frontend)"
 
 info "Starting maintenance-backend …"
 dc up ${BUILD_FLAG} -d maintenance-backend
@@ -450,13 +434,9 @@ wait_healthy "maintenance-frontend" "maintenance-frontend" 240
 notice "🟢 Maintenance App is live at http://alfheim/maintenance"
 
 # =============================================================================
-# STAGE 6 — Chores App Slice  (chores-db → chores-backend → chores-frontend)
+# STAGE 6 — Chores App Slice  (chores-backend → chores-frontend)
 # =============================================================================
-step "STAGE 6 · Chores App Slice  (database · backend · frontend)"
-
-info "Starting chores-db …"
-dc up ${BUILD_FLAG} -d chores-db
-wait_healthy "chores-db" "chores-db" 60
+step "STAGE 6 · Chores App Slice  (backend · frontend)"
 
 info "Starting chores-backend …"
 dc up ${BUILD_FLAG} -d chores-backend
@@ -469,13 +449,9 @@ wait_healthy "chores-frontend" "chores-frontend" 240
 notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
 
 # =============================================================================
-# STAGE 7 — Budget App Slice  (budget-db → budget-backend → budget-frontend)
+# STAGE 7 — Budget App Slice  (budget-backend → budget-frontend)
 # =============================================================================
-step "STAGE 7 · Budget App Slice  (database · backend · frontend)"
-
-info "Starting budget-db …"
-dc up ${BUILD_FLAG} -d budget-db
-wait_healthy "budget-db" "budget-db" 60
+step "STAGE 7 · Budget App Slice  (backend · frontend)"
 
 info "Starting budget-backend …"
 dc up ${BUILD_FLAG} -d budget-backend
@@ -488,13 +464,9 @@ wait_healthy "budget-frontend" "budget-frontend" 240
 notice "🟢 Budget App is live at http://alfheim.loegien.localhost/budget"
 
 # =============================================================================
-# STAGE 8 — Chat App Slice  (chat-db → chat-backend → chat-frontend)
+# STAGE 8 — Chat App Slice  (chat-backend → chat-frontend)
 # =============================================================================
-step "STAGE 8 · Chat App Slice  (database · backend · frontend)"
-
-info "Starting chat-db …"
-dc up ${BUILD_FLAG} -d chat-db
-wait_healthy "chat-db" "chat-db" 60
+step "STAGE 8 · Chat App Slice  (backend · frontend)"
 
 info "Starting chat-backend …"
 dc up ${BUILD_FLAG} -d chat-backend

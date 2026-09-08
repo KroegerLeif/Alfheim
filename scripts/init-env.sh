@@ -78,6 +78,9 @@ AUTO_MODE=false
 FORCE=false
 CUSTOM_BASE_URL=""
 CUSTOM_DOMAIN=""
+CUSTOM_REGISTRY=""
+CUSTOM_REPO=""
+CUSTOM_TAG=""
 
 show_help() {
   cat << USAGE
@@ -87,6 +90,9 @@ Options:
   -a, --auto                  Run non-interactively and generate secure defaults
   -b, --base-url <url>        Configure root base URL (default: https://alfheim.loegien.de)
   -d, --domain <domain>       Configure domain / host (backwards compatible)
+  -r, --registry <registry>   Configure container registry (auto-derived from Git remote if omitted)
+  --repo <repo>               Configure image repository (auto-derived from Git remote if omitted)
+  --tag <tag>                 Configure container image tag (default: latest)
   -f, --force                 Overwrite existing .env file
   -h, --help                  Show this help message
 USAGE
@@ -113,6 +119,30 @@ while [[ $# -gt 0 ]]; do
       ;;
     --domain=*)
       CUSTOM_DOMAIN="${1#*=}"
+      shift
+      ;;
+    -r|--registry|--image-registry)
+      CUSTOM_REGISTRY="$2"
+      shift 2
+      ;;
+    --registry=*|--image-registry=*)
+      CUSTOM_REGISTRY="${1#*=}"
+      shift
+      ;;
+    --repo|--image-repo)
+      CUSTOM_REPO="$2"
+      shift 2
+      ;;
+    --repo=*|--image-repo=*)
+      CUSTOM_REPO="${1#*=}"
+      shift
+      ;;
+    --tag|--image-tag)
+      CUSTOM_TAG="$2"
+      shift 2
+      ;;
+    --tag=*|--image-tag=*)
+      CUSTOM_TAG="${1#*=}"
       shift
       ;;
     -f|--force)
@@ -220,6 +250,62 @@ fi
 log_info "Configuring Base URL:    ${BOLD}${BASE_URL}${RESET}"
 log_info "Derived Host Header:     ${BOLD}${HOST_HEADER}${RESET}"
 log_info "Derived Apex Domain:     ${BOLD}${DOMAIN}${RESET}"
+
+# ------------------------------------------------------------------------------
+# Image Registry & Repository Derivation
+# ------------------------------------------------------------------------------
+DEFAULT_REGISTRY="ghcr.io"
+DEFAULT_REPO="kroegerleif/alfheim"
+DEFAULT_TAG="latest"
+
+IMAGE_REGISTRY="${CUSTOM_REGISTRY:-${IMAGE_REGISTRY:-}}"
+IMAGE_REPO="${CUSTOM_REPO:-${IMAGE_REPO:-}}"
+IMAGE_TAG="${CUSTOM_TAG:-${IMAGE_TAG:-$DEFAULT_TAG}}"
+
+# Auto-derive registry and repo from Git remote if missing
+if [[ -z "$IMAGE_REGISTRY" || -z "$IMAGE_REPO" ]]; then
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    GIT_REMOTE_URL=$(git remote get-url origin 2>/dev/null || git config --get remote.origin.url 2>/dev/null || echo "")
+    if [[ -n "$GIT_REMOTE_URL" ]]; then
+      # Strip protocol / prefix
+      CLEAN_REMOTE="${GIT_REMOTE_URL#*://}"
+      CLEAN_REMOTE="${CLEAN_REMOTE#git@}"
+      CLEAN_REMOTE="${CLEAN_REMOTE%.git}"
+      CLEAN_REMOTE="${CLEAN_REMOTE/://}"
+
+      # Extract host and repository path
+      REMOTE_HOST="${CLEAN_REMOTE%%/*}"
+      REMOTE_PATH="${CLEAN_REMOTE#*/}"
+      REMOTE_PATH_LOWER=$(echo "$REMOTE_PATH" | tr '[:upper:]' '[:lower:]')
+
+      if [[ -z "$IMAGE_REGISTRY" ]]; then
+        case "$REMOTE_HOST" in
+          github.com)
+            IMAGE_REGISTRY="ghcr.io"
+            ;;
+          gitlab.com)
+            IMAGE_REGISTRY="registry.gitlab.com"
+            ;;
+          *)
+            IMAGE_REGISTRY="$REMOTE_HOST"
+            ;;
+        esac
+      fi
+
+      if [[ -z "$IMAGE_REPO" && -n "$REMOTE_PATH_LOWER" ]]; then
+        IMAGE_REPO="$REMOTE_PATH_LOWER"
+      fi
+    fi
+  fi
+fi
+
+# Fallbacks if still unset
+IMAGE_REGISTRY="${IMAGE_REGISTRY:-$DEFAULT_REGISTRY}"
+IMAGE_REPO="${IMAGE_REPO:-$DEFAULT_REPO}"
+
+log_info "Configuring Registry:    ${BOLD}${IMAGE_REGISTRY}${RESET}"
+log_info "Configuring Repository:  ${BOLD}${IMAGE_REPO}${RESET}"
+log_info "Configuring Image Tag:   ${BOLD}${IMAGE_TAG}${RESET}"
 log_info "Generating cryptographically secure secrets..."
 
 # Generate Secrets
@@ -242,6 +328,7 @@ GRAFANA_CLIENT_SECRET="$(generate_secret 32)"
 # Build .env from template with variable replacement
 sed \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
+  -e "s|^IAM_POSTGRES_PASSWORD=.*|IAM_POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^KEYCLOAK_ADMIN_PASSWORD=.*|KEYCLOAK_ADMIN_PASSWORD=${KC_ADMIN_PW}|" \
   -e "s|^KC_DB_PASSWORD=.*|KC_DB_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^S3_ROOT_PASSWORD=.*|S3_ROOT_PASSWORD=${S3_PW}|" \
@@ -263,6 +350,9 @@ sed \
   -e "s|^HOST_HEADER=.*|HOST_HEADER=${HOST_HEADER}|" \
   -e "s|^ALFHEIM_HOST=.*|ALFHEIM_HOST=${HOST_HEADER}|" \
   -e "s|^CADDY_TLS_DIRECTIVE=.*|CADDY_TLS_DIRECTIVE=${CADDY_TLS_DIRECTIVE:-}|" \
+  -e "s|^IMAGE_REGISTRY=.*|IMAGE_REGISTRY=${IMAGE_REGISTRY}|" \
+  -e "s|^IMAGE_REPO=.*|IMAGE_REPO=${IMAGE_REPO}|" \
+  -e "s|^IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" \
   -e "s|^NEXT_PUBLIC_FRONTEND_URL=.*|NEXT_PUBLIC_FRONTEND_URL=\${ALFHEIM_BASE_URL}|" \
   -e "s|^NEXT_PUBLIC_API_GATEWAY_URL=.*|NEXT_PUBLIC_API_GATEWAY_URL=\${ALFHEIM_BASE_URL}/api|" \
   -e "s|^KEYCLOAK_PUBLIC_URL=.*|KEYCLOAK_PUBLIC_URL=\${ALFHEIM_BASE_URL}/auth|" \
@@ -282,6 +372,10 @@ sed \
 # Fallback injection if template was missing base URL keys
 if ! grep -q '^ALFHEIM_BASE_URL=' "$OUTPUT_FILE"; then
   printf "\nALFHEIM_BASE_URL=%s\nDOMAIN=%s\nHOST_HEADER=%s\n" "${BASE_URL}" "${DOMAIN}" "${HOST_HEADER}" >> "$OUTPUT_FILE"
+fi
+
+if ! grep -q '^IMAGE_REGISTRY=' "$OUTPUT_FILE"; then
+  printf "IMAGE_REGISTRY=%s\nIMAGE_REPO=%s\nIMAGE_TAG=%s\n" "${IMAGE_REGISTRY}" "${IMAGE_REPO}" "${IMAGE_TAG}" >> "$OUTPUT_FILE"
 fi
 
 # Restrict file permissions to current user only (0600)

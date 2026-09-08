@@ -1,41 +1,94 @@
-# Maintenance App Architecture — WHY (`apps/maintenance/`)
+# Home Maintenance Tracker Application (`apps/maintenance/`)
 
-This directory houses the **Maintenance & Device Inventory Service** for the `alfheim` monorepo. It manages the registration of household devices, coordinates recurring maintenance schedules, runs interactive guided maintenance checklists, and tracks historical service events.
+> **TL;DR:** Home equipment inventory, recurring maintenance scheduling, interactive service checklists, and historical repair logs for Alfheim.
 
 ---
 
-## 🛠️ System Overview & Architecture
+## 📋 Table of Contents
+- [Purpose & Core Value](#purpose--core-value)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Ingress Routing & Environment Configuration](#ingress-routing--environment-configuration)
+- [Local Development & Commands](#local-development--commands)
+- [Domain Features](#domain-features)
+- [Testing & Quality Gates](#testing--quality-gates)
 
-The application is split into two major FDD-structured tiers served through the Caddy gateway proxy:
+---
 
-```mermaid
-graph TD
-    User([User Agent]) -->|alfheim.loegien.localhost/maintenance| Ingress[Caddy Ingress Gateway]
-    User -->|api.alfheim.loegien.localhost/maintenance/api/v1| Ingress
-    Ingress -->|Port 3000| Frontend[Next.js Frontend Container]
-    Ingress -->|Port 8000| Backend[FastAPI Backend Container]
-    Backend -->|Port 5432| DB[(PostgreSQL maintenance-db)]
-    Backend -->|OIDC Token Check| IAM[Keycloak Service]
+## 🎯 Purpose & Core Value
+
+| Need / Problem | Solution / Capability |
+| :--- | :--- |
+| Equipment tracking | Household device inventory (HVAC, Appliances, Vehicles, Filters) |
+| Preventative maintenance | Time-based and usage-based recurring maintenance schedules |
+| Complex repair steps | Guided interactive maintenance checklists with step verification |
+| Repair history & costs | Historical service logs, contractor notes, and parts cost tracking |
+
+---
+
+## 🏗️ Architecture & Tech Stack
+
+- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and FastMCP AI tools.
+- **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
+- **Database:** Hosted on `postgres-core` (`alfheim_maintenance` database, owned by `maintenance_user`).
+
+---
+
+## 🌐 Ingress Routing & Environment Configuration
+
+### Gateway & Network Matrix
+| Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
+| :--- | :--- | :--- | :--- |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `maintenance-backend` | 8000 | `/maintenance/api/v1` | FastAPI REST API & FastMCP Tools |
+| `maintenance-frontend` | 3000 | `alfheim.loegien.localhost/maintenance` | Next.js Microfrontend |
+
+### Essential Environment Variables
+| Variable | Default / Example | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql+asyncpg://maintenance_user:postgres@postgres-core:5432/alfheim_maintenance` | Async PostgreSQL connection string |
+| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Keycloak backend auth endpoint |
+| `NEXT_PUBLIC_MAINTENANCE_API_URL` | `http://api.alfheim.loegien.localhost/maintenance/api/v1` | Browser API gateway endpoint |
+
+---
+
+## 🚀 Local Development & Commands
+
+### 1. Run via Docker Compose
+```bash
+docker compose up -d
 ```
 
-### 1. Ingress Mapping (Caddy Gateway)
-* **Frontend**: Mapped to frontend host domain under subpath `http://alfheim.loegien.localhost/maintenance`.
-* **Backend**: Mapped to API gateway domain under `http://api.alfheim.loegien.localhost/maintenance/api/v1`. Caddy strips the `/maintenance` prefix via `handle_path` and forwards `/api/v1/...` to the FastAPI backend.
+### 2. Run Backend Locally
+```bash
+cd backend
+uv sync
+uv run uvicorn src.main:app --reload --port 8000
+```
 
-### 2. Dependency Services
-* **Database**: Runs on PostgreSQL (`maintenance-db`). Managed using SQLModel (SQLAlchemy) async sessions.
-* **Authentication**: Integrates with Keycloak OIDC. Bearer JWT tokens are validated via the `get_current_user_and_household` dependency injected into FastAPI endpoints.
+### 3. Run Frontend Locally
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
 
 ---
 
-## 🚀 Getting Started
+## 📁 Domain Features (`src/features/`)
 
-To spin up the Maintenance App along with its dependencies locally:
+- `equipment`: Appliance, device, and vehicle registration.
+- `schedules`: Maintenance intervals (e.g. 6-month filter replacement).
+- `tasks`: Interactive maintenance task execution and step checklists.
+- `history`: Permanent service logs, contractor notes, and parts cost ledger.
+
+---
+
+## 🧪 Testing & Quality Gates
 
 ```bash
-# Start Keycloak and Ingress infrastructure
-./infrastructure/up.sh
+# Execute Backend Pytest Suite & Coverage
+cd backend && uv run pytest --cov
 
-# Start the maintenance database, backend, and frontend containers
-./scripts/up.sh maintenance
+# Execute Frontend Typecheck & Vitest Suite
+cd frontend && pnpm check-types && pnpm test
 ```

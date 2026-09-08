@@ -1,68 +1,95 @@
 # Workout Tracker Application (`apps/workout/`)
 
-The **Workout Tracker App** is the fitness, exercise catalog, and routine execution service for the Alfheim monorepo. It manages exercise taxonomies, multi-day split routines, live workout session logging, muscle volume analytics, and FastMCP AI agent tools.
+> **TL;DR:** Fitness management, exercise catalog, multi-day split routine planner, live session logger, muscle volume analytics, and FastMCP AI agent tools for Alfheim.
 
 ---
 
-## 🎯 Purpose & Value Proposition
+## 📋 Table of Contents
+- [Purpose & Core Value](#purpose--core-value)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Ingress Routing & Environment Configuration](#ingress-routing--environment-configuration)
+- [Local Development & Commands](#local-development--commands)
+- [Domain Features](#domain-features)
+- [Testing & Quality Gates](#testing--quality-gates)
 
-| Need | Solution |
+---
+
+## 🎯 Purpose & Core Value
+
+| Need / Problem | Solution / Capability |
 | :--- | :--- |
 | Exercise Catalog & Customization | Taxonomized exercise database with per-user weight defaults & equipment filters |
-| Routine Planning | Split workout plans with relative offset weight calculation engines |
-| Active Workout Execution | Live workout logging with offline sync support and set-by-set recording |
+| Routine Planning | Multi-day split workout plans with relative offset weight calculation engines |
+| Active Workout Execution | Live workout logging with set-by-set recording and offline sync support |
 | Fitness Analytics | Weekly muscle volume aggregation, streak counters, and household leaderboards |
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture & Tech Stack
 
-```
-apps/workout/
-├── backend/          # FastAPI service + FastMCP server (Equipment, Exercises, Plans, Sessions, Analytics)
-├── frontend/         # Next.js 16 MFE (Port 3000, routed at /workout)
-└── compose.yml       # Orchestration container definitions (workout-db, workout-backend, workout-frontend)
-```
+- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), FastMCP AI tools, and OpenTelemetry.
+- **Frontend:** Next.js 16 (App Router) microfrontend, TanStack Query, Tailwind CSS v4, and `@alfheim/shared`.
+- **Database:** Hosted on `postgres-core` (`alfheim_workout` database, owned by `workout_user`).
 
 ---
 
-## 🌐 Ingress Routing & Ports
+## 🌐 Ingress Routing & Environment Configuration
 
-| Service | Internal Port | Host Mapping / Gateway Route | Protocol / Description |
+### Gateway & Network Matrix
+| Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `workout-db` | 5432 | `5434:5432` | PostgreSQL 16 database |
-| `workout-backend` | 8000 | `/workout/api/v1` or `/api/v1/workout` | FastAPI REST API & FastMCP tool server |
-| `workout-frontend` | 3000 | `alfheim.loegien.localhost/workout` | Next.js MFE |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `workout-backend` | 8000 | `/workout/api/v1` | FastAPI REST API & FastMCP Tools |
+| `workout-frontend` | 3000 | `alfheim.loegien.localhost/workout` | Next.js Microfrontend |
+
+### Essential Environment Variables
+| Variable | Default / Example | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql+asyncpg://workout_user:postgres@postgres-core:5432/alfheim_workout` | Async PostgreSQL connection string |
+| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth endpoint |
+| `NEXT_PUBLIC_WORKOUT_API_URL` | `http://api.alfheim.loegien.localhost/workout/api/v1` | Browser API gateway endpoint |
 
 ---
 
-## 🔑 Environment Variables
+## 🚀 Local Development & Commands
 
-- `DATABASE_URL`: PostgreSQL connection string (`postgresql+asyncpg://postgres:postgres@workout-db:5432/workout`).
-- `KEYCLOAK_URL`: Internal Keycloak auth server URL (`http://keycloak:8080/auth`).
-- `NEXT_PUBLIC_WORKOUT_API_URL`: Browser-facing API endpoint (`http://api.alfheim.loegien.localhost/workout/api/v1`).
-
----
-
-## 🚀 Local Run & Test Commands
-
-### Run via Docker Compose
+### 1. Run via Docker Compose
 ```bash
 docker compose up -d
 ```
 
-### Backend Development & Testing
+### 2. Run Backend Locally
 ```bash
-cd apps/workout/backend
+cd backend
 uv sync
 uv run uvicorn src.main:app --reload --port 8000
-PYTHONPATH=. uv run pytest --cov
 ```
 
-### Frontend Development & Testing
+### 3. Run Frontend Locally
 ```bash
-cd apps/workout/frontend
+cd frontend
 pnpm install
 pnpm dev
-pnpm test
+```
+
+---
+
+## 📁 Domain Features (`src/features/`)
+
+- `equipment`: Gear management scoped by system, household, or user.
+- `exercises`: Exercise catalog, muscle taxonomy, per-user default weights and favorites.
+- `plans`: Multi-day split routines with a relative weight engine (`absolute`, `default`, `offset`).
+- `session`: Live workout execution logs, cloned from plan state for historical immutability, plus offline sync endpoints.
+- `analytics`: Muscle volume, streak, and household leaderboard read-only aggregations.
+
+---
+
+## 🧪 Testing & Quality Gates
+
+```bash
+# Execute Backend Pytest Suite & Coverage
+cd backend && uv run pytest --cov
+
+# Execute Frontend Typecheck & Vitest Suite
+cd frontend && pnpm check-types && pnpm test
 ```

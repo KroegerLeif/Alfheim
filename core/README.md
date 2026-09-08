@@ -30,7 +30,7 @@ core/
         │   └── features/
         │       └── apps/  # Tier 1 core application registry & HTTP handlers
         ├── go.mod
-        └── compose.yml     # Control plane service & dashboard-db container
+        └── compose.yml     # Control plane service container
 ```
 
 ### Conventions:

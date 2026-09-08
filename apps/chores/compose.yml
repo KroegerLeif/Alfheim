@@ -1,23 +1,4 @@
 services:
-  chores-db:
-    image: postgres:16-alpine
-    container_name: chores-db
-    restart: always
-    environment:
-      POSTGRES_USER: ${CHORES_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${CHORES_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${CHORES_POSTGRES_DB:-chores}
-    volumes:
-      - postgres_data_chores:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CHORES_POSTGRES_USER:-postgres} -d ${CHORES_POSTGRES_DB:-chores}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-chores-net
-    stop_grace_period: 10s
-
   chores-backend:
     build:
       context: ../..
@@ -25,7 +6,7 @@ services:
     container_name: chores-backend
     restart: always
     environment:
-      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-postgres}:${CHORES_POSTGRES_PASSWORD:-postgres}@chores-db:5432/${CHORES_POSTGRES_DB:-chores}}
+      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -37,7 +18,7 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
-      chores-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -71,9 +52,6 @@ services:
       start_period: 10s
     networks:
       - gateway-net
-
-volumes:
-  postgres_data_chores:
 
 networks:
   gateway-net:

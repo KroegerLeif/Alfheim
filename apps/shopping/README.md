@@ -1,46 +1,93 @@
 # Shopping Checklist Application (`apps/shopping/`)
 
-This directory houses the digital **Shopping Checklist Application** for the `alfheim` smart home ecosystem. It consists of a FastAPI backend and a Next.js frontend, integrated with Keycloak for identity management and the Pantry service for stock synchronization.
+> **TL;DR:** Collaborative household shopping lists, personal private lists, drag-and-drop item reordering, and Digital Pantry stock export synchronization.
 
 ---
 
-## 🏗️ High-Level Architecture & *Why*
+## 📋 Table of Contents
+- [Purpose & Core Value](#purpose--core-value)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Ingress Routing & Environment Configuration](#ingress-routing--environment-configuration)
+- [Local Development & Commands](#local-development--commands)
+- [Domain Features & Auto-Provisioning Rules](#domain-features--auto-provisioning-rules)
+- [Testing & Quality Gates](#testing--quality-gates)
 
-The Shopping app is built around the **Feature-Driven Design (FDD)** paradigm. It decomposes logic by domain (checklists, history) rather than technical layers.
+---
 
-```mermaid
-graph TD
-  A["Next.js Frontend (Port 3010)"] <-->|REST API + JWT Auth| B["FastAPI Backend (Port 8000)"]
-  A <-->|OIDC Sessions| C["Keycloak IAM (alfheim/auth)"]
-  B <-->|PostgreSQL (Port 5433)| D["shopping-db"]
-  B <-->|REST Integration| E["Pantry Service (api/v1/inventory)"]
-  B <-->|OIDC Token Check| C
+## 🎯 Purpose & Core Value
+
+| Need / Problem | Solution / Capability |
+| :--- | :--- |
+| Forgotten shopping items | Shared real-time household shopping list |
+| Private personal purchases | Protected personal shopping list (`is_personal=true`) per user |
+| Pantry stock running low | Automatic low-stock export sync from Digital Pantry |
+| List item chaos | Drag-and-drop item reordering with backend position persistence |
+
+---
+
+## 🏗️ Architecture & Tech Stack
+
+- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and Pantry REST client.
+- **Frontend:** Next.js 16 (App Router) microfrontend, TanStack Query, Tailwind CSS v4, and `@alfheim/shared`.
+- **Database:** Hosted on `postgres-core` (`alfheim_shopping` database, owned by `shopping_user`).
+
+---
+
+## 🌐 Ingress Routing & Environment Configuration
+
+### Gateway & Network Matrix
+| Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
+| :--- | :--- | :--- | :--- |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `shopping-backend` | 8000 | `/shopping/api/v1` | FastAPI REST API & Pantry Sync |
+| `shopping-frontend` | 3010 | `alfheim.loegien.localhost/shopping` | Next.js Microfrontend |
+
+### Essential Environment Variables
+| Variable | Default / Example | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql+asyncpg://shopping_user:postgres@postgres-core:5432/alfheim_shopping` | Async PostgreSQL connection string |
+| `PANTRY_API_URL` | `http://pantry-backend:8000/api/v1` | Internal Pantry service endpoint |
+| `NEXT_PUBLIC_SHOPPING_API_URL` | `http://api.alfheim.loegien.localhost/shopping/api/v1` | Browser API gateway endpoint |
+
+---
+
+## 🚀 Local Development & Commands
+
+### 1. Run via Docker Compose
+```bash
+docker compose up -d
 ```
 
-### 1. Auto-Provisioning Domain Rules (*Why*)
-To maximize convenience in a household ecosystem, the service automates list creation on user ingress:
-* **Personal List (`is_personal=true`)**: One list is guaranteed per user (`owner_id`). It is private to the user and follows them across any households they join.
-* **Household List (`is_default=true`)**: One list is guaranteed per household (`home_id`). It is shared among all household members.
-* **Protected Invariants**: Both system-provisioned lists are **non-deletable** to prevent accidental loss of default checklist lanes.
+### 2. Run Backend Locally
+```bash
+cd backend
+uv sync
+uv run uvicorn src.main:app --reload --port 8000
+```
 
-### 2. Backend-Driven Sorting
-To enable custom list arrangements without client-side state discrepancy, list positioning is backend-driven:
-* An `position` column in `ShoppingList` keeps track of order.
-* The frontend drag-and-drop triggers a bulk `PATCH /api/v1/shopping-lists/reorder` update to the database.
-
----
-
-## 🗂️ Directory Layout
-
-* [`/backend`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/backend) — FastAPI service handling database models, auto-provisioning rules, and integration endpoints.
-* [`/frontend`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/frontend) — Standalone Next.js 15 application utilizing tailwind styling and TanStack query caching.
-* [`compose.yml`](file:///Users/leifkroeger/Dev/loeger-os/apps/shopping/compose.yml) — Docker container configurations for service orchestration.
+### 3. Run Frontend Locally
+```bash
+cd frontend
+pnpm install
+pnpm dev --port 3010
+```
 
 ---
 
-## 🌐 Ingress Routing (Caddy Gateway)
+## 🔑 Domain Features & Auto-Provisioning Rules
 
-Caddy acts as the central ingress reverse proxy:
-* **Frontend**: Accessible under `http://alfheim.loegien.localhost/shopping` (with bare path redirects to `/shopping/en`).
-* **Backend**: Accessible under `http://api.alfheim.loegien.localhost/shopping/api/v1`, with path stripping managed by Caddy `handle_path`.
-* **Authentication**: OIDC Sessions via `http://api.alfheim.loegien.localhost/auth`.
+- **Personal List (`is_personal=true`)**: Automatically provisioned per user upon ingress. Private to the user across households. Non-deletable.
+- **Household List (`is_default=true`)**: Automatically provisioned per household. Shared among all members. Non-deletable.
+- **Backend-Driven Sorting**: Item positioning is tracked via `position` column. Drag-and-drop reordering sends bulk `PATCH /api/v1/shopping-lists/reorder` updates.
+
+---
+
+## 🧪 Testing & Quality Gates
+
+```bash
+# Execute Backend Pytest Suite & Coverage
+cd backend && uv run pytest --cov
+
+# Execute Frontend Typecheck & Vitest Suite
+cd frontend && pnpm check-types && pnpm test
+```

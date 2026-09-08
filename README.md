@@ -3,7 +3,7 @@
 This is the central orchestration repository for `alfheim`, managing common infrastructure (identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
 [![Release](https://img.shields.io/badge/release-v0.1.0--beta.1-blue.svg)](https://github.com/KroegerLeif/Alfheim/releases)
-[![Installation](https://img.shields.io/badge/docs-INSTALL.md-success.svg)](INSTALL.md)
+[![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -25,7 +25,7 @@ cd ~/alfheim
 docker compose -f compose.prod.yaml up -d
 ```
 
-👉 **For detailed prerequisites, manual deployment steps, and backup strategies, consult the [Self-Hosting & Installation Guide (INSTALL.md)](INSTALL.md).**
+👉 **For detailed prerequisites, manual deployment steps, and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/how-to/homelab-deployment.md).**
 
 ---
 
@@ -41,7 +41,7 @@ alfheim/
 ├── infrastructure/             # Platform Infrastructure Services
 │   ├── caddy/                  # Central Caddy Reverse Proxy & Ingress Gateway
 │   ├── keycloak/               # Keycloak config & realm import files
-│   ├── postgres-iam/           # IAM postgres database config files
+│   ├── postgres/               # Core postgres database cluster config files
 │   ├── rustfs/                 # RustFS S3-compatible central object storage
 │   └── telemetry/              # VictoriaStack, OTel Collector, Vector & Grafana
 ├── core/
@@ -74,9 +74,9 @@ To resolve these local domains on your development machine, add the following li
 ### B. Network Topology & Multi-Zone Segmentation
 The platform enforces strict multi-zone network isolation across Docker bridge networks:
 * **`gateway-net`**: Connects Caddy ingress gateway to frontends, Keycloak, RustFS S3, and backend API endpoints.
-* **`infra-net`**: Isolated infrastructure bridge connecting Keycloak, `postgres-iam`, and RustFS S3 backend ports.
-* **`core-net`**: Dedicated control plane network for `dashboard-backend` and `dashboard-db`.
-* **`app-<name>-net`**: App-isolated networks connecting microservice backends to their dedicated database containers (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`, `app-workout-net`).
+* **`infra-net`**: Isolated infrastructure bridge connecting Keycloak, `postgres-core`, and RustFS S3 backend ports.
+* **`core-net`**: Dedicated control plane network connecting `dashboard-backend` and `postgres-core`.
+* **`app-<name>-net`**: App-isolated networks connecting microservice backends to `postgres-core` (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`, `app-workout-net`).
 * **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.
 
 ### C. Routing Matrix (Central Caddy Gateway)
@@ -135,7 +135,7 @@ Run the following command to check if all containers are healthy:
 ```bash
 docker compose ps
 ```
-You should see `alfheim_caddy`, `alfheim_keycloak`, `alfheim_postgres_iam`, and all module databases and application backends/frontends running cleanly.
+You should see `alfheim_caddy`, `alfheim_keycloak`, `alfheim_postgres_core`, and all application backends/frontends running cleanly.
 
 ### B. Verify Routing Endpoints
 Verify HTTP routing and responses using browser or `curl`:

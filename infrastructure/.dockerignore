@@ -7,7 +7,7 @@
 *.env
 
 # Volumes & Data
-postgres-iam/data/
+postgres/data/
 */data/
 
 README.md
