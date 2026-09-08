@@ -43,7 +43,26 @@ Stops and removes active Docker compose service containers across all stages.
 Populates relational databases with mock households, users, pantry items, shopping lists, chores, and maintenance routines.
 * **Usage**: `./scripts/seed.sh`
 
-#### 4. `setup-env.sh` — Environment Provisioning
+#### 4. `init-env.sh` — Secret Initialization & Registry Resolution
+Generates `.env` files from `.env.example` with cryptographic secrets and dynamic image registry/repository resolution.
+* **Usage**: `./scripts/init-env.sh [OPTIONS]`
+* **Key Flags**:
+  * `-a`, `--auto`: Non-interactive environment setup.
+  * `-b`, `--base-url <url>`: Specify root Base URL.
+  * `-r`, `--registry <registry>`: Container image registry (e.g. `ghcr.io`, auto-derived from Git remote if omitted).
+  * `--repo <repo>`: Container image repository path (e.g. `owner/repo`, auto-derived from Git remote if omitted).
+  * `--tag <tag>`: Container image tag (default: `latest`).
+
+#### 5. `install.sh` — Automated Production Installer
+Downloads release artifacts, provisions secrets, pre-pulls container images, and starts the production stack.
+* **Usage**: `./scripts/install.sh [OPTIONS]`
+* **Key Flags**:
+  * `--skip-start`: Scaffold directory and secrets without starting containers.
+  * `--registry <registry>`: Override container image registry.
+  * `--repo <repo>`: Override container image repository path.
+  * `--tag <tag>`: Override container image tag.
+
+#### 6. `setup-env.sh` — Environment Provisioning
 Generates `.env` files from `.env.example` templates if missing, validating required secret keys and port configurations.
 * **Usage**: `./scripts/setup-env.sh`
 
