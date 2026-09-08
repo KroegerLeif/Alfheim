@@ -9,6 +9,10 @@
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
 ### Completed Commits (Recent first):
+* **`fix(ci): sanitize unlabelled networks before compose startup and remove gateway-net in teardown`**
+  - Added network sanitization loop in `scripts/test-prod-startup.sh` removing any pre-existing unlabelled bridge networks that would cause Docker Compose v2 label mismatch errors.
+  - Added explicit removal of `gateway-net` in `.github/workflows/smoke-test.yml` teardown step to prevent lingering external network state between CI steps.
+  - Updated `cleanup()` in `scripts/test-prod-startup.sh` to execute `docker compose down -v` for clean container and network teardown.
 * **`fix(ci): update smoke test caddy probe endpoint and wire prod startup test into verify.sh`**
   - Updated `.github/workflows/smoke-test.yml` health verification retry loop to probe `http://127.0.0.1:80/livez` instead of `http://127.0.0.1/`, eliminating 502 Bad Gateway timeouts caused by unstarted downstream frontend services.
   - Aligned standalone Caddy compose healthcheck in `infrastructure/caddy/compose.yml` to test `/livez`.
