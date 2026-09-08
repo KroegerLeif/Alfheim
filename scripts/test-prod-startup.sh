@@ -117,9 +117,8 @@ cleanup() {
   spin_stop
   if [[ "${KEEP_CONTAINERS}" == "false" ]]; then
     log_info "Tearing down core smoke-test containers..."
-    docker compose -f "${COMPOSE_FILE}" stop "${TEST_SERVICES[@]}" >/dev/null 2>&1 || true
-    docker compose -f "${COMPOSE_FILE}" rm -f -v "${TEST_SERVICES[@]}" >/dev/null 2>&1 || true
-    log_success "Cleaned up test containers"
+    docker compose -f "${COMPOSE_FILE}" down -v >/dev/null 2>&1 || true
+    log_success "Cleaned up test containers and networks"
   else
     log_warn "Containers left running (--keep specified)"
   fi
@@ -236,6 +235,17 @@ done
 # Stage 2: Staged Core Infrastructure Bring-Up
 # ------------------------------------------------------------------------------
 stage_step "2/4" "Staged Core Infrastructure Bring-Up"
+
+# Clean up any pre-existing unlabelled networks that could conflict with Compose
+ALL_PROD_NETWORKS=(gateway-net infra-net core-net app-chat-net app-pantry-net app-shopping-net app-maintenance-net app-chores-net app-budget-net app-workout-net app-library-net)
+for net in "${ALL_PROD_NETWORKS[@]}"; do
+  if docker network inspect "$net" >/dev/null 2>&1; then
+    label=$(docker network inspect "$net" --format '{{index .Labels "com.docker.compose.network"}}' 2>/dev/null || true)
+    if [[ -z "$label" ]]; then
+      docker network rm "$net" >/dev/null 2>&1 || true
+    fi
+  fi
+done
 
 log_info "Launching postgres-core, rustfs, and mailpit..."
 docker compose -f "${COMPOSE_FILE}" up -d postgres-core rustfs mailpit victoriametrics victorialogs otel-collector
