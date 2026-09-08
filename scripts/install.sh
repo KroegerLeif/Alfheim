@@ -278,6 +278,7 @@ log_info "Target directory: ${BOLD}${INSTALL_DIR}${RESET}"
 
 mkdir -p "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}/keycloak/providers"
+mkdir -p "${INSTALL_DIR}/infrastructure/postgres"
 mkdir -p "${INSTALL_DIR}/infrastructure/telemetry/collector"
 
 # ------------------------------------------------------------------------------
@@ -321,11 +322,13 @@ echo -e "\n${BOLD}Fetching Production Artifacts...${RESET}"
 fetch_asset "compose.prod.yaml" "${INSTALL_DIR}/compose.prod.yaml"
 fetch_asset ".env.example" "${INSTALL_DIR}/.env.example"
 fetch_asset "scripts/init-env.sh" "${INSTALL_DIR}/init-env.sh"
+fetch_asset "infrastructure/postgres/init-multiple-dbs.sh" "${INSTALL_DIR}/infrastructure/postgres/init-multiple-dbs.sh"
 fetch_asset "infrastructure/caddy/Caddyfile" "${INSTALL_DIR}/Caddyfile"
 fetch_asset "infrastructure/keycloak/alfheim-realm.json" "${INSTALL_DIR}/keycloak/alfheim-realm.json"
 fetch_asset "infrastructure/telemetry/collector/config.yaml" "${INSTALL_DIR}/infrastructure/telemetry/collector/config.yaml"
 
 chmod +x "${INSTALL_DIR}/init-env.sh"
+chmod +x "${INSTALL_DIR}/infrastructure/postgres/init-multiple-dbs.sh"
 
 # ------------------------------------------------------------------------------
 # 4. Generate Production Environment & Secrets
@@ -350,27 +353,10 @@ if [[ "${START_STACK}" == "true" ]]; then
 
   # Stage 1: Database Tier
   stage_step "1/3" "Database & Storage Tier (Cold initdb Resilience)"
-  log_info "Launching 10 PostgreSQL databases, MinIO S3, and Mailpit..."
-  dc up -d postgres-iam dashboard-db chat-db pantry-db shopping-db maintenance-db chores-db budget-db workout-db library-db rustfs mailpit
+  log_info "Launching PostgreSQL Core Database Cluster, MinIO S3, and Mailpit..."
+  dc up -d postgres-core rustfs mailpit
 
-  databases=(
-    "alfheim_postgres_iam:IAM Postgres (Keycloak)"
-    "dashboard-db:Dashboard Database"
-    "chat-db:Chat Database"
-    "pantry-db:Pantry Database"
-    "shopping-db:Shopping Database"
-    "maintenance-db:Maintenance Database"
-    "chores-db:Chores Database"
-    "budget-db:Budget Database"
-    "workout-db:Workout Database"
-    "library-db:Library Database"
-  )
-
-  for db_entry in "${databases[@]}"; do
-    container="${db_entry%%:*}"
-    label="${db_entry#*:}"
-    wait_healthy "${container}" "${label}" 90
-  done
+  wait_healthy "alfheim_postgres_core" "PostgreSQL Core Database" 90
   log_success "Database & Storage Tier is fully healthy"
 
   # Stage 2: IAM Core (Keycloak)

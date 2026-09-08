@@ -2,26 +2,56 @@
 name: alfheim-iam
 
 services:
-  postgres-iam:
+  postgres-core:
     image: postgres:16-alpine
-    container_name: alfheim_postgres_iam
+    container_name: alfheim_postgres_core
     restart: unless-stopped
     env_file:
-      - path: ./postgres-iam/.env
+      - path: ./postgres/.env
         required: false
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-alfheim_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-super_secret_local_password}
-      POSTGRES_DB: ${POSTGRES_DB:-keycloak_db}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      IAM_POSTGRES_USER: ${IAM_POSTGRES_USER:-iam_user}
+      IAM_POSTGRES_PASSWORD: ${IAM_POSTGRES_PASSWORD:-super_secret_local_password}
+      DASHBOARD_POSTGRES_USER: ${DASHBOARD_POSTGRES_USER:-dashboard_user}
+      DASHBOARD_POSTGRES_PASSWORD: ${DASHBOARD_POSTGRES_PASSWORD:-postgres}
+      PANTRY_POSTGRES_USER: ${PANTRY_POSTGRES_USER:-pantry_user}
+      PANTRY_POSTGRES_PASSWORD: ${PANTRY_POSTGRES_PASSWORD:-postgres}
+      SHOPPING_POSTGRES_USER: ${SHOPPING_POSTGRES_USER:-shopping_user}
+      SHOPPING_POSTGRES_PASSWORD: ${SHOPPING_POSTGRES_PASSWORD:-postgres}
+      MAINTENANCE_POSTGRES_USER: ${MAINTENANCE_POSTGRES_USER:-maintenance_user}
+      MAINTENANCE_POSTGRES_PASSWORD: ${MAINTENANCE_POSTGRES_PASSWORD:-postgres}
+      CHORES_POSTGRES_USER: ${CHORES_POSTGRES_USER:-chores_user}
+      CHORES_POSTGRES_PASSWORD: ${CHORES_POSTGRES_PASSWORD:-postgres}
+      BUDGET_POSTGRES_USER: ${BUDGET_POSTGRES_USER:-budget_user}
+      BUDGET_POSTGRES_PASSWORD: ${BUDGET_POSTGRES_PASSWORD:-postgres}
+      CHAT_POSTGRES_USER: ${CHAT_POSTGRES_USER:-chat_user}
+      CHAT_POSTGRES_PASSWORD: ${CHAT_POSTGRES_PASSWORD:-postgres}
+      WORKOUT_POSTGRES_USER: ${WORKOUT_POSTGRES_USER:-workout_user}
+      WORKOUT_POSTGRES_PASSWORD: ${WORKOUT_POSTGRES_PASSWORD:-postgres}
+      LIBRARY_POSTGRES_USER: ${LIBRARY_POSTGRES_USER:-library_user}
+      LIBRARY_POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:-postgres}
     volumes:
-      - ./postgres-iam/data:/var/lib/postgresql/data
+      - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
+      - ./postgres/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alfheim_admin} -d ${POSTGRES_DB:-keycloak_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
       - infra-net
+      - core-net
+      - app-pantry-net
+      - app-shopping-net
+      - app-chores-net
+      - app-maintenance-net
+      - app-budget-net
+      - app-chat-net
+      - app-workout-net
+      - app-library-net
     stop_grace_period: 10s
 
   keycloak:
@@ -37,9 +67,9 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KC_DB: ${KC_DB:-postgres}
-      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres-iam:5432/keycloak_db}
-      KC_DB_USERNAME: ${KC_DB_USERNAME:-alfheim_admin}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-super_secret_local_password}
+      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres-core:5432/alfheim_iam}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-${IAM_POSTGRES_USER:-iam_user}}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${IAM_POSTGRES_PASSWORD:-super_secret_local_password}}
       KC_HTTP_RELATIVE_PATH: "/auth"
       KC_PROXY: "edge"
       KC_HOSTNAME_URL: "${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}"
@@ -61,7 +91,7 @@ services:
       - ./keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
       - ./keycloak/providers:/opt/keycloak/providers:ro
     depends_on:
-      postgres-iam:
+      postgres-core:
         condition: service_healthy
     networks:
       - infra-net
@@ -111,6 +141,33 @@ volumes:
 networks:
   infra-net:
     name: infra-net
+    external: true
+  core-net:
+    name: core-net
+    external: true
+  app-pantry-net:
+    name: app-pantry-net
+    external: true
+  app-shopping-net:
+    name: app-shopping-net
+    external: true
+  app-chores-net:
+    name: app-chores-net
+    external: true
+  app-maintenance-net:
+    name: app-maintenance-net
+    external: true
+  app-budget-net:
+    name: app-budget-net
+    external: true
+  app-chat-net:
+    name: app-chat-net
+    external: true
+  app-workout-net:
+    name: app-workout-net
+    external: true
+  app-library-net:
+    name: app-library-net
     external: true
   gateway-net:
     name: gateway-net

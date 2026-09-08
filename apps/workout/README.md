@@ -29,7 +29,7 @@
 
 - **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), FastMCP AI tools, and OpenTelemetry.
 - **Frontend:** Next.js 16 (App Router) microfrontend, TanStack Query, Tailwind CSS v4, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`workout-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_workout` database, owned by `workout_user`).
 
 ---
 
@@ -38,14 +38,14 @@
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `workout-db` | 5432 | `5434:5432` | PostgreSQL 16 Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `workout-backend` | 8000 | `/workout/api/v1` | FastAPI REST API & FastMCP Tools |
 | `workout-frontend` | 3000 | `alfheim.loegien.localhost/workout` | Next.js Microfrontend |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@workout-db:5432/workout` | Async PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql+asyncpg://workout_user:postgres@postgres-core:5432/alfheim_workout` | Async PostgreSQL connection string |
 | `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth endpoint |
 | `NEXT_PUBLIC_WORKOUT_API_URL` | `http://api.alfheim.loegien.localhost/workout/api/v1` | Browser API gateway endpoint |
 

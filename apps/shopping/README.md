@@ -29,7 +29,7 @@
 
 - **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and Pantry REST client.
 - **Frontend:** Next.js 16 (App Router) microfrontend, TanStack Query, Tailwind CSS v4, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`shopping-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_shopping` database, owned by `shopping_user`).
 
 ---
 
@@ -38,14 +38,14 @@
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `shopping-db` | 5432 | `5433:5432` | PostgreSQL 16 Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `shopping-backend` | 8000 | `/shopping/api/v1` | FastAPI REST API & Pantry Sync |
 | `shopping-frontend` | 3010 | `alfheim.loegien.localhost/shopping` | Next.js Microfrontend |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@shopping-db:5432/shopping` | Async PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql+asyncpg://shopping_user:postgres@postgres-core:5432/alfheim_shopping` | Async PostgreSQL connection string |
 | `PANTRY_API_URL` | `http://pantry-backend:8000/api/v1` | Internal Pantry service endpoint |
 | `NEXT_PUBLIC_SHOPPING_API_URL` | `http://api.alfheim.loegien.localhost/shopping/api/v1` | Browser API gateway endpoint |
 

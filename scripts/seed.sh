@@ -39,7 +39,7 @@ step "Seeding Presentation Demo Data"
 
 # 0. Dashboard App Catalog Seeding
 info "Seeding Dashboard Catalog (default apps & portals) …"
-docker exec -i dashboard-db psql -U postgres -d dashboard_db << 'EOF' >/dev/null 2>&1 || true
+docker exec -i alfheim_postgres_core psql -U dashboard_user -d alfheim_dashboard << 'EOF' >/dev/null 2>&1 || true
 INSERT INTO app_catalog (name, slug, description, icon_url, app_url, category, required_role, is_active, is_external, status, is_default, display_order)
 VALUES
 ('Digital Pantry', 'pantry', 'Manage household food inventory, recipes, and expiration dates.', 'kitchen', '/pantry', 'internal', 'MEMBER', TRUE, FALSE, 'active', TRUE, 1),

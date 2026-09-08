@@ -1,23 +1,4 @@
 services:
-  pantry-db:
-    image: postgres:16-alpine
-    container_name: pantry-db
-    restart: always
-    environment:
-      POSTGRES_USER: ${PANTRY_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${PANTRY_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${PANTRY_POSTGRES_DB:-pantry}
-    volumes:
-      - pantry_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PANTRY_POSTGRES_USER:-postgres} -d ${PANTRY_POSTGRES_DB:-pantry}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-pantry-net
-    stop_grace_period: 10s
-
   pantry-backend:
     build:
       context: ../..
@@ -28,7 +9,7 @@ services:
       - path: .env
         required: false
     environment:
-      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-postgres}:${PANTRY_POSTGRES_PASSWORD:-postgres}@pantry-db:5432/${PANTRY_POSTGRES_DB:-pantry}}
+      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -40,7 +21,7 @@ services:
       retries: 10
       start_period: 15s
     depends_on:
-      pantry-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -74,9 +55,6 @@ services:
       start_period: 10s
     networks:
       - gateway-net
-
-volumes:
-  pantry_postgres_data:
 
 networks:
   gateway-net:

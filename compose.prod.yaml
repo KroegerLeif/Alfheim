@@ -40,26 +40,56 @@ services:
       - gateway-net
 
   # ----------------------------------------------------------------------------
-  # 2. IAM (IDENTITY & ACCESS MANAGEMENT) & CENTRAL STORAGE
+  # 2. CONSOLIDATED POSTGRESQL CORE DATABASE SERVER & IAM / CENTRAL STORAGE
   # ----------------------------------------------------------------------------
-  postgres-iam:
+  postgres-core:
     image: postgres:16-alpine
-    container_name: alfheim_postgres_iam
+    container_name: alfheim_postgres_core
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-alfheim_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-super_secret_local_password}
-      POSTGRES_DB: ${POSTGRES_DB:-keycloak_db}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      IAM_POSTGRES_USER: ${IAM_POSTGRES_USER:-iam_user}
+      IAM_POSTGRES_PASSWORD: ${IAM_POSTGRES_PASSWORD:-super_secret_local_password}
+      DASHBOARD_POSTGRES_USER: ${DASHBOARD_POSTGRES_USER:-dashboard_user}
+      DASHBOARD_POSTGRES_PASSWORD: ${DASHBOARD_POSTGRES_PASSWORD:-postgres}
+      PANTRY_POSTGRES_USER: ${PANTRY_POSTGRES_USER:-pantry_user}
+      PANTRY_POSTGRES_PASSWORD: ${PANTRY_POSTGRES_PASSWORD:-postgres}
+      SHOPPING_POSTGRES_USER: ${SHOPPING_POSTGRES_USER:-shopping_user}
+      SHOPPING_POSTGRES_PASSWORD: ${SHOPPING_POSTGRES_PASSWORD:-postgres}
+      MAINTENANCE_POSTGRES_USER: ${MAINTENANCE_POSTGRES_USER:-maintenance_user}
+      MAINTENANCE_POSTGRES_PASSWORD: ${MAINTENANCE_POSTGRES_PASSWORD:-postgres}
+      CHORES_POSTGRES_USER: ${CHORES_POSTGRES_USER:-chores_user}
+      CHORES_POSTGRES_PASSWORD: ${CHORES_POSTGRES_PASSWORD:-postgres}
+      BUDGET_POSTGRES_USER: ${BUDGET_POSTGRES_USER:-budget_user}
+      BUDGET_POSTGRES_PASSWORD: ${BUDGET_POSTGRES_PASSWORD:-postgres}
+      CHAT_POSTGRES_USER: ${CHAT_POSTGRES_USER:-chat_user}
+      CHAT_POSTGRES_PASSWORD: ${CHAT_POSTGRES_PASSWORD:-postgres}
+      WORKOUT_POSTGRES_USER: ${WORKOUT_POSTGRES_USER:-workout_user}
+      WORKOUT_POSTGRES_PASSWORD: ${WORKOUT_POSTGRES_PASSWORD:-postgres}
+      LIBRARY_POSTGRES_USER: ${LIBRARY_POSTGRES_USER:-library_user}
+      LIBRARY_POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:-postgres}
     volumes:
-      - postgres_iam_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
+      - postgres_core_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alfheim_admin} -d ${POSTGRES_DB:-keycloak_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 15
-      start_period: 60s
+      start_period: 30s
     networks:
       - infra-net
+      - core-net
+      - app-pantry-net
+      - app-shopping-net
+      - app-chores-net
+      - app-maintenance-net
+      - app-budget-net
+      - app-chat-net
+      - app-workout-net
+      - app-library-net
     stop_grace_period: 10s
 
   keycloak:
@@ -72,9 +102,9 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KC_DB: ${KC_DB:-postgres}
-      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres-iam:5432/keycloak_db}
-      KC_DB_USERNAME: ${KC_DB_USERNAME:-alfheim_admin}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-super_secret_local_password}
+      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres-core:5432/alfheim_iam}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-${IAM_POSTGRES_USER:-iam_user}}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${IAM_POSTGRES_PASSWORD:-super_secret_local_password}}
       KC_HTTP_RELATIVE_PATH: "/auth"
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true"
@@ -98,7 +128,7 @@ services:
       retries: 35
       start_period: 180s
     depends_on:
-      postgres-iam:
+      postgres-core:
         condition: service_healthy
     networks:
       - infra-net
@@ -227,33 +257,13 @@ services:
   # ----------------------------------------------------------------------------
   # 4. CONTROL PLANE: DASHBOARD SERVICE
   # ----------------------------------------------------------------------------
-  dashboard-db:
-    image: postgres:16-alpine
-    container_name: dashboard-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DASHBOARD_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${DASHBOARD_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${DASHBOARD_POSTGRES_DB:-dashboard_db}
-    volumes:
-      - dashboard_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DASHBOARD_POSTGRES_USER:-postgres} -d ${DASHBOARD_POSTGRES_DB:-dashboard_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - core-net
-    stop_grace_period: 10s
-
   dashboard-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-backend:${IMAGE_TAG:-latest}
     container_name: dashboard-backend
     restart: unless-stopped
     environment:
       - PORT=8080
-      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-postgres}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@dashboard-db:5432/${DASHBOARD_POSTGRES_DB:-dashboard_db}?sslmode=disable}
+      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
       - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
       - KEYCLOAK_PUBLIC_ISSUER=${KEYCLOAK_PUBLIC_ISSUER:-${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}/realms/alfheim}
@@ -267,7 +277,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      dashboard-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -299,26 +309,6 @@ services:
   # ----------------------------------------------------------------------------
   # 5. CHAT ASSISTANT SERVICE
   # ----------------------------------------------------------------------------
-  chat-db:
-    image: postgres:16-alpine
-    container_name: chat-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${CHAT_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${CHAT_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${CHAT_POSTGRES_DB:-chat_db}
-    volumes:
-      - chat_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CHAT_POSTGRES_USER:-postgres} -d ${CHAT_POSTGRES_DB:-chat_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-chat-net
-    stop_grace_period: 10s
-
   chat-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-backend:${IMAGE_TAG:-latest}
     container_name: chat-backend
@@ -327,7 +317,7 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - PORT=8080
-      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
+      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
       - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
       - KEYCLOAK_PUBLIC_ISSUER=${KEYCLOAK_PUBLIC_ISSUER:-${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}/realms/alfheim}
@@ -346,7 +336,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      chat-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -379,32 +369,12 @@ services:
   # ----------------------------------------------------------------------------
   # 6. PANTRY MANAGEMENT SERVICE
   # ----------------------------------------------------------------------------
-  pantry-db:
-    image: postgres:16-alpine
-    container_name: pantry-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${PANTRY_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${PANTRY_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${PANTRY_POSTGRES_DB:-pantry}
-    volumes:
-      - pantry_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PANTRY_POSTGRES_USER:-postgres} -d ${PANTRY_POSTGRES_DB:-pantry}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-pantry-net
-    stop_grace_period: 10s
-
   pantry-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-backend:${IMAGE_TAG:-latest}
     container_name: pantry-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-postgres}:${PANTRY_POSTGRES_PASSWORD:-postgres}@pantry-db:5432/${PANTRY_POSTGRES_DB:-pantry}}
+      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
@@ -420,7 +390,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      pantry-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -453,32 +423,12 @@ services:
   # ----------------------------------------------------------------------------
   # 7. SHOPPING LIST SERVICE
   # ----------------------------------------------------------------------------
-  shopping-db:
-    image: postgres:16-alpine
-    container_name: shopping-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${SHOPPING_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${SHOPPING_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${SHOPPING_POSTGRES_DB:-shopping}
-    volumes:
-      - postgres_data_shopping:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SHOPPING_POSTGRES_USER:-postgres} -d ${SHOPPING_POSTGRES_DB:-shopping}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-shopping-net
-    stop_grace_period: 10s
-
   shopping-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-backend:${IMAGE_TAG:-latest}
     container_name: shopping-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-postgres}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@shopping-db:5432/${SHOPPING_POSTGRES_DB:-shopping}}
+      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
@@ -495,7 +445,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      shopping-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -528,32 +478,12 @@ services:
   # ----------------------------------------------------------------------------
   # 8. MAINTENANCE & DEVICES SERVICE
   # ----------------------------------------------------------------------------
-  maintenance-db:
-    image: postgres:16-alpine
-    container_name: maintenance-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${MAINTENANCE_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${MAINTENANCE_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${MAINTENANCE_POSTGRES_DB:-maintenance}
-    volumes:
-      - maintenance_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${MAINTENANCE_POSTGRES_USER:-postgres} -d ${MAINTENANCE_POSTGRES_DB:-maintenance}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-maintenance-net
-    stop_grace_period: 10s
-
   maintenance-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-backend:${IMAGE_TAG:-latest}
     container_name: maintenance-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-postgres}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@maintenance-db:5432/${MAINTENANCE_POSTGRES_DB:-maintenance}}
+      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
@@ -569,7 +499,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      maintenance-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -602,32 +532,12 @@ services:
   # ----------------------------------------------------------------------------
   # 9. HOUSEHOLD CHORES SERVICE
   # ----------------------------------------------------------------------------
-  chores-db:
-    image: postgres:16-alpine
-    container_name: chores-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${CHORES_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${CHORES_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${CHORES_POSTGRES_DB:-chores}
-    volumes:
-      - postgres_data_chores:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CHORES_POSTGRES_USER:-postgres} -d ${CHORES_POSTGRES_DB:-chores}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-chores-net
-    stop_grace_period: 10s
-
   chores-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-backend:${IMAGE_TAG:-latest}
     container_name: chores-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-postgres}:${CHORES_POSTGRES_PASSWORD:-postgres}@chores-db:5432/${CHORES_POSTGRES_DB:-chores}}
+      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
@@ -643,7 +553,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      chores-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -676,32 +586,12 @@ services:
   # ----------------------------------------------------------------------------
   # 10. BUDGET & FINANCE SERVICE
   # ----------------------------------------------------------------------------
-  budget-db:
-    image: postgres:16-alpine
-    container_name: budget-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${BUDGET_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${BUDGET_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${BUDGET_POSTGRES_DB:-budget}
-    volumes:
-      - postgres_data_budget:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${BUDGET_POSTGRES_USER:-postgres} -d ${BUDGET_POSTGRES_DB:-budget}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-budget-net
-    stop_grace_period: 10s
-
   budget-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-backend:${IMAGE_TAG:-latest}
     container_name: budget-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-postgres}:${BUDGET_POSTGRES_PASSWORD:-postgres}@budget-db:5432/${BUDGET_POSTGRES_DB:-budget}}
+      - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
@@ -721,7 +611,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      budget-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -755,32 +645,12 @@ services:
   # ----------------------------------------------------------------------------
   # 11. WORKOUT TRACKING SERVICE
   # ----------------------------------------------------------------------------
-  workout-db:
-    image: postgres:16-alpine
-    container_name: workout-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${WORKOUT_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${WORKOUT_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${WORKOUT_POSTGRES_DB:-workout}
-    volumes:
-      - postgres_data_workout:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${WORKOUT_POSTGRES_USER:-postgres} -d ${WORKOUT_POSTGRES_DB:-workout}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-workout-net
-    stop_grace_period: 10s
-
   workout-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-backend:${IMAGE_TAG:-latest}
     container_name: workout-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-postgres}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@workout-db:5432/${WORKOUT_POSTGRES_DB:-workout}}
+      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
@@ -796,7 +666,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      workout-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -829,32 +699,12 @@ services:
   # ----------------------------------------------------------------------------
   # 12. MEDIA LIBRARY SERVICE
   # ----------------------------------------------------------------------------
-  library-db:
-    image: postgres:16-alpine
-    container_name: library-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${LIBRARY_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${LIBRARY_POSTGRES_DB:-library}
-    volumes:
-      - postgres_data_library:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${LIBRARY_POSTGRES_USER:-postgres} -d ${LIBRARY_POSTGRES_DB:-library}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-    networks:
-      - app-library-net
-    stop_grace_period: 10s
-
   library-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-backend:${IMAGE_TAG:-latest}
     container_name: library-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-postgres}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@library-db:5432/${LIBRARY_POSTGRES_DB:-library}}
+      - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
       - OTEL_ENABLED=true
@@ -870,7 +720,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      library-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -906,20 +756,11 @@ services:
 volumes:
   caddy_data:
   caddy_config:
-  postgres_iam_data:
+  postgres_core_data:
   rustfs_data:
   victoriametrics_data:
   victorialogs_data:
   grafana_data:
-  dashboard_postgres_data:
-  chat_postgres_data:
-  pantry_postgres_data:
-  postgres_data_shopping:
-  maintenance_postgres_data:
-  postgres_data_chores:
-  postgres_data_budget:
-  postgres_data_workout:
-  postgres_data_library:
 
 # ==============================================================================
 # DOCKER NETWORKS

@@ -30,7 +30,7 @@
 
 - **Backend:** Go 1.25 microservice utilizing Chi router, SSE streaming, AES-256 crypto, and FastMCP client integrations.
 - **Frontend:** Next.js 16 (App Router) microfrontend, SSE stream parser, Tailwind CSS v4, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`chat-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_chat` database, owned by `chat_user`).
 
 ---
 
@@ -39,14 +39,14 @@
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `chat-db` | 5432 | Internal `app-chat-net` | PostgreSQL 16 Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `chat-backend` | 8080 | `/api/v1/chat` | Go REST API, SSE & MCP Bridge |
 | `chat-frontend` | 3000 | `alfheim.loegien.localhost/chat` | Next.js Microfrontend |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgres://postgres:postgres@chat-db:5432/chat_db?sslmode=disable` | PostgreSQL connection string |
+| `DATABASE_URL` | `postgres://chat_user:postgres@postgres-core:5432/alfheim_chat?sslmode=disable` | PostgreSQL connection string |
 | `CHAT_ENCRYPTION_KEY` | *(Generated 32-byte base64 key)* | AES-256-GCM key for encrypting LLM API keys |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints |
 | `NEXT_PUBLIC_CHAT_API_URL` | `http://api.alfheim.loegien.localhost/api/v1/chat` | Browser API gateway endpoint |

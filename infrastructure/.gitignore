@@ -2,7 +2,7 @@
 *.env
 !.env.example
 
-postgres-iam/data/
+postgres/data/
 */data/
 
 .DS_Store

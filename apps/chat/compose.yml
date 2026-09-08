@@ -1,23 +1,4 @@
 services:
-  chat-db:
-    image: postgres:16-alpine
-    container_name: chat-db
-    restart: always
-    environment:
-      POSTGRES_USER: ${CHAT_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${CHAT_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${CHAT_POSTGRES_DB:-chat_db}
-    volumes:
-      - chat_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CHAT_POSTGRES_USER:-postgres} -d ${CHAT_POSTGRES_DB:-chat_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-chat-net
-    stop_grace_period: 10s
-
   chat-backend:
     build:
       context: ./backend
@@ -31,7 +12,7 @@ services:
         required: false
     environment:
       - PORT=8080
-      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-postgres}:${CHAT_POSTGRES_PASSWORD:-postgres}@chat-db:5432/${CHAT_POSTGRES_DB:-chat_db}?sslmode=disable}
+      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
       - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}
@@ -44,7 +25,7 @@ services:
       retries: 10
       start_period: 10s
     depends_on:
-      chat-db:
+      postgres-core:
         condition: service_healthy
     networks:
       - gateway-net
@@ -78,9 +59,6 @@ services:
       start_period: 10s
     networks:
       - gateway-net
-
-volumes:
-  chat_postgres_data:
 
 networks:
   gateway-net:

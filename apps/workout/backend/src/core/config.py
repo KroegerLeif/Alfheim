@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     ]
 
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5434/workout"
+    DATABASE_URL: str = "postgresql+asyncpg://workout_user:postgres@localhost:5432/alfheim_workout"
 
     # Keycloak OIDC Configuration
     KEYCLOAK_URL: str = "http://keycloak:8080/auth"

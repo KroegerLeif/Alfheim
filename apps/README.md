@@ -38,11 +38,11 @@ apps/<app-name>/
     │   ├── features/      # Feature domain logic (models, repositories, services, routers)
     │   └── main.py / main.go
     ├── pyproject.toml / go.mod
-    └── compose.yml         # Application service & dedicated database definition
+    └── compose.yml         # Application service definition
 ```
 
 ### Key Folder Conventions:
-* **Isolated Data Persistence**: Each backend defines a dedicated PostgreSQL database container in its `compose.yml` (e.g., `pantry-db`, `workout-db`), enforcing a "Database per Service" pattern.
+* **Isolated Data Persistence**: All backends connect to `postgres-core` hosting isolated databases (`alfheim_<app>`) owned by dedicated users (`<app>_user`), enforcing least-privilege tenant data isolation.
 * **Tenant Isolation**: Backend APIs validate the `X-Household-ID` request header against JWT token claims (`household_id`, `active_household_id`, or `households`).
 * **Frontend Verification & Testing**: Frontends utilize Vitest with MSW v2 for mock API handler testing, and type checking via `pnpm check-types`.
 

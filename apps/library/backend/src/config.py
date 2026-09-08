@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     TMDB_API_KEY: str | None = None
 
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/library"
+    DATABASE_URL: str = "postgresql+asyncpg://library_user:postgres@localhost:5432/alfheim_library"
 
     # Keycloak OIDC Configuration
     KEYCLOAK_URL: str = "http://keycloak:8080/auth"

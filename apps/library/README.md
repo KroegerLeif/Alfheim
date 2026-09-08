@@ -29,7 +29,7 @@
 
 - **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and OpenLibrary API client.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`library-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_library` database, owned by `library_user`).
 
 ---
 
@@ -38,14 +38,14 @@
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `library-db` | 5432 | `5438:5432` | PostgreSQL 16 Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `library-backend` | 8000 | `/library/api/v1` | FastAPI REST API |
 | `library-frontend` | 3000 | `alfheim.loegien.localhost/library` | Next.js Microfrontend |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@library-db:5432/library` | Async PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql+asyncpg://library_user:postgres@postgres-core:5432/alfheim_library` | Async PostgreSQL connection string |
 | `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Keycloak backend auth endpoint |
 | `NEXT_PUBLIC_LIBRARY_API_URL` | `http://api.alfheim.loegien.localhost/library/api/v1` | Browser API gateway endpoint |
 

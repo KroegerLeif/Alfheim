@@ -29,7 +29,7 @@
 
 - **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), RustFS S3 integration, and OpenTelemetry.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`budget-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_budget` database, owned by `budget_user`).
 
 ---
 
@@ -38,14 +38,14 @@
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `budget-db` | 5432 | `5436:5432` | PostgreSQL 16 Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `budget-backend` | 8000 | `/budget/api/v1` | FastAPI REST API & Telemetry |
 | `budget-frontend` | 3000 | `alfheim.loegien.localhost/budget` | Next.js Microfrontend |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@budget-db:5432/budget` | Async PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql+asyncpg://budget_user:postgres@postgres-core:5432/alfheim_budget` | Async PostgreSQL connection string |
 | `S3_ENDPOINT_URL` | `http://rustfs:9000` | S3-compatible object storage endpoint |
 | `S3_BUCKET_NAME` | `budget-receipts` | S3 bucket for receipt images |
 | `NEXT_PUBLIC_BUDGET_API_URL` | `http://api.alfheim.loegien.localhost/budget/api/v1` | Browser API gateway endpoint |

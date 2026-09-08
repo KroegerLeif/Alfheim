@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     ]
 
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/pantry"
+    DATABASE_URL: str = "postgresql+asyncpg://pantry_user:postgres@localhost:5432/alfheim_pantry"
 
     # Keycloak OIDC Configuration
     KEYCLOAK_URL: str = "http://keycloak:8080/auth"

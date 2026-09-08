@@ -40,7 +40,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 
 - **Backend:** Go 1.25 REST API backend utilizing Chi router, PostgreSQL (`pgxpool`), and Keycloak OIDC middleware.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`dashboard-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_dashboard` database, owned by `dashboard_user`).
 
 ### FDD Domain Features (`internal/features/`)
 - `apps`: Unified 3-Tier application registry handlers and YAML loaders.
@@ -55,14 +55,14 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Description |
 | :--- | :--- | :--- | :--- |
-| `dashboard-db` | 5432 | Internal `core-net` | PostgreSQL 16 Control Plane Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/households` | Go REST API Control Plane |
 | `dashboard-frontend` | 3000 | `alfheim.loegien.localhost/` | Next.js Landing Page Control Plane |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgres://postgres:postgres@dashboard-db:5432/dashboard` | PostgreSQL connection string |
+| `DATABASE_URL` | `postgres://dashboard_user:postgres@postgres-core:5432/alfheim_dashboard?sslmode=disable` | PostgreSQL connection string |
 | `STACK_APPS_PATH` | `deploy/stack-apps.yaml` | Path to Tier 2 stack integrations manifest |
 | `KEYCLOAK_BASE_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth server endpoint |
 | `NEXT_PUBLIC_API_URL` | `http://api.alfheim.loegien.localhost` | Browser API gateway endpoint |

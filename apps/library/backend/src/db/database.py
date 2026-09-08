@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # Database connection settings
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/library",
+    "postgresql+asyncpg://library_user:postgres@localhost:5432/alfheim_library",
 )
 DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "t")
 

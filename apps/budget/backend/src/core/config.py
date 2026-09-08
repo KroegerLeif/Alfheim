@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     ]
 
     # Database settings
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/budget"
+    DATABASE_URL: str = "postgresql+asyncpg://budget_user:postgres@localhost:5432/alfheim_budget"
 
     # Keycloak authentication settings
     KEYCLOAK_URL: str = "http://keycloak:8080/auth"

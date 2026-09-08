@@ -30,7 +30,7 @@
 
 - **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), FastMCP AI tools, and background reset scheduler loop.
 - **Frontend:** Next.js 16 (App Router) microfrontend, TanStack Query, Tailwind CSS v4, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`chores-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_chores` database, owned by `chores_user`).
 
 ### FDD Domain Features (`src/features/chores/`)
 - `templates`: Chore templates (points, instructions, recurrence rules).
@@ -45,14 +45,14 @@
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `chores-db` | 5432 | Internal `app-chores-net` | PostgreSQL 16 Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `chores-backend` | 8000 | `/api/v1/chores` | FastAPI REST API & FastMCP Tools |
 | `chores-frontend` | 3000 | `alfheim.loegien.localhost/chores` | Next.js Microfrontend |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@chores-db:5432/chores` | Async PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql+asyncpg://chores_user:postgres@postgres-core:5432/alfheim_chores` | Async PostgreSQL connection string |
 | `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Keycloak backend authentication URL |
 | `NEXT_PUBLIC_CHORES_API_URL` | `http://api.alfheim.loegien.localhost/api/v1/chores` | Browser API gateway endpoint |
 

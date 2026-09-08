@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5435/chores"
+    DATABASE_URL: str = "postgresql+asyncpg://chores_user:postgres@localhost:5432/alfheim_chores"
 
     # Keycloak OIDC Configuration
     KEYCLOAK_URL: str = "http://keycloak:8080/auth"

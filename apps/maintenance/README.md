@@ -29,7 +29,7 @@
 
 - **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and FastMCP AI tools.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
-- **Database:** Dedicated PostgreSQL 16 container (`maintenance-db`).
+- **Database:** Hosted on `postgres-core` (`alfheim_maintenance` database, owned by `maintenance_user`).
 
 ---
 
@@ -38,14 +38,14 @@
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `maintenance-db` | 5432 | Internal `app-maintenance-net` | PostgreSQL 16 Database |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
 | `maintenance-backend` | 8000 | `/maintenance/api/v1` | FastAPI REST API & FastMCP Tools |
 | `maintenance-frontend` | 3000 | `alfheim.loegien.localhost/maintenance` | Next.js Microfrontend |
 
 ### Essential Environment Variables
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@maintenance-db:5432/maintenance` | Async PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql+asyncpg://maintenance_user:postgres@postgres-core:5432/alfheim_maintenance` | Async PostgreSQL connection string |
 | `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Keycloak backend auth endpoint |
 | `NEXT_PUBLIC_MAINTENANCE_API_URL` | `http://api.alfheim.loegien.localhost/maintenance/api/v1` | Browser API gateway endpoint |
 

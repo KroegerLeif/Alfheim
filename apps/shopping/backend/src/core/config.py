@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5433/shopping"
+    DATABASE_URL: str = "postgresql+asyncpg://shopping_user:postgres@localhost:5432/alfheim_shopping"
 
     # Pantry Backend service integration URL
     PANTRY_BACKEND_URL: str = "http://pantry-backend:8000"

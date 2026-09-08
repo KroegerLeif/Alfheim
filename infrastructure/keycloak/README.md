@@ -11,7 +11,7 @@ Keycloak acts as the central Identity Provider (IdP) for all core and microservi
 - **Realm**: `alfheim` (pre-configured in `alfheim-realm.json`).
 - **User Authentication**: Standard OIDC Authorization Code Flow with PKCE for microfrontends.
 - **Token Claims**: Extends standard JWT access tokens with `household_id`, `active_household_id`, and `households` array claims for tenant isolation.
-- **Storage**: Backed by PostgreSQL (`postgres-iam`).
+- **Storage**: Backed by PostgreSQL (`postgres-core` database `alfheim_iam`).
 
 ---
 
@@ -22,7 +22,7 @@ Configured in `infrastructure/keycloak/.env.example` / `.env`:
 - `KEYCLOAK_ADMIN`: Admin console username (default: `admin`).
 - `KEYCLOAK_ADMIN_PASSWORD`: Admin console password (default: `admin`).
 - `KC_DB`: Database engine (`postgres`).
-- `KC_DB_URL`: JDBC connection string (`jdbc:postgresql://postgres-iam:5432/keycloak_db`).
+- `KC_DB_URL`: JDBC connection string (`jdbc:postgresql://postgres-core:5432/alfheim_iam`).
 - `KC_DB_USERNAME`: Database user (`alfheim_admin`).
 - `KC_DB_PASSWORD`: Database password.
 
@@ -41,7 +41,7 @@ Configured in `infrastructure/keycloak/.env.example` / `.env`:
 ## 🚀 Execution & Management
 
 ```bash
-# Start Keycloak and postgres-iam container stack
+# Start Keycloak and postgres-core container stack
 docker compose -f infrastructure/compose.yml up -d keycloak
 
 # View Keycloak startup logs
