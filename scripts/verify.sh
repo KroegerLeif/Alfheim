@@ -7,11 +7,12 @@
 #
 # Usage:
 #   ./scripts/verify.sh          # Runs all verification gates (--all)
-#   ./scripts/verify.sh --all    # Runs Python, Go, Frontend, and Security scans
+#   ./scripts/verify.sh --all    # Runs Python, Go, Frontend, Security, and Smoke tests
 #   ./scripts/verify.sh --python # Runs Ruff, Ty, and Pytest test matrix
 #   ./scripts/verify.sh --go     # Runs Go tests and race detectors
 #   ./scripts/verify.sh --frontend # Runs TSC typecheck and Vitest test suites
 #   ./scripts/verify.sh --security # Runs secret leakage & hardcoding scans
+#   ./scripts/verify.sh --smoke  # Runs production compose startup smoke test (--prod-startup)
 # ==============================================================================
 
 set -euo pipefail
@@ -58,6 +59,7 @@ RUN_PYTHON=false
 RUN_GO=false
 RUN_FRONTEND=false
 RUN_SECURITY=false
+RUN_SMOKE=false
 
 # Argument Parsing
 if [[ $# -eq 0 ]]; then
@@ -74,6 +76,7 @@ while [[ $# -gt 0 ]]; do
             RUN_GO=true
             RUN_FRONTEND=true
             RUN_SECURITY=true
+            RUN_SMOKE=true
             shift
             ;;
         --python)
@@ -92,13 +95,17 @@ while [[ $# -gt 0 ]]; do
             RUN_SECURITY=true
             shift
             ;;
+        --smoke|--prod-startup)
+            RUN_SMOKE=true
+            shift
+            ;;
         -h|--help)
-            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security]"
+            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup]"
             exit 0
             ;;
         *)
             log_fail "Unknown argument: $1"
-            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security]"
+            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup]"
             exit 1
             ;;
     esac
@@ -264,6 +271,25 @@ if [[ "$RUN_SECURITY" == true ]]; then
     else
         log_fail "Pre-commit hooks failed"
         ERRORS=$((ERRORS + 1))
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# 5. Production Smoke Test & Startup Verification
+# ------------------------------------------------------------------------------
+if [[ "$RUN_SMOKE" == true ]]; then
+    log_banner "5. Production Compose Smoke Test & Startup Verification"
+
+    if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+        log_warn "Docker is not installed or Docker daemon is unreachable. Skipping production smoke test."
+    else
+        log_section "Executing Production Core Stack Smoke Test (scripts/test-prod-startup.sh)"
+        if "${ROOT_DIR}/scripts/test-prod-startup.sh"; then
+            log_success "Production core stack smoke test passed"
+        else
+            log_fail "Production core stack smoke test failed"
+            ERRORS=$((ERRORS + 1))
+        fi
     fi
 fi
 

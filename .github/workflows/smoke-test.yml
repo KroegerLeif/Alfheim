@@ -46,24 +46,27 @@ jobs:
         run: docker network create gateway-net || true
 
       - name: Spin up Caddy Gateway
-        run: docker compose -f infrastructure/caddy/compose.yml up -d --build
+        run: docker compose -f infrastructure/caddy/compose.yml up -d
 
       - name: Health Verification Retry Loop
         run: |
-          echo "Waiting for Caddy gateway on http://127.0.0.1/ ..."
+          echo "Waiting for Caddy gateway on http://127.0.0.1:80/livez ..."
           timeout=60
           elapsed=0
-          until curl --fail -s http://127.0.0.1/ > /dev/null 2>&1; do
+          until curl --fail -s http://127.0.0.1:80/livez > /dev/null 2>&1; do
             if [ $elapsed -ge $timeout ]; then
-              echo "Error: Caddy failed to respond on http://127.0.0.1/ within $timeout seconds."
+              echo "Error: Caddy failed to respond on http://127.0.0.1:80/livez within $timeout seconds."
               docker compose -f infrastructure/caddy/compose.yml logs
               exit 1
             fi
             sleep 2
             elapsed=$((elapsed + 2))
           done
-          echo "Caddy gateway is healthy and reachable at http://127.0.0.1/!"
+          echo "Caddy gateway is healthy and reachable at http://127.0.0.1:80/livez!"
 
       - name: Teardown Caddy Gateway
         if: always()
         run: docker compose -f infrastructure/caddy/compose.yml down -v
+
+      - name: Production Core Stack Smoke Test
+        run: ./scripts/test-prod-startup.sh
