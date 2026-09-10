@@ -70,28 +70,7 @@ export const budgetClient = ky.create({
       },
     ],
     afterResponse: [
-      async (request, options, response) => {
-        if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as unknown as {
-            __keycloak_instance__?: {
-              updateToken: (minValidity: number) => Promise<boolean>;
-              token?: string;
-            };
-          }).__keycloak_instance__;
-          if (keycloak && typeof keycloak.updateToken === "function") {
-            try {
-              const refreshed = await keycloak.updateToken(30);
-              if (refreshed && keycloak.token) {
-                sessionStorage.setItem("token_budget-frontend", keycloak.token);
-                sessionStorage.setItem("alfheim_access_token", keycloak.token);
-                request.headers.set("Authorization", `Bearer ${keycloak.token}`);
-                return ky(request, options);
-              }
-            } catch (err) {
-              console.warn("Keycloak token refresh failed on 401:", err);
-            }
-          }
-        }
+      async (_request, _options, response) => {
         if (!response.ok) {
           await handleResponseError(response);
         }
