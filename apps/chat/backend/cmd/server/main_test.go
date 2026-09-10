@@ -26,15 +26,15 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	cfg := &config.Config{
-		Keycloak: config.KeycloakConfig{
-			JWKSURL:        "http://invalid.local/jwks-does-not-exist",
-			ExpectedIssuer: "http://invalid.local/auth/realms/alfheim",
+		OIDC: config.OIDCConfig{
+			IssuerURL: "http://invalid.local",
+			Audience:  "alfheim",
 		},
 	}
 
 	auth, err := setupAuthenticator(cfg, log)
 	if err == nil {
-		t.Errorf("expected error when setting up authenticator with unreachable JWKS URL, got nil")
+		t.Errorf("expected error when setting up authenticator with unreachable issuer URL, got nil")
 	}
 	if auth != nil {
 		t.Errorf("expected nil authenticator when setup fails, got %v", auth)

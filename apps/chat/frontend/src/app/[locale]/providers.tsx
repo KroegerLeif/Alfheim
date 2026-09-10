@@ -1,10 +1,29 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState, useEffect, useRef } from "react";
-import Keycloak from "keycloak-js";
+import { ReactNode, useState, useEffect } from "react";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
+import { UserIdentity, useTranslation } from "@alfheim/shared";
+
+const TOKEN_KEY = "token_chat-frontend";
+const SHARED_TOKEN_KEY = "alfheim_access_token";
+
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -25,120 +44,65 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [user, setUser] = useState<UserIdentity | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [keycloakInstance, setKeycloakInstance] = useState<Keycloak | null>(null);
-  const initializedRef = useRef(false);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
     if (typeof window === "undefined") return;
-    if (!initializedRef.current) {
-      initializedRef.current = true;
 
-      const keycloak = new Keycloak({
-        url: resolveKeycloakUrl(),
-        realm: "alfheim",
-        clientId: "chat-frontend",
-      });
+    const url = new URL(window.location.href);
+    let tokenParam = url.searchParams.get("token") || url.searchParams.get("access_token");
 
-      setKeycloakInstance(keycloak);
-      (window as any).__keycloak_instance__ = keycloak;
-
-      const cleanQueryParams = () => {
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          let hasParams = false;
-          ["state", "session_state", "code", "iss"].forEach((param) => {
-            if (url.searchParams.has(param)) {
-              url.searchParams.delete(param);
-              hasParams = true;
-            }
-          });
-          if (hasParams) {
-            window.history.replaceState({}, document.title, url.pathname + url.search);
-          }
-        }
-      };
-
-      keycloak
-        .init({
-          onLoad: "login-required",
-          checkLoginIframe: false,
-          pkceMethod: "S256",
-          responseMode: "query",
-        })
-        .then((authenticated) => {
-          cleanQueryParams();
-          if (!isMounted) return;
-          if (authenticated && keycloak.token) {
-            setIsAuthenticated(true);
-            const currentToken = keycloak.token || "";
-            setToken(currentToken);
-            sessionStorage.setItem("token_chat-frontend", currentToken);
-            sessionStorage.setItem("alfheim_access_token", currentToken);
-
-            if (keycloak.tokenParsed) {
-              const parsed = keycloak.tokenParsed as any;
-              setUser({
-                name: parsed.name || parsed.preferred_username || "User",
-                preferred_username: parsed.preferred_username,
-                email: parsed.email,
-                given_name: parsed.given_name,
-                family_name: parsed.family_name,
-              });
-            }
-
-            refreshIntervalRef.current = setInterval(() => {
-              keycloak
-                .updateToken(70)
-                .then((refreshed) => {
-                  if (refreshed && keycloak.token) {
-                    const refreshedToken = keycloak.token || "";
-                    setToken(refreshedToken);
-                    sessionStorage.setItem("token_chat-frontend", refreshedToken);
-                    sessionStorage.setItem("alfheim_access_token", refreshedToken);
-                  }
-                })
-                .catch(() => {
-                  console.error("Failed to refresh Keycloak token");
-                });
-            }, 60000);
-          } else {
-            setIsAuthenticated(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Keycloak initialization failed", err);
-          cleanQueryParams();
-          if (isMounted) {
-            setAuthError("Failed to connect to Keycloak auth service.");
-          }
-        });
+    let cleanNeeded = false;
+    ["state", "session_state", "code", "iss", "token", "access_token"].forEach((param) => {
+      if (url.searchParams.has(param)) {
+        url.searchParams.delete(param);
+        cleanNeeded = true;
+      }
+    });
+    if (cleanNeeded) {
+      window.history.replaceState({}, document.title, url.pathname + url.search);
     }
 
-    return () => {
-      isMounted = false;
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
+    const storedToken =
+      tokenParam ||
+      sessionStorage.getItem(TOKEN_KEY) ||
+      sessionStorage.getItem(SHARED_TOKEN_KEY);
+
+    if (storedToken) {
+      sessionStorage.setItem(TOKEN_KEY, storedToken);
+      sessionStorage.setItem(SHARED_TOKEN_KEY, storedToken);
+      setToken(storedToken);
+      setIsAuthenticated(true);
+
+      const parsed = parseJwt(storedToken);
+      if (parsed) {
+        setUser({
+          name: parsed.name || parsed.preferred_username || "User",
+          preferred_username: parsed.preferred_username,
+          email: parsed.email,
+          given_name: parsed.given_name,
+          family_name: parsed.family_name,
+        });
+      } else {
+        setUser({ name: "User" });
       }
-    };
-  }, []);
+    } else {
+      setIsAuthenticated(false);
+      setAuthError(t("auth.error") || "Authentication required");
+    }
+  }, [t]);
 
   const handleLogout = () => {
-    if (keycloakInstance) {
-      sessionStorage.removeItem("token_chat-frontend");
-      sessionStorage.removeItem("alfheim_access_token");
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      keycloakInstance.logout({
-        redirectUri: window.location.origin + "/chat/en",
-      });
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(SHARED_TOKEN_KEY);
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      window.location.href = window.location.origin;
     }
   };
 
-  if (authError) {
+  if (authError && !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)] p-6">
         <div className="text-center space-y-4 max-w-md p-6 rounded-2xl glass-card border border-red-500/20">

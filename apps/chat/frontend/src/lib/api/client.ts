@@ -1,20 +1,6 @@
 import type { ApiErrorPayload } from "@/features/conversations/types";
 import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
 
-export interface KeycloakWindow extends Window {
-  __keycloak_instance__?: {
-    token?: string;
-    authenticated?: boolean;
-    updateToken?: (minValidity?: number) => Promise<boolean>;
-    login?: (options?: unknown) => Promise<void> | void;
-  };
-}
-
-function getKeycloakInstance() {
-  if (typeof window === "undefined") return undefined;
-  return (window as unknown as KeycloakWindow).__keycloak_instance__;
-}
-
 export function sanitizeUrl(url: string | undefined, defaultFallback: string): string {
   let resolved = resolveApiUrl(defaultFallback, url);
   if (resolved.startsWith("/")) {
@@ -36,24 +22,7 @@ export const BASE_URL = sanitizeUrl(
 );
 
 export async function getFreshAuthToken(): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-  const keycloak = getKeycloakInstance();
-  if (keycloak && typeof keycloak.updateToken === "function") {
-    try {
-      await keycloak.updateToken(30);
-      if (typeof keycloak.token === "string") {
-        sessionStorage.setItem("token_chat-frontend", keycloak.token);
-        sessionStorage.setItem("alfheim_access_token", keycloak.token);
-        return keycloak.token;
-      }
-    } catch (err) {
-      console.warn("Keycloak token refresh failed:", err);
-      if (keycloak.authenticated === false && typeof keycloak.login === "function") {
-        keycloak.login();
-      }
-    }
-  }
-  return sessionStorage.getItem("token_chat-frontend") || sessionStorage.getItem("alfheim_access_token");
+  return getAuthToken();
 }
 
 export function getAuthToken(): string | null {
@@ -100,32 +69,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...(init?.headers as Record<string, string>),
   });
 
-  let res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: buildHeaders(token),
   });
-
-  if (res.status === 401 && typeof window !== "undefined") {
-    const keycloak = getKeycloakInstance();
-    if (keycloak && typeof keycloak.updateToken === "function") {
-      try {
-        const refreshed = await keycloak.updateToken(-1);
-        if (refreshed && typeof keycloak.token === "string") {
-          sessionStorage.setItem("token_chat-frontend", keycloak.token);
-          sessionStorage.setItem("alfheim_access_token", keycloak.token);
-          res = await fetch(`${BASE_URL}${path}`, {
-            ...init,
-            headers: buildHeaders(keycloak.token),
-          });
-        }
-      } catch (err) {
-        console.warn("Keycloak token refresh failed on 401:", err);
-        if (typeof keycloak.login === "function") {
-          keycloak.login();
-        }
-      }
-    }
-  }
 
   if (!res.ok) {
     let payload: ApiErrorPayload = { error: "unknown_error", message: `Request failed with status ${res.status}` };
