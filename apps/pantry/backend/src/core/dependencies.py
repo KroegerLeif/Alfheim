@@ -1,10 +1,13 @@
 """Authentication and tenant isolation dependencies for pantry service."""
 
+import logging
 from typing import Any
 
 import backend_shared.dependencies as _deps
 from fastapi import Request
 from src.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 MOCK_USER_ID = _deps.MOCK_USER_ID
 MOCK_HOME_ID = _deps.MOCK_HOME_ID
@@ -21,8 +24,11 @@ def get_jwks_client(jwks_url: str):
     return _deps.get_jwks_client(jwks_url)
 
 
-def decode_keycloak_token(token: str) -> dict[str, Any]:
+def decode_token(token: str) -> dict[str, Any]:
     return _deps.decode_keycloak_token(token, settings=settings)
+
+
+decode_keycloak_token = decode_token
 
 
 async def get_current_user_and_home(request: Request) -> UserHomeContext:
