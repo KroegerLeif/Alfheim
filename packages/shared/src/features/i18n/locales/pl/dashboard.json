@@ -56,7 +56,7 @@
     "tier2_badge": "Poziom 2 (YAML)",
     "tier2_count": "{count} aplikacji systemowych",
     "tier2_load_error": "Nie udało się załadować integracji systemowych.",
-    "tier2_empty": "Brak aplikacji poziomu 2 w deploy/stack-apps.yaml pasujących do ról Keycloak.",
+    "tier2_empty": "Brak aplikacji poziomu 2 w deploy/stack-apps.yaml pasujących do ról Zitadel.",
     "tier2_tag": "Zarządzana w stacku",
     "tier3_title": "Moje osobiste linki",
     "tier3_badge": "Poziom 3 (Baza użytkownika)",

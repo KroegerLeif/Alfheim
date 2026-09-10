@@ -5,6 +5,22 @@
 }
 
 # =============================================================================
+# 0. IDENTITY PROVIDER DOMAIN (Zitadel OIDC)
+# Zitadel is served on its own dedicated host; it does not support sub-path
+# hosting. The issuer therefore is the bare origin of these domains.
+# =============================================================================
+http://auth.{$ALFHEIM_HOST:alfheim.loegien.de}, https://auth.{$ALFHEIM_HOST:alfheim.loegien.de}, http://auth.loegien.de, https://auth.loegien.de, http://auth.alfheim.loegien.localhost, https://auth.alfheim.loegien.localhost {
+	{$CADDY_TLS_DIRECTIVE:}
+
+	reverse_proxy zitadel:8080 {
+		# Zitadel speaks gRPC-Web / HTTP/2 to its own frontend and API.
+		transport http {
+			versions h2c 1.1
+		}
+	}
+}
+
+# =============================================================================
 # 1. FRONTEND DOMAIN (alfheim.loegien.de & local development)
 # =============================================================================
 http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegien.de}, http://alfheim.loegien.localhost, https://alfheim.loegien.localhost, http://alfheim, https://alfheim, http://localhost, http://127.0.0.1 {
@@ -32,11 +48,6 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 	redir /chat/ /chat/de 302
 	redir /budget /budget/en 302
 	redir /budget/ /budget/en 302
-
-	# Keycloak IAM (Native subpath /auth - NO path stripping)
-	handle /auth* {
-		reverse_proxy keycloak:8080
-	}
 
 	# API Gateway Proxies on Frontend Domain (allows relative /api/v1/... calls without CORS)
 	handle_path /api/v1/maintenance* {
@@ -158,7 +169,7 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfheim.loegien.de}, http://api.alfheim.loegien.localhost, https://api.alfheim.loegien.localhost, http://api.alfheim, https://api.alfheim {
 	{$CADDY_TLS_DIRECTIVE:}
 
-	# Dynamic Origin matching for CORS (Excluding /auth* - Keycloak manages its own CORS)
+	# Dynamic Origin matching for CORS (the OIDC issuer lives on the auth.* host)
 	@cors_origin {
 		not path /auth*
 		header Origin *
@@ -180,11 +191,6 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 	header @cors_origin ?Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 	header @cors_origin ?Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
 	header @cors_origin ?Access-Control-Allow-Credentials "true"
-
-	# Keycloak IAM (Native subpath /auth - NO path stripping, Keycloak handles CORS via Web Origins)
-	handle /auth* {
-		reverse_proxy keycloak:8080
-	}
 
 	# Maintenance API
 	handle_path /api/v1/maintenance* {

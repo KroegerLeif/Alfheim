@@ -60,19 +60,22 @@ export const api = ky.create({
     afterResponse: [
       async ({ request, response }) => {
         if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as any).__keycloak_instance__;
-          if (keycloak && typeof keycloak.updateToken === "function") {
+          const oidc = window.__alfheim_oidc__;
+          if (oidc && typeof oidc.refresh === "function") {
             try {
-              const refreshed = await keycloak.updateToken(30);
-              if (refreshed && keycloak.token) {
-                setInMemoryToken(keycloak.token);
-                request.headers.set('Authorization', `Bearer ${keycloak.token}`);
+              const refreshedToken = await oidc.refresh();
+              if (refreshedToken) {
+                setInMemoryToken(refreshedToken);
+                request.headers.set('Authorization', `Bearer ${refreshedToken}`);
                 return ky(request);
               }
+              if (typeof oidc.login === "function") {
+                oidc.login();
+              }
             } catch (err) {
-              console.warn("Keycloak token refresh failed on 401:", err);
-              if (typeof keycloak.login === "function") {
-                keycloak.login();
+              console.warn("OIDC token refresh failed on 401:", err);
+              if (typeof oidc.login === "function") {
+                oidc.login();
               }
             }
           }

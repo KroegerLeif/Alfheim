@@ -17,7 +17,13 @@ services:
       retries: 5
       start_period: 5s
     networks:
-      - gateway-net
+      gateway-net:
+        # Backends resolve the public OIDC issuer host to Caddy so that
+        # {OIDC_ISSUER_URL}/.well-known/openid-configuration is reachable
+        # from inside the Docker network (see .ai/rules/architecture.md Rule 4).
+        aliases:
+          - auth.alfheim.loegien.localhost
+          - auth.loegien.de
 
 volumes:
   caddy_data:

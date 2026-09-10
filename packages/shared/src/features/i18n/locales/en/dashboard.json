@@ -56,7 +56,7 @@
     "tier2_badge": "Tier 2 (YAML)",
     "tier2_count": "{count} stack apps",
     "tier2_load_error": "Failed to load Stack Integrations.",
-    "tier2_empty": "No Tier 2 stack apps defined in deploy/stack-apps.yaml matching your Keycloak roles.",
+    "tier2_empty": "No Tier 2 stack apps defined in deploy/stack-apps.yaml matching your Zitadel roles.",
     "tier2_tag": "Stack Managed",
     "tier3_title": "My Personal Links",
     "tier3_badge": "Tier 3 (User DB)",

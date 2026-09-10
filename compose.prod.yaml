@@ -50,8 +50,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-super_secret_local_password}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
-      IAM_POSTGRES_USER: ${IAM_POSTGRES_USER:-iam_user}
-      IAM_POSTGRES_PASSWORD: ${IAM_POSTGRES_PASSWORD:-super_secret_local_password}
+      ZITADEL_DB_USER: ${ZITADEL_DB_USER:-zitadel_user}
+      ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD:-postgres}
       DASHBOARD_POSTGRES_USER: ${DASHBOARD_POSTGRES_USER:-dashboard_user}
       DASHBOARD_POSTGRES_PASSWORD: ${DASHBOARD_POSTGRES_PASSWORD:-postgres}
       PANTRY_POSTGRES_USER: ${PANTRY_POSTGRES_USER:-pantry_user}
@@ -122,41 +122,39 @@ services:
           - library-db
     stop_grace_period: 10s
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.1
-    container_name: alfheim_keycloak
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v2.66.1
+    container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
-    command: start-dev --import-realm
+    command: >-
+      start-from-init
+      --masterkey "${ZITADEL_MASTERKEY}"
+      --tlsMode disabled
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KC_DB: ${KC_DB:-postgres}
-      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres-core:5432/alfheim_iam}
-      KC_DB_USERNAME: ${KC_DB_USERNAME:-${IAM_POSTGRES_USER:-iam_user}}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${IAM_POSTGRES_PASSWORD:-super_secret_local_password}}
-      KC_HTTP_RELATIVE_PATH: "/auth"
-      KC_HEALTH_ENABLED: "true"
-      KC_HTTP_ENABLED: "true"
-      KC_PROXY_HEADERS: "xforwarded"
-      KC_HOSTNAME: "${KEYCLOAK_HOSTNAME:-auth.alfheim.loegien.de}"
-      KC_HOSTNAME_URL: "${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}"
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"
-      SMTP_HOST: "${SMTP_HOST:-mailpit}"
-      SMTP_PORT: "${SMTP_PORT:-1025}"
-      SMTP_USER: "${SMTP_USER:-}"
-      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
-      SMTP_FROM: "${SMTP_FROM:-noreply@alfheim.local}"
-    volumes:
-      - ./infrastructure/keycloak/alfheim-realm.json:/opt/keycloak/data/import/alfheim-realm.json:ro
-      - ./infrastructure/keycloak/providers:/opt/keycloak/providers:ro
+      ZITADEL_EXTERNALSECURE: "true"
+      ZITADEL_EXTERNALDOMAIN: "${ZITADEL_EXTERNALDOMAIN:-auth.loegien.de}"
+      ZITADEL_EXTERNALPORT: "${ZITADEL_EXTERNALPORT:-443}"
+      ZITADEL_TLS_ENABLED: "false"
+      ZITADEL_DATABASE_POSTGRES_HOST: "${ZITADEL_DB_HOST:-postgres-core}"
+      ZITADEL_DATABASE_POSTGRES_PORT: "${ZITADEL_DB_PORT:-5432}"
+      ZITADEL_DATABASE_POSTGRES_DATABASE: "${ZITADEL_DB_NAME:-zitadel}"
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: "${ZITADEL_DB_USER:-zitadel_user}"
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: "${ZITADEL_DB_PASSWORD:-postgres}"
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: "${POSTGRES_USER:-postgres}"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: "${POSTGRES_PASSWORD:-super_secret_local_password}"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_FIRSTINSTANCE_ORG_NAME: "${ZITADEL_FIRSTINSTANCE_ORG_NAME:-Alfheim}"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: "${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME:-admin}"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: "${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD:-Password1!}"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/realms/alfheim HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
+      test: ["CMD", "/app/zitadel", "ready"]
       interval: 5s
-      timeout: 10s
-      retries: 35
-      start_period: 180s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     depends_on:
       postgres-core:
         condition: service_healthy
@@ -288,10 +286,8 @@ services:
     environment:
       - PORT=8080
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
-      - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
-      - KEYCLOAK_PUBLIC_ISSUER=${KEYCLOAK_PUBLIC_ISSUER:-${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}/realms/alfheim}
-      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-https://auth.loegien.de}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
       interval: 10s
@@ -299,7 +295,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -318,8 +314,10 @@ services:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
-      - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
-      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/auth}
+      - NEXT_PUBLIC_OIDC_ISSUER=${NEXT_PUBLIC_OIDC_ISSUER:-https://auth.loegien.de}
+      - NEXT_PUBLIC_OIDC_CLIENT_ID=${NEXT_PUBLIC_OIDC_CLIENT_ID:-dashboard-frontend}
+      - NEXT_PUBLIC_OIDC_REDIRECT_URI=${NEXT_PUBLIC_OIDC_REDIRECT_URI:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-https://auth.loegien.de}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
@@ -358,7 +356,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -412,7 +410,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -467,7 +465,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -521,7 +519,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -575,7 +573,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -633,7 +631,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -688,7 +686,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy
@@ -742,7 +740,7 @@ services:
       retries: 20
       start_period: 180s
     depends_on:
-      keycloak:
+      zitadel:
         condition: service_healthy
       postgres-core:
         condition: service_healthy

@@ -56,7 +56,7 @@
     "tier2_badge": "Stufe 2 (YAML)",
     "tier2_count": "{count} Stack-Apps",
     "tier2_load_error": "Stack-Integrationen konnten nicht geladen werden.",
-    "tier2_empty": "Keine Stufe-2 Stack-Apps in deploy/stack-apps.yaml definiert, die Ihren Keycloak-Rollen entsprechen.",
+    "tier2_empty": "Keine Stufe-2 Stack-Apps in deploy/stack-apps.yaml definiert, die Ihren Zitadel-Rollen entsprechen.",
     "tier2_tag": "Stack-Verwaltet",
     "tier3_title": "Meine persönlichen Links",
     "tier3_badge": "Stufe 3 (Benutzer-DB)",

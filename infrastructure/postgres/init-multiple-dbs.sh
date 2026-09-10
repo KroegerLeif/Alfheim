@@ -61,7 +61,7 @@ EOSQL
 # Format: DB_NAME:USER_NAME:PASSWORD_ENV_VAR:DEFAULT_PASSWORD
 # ------------------------------------------------------------------------------
 SERVICES=(
-  "alfheim_iam:${IAM_POSTGRES_USER:-iam_user}:${IAM_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-super_secret_local_password}}"
+  "zitadel:${ZITADEL_DB_USER:-zitadel_user}:${ZITADEL_DB_PASSWORD:-postgres}"
   "alfheim_dashboard:${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}"
   "alfheim_pantry:${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}"
   "alfheim_shopping:${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:-postgres}"

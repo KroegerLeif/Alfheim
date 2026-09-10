@@ -8,8 +8,8 @@ services:
     environment:
       - PORT=8080
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
-      - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL:-http://keycloak:8080/auth}
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-alfheim}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
       interval: 5s
@@ -28,7 +28,9 @@ services:
       dockerfile: core/dashboard/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_DASHBOARD_API_URL:-http://api.alfheim.loegien.localhost/api/v1}
-        - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+        - NEXT_PUBLIC_OIDC_ISSUER=${NEXT_PUBLIC_OIDC_ISSUER:-http://auth.alfheim.loegien.localhost}
+        - NEXT_PUBLIC_OIDC_CLIENT_ID=${NEXT_PUBLIC_OIDC_CLIENT_ID:-dashboard-frontend}
+        - NEXT_PUBLIC_OIDC_REDIRECT_URI=${NEXT_PUBLIC_OIDC_REDIRECT_URI:-http://alfheim.loegien.localhost/}
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: dashboard-frontend
     restart: always

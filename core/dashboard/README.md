@@ -31,21 +31,21 @@
 The platform organizes applications, portals, and bookmarks into three distinct architectural tiers:
 
 1. **Tier 1 (Core Apps):** Native monorepo microservices registered in Go (`internal/features/apps/tier1_core_registry.go`). Visible to all authenticated users; visibility can be toggled per user in `user_preferences`.
-2. **Tier 2 (Stack Apps / Integrations):** External homelab stack applications configured via server-level [`deploy/stack-apps.yaml`](../../deploy/stack-apps.yaml) and filtered dynamically by Keycloak OIDC roles.
+2. **Tier 2 (Stack Apps / Integrations):** External homelab stack applications configured via server-level [`deploy/stack-apps.yaml`](../../deploy/stack-apps.yaml) and filtered dynamically by OIDC roles.
 3. **Tier 3 (User Links):** Personal custom bookmarks stored in PostgreSQL `user_links` (`GET/POST/PUT/DELETE /api/v1/user/links`).
 
 ---
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Go 1.25 REST API backend utilizing Chi router, PostgreSQL (`pgxpool`), and Keycloak OIDC middleware.
+- **Backend:** Go 1.25 REST API backend utilizing Chi router, PostgreSQL (`pgxpool`), and generic OIDC (Zitadel) bearer-token middleware.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_dashboard` database, owned by `dashboard_user`).
 
 ### FDD Domain Features (`internal/features/`)
 - `apps`: Unified 3-Tier application registry handlers and YAML loaders.
 - `household`: Household creation, member role management, invite token generation, and contact directory.
-- `profile`: User profile auto-synchronization between Keycloak OIDC claims and PostgreSQL.
+- `profile`: User profile Just-In-Time provisioning from verified OIDC token claims.
 - `telemetry`: System metrics and log queries.
 
 ---
@@ -64,7 +64,8 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgres://dashboard_user:postgres@postgres-core:5432/alfheim_dashboard?sslmode=disable` | PostgreSQL connection string |
 | `STACK_APPS_PATH` | `deploy/stack-apps.yaml` | Path to Tier 2 stack integrations manifest |
-| `KEYCLOAK_BASE_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth server endpoint |
+| `OIDC_ISSUER_URL` | `https://auth.loegien.de` | Canonical OIDC issuer; JWKS URI is discovered from its `/.well-known/openid-configuration` |
+| `OIDC_AUDIENCE` | `alfheim` | Required value in the token `aud` claim |
 | `NEXT_PUBLIC_API_URL` | `http://api.alfheim.loegien.localhost` | Browser API gateway endpoint |
 
 ---
@@ -94,7 +95,7 @@ pnpm dev
 ## 🗄️ Database Schema (PostgreSQL)
 
 The Go control plane initializes three core tables via SQL migrations:
-* `user_profiles`: Local synced user profiles from Keycloak OIDC claims (`id`, `email`, `username`, `first_name`, `last_name`).
+* `user_profiles`: Local synced user profiles from OIDC token claims (`id`, `email`, `username`, `first_name`, `last_name`).
 * `user_preferences`: User dashboard settings and hidden core app IDs (`hidden_app_ids TEXT[]`).
 * `user_links`: Personal custom bookmarks (`title`, `url`, `icon`, `category`, `display_order`).
 
