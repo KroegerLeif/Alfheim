@@ -1,4 +1,4 @@
-"""Tests for Keycloak authentication and multi-tenancy dependency in Library backend."""
+"""Tests for OIDC authentication and multi-tenancy dependency in Library backend."""
 
 import uuid
 from unittest.mock import patch

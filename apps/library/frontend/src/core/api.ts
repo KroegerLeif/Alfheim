@@ -49,5 +49,23 @@ export const libraryClient = ky.create({
         }
       },
     ],
+    afterResponse: [
+      async (request, options, response) => {
+        if (response.status === 401 && typeof window !== "undefined") {
+          const oidcBridge = window.__alfheim_oidc__;
+          if (oidcBridge && typeof oidcBridge.refresh === "function") {
+            try {
+              const newToken = await oidcBridge.refresh();
+              if (newToken) {
+                request.headers.set("Authorization", `Bearer ${newToken}`);
+                return ky(request, options);
+              }
+            } catch (err) {
+              console.warn("OIDC token refresh failed on 401:", err);
+            }
+          }
+        }
+      },
+    ],
   },
 });

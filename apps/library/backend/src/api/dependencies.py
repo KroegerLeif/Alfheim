@@ -26,12 +26,12 @@ def get_jwks_client(jwks_url: str):
 
 
 def decode_keycloak_token(token: str) -> dict[str, Any]:
-    """Decode and validate Keycloak JWT token using application settings."""
+    """Decode and validate OIDC JWT token using application settings."""
     return _deps.decode_keycloak_token(token, settings=settings)
 
 
 async def get_current_user_and_home(request: Request) -> UserHomeContext:
-    """Dependency injector providing authenticated user and active household context from Keycloak JWT.
+    """Dependency injector providing authenticated user and active household context from OIDC JWT.
 
     Enforces X-Household-ID header validation against authorized JWT claims
     (household_id, active_household_id, or households list). Returns HTTP 403 Forbidden
