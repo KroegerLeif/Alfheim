@@ -53,6 +53,7 @@ def test_core_dependencies_wrappers():
     with patch("src.core.dependencies._deps.jwt.decode", return_value={"sub": "123"}) as mock_decode:
         decoded = decode_keycloak_token("mock-token")
         assert decoded["sub"] == "123"
+        mock_decode.assert_called_once()
 
 
 @pytest.mark.asyncio
