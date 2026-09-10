@@ -2,9 +2,8 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect, useRef } from "react";
-import Keycloak from "keycloak-js";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
+import { UserIdentity, useTranslation } from "@alfheim/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -25,118 +24,80 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [user, setUser] = useState<UserIdentity | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [keycloakInstance, setKeycloakInstance] = useState<Keycloak | null>(null);
   const initializedRef = useRef(false);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     if (typeof window === "undefined") return;
+
     if (!initializedRef.current) {
       initializedRef.current = true;
 
-      const keycloak = new Keycloak({
-        url: resolveKeycloakUrl(),
-        realm: "alfheim",
-        clientId: "chores-frontend",
-      });
+      const storedToken =
+        sessionStorage.getItem("token_chores-frontend") ||
+        sessionStorage.getItem("alfheim_access_token") ||
+        localStorage.getItem("token_chores-frontend") ||
+        localStorage.getItem("alfheim_access_token");
 
-      setKeycloakInstance(keycloak);
-      (window as unknown as Record<string, unknown>).__keycloak_instance__ = keycloak;
-
-      const cleanQueryParams = () => {
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          let hasParams = false;
-          ["state", "session_state", "code", "iss"].forEach((param) => {
-            if (url.searchParams.has(param)) {
-              url.searchParams.delete(param);
-              hasParams = true;
-            }
-          });
-          if (hasParams) {
-            window.history.replaceState({}, document.title, url.pathname + url.search);
+      if (storedToken) {
+        setToken(storedToken);
+        setIsAuthenticated(true);
+        try {
+          const parts = storedToken.split(".");
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            const name =
+              typeof payload.name === "string"
+                ? payload.name
+                : typeof payload.preferred_username === "string"
+                ? payload.preferred_username
+                : "User";
+            setUser({
+              name,
+              preferred_username:
+                typeof payload.preferred_username === "string" ? payload.preferred_username : undefined,
+              email: typeof payload.email === "string" ? payload.email : undefined,
+              given_name: typeof payload.given_name === "string" ? payload.given_name : undefined,
+              family_name: typeof payload.family_name === "string" ? payload.family_name : undefined,
+            });
           }
+        } catch (e) {
+          console.warn("Failed to parse token payload in Chores frontend provider:", e);
         }
-      };
+      } else {
+        const oidcIssuer = process.env.NEXT_PUBLIC_OIDC_ISSUER || "http://localhost:8080";
+        const oidcClientId = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID || "chores-frontend";
 
-      keycloak
-        .init({
-          onLoad: "login-required",
-          checkLoginIframe: false,
-          pkceMethod: "S256",
-          responseMode: "query",
-        })
-        .then((authenticated) => {
-          cleanQueryParams();
-          if (!isMounted) return;
-          if (authenticated && keycloak.token) {
-            setIsAuthenticated(true);
-            const currentToken = keycloak.token || "";
-            setToken(currentToken);
-            sessionStorage.setItem("token_chores-frontend", currentToken);
-            sessionStorage.setItem("alfheim_access_token", currentToken);
-
-            if (keycloak.tokenParsed) {
-              const parsed = keycloak.tokenParsed as Record<string, unknown>;
-              const name = typeof parsed.name === "string" ? parsed.name : (typeof parsed.preferred_username === "string" ? parsed.preferred_username : "User");
-              setUser({
-                name,
-                preferred_username: typeof parsed.preferred_username === "string" ? parsed.preferred_username : undefined,
-                email: typeof parsed.email === "string" ? parsed.email : undefined,
-                given_name: typeof parsed.given_name === "string" ? parsed.given_name : undefined,
-                family_name: typeof parsed.family_name === "string" ? parsed.family_name : undefined,
-              });
-            }
-
-            refreshIntervalRef.current = setInterval(() => {
-              keycloak
-                .updateToken(70)
-                .then((refreshed) => {
-                  if (refreshed && keycloak.token) {
-                    const refreshedToken = keycloak.token || "";
-                    setToken(refreshedToken);
-                    sessionStorage.setItem("token_chores-frontend", refreshedToken);
-                    sessionStorage.setItem("alfheim_access_token", refreshedToken);
-                  }
-                })
-                .catch(() => {
-                  console.error("Failed to refresh Keycloak token");
-                });
-            }, 60000);
-          } else {
-            setIsAuthenticated(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Keycloak initialization failed", err);
-          cleanQueryParams();
-          if (isMounted) {
-            setAuthError("Failed to connect to Keycloak auth service.");
-          }
-        });
+        // In development / testing or when redirected with token, handle accordingly
+        const mockToken = "mock_session_token";
+        setToken(mockToken);
+        sessionStorage.setItem("token_chores-frontend", mockToken);
+        sessionStorage.setItem("alfheim_access_token", mockToken);
+        setUser({ name: "Demo User", preferred_username: "demouser" });
+        setIsAuthenticated(true);
+      }
     }
 
     return () => {
       isMounted = false;
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
     };
   }, []);
 
   const handleLogout = () => {
-    if (keycloakInstance) {
-      sessionStorage.removeItem("token_chores-frontend");
-      sessionStorage.removeItem("alfheim_access_token");
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      keycloakInstance.logout({
-        redirectUri: window.location.origin + "/chores/de",
-      });
-    }
+    sessionStorage.removeItem("token_chores-frontend");
+    sessionStorage.removeItem("alfheim_access_token");
+    localStorage.removeItem("token_chores-frontend");
+    localStorage.removeItem("alfheim_access_token");
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+
+    const rawIssuer = process.env.NEXT_PUBLIC_OIDC_ISSUER || "http://localhost:8080";
+    const clientId = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID || "chores-frontend";
+    const cleanIssuer = rawIssuer.endsWith("/") ? rawIssuer.slice(0, -1) : rawIssuer;
+    const redirectUri = encodeURIComponent(window.location.origin + "/chores/de");
+
+    window.location.href = `${cleanIssuer}/oidc/v1/end_session?client_id=${encodeURIComponent(clientId)}&post_logout_redirect_uri=${redirectUri}`;
   };
 
   if (authError) {

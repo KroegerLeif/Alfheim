@@ -15,36 +15,47 @@ class Settings(BaseSettings):
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://chores_user:postgres@localhost:5432/alfheim_chores"
 
-    # Keycloak OIDC Configuration
-    KEYCLOAK_URL: str = "http://keycloak:8080/auth"
-    KEYCLOAK_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/auth"
-    KEYCLOAK_REALM: str = "alfheim"
-    KEYCLOAK_JWKS_URL: str = ""
+    # Generic OIDC Configuration
+    OIDC_ISSUER_URL: str = "http://localhost:8080"
+    OIDC_AUDIENCE: str = "alfheim"
+    OIDC_JWKS_URL: str = ""
+
+    @property
+    def oidc_discovery_url(self) -> str:
+        base = self.OIDC_ISSUER_URL.rstrip("/")
+        return f"{base}/.well-known/openid-configuration"
 
     @property
     def jwks_url(self) -> str:
-        if self.KEYCLOAK_JWKS_URL:
-            return self.KEYCLOAK_JWKS_URL
-        base = self.KEYCLOAK_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+        if self.OIDC_JWKS_URL:
+            return self.OIDC_JWKS_URL
+        base = self.OIDC_ISSUER_URL.rstrip("/")
+        return f"{base}/keys"
 
     @property
     def expected_issuer(self) -> str:
-        base = self.KEYCLOAK_PUBLIC_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}"
+        return self.OIDC_ISSUER_URL.rstrip("/")
 
     @property
     def jwks_fallback_urls(self) -> list[str]:
-        urls = [self.jwks_url]
+        urls = []
+        if self.jwks_url:
+            urls.append(self.jwks_url)
         for base_url in [
-            "http://keycloak:8080/auth",
-            "http://alfheim_keycloak:8080/auth",
+            self.OIDC_ISSUER_URL,
+            "http://localhost:8080",
+            "http://zitadel:8080",
             "http://api.alfheim.loegien.localhost/auth",
-            "http://localhost:8080/auth",
         ]:
-            url = f"{base_url.rstrip('/')}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
-            if url not in urls:
-                urls.append(url)
+            if not base_url:
+                continue
+            cleaned = base_url.rstrip("/")
+            candidate_keys = f"{cleaned}/keys"
+            if candidate_keys not in urls:
+                urls.append(candidate_keys)
+            candidate_certs = f"{cleaned}/protocol/openid-connect/certs"
+            if candidate_certs not in urls:
+                urls.append(candidate_certs)
         return urls
 
     # OpenTelemetry Configuration

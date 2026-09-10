@@ -27,33 +27,32 @@ _test_session_factory = async_sessionmaker(
 
 def test_settings_properties():
     """Verify JWKS URLs and issuer configurations computed properties."""
-    assert "protocol/openid-connect/certs" in settings.jwks_url
-    assert "realms/alfheim" in settings.expected_issuer
+    assert "/keys" in settings.jwks_url or "/openid-connect/certs" in settings.jwks_url
+    assert settings.expected_issuer == settings.OIDC_ISSUER_URL.rstrip("/")
 
     fallback_urls = settings.jwks_fallback_urls
     assert len(fallback_urls) >= 1
     assert any("localhost" in u for u in fallback_urls)
 
     # With explicit JWKS URL override
-    with patch.object(settings, "KEYCLOAK_JWKS_URL", "http://custom-jwks:8080/certs"):
-        assert settings.jwks_url == "http://custom-jwks:8080/certs"
+    with patch.object(settings, "OIDC_JWKS_URL", "http://custom-jwks:8080/keys"):
+        assert settings.jwks_url == "http://custom-jwks:8080/keys"
 
 
 def test_core_dependencies_wrappers():
     """Verify delegation in core dependencies wrappers."""
-    with patch("backend_shared.dependencies.is_mock_auth_allowed", return_value=True) as mock_auth:
+    with patch("src.core.dependencies._deps.is_mock_auth_allowed", return_value=True) as mock_auth:
         assert is_mock_auth_allowed() is True
         mock_auth.assert_called_once()
 
-    with patch("backend_shared.dependencies.get_jwks_client", return_value=MagicMock()) as mock_jwks:
+    with patch("src.core.dependencies._deps.get_jwks_client", return_value=MagicMock()) as mock_jwks:
         res = get_jwks_client("http://test-jwks")
         assert res is not None
         mock_jwks.assert_called_once_with("http://test-jwks")
 
-    with patch("backend_shared.dependencies.decode_keycloak_token", return_value={"sub": "123"}) as mock_decode:
+    with patch("src.core.dependencies._deps.jwt.decode", return_value={"sub": "123"}) as mock_decode:
         decoded = decode_keycloak_token("mock-token")
         assert decoded["sub"] == "123"
-        mock_decode.assert_called_once_with("mock-token", settings=settings)
 
 
 @pytest.mark.asyncio

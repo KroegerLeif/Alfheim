@@ -124,11 +124,11 @@ async def test_chores_authorized_household_header_override_allowed(client: Async
 
 
 @pytest.mark.asyncio
-async def test_mock_auth_fallback_fails_with_production_keycloak_url(client: AsyncClient):
-    """Verify that mock fallback is disabled when a non-localhost production Keycloak URL is configured."""
+async def test_mock_auth_fallback_fails_with_production_oidc_issuer_url(client: AsyncClient):
+    """Verify that mock fallback is disabled when a non-localhost production OIDC issuer URL is configured."""
     with patch(
-        "src.core.dependencies.settings.KEYCLOAK_URL",
-        "https://auth.production.loeger-os.com/auth",
+        "src.core.dependencies.settings.OIDC_ISSUER_URL",
+        "https://auth.production.loeger-os.com",
     ):
         response = await client.get("/api/v1/chores/templates", headers={})
         assert response.status_code == 401
