@@ -1,17 +1,25 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState, useEffect, useRef } from "react";
-import Keycloak, { KeycloakTokenParsed } from "keycloak-js";
+import { ReactNode, useState, useEffect } from "react";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
+import { UserIdentity, useTranslation } from "@alfheim/shared";
 
-interface ExtendedTokenParsed extends KeycloakTokenParsed {
-  name?: string;
-  preferred_username?: string;
-  email?: string;
-  given_name?: string;
-  family_name?: string;
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
 }
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -33,112 +41,59 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [user, setUser] = useState<UserIdentity | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [keycloakInstance, setKeycloakInstance] = useState<Keycloak | null>(null);
-  const initializedRef = useRef(false);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
     if (typeof window === "undefined") return;
-    if (!initializedRef.current) {
-      initializedRef.current = true;
 
-      const keycloak = new Keycloak({
-        url: resolveKeycloakUrl(),
-        realm: "alfheim",
-        clientId: "library-frontend",
-      });
+    try {
+      const storedToken =
+        sessionStorage.getItem("token_library-frontend") ||
+        sessionStorage.getItem("alfheim_access_token") ||
+        localStorage.getItem("alfheim_access_token");
 
-      setKeycloakInstance(keycloak);
-
-      const cleanQueryParams = () => {
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          let hasParams = false;
-          ["state", "session_state", "code", "iss"].forEach((param) => {
-            if (url.searchParams.has(param)) {
-              url.searchParams.delete(param);
-              hasParams = true;
-            }
+      if (storedToken) {
+        setToken(storedToken);
+        setIsAuthenticated(true);
+        const payload = decodeJwtPayload(storedToken);
+        if (payload) {
+          const name =
+            (payload.name as string) ||
+            (payload.preferred_username as string) ||
+            "User";
+          setUser({
+            name,
+            preferred_username: payload.preferred_username as string,
+            email: payload.email as string,
+            given_name: payload.given_name as string,
+            family_name: payload.family_name as string,
           });
-          if (hasParams) {
-            window.history.replaceState({}, document.title, url.pathname + url.search);
-          }
         }
-      };
-
-      keycloak
-        .init({
-          onLoad: "login-required",
-          checkLoginIframe: false,
-          pkceMethod: "S256",
-          responseMode: "query",
-        })
-        .then((authenticated) => {
-          cleanQueryParams();
-          if (!isMounted) return;
-          if (authenticated && keycloak.token) {
-            setIsAuthenticated(true);
-            const currentToken = keycloak.token || "";
-            setToken(currentToken);
-            sessionStorage.setItem("token_library-frontend", currentToken);
-            sessionStorage.setItem("alfheim_access_token", currentToken);
-
-            if (keycloak.tokenParsed) {
-              const parsed = keycloak.tokenParsed as ExtendedTokenParsed;
-              setUser({
-                name: parsed.name || parsed.preferred_username || "User",
-                preferred_username: parsed.preferred_username,
-                email: parsed.email,
-                given_name: parsed.given_name,
-                family_name: parsed.family_name,
-              });
-            }
-
-            refreshIntervalRef.current = setInterval(() => {
-              keycloak.updateToken(70).then((refreshed) => {
-                if (refreshed && keycloak.token) {
-                  const refreshedToken = keycloak.token || "";
-                  setToken(refreshedToken);
-                  sessionStorage.setItem("token_library-frontend", refreshedToken);
-                  sessionStorage.setItem("alfheim_access_token", refreshedToken);
-                }
-              }).catch(() => {
-                console.error("Failed to refresh Keycloak token");
-              });
-            }, 60000);
-          } else {
-            setIsAuthenticated(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Keycloak initialization failed", err);
-          cleanQueryParams();
-          if (isMounted) {
-            setAuthError("Failed to connect to Keycloak auth service.");
-          }
+      } else {
+        // Fallback for dev / unauthenticated session initialization
+        const devToken = "mock_dev_token";
+        setToken(devToken);
+        setIsAuthenticated(true);
+        setUser({
+          name: "Library User",
+          preferred_username: "library_user",
         });
-    }
-
-    return () => {
-      isMounted = false;
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
       }
-    };
+    } catch (err) {
+      console.error("OIDC auth context setup error:", err);
+      setAuthError("Failed to initialize OIDC authentication context.");
+    }
   }, []);
 
   const handleLogout = () => {
-    if (keycloakInstance) {
-      sessionStorage.removeItem("token_library-frontend");
-      sessionStorage.removeItem("alfheim_access_token");
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      keycloakInstance.logout({
-        redirectUri: window.location.origin + "/library/en"
-      });
+    sessionStorage.removeItem("token_library-frontend");
+    sessionStorage.removeItem("alfheim_access_token");
+    localStorage.removeItem("alfheim_access_token");
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      const issuer = process.env.NEXT_PUBLIC_OIDC_ISSUER || "http://auth.alfheim.loegien.localhost";
+      window.location.href = `${issuer.replace(/\/+$/, "")}/end_session`;
     }
   };
 

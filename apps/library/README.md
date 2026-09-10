@@ -46,7 +46,10 @@
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgresql+asyncpg://library_user:postgres@postgres-core:5432/alfheim_library` | Async PostgreSQL connection string |
-| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Keycloak backend auth endpoint |
+| `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | Generic OIDC backend auth issuer URL |
+| `OIDC_AUDIENCE` | `alfheim` | Expected OIDC JWT audience claim |
+| `NEXT_PUBLIC_OIDC_ISSUER` | `http://auth.alfheim.loegien.localhost` | Browser OIDC auth issuer URL |
+| `NEXT_PUBLIC_OIDC_CLIENT_ID` | `library-frontend` | Browser OIDC client identifier |
 | `NEXT_PUBLIC_LIBRARY_API_URL` | `http://api.alfheim.loegien.localhost/library/api/v1` | Browser API gateway endpoint |
 
 ---
