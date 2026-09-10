@@ -35,18 +35,10 @@ from tests.test_plans import create_auth_headers
 
 
 def test_settings_properties():
-    """Verify Settings property accessors for Keycloak JWKS and Issuer URLs."""
-    s1 = Settings(KEYCLOAK_JWKS_URL="http://custom/jwks")
-    assert s1.jwks_url == "http://custom/jwks"
-
-    s2 = Settings(
-        KEYCLOAK_URL="http://keycloak:8080/auth/",
-        KEYCLOAK_PUBLIC_URL="http://public.auth/realm/",
-        KEYCLOAK_REALM="alfheim",
-        KEYCLOAK_JWKS_URL="",
-    )
-    assert s2.jwks_url == "http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs"
-    assert s2.expected_issuer == "http://public.auth/realm/realms/alfheim"
+    """Verify Settings OIDC configuration settings."""
+    s1 = Settings(OIDC_ISSUER_URL="http://auth.example.com", OIDC_AUDIENCE="custom-aud")
+    assert s1.OIDC_ISSUER_URL == "http://auth.example.com"
+    assert s1.OIDC_AUDIENCE == "custom-aud"
 
 
 @pytest.mark.asyncio

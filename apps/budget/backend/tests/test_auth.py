@@ -1,10 +1,11 @@
 import uuid
+from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
-from fastapi import Depends, FastAPI, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from httpx import ASGITransport, AsyncClient
-from src.core.auth import TenantContext, get_current_tenant
+from src.core.auth import TenantContext, decode_oidc_token, get_current_tenant, get_jwks_uri
 
 # Test app with a protected endpoint for testing get_current_tenant
 test_app = FastAPI()
@@ -186,3 +187,44 @@ async def test_get_current_tenant_default_household_selection():
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["household_id"] == hh_id
+
+
+def test_get_jwks_uri_discovery():
+    """Verify OpenID configuration JWKS URI discovery."""
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"jwks_uri": "http://auth.example.com/keys"}
+    mock_resp.raise_for_status.return_value = None
+
+    with patch("httpx.Client") as mock_client:
+        mock_client.return_value.__enter__.return_value.get.return_value = mock_resp
+        jwks_uri = get_jwks_uri("http://auth.example.com/custom-issuer")
+        assert jwks_uri == "http://auth.example.com/keys"
+
+    # Cached lookup test
+    cached_uri = get_jwks_uri("http://auth.example.com/custom-issuer")
+    assert cached_uri == "http://auth.example.com/keys"
+
+
+def test_get_jwks_uri_discovery_failure():
+    """Verify 401 response on discovery failure."""
+    with patch("httpx.Client") as mock_client:
+        mock_client.return_value.__enter__.return_value.get.side_effect = Exception("Network Error")
+        with pytest.raises(HTTPException) as exc_info:
+            get_jwks_uri("http://failed.example.com")
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_decode_oidc_token_live_verification():
+    """Verify live OIDC token validation error handling in non-mock context."""
+    with (
+        patch("backend_shared.dependencies.is_mock_auth_allowed", return_value=False),
+        patch("src.core.auth.get_jwks_uri", return_value="http://auth.example.com/keys"),
+        patch("src.core.auth.get_jwks_client") as mock_jwks_client,
+    ):
+        mock_client = MagicMock()
+        mock_client.get_signing_key_from_jwt.side_effect = Exception("Invalid key")
+        mock_jwks_client.return_value = mock_client
+
+        with pytest.raises(HTTPException) as exc_info:
+            decode_oidc_token("invalid.jwt.token")
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED

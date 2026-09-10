@@ -26,25 +26,9 @@ class Settings(BaseSettings):
     # Database settings
     DATABASE_URL: str = "postgresql+asyncpg://budget_user:postgres@localhost:5432/alfheim_budget"
 
-    # Keycloak authentication settings
-    KEYCLOAK_URL: str = "http://keycloak:8080/auth"
-    KEYCLOAK_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/auth"
-    KEYCLOAK_REALM: str = "alfheim"
-    KEYCLOAK_JWKS_URL: str = ""
-
-    @property
-    def jwks_url(self) -> str:
-        """Construct JWKS URL from Keycloak settings if not explicitly provided."""
-        if self.KEYCLOAK_JWKS_URL:
-            return self.KEYCLOAK_JWKS_URL
-        base = self.KEYCLOAK_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
-
-    @property
-    def expected_issuer(self) -> str:
-        """Construct expected token issuer URL."""
-        base = self.KEYCLOAK_PUBLIC_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}"
+    # Generic OIDC authentication settings
+    OIDC_ISSUER_URL: str = "http://api.alfheim.loegien.localhost/auth"
+    OIDC_AUDIENCE: str = "alfheim"
 
 
 settings = Settings()
