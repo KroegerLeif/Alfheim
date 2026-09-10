@@ -1,4 +1,10 @@
+from typing import Any
+import logging
+import urllib.request
+import json
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -24,7 +30,11 @@ class Settings(BaseSettings):
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://workout_user:postgres@localhost:5432/alfheim_workout"
 
-    # Keycloak OIDC Configuration
+    # Generic OIDC Configuration (Zitadel)
+    OIDC_ISSUER_URL: str = "http://api.alfheim.loegien.localhost/auth"
+    OIDC_AUDIENCE: str = "alfheim"
+
+    # Deprecated Keycloak OIDC fields preserved for backward compatibility
     KEYCLOAK_URL: str = "http://keycloak:8080/auth"
     KEYCLOAK_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/auth"
     KEYCLOAK_REALM: str = "alfheim"
@@ -34,17 +44,40 @@ class Settings(BaseSettings):
     def jwks_url(self) -> str:
         if self.KEYCLOAK_JWKS_URL:
             return self.KEYCLOAK_JWKS_URL
+        if self.OIDC_ISSUER_URL:
+            issuer = self.OIDC_ISSUER_URL.rstrip("/")
+            discovery_url = f"{issuer}/.well-known/openid-configuration"
+            try:
+                req = urllib.request.Request(discovery_url, headers={"Accept": "application/json"})
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode())
+                        if "jwks_uri" in data:
+                            return data["jwks_uri"]
+            except Exception as e:
+                logger.debug("OIDC discovery failed for %s: %s", discovery_url, e)
+
+            if "/realms/" in issuer:
+                return f"{issuer}/protocol/openid-connect/certs"
+            return f"{issuer}/keys"
         base = self.KEYCLOAK_URL.rstrip("/")
         return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
 
     @property
     def expected_issuer(self) -> str:
+        if self.OIDC_ISSUER_URL:
+            return self.OIDC_ISSUER_URL.rstrip("/")
         base = self.KEYCLOAK_PUBLIC_URL.rstrip("/")
         return f"{base}/realms/{self.KEYCLOAK_REALM}"
 
     @property
     def jwks_fallback_urls(self) -> list[str]:
         urls = [self.jwks_url]
+        if self.OIDC_ISSUER_URL:
+            issuer = self.OIDC_ISSUER_URL.rstrip("/")
+            keys_url = f"{issuer}/keys"
+            if keys_url not in urls:
+                urls.append(keys_url)
         for base_url in [
             "http://keycloak:8080/auth",
             "http://alfheim_keycloak:8080/auth",
