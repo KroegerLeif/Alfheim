@@ -53,7 +53,8 @@
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgresql+asyncpg://pantry_user:postgres@postgres-core:5432/alfheim_pantry` | Async PostgreSQL connection string |
-| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth endpoint |
+| `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | OIDC provider issuer URL |
+| `OIDC_AUDIENCE` | `alfheim` | Target OIDC audience claim |
 | `NEXT_PUBLIC_PANTRY_API_URL` | `http://api.alfheim.loegien.localhost/pantry/api/v1` | Browser API gateway endpoint |
 
 ---

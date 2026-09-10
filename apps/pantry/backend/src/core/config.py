@@ -24,34 +24,33 @@ class Settings(BaseSettings):
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://pantry_user:postgres@localhost:5432/alfheim_pantry"
 
-    # Keycloak OIDC Configuration
-    KEYCLOAK_URL: str = "http://keycloak:8080/auth"
-    KEYCLOAK_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/auth"
-    KEYCLOAK_REALM: str = "alfheim"
-    KEYCLOAK_JWKS_URL: str = ""
+    # Generic OIDC Configuration
+    OIDC_ISSUER_URL: str = "http://auth.alfheim.loegien.localhost"
+    OIDC_AUDIENCE: str = "alfheim"
+    OIDC_JWKS_URL: str = ""
 
     @property
     def jwks_url(self) -> str:
-        if self.KEYCLOAK_JWKS_URL:
-            return self.KEYCLOAK_JWKS_URL
-        base = self.KEYCLOAK_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+        if self.OIDC_JWKS_URL:
+            return self.OIDC_JWKS_URL
+        base = self.OIDC_ISSUER_URL.rstrip("/")
+        return f"{base}/keys"
 
     @property
     def expected_issuer(self) -> str:
-        base = self.KEYCLOAK_PUBLIC_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}"
+        return self.OIDC_ISSUER_URL.rstrip("/")
 
     @property
     def jwks_fallback_urls(self) -> list[str]:
         urls = [self.jwks_url]
-        for base_url in [
-            "http://keycloak:8080/auth",
-            "http://alfheim_keycloak:8080/auth",
-            "http://api.alfheim.loegien.localhost/auth",
-            "http://localhost:8080/auth",
+        base = self.OIDC_ISSUER_URL.rstrip("/")
+        for cert_path in [
+            "/keys",
+            "/oauth/v2/keys",
+            "/protocol/openid-connect/certs",
+            "/certs",
         ]:
-            url = f"{base_url.rstrip('/')}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+            url = f"{base}{cert_path}"
             if url not in urls:
                 urls.append(url)
         return urls
