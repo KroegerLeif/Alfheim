@@ -1,13 +1,34 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState, useEffect, useRef } from "react";
-import Keycloak from "keycloak-js";
+import { ReactNode, useState, useEffect, useRef, useCallback } from "react";
 import { AuthContext } from "@/core/authContext";
-import { Spinner, UserIdentity, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
+import { Spinner, UserIdentity, useTranslation } from "@alfheim/shared";
+import {
+  beginLogin,
+  clearPersistedTokens,
+  completeLoginIfRedirected,
+  decodeClaims,
+  endSession,
+  loadOidcConfig,
+  loadPersistedTokens,
+  refreshTokens,
+  type OidcTokenSet,
+} from "@/core/oidc";
 
-const TOKEN_KEY = "token_workout-frontend";
-const SHARED_TOKEN_KEY = "alfheim_access_token";
+export interface OidcBridge {
+  getToken: () => string | null;
+  refresh: () => Promise<string | null>;
+  login: () => void;
+}
+
+declare global {
+  interface Window {
+    __alfheim_oidc__?: OidcBridge;
+  }
+}
+
+const REFRESH_SKEW_MS = 60_000;
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -28,116 +49,106 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [user, setUser] = useState<UserIdentity | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [keycloakInstance, setKeycloakInstance] = useState<Keycloak | null>(null);
   const initializedRef = useRef(false);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const configRef = useRef(loadOidcConfig());
+  const tokensRef = useRef<OidcTokenSet | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    if (typeof window === "undefined") return;
-    // React 18+ strict mode mounts effects twice; Keycloak must init only once.
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+  const applyTokens = useCallback((tokens: OidcTokenSet | null) => {
+    tokensRef.current = tokens;
+    if (tokens) {
+      setToken(tokens.accessToken);
+      const claims = decodeClaims(tokens.accessToken);
+      if (claims) {
+        setUser({
+          name: claims.name || claims.preferred_username || "User",
+          preferred_username: claims.preferred_username,
+          email: claims.email,
+          given_name: claims.given_name,
+          family_name: claims.family_name,
+        });
+      }
+      setIsAuthenticated(true);
+    } else {
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  }, []);
 
-    const keycloak = new Keycloak({
-      url: resolveKeycloakUrl(),
-      realm: "alfheim",
-      clientId: "workout-frontend",
+  const runRefresh = useCallback(async (): Promise<string | null> => {
+    const current = tokensRef.current;
+    const refreshed = await refreshTokens(configRef.current, current?.refreshToken ?? null);
+    if (refreshed) {
+      applyTokens(refreshed);
+      return refreshed.accessToken;
+    }
+    return null;
+  }, [applyTokens]);
+
+  const handleLogin = useCallback(() => {
+    void beginLogin(configRef.current).catch((err) => {
+      console.error("Failed to start OIDC login", err);
+      setAuthError(t("auth.error"));
     });
-
-    setKeycloakInstance(keycloak);
-    // Exposed so the ky afterResponse hook can refresh the token on a 401.
-    (window as any).__keycloak_instance__ = keycloak;
-
-    const persistToken = (value: string) => {
-      sessionStorage.setItem(TOKEN_KEY, value);
-      sessionStorage.setItem(SHARED_TOKEN_KEY, value);
-    };
-
-    const cleanQueryParams = () => {
-      const url = new URL(window.location.href);
-      let hasParams = false;
-      ["state", "session_state", "code", "iss"].forEach((param) => {
-        if (url.searchParams.has(param)) {
-          url.searchParams.delete(param);
-          hasParams = true;
-        }
-      });
-      if (hasParams) {
-        window.history.replaceState({}, document.title, url.pathname + url.search);
-      }
-    };
-
-    keycloak
-      .init({
-        onLoad: "login-required",
-        checkLoginIframe: false,
-        pkceMethod: "S256",
-        responseMode: "query",
-      })
-      .then((authenticated) => {
-        cleanQueryParams();
-        if (!isMounted) return;
-
-        if (authenticated && keycloak.token) {
-          setIsAuthenticated(true);
-          setToken(keycloak.token);
-          persistToken(keycloak.token);
-
-          if (keycloak.tokenParsed) {
-            const parsed = keycloak.tokenParsed as any;
-            setUser({
-              name: parsed.name || parsed.preferred_username || "User",
-              preferred_username: parsed.preferred_username,
-              email: parsed.email,
-              given_name: parsed.given_name,
-              family_name: parsed.family_name,
-            });
-          }
-
-          refreshIntervalRef.current = setInterval(() => {
-            keycloak
-              .updateToken(70)
-              .then((refreshed) => {
-                if (refreshed && keycloak.token) {
-                  setToken(keycloak.token);
-                  persistToken(keycloak.token);
-                }
-              })
-              .catch(() => console.error("Failed to refresh Keycloak token"));
-          }, 60000);
-        } else {
-          setIsAuthenticated(false);
-        }
-      })
-      .catch((err) => {
-        console.error("Keycloak initialization failed", err);
-        cleanQueryParams();
-        if (isMounted) {
-          setAuthError(t("auth.error"));
-        }
-      });
-
-    return () => {
-      isMounted = false;
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
-    };
   }, [t]);
 
-  const handleLogout = () => {
-    if (!keycloakInstance) return;
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(SHARED_TOKEN_KEY);
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    keycloakInstance.logout({
-      redirectUri: window.location.origin + "/workout/de",
-    });
-  };
+  const handleLogout = useCallback(() => {
+    const idToken = tokensRef.current?.idToken ?? null;
+    applyTokens(null);
+    clearPersistedTokens();
+    void endSession(configRef.current, idToken);
+  }, [applyTokens]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || initializedRef.current) return;
+    initializedRef.current = true;
+
+    window.__alfheim_oidc__ = {
+      getToken: () => tokensRef.current?.accessToken ?? null,
+      refresh: runRefresh,
+      login: handleLogin,
+    };
+
+    (async () => {
+      try {
+        const exchanged = await completeLoginIfRedirected(configRef.current);
+        if (exchanged) {
+          applyTokens(exchanged);
+          return;
+        }
+
+        let tokens = loadPersistedTokens();
+        if (tokens && tokens.expiresAt - Date.now() < REFRESH_SKEW_MS) {
+          tokens = await refreshTokens(configRef.current, tokens.refreshToken);
+        }
+
+        if (tokens && tokens.expiresAt > Date.now()) {
+          applyTokens(tokens);
+          return;
+        }
+
+        clearPersistedTokens();
+        handleLogin();
+      } catch (err) {
+        console.error("OIDC authentication initialization failed:", err);
+        setAuthError(t("auth.error"));
+      }
+    })();
+  }, [applyTokens, handleLogin, runRefresh, t]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !tokensRef.current) return;
+    const msUntilRefresh = Math.max(
+      5_000,
+      tokensRef.current.expiresAt - Date.now() - REFRESH_SKEW_MS
+    );
+    const timer = window.setTimeout(() => {
+      void runRefresh().then((next) => {
+        if (!next) handleLogout();
+      });
+    }, msUntilRefresh);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated, token, runRefresh, handleLogout]);
 
   if (authError) {
     return (
@@ -167,7 +178,6 @@ export default function Providers({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="space-y-4 text-center">
           <Spinner size="lg" label={t("auth.securing_session")} className="mx-auto" />
-          {/* aria-hidden: the Spinner's status region already announces this text. */}
           <p aria-hidden="true" className="text-lg font-medium tracking-wide">
             {t("auth.securing_session")}
           </p>

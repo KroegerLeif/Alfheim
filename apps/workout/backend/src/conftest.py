@@ -1,10 +1,12 @@
 from collections.abc import AsyncGenerator
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.core.config import settings
 from src.core.database import get_db_session
 from src.features.equipment.models import Equipment  # noqa: F401
 from src.features.exercises.models import (  # noqa: F401
@@ -33,6 +35,13 @@ test_session_factory = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
+
+@pytest.fixture(autouse=True)
+def override_oidc_settings_for_tests(monkeypatch):
+    """Ensure OIDC settings are configured for test execution context."""
+    monkeypatch.setattr(settings, "OIDC_ISSUER_URL", "http://testserver/auth")
+    monkeypatch.setattr(settings, "OIDC_AUDIENCE", "alfheim")
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
