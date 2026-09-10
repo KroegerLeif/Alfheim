@@ -60,7 +60,7 @@ Deterministic technical specifications and catalogs:
 High-level architecture and design philosophy:
 * [Platform Architecture Overview](./explanation/architecture-overview.md) — Multi-zone networks, control plane, and container topology.
 * [Feature-Driven Design (FDD) Paradigm](./explanation/feature-driven-design.md) — Bounded contexts, 6-file feature structure, and 200 LOC Limits.
-* [Authentication & Multi-Tenancy](./explanation/authentication-security.md) — Keycloak OIDC, JWT claim validation, and `X-Household-ID` isolation.
+* [Authentication & Multi-Tenancy](./explanation/authentication-security.md) — Generic OIDC / Zitadel, JWT claim validation, and `X-Household-ID` isolation.
 * [VictoriaStack Telemetry Pipeline](./explanation/telemetry-pipeline.md) — Vector log aggregation, OTel Collector, and W3C traceparent headers.
 
 ---
@@ -70,6 +70,7 @@ High-level architecture and design philosophy:
 All architectural decisions are formally recorded in [MADR format](https://adr.github.io/madr/) under [`docs/decisions/`](./decisions/README.md):
 * [ADR 0001: Adoption of Diátaxis Documentation Framework & App Consolidation](./decisions/0001-diataxis-documentation.md)
 * [ADR 0002: Feature-Driven Design (FDD) & Bounded Context Monorepo Architecture](./decisions/0002-feature-driven-design.md)
+* [ADR 0003: Migration from Keycloak to Zitadel for Sovereign Identity](./decisions/0003-migrate-from-keycloak-to-zitadel.md)
 
 ---
 

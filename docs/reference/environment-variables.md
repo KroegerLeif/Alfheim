@@ -6,7 +6,7 @@
 
 ## 📋 Table of Contents
 - [Root Platform Configuration](#root-platform-configuration)
-- [Identity & Access Management (Keycloak)](#identity--access-management-keycloak)
+- [Identity & Access Management (Generic OIDC & Zitadel)](#identity--access-management-generic-oidc--zitadel)
 - [Object Storage (RustFS S3)](#object-storage-rustfs-s3)
 - [Observability Stack (VictoriaStack & Telemetry)](#observability-stack-victoriastack--telemetry)
 - [Microservice Backend Variables](#microservice-backend-variables)
@@ -26,14 +26,17 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 
 ---
 
-## Identity & Access Management (Keycloak)
+## Identity & Access Management (Generic OIDC & Zitadel)
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
-| `KEYCLOAK_ADMIN_USER` | `admin` | Keycloak administrative username |
-| `KEYCLOAK_ADMIN_PASSWORD` | *(Generated AES-256)* | Keycloak administrative password |
-| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Internal Docker container network Keycloak URL |
-| `KEYCLOAK_PUBLIC_URL` | `http://api.alfheim.loegien.localhost/auth` | Public browser-facing Keycloak issuer URL |
+| `OIDC_ISSUER_URL` | `http://api.alfheim.loegien.localhost/auth` | Public browser-facing OIDC issuer URL |
+| `OIDC_INTERNAL_JWKS_URL` | `http://zitadel:8080/oauth/v2/keys` | Internal Docker container network JWKS URL |
+| `OIDC_AUDIENCE` | `alfheim-client` | Target OIDC client ID / audience |
+| `ZITADEL_MASTER_KEY` | *(Generated 32-byte key)* | Encryption master key for Zitadel initialization |
+| `ZITADEL_ADMIN_USER` | `admin` | Zitadel initial administrator username |
+| `ZITADEL_ADMIN_PASSWORD` | *(Generated AES-256)* | Zitadel administrative user password |
+| `ZITADEL_PORT` | `8080` | Zitadel container internal web service port |
 
 ---
 
@@ -72,4 +75,5 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `NEXT_PUBLIC_PANTRY_API_URL` | `http://api.alfheim.loegien.localhost/pantry/api/v1` | Pantry MFE API gateway endpoint |
-| `NEXT_PUBLIC_KEYCLOAK_URL` | `http://api.alfheim.loegien.localhost/auth` | Browser Keycloak authentication URL |
+| `NEXT_PUBLIC_OIDC_ISSUER_URL` | `http://api.alfheim.loegien.localhost/auth` | Browser OIDC authentication issuer URL |
+| `NEXT_PUBLIC_OIDC_CLIENT_ID` | `alfheim-client` | Client ID for PKCE authorization flow |
