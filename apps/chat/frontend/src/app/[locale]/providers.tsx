@@ -1,29 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity, useTranslation } from "@alfheim/shared";
-
-const TOKEN_KEY = "token_chat-frontend";
-const SHARED_TOKEN_KEY = "alfheim_access_token";
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split('.')[1];
-    if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
+import { useTranslation } from "@alfheim/shared";
+import { useOidcAuth } from "@/core/auth/useOidcAuth";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -40,67 +21,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
   );
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [user, setUser] = useState<UserIdentity | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const url = new URL(window.location.href);
-    let tokenParam = url.searchParams.get("token") || url.searchParams.get("access_token");
-
-    let cleanNeeded = false;
-    ["state", "session_state", "code", "iss", "token", "access_token"].forEach((param) => {
-      if (url.searchParams.has(param)) {
-        url.searchParams.delete(param);
-        cleanNeeded = true;
-      }
-    });
-    if (cleanNeeded) {
-      window.history.replaceState({}, document.title, url.pathname + url.search);
-    }
-
-    const storedToken =
-      tokenParam ||
-      sessionStorage.getItem(TOKEN_KEY) ||
-      sessionStorage.getItem(SHARED_TOKEN_KEY);
-
-    if (storedToken) {
-      sessionStorage.setItem(TOKEN_KEY, storedToken);
-      sessionStorage.setItem(SHARED_TOKEN_KEY, storedToken);
-      setToken(storedToken);
-      setIsAuthenticated(true);
-
-      const parsed = parseJwt(storedToken);
-      if (parsed) {
-        setUser({
-          name: parsed.name || parsed.preferred_username || "User",
-          preferred_username: parsed.preferred_username,
-          email: parsed.email,
-          given_name: parsed.given_name,
-          family_name: parsed.family_name,
-        });
-      } else {
-        setUser({ name: "User" });
-      }
-    } else {
-      setIsAuthenticated(false);
-      setAuthError(t("auth.error") || "Authentication required");
-    }
-  }, [t]);
-
-  const handleLogout = () => {
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(SHARED_TOKEN_KEY);
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    if (typeof window !== "undefined") {
-      window.location.href = window.location.origin;
-    }
-  };
+  const { user, token, isAuthenticated, isLoading, authError, logout } = useOidcAuth();
 
   if (authError && !isAuthenticated) {
     return (
@@ -122,7 +43,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="text-center space-y-4">
@@ -134,7 +55,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, logout: handleLogout }}>
+    <AuthContext.Provider value={{ user, token, logout }}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </AuthContext.Provider>
   );

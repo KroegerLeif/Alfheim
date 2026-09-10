@@ -25,6 +25,22 @@ export async function getFreshAuthToken(): Promise<string | null> {
   return getAuthToken();
 }
 
+/**
+ * Asks the OIDC auth bridge to refresh the access token after a 401.
+ * Returns the new access token, or null when no refresh is possible.
+ */
+async function refreshAuthToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const bridge = window.__alfheim_oidc__;
+  if (!bridge || typeof bridge.refresh !== "function") return null;
+  try {
+    return await bridge.refresh();
+  } catch (err) {
+    console.warn("OIDC token refresh failed on 401:", err);
+    return null;
+  }
+}
+
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return sessionStorage.getItem("token_chat-frontend") || sessionStorage.getItem("alfheim_access_token");
@@ -69,10 +85,20 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...(init?.headers as Record<string, string>),
   });
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  let res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: buildHeaders(token),
   });
+
+  if (res.status === 401) {
+    const refreshed = await refreshAuthToken();
+    if (refreshed) {
+      res = await fetch(`${BASE_URL}${path}`, {
+        ...init,
+        headers: buildHeaders(refreshed),
+      });
+    }
+  }
 
   if (!res.ok) {
     let payload: ApiErrorPayload = { error: "unknown_error", message: `Request failed with status ${res.status}` };
