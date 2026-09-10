@@ -1,9 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState, useEffect, useRef } from "react";
+import { ReactNode, useState } from "react";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity, useTranslation } from "@alfheim/shared";
+import { useTranslation } from "@alfheim/shared";
+import { useOidcAuth } from "@/core/auth/useOidcAuth";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -20,85 +21,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
   );
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [user, setUser] = useState<UserIdentity | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const initializedRef = useRef(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (typeof window === "undefined") return;
-
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-
-      const storedToken =
-        sessionStorage.getItem("token_chores-frontend") ||
-        sessionStorage.getItem("alfheim_access_token") ||
-        localStorage.getItem("token_chores-frontend") ||
-        localStorage.getItem("alfheim_access_token");
-
-      if (storedToken) {
-        setToken(storedToken);
-        setIsAuthenticated(true);
-        try {
-          const parts = storedToken.split(".");
-          if (parts.length === 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            const name =
-              typeof payload.name === "string"
-                ? payload.name
-                : typeof payload.preferred_username === "string"
-                ? payload.preferred_username
-                : "User";
-            setUser({
-              name,
-              preferred_username:
-                typeof payload.preferred_username === "string" ? payload.preferred_username : undefined,
-              email: typeof payload.email === "string" ? payload.email : undefined,
-              given_name: typeof payload.given_name === "string" ? payload.given_name : undefined,
-              family_name: typeof payload.family_name === "string" ? payload.family_name : undefined,
-            });
-          }
-        } catch (e) {
-          console.warn("Failed to parse token payload in Chores frontend provider:", e);
-        }
-      } else {
-        const oidcIssuer = process.env.NEXT_PUBLIC_OIDC_ISSUER || "http://localhost:8080";
-        const oidcClientId = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID || "chores-frontend";
-
-        // In development / testing or when redirected with token, handle accordingly
-        const mockToken = "mock_session_token";
-        setToken(mockToken);
-        sessionStorage.setItem("token_chores-frontend", mockToken);
-        sessionStorage.setItem("alfheim_access_token", mockToken);
-        setUser({ name: "Demo User", preferred_username: "demouser" });
-        setIsAuthenticated(true);
-      }
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const handleLogout = () => {
-    sessionStorage.removeItem("token_chores-frontend");
-    sessionStorage.removeItem("alfheim_access_token");
-    localStorage.removeItem("token_chores-frontend");
-    localStorage.removeItem("alfheim_access_token");
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-
-    const rawIssuer = process.env.NEXT_PUBLIC_OIDC_ISSUER || "http://localhost:8080";
-    const clientId = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID || "chores-frontend";
-    const cleanIssuer = rawIssuer.endsWith("/") ? rawIssuer.slice(0, -1) : rawIssuer;
-    const redirectUri = encodeURIComponent(window.location.origin + "/chores/de");
-
-    window.location.href = `${cleanIssuer}/oidc/v1/end_session?client_id=${encodeURIComponent(clientId)}&post_logout_redirect_uri=${redirectUri}`;
-  };
+  const { user, token, isAuthenticated, isLoading, authError, logout } = useOidcAuth();
 
   if (authError) {
     return (
@@ -120,7 +43,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="text-center space-y-4">
@@ -132,7 +55,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, logout: handleLogout }}>
+    <AuthContext.Provider value={{ user, token, logout }}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

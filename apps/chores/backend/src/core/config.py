@@ -21,11 +21,6 @@ class Settings(BaseSettings):
     OIDC_JWKS_URL: str = ""
 
     @property
-    def oidc_discovery_url(self) -> str:
-        base = self.OIDC_ISSUER_URL.rstrip("/")
-        return f"{base}/.well-known/openid-configuration"
-
-    @property
     def jwks_url(self) -> str:
         if self.OIDC_JWKS_URL:
             return self.OIDC_JWKS_URL
