@@ -122,10 +122,10 @@ async def test_pantry_authorized_household_header_override_allowed(client: Async
 
 
 @pytest.mark.asyncio
-async def test_pantry_mock_fallback_fails_with_production_keycloak_url(client: AsyncClient):
-    """Verify that mock fallback fails when KEYCLOAK_URL points to non-localhost production Keycloak."""
+async def test_pantry_mock_fallback_fails_with_production_oidc_issuer_url(client: AsyncClient):
+    """Verify that mock fallback fails when OIDC_ISSUER_URL points to non-localhost production URL."""
     with patch(
-        "src.core.dependencies.settings.KEYCLOAK_URL",
+        "src.core.dependencies.settings.OIDC_ISSUER_URL",
         "https://auth.production.loeger-os.com/auth",
     ):
         response = await client.get("/api/v1/locations", headers={})

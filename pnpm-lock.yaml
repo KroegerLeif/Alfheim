@@ -35,9 +35,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      keycloak-js:
-        specifier: 24.0.4
-        version: 24.0.4
       ky:
         specifier: ^1.14.3
         version: 1.14.3
@@ -526,9 +523,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      keycloak-js:
-        specifier: 24.0.4
-        version: 24.0.4
       ky:
         specifier: ^1.14.3
         version: 1.14.3
@@ -729,9 +723,6 @@ importers:
       idb:
         specifier: ^8.0.3
         version: 8.0.3
-      keycloak-js:
-        specifier: 24.0.4
-        version: 24.0.4
       ky:
         specifier: ^1.14.3
         version: 1.14.3
