@@ -5,13 +5,40 @@ import (
 )
 
 func TestConfigLoad(t *testing.T) {
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if cfg.Environment == "" {
-		t.Error("expected non-empty environment")
-	}
+	t.Run("default configuration", func(t *testing.T) {
+		t.Setenv("OIDC_ISSUER_URL", "")
+		t.Setenv("OIDC_AUDIENCE", "")
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if cfg.Environment == "" {
+			t.Error("expected non-empty environment")
+		}
+		if cfg.OIDC.IssuerURL != "http://localhost:8080" {
+			t.Errorf("expected default OIDC IssuerURL http://localhost:8080, got %s", cfg.OIDC.IssuerURL)
+		}
+		if cfg.OIDC.Audience != "alfheim" {
+			t.Errorf("expected default OIDC Audience alfheim, got %s", cfg.OIDC.Audience)
+		}
+	})
+
+	t.Run("custom OIDC environment variables", func(t *testing.T) {
+		t.Setenv("OIDC_ISSUER_URL", "https://auth.example.com/")
+		t.Setenv("OIDC_AUDIENCE", "custom-audience")
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if cfg.OIDC.IssuerURL != "https://auth.example.com" {
+			t.Errorf("expected OIDC IssuerURL https://auth.example.com (trailing slash trimmed), got %s", cfg.OIDC.IssuerURL)
+		}
+		if cfg.OIDC.Audience != "custom-audience" {
+			t.Errorf("expected OIDC Audience custom-audience, got %s", cfg.OIDC.Audience)
+		}
+	})
 }
 
 func TestHelpers(t *testing.T) {
