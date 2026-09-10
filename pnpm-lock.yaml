@@ -217,9 +217,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      keycloak-js:
-        specifier: 24.0.4
-        version: 24.0.4
       ky:
         specifier: ^1.14.3
         version: 1.14.3
