@@ -1,26 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity, useTranslation } from "@alfheim/shared";
-
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const base64Url = token.split(".")[1];
-    if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
+import { useTranslation } from "@alfheim/shared";
+import { useOidcAuth } from "@/core/auth/useOidcAuth";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -37,65 +21,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
   );
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [user, setUser] = useState<UserIdentity | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      const storedToken =
-        sessionStorage.getItem("token_library-frontend") ||
-        sessionStorage.getItem("alfheim_access_token") ||
-        localStorage.getItem("alfheim_access_token");
-
-      if (storedToken) {
-        setToken(storedToken);
-        setIsAuthenticated(true);
-        const payload = decodeJwtPayload(storedToken);
-        if (payload) {
-          const name =
-            (payload.name as string) ||
-            (payload.preferred_username as string) ||
-            "User";
-          setUser({
-            name,
-            preferred_username: payload.preferred_username as string,
-            email: payload.email as string,
-            given_name: payload.given_name as string,
-            family_name: payload.family_name as string,
-          });
-        }
-      } else {
-        // Fallback for dev / unauthenticated session initialization
-        const devToken = "mock_dev_token";
-        setToken(devToken);
-        setIsAuthenticated(true);
-        setUser({
-          name: "Library User",
-          preferred_username: "library_user",
-        });
-      }
-    } catch (err) {
-      console.error("OIDC auth context setup error:", err);
-      setAuthError("Failed to initialize OIDC authentication context.");
-    }
-  }, []);
-
-  const handleLogout = () => {
-    sessionStorage.removeItem("token_library-frontend");
-    sessionStorage.removeItem("alfheim_access_token");
-    localStorage.removeItem("alfheim_access_token");
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    if (typeof window !== "undefined") {
-      const issuer = process.env.NEXT_PUBLIC_OIDC_ISSUER || "http://auth.alfheim.loegien.localhost";
-      window.location.href = `${issuer.replace(/\/+$/, "")}/end_session`;
-    }
-  };
+  const { user, token, isAuthenticated, isLoading, authError, logout } = useOidcAuth();
 
   if (authError) {
     return (
@@ -117,7 +43,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="text-center space-y-4">
@@ -129,7 +55,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, logout: handleLogout }}>
+    <AuthContext.Provider value={{ user, token, logout }}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

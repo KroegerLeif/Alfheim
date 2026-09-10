@@ -1,10 +1,6 @@
 """Configuration settings for the Library backend service."""
 
-import logging
-import httpx
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -39,23 +35,22 @@ class Settings(BaseSettings):
     # Generic OIDC Configuration (Zitadel)
     OIDC_ISSUER_URL: str = "http://auth.alfheim.loegien.localhost"
     OIDC_AUDIENCE: str = "alfheim"
+    # Optional explicit JWKS endpoint override. When empty the endpoint is
+    # derived from the issuer without any network call.
+    OIDC_JWKS_URL: str = ""
 
     @property
     def jwks_url(self) -> str:
-        """Return primary OIDC JWKS endpoint URL dynamically discovered from openid-configuration."""
-        base = self.OIDC_ISSUER_URL.rstrip("/")
-        discovery_url = f"{base}/.well-known/openid-configuration"
-        try:
-            with httpx.Client(timeout=3.0) as client:
-                resp = client.get(discovery_url)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    jwks_uri = data.get("jwks_uri")
-                    if jwks_uri:
-                        return jwks_uri
-        except Exception as e:
-            logger.debug("Failed to discover JWKS URI from %s: %s", discovery_url, e)
-        return f"{base}/keys"
+        """Return the primary OIDC JWKS endpoint URL.
+
+        Uses the explicit override when configured, otherwise derives the default
+        Zitadel keys endpoint from the issuer. This property performs no network
+        I/O: the JWKS document is fetched and cached lazily by the PyJWKClient on
+        first token verification.
+        """
+        if self.OIDC_JWKS_URL:
+            return self.OIDC_JWKS_URL
+        return f"{self.OIDC_ISSUER_URL.rstrip('/')}/keys"
 
     @property
     def expected_issuer(self) -> str:
@@ -64,17 +59,18 @@ class Settings(BaseSettings):
 
     @property
     def jwks_fallback_urls(self) -> list[str]:
-        """Return list of fallback OIDC JWKS endpoint URLs for token verification."""
+        """Return the ordered list of candidate JWKS endpoints to try during verification."""
+        base = self.OIDC_ISSUER_URL.rstrip("/")
         urls = [self.jwks_url]
-        for base_url in [
-            "http://auth.alfheim.loegien.localhost",
-            "http://localhost:8080",
-            "http://zitadel:8080",
-            "https://auth.loegien.de",
-        ]:
-            url = f"{base_url.rstrip('/')}/keys"
-            if url not in urls:
-                urls.append(url)
+        for cert_path in (
+            "/keys",
+            "/oauth/v2/keys",
+            "/protocol/openid-connect/certs",
+            "/certs",
+        ):
+            candidate = f"{base}{cert_path}"
+            if candidate not in urls:
+                urls.append(candidate)
         return urls
 
 
