@@ -150,35 +150,6 @@ jobs:
       - name: Run Vitest Suite Across Workspace
         run: pnpm -r test
 
-  build-theme:
-    name: Compile Keycloak Theme
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Compile Keycloak Theme
-        run: pnpm run build:theme
-
-      - name: Upload Keycloak Theme Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: keycloak-theme-jar
-          path: infrastructure/keycloak/providers/alfheim-theme.jar
-          if-no-files-found: error
-
   build-images:
     name: Build & Push (${{ matrix.name }})
     needs:
@@ -187,7 +158,6 @@ jobs:
       - python-tests
       - go-tests
       - frontend-tests
-      - build-theme
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -270,12 +240,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download Keycloak Theme Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: keycloak-theme-jar
-          path: infrastructure/keycloak/providers
-
       - name: Lowercase Repository Name
         run: |
           echo "IMAGE_REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
@@ -307,19 +271,13 @@ jobs:
 
   publish-release:
     name: Publish Official GitHub Release
-    needs: [build-images, build-theme]
+    needs: [build-images]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Download Keycloak Theme Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: keycloak-theme-jar
-          path: infrastructure/keycloak/providers
 
       - name: Create GitHub Release & Attach Production Artifacts
         uses: softprops/action-gh-release@v2
@@ -335,6 +293,4 @@ jobs:
             scripts/init-env.sh
             .env.example
             infrastructure/caddy/Caddyfile
-            infrastructure/keycloak/alfheim-realm.json
-            infrastructure/keycloak/providers/alfheim-theme.jar
             infrastructure/telemetry/collector/config.yaml
