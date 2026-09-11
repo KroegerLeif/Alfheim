@@ -71,6 +71,22 @@ generate_base64_32() {
   fi
 }
 
+# Zitadel requires a masterkey that is exactly 32 bytes long.
+generate_masterkey() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 16
+  else
+    LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32
+  fi
+}
+
+# Zitadel's default password complexity policy requires at least one uppercase
+# letter, one lowercase letter, one digit and one symbol. Prefixing a random
+# base with "Aa1!" guarantees all four classes are present.
+generate_zitadel_password() {
+  printf 'Aa1!%s' "$(generate_secret 20)"
+}
+
 # ------------------------------------------------------------------------------
 # CLI Arguments Parsing
 # ------------------------------------------------------------------------------
@@ -346,6 +362,18 @@ log_info "Derived Host Header:     ${BOLD}${HOST_HEADER}${RESET}"
 log_info "Derived Apex Domain:     ${BOLD}${DOMAIN}${RESET}"
 
 # ------------------------------------------------------------------------------
+# OIDC Issuer Derivation (Zitadel is served on its own dedicated auth.* host)
+# ------------------------------------------------------------------------------
+if [[ "$NAKED_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || "$NAKED_HOST" == "localhost" ]]; then
+  OIDC_ISSUER_URL="${SCHEME}://${NAKED_HOST}"
+else
+  OIDC_ISSUER_URL="${SCHEME}://auth.${DOMAIN}"
+fi
+OIDC_AUDIENCE="alfheim"
+
+log_info "Derived OIDC Issuer URL: ${BOLD}${OIDC_ISSUER_URL}${RESET}"
+
+# ------------------------------------------------------------------------------
 # Image Registry & Repository Derivation
 # ------------------------------------------------------------------------------
 DEFAULT_REGISTRY="ghcr.io"
@@ -403,7 +431,8 @@ log_info "Configuring Image Tag:   ${BOLD}${IMAGE_TAG}${RESET}"
 log_info "Generating cryptographically secure secrets..."
 
 # Generate Secrets
-KC_ADMIN_PW="$(generate_secret 24)"
+ZITADEL_MASTERKEY="$(generate_masterkey)"
+ZITADEL_ADMIN_PW="$(generate_zitadel_password)"
 POSTGRES_IAM_PW="$(generate_secret 24)"
 S3_PW="$(generate_secret 24)"
 DASHBOARD_PW="$(generate_secret 24)"
@@ -423,8 +452,12 @@ GRAFANA_CLIENT_SECRET="$(generate_secret 32)"
 sed \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^IAM_POSTGRES_PASSWORD=.*|IAM_POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
-  -e "s|^KEYCLOAK_ADMIN_PASSWORD=.*|KEYCLOAK_ADMIN_PASSWORD=${KC_ADMIN_PW}|" \
-  -e "s|^KC_DB_PASSWORD=.*|KC_DB_PASSWORD=${POSTGRES_IAM_PW}|" \
+  -e "s|^ZITADEL_MASTERKEY=.*|ZITADEL_MASTERKEY=${ZITADEL_MASTERKEY}|" \
+  -e "s|^ZITADEL_ADMIN_USER=.*|ZITADEL_ADMIN_USER=admin|" \
+  -e "s|^ZITADEL_ADMIN_PASSWORD=.*|ZITADEL_ADMIN_PASSWORD=${ZITADEL_ADMIN_PW}|" \
+  -e "s|^ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=.*|ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=admin|" \
+  -e "s|^ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=.*|ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=${ZITADEL_ADMIN_PW}|" \
+  -e "s|^ZITADEL_DB_PASSWORD=.*|ZITADEL_DB_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^S3_ROOT_PASSWORD=.*|S3_ROOT_PASSWORD=${S3_PW}|" \
   -e "s|^S3_SECRET_KEY=.*|S3_SECRET_KEY=${S3_PW}|" \
   -e "s|^DASHBOARD_POSTGRES_PASSWORD=.*|DASHBOARD_POSTGRES_PASSWORD=${DASHBOARD_PW}|" \
@@ -438,7 +471,7 @@ sed \
   -e "s|^WORKOUT_POSTGRES_PASSWORD=.*|WORKOUT_POSTGRES_PASSWORD=${WORKOUT_PW}|" \
   -e "s|^LIBRARY_POSTGRES_PASSWORD=.*|LIBRARY_POSTGRES_PASSWORD=${LIBRARY_PW}|" \
   -e "s|^GRAFANA_ADMIN_PASSWORD=.*|GRAFANA_ADMIN_PASSWORD=${GRAFANA_PW}|" \
-  -e "s|^GRAFANA_KEYCLOAK_CLIENT_SECRET=.*|GRAFANA_KEYCLOAK_CLIENT_SECRET=${GRAFANA_CLIENT_SECRET}|" \
+  -e "s|^GRAFANA_OIDC_CLIENT_SECRET=.*|GRAFANA_OIDC_CLIENT_SECRET=${GRAFANA_CLIENT_SECRET}|" \
   -e "s|^ALFHEIM_BASE_URL=.*|ALFHEIM_BASE_URL=${BASE_URL}|" \
   -e "s|^DOMAIN=.*|DOMAIN=${DOMAIN}|" \
   -e "s|^HOST_HEADER=.*|HOST_HEADER=${HOST_HEADER}|" \
@@ -449,8 +482,9 @@ sed \
   -e "s|^IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" \
   -e "s|^NEXT_PUBLIC_FRONTEND_URL=.*|NEXT_PUBLIC_FRONTEND_URL=\${ALFHEIM_BASE_URL}|" \
   -e "s|^NEXT_PUBLIC_API_GATEWAY_URL=.*|NEXT_PUBLIC_API_GATEWAY_URL=\${ALFHEIM_BASE_URL}/api|" \
-  -e "s|^KEYCLOAK_PUBLIC_URL=.*|KEYCLOAK_PUBLIC_URL=\${ALFHEIM_BASE_URL}/auth|" \
-  -e "s|^KEYCLOAK_PUBLIC_ISSUER=.*|KEYCLOAK_PUBLIC_ISSUER=\${ALFHEIM_BASE_URL}/auth/realms/alfheim|" \
+  -e "s|^OIDC_ISSUER_URL=.*|OIDC_ISSUER_URL=${OIDC_ISSUER_URL}|" \
+  -e "s|^OIDC_AUDIENCE=.*|OIDC_AUDIENCE=${OIDC_AUDIENCE}|" \
+  -e "s|^NEXT_PUBLIC_OIDC_ISSUER=.*|NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL}|" \
   -e "s|^S3_PUBLIC_URL=.*|S3_PUBLIC_URL=\${ALFHEIM_BASE_URL}/storage|" \
   -e "s|^NEXT_PUBLIC_PANTRY_API_URL=.*|NEXT_PUBLIC_PANTRY_API_URL=\${ALFHEIM_BASE_URL}/api/pantry/api/v1|" \
   -e "s|^NEXT_PUBLIC_SHOPPING_API_URL=.*|NEXT_PUBLIC_SHOPPING_API_URL=\${ALFHEIM_BASE_URL}/api/shopping/api/v1|" \
@@ -482,9 +516,11 @@ echo -e "\n${BOLD}Generated Credentials & URL Summary (Stored in .env):${RESET}"
 echo -e "  Base URL:                  ${CYAN}${BASE_URL}${RESET}"
 echo -e "  Host Header:               ${CYAN}${HOST_HEADER}${RESET}"
 echo -e "  Domain:                    ${CYAN}${DOMAIN}${RESET}"
-echo -e "  Keycloak Public Auth URL:  ${CYAN}${BASE_URL}/auth${RESET}"
-echo -e "  Keycloak Admin User:       ${CYAN}admin${RESET}"
-echo -e "  Keycloak Admin Password:   ${YELLOW}${KC_ADMIN_PW}${RESET}"
+echo -e "  OIDC Issuer URL (Zitadel): ${CYAN}${OIDC_ISSUER_URL}${RESET}"
+echo -e "  OIDC Audience:             ${CYAN}${OIDC_AUDIENCE}${RESET}"
+echo -e "  Zitadel Admin User:        ${CYAN}admin${RESET}"
+echo -e "  Zitadel Admin Password:    ${YELLOW}${ZITADEL_ADMIN_PW}${RESET}"
+echo -e "  Zitadel Masterkey:         ${DIM}${ZITADEL_MASTERKEY:0:8}...${RESET}"
 echo -e "  Grafana Admin User:        ${CYAN}admin${RESET}"
 echo -e "  Grafana Admin Password:    ${YELLOW}${GRAFANA_PW}${RESET}"
 echo -e "  Chat AES-256 Key:          ${DIM}${CHAT_ENC_KEY:0:8}...${RESET}"

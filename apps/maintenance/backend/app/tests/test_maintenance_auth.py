@@ -124,11 +124,11 @@ async def test_maintenance_authorized_household_header_override_allowed(client: 
 
 
 @pytest.mark.asyncio
-async def test_mock_auth_fallback_fails_with_production_keycloak_url(client: AsyncClient):
-    """Verify that mock fallback fails when KEYCLOAK_URL points to non-localhost production Keycloak."""
+async def test_mock_auth_fallback_fails_with_production_oidc_issuer_url(client: AsyncClient):
+    """Verify that mock fallback fails when OIDC_ISSUER_URL points to a non-localhost production issuer."""
     with patch(
-        "app.core.dependencies.settings.KEYCLOAK_URL",
-        "https://auth.production.loeger-os.com/auth",
+        "app.core.dependencies.settings.OIDC_ISSUER_URL",
+        "https://auth.production.loeger-os.com",
     ):
         response = await client.get("/api/v1/devices", headers={})
         assert response.status_code == 401

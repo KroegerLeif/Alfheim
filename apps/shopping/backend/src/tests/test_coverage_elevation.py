@@ -32,18 +32,16 @@ from src.main import shopping_error_handler, value_error_exception_handler
 
 
 def test_settings_properties():
-    """Verify Settings property accessors for Keycloak JWKS and Issuer URLs."""
-    s1 = Settings(KEYCLOAK_JWKS_URL="http://custom/jwks")
+    """Verify Settings property accessors for OIDC JWKS and Issuer URLs."""
+    s1 = Settings(OIDC_JWKS_URL="http://custom/jwks")
     assert s1.jwks_url == "http://custom/jwks"
 
     s2 = Settings(
-        KEYCLOAK_URL="http://keycloak:8080/auth/",
-        KEYCLOAK_PUBLIC_URL="http://public.auth/realm/",
-        KEYCLOAK_REALM="alfheim",
-        KEYCLOAK_JWKS_URL="",
+        OIDC_ISSUER_URL="http://public.auth/",
+        OIDC_JWKS_URL="",
     )
-    assert s2.jwks_url == "http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs"
-    assert s2.expected_issuer == "http://public.auth/realm/realms/alfheim"
+    assert s2.jwks_url == "http://public.auth/keys"
+    assert s2.expected_issuer == "http://public.auth"
     assert len(s2.jwks_fallback_urls) > 0
 
 

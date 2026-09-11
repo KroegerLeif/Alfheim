@@ -21,14 +21,14 @@ DEFAULT_TEST_HOUSEHOLD_ID = uuid.UUID("4eeb7681-8419-4c52-b800-6fef6c7ee51b")
 
 
 def test_settings_jwks_and_issuer():
-    """Verify settings properties for Keycloak JWKS and issuer URLs."""
-    assert "protocol/openid-connect/certs" in settings.jwks_url
-    assert "realms/alfheim" in settings.expected_issuer
+    """Verify settings properties for OIDC JWKS and issuer URLs."""
+    assert "/keys" in settings.jwks_url
+    assert "http://auth.alfheim.loegien.localhost" in settings.expected_issuer
     urls = settings.jwks_fallback_urls
     assert len(urls) >= 1
 
-    with patch.object(settings, "KEYCLOAK_JWKS_URL", "http://explicit:8080/certs"):
-        assert settings.jwks_url == "http://explicit:8080/certs"
+    with patch.object(settings, "OIDC_ISSUER_URL", "http://explicit:8080"):
+        assert settings.jwks_url == "http://explicit:8080/keys"
 
 
 @pytest.mark.asyncio

@@ -55,7 +55,7 @@ export function ProfileHeaderBanner({
       <div className="flex items-center gap-3">
         <div className="hidden sm:block text-right">
           <span className="px-2.5 py-1 rounded bg-[var(--primary-main)]/10 text-[var(--primary-main)] border border-[var(--primary-main)]/30 text-xs font-mono">
-            Keycloak ID: {userId}
+            Zitadel ID: {userId}
           </span>
         </div>
 

@@ -23,9 +23,9 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	cfg := &config.Config{
-		Keycloak: config.KeycloakConfig{
-			JWKSURL:        "http://invalid.local/jwks-does-not-exist",
-			ExpectedIssuer: "http://invalid.local/auth/realms/alfheim",
+		OIDC: config.OIDCConfig{
+			IssuerURL: "http://invalid.local",
+			Audience:  "alfheim",
 		},
 	}
 
@@ -42,7 +42,7 @@ func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, nil, "")
+	router := buildRouter(log, dbClient, nil, "")
 
 	t.Run("/healthz endpoint returns 200 healthy", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)

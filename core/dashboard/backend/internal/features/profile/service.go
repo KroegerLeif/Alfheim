@@ -5,10 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"alfheim/dashboard/internal/shared/keycloak"
 	"alfheim/dashboard/internal/shared/middleware"
-	"github.com/Nerzal/gocloak/v13"
-	"golang.org/x/sync/errgroup"
 )
 
 // Service defines domain logic for user profile syncing and management.
@@ -19,51 +16,23 @@ type Service interface {
 }
 
 type service struct {
-	repo           Repository
-	keycloakClient *keycloak.Client
-	log            *slog.Logger
+	repo Repository
+	log  *slog.Logger
 }
 
 // NewService creates a profile service instance.
-func NewService(repo Repository, keycloakClient *keycloak.Client, log *slog.Logger) Service {
+func NewService(repo Repository, log *slog.Logger) Service {
 	return &service{
-		repo:           repo,
-		keycloakClient: keycloakClient,
-		log:            log,
+		repo: repo,
+		log:  log,
 	}
 }
 
+// SyncProfileFromClaims reconciles the local profile store with the verified OIDC
+// token claims, performing Just-In-Time provisioning on first sign-in.
 func (s *service) SyncProfileFromClaims(ctx context.Context, claims *middleware.UserClaims) (*Profile, error) {
-	var (
-		existing *Profile
-		getErr   error
-		kcUser   *gocloak.User
-	)
-
-	g, gCtx := errgroup.WithContext(ctx)
-
-	// Concurrently query database and Keycloak Admin API (if enabled)
-	g.Go(func() error {
-		existing, getErr = s.repo.GetByID(gCtx, claims.Subject)
-		if errors.Is(getErr, ErrProfileNotFound) {
-			return nil // NotFound is an expected condition for JIT creation
-		}
-		return getErr
-	})
-
-	if s.keycloakClient != nil {
-		g.Go(func() error {
-			user, err := s.keycloakClient.GetUserByID(gCtx, claims.Subject)
-			if err == nil {
-				kcUser = user
-			} else {
-				s.log.Debug("keycloak user admin query skipped/failed", slog.String("error", err.Error()))
-			}
-			return nil
-		})
-	}
-
-	if err := g.Wait(); err != nil && !errors.Is(err, ErrProfileNotFound) {
+	existing, err := s.repo.GetByID(ctx, claims.Subject)
+	if err != nil && !errors.Is(err, ErrProfileNotFound) {
 		return nil, err
 	}
 
@@ -96,26 +65,13 @@ func (s *service) SyncProfileFromClaims(ctx context.Context, claims *middleware.
 		return existing, nil
 	}
 
-	// Case 2: JIT (Just-In-Time) provisioning
+	// Case 2: JIT (Just-In-Time) provisioning from verified token claims
 	newProfile := &Profile{
 		ID:        claims.Subject,
 		Email:     claims.Email,
 		Username:  claims.PreferredUsername,
 		FirstName: claims.GivenName,
 		LastName:  claims.FamilyName,
-	}
-
-	// Enrich from Keycloak Admin API if available
-	if kcUser != nil {
-		if kcUser.FirstName != nil && *kcUser.FirstName != "" {
-			newProfile.FirstName = *kcUser.FirstName
-		}
-		if kcUser.LastName != nil && *kcUser.LastName != "" {
-			newProfile.LastName = *kcUser.LastName
-		}
-		if kcUser.Email != nil && *kcUser.Email != "" {
-			newProfile.Email = *kcUser.Email
-		}
 	}
 
 	if err := s.repo.Upsert(ctx, newProfile); err != nil {
@@ -140,33 +96,7 @@ func (s *service) UpdateProfile(ctx context.Context, id string, dto UpdateDTO) (
 	p.LastName = dto.LastName
 	p.AvatarURL = dto.AvatarURL
 
-	g, gCtx := errgroup.WithContext(ctx)
-
-	// Update local PostgreSQL database
-	g.Go(func() error {
-		return s.repo.Update(gCtx, p)
-	})
-
-	// Concurrently sync profile update to Keycloak Admin API if client is available
-	if s.keycloakClient != nil {
-		g.Go(func() error {
-			kcUser := gocloak.User{
-				ID:        gocloak.StringP(id),
-				FirstName: gocloak.StringP(dto.FirstName),
-				LastName:  gocloak.StringP(dto.LastName),
-			}
-			if err := s.keycloakClient.UpdateUser(gCtx, kcUser); err != nil {
-				s.log.Warn("failed to propagate profile update to keycloak admin api",
-					slog.String("user_id", id),
-					slog.String("error", err.Error()),
-				)
-				// Do not block local update on Keycloak transient error
-			}
-			return nil
-		})
-	}
-
-	if err := g.Wait(); err != nil {
+	if err := s.repo.Update(ctx, p); err != nil {
 		return nil, err
 	}
 

@@ -18,36 +18,45 @@ class Settings(BaseSettings):
     # Pantry Backend service integration URL
     PANTRY_BACKEND_URL: str = "http://pantry-backend:8000"
 
-    # Keycloak OIDC Configuration
-    KEYCLOAK_URL: str = "http://keycloak:8080/auth"
-    KEYCLOAK_PUBLIC_URL: str = "http://api.alfheim.loegien.localhost/auth"
-    KEYCLOAK_REALM: str = "alfheim"
-    KEYCLOAK_JWKS_URL: str = ""
+    # Generic OIDC Configuration (Zitadel)
+    OIDC_ISSUER_URL: str = "http://auth.alfheim.loegien.localhost"
+    OIDC_AUDIENCE: str = "alfheim"
+    # Optional explicit JWKS endpoint override. When empty the endpoint is
+    # derived from the issuer without any network call.
+    OIDC_JWKS_URL: str = ""
 
     @property
     def jwks_url(self) -> str:
-        if self.KEYCLOAK_JWKS_URL:
-            return self.KEYCLOAK_JWKS_URL
-        base = self.KEYCLOAK_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+        """Return the primary OIDC JWKS endpoint URL.
+
+        Uses the explicit override when configured, otherwise derives the default
+        Zitadel keys endpoint from the issuer. This property performs no network
+        I/O: the JWKS document is fetched and cached lazily by the PyJWKClient on
+        first token verification.
+        """
+        if self.OIDC_JWKS_URL:
+            return self.OIDC_JWKS_URL
+        return f"{self.OIDC_ISSUER_URL.rstrip('/')}/keys"
 
     @property
     def expected_issuer(self) -> str:
-        base = self.KEYCLOAK_PUBLIC_URL.rstrip("/")
-        return f"{base}/realms/{self.KEYCLOAK_REALM}"
+        """Return expected JWT issuer URI."""
+        return self.OIDC_ISSUER_URL.rstrip("/")
 
     @property
     def jwks_fallback_urls(self) -> list[str]:
+        """Return the ordered list of candidate JWKS endpoints to try during verification."""
+        base = self.OIDC_ISSUER_URL.rstrip("/")
         urls = [self.jwks_url]
-        for base_url in [
-            "http://keycloak:8080/auth",
-            "http://alfheim_keycloak:8080/auth",
-            "http://api.alfheim.loegien.localhost/auth",
-            "http://localhost:8080/auth",
-        ]:
-            url = f"{base_url.rstrip('/')}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
-            if url not in urls:
-                urls.append(url)
+        for cert_path in (
+            "/keys",
+            "/oauth/v2/keys",
+            "/protocol/openid-connect/certs",
+            "/certs",
+        ):
+            candidate = f"{base}{cert_path}"
+            if candidate not in urls:
+                urls.append(candidate)
         return urls
 
     # OpenTelemetry Configuration

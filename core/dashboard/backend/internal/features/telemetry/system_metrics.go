@@ -50,11 +50,11 @@ func (s *service) getLocalSystemLogs() *LogsResponse {
 		message string
 	}{
 		{-10 * time.Minute, "INFO", "caddy", "Reverse proxy ingress gateway listening on 0.0.0.0:80 [alfheim.loegien.localhost]"},
-		{-8 * time.Minute, "SUCCESS", "keycloak", "Identity realm \"alfheim\" initialized with OIDC discovery enabled"},
+		{-8 * time.Minute, "SUCCESS", "zitadel", "Instance \"Alfheim\" initialized with OIDC discovery enabled"},
 		{-6 * time.Minute, "INFO", "pantry-backend", "FastAPI service connected to PostgreSQL database (pool_size=10)"},
 		{-5 * time.Minute, "INFO", "dashboard-go", "Go Chi HTTP router listening on :8080 (App Catalog ready)"},
 		{-3 * time.Minute, "INFO", "telemetry", "VictoriaStack (VictoriaMetrics + VictoriaLogs + OTel) ingestion active"},
-		{-2 * time.Minute, "SUCCESS", "dashboard-go", "Token validation succeeded for sub=kc-user-oidc"},
+		{-2 * time.Minute, "SUCCESS", "dashboard-go", "Token validation succeeded for sub=zitadel-user-oidc"},
 		{-45 * time.Second, "INFO", "pantry-backend", "GET /api/v1/apps 200 OK (3ms)"},
 		{-20 * time.Second, "INFO", "dashboard-go", "GET /api/v1/profile/me 200 OK (4ms)"},
 		{-5 * time.Second, "SUCCESS", "telemetry", "Heartbeat check: control plane status=healthy load=0.18"},

@@ -42,7 +42,7 @@ export default function RootLayout({
           id="alfheim-runtime-env"
           dangerouslySetInnerHTML={{
             __html: `window.__ALFHEIM_ENV__ = ${JSON.stringify({
-              KEYCLOAK_URL: process.env.KEYCLOAK_PUBLIC_URL || process.env.NEXT_PUBLIC_KEYCLOAK_URL || '',
+              OIDC_ISSUER: process.env.OIDC_ISSUER_URL || process.env.NEXT_PUBLIC_OIDC_ISSUER || '',
               FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.ALFHEIM_BASE_URL || '',
               API_URL: process.env.NEXT_PUBLIC_API_URL || '',
             })};`,

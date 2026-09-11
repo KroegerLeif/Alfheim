@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
 import { AppHeader, resolveFrontendUrl } from "@alfheim/shared";
 import { useSidebar } from "@/app/[locale]/providers";
-import { useKeycloakUser } from "@/lib/useKeycloakUser";
+import { useAuth } from "@/core/auth/AuthContext";
 
 /**
  * Sticky top application bar utilizing the unified @alfheim/shared AppHeader.
@@ -12,14 +12,7 @@ import { useKeycloakUser } from "@/lib/useKeycloakUser";
 export function Header() {
   const tNav = useTranslations("Navigation");
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
-  const user = useKeycloakUser();
-
-  const authUser = user ? {
-    id: user.id,
-    name: user.name,
-    preferred_username: user.username,
-    email: user.email,
-  } : null;
+  const { user, logout } = useAuth();
 
   return (
     <AppHeader
@@ -40,8 +33,8 @@ export function Header() {
           </button>
         ) : undefined
       }
-      user={authUser}
-      onLogout={user.logout}
+      user={user}
+      onLogout={logout}
     />
   );
 }

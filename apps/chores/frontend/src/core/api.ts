@@ -59,18 +59,16 @@ export const choresClient = ky.create({
     afterResponse: [
       async (request, options, response) => {
         if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as unknown as Record<string, { updateToken?: (minValidity?: number) => Promise<boolean>; token?: string }>).__keycloak_instance__;
-          if (keycloak && typeof keycloak.updateToken === "function") {
+          const oidcBridge = window.__alfheim_oidc__;
+          if (oidcBridge && typeof oidcBridge.refresh === "function") {
             try {
-              const refreshed = await keycloak.updateToken(30);
-              if (refreshed && keycloak.token) {
-                sessionStorage.setItem("token_chores-frontend", keycloak.token);
-                sessionStorage.setItem("alfheim_access_token", keycloak.token);
-                request.headers.set("Authorization", `Bearer ${keycloak.token}`);
+              const newToken = await oidcBridge.refresh();
+              if (newToken) {
+                request.headers.set("Authorization", `Bearer ${newToken}`);
                 return ky(request, options);
               }
             } catch (err) {
-              console.warn("Keycloak token refresh failed on 401:", err);
+              console.warn("OIDC token refresh failed on 401:", err);
             }
           }
         }

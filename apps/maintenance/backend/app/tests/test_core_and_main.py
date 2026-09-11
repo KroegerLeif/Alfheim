@@ -19,15 +19,15 @@ from httpx import AsyncClient
 
 def test_settings_properties():
     """Verify JWKS URLs and issuer configurations computed properties."""
-    assert "protocol/openid-connect/certs" in settings.jwks_url
-    assert "realms/alfheim" in settings.expected_issuer
+    assert "/keys" in settings.jwks_url
+    assert settings.expected_issuer == settings.OIDC_ISSUER_URL.rstrip("/")
 
     fallback_urls = settings.jwks_fallback_urls
     assert len(fallback_urls) >= 1
     assert any("localhost" in u for u in fallback_urls)
 
-    with patch.object(settings, "KEYCLOAK_JWKS_URL", "http://custom-jwks:8080/certs"):
-        assert settings.jwks_url == "http://custom-jwks:8080/certs"
+    with patch.object(settings, "OIDC_JWKS_URL", "http://custom-jwks:8080/keys"):
+        assert settings.jwks_url == "http://custom-jwks:8080/keys"
 
 
 def test_core_dependencies_wrappers():

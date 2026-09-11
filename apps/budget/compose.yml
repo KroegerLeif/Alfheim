@@ -10,8 +10,8 @@ services:
         required: false
     environment:
       - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
-      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080/auth}
-      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://api.alfheim.loegien.localhost/auth}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
@@ -40,7 +40,8 @@ services:
       dockerfile: apps/budget/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_BUDGET_API_URL:-http://api.alfheim.loegien.localhost/budget/api/v1}
-        - NEXT_PUBLIC_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-http://api.alfheim.loegien.localhost/auth}
+        - NEXT_PUBLIC_OIDC_ISSUER=${NEXT_PUBLIC_OIDC_ISSUER:-http://api.alfheim.loegien.localhost/auth}
+        - NEXT_PUBLIC_OIDC_CLIENT_ID=${NEXT_PUBLIC_OIDC_CLIENT_ID:-budget-frontend}
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: budget-frontend
     restart: always

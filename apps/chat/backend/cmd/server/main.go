@@ -81,7 +81,7 @@ func run(parentCtx context.Context) error {
 		log.Warn("database schema migration skipped or encountered notice", slog.String("error", err.Error()))
 	}
 
-	// OIDC JWT Authenticator (validates issuer AND audience against Keycloak JWKS).
+	// Generic OIDC Bearer token authenticator (JWKS discovered from the issuer)
 	auth, err := setupAuth(cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
@@ -253,7 +253,7 @@ func buildRouter(
 
 // setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
 func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
+	return middleware.NewAuthenticator(cfg.OIDC.IssuerURL, cfg.OIDC.Audience, log)
 }
 
 // healthHandler reports service and database connectivity status for compose healthchecks.

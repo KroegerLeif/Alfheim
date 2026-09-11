@@ -2,20 +2,13 @@ package profile_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/Nerzal/gocloak/v13"
-
-	"alfheim/dashboard/config"
 	"alfheim/dashboard/internal/features/profile"
-	"alfheim/dashboard/internal/shared/keycloak"
 	"alfheim/dashboard/internal/shared/middleware"
 )
 
@@ -76,7 +69,7 @@ func (m *mockProfileRepository) Update(ctx context.Context, p *profile.Profile) 
 func TestProfileService_JITProvisioningAndSync(t *testing.T) {
 	repo := newMockProfileRepository()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := profile.NewService(repo, nil, logger)
+	svc := profile.NewService(repo, logger)
 	ctx := context.Background()
 
 	claims := &middleware.UserClaims{
@@ -151,14 +144,14 @@ func TestProfileService_JITProvisioningAndSync(t *testing.T) {
 	}
 }
 
-func TestProfileService_SyncAndKeycloakErrors(t *testing.T) {
+func TestProfileService_SyncAndUpdateErrors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	ctx := context.Background()
 
 	t.Run("GetByID unexpected error returns error", func(t *testing.T) {
 		repo := newMockProfileRepository()
 		repo.getErr = errors.New("db connection pool closed")
-		svc := profile.NewService(repo, nil, logger)
+		svc := profile.NewService(repo, logger)
 
 		claims := &middleware.UserClaims{Subject: "user-err"}
 		_, err := svc.SyncProfileFromClaims(ctx, claims)
@@ -174,7 +167,7 @@ func TestProfileService_SyncAndKeycloakErrors(t *testing.T) {
 			Email: "old@example.com",
 		}
 		repo.upsertErr = errors.New("upsert failed")
-		svc := profile.NewService(repo, nil, logger)
+		svc := profile.NewService(repo, logger)
 
 		claims := &middleware.UserClaims{Subject: "user-1", Email: "new@example.com"}
 		_, err := svc.SyncProfileFromClaims(ctx, claims)
@@ -186,7 +179,7 @@ func TestProfileService_SyncAndKeycloakErrors(t *testing.T) {
 	t.Run("Upsert error on JIT provisioning returns error", func(t *testing.T) {
 		repo := newMockProfileRepository()
 		repo.upsertErr = errors.New("upsert failed")
-		svc := profile.NewService(repo, nil, logger)
+		svc := profile.NewService(repo, logger)
 
 		claims := &middleware.UserClaims{Subject: "user-jit-err"}
 		_, err := svc.SyncProfileFromClaims(ctx, claims)
@@ -197,7 +190,7 @@ func TestProfileService_SyncAndKeycloakErrors(t *testing.T) {
 
 	t.Run("UpdateProfile error when profile not found", func(t *testing.T) {
 		repo := newMockProfileRepository()
-		svc := profile.NewService(repo, nil, logger)
+		svc := profile.NewService(repo, logger)
 
 		_, err := svc.UpdateProfile(ctx, "nonexistent", profile.UpdateDTO{FirstName: "A"})
 		if !errors.Is(err, profile.ErrProfileNotFound) {
@@ -209,91 +202,29 @@ func TestProfileService_SyncAndKeycloakErrors(t *testing.T) {
 		repo := newMockProfileRepository()
 		repo.profiles["user-1"] = &profile.Profile{ID: "user-1"}
 		repo.updateErr = errors.New("db update failed")
-		svc := profile.NewService(repo, nil, logger)
+		svc := profile.NewService(repo, logger)
 
 		_, err := svc.UpdateProfile(ctx, "user-1", profile.UpdateDTO{FirstName: "A"})
 		if err == nil {
 			t.Fatal("expected error when repo Update fails, got nil")
 		}
 	})
-}
 
-func TestProfileService_WithKeycloakClient(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	ctx := context.Background()
-
-	// Setup fake Keycloak HTTP server
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/realms/alfheim/protocol/openid-connect/token" {
-			_ = json.NewEncoder(w).Encode(gocloak.JWT{
-				AccessToken: "fake-access-token",
-				ExpiresIn:   3600,
-			})
-			return
-		}
-		if r.URL.Path == "/admin/realms/alfheim/users/user-kc-123" {
-			if r.Method == http.MethodGet {
-				_ = json.NewEncoder(w).Encode(gocloak.User{
-					ID:        gocloak.StringP("user-kc-123"),
-					FirstName: gocloak.StringP("KeycloakFirst"),
-					LastName:  gocloak.StringP("KeycloakLast"),
-					Email:     gocloak.StringP("kc@example.com"),
-				})
-				return
-			}
-			if r.Method == http.MethodPut {
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
-		}
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer ts.Close()
-
-	kcClient := keycloak.NewClient(config.KeycloakConfig{
-		BaseURL:      ts.URL,
-		Realm:        "alfheim",
-		ClientID:     "client",
-		ClientSecret: "secret",
-	}, logger)
-
-	t.Run("JIT provisioning enriches profile from Keycloak API", func(t *testing.T) {
+	t.Run("UpdateProfile succeeds and returns updated entity", func(t *testing.T) {
 		repo := newMockProfileRepository()
-		svc := profile.NewService(repo, kcClient, logger)
+		repo.profiles["user-ok"] = &profile.Profile{ID: "user-ok", FirstName: "Old", LastName: "Name"}
+		svc := profile.NewService(repo, logger)
 
-		claims := &middleware.UserClaims{
-			Subject: "user-kc-123",
-		}
-
-		p, err := svc.SyncProfileFromClaims(ctx, claims)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if p.FirstName != "KeycloakFirst" || p.LastName != "KeycloakLast" || p.Email != "kc@example.com" {
-			t.Errorf("expected Keycloak enriched fields, got: %+v", p)
-		}
-	})
-
-	t.Run("UpdateProfile propagates change to Keycloak API", func(t *testing.T) {
-		repo := newMockProfileRepository()
-		repo.profiles["user-kc-123"] = &profile.Profile{
-			ID:        "user-kc-123",
-			FirstName: "Old",
-			LastName:  "Name",
-		}
-		svc := profile.NewService(repo, kcClient, logger)
-
-		updated, err := svc.UpdateProfile(ctx, "user-kc-123", profile.UpdateDTO{
+		updated, err := svc.UpdateProfile(ctx, "user-ok", profile.UpdateDTO{
 			FirstName: "NewFirst",
 			LastName:  "NewLast",
-			AvatarURL: "https://avatar.com/test.png",
+			AvatarURL: "https://avatar.example/test.png",
 		})
 		if err != nil {
 			t.Fatalf("unexpected error updating profile: %v", err)
 		}
-		if updated.FirstName != "NewFirst" {
-			t.Errorf("expected NewFirst, got %s", updated.FirstName)
+		if updated.FirstName != "NewFirst" || updated.LastName != "NewLast" {
+			t.Errorf("expected updated names, got %+v", updated)
 		}
 	})
 }

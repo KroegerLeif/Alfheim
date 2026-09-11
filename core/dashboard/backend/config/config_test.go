@@ -14,12 +14,8 @@ func TestLoad_Defaults(t *testing.T) {
 	t.Setenv("DB_MIN_CONNS", "")
 	t.Setenv("DB_MAX_CONN_LIFETIME_MINUTES", "")
 	t.Setenv("MIGRATIONS_DIR", "")
-	t.Setenv("KEYCLOAK_BASE_URL", "")
-	t.Setenv("KEYCLOAK_REALM", "")
-	t.Setenv("KEYCLOAK_CLIENT_ID", "")
-	t.Setenv("KEYCLOAK_CLIENT_SECRET", "")
-	t.Setenv("KEYCLOAK_JWKS_URL", "")
-	t.Setenv("KEYCLOAK_PUBLIC_ISSUER", "")
+	t.Setenv("OIDC_ISSUER_URL", "")
+	t.Setenv("OIDC_AUDIENCE", "")
 	t.Setenv("STACK_APPS_PATH", "")
 
 	cfg, err := Load()
@@ -45,8 +41,11 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Database.MigrationsDir != "migrations" {
 		t.Errorf("expected MigrationsDir migrations, got %s", cfg.Database.MigrationsDir)
 	}
-	if cfg.Keycloak.Realm != "alfheim" {
-		t.Errorf("expected Realm alfheim, got %s", cfg.Keycloak.Realm)
+	if cfg.OIDC.Audience != "alfheim" {
+		t.Errorf("expected OIDC Audience alfheim, got %s", cfg.OIDC.Audience)
+	}
+	if cfg.OIDC.IssuerURL != "http://localhost:8080" {
+		t.Errorf("expected default OIDC IssuerURL http://localhost:8080, got %s", cfg.OIDC.IssuerURL)
 	}
 	if cfg.StackAppsPath != "deploy/stack-apps.yaml" {
 		t.Errorf("expected StackAppsPath deploy/stack-apps.yaml, got %s", cfg.StackAppsPath)
@@ -61,12 +60,8 @@ func TestLoad_CustomEnv(t *testing.T) {
 	t.Setenv("DB_MIN_CONNS", "10")
 	t.Setenv("DB_MAX_CONN_LIFETIME_MINUTES", "15")
 	t.Setenv("MIGRATIONS_DIR", "/custom/migrations")
-	t.Setenv("KEYCLOAK_BASE_URL", "http://auth.example.com")
-	t.Setenv("KEYCLOAK_REALM", "custom-realm")
-	t.Setenv("KEYCLOAK_CLIENT_ID", "custom-client")
-	t.Setenv("KEYCLOAK_CLIENT_SECRET", "secret-key")
-	t.Setenv("KEYCLOAK_JWKS_URL", "http://auth.example.com/certs")
-	t.Setenv("KEYCLOAK_PUBLIC_ISSUER", "http://auth.example.com/issuer")
+	t.Setenv("OIDC_ISSUER_URL", "https://auth.example.com/")
+	t.Setenv("OIDC_AUDIENCE", "custom-audience")
 	t.Setenv("STACK_APPS_PATH", "/custom/stack-apps.yaml")
 
 	cfg, err := Load()
@@ -95,17 +90,11 @@ func TestLoad_CustomEnv(t *testing.T) {
 	if cfg.Database.MigrationsDir != "/custom/migrations" {
 		t.Errorf("expected MigrationsDir /custom/migrations, got %s", cfg.Database.MigrationsDir)
 	}
-	if cfg.Keycloak.ClientID != "custom-client" {
-		t.Errorf("expected ClientID custom-client, got %s", cfg.Keycloak.ClientID)
+	if cfg.OIDC.IssuerURL != "https://auth.example.com" {
+		t.Errorf("expected OIDC IssuerURL https://auth.example.com (trailing slash trimmed), got %s", cfg.OIDC.IssuerURL)
 	}
-	if cfg.Keycloak.ClientSecret != "secret-key" {
-		t.Errorf("expected ClientSecret secret-key, got %s", cfg.Keycloak.ClientSecret)
-	}
-	if cfg.Keycloak.JWKSURL != "http://auth.example.com/certs" {
-		t.Errorf("expected JWKSURL http://auth.example.com/certs, got %s", cfg.Keycloak.JWKSURL)
-	}
-	if cfg.Keycloak.ExpectedIssuer != "http://auth.example.com/issuer" {
-		t.Errorf("expected ExpectedIssuer http://auth.example.com/issuer, got %s", cfg.Keycloak.ExpectedIssuer)
+	if cfg.OIDC.Audience != "custom-audience" {
+		t.Errorf("expected OIDC Audience custom-audience, got %s", cfg.OIDC.Audience)
 	}
 	if cfg.StackAppsPath != "/custom/stack-apps.yaml" {
 		t.Errorf("expected StackAppsPath /custom/stack-apps.yaml, got %s", cfg.StackAppsPath)
