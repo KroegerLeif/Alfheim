@@ -16,14 +16,14 @@ import {
   useSyncToPantry, useDeleteShoppingItem, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
-import { useKeycloakUser } from "@/lib/useKeycloakUser";
+import { useAuth } from "@/core/auth/AuthContext";
 import { cn } from "@/lib/utils";
 
 export default function ShoppingDashboard() {
   const t = useTranslations("Checklist");
   const navT = useTranslations("Navigation");
   const { activeListId, setActiveListId } = useActiveList();
-  const user = useKeycloakUser();
+  const { user } = useAuth();
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "add">("list");
@@ -125,7 +125,7 @@ export default function ShoppingDashboard() {
 
       <div className="relative z-10 flex flex-col h-full gap-3.5 min-h-0">
         <DashboardHeader
-          activeList={activeList} username={user.username} households={households}
+          activeList={activeList} username={user?.preferred_username} households={households}
           checkedCount={items.filter((i) => i.is_completed).length} totalCount={items.length}
           onSync={handleSyncToPantry} onClearCompleted={handleClearCompleted} isSyncPending={syncToPantry.isPending}
         />

@@ -23,7 +23,6 @@ import (
 	"alfheim/dashboard/internal/features/profile"
 	"alfheim/dashboard/internal/features/telemetry"
 	"alfheim/dashboard/internal/shared/db"
-	"alfheim/dashboard/internal/shared/keycloak"
 	"alfheim/dashboard/internal/shared/logger"
 	"alfheim/dashboard/internal/shared/middleware"
 )
@@ -69,15 +68,14 @@ func run(parentCtx context.Context) error {
 		log.Warn("database schema migration skipped or encountered notice", slog.String("error", err.Error()))
 	}
 
-	// Keycloak Admin client & Authenticator
-	kcClient := keycloak.NewClient(cfg.Keycloak, log)
+	// Generic OIDC Bearer token authenticator (JWKS discovered from the issuer)
 	auth, err := setupAuth(cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth, kcClient, cfg.StackAppsPath)
+	r := buildRouter(log, dbClient, auth, cfg.StackAppsPath)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -132,13 +130,13 @@ func run(parentCtx context.Context) error {
 	return nil
 }
 
-// setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
+// setupAuthenticator initializes the generic OIDC JWT authenticator from application configuration.
 func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.Keycloak.JWKSURL, cfg.Keycloak.ExpectedIssuer, log)
+	return middleware.NewAuthenticator(cfg.OIDC.IssuerURL, cfg.OIDC.Audience, log)
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, kcClient *keycloak.Client, stackAppsPath string) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, stackAppsPath string) http.Handler {
 	// Initialize Repositories
 	var pool = dbClient.Pool
 	profileRepo := profile.NewRepository(pool)
@@ -150,7 +148,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	stackLoader := apps.NewStackAppsLoader(stackAppsPath, log)
 
 	// Initialize Services
-	profileService := profile.NewService(profileRepo, kcClient, log)
+	profileService := profile.NewService(profileRepo, log)
 	householdService := household.NewService(householdRepo, log)
 	appsService := apps.NewService(appsRepo, stackLoader, log)
 	contactService := contact.NewService(contactRepo, householdRepo, log)

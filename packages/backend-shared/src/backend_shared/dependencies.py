@@ -108,6 +108,13 @@ def is_mock_auth_allowed(settings: Any = None) -> bool:
             )
             return False
 
+        if not _is_safe_test_url(getattr(settings, "OIDC_ISSUER_URL", None)):
+            logger.error(
+                "Mock auth rejected: non-localhost/unsafe OIDC_ISSUER_URL detected: %s",
+                getattr(settings, "OIDC_ISSUER_URL", None),
+            )
+            return False
+
     return True
 
 
@@ -155,6 +162,9 @@ def decode_keycloak_token(token: str, settings: Any = None) -> dict:
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=f"invalid or expired token: {last_error}",
     )
+
+
+decode_token = decode_keycloak_token
 
 
 async def get_current_user_and_home(request: Request, settings: Any = None) -> UserHomeContext:

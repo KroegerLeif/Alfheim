@@ -53,7 +53,7 @@ export function InfraStatusWidget() {
             </div>
           </div>
 
-          {/* Keycloak Card */}
+          {/* Zitadel Card */}
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex flex-col justify-between gap-3">
             <div>
               <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.keycloak_sso')}</div>

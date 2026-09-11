@@ -25,5 +25,9 @@ def decode_keycloak_token(token: str) -> dict[str, Any]:
     return _deps.decode_keycloak_token(token, settings=settings)
 
 
+def decode_oidc_token(token: str) -> dict[str, Any]:
+    return _deps.decode_keycloak_token(token, settings=settings)
+
+
 async def get_current_user_and_home(request: Request) -> UserHomeContext:
     return await _deps.get_current_user_and_home(request, settings=settings)

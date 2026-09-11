@@ -18,7 +18,7 @@ import (
 )
 
 // withClaims returns a fake auth middleware that injects fixed UserClaims into the
-// request context, standing in for the real Keycloak JWT authenticator in tests.
+// request context, standing in for the real OIDC JWT authenticator in tests.
 func withClaims(claims *middleware.UserClaims) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

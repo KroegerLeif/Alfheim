@@ -53,7 +53,8 @@
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgresql+asyncpg://chores_user:postgres@postgres-core:5432/alfheim_chores` | Async PostgreSQL connection string |
-| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Keycloak backend authentication URL |
+| `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | Generic OIDC authentication issuer URL |
+| `OIDC_AUDIENCE` | `alfheim` | Expected OIDC audience |
 | `NEXT_PUBLIC_CHORES_API_URL` | `http://api.alfheim.loegien.localhost/api/v1/chores` | Browser API gateway endpoint |
 
 ---

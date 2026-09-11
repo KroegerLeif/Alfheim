@@ -1,10 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState, useEffect, useRef } from "react";
-import Keycloak from "keycloak-js";
+import { ReactNode, useState } from "react";
 import { AuthContext } from "@/core/authContext";
-import { UserIdentity, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
+import { useTranslation } from "@alfheim/shared";
+import { useOidcAuth } from "@/core/auth/useOidcAuth";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -21,123 +21,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
   );
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [user, setUser] = useState<UserIdentity | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [keycloakInstance, setKeycloakInstance] = useState<Keycloak | null>(null);
-  const initializedRef = useRef(false);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (typeof window === "undefined") return;
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-
-      const keycloak = new Keycloak({
-        url: resolveKeycloakUrl(),
-        realm: "alfheim",
-        clientId: "chores-frontend",
-      });
-
-      setKeycloakInstance(keycloak);
-      (window as unknown as Record<string, unknown>).__keycloak_instance__ = keycloak;
-
-      const cleanQueryParams = () => {
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          let hasParams = false;
-          ["state", "session_state", "code", "iss"].forEach((param) => {
-            if (url.searchParams.has(param)) {
-              url.searchParams.delete(param);
-              hasParams = true;
-            }
-          });
-          if (hasParams) {
-            window.history.replaceState({}, document.title, url.pathname + url.search);
-          }
-        }
-      };
-
-      keycloak
-        .init({
-          onLoad: "login-required",
-          checkLoginIframe: false,
-          pkceMethod: "S256",
-          responseMode: "query",
-        })
-        .then((authenticated) => {
-          cleanQueryParams();
-          if (!isMounted) return;
-          if (authenticated && keycloak.token) {
-            setIsAuthenticated(true);
-            const currentToken = keycloak.token || "";
-            setToken(currentToken);
-            sessionStorage.setItem("token_chores-frontend", currentToken);
-            sessionStorage.setItem("alfheim_access_token", currentToken);
-
-            if (keycloak.tokenParsed) {
-              const parsed = keycloak.tokenParsed as Record<string, unknown>;
-              const name = typeof parsed.name === "string" ? parsed.name : (typeof parsed.preferred_username === "string" ? parsed.preferred_username : "User");
-              setUser({
-                name,
-                preferred_username: typeof parsed.preferred_username === "string" ? parsed.preferred_username : undefined,
-                email: typeof parsed.email === "string" ? parsed.email : undefined,
-                given_name: typeof parsed.given_name === "string" ? parsed.given_name : undefined,
-                family_name: typeof parsed.family_name === "string" ? parsed.family_name : undefined,
-              });
-            }
-
-            refreshIntervalRef.current = setInterval(() => {
-              keycloak
-                .updateToken(70)
-                .then((refreshed) => {
-                  if (refreshed && keycloak.token) {
-                    const refreshedToken = keycloak.token || "";
-                    setToken(refreshedToken);
-                    sessionStorage.setItem("token_chores-frontend", refreshedToken);
-                    sessionStorage.setItem("alfheim_access_token", refreshedToken);
-                  }
-                })
-                .catch(() => {
-                  console.error("Failed to refresh Keycloak token");
-                });
-            }, 60000);
-          } else {
-            setIsAuthenticated(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Keycloak initialization failed", err);
-          cleanQueryParams();
-          if (isMounted) {
-            setAuthError("Failed to connect to Keycloak auth service.");
-          }
-        });
-    }
-
-    return () => {
-      isMounted = false;
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
-    };
-  }, []);
-
-  const handleLogout = () => {
-    if (keycloakInstance) {
-      sessionStorage.removeItem("token_chores-frontend");
-      sessionStorage.removeItem("alfheim_access_token");
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      keycloakInstance.logout({
-        redirectUri: window.location.origin + "/chores/de",
-      });
-    }
-  };
+  const { user, token, isAuthenticated, isLoading, authError, logout } = useOidcAuth();
 
   if (authError) {
     return (
@@ -159,7 +43,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="text-center space-y-4">
@@ -171,7 +55,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, logout: handleLogout }}>
+    <AuthContext.Provider value={{ user, token, logout }}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

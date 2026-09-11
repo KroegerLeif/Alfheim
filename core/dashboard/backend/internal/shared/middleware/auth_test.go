@@ -22,6 +22,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// generateJWKSServer starts an httptest server that emulates a minimal OIDC
+// provider: it serves an OIDC discovery document at
+// /.well-known/openid-configuration and the matching JWKS at /jwks.
 func generateJWKSServer(t *testing.T, keyID string) (*rsa.PrivateKey, *httptest.Server) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -47,10 +50,20 @@ func generateJWKSServer(t *testing.T, keyID string) (*rsa.PrivateKey, *httptest.
 		},
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	server := httptest.NewUnstartedServer(mux)
+	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"issuer":   server.URL,
+			"jwks_uri": server.URL + "/jwks",
+		})
+	})
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(jwksResponse)
-	}))
+	})
+	server.Start()
 
 	return privateKey, server
 }
@@ -83,29 +96,32 @@ func TestGetUserClaims(t *testing.T) {
 func TestNewAuthenticator(t *testing.T) {
 	discardLog := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	t.Run("returns error on invalid jwks url", func(t *testing.T) {
-		auth, err := NewAuthenticator("http://invalid.localhost.test:99999/jwks", "test-issuer", discardLog)
+	t.Run("returns error when issuer discovery is unreachable", func(t *testing.T) {
+		auth, err := NewAuthenticator("http://invalid.localhost.test:99999", "alfheim", discardLog)
 		if err == nil {
-			t.Errorf("expected error initializing authenticator with invalid url, got nil")
+			t.Errorf("expected error initializing authenticator with unreachable issuer, got nil")
 		}
 		if auth != nil {
 			t.Errorf("expected nil authenticator, got %v", auth)
 		}
 	})
 
-	t.Run("successfully constructs authenticator", func(t *testing.T) {
+	t.Run("successfully constructs authenticator via discovery", func(t *testing.T) {
 		_, server := generateJWKSServer(t, "key-1")
 		defer server.Close()
 
-		auth, err := NewAuthenticator(server.URL, "", discardLog)
+		auth, err := NewAuthenticator(server.URL+"/", "alfheim", discardLog)
 		if err != nil {
 			t.Fatalf("expected no error constructing authenticator, got %v", err)
 		}
 		if auth == nil {
 			t.Fatalf("expected authenticator instance, got nil")
 		}
-		if auth.expectedIssuer != "http://api.alfheim.loegien.localhost/auth/realms/alfheim" {
-			t.Errorf("expected default issuer, got %s", auth.expectedIssuer)
+		if auth.expectedIssuer != server.URL {
+			t.Errorf("expected issuer %s (trailing slash trimmed), got %s", server.URL, auth.expectedIssuer)
+		}
+		if auth.expectedAudience != "alfheim" {
+			t.Errorf("expected audience alfheim, got %s", auth.expectedAudience)
 		}
 	})
 }
@@ -115,10 +131,11 @@ func TestAuthenticateMiddleware(t *testing.T) {
 	privKey, server := generateJWKSServer(t, keyID)
 	defer server.Close()
 
-	issuer := "http://test-issuer.local"
+	issuer := server.URL
+	audience := "alfheim"
 	discardLog := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	auth, err := NewAuthenticator(server.URL, issuer, discardLog)
+	auth, err := NewAuthenticator(server.URL, audience, discardLog)
 	if err != nil {
 		t.Fatalf("failed to create authenticator: %v", err)
 	}
@@ -182,6 +199,19 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			expectedSubstr: "invalid or expired token",
 		},
 		{
+			name:       "rejects token with wrong audience",
+			authHeader: "GENERATE",
+			tokenClaims: jwt.MapClaims{
+				"sub": "user-wrong-aud",
+				"iss": issuer,
+				"aud": "some-other-service",
+				"exp": time.Now().Add(time.Hour).Unix(),
+			},
+			signKey:        privKey,
+			expectedStatus: http.StatusUnauthorized,
+			expectedSubstr: "invalid or expired token",
+		},
+		{
 			name:       "valid token with sub, email, household_id and roles",
 			authHeader: "GENERATE",
 			tokenClaims: jwt.MapClaims{
@@ -191,6 +221,7 @@ func TestAuthenticateMiddleware(t *testing.T) {
 				"given_name":         "User",
 				"family_name":        "FortyTwo",
 				"iss":                issuer,
+				"aud":                audience,
 				"exp":                time.Now().Add(time.Hour).Unix(),
 				"household_id":       "hh-100",
 				"realm_access": map[string]interface{}{
@@ -207,6 +238,7 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			tokenClaims: jwt.MapClaims{
 				"sub":                 "user-active-hh",
 				"iss":                 issuer,
+				"aud":                 audience,
 				"exp":                 time.Now().Add(time.Hour).Unix(),
 				"active_household_id": "hh-active-200",
 			},
@@ -221,6 +253,7 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			tokenClaims: jwt.MapClaims{
 				"sub": "user-header-hh",
 				"iss": issuer,
+				"aud": audience,
 				"exp": time.Now().Add(time.Hour).Unix(),
 			},
 			signKey:        privKey,

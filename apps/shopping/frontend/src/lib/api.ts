@@ -48,6 +48,47 @@ const handleResponseError = async (response: Response) => {
   } as ApiError;
 };
 
+const beforeRequestHook = (request: Request) => {
+  if (typeof window !== "undefined") {
+    const token = sessionStorage.getItem("token_shopping-frontend") || sessionStorage.getItem("alfheim_access_token");
+    if (token) {
+      request.headers.set("Authorization", `Bearer ${token}`);
+    }
+    const activeHhId = localStorage.getItem("alfheim_active_household_id");
+    if (activeHhId) {
+      request.headers.set("X-Household-ID", activeHhId);
+    }
+  }
+};
+
+/**
+ * Retries a request once through the OIDC refresh bridge after a 401, otherwise
+ * normalizes the error via handleResponseError.
+ */
+const afterResponseHook = async (
+  request: Request,
+  options: Parameters<typeof ky>[1],
+  response: Response
+) => {
+  if (response.status === 401 && typeof window !== "undefined") {
+    const oidcBridge = window.__alfheim_oidc__;
+    if (oidcBridge && typeof oidcBridge.refresh === "function") {
+      try {
+        const newToken = await oidcBridge.refresh();
+        if (newToken) {
+          request.headers.set("Authorization", `Bearer ${newToken}`);
+          return ky(request, options);
+        }
+      } catch (err) {
+        console.warn("OIDC token refresh failed on 401:", err);
+      }
+    }
+  }
+  if (!response.ok) {
+    await handleResponseError(response);
+  }
+};
+
 // --- Shopping Backend API Client ---
 export const shoppingClient = ky.create({
   prefixUrl: SHOPPING_API_URL,
@@ -56,49 +97,8 @@ export const shoppingClient = ky.create({
     "Content-Type": "application/json",
   },
   hooks: {
-    beforeRequest: [
-      (request) => {
-        if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_shopping-frontend") || sessionStorage.getItem("alfheim_access_token");
-          if (token) {
-            request.headers.set("Authorization", `Bearer ${token}`);
-          }
-          const activeHhId = localStorage.getItem("alfheim_active_household_id");
-          if (activeHhId) {
-            request.headers.set("X-Household-ID", activeHhId);
-          }
-        }
-      },
-    ],
-    afterResponse: [
-      async (request, options, response) => {
-        if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as unknown as {
-            __keycloak_instance__?: {
-              updateToken: (minValidity: number) => Promise<boolean>;
-              token?: string;
-              login?: () => void;
-            };
-          }).__keycloak_instance__;
-          if (keycloak && typeof keycloak.updateToken === "function") {
-            try {
-              const refreshed = await keycloak.updateToken(30);
-              if (refreshed && keycloak.token) {
-                sessionStorage.setItem("token_shopping-frontend", keycloak.token);
-              }
-            } catch (err) {
-              console.warn("Keycloak token refresh failed on 401:", err);
-              if (typeof keycloak.login === "function") {
-                keycloak.login();
-              }
-            }
-          }
-          await handleResponseError(response);
-        } else if (!response.ok) {
-          await handleResponseError(response);
-        }
-      },
-    ],
+    beforeRequest: [beforeRequestHook],
+    afterResponse: [afterResponseHook],
   },
 });
 
@@ -110,48 +110,7 @@ export const pantryClient = ky.create({
     "Content-Type": "application/json",
   },
   hooks: {
-    beforeRequest: [
-      (request) => {
-        if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_shopping-frontend") || sessionStorage.getItem("alfheim_access_token");
-          if (token) {
-            request.headers.set("Authorization", `Bearer ${token}`);
-          }
-          const activeHhId = localStorage.getItem("alfheim_active_household_id");
-          if (activeHhId) {
-            request.headers.set("X-Household-ID", activeHhId);
-          }
-        }
-      },
-    ],
-    afterResponse: [
-      async (request, options, response) => {
-        if (response.status === 401 && typeof window !== "undefined") {
-          const keycloak = (window as unknown as {
-            __keycloak_instance__?: {
-              updateToken: (minValidity: number) => Promise<boolean>;
-              token?: string;
-              login?: () => void;
-            };
-          }).__keycloak_instance__;
-          if (keycloak && typeof keycloak.updateToken === "function") {
-            try {
-              const refreshed = await keycloak.updateToken(30);
-              if (refreshed && keycloak.token) {
-                sessionStorage.setItem("token_shopping-frontend", keycloak.token);
-              }
-            } catch (err) {
-              console.warn("Keycloak token refresh failed on 401:", err);
-              if (typeof keycloak.login === "function") {
-                keycloak.login();
-              }
-            }
-          }
-          await handleResponseError(response);
-        } else if (!response.ok) {
-          await handleResponseError(response);
-        }
-      },
-    ],
+    beforeRequest: [beforeRequestHook],
+    afterResponse: [afterResponseHook],
   },
 });

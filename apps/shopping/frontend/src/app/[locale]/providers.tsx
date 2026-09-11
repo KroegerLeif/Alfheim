@@ -1,9 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider as SharedThemeProvider, useTranslation, resolveKeycloakUrl } from "@alfheim/shared";
-import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
-import Keycloak from "keycloak-js";
+import { ThemeProvider as SharedThemeProvider, useTranslation } from "@alfheim/shared";
+import { ReactNode, useState, createContext, useContext } from "react";
+import { AuthContext } from "@/core/auth/AuthContext";
+import { useOidcAuth } from "@/core/auth/useOidcAuth";
 
 export const SidebarContext = createContext<{
   isSidebarOpen: boolean;
@@ -40,98 +41,10 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
   );
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeListId, setActiveListId] = useState<string | null>(null);
-  const initializedRef = useRef(false);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    if (typeof window === "undefined") return;
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-
-      const keycloak = new Keycloak({
-        url: resolveKeycloakUrl(),
-        realm: "alfheim",
-        clientId: "shopping-frontend",
-      });
-
-      const cleanQueryParams = () => {
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          let hasParams = false;
-          ["state", "session_state", "code", "iss"].forEach((param) => {
-            if (url.searchParams.has(param)) {
-              url.searchParams.delete(param);
-              hasParams = true;
-            }
-          });
-          if (hasParams) {
-            window.history.replaceState({}, document.title, url.pathname + url.search);
-          }
-        }
-      };
-
-      keycloak
-        .init({
-          onLoad: "login-required",
-          checkLoginIframe: false,
-          pkceMethod: "S256",
-          responseMode: "query",
-        })
-        .then((authenticated) => {
-          cleanQueryParams();
-          if (!isMounted) return;
-          if (authenticated && keycloak.token) {
-            setIsAuthenticated(true);
-            (window as any).__keycloak_instance__ = keycloak;
-            sessionStorage.setItem("token_shopping-frontend", keycloak.token || "");
-            sessionStorage.setItem("alfheim_access_token", keycloak.token || "");
-
-            // Set up token auto-refresh
-            refreshIntervalRef.current = setInterval(() => {
-              keycloak
-                .updateToken(70)
-                .then((refreshed) => {
-                  if (refreshed && keycloak.token) {
-                    sessionStorage.setItem(
-                      "token_shopping-frontend",
-                      keycloak.token || ""
-                    );
-                    sessionStorage.setItem(
-                      "alfheim_access_token",
-                      keycloak.token || ""
-                    );
-                  }
-                })
-                .catch(() => {
-                  console.error("Failed to refresh Keycloak token");
-                });
-            }, 60000);
-          } else {
-            setIsAuthenticated(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Keycloak initialization failed", err);
-          cleanQueryParams();
-          if (isMounted) {
-            setAuthError("Failed to connect to Keycloak auth service.");
-          }
-        });
-    }
-
-    return () => {
-      isMounted = false;
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
-    };
-  }, []);
+  const { user, token, isAuthenticated, isLoading, authError, logout } = useOidcAuth();
 
   if (authError) {
     return (
@@ -153,7 +66,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
@@ -165,14 +78,16 @@ export default function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
-        <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-          <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
-            {children}
-          </ActiveListContext.Provider>
-        </SidebarContext.Provider>
-      </SharedThemeProvider>
-    </QueryClientProvider>
+    <AuthContext.Provider value={{ user, token, logout }}>
+      <QueryClientProvider client={queryClient}>
+        <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
+          <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
+            <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
+              {children}
+            </ActiveListContext.Provider>
+          </SidebarContext.Provider>
+        </SharedThemeProvider>
+      </QueryClientProvider>
+    </AuthContext.Provider>
   );
 }

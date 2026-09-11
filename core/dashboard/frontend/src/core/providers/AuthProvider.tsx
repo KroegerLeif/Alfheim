@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useKeycloakAuth } from '../hooks/useKeycloakAuth';
+import { useOidcAuth } from '../auth/useOidcAuth';
 
 export interface UserIdentityClaims {
   sub: string;
@@ -32,19 +32,20 @@ let inMemoryToken: string | null = null;
 
 export function getInMemoryToken(): string | null {
   if (inMemoryToken) return inMemoryToken;
-  if (typeof window !== "undefined") {
-    return sessionStorage.getItem("token_dashboard-frontend");
+  if (typeof window !== 'undefined') {
+    return sessionStorage.getItem('token_dashboard-frontend');
   }
   return null;
 }
 
 export function setInMemoryToken(token: string | null) {
   inMemoryToken = token;
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     if (token) {
-      sessionStorage.setItem("token_dashboard-frontend", token);
+      sessionStorage.setItem('token_dashboard-frontend', token);
     } else {
-      sessionStorage.removeItem("token_dashboard-frontend");
+      sessionStorage.removeItem('token_dashboard-frontend');
+      sessionStorage.removeItem('alfheim_access_token');
     }
   }
 }
@@ -69,28 +70,7 @@ export function parseInMemoryTokenClaims(): UserIdentityClaims | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const {
-    user,
-    token,
-    isAuthenticated,
-    isLoading,
-    keycloakInstance,
-    setUser,
-    setToken,
-    setIsAuthenticated,
-  } = useKeycloakAuth();
-
-  const logout = () => {
-    inMemoryToken = null;
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    if (keycloakInstance) {
-      keycloakInstance.logout({
-        redirectUri: typeof window !== 'undefined' ? window.location.origin : undefined,
-      });
-    }
-  };
+  const { user, token, isAuthenticated, isLoading, logout } = useOidcAuth();
 
   if (isLoading) {
     return (
@@ -98,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <div className="text-center space-y-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--primary-main)] border-t-transparent mx-auto"></div>
           <p className="text-sm font-mono tracking-wide text-[var(--text-muted)]">
-            Authenticating session with Keycloak OIDC...
+            Authenticating session via OIDC...
           </p>
         </div>
       </div>

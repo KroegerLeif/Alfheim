@@ -26,12 +26,6 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const authUser = user ? {
-    name: user.name,
-    preferred_username: user.username,
-    email: user.email,
-  } : null;
-
   const titleMap: Record<NavOption, string> = {
     devices: t("nav.deviceInventory"),
     maintenance: t("nav.maintenanceWork"),
@@ -60,7 +54,7 @@ export function Header() {
       brandSubtitle={titleMap[activeNav] || "Device & Service Registry"}
       showBackToDashboard={true}
       backToDashboardHref={resolveFrontendUrl()}
-      user={authUser}
+      user={user}
       onLogout={logout}
       notificationSlot={
         <div className="relative" ref={dropdownRef}>

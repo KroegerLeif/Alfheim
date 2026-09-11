@@ -1,4 +1,4 @@
-// Package profile handles user profile domain entities, persistence, and Keycloak synchronization.
+// Package profile handles user profile domain entities, persistence, and OIDC claim synchronization.
 package profile
 
 import "time"
