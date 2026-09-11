@@ -6,7 +6,7 @@ import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
-import { useKeycloakUser } from "@/lib/useKeycloakUser";
+import { useAuth } from "@/core/auth/AuthContext";
 import { Home, User } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ export function Sidebar() {
   const t = useTranslations("Navigation");
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const { activeListId, setActiveListId } = useActiveList();
-  const user = useKeycloakUser();
+  const { user } = useAuth();
 
   const { data: listsData, isLoading } = useShoppingLists();
   const lists = useMemo(() => listsData ?? [], [listsData]);
@@ -155,7 +155,7 @@ export function Sidebar() {
                 isActive={activeListId === (personalList as ShoppingList).id}
                 onClick={() => handleSelectPersonalOrCustomList(personalList as ShoppingList)}
                 icon={<User className={cn("h-4 w-4 shrink-0 transition-colors", activeListId === (personalList as ShoppingList).id ? "text-[var(--accent-cyan)]" : "text-[var(--text-muted)]")} />}
-                label={user.username && user.username !== "User" ? t("personalList", { username: user.username }) : t("personal_list_fallback")}
+                label={user?.preferred_username ? t("personalList", { username: user.preferred_username }) : t("personal_list_fallback")}
                 completedCount={((personalList as ShoppingList).items ?? []).filter((i) => i.is_completed).length}
                 totalCount={((personalList as ShoppingList).items ?? []).length}
               />

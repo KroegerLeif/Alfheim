@@ -1,7 +1,7 @@
-from typing import Any
+import json
 import logging
 import urllib.request
-import json
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)

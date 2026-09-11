@@ -19,9 +19,9 @@ export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingError
 
   const handleLogin = () => {
     if (typeof window !== "undefined") {
-      const keycloak = (window as Window & { __keycloak_instance__?: { login: () => void } }).__keycloak_instance__;
-      if (keycloak && typeof keycloak.login === "function") {
-        keycloak.login();
+      const oidcBridge = window.__alfheim_oidc__;
+      if (oidcBridge && typeof oidcBridge.login === "function") {
+        oidcBridge.login();
         return;
       }
       window.location.reload();

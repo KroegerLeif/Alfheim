@@ -7,7 +7,7 @@ import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,
 } from "../services/shoppingListService";
-import { useKeycloakUser } from "@/lib/useKeycloakUser";
+import { useAuth } from "@/core/auth/AuthContext";
 import type { ShoppingList } from "../types";
 import { ListTab } from "./ListTab";
 import { ListCreateForm } from "./ListCreateForm";
@@ -33,7 +33,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
   const reorderLists = useReorderShoppingLists();
-  const user = useKeycloakUser();
+  const { user } = useAuth();
   const { data: householdsData } = useHouseholds();
   const households = useMemo(() => householdsData ?? [], [householdsData]);
 
@@ -134,7 +134,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
             return (
               <ListTab
                 key={list.id} list={list} isActive={isActive} isProtected={isProtected}
-                canDelete={canDelete} isDragging={isDragging} username={user.username}
+                canDelete={canDelete} isDragging={isDragging} username={user?.preferred_username}
                 onSelect={() => handleSelect(list)}
                 onDelete={() => {
                   deleteList.mutate(list.id, {

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
 import { LayoutProvider } from "@/shared/layout/LayoutContext";
 import { AuthContext } from "@/core/auth/AuthContext";
-import { useMaintenanceKeycloak } from "@/core/auth/useMaintenanceKeycloak";
+import { useOidcAuth } from "@/core/auth/useOidcAuth";
 import { useTranslation } from "@alfheim/shared";
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -22,7 +22,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
   );
 
-  const { isAuthenticated, authError, user, token, handleLogout } = useMaintenanceKeycloak();
+  const { user, token, isAuthenticated, isLoading, authError, logout } = useOidcAuth();
 
   if (authError) {
     return (
@@ -44,7 +44,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[var(--surface-canvas)] text-[var(--text-main)]">
         <div className="text-center space-y-4">
@@ -56,7 +56,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, logout: handleLogout }}>
+    <AuthContext.Provider value={{ user, token, logout }}>
       <QueryClientProvider client={queryClient}>
         <LayoutProvider>{children}</LayoutProvider>
       </QueryClientProvider>
