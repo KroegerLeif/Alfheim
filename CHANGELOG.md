@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `websites/docs` renamed to `websites/landing` (package `@alfheim/landing`), which frees the `docs` package name and reflects that it is the marketing landing page. It gains a `/docs` navigation link.
 - `deploy-docs.yml` builds the landing page and the portal, merges the portal into `dist/docs/`, and uploads one Pages artifact. Node moves from 20 to 22 for Astro 7.
 - Documentation, component READMEs and the landing page now describe Zitadel rather than Keycloak, completing the documentation side of ADR 0003.
+- `secrets-hardening.md` rewritten from a dated readiness audit into a timeless how-to guide. Its remaining checklist moved to the issue tracker, following the same reasoning as the `audit.md` removal.
 - The Caddy ingress gateway is now a custom image built from `infrastructure/caddy/Dockerfile` instead of the upstream `caddy:2-alpine`, which ships no ACME DNS provider modules.
 - Root `README.md` quickstart now points at the new root `install.sh`.
 - Migrated `INSTALL.md` to `docs/en/how-to/homelab-deployment.md`.

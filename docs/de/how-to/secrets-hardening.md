@@ -1,85 +1,145 @@
 ---
-title: "Secrets Hardening & Deployment-Reife"
-description: "Betriebsleitfaden und Reifegrad-Audit für das Alfheim-Monorepo im Vorfeld des Release v0.1.0 Beta."
+title: "Secrets härten"
+description: "Die Secrets einer Alfheim-Instanz erzeugen, ablegen und rotieren — und prüfen, dass kein Entwicklungs-Fallback in die Produktion gelangt."
 sidebar:
-  label: "Secrets Hardening"
+  label: "Secrets härten"
 ---
 
-## 1. Zusammenfassung
-Dieses Dokument ist Betriebsleitfaden und Reifegrad-Audit für das **Alfheim**-Homelab-Microservice-Monorepo mit Blick auf das Release `v0.1.0 Beta`. Alfheim besteht aus einer Go-Control-Plane, mehreren Python-FastAPI-Microservices (Pantry, Shopping, Maintenance, Chores, Workout, Library, Budget), einem Go-Chat-Dienst, React-/Next.js-Frontends, Zitadel IAM, RustFS S3, dem Caddy-Ingress-Gateway und einer VictoriaStack-Observability-Pipeline.
+Arbeite diese Anleitung durch, bevor du eine Alfheim-Instanz über deinen eigenen
+Rechner hinaus erreichbar machst. Sie behandelt, woher Secrets kommen, wo sie
+liegen dürfen und wie du bestätigst, dass kein Entwicklungs-Fallback in die
+Produktion gelangt ist.
 
-**Aktueller Stand:** 🟡 **Härtung erforderlich (Beta-Vorbereitung)**
-
-Das Monorepo ist sauber nach Feature-Driven Design (FDD) modularisiert und breit getestet. Vor einer produktiven Ein-Befehl-Installation auf Bare-Metal-Home-Servern sind jedoch mehrere betriebliche und infrastrukturelle Punkte zu klären:
-1. **Container-Sicherheit & Least Privilege:** Die Ausführung ohne Root-Rechte (`USER appuser`) ist in allen Backend-Diensten umgesetzt, produktive Compose-Overrides müssen den Security-Kontext aber strikt erzwingen.
-2. **Umgebungsvariablen:** Fallback-Zugangsdaten aus den Entwicklungs-Compose-Dateien müssen im Beta-Deployment strikt durch `.env`-Secrets überschrieben werden.
-3. **Observability & Health-Probes:** Healthcheck-Probes für Caddy, VictoriaStack und die Microservices müssen in `up.sh` und den Compose-Dateien vollständig aufeinander abgestimmt sein.
-
----
-
-## 2. Erkannte Betriebs-Schulden & Behebung
-
-### A. Sicherheit & Umgebungskonfiguration
-- **Ort:** Microservice-`compose.yml`-Dateien (`core/dashboard/compose.yml`, `apps/*/compose.yml`)
-  - **Stand:** Die Entwicklungs-Compose-Dateien liefern Fallback-Verbindungsparameter. Produktive Deployments müssen `DATABASE_URL`, `ZITADEL_MASTERKEY` und `S3_SECRET_KEY` explizit aus `.env`-Secrets beziehen.
-  - **Maßnahme:** Sicherstellen, dass `scripts/setup-env.sh` für Produktivumgebungen kryptografisch sichere Secrets erzeugt.
-
-- **Ort:** `infrastructure/telemetry/compose.yml`
-  - **Stand:** Grafana-Admin-Zugangsdaten und Zitadel-OAuth-Secrets kommen aus Umgebungsvariablen.
-  - **Maßnahme:** Strikte `.env`-Overrides erzwingen, bevor Telemetriedienste auf öffentlich erreichbaren Endpunkten laufen.
-
-### B. Containerisierung & Netzwerk-Gateway
-- **Ort:** `infrastructure/caddy/compose.yml` & `infrastructure/caddy/Caddyfile`
-  - **Stand:** Caddy ist das zentrale Reverse-Proxy-Gateway und routet zu den Next.js-Frontends (`/`, `/pantry`, `/shopping` usw.) sowie zu den Backend-REST-APIs (`/api/v1/*`).
-  - **Maßnahme:** Explizite Healthcheck-Probes für Caddy in `infrastructure/caddy/compose.yml` ergänzen, um Race Conditions beim Stack-Start zu vermeiden.
-
-- **Ort:** `scripts/up.sh`
-  - **Stand:** Der gestufte Boot-Orchestrator startet nacheinander Infrastruktur, Core-Dashboard und die fachlichen App-Slices.
-  - **Maßnahme:** Die Wartebedingungen aller Stufen von Prozess-Prüfungen (`wait_running`) auf Health-Prüfungen (`wait_healthy`) umstellen.
+> Laufende Härtungsarbeiten werden in
+> [Issue #359](https://github.com/KroegerLeif/Alfheim/issues/359) verfolgt,
+> nicht in diesem Dokument.
 
 ---
 
-## 3. Betriebs- & Lifecycle-Skripte
+## Woher Secrets kommen
 
-Für stabilen Produktivbetrieb auf Homelab-Knoten nutzt das Repository folgende standardisierte Skripte:
+Schreibe niemals ein Secret von Hand. Beide unterstützten Installationswege
+erzeugen jede Zugangsdatei aus einer kryptografischen Zufallsquelle:
 
-1. **Stack-Lifecycle:**
-   - `./scripts/setup-env.sh`: Interaktive oder automatische Initialisierung der `.env`.
-   - `./scripts/up.sh`: Gestufter Boot-Orchestrator mit Abhängigkeitsreihenfolge und Health-Warten.
-   - `./scripts/down.sh`: Sauberes Herunterfahren aller Container und Netzwerke.
-   - `./scripts/verify.sh`: Gebündelter Quality-Gate-Runner für Python, Go, Frontend und Security.
-   - `./scripts/seed.sh`: Demo-Daten für frische Deployments.
+```bash
+# Interaktiver Installer (empfohlen)
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
+
+# Oder, bei manueller Installation, aus dem Repository-Wurzelverzeichnis
+./scripts/init-env.sh
+```
+
+Beide schreiben eine `.env` mit Modus `0600`, die Folgendes enthält:
+
+| Variable | Zweck |
+| :--- | :--- |
+| `POSTGRES_PASSWORD`, `<app>_DB_PASSWORD` | Datenbank-Eigentümer je Dienst auf `postgres-core` |
+| `ZITADEL_MASTERKEY` | Verschlüsselt Zitadels Daten im Ruhezustand. Exakt 32 Zeichen. |
+| `ZITADEL_ADMIN_PASSWORD` | Initialer IAM-Administrator |
+| `CHAT_ENCRYPTION_KEY` | 32-Byte-Base64-Schlüssel, sichert LLM-API-Schlüssel im Ruhezustand mit AES-256-GCM |
+| `S3_SECRET_KEY` | RustFS-Objektspeicher |
+| `GRAFANA_ADMIN_PASSWORD` | Observability-Oberfläche |
+| `HETZNER_API_TOKEN` / `CLOUDFLARE_API_TOKEN` | ACME DNS-01, nur bei dieser TLS-Strategie |
 
 ---
 
-## 4. Phasenplan zur Behebung
+## Wo Secrets liegen dürfen
 
-- [x] **Phase 1: Kritische Fixes & Secrets-Bereinigung**
-  - [x] Unprivilegierte Nutzer (`USER appuser`) in allen Go- und Python-Backend-Dockerfiles.
-  - [x] Alle fest verdrahteten DB-Zugangsdaten (`DATABASE_URL`), IAM-Secrets und S3-Schlüssel aus den Compose-Dateien in `.env`-Variablen mit starken Defaults auslagern.
-  - [x] Standard-Admin-Zugangsdaten für RustFS und Grafana in `.env.example` härten.
+**In der `.env` — und sonst nirgends.**
 
-- [ ] **Phase 2: Netzwerk, Auth & Infrastruktur**
-  - [ ] `infrastructure/caddy/Caddyfile` um aktive Health-Checks (`lb_try_duration`, `fail_duration`) für die Microservice-Reverse-Proxys ergänzen.
-  - [x] Dynamische Domain-Auflösung für eigene Homelab-LAN-Domains und IPs, jetzt über `ZITADEL_EXTERNALDOMAIN` und die TLS-Strategien des Installers abgedeckt (abgelöst durch ADR 0003 und ADR 0004).
-  - [ ] Container-Netzwerkdefinitionen zwischen `compose.yaml` und den Subsystem-Compose-Dateien vereinheitlichen.
+Daraus folgen zwei Regeln:
 
-- [x] **Phase 1: Codebasis-Verifikation & Testsuiten**
-  - [x] Workspace-weites Frontend-Typechecking (`tsc --noEmit`).
-  - [x] Go-Race-Detector- und Coverage-Suiten (`go test -v -race -cover ./...`).
-  - [x] Python-Pytest-Suiten und statische Typprüfung (`uv run ty check`, `pytest --cov`).
+**Entwicklungs-Compose-Dateien enthalten Fallback-Werte.**
+`core/dashboard/compose.yml` und `apps/*/compose.yml` liefern Defaults, damit ein
+frischer Checkout ohne Einrichtung läuft. Das sind Bequemlichkeitswerte, keine
+Secrets. Ein produktives Deployment muss die `.env` explizit einlesen, damit
+jeder dieser Werte überschrieben wird.
 
-- [ ] **Phase 2: Healthcheck- & Start-Härtung**
-  - [ ] Explizite Docker-`healthcheck`-Definitionen für Caddy-Gateway und VictoriaStack-Container.
-  - [ ] `scripts/up.sh` Stufe 9 auf Container-Health warten lassen (`wait_healthy`).
-  - [x] Retry-Logik für die IAM-Client-Registrierung, abgelöst durch den zweiphasigen Zitadel-Bootstrap in `tools/installer` (ADR 0004).
+**Gerenderte Konfiguration darf keine Secrets einbetten.** Das Caddyfile
+referenziert ACME-Tokens als `{env.HETZNER_API_TOKEN}`, statt sie einzusetzen —
+so bleibt es gefahrlos an eine Support-Anfrage oder ein Backup anhängbar. Erhalte
+diese Eigenschaft bei allem, was du ergänzt.
 
-- [ ] **Phase 3: Coverage-Anhebung als CI/CD-Gate (90–95 %)**
-  - [ ] Go-Backend-Paketabdeckung (`core/dashboard/backend` & `apps/chat/backend`) auf > 90 % heben.
-  - [ ] Python-Pytest-Coverage-Schwelle von 75 % auf 95 % anheben.
-  - [ ] Vitest-Coverage-Schwellen über alle Frontend-Pakete erzwingen.
+---
 
-- [ ] **Phase 4: Release-Automatisierung & Tagging (`v0.1.0 Beta`)**
-  - [ ] GitHub-Actions-Workflows finalisieren (`.github/workflows/`).
-  - [ ] Vollständige Clean-Boot-Verifikation durchführen (`./scripts/up.sh -b`).
-  - [ ] Release `v0.1.0-beta` taggen.
+## Prüfen, bevor die Instanz erreichbar wird
+
+### 1. Kein Entwicklungs-Fallback übrig geblieben
+
+```bash
+grep -E '(password|secret|key|token)' .env | grep -iE 'changeme|postgres$|admin$|Password1!|super_secret'
+```
+
+Jeder Treffer ist ein Wert, den der Generator nicht ersetzt hat. Neu erzeugen,
+statt von Hand zu editieren:
+
+```bash
+./scripts/init-env.sh --force
+```
+
+### 2. Dateirechte
+
+```bash
+stat -c '%a %n' .env
+```
+
+Erwartet wird `600`. Der Installer setzt das; eine Wiederherstellung aus dem
+Backup oft nicht.
+
+### 3. Container laufen unprivilegiert
+
+```bash
+docker compose -f compose.prod.yaml config | grep -c 'user:'
+```
+
+Alle Go- und Python-Backends deklarieren `USER appuser` in ihren Dockerfiles.
+
+### 4. Vollständige Verifikation
+
+```bash
+./scripts/verify.sh --security
+```
+
+---
+
+## Ein Secret rotieren
+
+1. Stack stoppen: `docker compose -f compose.prod.yaml stop`
+2. Wert in der `.env` ersetzen.
+3. Neu starten: `docker compose -f compose.prod.yaml up -d`
+
+Zwei Ausnahmen:
+
+* **`ZITADEL_MASTERKEY` lässt sich nicht im laufenden Betrieb rotieren.** Er
+  verschlüsselt vorhandene Zitadel-Daten; eine Änderung macht diese unlesbar.
+  Rotation bedeutet, den Identity Provider neu zu bootstrappen.
+* **`CHAT_ENCRYPTION_KEY` lässt sich nicht rotieren**, ohne zuvor die
+  gespeicherten LLM-API-Schlüssel neu zu verschlüsseln. Lösche sie in den
+  Chat-Einstellungen, rotiere, gib sie neu ein.
+
+Datenbank-Passwörter müssen zusätzlich in PostgreSQL geändert werden:
+
+```bash
+docker exec -it alfheim_postgres_core \
+  psql -U postgres -c "ALTER USER pantry_user WITH PASSWORD 'neues-passwort';"
+```
+
+---
+
+## Telemetrie-Endpunkte
+
+Grafana und die VictoriaStack-Komponenten sind über das Gateway erreichbar. Wird
+die Instanz über ein vertrauenswürdiges Netz hinaus exponiert, prüfe vorher:
+
+* `GRAFANA_ADMIN_PASSWORD` stammt aus der `.env` und ist nicht der Vorlagenwert.
+* Grafana-OIDC-SSO ist gegen Zitadel konfiguriert, sodass das lokale
+  Admin-Konto ein Notfallzugang bleibt und nicht der Regelweg ist.
+
+---
+
+## Siehe auch
+
+* [Eigene TLS-Zertifikate verwenden](./custom-certificates.md)
+* [Wildcard-TLS mit Hetzner DNS-01](./hetzner-dns-tls.md)
+* [Backup, Wiederherstellung & Datenmigration](./backup-restore.md)
+* [Authentifizierung & Mandantenfähigkeit](../explanation/authentication-security.md)

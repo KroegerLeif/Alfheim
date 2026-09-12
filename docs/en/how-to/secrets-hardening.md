@@ -1,85 +1,142 @@
 ---
-title: "Secrets Hardening & Deployment Readiness"
-description: "Operational deployment guide and readiness audit for the Alfheim monorepo ahead of the v0.1.0 Beta release."
+title: "Secrets Hardening"
+description: "Generate, store and rotate the secrets an Alfheim instance depends on, and verify that no development fallback reaches production."
 sidebar:
   label: "Secrets Hardening"
 ---
 
-## 1. Executive Summary
-This document serves as the operational deployment guide and readiness audit for **Alfheim** homelab microservice monorepo, targeting `v0.1.0 Beta` release. Alfheim consists of a Go control plane, multiple Python FastAPI microservices (Pantry, Shopping, Maintenance, Chores, Workout, Library, Budget), a Go Chat service, React/Next.js frontends, Zitadel IAM, RustFS S3, Caddy ingress gateway, and a VictoriaStack observability pipeline.
+Use this guide before exposing an Alfheim instance beyond your own machine. It
+covers where secrets come from, where they are allowed to live, and how to
+confirm that no development fallback value reached production.
 
-**Current Deployment Status:** 🟡 **Needs Hardening (Beta Prep)**
-
-While the monorepo features strong Feature-Driven Design (FDD) modularity, clean code practices, and extensive test coverage, several operational and infrastructure requirements must be addressed prior to single-command production server deployment on bare-metal home servers:
-1. **Container Security & Least Privilege:** Non-root execution (`USER appuser`) is implemented across backend services, but Compose overrides must enforce strict security context options in production.
-2. **Environment Variable Interoperability:** Fallback credentials in local development Compose files must be strictly overridden by `.env` secrets during Beta deployment.
-3. **Observability & Health Probes:** Healthcheck probes across Caddy, VictoriaStack, and microservices must be fully aligned in `up.sh` and Compose files.
+> Ongoing hardening work is tracked in
+> [issue #359](https://github.com/KroegerLeif/Alfheim/issues/359), not in this
+> document.
 
 ---
 
-## 2. Identified Operational Debt & Remediation
+## Where secrets come from
 
-### A. Security & Environment Configuration
-- **Location:** Microservice `compose.yml` files (`core/dashboard/compose.yml`, `apps/*/compose.yml`)
-  - **Status:** Development Compose files provide fallback connection parameters. Production deployments mandate explicit sourcing of `.env` secrets for `DATABASE_URL`, `ZITADEL_MASTERKEY`, and `S3_SECRET_KEY`.
-  - **Action:** Ensure `scripts/setup-env.sh` generates cryptographically secure secrets for production environments.
+Never write a secret by hand. Both supported installation paths generate every
+credential from a cryptographic random source:
 
-- **Location:** `infrastructure/telemetry/compose.yml`
-  - **Status:** Grafana administrative credentials and Zitadel OAuth secrets rely on environment variables.
-  - **Action:** Enforce strict `.env` overrides before deploying telemetry services on publicly accessible homelab endpoints.
+```bash
+# Interactive installer (recommended)
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
 
-### B. Containerization & Network Gateway
-- **Location:** `infrastructure/caddy/compose.yml` & `infrastructure/caddy/Caddyfile`
-  - **Status:** Caddy serves as the central reverse-proxy gateway routing traffic to Next.js frontends (`/`, `/pantry`, `/shopping`, etc.) and backend REST APIs (`/api/v1/*`).
-  - **Action:** Add explicit healthcheck probes for Caddy in `infrastructure/caddy/compose.yml` to prevent race conditions during stack startup.
+# Or, for a manual installation, from the repository root
+./scripts/init-env.sh
+```
 
-- **Location:** `scripts/up.sh`
-  - **Status:** Staged boot orchestrator sequentially brings up infrastructure, core dashboard, and domain app slices.
-  - **Action:** Update stage wait conditions from process checks (`wait_running`) to health status checks (`wait_healthy`) across all service stages.
+Either writes a `.env` with mode `0600` containing:
 
----
-
-## 3. Operations & Lifecycle Scripting
-
-To ensure production stability on homelab server nodes, the repository uses the following standardized scripts:
-
-1. **Stack Lifecycle Management:**
-   - `./scripts/setup-env.sh`: Interactive or automated `.env` environment file initialization.
-   - `./scripts/up.sh`: Staged boot orchestrator with dependency ordering and healthcheck waiting.
-   - `./scripts/down.sh`: Graceful shutdown of all containers and monorepo networks.
-   - `./scripts/verify.sh`: Consolidated quality gate runner across Python, Go, Frontend, and Security suites.
-   - `./scripts/seed.sh`: Demo data seed utility for fresh deployments.
+| Variable | Purpose |
+| :--- | :--- |
+| `POSTGRES_PASSWORD`, `<app>_DB_PASSWORD` | Per-service database owners on `postgres-core` |
+| `ZITADEL_MASTERKEY` | Encrypts Zitadel's data at rest. Exactly 32 characters. |
+| `ZITADEL_ADMIN_PASSWORD` | Initial IAM administrator |
+| `CHAT_ENCRYPTION_KEY` | 32-byte base64 key securing LLM API keys at rest with AES-256-GCM |
+| `S3_SECRET_KEY` | RustFS object storage |
+| `GRAFANA_ADMIN_PASSWORD` | Observability UI |
+| `HETZNER_API_TOKEN` / `CLOUDFLARE_API_TOKEN` | ACME DNS-01, only when that TLS strategy is chosen |
 
 ---
 
-## 4. Phase-by-Phase Remediation Plan
+## Where secrets are allowed to live
 
-- [x] **Phase 1: Critical Fixes & Secrets Cleanup**
-  - [x] Add unprivileged users (`USER appuser`) to all Go and Python backend Dockerfiles.
-  - [x] Externalize all hardcoded DB credentials (`DATABASE_URL`), IAM secrets, and S3 keys across Compose files into `.env` variables with strong defaults.
-  - [x] Harden RustFS and Grafana default admin credentials in `.env.example`.
+**In `.env`, and nowhere else.**
 
-- [ ] **Phase 2: Networking, Auth & Infrastructure**
-  - [ ] Update `infrastructure/caddy/Caddyfile` to add active health checks (`lb_try_duration`, `fail_duration`) for microservice reverse proxies.
-  - [x] Dynamic domain resolution for custom homelab LAN domains and IPs, now handled by `ZITADEL_EXTERNALDOMAIN` and the installer's TLS strategies (superseded by ADR 0003 and ADR 0004).
-  - [ ] Harmonize container network definitions across `compose.yaml` and subsystem Compose files.
+Two rules follow from that:
 
-- [x] **Phase 1: Code Base Verification & Test Suite Integrity**
-  - [x] Workspace-wide frontend typechecking (`tsc --noEmit`).
-  - [x] Go race detector and coverage test suites (`go test -v -race -cover ./...`).
-  - [x] Python Pytest suites and static typing (`uv run ty check`, `pytest --cov`).
+**Development Compose files carry fallback values.** `core/dashboard/compose.yml`
+and `apps/*/compose.yml` provide defaults so a fresh checkout runs without
+setup. These are convenience values, not secrets. A production deployment must
+source `.env` explicitly so every one of them is overridden.
 
-- [ ] **Phase 2: Healthcheck & Startup Hardening**
-  - [ ] Add explicit Docker `healthcheck` definitions for Caddy gateway and VictoriaStack containers.
-  - [ ] Update `scripts/up.sh` Stage 9 to wait for container health (`wait_healthy`).
-  - [x] Retry logic for IAM client registration, superseded by the two-phase Zitadel bootstrap in `tools/installer` (ADR 0004).
+**Rendered configuration must not embed secrets.** The Caddyfile references
+ACME tokens as `{env.HETZNER_API_TOKEN}` rather than inlining them, which keeps
+it safe to attach to a support request or a configuration backup. Preserve that
+property in anything you add.
 
-- [ ] **Phase 3: Coverage Elevation to CI/CD Gate (90–95%)**
-  - [ ] Elevate Go backend package coverage (`core/dashboard/backend` & `apps/chat/backend`) to >90%.
-  - [ ] Raise Python backend Pytest coverage threshold from 75% to 95%.
-  - [ ] Enforce Vitest coverage thresholds across frontend packages.
+---
 
-- [ ] **Phase 4: Release Automation & Tagging (`v0.1.0 Beta`)**
-  - [ ] Finalize GitHub Actions CI/CD workflows (`.github/workflows/`).
-  - [ ] Perform full clean boot deployment verification (`./scripts/up.sh -b`).
-  - [ ] Tag release `v0.1.0-beta`.
+## Verify before exposing the instance
+
+### 1. No development fallback survived
+
+```bash
+grep -E '(password|secret|key|token)' .env | grep -iE 'changeme|postgres$|admin$|Password1!|super_secret'
+```
+
+Any match is a value the generator did not replace. Regenerate rather than
+editing by hand:
+
+```bash
+./scripts/init-env.sh --force
+```
+
+### 2. File permissions
+
+```bash
+stat -c '%a %n' .env
+```
+
+Expect `600`. The installer sets this; a restore from backup often does not.
+
+### 3. Containers run unprivileged
+
+```bash
+docker compose -f compose.prod.yaml config | grep -c 'user:'
+```
+
+All Go and Python backends declare `USER appuser` in their Dockerfiles.
+
+### 4. Full verification suite
+
+```bash
+./scripts/verify.sh --security
+```
+
+---
+
+## Rotating a secret
+
+1. Stop the stack: `docker compose -f compose.prod.yaml stop`
+2. Replace the value in `.env`.
+3. Restart: `docker compose -f compose.prod.yaml up -d`
+
+Two exceptions:
+
+* **`ZITADEL_MASTERKEY` cannot be rotated in place.** It encrypts existing
+  Zitadel data; changing it makes that data unreadable. Rotating it means
+  re-bootstrapping the identity provider.
+* **`CHAT_ENCRYPTION_KEY` cannot be rotated in place** without first
+  re-encrypting stored LLM API keys. Clear them in the chat settings, rotate,
+  then re-enter them.
+
+Database passwords must be changed in PostgreSQL as well as in `.env`:
+
+```bash
+docker exec -it alfheim_postgres_core \
+  psql -U postgres -c "ALTER USER pantry_user WITH PASSWORD 'new-password';"
+```
+
+---
+
+## Telemetry endpoints
+
+Grafana and the VictoriaStack components are reachable through the gateway. If
+the instance is exposed beyond a trusted network, confirm before going live that:
+
+* `GRAFANA_ADMIN_PASSWORD` is set from `.env` and is not the template default.
+* Grafana OIDC SSO is configured against Zitadel, so the local admin account is
+  a break-glass path rather than the normal one.
+
+---
+
+## See also
+
+* [Use Your Own TLS Certificates](./custom-certificates.md)
+* [Wildcard TLS with Hetzner DNS-01](./hetzner-dns-tls.md)
+* [Backup, Restore & Data Migration](./backup-restore.md)
+* [Authentication & Multi-Tenancy Model](../explanation/authentication-security.md)
