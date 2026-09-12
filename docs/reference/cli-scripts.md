@@ -5,11 +5,44 @@
 ---
 
 ## 📋 Table of Contents
+- [`install.sh` — Standalone Installer Bootstrap](#installsh--standalone-installer-bootstrap)
 - [`scripts/up.sh` — Staged Cluster Boot Orchestrator](#scriptsupsh--staged-cluster-boot-orchestrator)
 - [`scripts/down.sh` — Cluster Teardown Utility](#scriptsdownsh--cluster-teardown-utility)
 - [`scripts/init-env.sh` — Cryptographic Environment Generator](#scriptsinit-envsh--cryptographic-environment-generator)
 - [`scripts/verify.sh` — Monorepo Quality Gate Suite](#scriptsverifysh--monorepo-quality-gate-suite)
 - [`scripts/seed.sh` — Database Seed Utility](#scriptsseedsh--database-seed-utility)
+
+---
+
+## `install.sh` — Standalone Installer Bootstrap
+
+Root-level bootstrap for a new installation. Detects the host architecture,
+downloads the matching `alfheim-setup` release binary, verifies its SHA-256
+checksum, and hands over to the interactive wizard.
+
+### Usage Syntax
+```bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
+```
+
+Arguments are forwarded to the binary:
+
+```bash
+curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --tls internal
+```
+
+### Environment Variables
+| Variable | Description |
+| :--- | :--- |
+| `ALFHEIM_VERSION` | Release tag to install (default: `latest`) |
+| `ALFHEIM_REPO` | Source repository (default: `KroegerLeif/Alfheim`) |
+
+> **Full flag reference:** [`docs/reference/installer-cli.md`](./installer-cli.md).
+> **Design rationale:** [ADR 0004](../decisions/0004-standalone-go-tui-installer.md).
+
+> ⚠️ **`scripts/install.sh` is deprecated.** It still orchestrates Keycloak,
+> which [ADR 0003](../decisions/0003-migrate-from-keycloak-to-zitadel.md)
+> replaced with Zitadel. Use the root `install.sh` above.
 
 ---
 

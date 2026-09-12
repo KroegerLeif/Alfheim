@@ -13,10 +13,11 @@ This is the central orchestration repository for `alfheim`, managing common infr
 Alfheim is designed for effortless self-hosting on your home server (Debian, Ubuntu, Proxmox LXC/VM, Raspberry Pi).
 
 ### One-Command Home Server Installer
-Run the official POSIX installer to scaffold configuration, download production container definitions, and automatically generate cryptographically secure secrets:
+Run the interactive installer to configure your domain and TLS, generate
+cryptographically secure secrets, and bring up the whole platform:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
 ```
 
 Once installed, start the entire platform with:
@@ -25,7 +26,9 @@ cd ~/alfheim
 docker compose -f compose.prod.yaml up -d
 ```
 
-👉 **For detailed prerequisites, manual deployment steps, and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/how-to/homelab-deployment.md).**
+👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/reference/installer-cli.md) for every flag.
+
+👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/how-to/homelab-deployment.md).**
 
 ---
 
