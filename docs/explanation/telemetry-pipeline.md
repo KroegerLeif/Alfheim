@@ -49,7 +49,7 @@ Alfheim implements a unified telemetry architecture based on **VictoriaStack** u
 Vector (`infrastructure/telemetry/vector/vector.toml`) harvests container logs directly from the Docker socket.
 
 Key Vector features:
-* **Multiline Stack Trace Aggregation:** Merges multiline Python tracebacks and Java/Keycloak stack traces (`\tat`) into single logical log events.
+* **Multiline Stack Trace Aggregation:** Merges multiline Python tracebacks and Go panic traces (`\tat`, `\tgoroutine`) into single logical log events.
 * **Field Normalization:** Maps heterogeneous log fields (`msg` $\rightarrow$ `message`) and standardizes severity levels (`WARN` / `WARNING` $\rightarrow$ `warn`, `ERROR` $\rightarrow$ `error`).
 * **Health Endpoint:** Exposes internal diagnostic health checks on `http://127.0.0.1:8686/health`.
 
@@ -74,4 +74,4 @@ Distributed request tracing across microservices uses W3C `traceparent` context 
 
 ## Visualization (Grafana)
 
-Grafana (`http://alfheim.loegien.localhost/grafana/`) provides pre-configured dashboards for system CPU/RAM metrics, HTTP request rates, active Keycloak sessions, and application error logs.
+Grafana (`http://alfheim.loegien.localhost/grafana/`) provides pre-configured dashboards for system CPU/RAM metrics, HTTP request rates, active Zitadel sessions, and application error logs.

@@ -43,5 +43,5 @@ Tier-2 applications are external homelab stack services defined declaratively in
 
 ## 📐 Application Classification Guidelines
 
-1. **Tier 1 (Core)**: Built directly within the monorepo workspace under `apps/` or `core/`. Consumes `@alfheim/shared` and `backend_shared`. Uses Keycloak OIDC authentication natively.
+1. **Tier 1 (Core)**: Built directly within the monorepo workspace under `apps/` or `core/`. Consumes `@alfheim/shared` and `backend_shared`. Uses Zitadel OIDC authentication natively.
 2. **Tier 2 (Stack)**: External server deployments registered via `deploy/stack-apps.yaml`. Integrated into the Dashboard launcher grid via role-based access control.

@@ -31,9 +31,9 @@ Alfheim uses a "Database per Service" architecture. You can dump individual serv
 docker exec -t alfheim_pantry_db pg_dump -U postgres pantry > pantry_backup_$(date +%Y%m%d).sql
 ```
 
-### 2. IAM Database Dump (Keycloak)
+### 2. IAM Database Dump (Zitadel)
 ```bash
-docker exec -t alfheim_postgres_iam pg_dump -U postgres keycloak > keycloak_backup_$(date +%Y%m%d).sql
+docker exec -t alfheim_postgres_core pg_dump -U postgres zitadel > zitadel_backup_$(date +%Y%m%d).sql
 ```
 
 ---

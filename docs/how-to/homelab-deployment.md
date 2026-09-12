@@ -35,14 +35,14 @@ Welcome to the **Alfheim Home Server OS** installation guide. This document prov
 The fastest way to install Alfheim on a home server is using our automated POSIX installer:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
 ```
 
 ### What the installer does automatically:
 1. Verifies Docker engine, Docker Compose v2, and system prerequisites.
 2. Creates the application directory at `~/alfheim`.
-3. Downloads the official release orchestration files (`compose.prod.yaml`, `Caddyfile`, `alfheim-realm.json`, telemetry configs).
-4. Generates cryptographically strong random credentials (AES-256 chat encryption key, PostgreSQL passwords, Keycloak admin token, S3 credentials) and saves them with `chmod 600` permissions in `.env`.
+3. Downloads the official release orchestration files (`compose.prod.yaml`, `Caddyfile`, telemetry configs).
+4. Generates cryptographically strong random credentials (AES-256 chat encryption key, PostgreSQL passwords, Zitadel masterkey and admin password, S3 credentials) and saves them with `chmod 600` permissions in `.env`.
 5. Prints straightforward instructions to start the stack.
 
 ---
@@ -53,7 +53,6 @@ If you prefer full control over your server configuration, follow the manual ste
 
 ### 1. Create the Installation Directory Structure
 ```bash
-mkdir -p ~/alfheim/keycloak/providers
 mkdir -p ~/alfheim/infrastructure/telemetry/collector
 cd ~/alfheim
 ```
@@ -69,7 +68,6 @@ curl -sSL "${BASE_URL}/compose.prod.yaml" -o compose.prod.yaml
 curl -sSL "${BASE_URL}/.env.example" -o .env.example
 curl -sSL "${BASE_URL}/scripts/init-env.sh" -o init-env.sh
 curl -sSL "${BASE_URL}/infrastructure/caddy/Caddyfile" -o Caddyfile
-curl -sSL "${BASE_URL}/infrastructure/keycloak/alfheim-realm.json" -o keycloak/alfheim-realm.json
 curl -sSL "${BASE_URL}/infrastructure/telemetry/collector/config.yaml" -o infrastructure/telemetry/collector/config.yaml
 
 chmod +x init-env.sh
@@ -97,7 +95,8 @@ Key environment options:
 * `IMAGE_REGISTRY`: Container registry for prebuilt images (auto-derived from Git remote; default: `ghcr.io`).
 * `IMAGE_REPO`: Container repository namespace (auto-derived from Git remote; default: `kroegerleif/alfheim`).
 * `IMAGE_TAG`: Target image version tag (default: `latest`).
-* `KEYCLOAK_PUBLIC_URL`: URL to access Keycloak IAM (defaults to `${ALFHEIM_BASE_URL}/auth`).
+* `ZITADEL_EXTERNALDOMAIN`: Public host of the Zitadel IAM console and OIDC issuer (e.g. `auth.loegien.de`).
+* `OIDC_ISSUER_URL`: Canonical OIDC issuer used for JWT verification (the bare origin of the IAM host).
 * `CHAT_ENCRYPTION_KEY`: Auto-generated 32-byte base64 key for securing LLM API keys at rest with AES-256-GCM.
 
 ### 5. Start Alfheim Stack
@@ -123,10 +122,10 @@ Once the containers report `healthy`:
    * Open your browser and navigate to: `http://<server-ip>` or `http://localhost`
    * Catch-all root dashboard providing access to all registered household modules (Pantry, Shopping, Chores, Maintenance, Chat, Budget, Workout, Library).
 
-2. **Keycloak IAM Administration**:
-   * URL: `http://<server-ip>/auth/admin/`
-   * Default Username: `admin`
-   * Default Password: See `KEYCLOAK_ADMIN_PASSWORD` in your `.env` file.
+2. **Zitadel IAM Administration**:
+   * URL: `https://<your-auth-domain>/ui/console` (set via `ZITADEL_EXTERNALDOMAIN`)
+   * Default Username: See `ZITADEL_ADMIN_USER` in your `.env` file.
+   * Default Password: See `ZITADEL_ADMIN_PASSWORD` in your `.env` file.
 
 3. **Grafana Observability Stack**:
    * URL: `http://<server-ip>/grafana/`

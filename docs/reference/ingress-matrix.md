@@ -34,7 +34,7 @@ Traffic entering Alfheim passes through a central Caddy ingress proxy (`infrastr
 | `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `3000`| Redirects bare `/maintenance` to `/maintenance/en` |
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `3010` | Redirects bare `/shopping` to `/shopping/en` |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `3000` | Redirects bare `/chat` to `/chat/de` |
-| `http://alfheim.loegien.localhost/grafana` | `grafana` | `3000` | Keycloak SSO Observability Dashboard |
+| `http://alfheim.loegien.localhost/grafana` | `grafana` | `3000` | Zitadel SSO Observability Dashboard |
 
 ---
 
@@ -42,7 +42,7 @@ Traffic entering Alfheim passes through a central Caddy ingress proxy (`infrastr
 
 | Public API URL Path | Target Container | Container Port | Path Stripping Rule |
 | :--- | :--- | :--- | :--- |
-| `http://api.alfheim.loegien.localhost/auth` | `keycloak` | `8080` | Native `/auth` subpath (no stripping) |
+| `http://auth.alfheim.loegien.localhost/` | `zitadel` | `8080` | Dedicated IAM host. Zitadel does not support sub-path hosting; proxied over h2c. |
 | `http://api.alfheim.loegien.localhost/storage/` | `rustfs` | `9000` | Strips `/storage` prefix |
 | `http://api.alfheim.loegien.localhost/pantry/api/v1/` | `pantry-backend` | `8000` | Strips `/pantry` prefix via `handle_path` |
 | `http://api.alfheim.loegien.localhost/budget/api/v1/` | `budget-backend` | `8000` | Strips `/budget` prefix via `handle_path` |

@@ -55,7 +55,7 @@ Run the automated multi-stage boot orchestrator to launch infrastructure, core c
 ```
 
 The script will boot the cluster in ordered dependency stages:
-* **Stage 0**: Gateway, Keycloak IAM, RustFS, VictoriaStack
+* **Stage 0**: Gateway, Zitadel IAM, RustFS, VictoriaStack
 * **Stage 1**: Core Dashboard Control Plane
 * **Stage 2**: Domain Application Microservices (Pantry, Budget, Chores, etc.)
 

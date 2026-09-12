@@ -33,7 +33,7 @@ The codebase is organized into high-level layer directories:
 alfheim/
 ├── core/                   # Platform control plane (Dashboard backend/frontend)
 ├── apps/                   # Domain microservices (Pantry, Budget, Chores, Chat, Workout, etc.)
-├── infrastructure/         # Core infrastructure (Caddy Gateway, Keycloak IAM, RustFS, VictoriaStack)
+├── infrastructure/         # Core infrastructure (Caddy Gateway, RustFS, VictoriaStack)
 ├── packages/               # Shared monorepo packages (@alfheim/shared, backend_shared)
 ├── deploy/                 # Server manifests (stack-apps.yaml)
 ├── scripts/                # Orchestration scripts (up.sh, verify.sh)
@@ -53,8 +53,8 @@ alfheim/
 
 The platform enforces multi-zone network isolation across dedicated Docker bridge networks:
 
-* **`gateway-net`**: Connects Caddy ingress gateway to frontends, Keycloak, RustFS S3, and backend API endpoints.
-* **`infra-net`**: Isolated infrastructure bridge connecting Keycloak, `postgres-iam`, and RustFS S3 backend ports.
+* **`gateway-net`**: Connects Caddy ingress gateway to frontends, Zitadel, RustFS S3, and backend API endpoints.
+* **`infra-net`**: Isolated infrastructure bridge connecting Zitadel, `postgres-core`, and RustFS S3 backend ports.
 * **`core-net`**: Dedicated control plane network for `dashboard-backend` and `dashboard-db`.
 * **`app-<name>-net`**: App-isolated networks connecting microservice backends to their dedicated database containers (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`).
 * **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.

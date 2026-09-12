@@ -1,7 +1,7 @@
 # Alfheim - Deployment Readiness Guide & Operational Audit (v0.1.0 Beta Roadmap)
 
 ## 1. Executive Summary
-This document serves as the operational deployment guide and readiness audit for **Alfheim** homelab microservice monorepo, targeting `v0.1.0 Beta` release. Alfheim consists of a Go control plane, multiple Python FastAPI microservices (Pantry, Shopping, Maintenance, Chores, Workout, Library, Budget), a Go Chat service, React/Next.js frontends, Keycloak IAM, RustFS S3, Caddy ingress gateway, and a VictoriaStack observability pipeline.
+This document serves as the operational deployment guide and readiness audit for **Alfheim** homelab microservice monorepo, targeting `v0.1.0 Beta` release. Alfheim consists of a Go control plane, multiple Python FastAPI microservices (Pantry, Shopping, Maintenance, Chores, Workout, Library, Budget), a Go Chat service, React/Next.js frontends, Zitadel IAM, RustFS S3, Caddy ingress gateway, and a VictoriaStack observability pipeline.
 
 **Current Deployment Status:** 🟡 **Needs Hardening (Beta Prep)**
 
@@ -16,11 +16,11 @@ While the monorepo features strong Feature-Driven Design (FDD) modularity, clean
 
 ### A. Security & Environment Configuration
 - **Location:** Microservice `compose.yml` files (`core/dashboard/compose.yml`, `apps/*/compose.yml`)
-  - **Status:** Development Compose files provide fallback connection parameters. Production deployments mandate explicit sourcing of `.env` secrets for `DATABASE_URL`, `KEYCLOAK_SECRET`, and `S3_SECRET_KEY`.
+  - **Status:** Development Compose files provide fallback connection parameters. Production deployments mandate explicit sourcing of `.env` secrets for `DATABASE_URL`, `ZITADEL_MASTERKEY`, and `S3_SECRET_KEY`.
   - **Action:** Ensure `scripts/setup-env.sh` generates cryptographically secure secrets for production environments.
 
 - **Location:** `infrastructure/telemetry/compose.yml`
-  - **Status:** Grafana administrative credentials and Keycloak OAuth secrets rely on environment variables.
+  - **Status:** Grafana administrative credentials and Zitadel OAuth secrets rely on environment variables.
   - **Action:** Enforce strict `.env` overrides before deploying telemetry services on publicly accessible homelab endpoints.
 
 ### B. Containerization & Network Gateway
@@ -51,12 +51,12 @@ To ensure production stability on homelab server nodes, the repository uses the 
 
 - [x] **Phase 1: Critical Fixes & Secrets Cleanup**
   - [x] Add unprivileged users (`USER appuser`) to all Go and Python backend Dockerfiles.
-  - [x] Externalize all hardcoded DB credentials (`DATABASE_URL`), Keycloak secrets, and S3 keys across Compose files into `.env` variables with strong defaults.
+  - [x] Externalize all hardcoded DB credentials (`DATABASE_URL`), IAM secrets, and S3 keys across Compose files into `.env` variables with strong defaults.
   - [x] Harden RustFS and Grafana default admin credentials in `.env.example`.
 
 - [ ] **Phase 2: Networking, Auth & Infrastructure**
   - [ ] Update `infrastructure/caddy/Caddyfile` to add active health checks (`lb_try_duration`, `fail_duration`) for microservice reverse proxies.
-  - [ ] Dynamic domain resolution in `infrastructure/keycloak/alfheim-realm.json` supporting custom homelab LAN domains/IPs.
+  - [x] Dynamic domain resolution for custom homelab LAN domains and IPs, now handled by `ZITADEL_EXTERNALDOMAIN` and the installer's TLS strategies (superseded by ADR 0003 and ADR 0004).
   - [ ] Harmonize container network definitions across `compose.yaml` and subsystem Compose files.
 
 - [x] **Phase 1: Code Base Verification & Test Suite Integrity**
@@ -67,7 +67,7 @@ To ensure production stability on homelab server nodes, the repository uses the 
 - [ ] **Phase 2: Healthcheck & Startup Hardening**
   - [ ] Add explicit Docker `healthcheck` definitions for Caddy gateway and VictoriaStack containers.
   - [ ] Update `scripts/up.sh` Stage 9 to wait for container health (`wait_healthy`).
-  - [ ] Implement exponential backoff retries for Keycloak client registration.
+  - [x] Retry logic for IAM client registration, superseded by the two-phase Zitadel bootstrap in `tools/installer` (ADR 0004).
 
 - [ ] **Phase 3: Coverage Elevation to CI/CD Gate (90–95%)**
   - [ ] Elevate Go backend package coverage (`core/dashboard/backend` & `apps/chat/backend`) to >90%.

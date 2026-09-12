@@ -1,13 +1,13 @@
 # How-To: Platform Troubleshooting & Operations Guide
 
-> **TL;DR:** Diagnostic procedures and resolution steps for common operational issues across Caddy ingress, Keycloak OIDC authentication, database connection pools, and container health.
+> **TL;DR:** Diagnostic procedures and resolution steps for common operational issues across Caddy ingress, Zitadel OIDC authentication, database connection pools, and container health.
 
 ---
 
 ## 📋 Table of Contents
 - [Diagnostic Workflow & Cluster Status](#diagnostic-workflow--cluster-status)
 - [Caddy Ingress Gateway & Routing Issues](#caddy-ingress-gateway--routing-issues)
-- [Keycloak IAM & Token Verification Errors](#keycloak-iam--token-verification-errors)
+- [Zitadel IAM & Token Verification Errors](#zitadel-iam--token-verification-errors)
 - [Database Locks & Connection Pool Exhaustion](#database-locks--connection-pool-exhaustion)
 - [VictoriaStack Telemetry & Vector Log Buffer Issues](#victoriastack-telemetry--vector-log-buffer-issues)
 
@@ -54,11 +54,11 @@ docker logs --tail 100 -f alfheim_caddy
 
 ---
 
-## Keycloak IAM & Token Verification Errors
+## Zitadel IAM & Token Verification Errors
 
 ### Symptom 1: Microservice Returns `401 Unauthorized` or `Invalid Token Issuer`
 * **Cause:** Public issuer URL mismatch between browser access (`http://api.alfheim.loegien.localhost/auth/realms/alfheim`) and internal Docker container verification.
-* **Resolution:** Ensure `KEYCLOAK_PUBLIC_URL` in `.env` is set to `http://api.alfheim.loegien.localhost/auth` and matches the browser request hostname.
+* **Resolution:** Ensure `OIDC_ISSUER_URL` in `.env` is the bare origin of the IAM host (`http://auth.alfheim.loegien.localhost` locally) and matches the issuer the browser is redirected to. Zitadel is served on its own host, not on an `/auth` subpath.
 
 ### Symptom 2: Missing `X-Household-ID` Header Error
 * **Cause:** Frontend session lacks an active household context selection.

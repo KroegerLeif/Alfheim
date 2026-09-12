@@ -60,7 +60,7 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
 | :--- | :--- |
 | `-b`, `--build` | Force Docker image rebuild before starting containers |
 | `-d`, `--detach` | Run containers in background detached mode |
-| `--stage0` | Boot Stage 0 infrastructure only (Networks, Caddy, Keycloak, RustFS, VictoriaStack) |
+| `--stage0` | Boot Stage 0 infrastructure only (Networks, Caddy, Zitadel, RustFS, VictoriaStack) |
 | `--stage1` | Boot Stage 1 core services (`core/dashboard`) |
 | `--stage2` | Boot Stage 2 microservice applications (`apps/*`) |
 
@@ -84,7 +84,7 @@ Gracefully stops and removes Docker containers across all workspace compose file
 
 ## `scripts/init-env.sh` — Cryptographic Environment Generator
 
-Generates cryptographically secure secrets (AES-256 chat encryption keys, Keycloak passwords, database credentials) and populates `.env`.
+Generates cryptographically secure secrets (AES-256 chat encryption keys, Zitadel masterkey and admin password, database credentials) and populates `.env`.
 
 ### Usage Syntax
 ```bash
