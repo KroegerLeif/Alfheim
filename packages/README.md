@@ -16,7 +16,7 @@ The packages in this directory include:
 * **`backend-shared/` (`backend_shared`)**:
   * Shared Python workspace package for all FastAPI backend microservices.
   * Provides unified telemetry initialization (`setup_telemetry`, `shutdown_telemetry`) via OpenTelemetry and Vector log aggregation.
-  * Enforces tenant isolation middleware and Keycloak JWT token verification routines (`X-Household-ID` validation).
+  * Enforces tenant isolation middleware and OIDC JWT token verification routines (`X-Household-ID` validation).
   * Manages S3 object storage settings and client wrappers (`StorageSettings`, RustFS S3 integration).
 
 ---
@@ -38,7 +38,7 @@ packages/
 └── backend-shared/         # Python workspace library (backend_shared)
     ├── src/
     │   └── backend_shared/
-    │       ├── auth/      # Keycloak OIDC verification & tenancy checks
+    │       ├── auth/      # Zitadel OIDC verification & tenancy checks
     │       ├── config/    # Base environment & S3 configuration
     │       ├── storage/   # RustFS S3 client wrapper
     │       └── telemetry/ # OpenTelemetry & Vector instrumentation

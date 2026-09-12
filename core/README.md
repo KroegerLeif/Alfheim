@@ -44,5 +44,5 @@ core/
 
 * **Central Gateway Ingress (`infrastructure/caddy`)**: Caddy routes the platform root domain (`/`) directly to `dashboard-frontend:3000` and API requests (`/api/v1/apps`) to `dashboard-backend:8080`.
 * **Shared UI & Client Libraries (`packages/shared`)**: `dashboard-frontend` consumes theme management, navigation shells (`AppHeader`, `AppShell`), and shared API utilities from `@alfheim/shared`.
-* **Identity & Access Management (`infrastructure/keycloak`)**: Authenticates users and passes active household contexts (`X-Household-ID`) to control plane services.
+* **Identity & Access Management (Zitadel)**: Authenticates users via OIDC and passes active household contexts (`X-Household-ID`) to control plane services.
 * **Stack Application Manifest (`deploy/stack-apps.yaml`)**: Core services interface with stack manifests to surface registered microservice state and launcher shortcuts across the platform.

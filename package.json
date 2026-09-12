@@ -3,7 +3,6 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "build:theme": "pnpm --filter @alfheim/keycloak-theme build",
     "check-types": "pnpm -r exec tsc --noEmit",
     "lint": "pnpm -r --if-present run lint",
     "vitest": "pnpm -r exec vitest"

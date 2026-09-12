@@ -17,7 +17,12 @@ services:
   # 1. INGRESS GATEWAY & REVERSE PROXY
   # ----------------------------------------------------------------------------
   caddy:
-    image: caddy:2-alpine
+    # Custom build: the stock caddy image ships no ACME DNS-01 provider
+    # modules, which the Hetzner and Cloudflare TLS strategies require.
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/caddy:${IMAGE_TAG:-latest}
+    build:
+      context: ./infrastructure/caddy
+      dockerfile: Dockerfile
     container_name: alfheim_caddy
     restart: unless-stopped
     ports:
@@ -25,7 +30,12 @@ services:
       - "443:443"
     environment:
       ALFHEIM_HOST: "${ALFHEIM_HOST:-alfheim.loegien.de}"
+      ALFHEIM_DOMAIN: "${DOMAIN:-loegien.de}"
+      ALFHEIM_AUTH_HOST: "${ZITADEL_EXTERNALDOMAIN:-auth.loegien.de}"
       CADDY_TLS_DIRECTIVE: "${CADDY_TLS_DIRECTIVE:-}"
+      ACME_EMAIL: "${ACME_EMAIL:-}"
+      HETZNER_API_TOKEN: "${HETZNER_API_TOKEN:-}"
+      CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -176,19 +186,23 @@ services:
     stop_grace_period: 5s
 
   rustfs:
-    image: minio/minio:latest
+    # RustFS is the intended S3 implementation (see infrastructure/rustfs/README.md).
+    # MinIO was a stand-in and its Docker Hub repo was withdrawn upstream, so
+    # `minio/minio:*` is no longer pullable at all. Pinned to an explicit tag:
+    # `latest` currently tracks a release candidate and would drift under CI.
+    image: rustfs/rustfs:1.0.0-rc.6
     container_name: alfheim_rustfs
     restart: unless-stopped
-    command: server /data
+    # No `command:` override -- the image entrypoint starts the server using
+    # RUSTFS_VOLUMES (baked in as /data). Passing MinIO's `server /data` makes
+    # RustFS read `server` as an additional volume path.
     environment:
       RUSTFS_ACCESS_KEY: ${S3_ROOT_USER:-minioadmin}
       RUSTFS_SECRET_KEY: ${S3_ROOT_PASSWORD:-minioadmin}
-      MINIO_ROOT_USER: ${S3_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_ROOT_PASSWORD:-minioadmin}
     volumes:
       - rustfs_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/minio/health/live || exit 1"]
+      test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5

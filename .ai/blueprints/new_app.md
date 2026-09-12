@@ -71,7 +71,7 @@ When initializing a new app, the following files **MUST** be explicitly created 
 
 ### Backend Core (Python / FastAPI Example)
 > [!TIP]
-> Follow [.ai/guidelines/new-app-scaffolding.md](.ai/guidelines/new-app-scaffolding.md) for full details on workspace setup, in-memory `aiosqlite` Pytest fixtures, `ty` type checking, and standalone Docker resolution.
+> Follow [.ai/guidelines/new-app-scaffolding.md](../guidelines/new-app-scaffolding.md) for full details on workspace setup, in-memory `aiosqlite` Pytest fixtures, `ty` type checking, and standalone Docker resolution.
 
 * **`backend/Dockerfile`**: Production multi-stage Docker build file with standalone `uv sync` resolution.
 * **`backend/.dockerignore`**: Standard ignore rules excluding `.venv`, `uv.lock`, and caches.
@@ -79,7 +79,7 @@ When initializing a new app, the following files **MUST** be explicitly created 
 * **`backend/src/main.py`**: Expresses HTTP lifespan, middleware, CORS, routers, and healthcheck route at `/api/v1/health`.
 * **`backend/src/core/config.py`**: Environment configuration loader.
 * **`backend/src/core/database.py`**: Async database connection pool & session manager.
-* **`backend/src/core/dependencies.py`**: Parsers for Keycloak JWT tokens and `X-Household-ID` header.
+* **`backend/src/core/dependencies.py`**: Parsers for OIDC JWT tokens and the `X-Household-ID` header.
 
 ### Frontend Core
 * **`frontend/Dockerfile`**: Standalone build configuration matching `"standalone"` output mode.
@@ -147,22 +147,21 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
 
 ---
 
-## 4. Keycloak & Auth Integration
+## 4. Zitadel & Auth Integration
 
 1. **Frontend Registration**:
-   * Create a client named `<app-name>-frontend` inside the `alfheim` realm.
-   * Access Type: `Public` (Standard Authorization Flow, PKCE enabled).
-   * Valid Redirect URIs: `http://alfheim.loegien.localhost/<app-name>/*`, `http://alfheim.loegien.de/<app-name>/*`
-   * Web Origins: `*`
+   * Create an application named `<app-name>-frontend` in the Alfheim organisation in the Zitadel console.
+   * Application type: `User Agent` / `PKCE` (Authorization Code Flow with PKCE).
+   * Redirect URIs: `http://alfheim.loegien.localhost/<app-name>/*`, `https://alfheim.loegien.de/<app-name>/*`
 2. **Backend JWT Verification**:
    * Set configuration values in environment variables:
      ```env
-     KEYCLOAK_BASE_URL=http://keycloak:8080/auth
-     KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
-     KEYCLOAK_REALM=alfheim
+     OIDC_ISSUER_URL=http://auth.alfheim.loegien.localhost
+     OIDC_AUDIENCE=alfheim
+     OIDC_INTERNAL_URL=http://zitadel:8080
      ```
-   * JWKS verification coordinates with Keycloak certs route:
-     `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
+   * Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
+   * Note: several existing services still read legacy `KEYCLOAK_*` variable names. The provider is Zitadel; renaming those variables is tracked separately.
 
 ---
 
@@ -235,7 +234,7 @@ echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim.loegien.l
 - [ ] **Implement Frontend**: tsconfig/package configs, `next.config.ts` (standalone mode, transpile `@alfheim/shared`), proxy setup (`src/proxy.ts`), i18n setup, API client, layout, and first page views.
 - [ ] **Populate i18n**: Add translations in all 3 language JSON files under `@alfheim/shared`.
 - [ ] **Register 3-Tier Dashboard Entry**:
-  - For Tier 1 Core Apps: Register entry in [`tier1_core_registry.go`](core/dashboard/backend/internal/features/apps/tier1_core_registry.go).
-  - For Tier 2 Stack Integrations: Register entry in [`deploy/stack-apps.yaml`](deploy/stack-apps.yaml).
+  - For Tier 1 Core Apps: Register entry in [`tier1_core_registry.go`](../../core/dashboard/backend/internal/features/apps/tier1_core_registry.go).
+  - For Tier 2 Stack Integrations: Register entry in [`deploy/stack-apps.yaml`](../../deploy/stack-apps.yaml).
 - [ ] **Register Orchestration**: Create compose.yml, add to root compose.yaml, add stage to scripts/up.sh.
 - [ ] **Quality checks**: Run TypeScript verification (`pnpm build`), check no dummy stubs or `@ts-ignore` statements exist.

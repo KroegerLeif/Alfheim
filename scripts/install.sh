@@ -7,9 +7,21 @@
 #
 # Quickstart:
 #   curl -sSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/scripts/install.sh | bash
+#
+# DEPRECATED: this script still orchestrates Keycloak, which ADR 0003 replaced
+# with Zitadel. Use the root install.sh instead, which fetches the typed Go
+# installer (see docs/decisions/0004-standalone-go-tui-installer.md):
+#
+#   curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
+#
+# It is retained only so existing documentation links keep working, and will be
+# removed in a future release.
 # ==============================================================================
 
 set -euo pipefail
+
+printf '\033[0;33m⚠\033[0m  scripts/install.sh is deprecated and still targets Keycloak.\n' >&2
+printf '   Use the root install.sh instead: curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash\n\n' >&2
 
 # ------------------------------------------------------------------------------
 # Terminal Colors & UI
@@ -385,7 +397,7 @@ if [[ "${START_STACK}" == "true" ]]; then
 
   # Stage 1: Database Tier
   stage_step "1/3" "Database & Storage Tier (Cold initdb Resilience)"
-  log_info "Launching PostgreSQL Core Database Cluster, MinIO S3, and Mailpit..."
+  log_info "Launching PostgreSQL Core Database Cluster, RustFS S3, and Mailpit..."
   dc up -d postgres-core rustfs mailpit
 
   wait_healthy "alfheim_postgres_core" "PostgreSQL Core Database" 90

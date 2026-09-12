@@ -164,6 +164,11 @@ jobs:
       max-parallel: 4
       matrix:
         include:
+          # Ingress Gateway (custom build with ACME DNS-01 provider modules)
+          - name: caddy
+            context: infrastructure/caddy
+            dockerfile: infrastructure/caddy/Dockerfile
+
           # Core Platform Services
           - name: dashboard-backend
             context: core/dashboard/backend
@@ -269,15 +274,70 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
+  build-installer:
+    name: Build Installer Binaries (${{ matrix.goarch }})
+    needs:
+      - check-ancestry
+      - go-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: 'tools/installer/go.sum'
+
+      - name: Build Static Binary
+        working-directory: tools/installer
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -trimpath \
+            -ldflags "-s -w \
+              -X main.version=${{ github.ref_name }} \
+              -X main.commit=${{ github.sha }} \
+              -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -o "alfheim-setup_linux_${{ matrix.goarch }}" \
+            ./cmd/alfheim-setup
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.goarch }}
+          path: tools/installer/alfheim-setup_linux_${{ matrix.goarch }}
+          if-no-files-found: error
+
   publish-release:
     name: Publish Official GitHub Release
-    needs: [build-images]
+    needs: [build-images, build-installer]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Download Installer Binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installer-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate Checksums
+        working-directory: dist
+        run: |
+          sha256sum alfheim-setup_linux_* > SHA256SUMS
+          cat SHA256SUMS
 
       - name: Create GitHub Release & Attach Production Artifacts
         uses: softprops/action-gh-release@v2
@@ -288,9 +348,11 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
           files: |
+            dist/alfheim-setup_linux_amd64
+            dist/alfheim-setup_linux_arm64
+            dist/SHA256SUMS
+            install.sh
             compose.prod.yaml
-            scripts/install.sh
-            scripts/init-env.sh
             .env.example
             infrastructure/caddy/Caddyfile
             infrastructure/telemetry/collector/config.yaml

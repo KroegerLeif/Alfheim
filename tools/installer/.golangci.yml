@@ -1,0 +1,51 @@
+# golangci-lint configuration for the Alfheim installer.
+#
+# The installer shells out to Docker and writes credentials to disk, so the
+# linters here are weighted towards explicit error handling.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck      # every returned error must be handled
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - errorlint     # use errors.Is/As rather than type assertions
+    - gosec
+    - misspell
+    - revive
+    - unconvert
+    - whitespace
+
+  settings:
+    gosec:
+      excludes:
+        # File permissions are chosen deliberately and asserted in tests:
+        # .env is 0600, the Caddyfile 0644, the certificate directory 0700.
+        - G306
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+
+  exclusions:
+    rules:
+      # os.Exit belongs in main and nowhere else; that is the whole point of
+      # keeping cmd/ a thin shell around internal/app.
+      - path: cmd/alfheim-setup/main\.go
+        linters:
+          - revive
+      # Test doubles legitimately ignore arguments and return canned values.
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt

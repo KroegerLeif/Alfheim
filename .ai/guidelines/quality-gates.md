@@ -31,7 +31,7 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
 
 ### A. Static Analysis & Linting (Ruff)
 - **Tool**: Astral Ruff (Linter & Formatter)
-- **Config**: [`ruff.toml`](ruff.toml)
+- **Config**: [`ruff.toml`](../../ruff.toml)
 - **Mandatory Commands**:
   ```bash
   uv run ruff check .               # Must return 0 diagnostics
@@ -72,7 +72,7 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
 
 ## 🐹 3. Go Quality Gates
 
-The central dashboard backend control plane is located in [`core/dashboard/backend`](core/dashboard/backend).
+The central dashboard backend control plane is located in [`core/dashboard/backend`](../../core/dashboard/backend).
 
 ### A. Testing & Race Detection
 - **Mandatory Command**:
@@ -81,7 +81,7 @@ The central dashboard backend control plane is located in [`core/dashboard/backe
   ```
 - **Requirements**:
   - All tests must pass with the Go race detector (`-race`) enabled without data race violations.
-  - Must mock external dependencies (Keycloak JWKS, VictoriaLogs, VictoriaMetrics) with graceful fallback.
+  - Must mock external dependencies (OIDC JWKS, VictoriaLogs, VictoriaMetrics) with graceful fallback.
 
 ### B. Static Analysis (golangci-lint)
 - **Command**:
@@ -139,7 +139,7 @@ Alfheim microservices expose FastMCP tools for AI agent orchestration:
 2. **Pre-Commit Guardrails**:
    - `detect-private-key` and `check-case-conflict` are enforced automatically via `.pre-commit-config.yaml`.
 3. **Multi-Tenant Zero Trust**:
-   - Every API query must filter against `home_id` / `household_id` extracted from validated Keycloak bearer JWTs.
+   - Every API query must filter against `home_id` / `household_id` extracted from validated OIDC bearer JWTs.
 
 ---
 

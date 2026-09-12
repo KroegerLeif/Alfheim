@@ -16,7 +16,7 @@ To enforce least-privilege security, each microservice connects using its own de
 
 | Database Name | Owner / User | Description |
 | :--- | :--- | :--- |
-| `alfheim_iam` | `iam_user` | Keycloak Identity & Access Management storage |
+| `zitadel` | `zitadel_user` | Zitadel Identity & Access Management storage |
 | `alfheim_dashboard` | `dashboard_user` | Core Dashboard control plane storage |
 | `alfheim_pantry` | `pantry_user` | Pantry inventory management database |
 | `alfheim_shopping` | `shopping_user` | Shopping list database |

@@ -8,6 +8,8 @@ The `infrastructure/rustfs` module provides central S3-compatible object storage
 
 RustFS serves as a lightweight S3-compatible object storage server (compatible with MinIO SDKs and AWS S3 clients).
 
+The image is `rustfs/rustfs`, pinned to an explicit tag in both `infrastructure/compose.yml` and `compose.prod.yaml`. It needs no `command:` override -- the entrypoint starts the server from `RUSTFS_VOLUMES`, which the image already sets to `/data`.
+
 - **Chat Attachments**: Used by `apps/chat/backend` for uploading image attachments in multi-modal LLM sessions.
 - **Budget Receipts**: Used by `apps/budget/backend` for receipt image uploads (`budget-receipts` bucket).
 - **Ingress Routing**: Accessible via Caddy proxy under `http://api.alfheim.loegien.localhost/storage`.
@@ -30,7 +32,7 @@ Configured in `infrastructure/rustfs/.env.example` / `.env`:
 - **Internal Port**: `9000`
 - **Docker Networks**: `infra-net`, `gateway-net`
 - **Volume Mount**: Named volume `rustfs_data` mounted to `/data`.
-- **Healthcheck**: Performs HTTP GET on `http://127.0.0.1:9000/minio/health/live`.
+- **Healthcheck**: Performs HTTP GET on `http://127.0.0.1:9000/health`.
 
 ---
 
