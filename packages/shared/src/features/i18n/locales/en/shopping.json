@@ -97,7 +97,7 @@
     "syncFailed": "Pantry sync failed",
     "unrecognizedError": "An unexpected error occurred",
     "sessionExpired": "Session Expired",
-    "sessionExpiredDesc": "Your security token has expired or is invalid. Please re-authenticate with Keycloak to resume.",
+    "sessionExpiredDesc": "Your security token has expired or is invalid. Please re-authenticate with Zitadel to resume.",
     "logIn": "Log In",
     "retry": "Retry"
   }

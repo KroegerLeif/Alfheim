@@ -97,7 +97,7 @@
     "syncFailed": "Synchronizacja ze spiżarnią nie powiodła się",
     "unrecognizedError": "Wystąpił nieoczekiwany błąd",
     "sessionExpired": "Sesja wygasła",
-    "sessionExpiredDesc": "Twój token bezpieczeństwa wygasł. Zaloguj się ponownie przez Keycloak.",
+    "sessionExpiredDesc": "Twój token bezpieczeństwa wygasł. Zaloguj się ponownie przez Zitadel.",
     "logIn": "Zaloguj",
     "retry": "Ponów"
   }

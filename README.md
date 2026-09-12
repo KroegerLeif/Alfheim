@@ -1,9 +1,9 @@
 # alfheim: Platform Architecture & Orchestration
 
-This is the central orchestration repository for `alfheim`, managing common infrastructure (identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
+This is the central orchestration repository for `alfheim`, managing common infrastructure (Zitadel identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
 [![Release](https://img.shields.io/badge/release-v0.1.0--beta.1-blue.svg)](https://github.com/KroegerLeif/Alfheim/releases)
-[![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/how-to/homelab-deployment.md)
+[![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/en/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -26,9 +26,9 @@ cd ~/alfheim
 docker compose -f compose.prod.yaml up -d
 ```
 
-👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/reference/installer-cli.md) for every flag.
+👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
 
-👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/how-to/homelab-deployment.md).**
+👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/en/how-to/homelab-deployment.md).**
 
 ---
 
@@ -38,24 +38,36 @@ The platform uses a modular, multi-compose architecture using the native Compose
 
 ```
 alfheim/
-├── compose.yaml                # Platform Master Orchestrator
+├── compose.yaml                # Platform master orchestrator (development)
+├── compose.prod.yaml           # Production stack (includes Zitadel IAM)
+├── install.sh                  # Root bootstrap for the interactive installer
 ├── .env.example                # Central environment configuration template
-├── README.md                   # Platform setup and verification guide
-├── infrastructure/             # Platform Infrastructure Services
-│   ├── caddy/                  # Central Caddy Reverse Proxy & Ingress Gateway
-│   ├── keycloak/               # Keycloak config & realm import files
-│   ├── postgres/               # Core postgres database cluster config files
+├── infrastructure/             # Platform infrastructure services
+│   ├── caddy/                  # Central Caddy reverse proxy & ingress gateway
+│   ├── postgres/               # Core PostgreSQL cluster config files
 │   ├── rustfs/                 # RustFS S3-compatible central object storage
 │   └── telemetry/              # VictoriaStack, OTel Collector, Vector & Grafana
 ├── core/
-│   └── dashboard/              # Central Dashboard Module (Go control plane & Next.js frontend)
-└── apps/
-    ├── pantry/                 # Digital Pantry Module
-    ├── shopping/               # Shopping List Module
-    ├── maintenance/            # Home Maintenance Tracker Module
-    ├── chores/                 # Household Chores Module
-    ├── chat/                   # ALFI Assistant & Chat Module
-    └── workout/                # Workout Tracker Module
+│   └── dashboard/              # Central dashboard module (Go control plane & Next.js frontend)
+├── apps/                       # Domain microservices (paired frontend + backend)
+│   ├── budget/                 # Budget & Virtual Pots module
+│   ├── chat/                   # ALFI assistant & chat module
+│   ├── chores/                 # Household chores module
+│   ├── library/                # Media & library hub
+│   ├── maintenance/            # Home maintenance tracker module
+│   ├── pantry/                 # Digital pantry module
+│   ├── shopping/               # Shopping list module
+│   └── workout/                # Workout tracker module
+├── packages/                   # Shared workspace libraries
+│   ├── shared/                 # @alfheim/shared — UI, theme engine, i18n, API client
+│   └── backend-shared/         # backend_shared — Python OTel, JWT & S3 utilities
+├── websites/
+│   └── docs/                   # Public landing page (React + Vite, GitHub Pages)
+├── tools/
+│   └── installer/              # alfheim-setup — standalone Go TUI installer
+├── deploy/                     # Tier-2 stack application manifests
+├── scripts/                    # Boot orchestration, env init & verification scripts
+└── docs/                       # Central Diataxis documentation corpus
 ```
 
 ---
@@ -76,8 +88,8 @@ To resolve these local domains on your development machine, add the following li
 
 ### B. Network Topology & Multi-Zone Segmentation
 The platform enforces strict multi-zone network isolation across Docker bridge networks:
-* **`gateway-net`**: Connects Caddy ingress gateway to frontends, Keycloak, RustFS S3, and backend API endpoints.
-* **`infra-net`**: Isolated infrastructure bridge connecting Keycloak, `postgres-core`, and RustFS S3 backend ports.
+* **`gateway-net`**: Connects Caddy ingress gateway to frontends, Zitadel, RustFS S3, and backend API endpoints.
+* **`infra-net`**: Isolated infrastructure bridge connecting Zitadel, `postgres-core`, and RustFS S3 backend ports.
 * **`core-net`**: Dedicated control plane network connecting `dashboard-backend` and `postgres-core`.
 * **`app-<name>-net`**: App-isolated networks connecting microservice backends to `postgres-core` (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`, `app-workout-net`).
 * **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.
@@ -95,15 +107,23 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `http://chores-frontend:3000` | Served on `/chores` basePath, 302 redirects bare path to `/chores/de` |
 | `http://alfheim.loegien.localhost/workout` | `workout-frontend` | `http://workout-frontend:3000` | Served on `/workout` basePath, 302 redirects bare path to `/workout/de` |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `http://chat-frontend:3000` | Served on `/chat` basePath, 302 redirects bare path to `/chat/de` |
-| `http://alfheim.loegien.localhost/grafana` | `grafana` | `http://grafana:3000/grafana` | Observability & Telemetry UI (Keycloak SSO) |
+| `http://alfheim.loegien.localhost/grafana` | `grafana` | `http://grafana:3000/grafana` | Observability & Telemetry UI (Zitadel SSO) |
 
-#### 2. API Gateway Domain (`api.alfheim.loegien.localhost` / `api.alfheim.loegien.de`)
+#### 2. Identity Provider Domain (`auth.alfheim.loegien.localhost` / `auth.loegien.de`)
+
+Zitadel does not support sub-path hosting, so it is served on a dedicated host.
+The bare origin of that host is the canonical OIDC issuer.
+
+| Public URL | Destination Service | Internal Destination URL | Notes |
+| :--- | :--- | :--- | :--- |
+| `http://auth.alfheim.loegien.localhost/` | `zitadel` | `http://zitadel:8080` | OIDC IAM provider. Proxied over h2c (gRPC-Web). |
+
+#### 3. API Gateway Domain (`api.alfheim.loegien.localhost` / `api.alfheim.loegien.de`)
 
 | Public URL | Destination Service | Internal Destination URL | Path Stripping & CORS Notes |
 | :--- | :--- | :--- | :--- |
-| `http://api.alfheim.loegien.localhost/auth` | `keycloak` | `http://keycloak:8080/auth` | OIDC IAM provider. Native subpath (no stripping). |
 | `http://api.alfheim.loegien.localhost/storage/` | `rustfs` | `http://rustfs:9000/` | Central S3 object storage & presigned URLs. Strips `/storage` prefix. |
-| `http://api.alfheim.loegien.localhost/grafana/` | `grafana` | `http://grafana:3000/grafana/` | Observability & Telemetry UI (Keycloak SSO). |
+| `http://api.alfheim.loegien.localhost/grafana/` | `grafana` | `http://grafana:3000/grafana/` | Observability & Telemetry UI (Zitadel SSO). |
 | `http://api.alfheim.loegien.localhost/pantry/api/v1/` | `pantry-backend` | `http://pantry-backend:8000/api/v1/` | Strips `/pantry` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |
@@ -138,7 +158,7 @@ Run the following command to check if all containers are healthy:
 ```bash
 docker compose ps
 ```
-You should see `alfheim_caddy`, `alfheim_keycloak`, `alfheim_postgres_core`, and all application backends/frontends running cleanly.
+You should see `alfheim_caddy`, `alfheim_zitadel`, `alfheim_postgres_core`, and all application backends/frontends running cleanly.
 
 ### B. Verify Routing Endpoints
 Verify HTTP routing and responses using browser or `curl`:
@@ -158,8 +178,8 @@ Verify HTTP routing and responses using browser or `curl`:
 3. **Backend Swagger API Documentation**:
    Access `http://api.alfheim.loegien.localhost/pantry/docs` in your browser.
 
-4. **Keycloak IAM Landing Page**:
-   Access `http://api.alfheim.loegien.localhost/auth/` in your browser.
+4. **Zitadel IAM Console**:
+   Access `http://auth.alfheim.loegien.localhost/` in your browser.
 
 ---
 
@@ -182,15 +202,17 @@ The monorepo shares a centralized design system and dynamic theme engine through
 
 ---
 
-## 7. Security & Keycloak OIDC Token Verification
+## 7. Security & Zitadel OIDC Token Verification
 
-* **Public Issuer URL**: `http://api.alfheim.loegien.localhost/auth/realms/alfheim`
-* **Internal Docker JWKS**: `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
-* **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `http://api.alfheim.loegien.localhost/auth/realms/alfheim`.
+* **Public Issuer URL**: `https://auth.loegien.de` (development: `http://auth.alfheim.loegien.localhost`) — the bare origin of the IAM host.
+* **Discovery**: Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
+* **Internal Docker Base URL**: `http://zitadel:8080` (`OIDC_INTERNAL_URL`) for server-to-server calls.
+* **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `OIDC_ISSUER_URL`.
+* **Legacy variable names**: Several runtime variables are still named `KEYCLOAK_*` (for example `KEYCLOAK_PUBLIC_URL`) even though Zitadel is the provider. Renaming them is tracked separately; the values are Zitadel URLs.
 
 ---
 
-## 6. Python Developer Tooling, Quality Gates & Testing
+## 8. Python Developer Tooling, Quality Gates & Testing
 
 The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`, `apps/workout/backend`) are organized as a unified **`uv` workspace**.
 

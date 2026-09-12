@@ -21,7 +21,7 @@ apps/<app-name>/backend/
 │   ├── core/                      # Global infrastructure
 │   │   ├── config.py              # Pydantic Settings & environment loader
 │   │   ├── database.py            # Async SQLAlchemy/SQLModel engine & session generator
-│   │   ├── dependencies.py        # Auth context & Keycloak JWT / X-Household-ID resolver
+│   │   ├── dependencies.py        # Auth context & OIDC JWT / X-Household-ID resolver
 │   │   └── storage.py             # RustFS S3 async client (if storage is needed)
 │   ├── features/                  # Feature Modules (Mandatory 6-file pattern)
 │   │   └── <feature_name>/
@@ -107,7 +107,7 @@ uv sync --all-packages --all-groups
 All services automatically inherit centralized tooling configurations:
 
 ### A. Ruff Linter & Formatter
-- **Configuration**: Root [`ruff.toml`](ruff.toml) enforces Python 3.12 target with rules: `E`, `W`, `F`, `I`, `B`, `UP`, `ASYNC`, `FAST`, `T20`.
+- **Configuration**: Root [`ruff.toml`](../../ruff.toml) enforces Python 3.12 target with rules: `E`, `W`, `F`, `I`, `B`, `UP`, `ASYNC`, `FAST`, `T20`.
 - **Run Commands**:
   ```bash
   # Check code across monorepo
@@ -232,7 +232,7 @@ async def test_outbound_service_call(client: AsyncClient):
 
 ## 5. Zero-Trust Multi-Tenancy & Auth Invariants
 
-Alfheim enforces strict tenant isolation based on Keycloak JWT claims and the `X-Household-ID` header.
+Alfheim enforces strict tenant isolation based on Zitadel OIDC JWT claims and the `X-Household-ID` header.
 
 ### A. Auth Context Dependency (`src/core/dependencies.py`)
 ```python

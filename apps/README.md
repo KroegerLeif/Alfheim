@@ -51,6 +51,6 @@ apps/<app-name>/
 ## 3. Interactions with Other Layers
 
 * **`packages/shared` (`@alfheim/shared`)**: Frontends import UI primitives (`Button`, `Dialog`, `Progress`), dynamic theme engines, localized i18n dictionaries (`common`, `pantry`, etc.), and typed `ApiClient` wrappers.
-* **`packages/backend-shared` (`backend_shared`)**: Python backends consume workspace utilities for OpenTelemetry instrumentation, Keycloak JWT verification, and RustFS S3 storage integration.
+* **`packages/backend-shared` (`backend_shared`)**: Python backends consume workspace utilities for OpenTelemetry instrumentation, OIDC JWT verification, and RustFS S3 storage integration.
 * **Central Caddy Gateway (`infrastructure/caddy`)**: Caddy proxies incoming traffic to frontend containers (`alfheim.loegien.localhost/<app>`) and backend API routes (`api.alfheim.loegien.localhost/<app>/api/v1`).
-* **Identity Provider (`infrastructure/keycloak`)**: Backends validate bearer tokens issued by Keycloak, while frontends execute PKCE OIDC authorization flows.
+* **Identity Provider (Zitadel)**: Backends validate bearer tokens issued by Zitadel on the dedicated `auth.*` host, while frontends execute PKCE OIDC authorization flows.

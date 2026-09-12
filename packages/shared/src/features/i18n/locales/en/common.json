@@ -41,7 +41,7 @@
   },
   "auth": {
     "error": "Authentication Error",
-    "securing_session": "Securing session with Keycloak...",
+    "securing_session": "Securing session with Zitadel...",
     "retry_connection": "Retry Connection"
   },
   "nav": {
