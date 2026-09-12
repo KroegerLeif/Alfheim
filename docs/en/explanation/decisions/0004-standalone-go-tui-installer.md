@@ -132,7 +132,8 @@ credential, which a test enforces.
 * **The TUI needs a real terminal.** `install.sh` reattaches stdin to
   `/dev/tty` so that `curl … | bash` still works; without that the wizard would
   exit immediately.
-* A second installer path exists until `scripts/install.sh` is removed.
+* A second installer path existed until `scripts/install.sh` was removed; the
+  root `install.sh` is now the only supported entry point.
 
 ---
 
