@@ -8,6 +8,9 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
   site: 'https://alfheim.loegien.de',
   base: '/docs',
+  // Both locales are URL-prefixed, so Starlight generates no root page and
+  // /docs/ would 404 -- which is exactly where the landing page links.
+  redirects: { '/': '/docs/en/' },
   // The content collection and the changelog wrapper import files from the
   // repository root, which sits above this project's directory.
   vite: {
