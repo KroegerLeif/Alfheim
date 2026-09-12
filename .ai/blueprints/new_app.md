@@ -79,7 +79,7 @@ When initializing a new app, the following files **MUST** be explicitly created 
 * **`backend/src/main.py`**: Expresses HTTP lifespan, middleware, CORS, routers, and healthcheck route at `/api/v1/health`.
 * **`backend/src/core/config.py`**: Environment configuration loader.
 * **`backend/src/core/database.py`**: Async database connection pool & session manager.
-* **`backend/src/core/dependencies.py`**: Parsers for Keycloak JWT tokens and `X-Household-ID` header.
+* **`backend/src/core/dependencies.py`**: Parsers for OIDC JWT tokens and the `X-Household-ID` header.
 
 ### Frontend Core
 * **`frontend/Dockerfile`**: Standalone build configuration matching `"standalone"` output mode.
@@ -147,22 +147,21 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
 
 ---
 
-## 4. Keycloak & Auth Integration
+## 4. Zitadel & Auth Integration
 
 1. **Frontend Registration**:
-   * Create a client named `<app-name>-frontend` inside the `alfheim` realm.
-   * Access Type: `Public` (Standard Authorization Flow, PKCE enabled).
-   * Valid Redirect URIs: `http://alfheim.loegien.localhost/<app-name>/*`, `http://alfheim.loegien.de/<app-name>/*`
-   * Web Origins: `*`
+   * Create an application named `<app-name>-frontend` in the Alfheim organisation in the Zitadel console.
+   * Application type: `User Agent` / `PKCE` (Authorization Code Flow with PKCE).
+   * Redirect URIs: `http://alfheim.loegien.localhost/<app-name>/*`, `https://alfheim.loegien.de/<app-name>/*`
 2. **Backend JWT Verification**:
    * Set configuration values in environment variables:
      ```env
-     KEYCLOAK_BASE_URL=http://keycloak:8080/auth
-     KEYCLOAK_PUBLIC_URL=http://api.alfheim.loegien.localhost/auth
-     KEYCLOAK_REALM=alfheim
+     OIDC_ISSUER_URL=http://auth.alfheim.loegien.localhost
+     OIDC_AUDIENCE=alfheim
+     OIDC_INTERNAL_URL=http://zitadel:8080
      ```
-   * JWKS verification coordinates with Keycloak certs route:
-     `http://keycloak:8080/auth/realms/alfheim/protocol/openid-connect/certs`
+   * Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
+   * Note: several existing services still read legacy `KEYCLOAK_*` variable names. The provider is Zitadel; renaming those variables is tracked separately.
 
 ---
 
