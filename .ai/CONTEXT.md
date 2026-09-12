@@ -177,7 +177,7 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Refactored Go dashboard backend `telemetry` service to query PromQL and LogSQL with automatic system fallback.
 * **`refactor(apps): localize sidebars and docs website components`**
   - Localized expand/collapse sidebar accessibility attributes in Maintenance and Chores.
-  - Localized mascot states, network topology labels, storage/basepath tags, and zero-trust footer badges in `websites/docs`.
+  - Localized mascot states, network topology labels, storage/basepath tags, and zero-trust footer badges in `websites/landing`.
 * **`refactor(dashboard): localize app tiers, modals, and dynamic theme picker in settings`**
   - Refactored Dashboard Tier 1, Tier 2, and Tier 3 headers, counts, empty states, and toast notifications to use `t('dashboard.*')`.
   - Refactored Settings Theme Picker to dynamically iterate over `(Object.keys(THEME_TOKENS) as ThemeVariant[])` and localized builder/status strings.
@@ -195,9 +195,9 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Added complete favicon suite under `favicon_io/` (`favicon.ico`, PNGs, and `site.webmanifest`).
   - Added 8 expressive ALFI mascot states (`alfi-idle`, `alfi-thinking`, `alfi-speaking`, `alfi-listenig`, `alfi-eating`, `alfi-fixing`, `alfi-chasing`, `alfi-sleeping`).
   - Extended `AlfiState` and `BRAND_ASSETS` registries in `packages/shared/src/assets/index.ts`.
-  - Wired all 8 mascot states and logo variants into `websites/docs`.
+  - Wired all 8 mascot states and logo variants into `websites/landing`.
 * **`feat(docs): create react vite documentation site and github pages deployment workflow`**
-  - Created `websites/docs` with React 19, TypeScript, Vite 8, Tailwind CSS v4, and Lucide React.
+  - Created `websites/landing` with React 19, TypeScript, Vite 8, Tailwind CSS v4, and Lucide React.
   - Configured `base: './'` for 404-free asset loading on GitHub Pages.
   - Integrated localized documentation strings (`docs.json` for `de`, `en`, `pl`) in `@alfheim/shared`.
   - Added automated GitHub Actions deployment workflow `.github/workflows/deploy-docs.yml`.
@@ -232,7 +232,7 @@ This index maps the active applications and services running inside the monorepo
 
 | Application / Folder | Tech Stack | Ingress Route (Caddy Gateway) | Database / Storage |
 | :--- | :--- | :--- | :--- |
-| **`websites/docs`** | React 19, Vite, Tailwind v4 | GitHub Pages / Static Docs | N/A (Static SPA) |
+| **`websites/landing`** | React 19, Vite, Tailwind v4 | GitHub Pages (site root) | N/A (Static SPA) |
 | **`core/dashboard`** | Go, Next.js, OIDC | `alfheim.loegien.de/` (Catch-all) | `dashboard-db` (`dashboard_postgres_data`) |
 | **`apps/pantry`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/pantry` / `api.alfheim.loegien.de/pantry` | `pantry-db` (`pantry_postgres_data`, Port `5432`) |
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |

@@ -1,17 +1,19 @@
-# Alfheim Documentation & Landing Page (`websites/docs`)
+# Alfheim Landing Page (`websites/landing`)
 
-This is the public-facing static documentation portal and landing site for **Alfheim Sovereign OS**, built with React 19, Vite, and Tailwind CSS v4.
+This is the public-facing marketing landing page for **Alfheim Sovereign OS**, built with React 19, Vite, and Tailwind CSS v4.
+
+It is deployed at the site root. The Diataxis documentation portal is a separate Astro Starlight project in [`websites/portal`](../portal/README.md), served under `/docs`.
 
 ---
 
 ## 1. Overview
 
-The documentation site provides a clean, responsive, and localized introduction to the Alfheim ecosystem, its containerized microservice modules, zero-trust security architecture, and the ambient AI companion **ALFI**.
+The landing page provides a clean, responsive, and localized introduction to the Alfheim ecosystem, its containerized microservice modules, zero-trust security architecture, and the ambient AI companion **ALFI**. It is a marketing surface, not a documentation surface.
 
 ### Key Highlights
 * **Tech Stack**: React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide React.
 * **Shared Localization**: Native multi-language support (English, German, Polish) backed by `@alfheim/shared` locales (`packages/shared/src/features/i18n/locales/{de,en,pl}/docs.json`).
-* **Design Aesthetic**: Obsidian / Nordic Dark theme (`#0b1326` canvas, `#111b33` frosted glass cards, `#3eb1ff` ice-cyan accents).
+* **Design Aesthetic**: Standalone dark palette (`#0b1326` canvas, `#111b33` frosted glass cards, `#3eb1ff` ice-cyan accents). This page hardcodes its own palette and does not consume the `@alfheim/shared` theme engine, whose default variant is `nordic`.
 * **Automated CI/CD**: Seamless GitHub Pages continuous deployment via `.github/workflows/deploy-docs.yml`.
 
 ---
@@ -19,7 +21,7 @@ The documentation site provides a clean, responsive, and localized introduction 
 ## 2. Project Structure & Shared Assets
 
 ```text
-websites/docs/
+websites/landing/
 ├── public/                 # Static assets
 ├── src/
 │   ├── components/
@@ -63,10 +65,10 @@ To run the documentation portal locally in development mode:
 
 ```bash
 # From workspace root
-pnpm --filter docs dev
+pnpm --filter @alfheim/landing dev
 
-# Or from within websites/docs directory
-cd websites/docs
+# Or from within websites/landing directory
+cd websites/landing
 pnpm dev
 ```
 
@@ -80,16 +82,16 @@ To build the static distribution bundle:
 
 ```bash
 # From workspace root
-pnpm --filter docs build
+pnpm --filter @alfheim/landing build
 ```
 
-Compiled static assets will be output to `websites/docs/dist/`.
+Compiled static assets will be output to `websites/landing/dist/`.
 
 ---
 
 ## 5. Deployment (GitHub Pages)
 
-The documentation site is deployed automatically to GitHub Pages via `.github/workflows/deploy-docs.yml` whenever changes to `websites/docs/**` or `packages/shared/**` are pushed to the `main` branch.
+The site is deployed automatically to GitHub Pages via `.github/workflows/deploy-docs.yml` whenever changes to `websites/landing/**`, `websites/portal/**`, `docs/**` or `packages/shared/**` are pushed to the `main` branch. The workflow builds this page, builds the documentation portal, and merges the portal into `dist/docs/` before uploading a single Pages artifact.
 
 * **Base Path**: Assets are configured with relative pathing (`base: './'`) to support both custom domain routing and repository subpaths without 404 errors.
-* **Artifact Upload**: GitHub Actions packages and uploads `websites/docs/dist/` directly without committing compiled build chunks to source control.
+* **Artifact Upload**: GitHub Actions packages and uploads the merged `websites/landing/dist/` tree without committing compiled build chunks to source control.
