@@ -176,19 +176,23 @@ services:
     stop_grace_period: 5s
 
   rustfs:
-    image: minio/minio:latest
+    # RustFS is the intended S3 implementation (see infrastructure/rustfs/README.md).
+    # MinIO was a stand-in and its Docker Hub repo was withdrawn upstream, so
+    # `minio/minio:*` is no longer pullable at all. Pinned to an explicit tag:
+    # `latest` currently tracks a release candidate and would drift under CI.
+    image: rustfs/rustfs:1.0.0-rc.6
     container_name: alfheim_rustfs
     restart: unless-stopped
-    command: server /data
+    # No `command:` override -- the image entrypoint starts the server using
+    # RUSTFS_VOLUMES (baked in as /data). Passing MinIO's `server /data` makes
+    # RustFS read `server` as an additional volume path.
     environment:
       RUSTFS_ACCESS_KEY: ${S3_ROOT_USER:-minioadmin}
       RUSTFS_SECRET_KEY: ${S3_ROOT_PASSWORD:-minioadmin}
-      MINIO_ROOT_USER: ${S3_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_ROOT_PASSWORD:-minioadmin}
     volumes:
       - rustfs_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/minio/health/live || exit 1"]
+      test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5

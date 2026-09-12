@@ -14,7 +14,7 @@ services:
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
-      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://rustfs:9000}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-budget-receipts}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}

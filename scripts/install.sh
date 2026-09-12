@@ -385,7 +385,7 @@ if [[ "${START_STACK}" == "true" ]]; then
 
   # Stage 1: Database Tier
   stage_step "1/3" "Database & Storage Tier (Cold initdb Resilience)"
-  log_info "Launching PostgreSQL Core Database Cluster, MinIO S3, and Mailpit..."
+  log_info "Launching PostgreSQL Core Database Cluster, RustFS S3, and Mailpit..."
   dc up -d postgres-core rustfs mailpit
 
   wait_healthy "alfheim_postgres_core" "PostgreSQL Core Database" 90
