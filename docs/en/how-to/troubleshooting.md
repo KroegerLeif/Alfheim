@@ -1,6 +1,6 @@
 ---
 title: "Platform Troubleshooting & Operations"
-description: "Diagnostic procedures and resolution steps for common operational issues across Caddy ingress, Zitadel OIDC authentication, database connection pools, and."
+description: "Diagnostic procedures and resolution steps for common operational issues across Caddy ingress, Zitadel OIDC authentication, database connection pools and container health."
 sidebar:
   label: "Troubleshooting"
 ---
@@ -62,7 +62,7 @@ docker logs --tail 100 -f alfheim_caddy
 ## Zitadel IAM & Token Verification Errors
 
 ### Symptom 1: Microservice Returns `401 Unauthorized` or `Invalid Token Issuer`
-* **Cause:** Public issuer URL mismatch between browser access (`http://api.alfheim.loegien.localhost/auth/realms/alfheim`) and internal Docker container verification.
+* **Cause:** Public issuer URL mismatch between the origin the browser is redirected to and the issuer the backend verifies against.
 * **Resolution:** Ensure `OIDC_ISSUER_URL` in `.env` is the bare origin of the IAM host (`http://auth.alfheim.loegien.localhost` locally) and matches the issuer the browser is redirected to. Zitadel is served on its own host, not on an `/auth` subpath.
 
 ### Symptom 2: Missing `X-Household-ID` Header Error

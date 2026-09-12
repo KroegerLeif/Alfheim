@@ -1,6 +1,6 @@
 ---
 title: "Use Your Own TLS Certificates"
-description: "Use this guide when you already hold certificates for your domain — issued by a"
+description: "Supply your own PEM certificates to the Alfheim gateway, either from the bundled directory or a custom absolute host path."
 ---
 
 Use this guide when you already hold certificates for your domain — issued by a

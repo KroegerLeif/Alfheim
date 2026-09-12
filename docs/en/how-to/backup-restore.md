@@ -1,6 +1,6 @@
 ---
 title: "Backup, Restore & Data Migration"
-description: "Procedures for backing up persistent Docker volumes, PostgreSQL database dumps, RustFS S3 object storage blobs, and restoring them during server migration or."
+description: "Backing up persistent Docker volumes, PostgreSQL dumps and RustFS S3 objects, and restoring them during server migration or disaster recovery."
 ---
 
 > **TL;DR:** Procedures for backing up persistent Docker volumes, PostgreSQL database dumps, RustFS S3 object storage blobs, and restoring them during server migration or disaster recovery.

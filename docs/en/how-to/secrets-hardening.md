@@ -1,6 +1,6 @@
 ---
 title: "Secrets Hardening & Deployment Readiness"
-description: "This document serves as the operational deployment guide and readiness audit for Alfheim homelab microservice monorepo, targeting v0.1.0 Beta release. Alfheim."
+description: "Operational deployment guide and readiness audit for the Alfheim monorepo ahead of the v0.1.0 Beta release."
 sidebar:
   label: "Secrets Hardening"
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Wildcard TLS with Hetzner DNS-01"
-description: "Use this guide to issue wildcard certificates for an Alfheim instance whose"
+description: "Issue wildcard certificates via the ACME DNS-01 challenge for an Alfheim instance whose domain is hosted on Hetzner DNS — no inbound port 80 required."
 ---
 
 Use this guide to issue wildcard certificates for an Alfheim instance whose

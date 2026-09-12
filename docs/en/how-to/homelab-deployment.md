@@ -1,6 +1,6 @@
 ---
 title: "Self-Hosting & Installation Guide"
-description: "Welcome to the Alfheim Home Server OS installation guide. This document provides everything you need to deploy, configure, and maintain Alfheim in production."
+description: "Deploy, configure and maintain Alfheim in production on a home server or homelab, via the automated installer or a manual walkthrough."
 sidebar:
   label: "Homelab Deployment"
 ---
@@ -163,9 +163,10 @@ docker volume ls | grep alfheim
 
 # Create a full backup archive of volume data
 docker run --rm \
-  -v alfheim-prod_dashboard_postgres_data:/data/dashboard \
-  -v alfheim-prod_postgres_iam_data:/data/iam \
+  -v alfheim-prod_postgres_core_data:/data/postgres \
   -v alfheim-prod_rustfs_data:/data/rustfs \
+  -v alfheim-prod_victoriametrics_data:/data/metrics \
+  -v alfheim-prod_victorialogs_data:/data/logs \
   -v $(pwd):/backup \
   alpine tar czf /backup/alfheim-backup-$(date +%Y%m%d).tar.gz /data
 ```
