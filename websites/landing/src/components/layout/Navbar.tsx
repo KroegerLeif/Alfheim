@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlfheimLogo } from '../icons/AlfheimLogo';
 import { useDocTranslation } from '../../i18n/useDocTranslation';
-import { Globe, ExternalLink } from 'lucide-react';
+import { Globe, ExternalLink, BookOpen } from 'lucide-react';
 import { Language } from '@alfheim/shared';
 
 export const Navbar: React.FC = () => {
@@ -43,8 +43,17 @@ export const Navbar: React.FC = () => {
           ))}
         </nav>
 
-        {/* Right Controls: Enclave Pill + Lang Switcher + GitHub */}
+        {/* Right Controls: Docs + Enclave Pill + Lang Switcher + GitHub */}
         <div className="flex items-center gap-4">
+          {/* Documentation Portal */}
+          <a
+            href="/docs"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0b1326] bg-[#3eb1ff] hover:bg-[#66c2ff] rounded-lg transition-all"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>{t('docs.nav.documentation', 'Documentation')}</span>
+          </a>
+
           {/* Status Badge */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-emerald-950/40 border border-emerald-500/30 text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -71,7 +80,7 @@ export const Navbar: React.FC = () => {
 
           {/* Source Repo */}
           <a
-            href="https://github.com/KroegerLeif/loeger-os"
+            href="https://github.com/KroegerLeif/Alfheim"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#f0f6fc] bg-[#182542] hover:bg-[#203158] border border-[#1c2847] rounded-lg transition-all"

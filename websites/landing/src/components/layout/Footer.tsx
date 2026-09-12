@@ -27,7 +27,7 @@ export const Footer: React.FC = () => {
             {t('docs.footer.zero_trust_badge', 'Zero-Trust Architecture')}
           </span>
           <a
-            href="https://github.com/KroegerLeif/loeger-os"
+            href="https://github.com/KroegerLeif/Alfheim"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 hover:text-[#3eb1ff] transition-colors"
