@@ -30,6 +30,7 @@ ignore = [
 "**/main.py" = ["E402", "T201"]
 "**/models.py" = ["E402"]
 "**/seeder.py" = ["T201"]
+"scripts/**" = ["T201"]         # standalone CLI tools; reporting to stdout is their purpose
 
 [format]
 quote-style = "double"
