@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "check-types": "pnpm -r exec tsc --noEmit",
+    "check-types": "pnpm -r --filter=!@alfheim/docs-portal exec tsc --noEmit && pnpm --filter @alfheim/docs-portal run check-types",
     "lint": "pnpm -r --if-present run lint",
     "vitest": "pnpm -r exec vitest"
   },

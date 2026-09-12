@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { createElement, type PropsWithChildren } from 'react'
 import { vi } from 'vitest'
 
 // Mock localStorage and sessionStorage globally for tests
@@ -52,10 +53,8 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => 'en',
-  Link: ({ children, ...props }: any) => {
-    const React = require('react')
-    return React.createElement('a', props, children)
-  },
+  Link: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) =>
+    createElement('a', props, children),
   useRouter() {
     return {
       push: () => null,

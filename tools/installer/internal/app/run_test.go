@@ -14,7 +14,39 @@ import (
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/runner"
+	"alfheim/installer/internal/shared/system"
 )
+
+// stubInspector reports a ready host without touching the build machine. The
+// real inspector binds ports 80 and 443 to probe them, which is not available
+// on a shared CI runner and is not what these tests are exercising.
+type stubInspector struct {
+	report system.Report
+	err    error
+}
+
+func (s stubInspector) Inspect(context.Context) (system.Report, error) {
+	return s.report, s.err
+}
+
+// unpreparedHost is the inspection outcome of a machine without Docker.
+func unpreparedHost() stubInspector {
+	return stubInspector{report: system.Report{OS: "linux", Arch: "amd64"}}
+}
+
+// readyHost is the inspection outcome of a machine that can run an install.
+func readyHost() stubInspector {
+	return stubInspector{report: system.Report{
+		DockerInstalled: true,
+		DaemonRunning:   true,
+		ComposeV2:       true,
+		ComposeVersion:  "2.29.0",
+		Port80Free:      true,
+		Port443Free:     true,
+		OS:              "linux",
+		Arch:            "amd64",
+	}}
+}
 
 // stubWizard answers the forms without a terminal.
 type stubWizard struct {
@@ -53,13 +85,14 @@ func newTestApp(t *testing.T, opts *Options, rec runner.Runner, wiz Wizard) (*Ap
 	t.Helper()
 	var stdout, stderr bytes.Buffer
 	return &App{
-		Options: opts,
-		Build:   BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
-		Runner:  rec,
-		Wizard:  wiz,
-		Stdout:  &stdout,
-		Stderr:  &stderr,
-		Now:     func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
+		Options:   opts,
+		Build:     BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
+		Runner:    rec,
+		Wizard:    wiz,
+		Stdout:    &stdout,
+		Stderr:    &stderr,
+		Now:       func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
+		Inspector: readyHost(),
 	}, &stdout, &stderr
 }
 
@@ -197,6 +230,8 @@ func TestRunRefusesAnUnpreparedHost(t *testing.T) {
 	opts := &Options{NonInteractive: true, InstallDir: t.TempDir(),
 		Domain: "example.com", TLSStrategy: "internal"}
 	app, _, stderr := newTestApp(t, opts, rec, nil)
+	// The point of this test: an install must refuse on a host it cannot use.
+	app.Inspector = unpreparedHost()
 
 	if code := app.Run(context.Background()); code != ExitFailure {
 		t.Fatalf("exit code = %d, want %d", code, ExitFailure)
@@ -213,6 +248,9 @@ func TestDryRunToleratesAnUnpreparedHost(t *testing.T) {
 	opts := &Options{DryRun: true, NonInteractive: true, InstallDir: t.TempDir(),
 		Domain: "example.com", TLSStrategy: "internal"}
 	app, stdout, stderr := newTestApp(t, opts, rec, nil)
+	// The point of this test: a host that cannot run an install must still
+	// render configuration during a dry run.
+	app.Inspector = unpreparedHost()
 
 	if code := app.Run(context.Background()); code != ExitOK {
 		t.Fatalf("exit code = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
