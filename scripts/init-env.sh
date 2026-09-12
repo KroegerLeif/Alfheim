@@ -396,13 +396,33 @@ log_info "Derived Apex Domain:     ${BOLD}${DOMAIN}${RESET}"
 
 # ------------------------------------------------------------------------------
 # OIDC Issuer Derivation (Zitadel is served on its own dedicated auth.* host)
+#
+# The derived host must be one infrastructure/caddy/compose.yml declares as a
+# gateway-net alias, because backends resolve the issuer over Docker DNS to
+# fetch the discovery document at startup.
 # ------------------------------------------------------------------------------
 if [[ "$NAKED_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || "$NAKED_HOST" == "localhost" ]]; then
-  OIDC_ISSUER_URL="${SCHEME}://${NAKED_HOST}"
+  AUTH_HOST="${NAKED_HOST}"
+elif [[ "$NAKED_HOST" == *.localhost ]]; then
+  # Local development: the *.localhost aliases are full hostnames, so the apex
+  # (loegien.localhost) is not routed — auth.alfheim.loegien.localhost is.
+  AUTH_HOST="auth.${NAKED_HOST}"
 else
-  OIDC_ISSUER_URL="${SCHEME}://auth.${DOMAIN}"
+  AUTH_HOST="auth.${DOMAIN}"
 fi
+OIDC_ISSUER_URL="${SCHEME}://${AUTH_HOST}"
 OIDC_AUDIENCE="alfheim"
+
+# Zitadel mints tokens for whatever EXTERNALDOMAIN it is told, so it has to be
+# the issuer host itself; a disagreement here breaks every token validation.
+ZITADEL_EXTERNALDOMAIN="${AUTH_HOST}"
+if [[ "$SCHEME" == "https" ]]; then
+  ZITADEL_EXTERNALSECURE="true"
+  ZITADEL_EXTERNALPORT="443"
+else
+  ZITADEL_EXTERNALSECURE="false"
+  ZITADEL_EXTERNALPORT="80"
+fi
 
 log_info "Derived OIDC Issuer URL: ${BOLD}${OIDC_ISSUER_URL}${RESET}"
 
@@ -491,6 +511,9 @@ sed \
   -e "s|^ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=.*|ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=admin|" \
   -e "s|^ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=.*|ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=${ZITADEL_ADMIN_PW}|" \
   -e "s|^ZITADEL_DB_PASSWORD=.*|ZITADEL_DB_PASSWORD=${POSTGRES_IAM_PW}|" \
+  -e "s|^ZITADEL_EXTERNALDOMAIN=.*|ZITADEL_EXTERNALDOMAIN=${ZITADEL_EXTERNALDOMAIN}|" \
+  -e "s|^ZITADEL_EXTERNALPORT=.*|ZITADEL_EXTERNALPORT=${ZITADEL_EXTERNALPORT}|" \
+  -e "s|^ZITADEL_EXTERNALSECURE=.*|ZITADEL_EXTERNALSECURE=${ZITADEL_EXTERNALSECURE}|" \
   -e "s|^S3_ROOT_PASSWORD=.*|S3_ROOT_PASSWORD=${S3_PW}|" \
   -e "s|^S3_SECRET_KEY=.*|S3_SECRET_KEY=${S3_PW}|" \
   -e "s|^DASHBOARD_POSTGRES_PASSWORD=.*|DASHBOARD_POSTGRES_PASSWORD=${DASHBOARD_PW}|" \

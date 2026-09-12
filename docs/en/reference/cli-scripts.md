@@ -13,6 +13,7 @@ sidebar:
 - [`install.sh` — Standalone Installer Bootstrap](#installsh--standalone-installer-bootstrap)
 - [`scripts/up.sh` — Staged Cluster Boot Orchestrator](#scriptsupsh--staged-cluster-boot-orchestrator)
 - [`scripts/down.sh` — Cluster Teardown Utility](#scriptsdownsh--cluster-teardown-utility)
+- [`scripts/zitadel-bootstrap.sh` — OIDC Client Provisioning](#scriptszitadel-bootstrapsh--oidc-client-provisioning)
 - [`scripts/init-env.sh` — Cryptographic Environment Generator](#scriptsinit-envsh--cryptographic-environment-generator)
 - [`scripts/verify.sh` — Monorepo Quality Gate Suite](#scriptsverifysh--monorepo-quality-gate-suite)
 - [`scripts/seed.sh` — Database Seed Utility](#scriptsseedsh--database-seed-utility)
@@ -45,10 +46,6 @@ curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --
 > **Full flag reference:** [`docs/reference/installer-cli.md`](./installer-cli.md).
 > **Design rationale:** [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md).
 
-> ⚠️ **`scripts/install.sh` is deprecated.** It still orchestrates Keycloak,
-> which [ADR 0003](../explanation/decisions/0003-migrate-from-keycloak-to-zitadel.md)
-> replaced with Zitadel. Use the root `install.sh` above.
-
 ---
 
 ## `scripts/up.sh` — Staged Cluster Boot Orchestrator
@@ -64,10 +61,13 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
 | Flag | Description |
 | :--- | :--- |
 | `-b`, `--build` | Force Docker image rebuild before starting containers |
-| `-d`, `--detach` | Run containers in background detached mode |
-| `--stage0` | Boot Stage 0 infrastructure only (Networks, Caddy, Zitadel, RustFS, VictoriaStack) |
-| `--stage1` | Boot Stage 1 core services (`core/dashboard`) |
-| `--stage2` | Boot Stage 2 microservice applications (`apps/*`) |
+| `--skip-obs` | Skip the VictoriaStack observability stage |
+| `-h`, `--help` | Print the usage summary |
+
+Stage 1 boots `postgres-core → zitadel → rustfs → caddy` and then runs
+[`scripts/zitadel-bootstrap.sh`](#scriptszitadel-bootstrapsh--oidc-client-provisioning)
+so Grafana has an OIDC client by the time the observability stage starts.
+It requires a `.env`; generate one with `./scripts/init-env.sh --auto`.
 
 ---
 
@@ -84,6 +84,38 @@ Gracefully stops and removes Docker containers across all workspace compose file
 | Flag | Description |
 | :--- | :--- |
 | `-v`, `--volumes` | Delete persistent Docker volumes (resets database states) |
+
+---
+
+## `scripts/zitadel-bootstrap.sh` — OIDC Client Provisioning
+
+Reconciles the `Alfheim` project and the `Grafana` OIDC application in Zitadel,
+then writes `GRAFANA_OIDC_CLIENT_ID` and `GRAFANA_OIDC_CLIENT_SECRET` into the
+root `.env`, which is where `infrastructure/telemetry/compose.yml` reads them.
+`scripts/up.sh` calls it; running it directly is only needed to repair or rotate
+credentials.
+
+Zitadel has no admin CLI, so the script drives the Management API. It
+authenticates with the personal access token that Zitadel writes to
+`infrastructure/zitadel/machinekey/pat.txt` while creating its first instance
+(`ZITADEL_FIRSTINSTANCE_PATPATH`). A Zitadel client id is generated rather than
+chosen, and a client secret is returned exactly once, so `.env` — not Zitadel —
+is the source of truth for the secret; a missing or mismatched one is repaired
+by regenerating it.
+
+### Usage Syntax
+```bash
+./scripts/zitadel-bootstrap.sh [--force]
+```
+
+### Options & Flags
+| Flag | Description |
+| :--- | :--- |
+| `--force` | Regenerate the Grafana client secret even when `.env` already holds a valid one |
+
+> The PAT is only written while the *first* instance is created. If the Zitadel
+> database survives but the file is gone, reset the local IAM state with
+> `./scripts/down.sh --volumes` and boot again.
 
 ---
 

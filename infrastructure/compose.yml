@@ -85,6 +85,17 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: "${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME:-admin}"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: "${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD:-Password1!}"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
+      # --- First instance bootstrap (machine user used to provision clients) ---
+      # Zitadel ships no admin CLI, so scripts/zitadel-bootstrap.sh provisions
+      # OIDC clients through the Management API instead. Its bearer token is
+      # the personal access token Zitadel writes to PATPATH while creating the
+      # first instance. Local development only.
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: "${ZITADEL_BOOTSTRAP_USERNAME:-bootstrap}"
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: "Alfheim Bootstrap"
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2519-04-01T08:45:00Z"
+      ZITADEL_FIRSTINSTANCE_PATPATH: /machinekey/pat.txt
+    volumes:
+      - ./zitadel/machinekey:/machinekey
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
       interval: 5s

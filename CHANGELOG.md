@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR 0005 (Astro Starlight Documentation Portal with i18n).
 - MIT `LICENSE` file, which the README badge had linked to without it existing.
 - `scripts/check-markdown-links.py` and a CI gate that fails the build on broken relative Markdown links.
+- `scripts/zitadel-bootstrap.sh`, which reconciles the Alfheim project and the Grafana OIDC application through Zitadel's Management API and writes the generated client id and secret back into `.env`. Zitadel ships no admin CLI, so the previous `docker exec`-based client registration had no direct equivalent.
+- A first-instance machine user in `infrastructure/compose.yml`, whose personal access token (`ZITADEL_FIRSTINSTANCE_PATPATH`, mounted at `infrastructure/zitadel/machinekey/`) authenticates that provisioning. Local development only; production installs use the installer's two-phase bootstrap.
 - Interactive standalone setup installer (`tools/installer`, binary `alfheim-setup`): a typed Go CLI built on Charm `huh`, following Alfheim's Feature-Driven Design conventions with feature slices for onboarding, security, TLS, templating and bootstrap.
 - Root `install.sh` bootstrap that detects the host architecture, downloads the matching release binary, verifies its SHA-256 checksum, and reattaches stdin to `/dev/tty` so `curl … | bash` works with the interactive wizard.
 - Four TLS strategies in the installer: Hetzner DNS-01, Cloudflare DNS-01, custom certificates (bundled `./data/caddy/certs/` or a custom absolute host path), and Caddy's internal CA.
@@ -48,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation, component READMEs and the landing page now describe Zitadel rather than Keycloak, completing the documentation side of ADR 0003.
 - `secrets-hardening.md` rewritten from a dated readiness audit into a timeless how-to guide. Its remaining checklist moved to the issue tracker, following the same reasoning as the `audit.md` removal.
 - The Caddy ingress gateway is now a custom image built from `infrastructure/caddy/Dockerfile` instead of the upstream `caddy:2-alpine`, which ships no ACME DNS provider modules.
+- `scripts/up.sh` stage 1 now boots `postgres-core → zitadel → rustfs → caddy`, provisions the Grafana OIDC client through `scripts/zitadel-bootstrap.sh`, and no longer builds the removed IAM theme JAR. It warns when `OIDC_ISSUER_URL` disagrees with `ZITADEL_EXTERNALDOMAIN`, which would otherwise break browser logins silently.
+- `scripts/down.sh` stops `zitadel` instead of a service `compose.yaml` no longer defines, so the graceful shutdown order is honoured again.
+- `scripts/init-env.sh` now derives `ZITADEL_EXTERNALDOMAIN`, `ZITADEL_EXTERNALPORT` and `ZITADEL_EXTERNALSECURE` from the same base URL as `OIDC_ISSUER_URL`. They were derived independently before, so the issuer and the host Zitadel minted tokens for could disagree, which fails every token validation.
+- `scripts/init-env.sh` derives the auth host of a `*.localhost` base URL as `auth.<full host>` rather than `auth.<apex>`. Only the former is a `gateway-net` alias of Caddy, and backends resolve the issuer over Docker DNS at startup.
 - Root `README.md` quickstart now points at the new root `install.sh`.
 - Migrated `INSTALL.md` to `docs/en/how-to/homelab-deployment.md`.
 - Migrated `DEPLOYMENT.md` to `docs/en/how-to/secrets-hardening.md`.
@@ -58,10 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `KEYCLOAK_REALM`, which has no Zitadel equivalent; the JWKS URI comes from the discovery document.
 - `audit.md` and `backlog-coverage-gates.md`, point-in-time sprint reports with outdated claims. Their open items belong in the issue tracker.
 - Dead `build:theme` npm script, which filtered a `@alfheim/keycloak-theme` package that is neither tracked nor a workspace member.
+- `scripts/install.sh`, the deprecated installer. It orchestrated the pre-ADR-0003 IAM end to end and downloaded realm and theme assets that no longer exist, so it could not have succeeded. The root `install.sh` and its Go installer replace it (ADR 0004).
 
 ### Deprecated
 - The `KEYCLOAK_*` environment variable names. `scripts/init-env.sh` migrates them in place for one release; after that, only the `OIDC_*` names are read.
-- `scripts/install.sh` still orchestrates Keycloak, which ADR 0003 replaced with Zitadel. It now prints a deprecation notice and will be removed in a future release; use the root `install.sh` instead.
 
 ---
 

@@ -15,11 +15,17 @@ Managing a multi-container monorepo with isolated microservices requires central
 ```
 scripts/
 ├── setup-env.sh            # Pre-flight environment variable generator & validator
+├── init-env.sh             # Cryptographic secret generator & legacy variable migrator
 ├── up.sh                   # Staged multi-zone platform boot orchestrator
 ├── down.sh                 # Platform shutdown & volume cleanup script
+├── zitadel-bootstrap.sh    # Zitadel OIDC client provisioning (Management API)
 ├── seed.sh                 # Database test data seeding utility
 └── verify.sh               # Monorepo verification suite (Python, Go, Frontend, Security)
 ```
+
+> Production installs do not use these scripts. They are bootstrapped by the
+> root `install.sh`, which fetches the `alfheim-setup` binary built from
+> `tools/installer` (see ADR 0004).
 
 ### Script Details:
 
@@ -28,10 +34,10 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
 * **Usage**: `./scripts/up.sh [OPTIONS]`
 * **Key Flags**:
   * `-b`, `--build`: Force Docker image rebuild before starting containers.
-  * `-d`, `--detach`: Run containers in detached background mode.
-  * `--stage0`: Boot Stage 0 infrastructure only (networks, Caddy gateway, Zitadel IAM, RustFS, VictoriaStack).
-  * `--stage1`: Boot Stage 1 core services (`core/dashboard`).
-  * `--stage2`: Boot Stage 2 application microservices (`apps/*`).
+  * `--skip-obs`: Skip the VictoriaStack observability stage.
+* **Requires** a root `.env`; generate one with `./scripts/init-env.sh --auto`.
+* Stage 1 boots `postgres-core → zitadel → rustfs → caddy` and provisions the
+  Grafana OIDC client via `zitadel-bootstrap.sh` before the stack comes up.
 
 #### 2. `down.sh` — Cluster Teardown
 Stops and removes active Docker compose service containers across all stages.
@@ -53,20 +59,20 @@ Generates `.env` files from `.env.example` with cryptographic secrets and dynami
   * `--repo <repo>`: Container image repository path (e.g. `owner/repo`, auto-derived from Git remote if omitted).
   * `--tag <tag>`: Container image tag (default: `latest`).
 
-#### 5. `install.sh` — Automated Production Installer
-Downloads release artifacts, provisions secrets, pre-pulls container images, and starts the production stack.
-* **Usage**: `./scripts/install.sh [OPTIONS]`
+#### 5. `zitadel-bootstrap.sh` — OIDC Client Provisioning
+Reconciles the `Alfheim` project and the `Grafana` OIDC application through
+Zitadel's Management API, then writes the generated client id and secret into
+the root `.env`. `up.sh` calls it; run it directly only to repair or rotate
+those credentials.
+* **Usage**: `./scripts/zitadel-bootstrap.sh [--force]`
 * **Key Flags**:
-  * `--skip-start`: Scaffold directory and secrets without starting containers.
-  * `--registry <registry>`: Override container image registry.
-  * `--repo <repo>`: Override container image repository path.
-  * `--tag <tag>`: Override container image tag.
+  * `--force`: Regenerate the Grafana client secret even when `.env` holds a valid one.
 
 #### 6. `setup-env.sh` — Environment Provisioning
 Generates `.env` files from `.env.example` templates if missing, validating required secret keys and port configurations.
 * **Usage**: `./scripts/setup-env.sh`
 
-#### 5. `verify.sh` — Workspace Verification Suite
+#### 7. `verify.sh` — Workspace Verification Suite
 Executes comprehensive linting, type-checking, formatting, and test suites across all monorepo technologies.
 * **Usage**: `./scripts/verify.sh [FLAGS]`
 * **Flags**:
