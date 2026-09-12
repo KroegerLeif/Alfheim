@@ -72,7 +72,7 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
    ```
 
 2. **Control Plane Registry**: Register `recipes` in `core/dashboard/backend/internal/features/apps/tier1_core_registry.go`.
-3. **Application Catalog**: Add `recipes` to [`docs/reference/apps-catalog.md`](../reference/apps-catalog.md).
+3. **Application Catalog**: Add `recipes` to [`docs/en/reference/apps-catalog.md`](../reference/apps-catalog.md).
 
 ---
 

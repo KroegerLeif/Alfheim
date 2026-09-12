@@ -1,6 +1,6 @@
 ---
 title: "Your First Alfheim Installation"
-description: "This tutorial walks you through installing Alfheim on a fresh Debian 12 host —"
+description: "Install Alfheim on a fresh Debian 12 host and end up with a running dashboard, identity provider and ingress gateway."
 sidebar:
   label: "First Run"
 ---
