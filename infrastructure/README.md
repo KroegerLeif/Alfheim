@@ -46,6 +46,6 @@ cp .env.example .env
 
 ## 4. Related Documentation
 
-* [Platform Architecture Overview](../docs/explanation/architecture-overview.md)
-* [Caddy Ingress Routing Matrix](../docs/reference/ingress-matrix.md)
-* [Environment Variables Reference](../docs/reference/environment-variables.md)
+* [Platform Architecture Overview](../docs/en/explanation/architecture-overview.md)
+* [Caddy Ingress Routing Matrix](../docs/en/reference/ingress-matrix.md)
+* [Environment Variables Reference](../docs/en/reference/environment-variables.md)

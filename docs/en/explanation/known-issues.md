@@ -1,4 +1,9 @@
-# Central Known Issues & System Trade-Offs
+---
+title: "Known Issues & System Trade-Offs"
+description: "Central register of accepted architectural trade-offs, environmental limitations, and known operational costs in the Alfheim ecosystem. Software bugs belong in."
+sidebar:
+  label: "Known Issues"
+---
 
 > **TL;DR:** Central register of accepted architectural trade-offs, environmental limitations, and known operational costs in the Alfheim ecosystem. Software bugs belong in the repository Issue Tracker.
 

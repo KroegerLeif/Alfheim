@@ -1,4 +1,9 @@
-# Alfheim - Deployment Readiness Guide & Operational Audit (v0.1.0 Beta Roadmap)
+---
+title: "Secrets Hardening & Deployment Readiness"
+description: "This document serves as the operational deployment guide and readiness audit for Alfheim homelab microservice monorepo, targeting v0.1.0 Beta release. Alfheim."
+sidebar:
+  label: "Secrets Hardening"
+---
 
 ## 1. Executive Summary
 This document serves as the operational deployment guide and readiness audit for **Alfheim** homelab microservice monorepo, targeting `v0.1.0 Beta` release. Alfheim consists of a Go control plane, multiple Python FastAPI microservices (Pantry, Shopping, Maintenance, Chores, Workout, Library, Budget), a Go Chat service, React/Next.js frontends, Zitadel IAM, RustFS S3, Caddy ingress gateway, and a VictoriaStack observability pipeline.

@@ -1,4 +1,9 @@
-# ADR 0003: Migration from Keycloak to Zitadel for Sovereign Identity
+---
+title: "ADR 0003: Migration from Keycloak to Zitadel"
+description: "Technical Story: Identity Provider RAM Optimization & Startup Acceleration"
+sidebar:
+  label: "0003 Zitadel Migration"
+---
 
 * Status: accepted
 * Deciders: Alfheim Core Architecture Team

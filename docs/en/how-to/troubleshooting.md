@@ -1,4 +1,9 @@
-# How-To: Platform Troubleshooting & Operations Guide
+---
+title: "Platform Troubleshooting & Operations"
+description: "Diagnostic procedures and resolution steps for common operational issues across Caddy ingress, Zitadel OIDC authentication, database connection pools, and."
+sidebar:
+  label: "Troubleshooting"
+---
 
 > **TL;DR:** Diagnostic procedures and resolution steps for common operational issues across Caddy ingress, Zitadel OIDC authentication, database connection pools, and container health.
 

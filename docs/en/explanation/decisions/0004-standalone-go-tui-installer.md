@@ -1,4 +1,9 @@
-# Standalone Interactive Installer as a Typed Go TUI
+---
+title: "ADR 0004: Standalone Interactive Installer as a Typed Go TUI"
+description: "Technical Story: #353 Interactive Standalone Setup Installer (Go + Charm Huh?)"
+sidebar:
+  label: "0004 Go TUI Installer"
+---
 
 * Status: accepted
 * Deciders: Alfheim Core Maintainers

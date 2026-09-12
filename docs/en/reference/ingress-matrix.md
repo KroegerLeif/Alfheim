@@ -1,4 +1,9 @@
-# Caddy Gateway Ingress & Routing Matrix (`docs/reference/ingress-matrix.md`)
+---
+title: "Caddy Gateway Ingress & Routing Matrix"
+description: "Master routing specification for the central Caddy reverse-proxy gateway (infrastructure/caddy), defining public domains, subpath mappings, and backend path."
+sidebar:
+  label: "Ingress Matrix"
+---
 
 > **TL;DR:** Master routing specification for the central Caddy reverse-proxy gateway (`infrastructure/caddy`), defining public domains, subpath mappings, and backend path stripping rules.
 

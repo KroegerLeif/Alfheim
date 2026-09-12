@@ -1,4 +1,9 @@
-# Tutorial: Local Getting Started Guide (`docs/tutorials/local-getting-started.md`)
+---
+title: "Local Getting Started Guide"
+description: "Beginner-friendly, step-by-step tutorial to set up and run the entire Alfheim monorepo locally on your development machine."
+sidebar:
+  label: "Local Getting Started"
+---
 
 > **TL;DR:** Beginner-friendly, step-by-step tutorial to set up and run the entire Alfheim monorepo locally on your development machine.
 

@@ -1,4 +1,7 @@
-# How to: Use Your Own TLS Certificates
+---
+title: "Use Your Own TLS Certificates"
+description: "Use this guide when you already hold certificates for your domain — issued by a"
+---
 
 Use this guide when you already hold certificates for your domain — issued by a
 corporate CA, bought from a commercial CA, or produced by a `certbot` instance

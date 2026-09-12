@@ -1,4 +1,7 @@
-# Tutorial: Create a New FDD Microservice (`docs/tutorials/create-new-fdd-service.md`)
+---
+title: "Create a New FDD Microservice"
+description: "Step-by-step guide to scaffolding, implementing, and registering a new Feature-Driven Design (FDD) microservice application in the Alfheim monorepo."
+---
 
 > **TL;DR:** Step-by-step guide to scaffolding, implementing, and registering a new Feature-Driven Design (FDD) microservice application in the Alfheim monorepo.
 

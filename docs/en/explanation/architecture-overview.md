@@ -1,4 +1,7 @@
-# Platform Architecture Overview (`docs/explanation/architecture-overview.md`)
+---
+title: "Platform Architecture Overview"
+description: "Architectural explanation of the Alfheim Sovereign OS monorepo, its control plane, container topology, and multi-zone network isolation strategy."
+---
 
 > **TL;DR:** Architectural explanation of the Alfheim Sovereign OS monorepo, its control plane, container topology, and multi-zone network isolation strategy.
 

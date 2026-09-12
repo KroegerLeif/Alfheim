@@ -3,7 +3,7 @@
 This is the central orchestration repository for `alfheim`, managing common infrastructure (Zitadel identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
 [![Release](https://img.shields.io/badge/release-v0.1.0--beta.1-blue.svg)](https://github.com/KroegerLeif/Alfheim/releases)
-[![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/how-to/homelab-deployment.md)
+[![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/en/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -26,9 +26,9 @@ cd ~/alfheim
 docker compose -f compose.prod.yaml up -d
 ```
 
-👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/reference/installer-cli.md) for every flag.
+👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
 
-👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/how-to/homelab-deployment.md).**
+👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/en/how-to/homelab-deployment.md).**
 
 ---
 

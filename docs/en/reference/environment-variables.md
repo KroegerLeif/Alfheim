@@ -1,4 +1,9 @@
-# Master Environment Variables Reference (`docs/reference/environment-variables.md`)
+---
+title: "Environment Variables Reference"
+description: "Exhaustive reference of environment variables used across Alfheim infrastructure, core services, and microservice applications."
+sidebar:
+  label: "Environment Variables"
+---
 
 > **TL;DR:** Exhaustive reference of environment variables used across Alfheim infrastructure, core services, and microservice applications.
 

@@ -1,4 +1,9 @@
-# Tutorial: Your First Alfheim Installation
+---
+title: "Your First Alfheim Installation"
+description: "This tutorial walks you through installing Alfheim on a fresh Debian 12 host —"
+sidebar:
+  label: "First Run"
+---
 
 This tutorial walks you through installing Alfheim on a fresh Debian 12 host —
 a bare-metal server, a Proxmox VM, or an LXC container. By the end you will

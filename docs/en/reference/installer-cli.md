@@ -1,11 +1,16 @@
-# Reference: `alfheim-setup` CLI
+---
+title: "alfheim-setup CLI Reference"
+description: "Complete parameter reference for the Alfheim installer."
+sidebar:
+  label: "Installer CLI"
+---
 
 Complete parameter reference for the Alfheim installer.
 
 * **Binary:** `alfheim-setup`
-* **Source:** [`tools/installer`](../../tools/installer)
-* **Bootstrap:** [`install.sh`](../../install.sh)
-* **Design:** [ADR 0004](../decisions/0004-standalone-go-tui-installer.md)
+* **Source:** [`tools/installer`](../../../tools/installer)
+* **Bootstrap:** [`install.sh`](../../../install.sh)
+* **Design:** [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)
 
 ---
 
@@ -170,4 +175,4 @@ ALFHEIM_VERSION=v0.2.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/K
 * [Tutorial: your first installation](../tutorials/first-run.md)
 * [Environment variables](./environment-variables.md)
 * [CLI scripts](./cli-scripts.md)
-* [ADR 0004](../decisions/0004-standalone-go-tui-installer.md)
+* [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)

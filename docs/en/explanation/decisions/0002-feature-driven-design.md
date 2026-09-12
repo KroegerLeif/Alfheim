@@ -1,4 +1,9 @@
-# ADR 0002: Feature-Driven Design (FDD) & Bounded Context Monorepo Architecture
+---
+title: "ADR 0002: Feature-Driven Design & Bounded Context Monorepo"
+description: "Technical Story: Microservice Monorepo Consistency & Feature Modularization"
+sidebar:
+  label: "0002 Feature-Driven Design"
+---
 
 * Status: accepted
 * Deciders: Alfheim Core Architecture Team

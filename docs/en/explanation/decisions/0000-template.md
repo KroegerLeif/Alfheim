@@ -1,4 +1,9 @@
-# [Short title of solved problem and solution]
+---
+title: "ADR Template"
+description: "Technical Story: [description or link to issue/ticket]"
+sidebar:
+  label: "Template"
+---
 
 * Status: [proposed | rejected | accepted | deprecated | superseded]
 * Deciders: [list everyone involved in the decision]

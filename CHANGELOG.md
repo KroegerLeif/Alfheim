@@ -20,18 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Installer quality gate in `go-ci.yml`: a ≥ 80 % coverage threshold, cross-compilation for `linux/amd64` and `linux/arm64`, and a headless dry-run smoke test.
 - Release pipeline now builds, checksums and publishes the static installer binaries alongside the existing production artefacts.
 - ADR 0004 (Standalone Interactive Installer as a Typed Go TUI).
-- Diátaxis documentation: `tutorials/first-run.md`, `how-to/hetzner-dns-tls.md`, `how-to/custom-certificates.md` and `reference/installer-cli.md`.
-- Centralized Diátaxis documentation framework under `/docs/` (`tutorials/`, `how-to/`, `reference/`, `explanation/`).
-- MADR Architectural Decision Records framework (`docs/decisions/`), adding ADR 0001 (Diátaxis Adoption) and ADR 0002 (Feature-Driven Design).
-- Central Application Catalog (`docs/reference/apps-catalog.md`) covering all Tier-1 Core microservices and Tier-2 Stack applications.
-- Master Environment Variables reference (`docs/reference/environment-variables.md`) and Caddy Ingress Matrix (`docs/reference/ingress-matrix.md`).
-- Central Known Issues & System Trade-Offs register (`docs/explanation/known-issues.md`).
+- Diátaxis documentation: `en/tutorials/first-run.md`, `en/how-to/hetzner-dns-tls.md`, `en/how-to/custom-certificates.md` and `en/reference/installer-cli.md`.
+- Centralized Diátaxis documentation framework under `/docs/` (`tutorials/`, `how-to/`, `reference/`, `explanation/`), now nested per locale under `docs/en/`.
+- MADR Architectural Decision Records framework (`docs/en/explanation/decisions/`), adding ADR 0001 (Diátaxis Adoption) and ADR 0002 (Feature-Driven Design).
+- Central Application Catalog (`docs/en/reference/apps-catalog.md`) covering all Tier-1 Core microservices and Tier-2 Stack applications.
+- Master Environment Variables reference (`docs/en/reference/environment-variables.md`) and Caddy Ingress Matrix (`docs/en/reference/ingress-matrix.md`).
+- Central Known Issues & System Trade-Offs register (`docs/en/explanation/known-issues.md`).
 
 ### Changed
 - The Caddy ingress gateway is now a custom image built from `infrastructure/caddy/Dockerfile` instead of the upstream `caddy:2-alpine`, which ships no ACME DNS provider modules.
 - Root `README.md` quickstart now points at the new root `install.sh`.
-- Migrated `INSTALL.md` to `docs/how-to/homelab-deployment.md`.
-- Migrated `DEPLOYMENT.md` to `docs/how-to/secrets-hardening.md`.
+- Migrated `INSTALL.md` to `docs/en/how-to/homelab-deployment.md`.
+- Migrated `DEPLOYMENT.md` to `docs/en/how-to/secrets-hardening.md`.
 - Updated root `README.md` to point to central `/docs/` guides.
 
 ### Deprecated

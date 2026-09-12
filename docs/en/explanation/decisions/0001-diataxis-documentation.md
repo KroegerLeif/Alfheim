@@ -1,4 +1,9 @@
-# ADR 0001: Adoption of Diátaxis Documentation Framework & App Consolidation
+---
+title: "ADR 0001: Adoption of Diátaxis Documentation Framework"
+description: "Technical Story: Documentation Architecture Audit & Restructuring"
+sidebar:
+  label: "0001 Diátaxis"
+---
 
 * Status: accepted
 * Deciders: Alfheim Core Architecture Team

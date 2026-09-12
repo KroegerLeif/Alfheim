@@ -1,4 +1,9 @@
-# CLI Orchestration Scripts Reference (`docs/reference/cli-scripts.md`)
+---
+title: "CLI Orchestration Scripts Reference"
+description: "Technical reference for repository shell scripts used for multi-stage cluster booting, environment provisioning, database seeding, and workspace verification."
+sidebar:
+  label: "CLI Scripts"
+---
 
 > **TL;DR:** Technical reference for repository shell scripts used for multi-stage cluster booting, environment provisioning, database seeding, and workspace verification.
 
@@ -38,10 +43,10 @@ curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --
 | `ALFHEIM_REPO` | Source repository (default: `KroegerLeif/Alfheim`) |
 
 > **Full flag reference:** [`docs/reference/installer-cli.md`](./installer-cli.md).
-> **Design rationale:** [ADR 0004](../decisions/0004-standalone-go-tui-installer.md).
+> **Design rationale:** [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md).
 
 > ⚠️ **`scripts/install.sh` is deprecated.** It still orchestrates Keycloak,
-> which [ADR 0003](../decisions/0003-migrate-from-keycloak-to-zitadel.md)
+> which [ADR 0003](../explanation/decisions/0003-migrate-from-keycloak-to-zitadel.md)
 > replaced with Zitadel. Use the root `install.sh` above.
 
 ---

@@ -1,4 +1,9 @@
-# Architectural Decision Records (ADR)
+---
+title: "Architectural Decision Records"
+description: "Central log of architectural decision records for Alfheim, formatted using MADR (Markdown Architectural Decision Records)."
+sidebar:
+  label: "Overview"
+---
 
 > **TL;DR:** Central log of architectural decision records for Alfheim, formatted using [MADR (Markdown Architectural Decision Records)](https://adr.github.io/madr/).
 

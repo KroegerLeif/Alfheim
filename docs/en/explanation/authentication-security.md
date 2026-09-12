@@ -1,4 +1,9 @@
-# Authentication & Multi-Tenancy Model (`docs/explanation/authentication-security.md`)
+---
+title: "Authentication & Multi-Tenancy Model"
+description: "Architectural explanation of generic OIDC PKCE authentication with Zitadel, JWT token verification, and tenant isolation using household contexts."
+sidebar:
+  label: "Authentication"
+---
 
 > **TL;DR:** Architectural explanation of generic OIDC PKCE authentication with Zitadel, JWT token verification, and tenant isolation using household contexts (`X-Household-ID`).
 

@@ -1,4 +1,7 @@
-# How to: Wildcard TLS with Hetzner DNS-01
+---
+title: "Wildcard TLS with Hetzner DNS-01"
+description: "Use this guide to issue wildcard certificates for an Alfheim instance whose"
+---
 
 Use this guide to issue wildcard certificates for an Alfheim instance whose
 domain is hosted on Hetzner DNS.
@@ -118,7 +121,7 @@ different nameservers.
 The gateway is running the stock Caddy image, which has no DNS provider
 modules. Alfheim builds its own from `infrastructure/caddy/Dockerfile`; rebuild
 it with `docker compose -f compose.prod.yaml build caddy`. See
-[ADR 0004](../decisions/0004-standalone-go-tui-installer.md).
+[ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md).
 
 ## Rotating the token
 

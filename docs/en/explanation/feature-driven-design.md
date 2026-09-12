@@ -1,4 +1,7 @@
-# Feature-Driven Design (FDD) Paradigm (`docs/explanation/feature-driven-design.md`)
+---
+title: "Feature-Driven Design (FDD) Paradigm"
+description: "Detailed explanation of the Feature-Driven Design pattern used across Alfheim Python and Go backends, along with the 200 LOC boundary for Next.js frontends."
+---
 
 > **TL;DR:** Detailed explanation of the Feature-Driven Design pattern used across Alfheim Python and Go backends, along with the 200 LOC boundary for Next.js frontends.
 

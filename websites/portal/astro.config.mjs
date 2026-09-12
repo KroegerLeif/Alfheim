@@ -30,6 +30,18 @@ export default defineConfig({
         },
       ],
       customCss: ['./src/styles/custom.css'],
+      // Shiki ships no grammars for these fences. GitHub highlights them, so the
+      // fences stay as they are and are mapped to the closest bundled grammar.
+      expressiveCode: {
+        shiki: {
+          langAlias: {
+            caddy: 'nginx',
+            caddyfile: 'nginx',
+            hosts: 'properties',
+            cron: 'properties',
+          },
+        },
+      },
       editLink: {
         baseUrl: 'https://github.com/KroegerLeif/Alfheim/edit/main/docs/',
       },

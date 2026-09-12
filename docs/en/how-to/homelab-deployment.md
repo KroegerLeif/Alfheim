@@ -1,4 +1,9 @@
-# Alfheim — Self-Hosting & Installation Guide (`INSTALL.md`)
+---
+title: "Self-Hosting & Installation Guide"
+description: "Welcome to the Alfheim Home Server OS installation guide. This document provides everything you need to deploy, configure, and maintain Alfheim in production."
+sidebar:
+  label: "Homelab Deployment"
+---
 
 Welcome to the **Alfheim Home Server OS** installation guide. This document provides everything you need to deploy, configure, and maintain Alfheim in production on your home server or homelab.
 
