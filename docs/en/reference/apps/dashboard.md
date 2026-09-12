@@ -25,7 +25,7 @@ Source: [`core/dashboard/`](https://github.com/KroegerLeif/Alfheim/tree/main/cor
 The platform organizes applications, portals, and bookmarks into three distinct architectural tiers:
 
 1. **Tier 1 (Core Apps):** Native monorepo microservices registered in Go (`internal/features/apps/tier1_core_registry.go`). Visible to all authenticated users; visibility can be toggled per user in `user_preferences`.
-2. **Tier 2 (Stack Apps / Integrations):** External homelab stack applications configured via server-level [`deploy/stack-apps.yaml`](../../deploy/stack-apps.yaml) and filtered dynamically by OIDC roles.
+2. **Tier 2 (Stack Apps / Integrations):** External homelab stack applications configured via server-level [`deploy/stack-apps.yaml`](../../../../deploy/stack-apps.yaml) and filtered dynamically by OIDC roles.
 3. **Tier 3 (User Links):** Personal custom bookmarks stored in PostgreSQL `user_links` (`GET/POST/PUT/DELETE /api/v1/user/links`).
 
 ---

@@ -27,6 +27,17 @@ permissions:
   id-token: write
 
 jobs:
+  # Relative links between Markdown files break silently when a document moves.
+  # This gate fails the build instead of shipping a dead link.
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check relative Markdown links
+        run: python3 scripts/check-markdown-links.py
+
   build:
     runs-on: ubuntu-latest
     steps:
