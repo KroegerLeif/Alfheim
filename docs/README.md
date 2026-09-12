@@ -83,6 +83,7 @@ Recorded in [MADR format](https://adr.github.io/madr/) under [`en/explanation/de
 * [ADR 0002: Feature-Driven Design & Bounded Context Monorepo](./en/explanation/decisions/0002-feature-driven-design.md)
 * [ADR 0003: Migration from Keycloak to Zitadel](./en/explanation/decisions/0003-migrate-from-keycloak-to-zitadel.md)
 * [ADR 0004: Standalone Interactive Installer as a Typed Go TUI](./en/explanation/decisions/0004-standalone-go-tui-installer.md)
+* [ADR 0005: Astro Starlight Documentation Portal with i18n](./en/explanation/decisions/0005-starlight-docs-portal.md)
 
 ---
 

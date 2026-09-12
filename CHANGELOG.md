@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Astro Starlight documentation portal (`websites/portal`, package `@alfheim/docs-portal`) served at `/docs`, with offline Pagefind full-text search and a Diátaxis sidebar.
+- Documentation i18n: English as the default locale, German as a secondary locale. Pages without a German translation are generated from the English source with a translation notice rather than returning 404.
+- German translations for all tutorials, how-to guides and explanation pages.
+- Per-application reference specifications under `docs/en/reference/apps/`, extracted from the app READMEs.
+- ADR 0005 (Astro Starlight Documentation Portal with i18n).
+- MIT `LICENSE` file, which the README badge had linked to without it existing.
+- `scripts/check-markdown-links.py` and a CI gate that fails the build on broken relative Markdown links.
 - Interactive standalone setup installer (`tools/installer`, binary `alfheim-setup`): a typed Go CLI built on Charm `huh`, following Alfheim's Feature-Driven Design conventions with feature slices for onboarding, security, TLS, templating and bootstrap.
 - Root `install.sh` bootstrap that detects the host architecture, downloads the matching release binary, verifies its SHA-256 checksum, and reattaches stdin to `/dev/tty` so `curl … | bash` works with the interactive wizard.
 - Four TLS strategies in the installer: Hetzner DNS-01, Cloudflare DNS-01, custom certificates (bundled `./data/caddy/certs/` or a custom absolute host path), and Caddy's internal CA.
@@ -28,11 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Central Known Issues & System Trade-Offs register (`docs/en/explanation/known-issues.md`).
 
 ### Changed
+- Documentation corpus moved under `docs/en/`, with ADRs relocated to `docs/en/explanation/decisions/` and the known-issues register to `docs/en/explanation/`. `docs/` remains plain Markdown and stays the single source of truth; the portal loads it through a content collection glob loader.
+- App READMEs slimmed to dev quickstarts; their specification content now lives in the reference quadrant.
+- `websites/docs` renamed to `websites/landing` (package `@alfheim/landing`), which frees the `docs` package name and reflects that it is the marketing landing page. It gains a `/docs` navigation link.
+- `deploy-docs.yml` builds the landing page and the portal, merges the portal into `dist/docs/`, and uploads one Pages artifact. Node moves from 20 to 22 for Astro 7.
+- Documentation, component READMEs and the landing page now describe Zitadel rather than Keycloak, completing the documentation side of ADR 0003.
 - The Caddy ingress gateway is now a custom image built from `infrastructure/caddy/Dockerfile` instead of the upstream `caddy:2-alpine`, which ships no ACME DNS provider modules.
 - Root `README.md` quickstart now points at the new root `install.sh`.
 - Migrated `INSTALL.md` to `docs/en/how-to/homelab-deployment.md`.
 - Migrated `DEPLOYMENT.md` to `docs/en/how-to/secrets-hardening.md`.
 - Updated root `README.md` to point to central `/docs/` guides.
+
+### Removed
+- `audit.md` and `backlog-coverage-gates.md`, point-in-time sprint reports with outdated claims. Their open items belong in the issue tracker.
+- Dead `build:theme` npm script, which filtered a `@alfheim/keycloak-theme` package that is neither tracked nor a workspace member.
 
 ### Deprecated
 - `scripts/install.sh` still orchestrates Keycloak, which ADR 0003 replaced with Zitadel. It now prints a deprecation notice and will be removed in a future release; use the root `install.sh` instead.
