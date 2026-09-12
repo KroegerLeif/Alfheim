@@ -10,13 +10,19 @@
 # Every argument is forwarded to alfheim-setup, so a headless install reads:
 #
 #   curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --tls internal
+#
+# By default only *stable* releases are installed. Tags marked as pre-releases
+# (-rc, -beta, -alpha) are never picked up automatically; opt into them with
+# ALFHEIM_CHANNEL=prerelease, or pin an exact tag with ALFHEIM_VERSION.
 # ==============================================================================
 
 set -euo pipefail
 
 REPO="${ALFHEIM_REPO:-KroegerLeif/Alfheim}"
 VERSION="${ALFHEIM_VERSION:-latest}"
+CHANNEL="${ALFHEIM_CHANNEL:-stable}"
 BINARY="alfheim-setup"
+SELF_URL="https://raw.githubusercontent.com/${REPO}/main/install.sh"
 
 BOLD="\033[1m"; GREEN="\033[0;32m"; CYAN="\033[0;36m"; RED="\033[0;31m"; RESET="\033[0m"
 log_info()    { printf "${CYAN}▶${RESET}  %s\n" "$*"; }
@@ -27,7 +33,9 @@ log_error()   { printf "${RED}✖${RESET}  %s\n" "$*" >&2; }
 # Cleanup
 # ------------------------------------------------------------------------------
 WORKDIR=""
-cleanup() { [[ -n "${WORKDIR}" && -d "${WORKDIR}" ]] && rm -rf "${WORKDIR}"; }
+# Returns 0 unconditionally: as the EXIT trap, its own status would otherwise
+# become the script's exit status on paths that fall off the end.
+cleanup() { [[ -n "${WORKDIR}" && -d "${WORKDIR}" ]] && rm -rf "${WORKDIR}"; return 0; }
 trap cleanup EXIT
 
 # ------------------------------------------------------------------------------
@@ -62,15 +70,57 @@ log_success "Detected linux/${arch}"
 # ------------------------------------------------------------------------------
 # 3. Resolve the release
 # ------------------------------------------------------------------------------
-if [[ "${VERSION}" == "latest" ]]; then
-  log_info "Resolving the latest release of ${REPO}..."
-  VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+API="https://api.github.com/repos/${REPO}"
+
+# Both helpers swallow curl failures so that "no such release" and "GitHub is
+# unreachable" arrive here the same way: as empty output. Under `pipefail` an
+# unguarded curl would abort the script before we could explain anything.
+tag_from() {
+  { curl -fsSL "$1" 2>/dev/null || true; } \
     | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
-    | head -n 1)"
-  if [[ -z "${VERSION}" ]]; then
-    log_error "Could not resolve the latest release. Set ALFHEIM_VERSION to pin one."
-    exit 1
-  fi
+    | head -n 1
+}
+
+# /releases/latest excludes pre-releases; /releases lists newest first and
+# includes them. Drafts are invisible to unauthenticated callers.
+latest_stable()     { tag_from "${API}/releases/latest"; }
+latest_prerelease() { tag_from "${API}/releases?per_page=1"; }
+
+if [[ "${VERSION}" == "latest" ]]; then
+  case "${CHANNEL}" in
+    stable)
+      log_info "Resolving the latest stable release of ${REPO}..."
+      VERSION="$(latest_stable)"
+      if [[ -z "${VERSION}" ]]; then
+        candidate="$(latest_prerelease)"
+        if [[ -n "${candidate}" ]]; then
+          log_error "${REPO} has no stable release yet — only pre-releases, which are"
+          log_error "never installed automatically. The newest one is ${candidate}."
+          log_error ""
+          log_error "To install it anyway, pick one of:"
+          log_error "  curl -fsSL ${SELF_URL} | ALFHEIM_CHANNEL=prerelease bash"
+          log_error "  curl -fsSL ${SELF_URL} | ALFHEIM_VERSION=${candidate} bash"
+        else
+          log_error "${REPO} has published no releases, or the GitHub API is unreachable."
+          log_error "Check your network, or set ALFHEIM_REPO if you are installing from a fork."
+        fi
+        exit 1
+      fi
+      ;;
+    prerelease)
+      log_info "Resolving the latest release of ${REPO}, pre-releases included..."
+      VERSION="$(latest_prerelease)"
+      if [[ -z "${VERSION}" ]]; then
+        log_error "${REPO} has published no releases, or the GitHub API is unreachable."
+        log_error "Check your network, or set ALFHEIM_VERSION to pin an exact tag."
+        exit 1
+      fi
+      ;;
+    *)
+      log_error "Unknown ALFHEIM_CHANNEL '${CHANNEL}'. Use 'stable' (default) or 'prerelease'."
+      exit 1
+      ;;
+  esac
 fi
 log_success "Installing ${BINARY} ${VERSION}"
 

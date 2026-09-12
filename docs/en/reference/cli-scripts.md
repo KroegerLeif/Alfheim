@@ -41,6 +41,7 @@ curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --
 | Variable | Description |
 | :--- | :--- |
 | `ALFHEIM_VERSION` | Release tag to install (default: `latest`) |
+| `ALFHEIM_CHANNEL` | `stable` (default) or `prerelease`. Pre-releases are never installed automatically. |
 | `ALFHEIM_REPO` | Source repository (default: `KroegerLeif/Alfheim`) |
 
 > **Full flag reference:** [`docs/reference/installer-cli.md`](./installer-cli.md).
