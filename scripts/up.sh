@@ -7,7 +7,7 @@
 #
 # Pipeline stages:
 #   0. Pre-flight    — validate Docker network prerequisites
-#   1. IAM Core      — postgres-core  →  keycloak  →  rustfs  →  caddy
+#   1. IAM Core      — postgres-core  →  zitadel  →  rustfs  →  caddy
 #   2. Dashboard     — dashboard-backend  →  dashboard-frontend
 #                      [live at http://alfheim/ after this stage]
 #   3. Shopping      — shopping-backend  →  shopping-frontend
@@ -299,68 +299,36 @@ done
 ok "Docker networks are ready"
 
 # =============================================================================
-# STAGE 1 — IAM Core, S3 Storage & Ingress Gateway  (postgres-core → keycloak → rustfs → caddy)
+# STAGE 1 — IAM Core, S3 Storage & Ingress Gateway  (postgres-core → zitadel → rustfs → caddy)
 # =============================================================================
-step "STAGE 1 · IAM Core, S3 Storage & Ingress Gateway  (postgres-core · keycloak · rustfs · caddy)"
+step "STAGE 1 · IAM Core, S3 Storage & Ingress Gateway  (postgres-core · zitadel · rustfs · caddy)"
+
+if [[ ! -f ".env" ]]; then
+  fail "No .env in ${REPO_ROOT}. Generate one first: ./scripts/init-env.sh --auto"
+fi
 
 info "Starting postgres-core …"
 dc up ${BUILD_FLAG} -d postgres-core
 wait_healthy "alfheim_postgres_core" "postgres-core" 60
 
-if [[ ! -f "infrastructure/keycloak/providers/alfheim-theme.jar" ]]; then
-  info "Keycloak theme JAR not found. Building theme..."
-  pnpm run build:theme
-fi
+# A cold Zitadel runs its first-instance migration here, which is the slowest
+# step of the whole boot; the installer allows 300 s for the same wait.
+info "Starting zitadel (first-instance setup may take up to 5 min on a cold database) …"
+dc up ${BUILD_FLAG} -d zitadel
+wait_healthy "alfheim_zitadel" "zitadel" 300
 
-info "Starting keycloak (realm import may take up to 90 s on first boot) …"
-dc up ${BUILD_FLAG} -d keycloak
-wait_healthy "alfheim_keycloak" "keycloak" 180
+# Zitadel has no admin CLI, so client provisioning goes through its Management
+# API. See scripts/zitadel-bootstrap.sh for the mechanics.
+info "Provisioning Zitadel OIDC clients (Grafana) …"
+"${SCRIPT_DIR}/zitadel-bootstrap.sh"
 
-info "Synchronizing Keycloak clients (ensuring alfheim-grafana client exists) …"
-local_kc_attempts=0
-max_kc_attempts=15
-authenticated=false
-
-spin_start "Authenticating with Keycloak CLI …"
-while [[ ${local_kc_attempts} -lt ${max_kc_attempts} ]]; do
-  if docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh config credentials \
-    --server http://localhost:8080/auth --realm master --user admin --password admin >/dev/null 2>&1; then
-    authenticated=true
-    spin_stop
-    break
-  fi
-  local_kc_attempts=$((local_kc_attempts + 1))
-  sleep 3
-done
-
-if [[ "${authenticated}" != "true" ]]; then
-  spin_stop
-  fail "Failed to authenticate with Keycloak CLI (kcadm.sh) after ${max_kc_attempts} attempts."
-fi
-
-client_id=$(docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh get clients -r alfheim -q clientId=alfheim-grafana --fields id 2>/dev/null | grep -o '"id" : "[^"]*"' | cut -d'"' -f4 || true)
-
-if [[ -z "${client_id}" ]]; then
-  info "Registering alfheim-grafana client in Keycloak …"
-  if docker exec alfheim_keycloak /opt/keycloak/bin/kcadm.sh create clients -r alfheim \
-    -s clientId=alfheim-grafana \
-    -s name="Grafana Observability" \
-    -s rootUrl="http://alfheim.loegien.localhost/grafana" \
-    -s baseUrl="/" \
-    -s enabled=true \
-    -s publicClient=false \
-    -s secret=alfheim-grafana-secret \
-    -s standardFlowEnabled=true \
-    -s directAccessGrantsEnabled=true \
-    -s 'redirectUris=["http://alfheim.loegien.localhost/grafana/login/generic_oauth","http://api.alfheim.loegien.localhost/grafana/login/generic_oauth","http://localhost:3000/grafana/login/generic_oauth","http://alfheim.loegien.de/grafana/login/generic_oauth","http://api.alfheim.loegien.de/grafana/login/generic_oauth","http://localhost:3000/*"]' \
-    -s 'webOrigins=["*"]' \
-    -s 'attributes."post.logout.redirect.uris"="+"' >/dev/null; then
-    ok "Keycloak alfheim-grafana client registered successfully"
-  else
-    fail "Failed to register Keycloak alfheim-grafana client."
-  fi
-else
-  ok "Keycloak alfheim-grafana client verified"
+# Grafana's browser-facing OAuth endpoints come from OIDC_ISSUER_URL, which has
+# to be the host Zitadel issues tokens for or the login redirect 404s.
+issuer_host="$(grep -E '^OIDC_ISSUER_URL=' .env | tail -n 1 | sed -e 's|^[^=]*=||' -e 's|^https\{0,1\}://||' -e 's|/.*$||')"
+external_domain="$(grep -E '^ZITADEL_EXTERNALDOMAIN=' .env | tail -n 1 | sed -e 's|^[^=]*=||')"
+if [[ -n "${issuer_host}" && -n "${external_domain}" && "${issuer_host}" != "${external_domain}" ]]; then
+  warn "OIDC_ISSUER_URL points at '${issuer_host}' but Zitadel issues for '${external_domain}'."
+  warn "Browser logins will fail until they agree — re-run ./scripts/init-env.sh."
 fi
 
 info "Starting rustfs S3 object storage …"
@@ -521,7 +489,7 @@ if [[ "${SKIP_OBS}" != "true" ]]; then
 fi
 echo ""
 echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Keycloak IAM       →  ${BOLD}http://api.alfheim.loegien.localhost/auth${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Zitadel IAM        →  ${BOLD}http://auth.alfheim.loegien.localhost/${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Chat API           →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1/chat${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
 echo ""

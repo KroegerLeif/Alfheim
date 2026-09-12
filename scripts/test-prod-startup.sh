@@ -203,7 +203,7 @@ log_success "compose.prod.yaml syntax is valid"
 
 log_info "Verifying host-mounted config files exist..."
 # Zitadel is configured entirely through environment variables and needs no
-# host-mounted realm export or provider directory (unlike the former Keycloak IAM).
+# host-mounted realm export or provider directory.
 REQUIRED_FILES=(
   "infrastructure/caddy/Caddyfile"
   "infrastructure/postgres/init-multiple-dbs.sh"

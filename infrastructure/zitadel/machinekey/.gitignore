@@ -1,0 +1,5 @@
+# Zitadel writes the bootstrap machine user's personal access token here while
+# creating the first instance. It is a local development credential and must
+# never be committed.
+*
+!.gitignore

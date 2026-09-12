@@ -62,8 +62,8 @@ step "Tearing down Alfheim Stack"
 info "Gracefully stopping frontends & backends …"
 docker compose -f "${COMPOSE_FILE}" stop chat-frontend chores-frontend maintenance-frontend pantry-frontend shopping-frontend dashboard-frontend workout-frontend library-frontend budget-frontend chat-backend chores-backend maintenance-backend pantry-backend shopping-backend dashboard-backend workout-backend library-backend budget-backend || true
 
-info "Gracefully stopping Keycloak IAM & RustFS Storage …"
-docker compose -f "${COMPOSE_FILE}" stop keycloak rustfs || true
+info "Gracefully stopping Zitadel IAM & RustFS Storage …"
+docker compose -f "${COMPOSE_FILE}" stop zitadel rustfs || true
 
 info "Gracefully stopping postgres-core database …"
 docker compose -f "${COMPOSE_FILE}" stop postgres-core || true
