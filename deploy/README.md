@@ -39,7 +39,7 @@ apps:
 * **`id` / `slug`**: Unique string identifier for routing and telemetry tagging.
 * **`title` & `description`**: User-facing labels rendered on the dashboard landing page.
 * **`url`**: External URL or relative route pointing to the target service.
-* **`required_roles`**: Array of Keycloak OIDC roles required to access the application (e.g. `["admin"]`).
+* **`required_roles`**: Array of OIDC roles required to access the application (e.g. `["admin"]`).
 * **`status`**: Current deployment state (`active`, `in_progress`, or `deprecated`).
 * **`display_order`**: Integer defining the rendering order in the dashboard apps grid.
 

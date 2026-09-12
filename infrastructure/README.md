@@ -1,20 +1,51 @@
-# Infrastructure - Identity and Access Management (IAM)
+# Infrastructure Services
 
-This directory contains the foundational infrastructure for the IAM of `alfheim`, following a Feature-Driven Design (FDD) approach.
+This directory contains the foundational platform infrastructure for `alfheim`:
+the ingress gateway, the core database cluster, object storage and the
+observability stack. Identity is provided by Zitadel, which is defined directly
+in `compose.prod.yaml` rather than in a subdirectory here.
 
-We utilize a "Database per Service" architecture. Keycloak is isolated with its own dedicated PostgreSQL instance to minimize blast radius and ensure loose coupling.
+---
 
-## Services
-* **PostgreSQL (`postgres-core`)**: Persistent relational database cluster for Keycloak, dashboard control plane, and microservices. Data is stored locally via a Docker volume bind mount (`./postgres/data`).
-* **Keycloak (`keycloak`)**: The central IAM provider managing realms, clients, and users.
+## 1. Services
 
-## Prerequisites
-* Docker and Docker Compose installed.
+| Service | Location | Purpose |
+| :--- | :--- | :--- |
+| `caddy` | [`caddy/`](./caddy/README.md) | Central reverse proxy and ingress gateway. Terminates TLS and routes the frontend, IAM and API domains. |
+| `postgres-core` | [`postgres/`](./postgres/README.md) | Shared PostgreSQL 16 cluster. Hosts one isolated database per service, each owned by a dedicated least-privilege user. |
+| `rustfs` | [`rustfs/`](./rustfs/README.md) | S3-compatible object storage for attachments and presigned uploads. |
+| VictoriaStack | [`telemetry/`](./telemetry/README.md) | Vector, OpenTelemetry Collector, VictoriaMetrics, VictoriaLogs and Grafana. |
+| `zitadel` | `compose.prod.yaml` | Central OIDC identity provider. Served on its own `auth.*` host; stores state in the `zitadel` database on `postgres-core`. |
 
-## Setup & Local Development (Mac)
+---
 
-1. **Environment Variables**:
-   Navigate to both service directories (`keycloak/` and `postgres-iam/`) and copy the example files to create your local configurations:
-   ```bash
-   cp postgres-iam/.env.example postgres-iam/.env
-   cp keycloak/.env.example keycloak/.env
+## 2. Database Topology
+
+The platform follows a "database per service" model inside a single shared
+PostgreSQL cluster. Blast radius is limited by ownership and grants rather than
+by separate database servers, which keeps the memory footprint viable on
+homelab hardware.
+
+Databases are provisioned on first boot by
+[`postgres/init-multiple-dbs.sh`](./postgres/init-multiple-dbs.sh); see
+[`postgres/README.md`](./postgres/README.md) for the full matrix.
+
+---
+
+## 3. Prerequisites
+
+* Docker and Docker Compose v2.
+* A populated root `.env`. Generate one from the template with:
+
+```bash
+cp .env.example .env
+./scripts/init-env.sh
+```
+
+---
+
+## 4. Related Documentation
+
+* [Platform Architecture Overview](../docs/explanation/architecture-overview.md)
+* [Caddy Ingress Routing Matrix](../docs/reference/ingress-matrix.md)
+* [Environment Variables Reference](../docs/reference/environment-variables.md)

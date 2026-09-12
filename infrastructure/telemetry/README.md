@@ -5,7 +5,7 @@ This directory defines the central observability platform for Alfheim, replacing
 * **`victoriametrics`**: High-performance time-series database for Prometheus & OTLP metrics (`:8428`).
 * **`victorialogs`**: High-compression log database with LogSQL support (`:9428`).
 * **`vector`**: Docker socket log harvester normalizing JSON logs and shipping OTLP payloads to `otel-collector`.
-* **`grafana`**: Visualization dashboard provisioned with pre-configured datasources and Keycloak OIDC SSO (`:3000`).
+* **`grafana`**: Visualization dashboard provisioned with pre-configured datasources and Zitadel OIDC SSO (`:3000`).
 
 ---
 
@@ -19,7 +19,7 @@ infrastructure/telemetry/
 ├── vector/
 │   └── vector.toml                      # Vector Docker log extraction & OTLP forwarding
 ├── grafana/
-│   ├── grafana.ini                      # Server subpath & Keycloak generic OAuth settings
+│   ├── grafana.ini                      # Server subpath & Zitadel generic OAuth settings
 │   └── provisioning/
 │       ├── datasources/
 │       │   └── datasources.yaml         # VictoriaMetrics & VictoriaLogs datasources
@@ -46,4 +46,4 @@ infrastructure/telemetry/
 
 * **Primary URL**: `http://alfheim.loegien.localhost/grafana` (API alias: `http://api.alfheim.loegien.localhost/grafana`)
 * **Default Admin**: `admin` / `admin`
-* **Keycloak SSO**: Client `alfheim-grafana` under realm `alfheim` (generic OAuth).
+* **Zitadel SSO**: Client `alfheim-grafana` configured as a generic OAuth provider (`auth_url` on the public `auth.*` host, token and userinfo calls internal to `zitadel:8080`).

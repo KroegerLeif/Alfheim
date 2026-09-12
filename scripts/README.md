@@ -29,7 +29,7 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
 * **Key Flags**:
   * `-b`, `--build`: Force Docker image rebuild before starting containers.
   * `-d`, `--detach`: Run containers in detached background mode.
-  * `--stage0`: Boot Stage 0 infrastructure only (networks, Caddy gateway, Keycloak IAM, RustFS, VictoriaStack).
+  * `--stage0`: Boot Stage 0 infrastructure only (networks, Caddy gateway, Zitadel IAM, RustFS, VictoriaStack).
   * `--stage1`: Boot Stage 1 core services (`core/dashboard`).
   * `--stage2`: Boot Stage 2 application microservices (`apps/*`).
 

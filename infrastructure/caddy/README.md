@@ -13,7 +13,7 @@ graph TD
   Client[Browser / Mobile Client] -->|HTTP / HTTPS| Caddy[Caddy Reverse Proxy]
   Caddy -->|alfheim.loegien.localhost/*| MFE[Microfrontends - Next.js Ports 3000/3010]
   Caddy -->|api.alfheim.loegien.localhost/*| API[Backend APIs - FastAPI & Go Ports 8000/8080]
-  Caddy -->|/auth*| Keycloak[Keycloak IAM - Port 8080]
+  Caddy -->|auth.* host| Zitadel[Zitadel IAM - Port 8080]
   Caddy -->|/storage*| RustFS[RustFS S3 Gateway - Port 9000]
 ```
 
@@ -38,7 +38,7 @@ graph TD
 - Preflight CORS handler for `GET, POST, PUT, PATCH, DELETE, OPTIONS` requests.
 - Authorization header and `X-Household-ID` propagation.
 - Service endpoints:
-  - `/auth*` -> `keycloak:8080` (Native subpath, no path stripping)
+  - `auth.*` host -> `zitadel:8080` (Dedicated host; Zitadel does not support sub-path hosting)
   - `/storage*` -> `rustfs:9000` (S3 object storage endpoint & presigned URLs)
   - Backend API proxies (FastAPI / Go microservices).
 

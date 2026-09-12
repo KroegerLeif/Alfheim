@@ -46,7 +46,7 @@
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgresql+asyncpg://workout_user:postgres@postgres-core:5432/alfheim_workout` | Async PostgreSQL connection string |
-| `KEYCLOAK_URL` | `http://keycloak:8080/auth` | Internal Keycloak auth endpoint |
+| `KEYCLOAK_URL` | `http://zitadel:8080` | Internal IAM endpoint. Legacy variable name; the provider is Zitadel. |
 | `NEXT_PUBLIC_WORKOUT_API_URL` | `http://api.alfheim.loegien.localhost/workout/api/v1` | Browser API gateway endpoint |
 
 ---
