@@ -23,3 +23,7 @@ pnpm-debug.log*
 # Environment files
 **/.env
 **/.env.local
+
+# Go workspace (must never leak into module-scoped image builds)
+go.work
+go.work.sum

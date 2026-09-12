@@ -41,6 +41,8 @@ Thumbs.db
 **/.coverage.*
 **/coverage.xml
 **/coverage/
+coverage.out
+**/coverage.out
 *.db
 *.sqlite
 *.sqlite3

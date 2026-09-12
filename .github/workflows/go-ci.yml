@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/chat/backend/**'
       - 'core/dashboard/backend/**'
+      - 'tools/installer/**'
       - '.github/workflows/go-ci.yml'
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths:
       - 'apps/chat/backend/**'
       - 'core/dashboard/backend/**'
+      - 'tools/installer/**'
       - '.github/workflows/go-ci.yml'
   workflow_dispatch:
 
@@ -34,6 +36,7 @@ jobs:
         service:
           - apps/chat/backend
           - core/dashboard/backend
+          - tools/installer
     defaults:
       run:
         working-directory: ${{ matrix.service }}
@@ -55,3 +58,45 @@ jobs:
 
       - name: Run Go Unit & Integration Tests with Race Detector & Coverage
         run: go test -v -race -coverprofile=coverage.out ./...
+
+  installer-quality:
+    name: Installer Coverage Gate & Cross-Compile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/installer
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: 'tools/installer/go.sum'
+
+      - name: Enforce Minimum Test Coverage (>= 80%)
+        run: |
+          go test -race -covermode=atomic \
+            -coverpkg=./internal/... -coverprofile=coverage.out ./...
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {print $3}' | tr -d '%')
+          echo "Total installer coverage: ${pct}%"
+          awk -v p="$pct" 'BEGIN { exit (p+0 >= 80.0) ? 0 : 1 }' || {
+            echo "::error::Installer coverage ${pct}% is below the required 80% gate."
+            exit 1
+          }
+
+      - name: Cross-Compile Static Binaries (linux/amd64, linux/arm64)
+        run: |
+          for target in linux/amd64 linux/arm64; do
+            echo "Building ${target}..."
+            CGO_ENABLED=0 GOOS="${target%/*}" GOARCH="${target#*/}" \
+              go build -trimpath -o /dev/null ./cmd/alfheim-setup
+          done
+
+      - name: Verify Headless Dry Run
+        run: |
+          go run ./cmd/alfheim-setup --version
+          go run ./cmd/alfheim-setup --dry-run --non-interactive \
+            --domain alfheim.example.com --tls internal \
+            --install-dir "$(mktemp -d)"
