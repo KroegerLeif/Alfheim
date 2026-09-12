@@ -29,6 +29,7 @@ export default defineConfig({
           href: 'https://github.com/KroegerLeif/Alfheim',
         },
       ],
+      customCss: ['./src/styles/custom.css'],
       editLink: {
         baseUrl: 'https://github.com/KroegerLeif/Alfheim/edit/main/docs/',
       },

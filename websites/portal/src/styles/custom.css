@@ -1,0 +1,9 @@
+/*
+  The changelog page embeds the root CHANGELOG.md, which opens with its own
+  `# Changelog` heading. Starlight already renders the page title as the h1, so
+  the imported duplicate is removed from the render tree. display:none also
+  drops it from the accessibility tree, leaving exactly one h1 on the page.
+*/
+.changelog-embed > h1:first-child {
+  display: none;
+}
