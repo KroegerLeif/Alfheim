@@ -10,5 +10,4 @@
 | :--- | :--- | :--- | :--- |
 | **Caddy / macOS** | Loopback DNS resolution fails for `.localhost` subdomains after macOS sleep | macOS Docker Desktop bridge loopback isolation issue | Execute `docker exec -it alfheim_caddy caddy reload --config /etc/caddy/Caddyfile` |
 | **Telemetry / Vector** | 100ms latency buffer on structured log delivery to VictoriaLogs | Async OTLP micro-batching window configured in Vector to minimize container CPU overhead | Real-time unbuffered container logs remain instantly accessible via `docker logs <container>` |
-| **Keycloak IAM** | Cold start of Keycloak container takes 15–20 seconds on initial database migration | Keycloak Liquibase DB migrations and realm JSON import processing on clean boot | `scripts/up.sh` automatically waits for Keycloak health status (`wait_healthy`) before proceeding |
 | **Python Workspaces** | Microservices require `context: ../..` build root in Docker Compose | `uv` workspace dependency resolution requires access to root `pyproject.toml` and workspace packages (`packages/backend-shared`) | Docker build context is set to monorepo root in compose files |

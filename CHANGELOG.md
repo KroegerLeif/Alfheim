@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MADR Architectural Decision Records framework (`docs/decisions/`), adding ADR 0001 (Diátaxis Adoption) and ADR 0002 (Feature-Driven Design).
 - Central Application Catalog (`docs/reference/apps-catalog.md`) covering all Tier-1 Core microservices and Tier-2 Stack applications.
 - Master Environment Variables reference (`docs/reference/environment-variables.md`) and Caddy Ingress Matrix (`docs/reference/ingress-matrix.md`).
-- Central Known Issues & System Trade-Offs register (`docs/known-issues.md`).
+- Central Known Issues & System Trade-Offs register (`docs/explanation/known-issues.md`).
 
 ### Changed
 - The Caddy ingress gateway is now a custom image built from `infrastructure/caddy/Dockerfile` instead of the upstream `caddy:2-alpine`, which ships no ACME DNS provider modules.

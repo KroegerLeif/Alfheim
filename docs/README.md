@@ -66,6 +66,7 @@ High-level architecture and design philosophy:
 * [Feature-Driven Design (FDD) Paradigm](./explanation/feature-driven-design.md) — Bounded contexts, 6-file feature structure, and 200 LOC Limits.
 * [Authentication & Multi-Tenancy](./explanation/authentication-security.md) — Generic OIDC / Zitadel, JWT claim validation, and `X-Household-ID` isolation.
 * [VictoriaStack Telemetry Pipeline](./explanation/telemetry-pipeline.md) — Vector log aggregation, OTel Collector, and W3C traceparent headers.
+* [Known Issues & System Trade-Offs](./explanation/known-issues.md) — Accepted costs, environmental limitations, and their mitigations.
 
 ---
 
@@ -81,4 +82,4 @@ All architectural decisions are formally recorded in [MADR format](https://adr.g
 
 ## ⚠️ System Trade-Offs & Known Issues
 
-Accepted costs and environmental limitations are centrally documented in the [Known Issues Register](./known-issues.md). Software bugs belong in the repository Issue Tracker.
+Accepted costs and environmental limitations are centrally documented in the [Known Issues Register](./explanation/known-issues.md). Software bugs belong in the repository Issue Tracker.
