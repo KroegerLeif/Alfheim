@@ -1,7 +1,7 @@
 import React from 'react'
 import { renderHook, act, waitFor, render } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { useHouseholdSwitcher, KeycloakWindow } from '../useHouseholdSwitcher'
+import { useHouseholdSwitcher, OidcWindow } from '../useHouseholdSwitcher'
 
 describe('useHouseholdSwitcher hook', () => {
   const mockHouseholds = [
@@ -12,7 +12,7 @@ describe('useHouseholdSwitcher hook', () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
-    delete (window as unknown as KeycloakWindow).__keycloak_instance__
+    delete (window as unknown as OidcWindow).__alfheim_oidc_instance__
   })
 
   afterEach(() => {
@@ -48,10 +48,10 @@ describe('useHouseholdSwitcher hook', () => {
     expect(result.current.activeId).toBe('hh-1')
   })
 
-  it('fetches households using Keycloak instance updateToken and sets default household', async () => {
+  it('fetches households using OIDC instance updateToken and sets default household', async () => {
     const updateTokenMock = vi.fn().mockResolvedValue(true)
-    ;(window as unknown as KeycloakWindow).__keycloak_instance__ = {
-      token: 'keycloak-token-123',
+    ;(window as unknown as OidcWindow).__alfheim_oidc_instance__ = {
+      token: 'oidc-token-123',
       updateToken: updateTokenMock,
     }
 
@@ -65,18 +65,18 @@ describe('useHouseholdSwitcher hook', () => {
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith('/api/v1/households/me', {
-        headers: { Authorization: 'Bearer keycloak-token-123' },
+        headers: { Authorization: 'Bearer oidc-token-123' },
       })
       expect(result.current.activeId).toBe('hh-2')
     })
   })
 
-  it('handles 401 response and retries with refreshed Keycloak token', async () => {
+  it('handles 401 response and retries with refreshed OIDC token', async () => {
     const updateTokenMock = vi
       .fn()
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(true)
-    ;(window as unknown as KeycloakWindow).__keycloak_instance__ = {
+    ;(window as unknown as OidcWindow).__alfheim_oidc_instance__ = {
       token: 'refreshed-token-456',
       updateToken: updateTokenMock,
     }

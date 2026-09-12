@@ -13,8 +13,8 @@ export interface Household {
   is_default?: boolean;
 }
 
-export interface KeycloakWindow extends Window {
-  __keycloak_instance__?: {
+export interface OidcWindow extends Window {
+  __alfheim_oidc_instance__?: {
     token?: string;
     authenticated?: boolean;
     updateToken?: (minValidity?: number) => Promise<boolean>;
@@ -22,9 +22,9 @@ export interface KeycloakWindow extends Window {
   };
 }
 
-function getKeycloakInstance() {
+function getOidcInstance() {
   if (typeof window === 'undefined') return undefined;
-  return (window as unknown as KeycloakWindow).__keycloak_instance__;
+  return (window as unknown as OidcWindow).__alfheim_oidc_instance__;
 }
 
 function resolveSessionToken(): string | null {
@@ -76,20 +76,20 @@ export function useHouseholdSwitcher() {
   useEffect(() => {
     const getFreshToken = async (): Promise<string | null> => {
       if (typeof window === 'undefined') return null;
-      const keycloak = getKeycloakInstance();
-      if (keycloak && typeof keycloak.updateToken === 'function') {
+      const oidc = getOidcInstance();
+      if (oidc && typeof oidc.updateToken === 'function') {
         try {
-          await keycloak.updateToken(30);
-          if (typeof keycloak.token === 'string') {
-            sessionStorage.setItem('alfheim_access_token', keycloak.token);
-            return keycloak.token;
+          await oidc.updateToken(30);
+          if (typeof oidc.token === 'string') {
+            sessionStorage.setItem('alfheim_access_token', oidc.token);
+            return oidc.token;
           }
         } catch {
           // Token update failed, fall back to storage resolution
         }
       }
       return (
-        (typeof keycloak?.token === 'string' ? keycloak.token : null) ||
+        (typeof oidc?.token === 'string' ? oidc.token : null) ||
         resolveSessionToken()
       );
     };
@@ -106,12 +106,12 @@ export function useHouseholdSwitcher() {
         });
 
         if (res.status === 401 && typeof window !== 'undefined') {
-          const keycloak = getKeycloakInstance();
-          if (keycloak && typeof keycloak.updateToken === 'function') {
+          const oidc = getOidcInstance();
+          if (oidc && typeof oidc.updateToken === 'function') {
             try {
-              const refreshed = await keycloak.updateToken(-1);
-              if (refreshed && typeof keycloak.token === 'string') {
-                const freshToken: string = keycloak.token;
+              const refreshed = await oidc.updateToken(-1);
+              if (refreshed && typeof oidc.token === 'string') {
+                const freshToken: string = oidc.token;
                 token = freshToken;
                 sessionStorage.setItem('alfheim_access_token', freshToken);
                 res = await fetch(url, {

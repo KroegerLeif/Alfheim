@@ -3,7 +3,7 @@
 from backend_shared.dependencies import (
     UserHomeContext,
     UserHouseholdContext,
-    decode_keycloak_token,
+    decode_oidc_token,
     get_current_user_and_home,
     get_current_user_and_household,
     get_jwks_client,
@@ -35,7 +35,7 @@ __all__ = [
     "UserHouseholdContext",
     "is_mock_auth_allowed",
     "get_jwks_client",
-    "decode_keycloak_token",
+    "decode_oidc_token",
     "get_current_user_and_home",
     "get_current_user_and_household",
 ]

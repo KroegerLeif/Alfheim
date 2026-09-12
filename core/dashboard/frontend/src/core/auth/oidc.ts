@@ -4,7 +4,7 @@
  * Framework-agnostic OpenID Connect Authorization Code Flow with PKCE.
  *
  * This module contains no React and no identity-provider-specific code. It works
- * against any spec-compliant OIDC provider (Zitadel, Keycloak, Auth0, ...) by
+ * against any spec-compliant OIDC provider (Zitadel, Auth0, ...) by
  * reading the provider metadata from the discovery document
  * (`{issuer}/.well-known/openid-configuration`).
  */

@@ -1,6 +1,6 @@
 # deploy/stack-apps.yaml
 # Server-level Tier 2 Stack Applications & External Integrations
-# Loaded by backend at startup and filtered dynamically by Keycloak OIDC roles.
+# Loaded by backend at startup and filtered dynamically by Zitadel OIDC roles.
 
 apps:
   - id: "home-assistant"

@@ -271,6 +271,39 @@ migrate_existing_env() {
     migrated=true
   fi
 
+  # 6. Rename legacy identity-provider variables (issue #358).
+  #    ADR 0003 replaced Keycloak with Zitadel; the variable names followed in
+  #    this release. Old names are rewritten in place so existing installations
+  #    keep booting after an upgrade.
+  local legacy_auth_vars=(
+    "KEYCLOAK_PUBLIC_URL:OIDC_ISSUER_URL"
+    "KEYCLOAK_PUBLIC_ISSUER:OIDC_ISSUER_URL"
+    "KEYCLOAK_BASE_URL:OIDC_INTERNAL_URL"
+    "KEYCLOAK_URL:OIDC_INTERNAL_URL"
+    "KEYCLOAK_JWKS_URL:OIDC_JWKS_URL"
+    "NEXT_PUBLIC_KEYCLOAK_URL:NEXT_PUBLIC_OIDC_ISSUER"
+  )
+  for pair in "${legacy_auth_vars[@]}"; do
+    local old_var="${pair%%:*}"
+    local new_var="${pair##*:}"
+    if grep -qE "^${old_var}=" "$env_file" && ! grep -qE "^${new_var}=" "$env_file"; then
+      sed -i.bak -e "s|^${old_var}=|${new_var}=|" "$env_file" && rm -f "${env_file}.bak"
+      migrated=true
+      log_warn "Renamed legacy auth variable '${old_var}' -> '${new_var}' in $(basename "$env_file")"
+    elif grep -qE "^${old_var}=" "$env_file"; then
+      sed -i.bak -e "/^${old_var}=/d" "$env_file" && rm -f "${env_file}.bak"
+      migrated=true
+      log_warn "Dropped legacy auth variable '${old_var}' (superseded by '${new_var}') in $(basename "$env_file")"
+    fi
+  done
+
+  # 7. KEYCLOAK_REALM has no Zitadel equivalent: the JWKS URI comes from discovery.
+  if grep -qE "^KEYCLOAK_REALM=" "$env_file"; then
+    sed -i.bak -e "/^KEYCLOAK_REALM=/d" "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+    log_warn "Dropped obsolete 'KEYCLOAK_REALM' (Zitadel has no realms) in $(basename "$env_file")"
+  fi
+
   if [[ "$migrated" == true ]]; then
     log_success "Successfully migrated legacy database configuration in $(basename "$env_file")"
   fi

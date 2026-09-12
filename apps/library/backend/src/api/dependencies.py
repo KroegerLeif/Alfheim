@@ -25,9 +25,9 @@ def get_jwks_client(jwks_url: str):
     return _deps.get_jwks_client(jwks_url)
 
 
-def decode_keycloak_token(token: str) -> dict[str, Any]:
+def decode_oidc_token(token: str) -> dict[str, Any]:
     """Decode and validate OIDC JWT token using application settings."""
-    return _deps.decode_keycloak_token(token, settings=settings)
+    return _deps.decode_oidc_token(token, settings=settings)
 
 
 async def get_current_user_and_home(request: Request) -> UserHomeContext:

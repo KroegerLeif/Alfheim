@@ -116,7 +116,7 @@ export function useOidcAuth() {
           return;
         }
 
-        // No usable session: enforce login (equivalent to Keycloak `login-required`).
+        // No usable session: enforce an interactive login redirect.
         clearPersistedTokens();
         login();
       } catch (err) {
