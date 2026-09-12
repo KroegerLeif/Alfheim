@@ -38,24 +38,36 @@ The platform uses a modular, multi-compose architecture using the native Compose
 
 ```
 alfheim/
-├── compose.yaml                # Platform Master Orchestrator
+├── compose.yaml                # Platform master orchestrator (development)
+├── compose.prod.yaml           # Production stack (includes Zitadel IAM)
+├── install.sh                  # Root bootstrap for the interactive installer
 ├── .env.example                # Central environment configuration template
-├── README.md                   # Platform setup and verification guide
-├── infrastructure/             # Platform Infrastructure Services
-│   ├── caddy/                  # Central Caddy Reverse Proxy & Ingress Gateway
-│   ├── keycloak/               # Keycloak config & realm import files
-│   ├── postgres/               # Core postgres database cluster config files
+├── infrastructure/             # Platform infrastructure services
+│   ├── caddy/                  # Central Caddy reverse proxy & ingress gateway
+│   ├── postgres/               # Core PostgreSQL cluster config files
 │   ├── rustfs/                 # RustFS S3-compatible central object storage
 │   └── telemetry/              # VictoriaStack, OTel Collector, Vector & Grafana
 ├── core/
-│   └── dashboard/              # Central Dashboard Module (Go control plane & Next.js frontend)
-└── apps/
-    ├── pantry/                 # Digital Pantry Module
-    ├── shopping/               # Shopping List Module
-    ├── maintenance/            # Home Maintenance Tracker Module
-    ├── chores/                 # Household Chores Module
-    ├── chat/                   # ALFI Assistant & Chat Module
-    └── workout/                # Workout Tracker Module
+│   └── dashboard/              # Central dashboard module (Go control plane & Next.js frontend)
+├── apps/                       # Domain microservices (paired frontend + backend)
+│   ├── budget/                 # Budget & Virtual Pots module
+│   ├── chat/                   # ALFI assistant & chat module
+│   ├── chores/                 # Household chores module
+│   ├── library/                # Media & library hub
+│   ├── maintenance/            # Home maintenance tracker module
+│   ├── pantry/                 # Digital pantry module
+│   ├── shopping/               # Shopping list module
+│   └── workout/                # Workout tracker module
+├── packages/                   # Shared workspace libraries
+│   ├── shared/                 # @alfheim/shared — UI, theme engine, i18n, API client
+│   └── backend-shared/         # backend_shared — Python OTel, JWT & S3 utilities
+├── websites/
+│   └── docs/                   # Public landing page (React + Vite, GitHub Pages)
+├── tools/
+│   └── installer/              # alfheim-setup — standalone Go TUI installer
+├── deploy/                     # Tier-2 stack application manifests
+├── scripts/                    # Boot orchestration, env init & verification scripts
+└── docs/                       # Central Diataxis documentation corpus
 ```
 
 ---
@@ -200,7 +212,7 @@ The monorepo shares a centralized design system and dynamic theme engine through
 
 ---
 
-## 6. Python Developer Tooling, Quality Gates & Testing
+## 8. Python Developer Tooling, Quality Gates & Testing
 
 The Python FastAPI microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`, `apps/workout/backend`) are organized as a unified **`uv` workspace**.
 
