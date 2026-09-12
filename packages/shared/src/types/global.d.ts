@@ -1,4 +1,4 @@
-export interface KeycloakInstance {
+export interface OidcInstance {
   token?: string;
   authenticated?: boolean;
   updateToken?: (minValidity?: number) => Promise<boolean>;
@@ -7,6 +7,6 @@ export interface KeycloakInstance {
 
 declare global {
   interface Window {
-    __keycloak_instance__?: KeycloakInstance;
+    __alfheim_oidc_instance__?: OidcInstance;
   }
 }

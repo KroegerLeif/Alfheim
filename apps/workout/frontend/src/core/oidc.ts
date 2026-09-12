@@ -3,8 +3,8 @@
 /**
  * Framework-agnostic OpenID Connect Authorization Code Flow with PKCE.
  *
- * Generic spec-compliant OIDC provider implementation (Zitadel, Keycloak, etc.)
- * reading metadata from `{issuer}/.well-known/openid-configuration`.
+ * Generic spec-compliant OIDC provider implementation (Zitadel and any other
+ * spec-compliant provider) reading metadata from `{issuer}/.well-known/openid-configuration`.
  */
 
 export interface OidcConfig {
@@ -75,7 +75,7 @@ export function resolveOidcIssuer(): string {
       return runtime.OIDC_ISSUER.trim().replace(/\/+$/, '');
     }
   }
-  const envIssuer = process.env.NEXT_PUBLIC_OIDC_ISSUER || process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+  const envIssuer = process.env.NEXT_PUBLIC_OIDC_ISSUER;
   if (envIssuer && envIssuer.trim() !== '') {
     return envIssuer.trim().replace(/\/+$/, '');
   }

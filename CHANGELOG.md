@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Central Known Issues & System Trade-Offs register (`docs/en/explanation/known-issues.md`).
 
 ### Changed
+- Runtime identity-provider configuration renamed from `KEYCLOAK_*` to `OIDC_*`, completing the runtime side of ADR 0003: `KEYCLOAK_URL`/`KEYCLOAK_BASE_URL` -> `OIDC_INTERNAL_URL`, `KEYCLOAK_PUBLIC_URL`/`KEYCLOAK_PUBLIC_ISSUER` -> `OIDC_ISSUER_URL`, `KEYCLOAK_JWKS_URL` -> `OIDC_JWKS_URL`, `NEXT_PUBLIC_KEYCLOAK_URL` -> `NEXT_PUBLIC_OIDC_ISSUER`. `scripts/init-env.sh` rewrites the old names in a pre-existing `.env`.
+- `compose.prod.yaml` no longer defaults any service to `http://keycloak:8080/auth`, a host it does not define. Every backend now receives `OIDC_ISSUER_URL`/`OIDC_AUDIENCE` and every frontend `NEXT_PUBLIC_OIDC_ISSUER`, matching the variables the services actually read.
+- `apps/workout/backend` resolves its JWKS URI from the OIDC discovery document instead of falling back to a Keycloak realm path that Zitadel does not serve.
+- `backend_shared.decode_keycloak_token` renamed to `decode_oidc_token`; the `decode_token` alias is unchanged.
+- Dashboard i18n keys `settings.keycloak_sso` and `settings.keycloak_sso_desc` renamed to `settings.oidc_sso` and `settings.oidc_sso_desc` in all three locales.
+- CI pull request gates (`frontend-ci`, `python-ci`, `go-ci`) now also run for pull requests targeting `dev`, so regressions surface before promotion to `main`.
 - Documentation corpus moved under `docs/en/`, with ADRs relocated to `docs/en/explanation/decisions/` and the known-issues register to `docs/en/explanation/`. `docs/` remains plain Markdown and stays the single source of truth; the portal loads it through a content collection glob loader.
 - App READMEs slimmed to dev quickstarts; their specification content now lives in the reference quadrant.
 - `websites/docs` renamed to `websites/landing` (package `@alfheim/landing`), which frees the `docs` package name and reflects that it is the marketing landing page. It gains a `/docs` navigation link.
@@ -48,10 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated root `README.md` to point to central `/docs/` guides.
 
 ### Removed
+- `resolveKeycloakUrl()` from `@alfheim/shared`. It had no callers and all of its browser fallbacks returned `${origin}/auth`, a Keycloak sub-path that Zitadel does not serve. Use the per-app `resolveOidcIssuer()` helpers, which read `NEXT_PUBLIC_OIDC_ISSUER`.
+- `KEYCLOAK_REALM`, which has no Zitadel equivalent; the JWKS URI comes from the discovery document.
 - `audit.md` and `backlog-coverage-gates.md`, point-in-time sprint reports with outdated claims. Their open items belong in the issue tracker.
 - Dead `build:theme` npm script, which filtered a `@alfheim/keycloak-theme` package that is neither tracked nor a workspace member.
 
 ### Deprecated
+- The `KEYCLOAK_*` environment variable names. `scripts/init-env.sh` migrates them in place for one release; after that, only the `OIDC_*` names are read.
 - `scripts/install.sh` still orchestrates Keycloak, which ADR 0003 replaced with Zitadel. It now prints a deprecation notice and will be removed in a future release; use the root `install.sh` instead.
 
 ---

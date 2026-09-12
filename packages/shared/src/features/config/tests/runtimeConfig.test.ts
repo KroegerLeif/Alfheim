@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   isLocalEnvironment,
-  resolveKeycloakUrl,
   resolveFrontendUrl,
   resolveApiUrl,
   AlfheimRuntimeWindow,
@@ -64,38 +63,6 @@ describe('runtimeConfig', () => {
 
       setWindowLocation('https://myos.org');
       expect(isLocalEnvironment()).toBe(false);
-    });
-  });
-
-  describe('resolveKeycloakUrl', () => {
-    it('prefers window.__ALFHEIM_ENV__.KEYCLOAK_URL when present', () => {
-      setWindowLocation('https://alfheim.loegien.de');
-      (window as unknown as AlfheimRuntimeWindow).__ALFHEIM_ENV__ = {
-        KEYCLOAK_URL: 'https://custom-auth.loegien.de/auth',
-      };
-      expect(resolveKeycloakUrl()).toBe('https://custom-auth.loegien.de/auth');
-    });
-
-    it('overrides baked-in localhost NEXT_PUBLIC_KEYCLOAK_URL in production browser', () => {
-      setWindowLocation('https://alfheim.loegien.de/dashboard');
-      process.env.NEXT_PUBLIC_KEYCLOAK_URL = 'http://api.alfheim.loegien.localhost/auth';
-
-      // Because the browser is on production domain, the baked-in localhost must be overridden!
-      expect(resolveKeycloakUrl()).toBe('https://alfheim.loegien.de/auth');
-    });
-
-    it('preserves NEXT_PUBLIC_KEYCLOAK_URL in local dev browser', () => {
-      setWindowLocation('http://alfheim.loegien.localhost/dashboard');
-      process.env.NEXT_PUBLIC_KEYCLOAK_URL = 'http://api.alfheim.loegien.localhost/auth';
-
-      expect(resolveKeycloakUrl()).toBe('http://api.alfheim.loegien.localhost/auth');
-    });
-
-    it('falls back to window.location.origin /auth when no env variable is set in browser', () => {
-      setWindowLocation('https://alfheim.loegien.de');
-      delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
-
-      expect(resolveKeycloakUrl()).toBe('https://alfheim.loegien.de/auth');
     });
   });
 

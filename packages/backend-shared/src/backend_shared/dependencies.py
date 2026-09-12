@@ -21,8 +21,8 @@ SAFE_TEST_HOSTS = {
     "test",
     "testserver",
     "postgres",
-    "keycloak",
-    "alfheim_keycloak",
+    "zitadel",
+    "alfheim_zitadel",
     "pantry-backend",
     "shopping-backend",
     "chores-backend",
@@ -94,26 +94,15 @@ def is_mock_auth_allowed(settings: Any = None) -> bool:
             )
             return False
 
-        if not _is_safe_test_url(getattr(settings, "KEYCLOAK_URL", None)):
-            logger.error(
-                "Mock auth rejected: non-localhost/unsafe KEYCLOAK_URL detected: %s",
-                getattr(settings, "KEYCLOAK_URL", None),
-            )
-            return False
-
-        if not _is_safe_test_url(getattr(settings, "KEYCLOAK_PUBLIC_URL", None)):
-            logger.error(
-                "Mock auth rejected: non-localhost/unsafe KEYCLOAK_PUBLIC_URL detected: %s",
-                getattr(settings, "KEYCLOAK_PUBLIC_URL", None),
-            )
-            return False
-
-        if not _is_safe_test_url(getattr(settings, "OIDC_ISSUER_URL", None)):
-            logger.error(
-                "Mock auth rejected: non-localhost/unsafe OIDC_ISSUER_URL detected: %s",
-                getattr(settings, "OIDC_ISSUER_URL", None),
-            )
-            return False
+        for attr in ("OIDC_INTERNAL_URL", "OIDC_ISSUER_URL", "OIDC_JWKS_URL"):
+            value = getattr(settings, attr, None)
+            if not _is_safe_test_url(value):
+                logger.error(
+                    "Mock auth rejected: non-localhost/unsafe %s detected: %s",
+                    attr,
+                    value,
+                )
+                return False
 
     return True
 
@@ -124,10 +113,10 @@ def get_jwks_client(jwks_url: str) -> jwt.PyJWKClient:
     return _jwks_clients[jwks_url]
 
 
-def decode_keycloak_token(token: str, settings: Any = None) -> dict:
+def decode_oidc_token(token: str, settings: Any = None) -> dict:
     if is_mock_auth_allowed(settings):
         try:
-            logger.debug("Decoding Keycloak token without signature verification in test context.")
+            logger.debug("Decoding OIDC token without signature verification in test context.")
             return jwt.decode(token, options={"verify_signature": False, "verify_aud": False, "verify_iss": False})
         except jwt.PyJWTError as e:
             logger.warning("Mock JWT decoding failed: %s", e)
@@ -154,21 +143,21 @@ def decode_keycloak_token(token: str, settings: Any = None) -> dict:
         except HTTPException:
             raise
         except (jwt.PyJWTError, ValueError) as e:
-            logger.warning("Keycloak token verification attempt failed for endpoint %s: %s", jwks_url, e)
+            logger.warning("OIDC token verification attempt failed for endpoint %s: %s", jwks_url, e)
             last_error = e
 
-    logger.warning("Keycloak JWT validation failed across endpoints: %s", last_error)
+    logger.warning("OIDC JWT validation failed across endpoints: %s", last_error)
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=f"invalid or expired token: {last_error}",
     )
 
 
-decode_token = decode_keycloak_token
+decode_token = decode_oidc_token
 
 
 async def get_current_user_and_home(request: Request, settings: Any = None) -> UserHomeContext:
-    """Dependency injector providing authenticated user and active household context from Keycloak JWT (UUID home_id)."""
+    """Dependency injector providing authenticated user and active household context from the OIDC JWT (UUID home_id)."""
     auth_header = request.headers.get("Authorization")
     header_hh = request.headers.get("X-Household-ID")
 
@@ -194,7 +183,7 @@ async def get_current_user_and_home(request: Request, settings: Any = None) -> U
         )
 
     raw_token = parts[1]
-    payload = decode_keycloak_token(raw_token, settings=settings)
+    payload = decode_oidc_token(raw_token, settings=settings)
 
     sub = payload.get("sub")
     if not sub:
@@ -287,7 +276,7 @@ async def get_current_user_and_home(request: Request, settings: Any = None) -> U
 
 
 async def get_current_user_and_household(request: Request, settings: Any = None) -> UserHouseholdContext:
-    """Dependency injector providing authenticated user and household context from Keycloak JWT (integer household_id)."""
+    """Dependency injector providing authenticated user and household context from the OIDC JWT (integer household_id)."""
     auth_header = request.headers.get("Authorization")
     header_hh = request.headers.get("X-Household-ID")
 
@@ -317,7 +306,7 @@ async def get_current_user_and_household(request: Request, settings: Any = None)
         )
 
     raw_token = parts[1]
-    payload = decode_keycloak_token(raw_token, settings=settings)
+    payload = decode_oidc_token(raw_token, settings=settings)
 
     sub = payload.get("sub")
     if not sub:

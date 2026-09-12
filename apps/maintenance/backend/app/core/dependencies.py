@@ -20,8 +20,8 @@ def get_jwks_client(jwks_url: str):
     return _deps.get_jwks_client(jwks_url)
 
 
-def decode_keycloak_token(token: str) -> dict[str, Any]:
-    return _deps.decode_keycloak_token(token, settings=settings)
+def decode_oidc_token(token: str) -> dict[str, Any]:
+    return _deps.decode_oidc_token(token, settings=settings)
 
 
 async def get_current_user_and_household(request: Request) -> UserHouseholdContext:
