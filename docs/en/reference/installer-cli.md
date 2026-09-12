@@ -57,8 +57,24 @@ Each flag has an environment-variable equivalent. The flag wins when both are se
 | `--image-tag TAG` | `ALFHEIM_IMAGE_TAG` | Container image tag. Default `latest`. |
 | — | `ALFHEIM_INSTALL_DIR` | Equivalent to `--install-dir`. |
 
-`install.sh` reads two further variables: `ALFHEIM_VERSION` pins the release to
-download (default `latest`), and `ALFHEIM_REPO` overrides the source repository.
+### Release selection
+
+`install.sh` reads three further variables:
+
+| Variable | Description |
+| :--- | :--- |
+| `ALFHEIM_VERSION` | Pins an exact release tag. Default `latest`, which resolves against the channel below. |
+| `ALFHEIM_CHANNEL` | `stable` (default) or `prerelease`. |
+| `ALFHEIM_REPO` | Overrides the source repository. |
+
+On the `stable` channel the installer resolves the newest release that is *not*
+marked as a pre-release. Tags containing `-rc`, `-beta` or `-alpha` are published
+as pre-releases, so a testing build never reaches a host that did not ask for
+one. If no stable release exists yet, the installer stops and names the newest
+pre-release along with the two commands that would install it.
+
+Use `ALFHEIM_CHANNEL=prerelease` to take the newest release of any kind, or
+`ALFHEIM_VERSION` to pin one exactly.
 
 ---
 
@@ -166,6 +182,12 @@ Pin a specific release:
 
 ```bash
 ALFHEIM_VERSION=v0.2.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh)"
+```
+
+Install the newest pre-release for testing:
+
+```bash
+ALFHEIM_CHANNEL=prerelease bash -c "$(curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh)"
 ```
 
 ---

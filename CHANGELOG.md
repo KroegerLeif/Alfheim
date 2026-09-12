@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Central Known Issues & System Trade-Offs register (`docs/en/explanation/known-issues.md`).
 
 ### Changed
+- `install.sh` resolves releases per channel. `latest` now means the newest *stable* release, so publishing an `-rc`, `-beta` or `-alpha` tag no longer becomes the default download. When no stable release exists the installer stops and names the newest pre-release alongside the commands that would install it, instead of failing on GitHub's 404 from `/releases/latest`. `ALFHEIM_CHANNEL=prerelease` opts into testing builds.
 - Runtime identity-provider configuration renamed from `KEYCLOAK_*` to `OIDC_*`, completing the runtime side of ADR 0003: `KEYCLOAK_URL`/`KEYCLOAK_BASE_URL` -> `OIDC_INTERNAL_URL`, `KEYCLOAK_PUBLIC_URL`/`KEYCLOAK_PUBLIC_ISSUER` -> `OIDC_ISSUER_URL`, `KEYCLOAK_JWKS_URL` -> `OIDC_JWKS_URL`, `NEXT_PUBLIC_KEYCLOAK_URL` -> `NEXT_PUBLIC_OIDC_ISSUER`. `scripts/init-env.sh` rewrites the old names in a pre-existing `.env`.
 - `compose.prod.yaml` no longer defaults any service to `http://keycloak:8080/auth`, a host it does not define. Every backend now receives `OIDC_ISSUER_URL`/`OIDC_AUDIENCE` and every frontend `NEXT_PUBLIC_OIDC_ISSUER`, matching the variables the services actually read.
 - `apps/workout/backend` resolves its JWKS URI from the OIDC discovery document instead of falling back to a Keycloak realm path that Zitadel does not serve.
