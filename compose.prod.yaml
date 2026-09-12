@@ -17,7 +17,12 @@ services:
   # 1. INGRESS GATEWAY & REVERSE PROXY
   # ----------------------------------------------------------------------------
   caddy:
-    image: caddy:2-alpine
+    # Custom build: the stock caddy image ships no ACME DNS-01 provider
+    # modules, which the Hetzner and Cloudflare TLS strategies require.
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/caddy:${IMAGE_TAG:-latest}
+    build:
+      context: ./infrastructure/caddy
+      dockerfile: Dockerfile
     container_name: alfheim_caddy
     restart: unless-stopped
     ports:
@@ -25,7 +30,12 @@ services:
       - "443:443"
     environment:
       ALFHEIM_HOST: "${ALFHEIM_HOST:-alfheim.loegien.de}"
+      ALFHEIM_DOMAIN: "${DOMAIN:-loegien.de}"
+      ALFHEIM_AUTH_HOST: "${ZITADEL_EXTERNALDOMAIN:-auth.loegien.de}"
       CADDY_TLS_DIRECTIVE: "${CADDY_TLS_DIRECTIVE:-}"
+      ACME_EMAIL: "${ACME_EMAIL:-}"
+      HETZNER_API_TOKEN: "${HETZNER_API_TOKEN:-}"
+      CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
