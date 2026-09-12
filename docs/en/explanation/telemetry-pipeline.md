@@ -1,6 +1,6 @@
 ---
 title: "VictoriaStack Telemetry Pipeline"
-description: "Architectural explanation of the central observability pipeline, covering Vector log harvesting, OTel Collector metrics/traces routing, VictoriaMetrics."
+description: "The central observability pipeline: Vector log harvesting, OTel Collector metrics and trace routing, VictoriaMetrics, VictoriaLogs and Grafana."
 ---
 
 > **TL;DR:** Architectural explanation of the central observability pipeline, covering Vector log harvesting, OTel Collector metrics/traces routing, VictoriaMetrics, VictoriaLogs, and Grafana visualization.

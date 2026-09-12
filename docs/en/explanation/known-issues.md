@@ -1,6 +1,6 @@
 ---
 title: "Known Issues & System Trade-Offs"
-description: "Central register of accepted architectural trade-offs, environmental limitations, and known operational costs in the Alfheim ecosystem. Software bugs belong in."
+description: "Central register of accepted architectural trade-offs, environmental limitations and known operational costs. Software bugs belong in the issue tracker."
 sidebar:
   label: "Known Issues"
 ---

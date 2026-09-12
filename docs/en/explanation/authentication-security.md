@@ -23,7 +23,7 @@ sidebar:
 
 Alfheim uses **Zitadel** as its lightweight, Go-based Identity and Access Management (IAM) provider. Zitadel operates as a central OIDC identity server, managing user credentials, primary user profile attributes, and security credentials while running with a minimal memory footprint (<150 MB RAM).
 
-* **Public Issuer Endpoint**: `http://api.alfheim.loegien.localhost/auth` (or configured `OIDC_ISSUER_URL`)
+* **Public Issuer Endpoint**: the bare origin of the IAM host — `https://auth.loegien.de` in production, `http://auth.alfheim.loegien.localhost` locally (configured as `OIDC_ISSUER_URL`). Zitadel does not support sub-path hosting.
 * **Internal Docker JWKS Endpoint**: `http://zitadel:8080/oauth/v2/keys`
 * **Protocol Standard**: Generic OpenID Connect (OIDC) 1.0 & OAuth 2.0 PKCE
 
@@ -57,7 +57,7 @@ Zitadel issues standardized OIDC identity tokens:
 
 ```json
 {
-  "iss": "http://api.alfheim.loegien.localhost/auth",
+  "iss": "https://auth.loegien.de",
   "sub": "usr_981231f2-8921-4831-a89f-2198129d1092",
   "aud": "alfheim-client",
   "preferred_username": "jules",

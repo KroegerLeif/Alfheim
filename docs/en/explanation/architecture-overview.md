@@ -23,7 +23,7 @@ Alfheim is designed as a **self-hosted sovereign home operating system**. It com
 Key architectural pillars:
 1. **Zero External Cloud Dependencies:** All identity, database, object storage, proxy, and telemetry infrastructure runs locally in containers.
 2. **Strict Multi-Zone Network Isolation:** Services communicate across segmented Docker bridge networks to minimize blast radius.
-3. **Database per Service:** Every microservice backend owns a dedicated database container. Cross-service database joins are strictly forbidden.
+3. **Database per Service:** Every microservice backend owns an isolated database on the shared `postgres-core` cluster, with its own least-privilege owner. Cross-service database joins are strictly forbidden.
 4. **Feature-Driven Design (FDD):** Domain logic is structured in modular feature directories (`src/features/<domain>`).
 
 ---
@@ -58,12 +58,12 @@ The platform enforces multi-zone network isolation across dedicated Docker bridg
 
 * **`gateway-net`**: Connects Caddy ingress gateway to frontends, Zitadel, RustFS S3, and backend API endpoints.
 * **`infra-net`**: Isolated infrastructure bridge connecting Zitadel, `postgres-core`, and RustFS S3 backend ports.
-* **`core-net`**: Dedicated control plane network for `dashboard-backend` and `dashboard-db`.
-* **`app-<name>-net`**: App-isolated networks connecting microservice backends to their dedicated database containers (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`).
+* **`core-net`**: Dedicated control plane network for `dashboard-backend` and `postgres-core`.
+* **`app-<name>-net`**: App-isolated networks connecting microservice backends to `postgres-core` (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`).
 * **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.
 
 ---
 
 ## Database-per-Service Isolation Pattern
 
-To guarantee loose coupling and prevent data contamination, every backend microservice owns its PostgreSQL instance. Shared database state between applications is explicitly disallowed. Inter-service data sharing occurs via REST API integration (e.g. Pantry exporting low-stock items to Shopping).
+To guarantee loose coupling and prevent data contamination, every backend microservice owns an isolated database (`alfheim_<app>`) on the shared `postgres-core` cluster, owned by a dedicated user (`<app>_user`). Isolation is enforced through ownership and grants rather than through separate database servers, which keeps the memory footprint viable on homelab hardware. Shared database state between applications is explicitly disallowed; inter-service data sharing occurs via REST API integration (for example Pantry exporting low-stock items to Shopping).
