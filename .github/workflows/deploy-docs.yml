@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'websites/docs/**'
+      - 'websites/landing/**'
       - 'packages/shared/**'
       - '.github/workflows/deploy-docs.yml'
       - 'pnpm-lock.yaml'
@@ -42,8 +42,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Documentation Site
-        run: pnpm --filter docs build
+      - name: Build Landing Page
+        run: pnpm --filter @alfheim/landing build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -51,7 +51,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './websites/docs/dist'
+          path: './websites/landing/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
