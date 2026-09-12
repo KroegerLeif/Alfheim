@@ -28,7 +28,7 @@ export const TechStackSection: React.FC = () => {
       category: t('docs.techStack.categories.platform', 'Platform & Mesh'),
       icon: Container,
       color: 'text-purple-400',
-      items: ['Docker Compose & Multi-Bridge Networks', 'Caddy 2 Reverse Proxy', 'Keycloak 24 (OIDC / OAuth2)', 'WireGuard / Tailscale Enclave'],
+      items: ['Docker Compose & Multi-Bridge Networks', 'Caddy 2 Reverse Proxy', 'Zitadel 2 (OIDC / OAuth2)', 'WireGuard / Tailscale Enclave'],
     },
   ];
 

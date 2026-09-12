@@ -97,7 +97,7 @@
     "syncFailed": "Pantry-Synchronisierung fehlgeschlagen",
     "unrecognizedError": "Ein unerwarteter Fehler ist aufgetreten",
     "sessionExpired": "Sitzung abgelaufen",
-    "sessionExpiredDesc": "Ihr Sicherheitstoken ist abgelaufen oder ungültig. Bitte melden Sie sich erneut über Keycloak an.",
+    "sessionExpiredDesc": "Ihr Sicherheitstoken ist abgelaufen oder ungültig. Bitte melden Sie sich erneut über Zitadel an.",
     "logIn": "Anmelden",
     "retry": "Wiederholen"
   }

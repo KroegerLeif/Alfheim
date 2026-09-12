@@ -117,13 +117,13 @@
     "architecture": {
       "badge": "Topologie & Sicherheit",
       "title": "Architektonisches Fundament",
-      "subtitle": "Sicherheitsfokussierte Multi-Zonen-Netzwerksegmentierung mit einheitlichem Keycloak-Identitätsmanagement.",
+      "subtitle": "Sicherheitsfokussierte Multi-Zonen-Netzwerksegmentierung mit einheitlichem Zitadel-Identitätsmanagement.",
       "diagram_title": "DOCKER MULTI-ZONEN NETZWERK TOPOLOGIE",
       "gateway_net_desc": "Caddy Ingress & Frontends",
       "pillars": {
         "iam": {
           "title": "Zero-Trust IAM",
-          "desc": "Zentrales Keycloak OIDC mit kurzlebigen RS256 JWT Tokens, validiert von allen Microservice-Backends."
+          "desc": "Zentrales Zitadel OIDC mit kurzlebigen RS256 JWT Tokens, validiert von allen Microservice-Backends."
         },
         "storage": {
           "title": "Mandanten-S3-Speicher",
@@ -145,7 +145,7 @@
       "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
       "backend": "Backend: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
       "database": "Datenbanken: PostgreSQL 16 (dedizierte Instanzen je App), ClickHouse",
-      "infra": "Infrastruktur: Docker Compose, Caddy 2, Keycloak 24, RustFS (S3-kompatibel)",
+      "infra": "Infrastruktur: Docker Compose, Caddy 2, Zitadel 2, RustFS (S3-kompatibel)",
       "categories": {
         "frontends": "Frontends & UI",
         "backends": "API Backends",

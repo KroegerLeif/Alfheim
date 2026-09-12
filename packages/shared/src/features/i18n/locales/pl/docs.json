@@ -87,7 +87,7 @@
       "dashboard": {
         "name": "Panel Główny",
         "tagline": "Zarządzanie i punkt wejścia",
-        "description": "Centralne uwierzytelnianie OIDC przez Keycloak, strumieniowanie telemetrii i routing Caddy proxy.",
+        "description": "Centralne uwierzytelnianie OIDC przez Zitadel, strumieniowanie telemetrii i routing Caddy proxy.",
         "badge": "Go + Next.js",
         "route": "/"
       },
@@ -117,13 +117,13 @@
     "architecture": {
       "badge": "Topologia i bezpieczeństwo",
       "title": "Fundament Architektury",
-      "subtitle": "Segmentacja sieci wielostrefowej nastawiona na bezpieczeństwo ze zintegrowaną tożsamością Keycloak.",
+      "subtitle": "Segmentacja sieci wielostrefowej nastawiona na bezpieczeństwo ze zintegrowaną tożsamością Zitadel.",
       "diagram_title": "WIELOSTREFOWA TOPOLOGIA SIECI DOCKER",
       "gateway_net_desc": "Caddy Ingress & Frontends",
       "pillars": {
         "iam": {
           "title": "Zero-Trust IAM",
-          "desc": "Keycloak OIDC z krótkoterminowymi tokenami RS256 JWT weryfikowanymi przez wszystkie usługi backendu."
+          "desc": "Zitadel OIDC z krótkoterminowymi tokenami RS256 JWT weryfikowanymi przez wszystkie usługi backendu."
         },
         "storage": {
           "title": "Pamięć S3",
@@ -145,7 +145,7 @@
       "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
       "backend": "Backend: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
       "database": "Bazy danych: PostgreSQL 16 (dedykowane instancje dla każdej aplikacji), ClickHouse",
-      "infra": "Infrastruktura: Docker Compose, Caddy 2, Keycloak 24, RustFS (zgodny z S3)",
+      "infra": "Infrastruktura: Docker Compose, Caddy 2, Zitadel 2, RustFS (zgodny z S3)",
       "categories": {
         "frontends": "Frontends & UI",
         "backends": "API Backends",

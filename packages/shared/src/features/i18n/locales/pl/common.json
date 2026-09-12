@@ -41,7 +41,7 @@
   },
   "auth": {
     "error": "Błąd uwierzytelniania",
-    "securing_session": "Zabezpieczanie sesji z Keycloak...",
+    "securing_session": "Zabezpieczanie sesji z Zitadel...",
     "retry_connection": "Ponów połączenie"
   },
   "nav": {

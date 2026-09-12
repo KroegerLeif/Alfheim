@@ -60,7 +60,7 @@ export const HeroSection: React.FC = () => {
           </div>
           <div className="glass-card rounded-xl p-4 text-left">
             <div className="text-xs font-mono text-[#8b949e] uppercase">Identity</div>
-            <div className="text-xl font-bold text-[#f0f6fc] mt-1">Keycloak OIDC</div>
+            <div className="text-xl font-bold text-[#f0f6fc] mt-1">Zitadel OIDC</div>
             <div className="text-xs text-emerald-400 mt-0.5">RS256 JWT Signed</div>
           </div>
           <div className="glass-card rounded-xl p-4 text-left">

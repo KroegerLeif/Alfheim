@@ -13,7 +13,7 @@ export const ArchitectureSection: React.FC = () => {
       title: t('docs.architecture.pillars.iam.title', 'Zero-Trust IAM'),
       desc: t(
         'docs.architecture.pillars.iam.desc',
-        'Centralized Keycloak OIDC authentication issuing short-lived RS256 JWT tokens verified by all microservice backends.'
+        'Centralized Zitadel OIDC authentication issuing short-lived RS256 JWT tokens verified by all microservice backends.'
       ),
     },
     {
@@ -61,7 +61,7 @@ export const ArchitectureSection: React.FC = () => {
         <p className="text-[#8b949e] mt-3 text-base">
           {t(
             'docs.architecture.subtitle',
-            'Security-first multi-zone network segmentation with unified Keycloak identity brokering.'
+            'Security-first multi-zone network segmentation with unified Zitadel identity brokering.'
           )}
         </p>
       </div>
@@ -102,7 +102,7 @@ export const ArchitectureSection: React.FC = () => {
           </div>
           <div className="p-4 rounded-xl bg-[#0b1326] border border-emerald-500/30">
             <div className="font-bold text-emerald-400 text-sm">infra-net</div>
-            <div className="text-[#8b949e] mt-1">Keycloak &amp; postgres-iam &amp; RustFS</div>
+            <div className="text-[#8b949e] mt-1">Zitadel &amp; postgres-core &amp; RustFS</div>
             <div className="mt-3 text-[11px] text-emerald-400/80">Isolated Platform IAM</div>
           </div>
           <div className="p-4 rounded-xl bg-[#0b1326] border border-cyan-500/30">
