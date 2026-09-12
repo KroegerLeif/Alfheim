@@ -42,6 +42,33 @@ export default defineConfig({
           },
         },
       },
+      sidebar: [
+        {
+          label: 'Tutorials',
+          translations: { de: 'Tutorials' },
+          items: [{ autogenerate: { directory: 'tutorials' } }],
+        },
+        {
+          label: 'How-To Guides',
+          translations: { de: 'Anleitungen' },
+          items: [{ autogenerate: { directory: 'how-to' } }],
+        },
+        {
+          label: 'Reference',
+          translations: { de: 'Referenz' },
+          items: [{ autogenerate: { directory: 'reference' } }],
+        },
+        {
+          label: 'Explanation',
+          translations: { de: 'Hintergrund' },
+          items: [{ autogenerate: { directory: 'explanation' } }],
+        },
+        {
+          label: 'Changelog',
+          translations: { de: 'Changelog' },
+          link: '/changelog/',
+        },
+      ],
       editLink: {
         baseUrl: 'https://github.com/KroegerLeif/Alfheim/edit/main/docs/',
       },
