@@ -57,6 +57,10 @@ type App struct {
 	Stderr  io.Writer
 	// Now supplies the generation timestamp, injectable for tests.
 	Now func() time.Time
+	// Inspector probes host readiness. Injectable for tests, which must not
+	// depend on ports 80 and 443 being free on the build machine. When nil,
+	// the real host inspector is used.
+	Inspector system.Inspector
 }
 
 // Run performs the installation and returns a process exit code.
@@ -120,9 +124,17 @@ func (a *App) execute(ctx context.Context) error {
 	return a.runBootstrap(ctx, layout, model)
 }
 
+// inspector returns the configured host inspector, defaulting to the real one.
+func (a *App) inspector() system.Inspector {
+	if a.Inspector != nil {
+		return a.Inspector
+	}
+	return system.NewInspector(a.Runner)
+}
+
 // checkHost inspects the host and refuses to continue when it is not ready.
 func (a *App) checkHost(ctx context.Context) error {
-	report, err := system.NewInspector(a.Runner).Inspect(ctx)
+	report, err := a.inspector().Inspect(ctx)
 	if err != nil {
 		return err
 	}
