@@ -161,7 +161,6 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
      OIDC_INTERNAL_URL=http://zitadel:8080
      ```
    * Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
-   * Note: several existing services still read legacy `KEYCLOAK_*` variable names. The provider is Zitadel; renaming those variables is tracked separately.
 
 ---
 

@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from fastapi import Request
 from src.core.config import Settings
 from src.core.dependencies import (
-    decode_keycloak_token,
     decode_oidc_token,
     get_jwks_client,
     is_mock_auth_allowed,
@@ -12,13 +11,13 @@ from src.main import value_error_exception_handler
 
 
 def test_settings_properties():
-    """Verify Settings property accessors for OIDC and legacy Keycloak URLs."""
-    s = Settings(KEYCLOAK_JWKS_URL="http://custom/certs")
+    """Verify Settings property accessors for the OIDC issuer and JWKS URLs."""
+    s = Settings(OIDC_JWKS_URL="http://custom/certs")
     assert s.jwks_url == "http://custom/certs"
 
     s2 = Settings(
         OIDC_ISSUER_URL="http://auth.example.com",
-        KEYCLOAK_JWKS_URL="",
+        OIDC_JWKS_URL="",
     )
     assert s2.jwks_url == "http://auth.example.com/keys"
     assert s2.expected_issuer == "http://auth.example.com"
@@ -32,12 +31,10 @@ def test_core_dependency_wrappers():
         get_jwks_client("http://mock/jwks")
         mock_get_client.assert_called_once_with("http://mock/jwks")
 
-    with patch("backend_shared.dependencies.decode_keycloak_token") as mock_decode:
+    with patch("backend_shared.dependencies.decode_oidc_token") as mock_decode:
         mock_decode.return_value = {"sub": "user-123"}
-        payload = decode_keycloak_token("mock-token")
+        payload = decode_oidc_token("mock-token")
         assert payload["sub"] == "user-123"
-        payload_oidc = decode_oidc_token("mock-token")
-        assert payload_oidc["sub"] == "user-123"
 
 
 async def test_value_error_handler():

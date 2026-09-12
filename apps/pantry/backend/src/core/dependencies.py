@@ -25,10 +25,10 @@ def get_jwks_client(jwks_url: str):
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    return _deps.decode_keycloak_token(token, settings=settings)
+    return _deps.decode_oidc_token(token, settings=settings)
 
 
-decode_keycloak_token = decode_token
+decode_oidc_token = decode_token
 
 
 async def get_current_user_and_home(request: Request) -> UserHomeContext:

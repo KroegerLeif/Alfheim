@@ -208,7 +208,6 @@ The monorepo shares a centralized design system and dynamic theme engine through
 * **Discovery**: Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
 * **Internal Docker Base URL**: `http://zitadel:8080` (`OIDC_INTERNAL_URL`) for server-to-server calls.
 * **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `OIDC_ISSUER_URL`.
-* **Legacy variable names**: Several runtime variables are still named `KEYCLOAK_*` (for example `KEYCLOAK_PUBLIC_URL`) even though Zitadel is the provider. Renaming them is tracked separately; the values are Zitadel URLs.
 
 ---
 

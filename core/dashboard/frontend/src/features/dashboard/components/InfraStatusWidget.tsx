@@ -56,9 +56,9 @@ export function InfraStatusWidget() {
           {/* Zitadel Card */}
           <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex flex-col justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.keycloak_sso')}</div>
+              <div className="text-xs font-semibold text-[var(--text-main)]">{t('settings.oidc_sso')}</div>
               <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                {t('settings.keycloak_sso_desc')}
+                {t('settings.oidc_sso_desc')}
               </div>
             </div>
             <div className="flex gap-1.5 mt-2">

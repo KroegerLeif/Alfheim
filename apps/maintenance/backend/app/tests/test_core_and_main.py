@@ -6,7 +6,7 @@ import pytest
 from app.core.config import settings
 from app.core.database import get_db_session, init_db
 from app.core.dependencies import (
-    decode_keycloak_token,
+    decode_oidc_token,
     get_jwks_client,
     is_mock_auth_allowed,
 )
@@ -41,8 +41,8 @@ def test_core_dependencies_wrappers():
         assert res is not None
         mock_jwks.assert_called_once_with("http://test-jwks")
 
-    with patch("backend_shared.dependencies.decode_keycloak_token", return_value={"sub": "123"}) as mock_decode:
-        decoded = decode_keycloak_token("mock-token")
+    with patch("backend_shared.dependencies.decode_oidc_token", return_value={"sub": "123"}) as mock_decode:
+        decoded = decode_oidc_token("mock-token")
         assert decoded["sub"] == "123"
         mock_decode.assert_called_once_with("mock-token", settings=settings)
 

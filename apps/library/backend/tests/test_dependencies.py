@@ -97,7 +97,7 @@ async def test_unauthorized_household_header_returns_403():
 
     with (
         patch("backend_shared.dependencies.is_mock_auth_allowed", return_value=False),
-        patch("backend_shared.dependencies.decode_keycloak_token", return_value=mock_payload),
+        patch("backend_shared.dependencies.decode_oidc_token", return_value=mock_payload),
     ):
         with pytest.raises(HTTPException) as exc_info:
             await get_current_user_and_home(request)

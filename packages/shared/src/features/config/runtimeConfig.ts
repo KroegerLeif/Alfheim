@@ -8,7 +8,7 @@ declare var process: any;
 
 export interface AlfheimRuntimeWindow extends Window {
   __ALFHEIM_ENV__?: {
-    KEYCLOAK_URL?: string;
+    OIDC_ISSUER?: string;
     FRONTEND_URL?: string;
     API_URL?: string;
   };
@@ -30,56 +30,6 @@ export function isLocalEnvironment(): boolean {
   }
   const env = (process.env.ENVIRONMENT || process.env.NODE_ENV || '').toLowerCase();
   return env === 'development' || env === 'dev' || env === 'test' || env === 'testing';
-}
-
-/**
- * Resolves the browser-facing Keycloak IAM URL dynamically.
- *
- * Resolution order:
- * 1. window.__ALFHEIM_ENV__.KEYCLOAK_URL (Runtime SSR injection from container env)
- * 2. process.env.NEXT_PUBLIC_KEYCLOAK_URL
- *    - Guard: If the browser is on a non-local domain (e.g., alfheim.loegien.de) but
- *      the variable contains 'localhost', the baked-in dev default is overridden with
- *      the current origin (`${window.location.origin}/auth`).
- * 3. Browser origin fallback: `${window.location.origin}/auth`
- * 4. Server-side environment variables: KEYCLOAK_PUBLIC_URL or `${ALFHEIM_BASE_URL}/auth`
- * 5. Localhost fallback for isolated unit testing
- */
-export function resolveKeycloakUrl(): string {
-  if (typeof window !== 'undefined') {
-    const runtimeWindow = window as unknown as AlfheimRuntimeWindow;
-    if (runtimeWindow.__ALFHEIM_ENV__?.KEYCLOAK_URL && runtimeWindow.__ALFHEIM_ENV__.KEYCLOAK_URL.trim() !== '') {
-      return runtimeWindow.__ALFHEIM_ENV__.KEYCLOAK_URL.trim();
-    }
-
-    const envUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
-    if (envUrl && envUrl.trim() !== '') {
-      const isBrowserLocal = isLocalEnvironment();
-      const isEnvLocal = envUrl.includes('localhost') || envUrl.includes('127.0.0.1');
-      if (!isBrowserLocal && isEnvLocal) {
-        // Build-time default leaked into production client bundle - dynamically derive from origin!
-        return `${window.location.origin}/auth`;
-      }
-      return envUrl.trim();
-    }
-
-    // Dynamic browser resolution: Caddy serves Keycloak at /auth on the frontend domain
-    return `${window.location.origin}/auth`;
-  }
-
-  // Server-side / SSR resolution
-  if (process.env.KEYCLOAK_PUBLIC_URL && process.env.KEYCLOAK_PUBLIC_URL.trim() !== '') {
-    return process.env.KEYCLOAK_PUBLIC_URL.trim();
-  }
-  if (process.env.NEXT_PUBLIC_KEYCLOAK_URL && process.env.NEXT_PUBLIC_KEYCLOAK_URL.trim() !== '') {
-    return process.env.NEXT_PUBLIC_KEYCLOAK_URL.trim();
-  }
-  if (process.env.ALFHEIM_BASE_URL && process.env.ALFHEIM_BASE_URL.trim() !== '') {
-    const base = process.env.ALFHEIM_BASE_URL.trim().replace(/\/+$/, '');
-    return `${base}/auth`;
-  }
-
-  return 'http://api.alfheim.loegien.localhost/auth';
 }
 
 /**

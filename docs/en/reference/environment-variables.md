@@ -35,8 +35,9 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
-| `OIDC_ISSUER_URL` | `http://api.alfheim.loegien.localhost/auth` | Public browser-facing OIDC issuer URL |
-| `OIDC_INTERNAL_JWKS_URL` | `http://zitadel:8080/oauth/v2/keys` | Internal Docker container network JWKS URL |
+| `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | Public OIDC issuer: the bare origin of the IAM host |
+| `OIDC_INTERNAL_URL` | `http://zitadel:8080` | Internal base URL for server-to-server OIDC calls |
+| `OIDC_JWKS_URL` | _(empty)_ | Optional explicit JWKS URL; overrides discovery when set |
 | `OIDC_AUDIENCE` | `alfheim-client` | Target OIDC client ID / audience |
 | `ZITADEL_MASTER_KEY` | *(Generated 32-byte key)* | Encryption master key for Zitadel initialization |
 | `ZITADEL_ADMIN_USER` | `admin` | Zitadel initial administrator username |
@@ -80,5 +81,5 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `NEXT_PUBLIC_PANTRY_API_URL` | `http://api.alfheim.loegien.localhost/pantry/api/v1` | Pantry MFE API gateway endpoint |
-| `NEXT_PUBLIC_OIDC_ISSUER_URL` | `http://api.alfheim.loegien.localhost/auth` | Browser OIDC authentication issuer URL |
+| `NEXT_PUBLIC_OIDC_ISSUER` | `http://auth.alfheim.loegien.localhost` | Browser-facing OIDC issuer used by the PKCE flow |
 | `NEXT_PUBLIC_OIDC_CLIENT_ID` | `alfheim-client` | Client ID for PKCE authorization flow |

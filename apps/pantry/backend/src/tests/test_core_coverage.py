@@ -4,7 +4,7 @@ from fastapi import Request
 from httpx import AsyncClient
 from src.core.config import Settings
 from src.core.dependencies import (
-    decode_keycloak_token,
+    decode_oidc_token,
     get_jwks_client,
     is_mock_auth_allowed,
 )
@@ -33,9 +33,9 @@ def test_core_dependency_wrappers():
         get_jwks_client("http://mock/jwks")
         mock_get_client.assert_called_once_with("http://mock/jwks")
 
-    with patch("src.core.dependencies._deps.decode_keycloak_token") as mock_decode:
+    with patch("src.core.dependencies._deps.decode_oidc_token") as mock_decode:
         mock_decode.return_value = {"sub": "user-123"}
-        payload = decode_keycloak_token("mock-token")
+        payload = decode_oidc_token("mock-token")
         assert payload["sub"] == "user-123"
 
 
