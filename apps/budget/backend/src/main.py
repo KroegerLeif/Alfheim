@@ -23,11 +23,7 @@ discover_and_import_mcp_tools()
 async def lifespan(app: FastAPI):
     """Lifespan context manager for database initialization, FastMCP server, and telemetry cleanup."""
     # Initialize DB tables on application startup
-    try:
-        await init_db()
-    except Exception:
-        # DB connection might fail in test environments where DB URL is not SQLite, handled gracefully
-        pass
+    await init_db()
 
     try:
         async with mcp.lifespan():

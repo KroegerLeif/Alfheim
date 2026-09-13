@@ -3,8 +3,9 @@ import pathlib
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
-from src.core.config import settings
+from src.config import settings
 from src.mcp.server import mcp
+from backend_shared import setup_telemetry, shutdown_telemetry
 from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 
 
@@ -34,7 +35,7 @@ def discover_and_include_routers(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB tables
-    from src.core.database import init_db
+    from src.db import init_db
 
     await init_db()
 
@@ -44,8 +45,6 @@ async def lifespan(app: FastAPI):
             yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers
-        from src.core.telemetry import shutdown_telemetry
-
         shutdown_telemetry()
 
 
@@ -69,9 +68,7 @@ app.add_middleware(
 )
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from src.core.telemetry import setup_telemetry
-
-setup_telemetry(app)
+setup_telemetry(app, settings=settings)
 
 
 @app.exception_handler(ValueError)
@@ -97,10 +94,16 @@ mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
 app.mount("/mcp", mcp_app_with_auth)
 
 
+@app.get("/health")
+async def health_check_root():
+    """Root health check endpoint for readiness probes."""
+    return {"status": "ok"}
+
+
 @app.get("/api/v1/health")
 async def health_check():
     """Simple health check endpoint."""
     import logging
 
     logging.info("Library health check endpoint hit!")
-    return {"status": "ok", "project": settings.PROJECT_NAME}
+    return {"status": "ok"}
