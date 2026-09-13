@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@alfheim/shared";
 import { PlanCategoryCreate } from "@/features/budget/types";
-import { X } from "lucide-react";
 
 export interface CategoryDialogProps {
   open: boolean;
@@ -36,16 +36,11 @@ export function CategoryDialog({ open, parentId, onClose, onSubmit }: CategoryDi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
-          <h3 className="text-lg font-bold text-[var(--text-main)]">
-            {parentId ? "Add Subcategory" : "Add Budget Category"}
-          </h3>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--surface-canvas)]">
-            <X className="w-5 h-5 text-[var(--text-muted)]" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
+        <DialogTitle className="text-lg font-bold text-[var(--text-main)]">
+          {parentId ? "Add Subcategory" : "Add Budget Category"}
+        </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -89,7 +84,7 @@ export function CategoryDialog({ open, parentId, onClose, onSubmit }: CategoryDi
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

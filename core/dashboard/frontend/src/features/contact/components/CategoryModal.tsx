@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
 import { ContactCategory } from '@/shared/types';
 
 interface CategoryModalProps {
+  isOpen: boolean;
   editingCategory: ContactCategory | null;
   onClose: () => void;
   onSubmit: (payload: { name: string; icon: string; color: string }) => void;
@@ -14,6 +15,7 @@ interface CategoryModalProps {
  * Modal dialog for contact category creation and editing.
  */
 export function CategoryModal({
+  isOpen,
   editingCategory,
   onClose,
   onSubmit,
@@ -47,19 +49,11 @@ export function CategoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-          <h3 className="text-base font-bold text-[var(--text-main)]">
-            {editingCategory ? t('household.edit_category') : t('household.add_category')}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
+        <DialogTitle className="text-base font-bold text-[var(--text-main)]">
+          {editingCategory ? t('household.edit_category') : t('household.add_category')}
+        </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -126,7 +120,7 @@ export function CategoryModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

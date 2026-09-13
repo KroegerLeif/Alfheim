@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
 
 interface HouseholdCreateModalProps {
   isOpen: boolean;
@@ -23,17 +23,10 @@ export function HouseholdCreateModal({
 }: HouseholdCreateModalProps) {
   const { t } = useTranslation();
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-          <h3 className="text-base font-bold text-[var(--text-main)]">{t('household.create_household')}</h3>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer">
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
+        <DialogTitle className="text-base font-bold text-[var(--text-main)]">{t('household.create_household')}</DialogTitle>
 
         {createStatus && (
           <div className="p-3 rounded bg-red-950/40 border border-red-800/40 text-red-300 text-xs font-mono">
@@ -73,7 +66,7 @@ export function HouseholdCreateModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

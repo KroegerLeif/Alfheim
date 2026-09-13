@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@alfheim/shared";
 import { OverflowTarget, Pot, PotCreate } from "@/features/budget/types";
-import { X } from "lucide-react";
 
 export interface PotDialogProps {
   open: boolean;
@@ -63,16 +63,11 @@ export function PotDialog({ open, pot, onClose, onSubmit }: PotDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
-          <h3 className="text-lg font-bold text-[var(--text-main)]">
-            {pot ? "Edit Virtual Pot" : "Create Virtual Pot"}
-          </h3>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--surface-canvas)]">
-            <X className="w-5 h-5 text-[var(--text-muted)]" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
+        <DialogTitle className="text-lg font-bold text-[var(--text-main)]">
+          {pot ? "Edit Virtual Pot" : "Create Virtual Pot"}
+        </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -177,7 +172,7 @@ export function PotDialog({ open, pot, onClose, onSubmit }: PotDialogProps) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

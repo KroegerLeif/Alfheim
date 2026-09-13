@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useTranslation, AddressAutocomplete } from '@alfheim/shared';
+import { useTranslation, AddressAutocomplete, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
 import { Household } from '@/shared/types';
 
 const OSMMapViewer = dynamic(
@@ -46,18 +46,9 @@ export function AddressManagementModal({
   const hasCoords = selectedCoords !== null || (household.latitude !== undefined && household.longitude !== undefined);
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-          <h3 className="text-base font-bold text-[var(--text-main)]">{t('household.address_search')}</h3>
-          <button
-            onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-            aria-label={t('household.close_modal')}
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-lg">
+        <DialogTitle className="text-base font-bold text-[var(--text-main)]">{t('household.address_search')}</DialogTitle>
 
         <div className="space-y-4">
           <AddressAutocomplete placeholder={t('household.address_search')} onSelect={handleSelect} />
@@ -75,7 +66,7 @@ export function AddressManagementModal({
             />
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
