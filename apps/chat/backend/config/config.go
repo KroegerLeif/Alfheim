@@ -17,6 +17,7 @@ type Config struct {
 	Port           string
 	Database       DatabaseConfig
 	OIDC           OIDCConfig
+	CORS           CORSConfig
 	Encryption     EncryptionConfig
 	Bootstrap      BootstrapConfig
 	Storage        StorageConfig
@@ -36,6 +37,11 @@ type DatabaseConfig struct {
 type OIDCConfig struct {
 	IssuerURL string
 	Audience  string
+}
+
+// CORSConfig holds CORS origin allowlist configuration.
+type CORSConfig struct {
+	AllowedOrigins []string
 }
 
 // EncryptionConfig holds the symmetric key material used to encrypt model block API keys at rest.
@@ -95,6 +101,16 @@ func Load() (*Config, error) {
 	}
 	s3PublicURL := getEnv("S3_PUBLIC_URL", defaultS3PublicURL)
 
+	// Parse CORS allowed origins from environment variable
+	corsOriginsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://alfheim.loegien.localhost,http://api.alfheim.loegien.localhost")
+	corsOrigins := []string{}
+	if corsOriginsStr != "" {
+		corsOrigins = strings.Split(corsOriginsStr, ",")
+		for i := range corsOrigins {
+			corsOrigins[i] = strings.TrimSpace(corsOrigins[i])
+		}
+	}
+
 	cfg := &Config{
 		Environment: env,
 		Port:        port,
@@ -108,6 +124,9 @@ func Load() (*Config, error) {
 		OIDC: OIDCConfig{
 			IssuerURL: oidcIssuerURL,
 			Audience:  oidcAudience,
+		},
+		CORS: CORSConfig{
+			AllowedOrigins: corsOrigins,
 		},
 		Encryption: EncryptionConfig{
 			KeyID: encryptionKeyID,
