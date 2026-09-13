@@ -31,8 +31,9 @@ async def test_device_router_edge_cases(client: AsyncClient, db_session: AsyncSe
     res_dev_missing = await client.get("/api/v1/devices/99999", headers=headers)
     assert res_dev_missing.status_code == 404
 
-    # 3. POST /api/v1/devices with nonexistent household
-    res_create_no_hh = await client.post(
+    # 3. POST /api/v1/devices with payload household_id override — device created in authenticated household
+    # The payload's household_id is ignored; device is created in the authenticated user's household
+    res_create_with_override = await client.post(
         "/api/v1/devices",
         json={
             "name": "Fridge",
@@ -47,7 +48,8 @@ async def test_device_router_edge_cases(client: AsyncClient, db_session: AsyncSe
         },
         headers=headers,
     )
-    assert res_create_no_hh.status_code == 404
+    assert res_create_with_override.status_code == 201
+    assert res_create_with_override.json()["household_id"] == household.id
 
     # 4. POST /api/v1/devices with DeviceError simulated
     with patch("app.features.devices.service.DeviceService.create_device", side_effect=DeviceError("Creation failed")):

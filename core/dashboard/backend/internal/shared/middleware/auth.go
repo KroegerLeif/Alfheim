@@ -158,6 +158,16 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 		}
 
 		userClaims := extractUserClaims(claimsMap, r)
+
+		// Reject if X-Household-ID header is supplied but JWT has no household claim.
+		if headerHH := r.Header.Get("X-Household-ID"); headerHH != "" && userClaims.HouseholdID == "" {
+			a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID supplied but no household claims present in token",
+				slog.String("header_household_id", headerHH),
+				slog.String("user_id", userClaims.Subject))
+			writeForbidden(w, "user is not a member of the requested household")
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), UserContextKey, userClaims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -167,6 +177,12 @@ func writeUnauthorized(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
 	_, _ = fmt.Fprintf(w, `{"error":"unauthorized","message":%q}`, message)
+}
+
+func writeForbidden(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = fmt.Fprintf(w, `{"error":"forbidden","message":%q}`, message)
 }
 
 // GetUserClaims retrieves UserClaims from the HTTP request context.
@@ -197,12 +213,11 @@ func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 		uc.FamilyName = familyName
 	}
 
+	// Only extract household from JWT claims; never accept client-supplied header as fallback.
 	if householdID, ok := claims["household_id"].(string); ok && householdID != "" {
 		uc.HouseholdID = householdID
 	} else if activeHouseholdID, ok := claims["active_household_id"].(string); ok && activeHouseholdID != "" {
 		uc.HouseholdID = activeHouseholdID
-	} else if headerHousehold := r.Header.Get("X-Household-ID"); headerHousehold != "" {
-		uc.HouseholdID = headerHousehold
 	}
 
 	if realmAccess, ok := claims["realm_access"].(map[string]interface{}); ok {
@@ -225,6 +240,8 @@ type HouseholdRoleDB interface {
 
 // HouseholdRoleMiddleware queries the database to find the user's role for the active household
 // and injects it into both the request context claims and request headers.
+// It validates any client-supplied X-Household-ID header against the JWT-derived household identity
+// and unconditionally clears any client-supplied X-Household-Role header.
 func HouseholdRoleMiddleware(db HouseholdRoleDB, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -235,12 +252,24 @@ func HouseholdRoleMiddleware(db HouseholdRoleDB, log *slog.Logger) func(http.Han
 				return
 			}
 
+			// Unconditionally clear any client-supplied X-Household-Role to prevent privilege escalation.
+			r.Header.Del("X-Household-Role")
+
 			householdID := claims.HouseholdID
+			// Only accept header if it matches a JWT-derived household claim.
 			if householdID == "" {
-				householdID = r.Header.Get("X-Household-ID")
+				headerHH := r.Header.Get("X-Household-ID")
+				if headerHH != "" {
+					log.Warn("household lookup attempted with only client-supplied header (no JWT claim)",
+						slog.String("header_household_id", headerHH),
+						slog.String("user_id", claims.Subject))
+				}
+				// Do not proceed with lookup if no JWT household claim exists.
+				next.ServeHTTP(w, r)
+				return
 			}
 
-			if db != nil && householdID != "" && claims.Subject != "" {
+			if db != nil && claims.Subject != "" {
 				var role string
 				query := `SELECT role FROM household_members WHERE household_id = $1 AND user_id = $2`
 				err := db.QueryRow(r.Context(), query, householdID, claims.Subject).Scan(&role)
@@ -250,7 +279,10 @@ func HouseholdRoleMiddleware(db HouseholdRoleDB, log *slog.Logger) func(http.Han
 					// Propagate role header for downstream microservices
 					r.Header.Set("X-Household-Role", role)
 				} else {
-					log.Debug("household role lookup failed", slog.String("household_id", householdID), slog.String("user_id", claims.Subject), slog.String("error", err.Error()))
+					log.Warn("household role lookup failed",
+						slog.String("household_id", householdID),
+						slog.String("user_id", claims.Subject),
+						slog.String("error", err.Error()))
 				}
 			}
 

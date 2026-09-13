@@ -42,7 +42,7 @@ export function HouseholdModals({
 }: HouseholdModalsProps) {
   return (
     <>
-      {activeInvite && <InviteModal invite={activeInvite} onClose={() => setActiveInvite(null)} />}
+      <InviteModal isOpen={!!activeInvite} invite={activeInvite} onClose={() => setActiveInvite(null)} />
 
       <AddressManagementModal
         isOpen={isAddressModalOpen}
@@ -51,22 +51,20 @@ export function HouseholdModals({
         onAddressSelect={handleAddressSelect}
       />
 
-      {isCategoryModalOpen && (
-        <CategoryModal
-          editingCategory={editingCategory}
-          onClose={() => setIsCategoryModalOpen(false)}
-          onSubmit={handleCategorySubmit}
-        />
-      )}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        editingCategory={editingCategory}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSubmit={handleCategorySubmit}
+      />
 
-      {isContactModalOpen && (
-        <ContactModal
-          editingContact={editingContact}
-          categories={categories}
-          onClose={() => setIsContactModalOpen(false)}
-          onSubmit={handleContactSubmit}
-        />
-      )}
+      <ContactModal
+        isOpen={isContactModalOpen}
+        editingContact={editingContact}
+        categories={categories}
+        onClose={() => setIsContactModalOpen(false)}
+        onSubmit={handleContactSubmit}
+      />
     </>
   );
 }

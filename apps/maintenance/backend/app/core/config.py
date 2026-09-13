@@ -12,8 +12,21 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
+    # Security: Restrict allowed origins for CORS
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "http://alfheim.loegien.localhost",
+        "http://api.alfheim.loegien.localhost",
+    ]
+
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://maintenance_user:postgres@localhost:5432/alfheim_maintenance"
+
+    # Service URLs
+    SHOPPING_BACKEND_URL: str = "http://shopping-backend:8000"
+    BUDGET_SERVICE_URL: str = "http://budget-backend:8000"
 
     # Generic OIDC Configuration (Zitadel)
     OIDC_ISSUER_URL: str = "http://auth.alfheim.loegien.localhost"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
 import { useUpdateUserLink, useDeleteUserLink } from '../queries';
 import { AppItem } from '@/shared/types';
 import { EditAppFormFields } from './EditAppFormFields';
@@ -91,16 +91,11 @@ export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 relative">
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[var(--primary-main)]">edit_square</span>
-            <h2 className="text-base font-bold text-[var(--text-main)]">{t('catalog.edit_user_link_title')}</h2>
-          </div>
-          <button onClick={onClose} type="button" className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer" aria-label={t('common.close')}>
-            <span className="material-symbols-outlined text-lg">close</span>
-          </button>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)]">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[var(--primary-main)]">edit_square</span>
+          <DialogTitle className="text-base font-bold text-[var(--text-main)]">{t('catalog.edit_user_link_title')}</DialogTitle>
         </div>
 
         {errorMessage && (
@@ -144,7 +139,7 @@ export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalPr
             </div>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -85,12 +85,12 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
   };
 
   return (
-    <div className="space-y-3 rounded-xl border border-[var(--border-subtle,#334155)] bg-[var(--surface-muted,#0f172a)] p-3">
+    <div className="space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3">
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
         <select
           value={lookupType}
           onChange={(e) => setLookupType(e.target.value as LookupType)}
-          className="rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+          className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
         >
           <option value="ISBN">{t("library.itemDialog.lookupIsbnLabel")}</option>
           <option value="BGG">{t("library.itemDialog.lookupBggLabel")}</option>
@@ -101,7 +101,7 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("library.itemDialog.lookupPlaceholder")}
-          className="flex-1 rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] placeholder-[var(--text-muted,#64748b)] focus:outline-none focus:ring-1 focus:ring-primary"
+          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <Button type="submit" size="sm" disabled={isLoading || !query.trim()}>
           {isLoading ? "..." : t("library.itemDialog.lookupBtn")}
@@ -116,13 +116,13 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
             <div
               key={idx}
               onClick={() => handleSelectBgg(game)}
-              className="flex items-center justify-between rounded-lg p-2 bg-[var(--surface-card,#1e293b)] hover:bg-primary/20 cursor-pointer text-xs"
+              className="flex items-center justify-between rounded-lg p-2 bg-[var(--surface-card)] hover:bg-primary/20 cursor-pointer text-xs"
             >
               <div className="flex items-center gap-2">
                 {game.cover_image_url && (
                   <img src={game.cover_image_url} alt="" className="h-8 w-8 object-cover rounded" />
                 )}
-                <span className="font-medium text-[var(--text-main,#f8fafc)]">{game.title}</span>
+                <span className="font-medium text-[var(--text-main)]">{game.title}</span>
               </div>
               <span className="text-primary font-semibold">{t("library.itemDialog.autoFill")}</span>
             </div>
@@ -136,15 +136,15 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
             <div
               key={idx}
               onClick={() => handleSelectTmdb(item)}
-              className="flex items-center justify-between rounded-lg p-2 bg-[var(--surface-card,#1e293b)] hover:bg-primary/20 cursor-pointer text-xs"
+              className="flex items-center justify-between rounded-lg p-2 bg-[var(--surface-card)] hover:bg-primary/20 cursor-pointer text-xs"
             >
               <div className="flex items-center gap-2">
                 {item.cover_image_url && (
                   <img src={item.cover_image_url} alt="" className="h-8 w-8 object-cover rounded" />
                 )}
                 <div>
-                  <span className="font-medium text-[var(--text-main,#f8fafc)]">{item.title}</span>
-                  <span className="ml-2 text-[10px] text-[var(--text-muted,#94a3b8)]">({item.media_type})</span>
+                  <span className="font-medium text-[var(--text-main)]">{item.title}</span>
+                  <span className="ml-2 text-[10px] text-[var(--text-muted)]">({item.media_type})</span>
                 </div>
               </div>
               <span className="text-primary font-semibold">{t("library.itemDialog.autoFill")}</span>

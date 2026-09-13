@@ -7,27 +7,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.locations.models import Location, LocationCreate, LocationUpdate
 
 
-async def reassign_items_to_fallback(
-    session: AsyncSession,
-    old_location_id: uuid.UUID,
-    fallback_location_id: uuid.UUID,
-) -> None:
-    """Helper function to reassign pantry items to the fallback location.
-
-    Currently a stub since the Item/Product tables do not exist yet.
-    When the Items feature is introduced, this function will perform the update.
-    """
-    # TODO: Once the Item model is defined, run the update query:
-    # from src.features.items.models import Item
-    # from sqlalchemy import update
-    # await session.execute(
-    #     update(Item)
-    #     .where(Item.location_id == old_location_id)
-    #     .values(location_id=fallback_location_id)
-    # )
-    pass
-
-
 class LocationService:
     """Service class encapsulating async database operations for Locations."""
 
@@ -140,10 +119,7 @@ class LocationService:
         if not fallback:
             raise ValueError("System fallback location ('Backlog') could not be found.")
 
-        # 2. Reassign any stored items to the fallback location
-        await reassign_items_to_fallback(session, old_location_id=location.id, fallback_location_id=fallback.id)
-
-        # 3. Delete the target location
+        # 2. Delete the target location
         await session.delete(location)
         try:
             await session.commit()

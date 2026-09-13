@@ -23,7 +23,13 @@
       "maturityDate": "Data Zapadalności",
       "currentBalance": "Aktualne Saldo",
       "netWorth": "Majątek Netto Ogółem",
-      "addAccount": "Dodaj Konto"
+      "addAccount": "Dodaj Konto",
+      "create": "Utwórz Konto",
+      "edit": "Edytuj Konto",
+      "name": "Nazwa Konta",
+      "type": "Typ Konta",
+      "currency": "Waluta",
+      "placeholder": "np. Moje Konto Główne"
     },
     "pots": {
       "title": "Wirtualne Skarpety i Rezerwy",
@@ -65,7 +71,15 @@
       "account": "Konto",
       "pot": "Skarpeta",
       "ocrProcessing": "Analizowanie paragonu przez OCR...",
-      "success": "Transakcja została pomyślnie zarejestrowana"
+      "success": "Transakcja została pomyślnie zarejestrowana",
+      "description": "Opis",
+      "descriptionPlaceholder": "np. Artykuły spożywcze ze sklepu",
+      "type": "Typ",
+      "accountOptional": "Konto (Opcjonalnie)",
+      "targetPotOptional": "Docelowa Skarpeta (Opcjonalnie)",
+      "planOptional": "Plan (Opcjonalnie)",
+      "none": "-- Brak --",
+      "logging": "Rejestrowanie..."
     },
     "analytics": {
       "title": "Analityka Finansowa i Przepływy",

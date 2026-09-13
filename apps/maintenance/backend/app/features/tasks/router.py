@@ -5,7 +5,7 @@ Exposes REST endpoints for service history, submission, and step updates,
 delegating all logic to TaskService.
 """
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
@@ -30,9 +30,14 @@ async def submit_maintenance(
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
-    """Log a new service history event and update completed steps' due dates."""
+    """Log a new service history event for the authenticated user's household.
+
+    The device must belong to the user's authenticated household.
+    """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
-        return await TaskService.submit_maintenance_wizard(session, payload)
+        return await TaskService.submit_maintenance_wizard(session, payload, household_id=context.household_id)
     except DeviceNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except InvalidStepError as e:
@@ -45,13 +50,13 @@ async def submit_maintenance(
     summary="Retrieve service history events sorted newest first",
 )
 async def get_service_history(
-    household_id: int | None = Query(default=None, description="Optional household filter"),
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
-    """Fetch all ServiceHistoryEvent records joined with their Device."""
-    target_hh = household_id if household_id is not None else context.household_id
-    return await TaskService.get_history(session, household_id=target_hh)
+    """Fetch all ServiceHistoryEvent records for the authenticated user's household, sorted newest first."""
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
+    return await TaskService.get_history(session, household_id=context.household_id)
 
 
 @router.post(
@@ -65,8 +70,13 @@ async def update_task_state(
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
-    """Persist lightweight step updates from ScheduledView accordion."""
+    """Persist lightweight step updates from ScheduledView accordion.
+
+    The step must belong to the authenticated user's household.
+    """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
-        return await TaskService.update_task_state(session, step_id, payload)
+        return await TaskService.update_task_state(session, step_id, payload, household_id=context.household_id)
     except StepNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

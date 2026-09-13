@@ -6,6 +6,7 @@ import importlib
 import pathlib
 from contextlib import asynccontextmanager
 
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -36,7 +37,7 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables and seed data on startup
+    # Initialize DB tables on startup
     from app.core.database import init_db
 
     await init_db()
@@ -46,7 +47,7 @@ async def lifespan(app: FastAPI):
             yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers on shutdown
-        from app.core.telemetry import shutdown_telemetry
+        from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
@@ -58,9 +59,10 @@ app = FastAPI(
 
 from fastapi.middleware.cors import CORSMiddleware
 
+# Security: Restrict allowed origins instead of using wildcard '*' when allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,7 +79,7 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
 
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from app.core.telemetry import setup_telemetry
+from backend_shared.telemetry import setup_telemetry
 
 setup_telemetry(app)
 
@@ -87,8 +89,10 @@ discover_and_include_routers(app)
 # Discover and register FastMCP tools dynamically from features/*/mcp_tools.py
 discover_and_import_mcp_tools()
 
-# Mount the FastMCP HTTP server at /mcp
-app.mount("/mcp", mcp_server.http_app())
+# Mount the FastMCP HTTP server at /mcp with authentication middleware
+mcp_app = mcp_server.http_app()
+mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
+app.mount("/mcp", mcp_app_with_auth)
 
 
 @app.get("/api/v1/health")

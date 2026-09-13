@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
 import { LayoutProvider } from "@/shared/layout/LayoutContext";
-import { AuthContext } from "@/core/auth/AuthContext";
+import { AuthContext } from "@alfheim/shared";
 import { useOidcAuth } from "@/core/auth/useOidcAuth";
 import { useTranslation } from "@alfheim/shared";
 

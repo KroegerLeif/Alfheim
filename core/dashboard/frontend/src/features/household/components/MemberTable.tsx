@@ -96,7 +96,7 @@ export function MemberTable({
                       value={member.role}
                       onChange={(e) => onRoleChange(member.user_id, member.role, e.target.value)}
                       aria-label={t('household.change_role') || 'Change role'}
-                      className="bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-main)] rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
+                      className="bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-main)] rounded px-1.5 py-0.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
                     >
                       <option value="ADMIN">{getLocalizedRole('ADMIN')}</option>
                       <option value="MEMBER">{getLocalizedRole('MEMBER')}</option>

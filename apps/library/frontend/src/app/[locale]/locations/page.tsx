@@ -30,10 +30,10 @@ export default function LocationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[var(--text-main,#f8fafc)]">
+        <h1 className="text-2xl font-bold text-[var(--text-main)]">
           {t("library.locations.title")}
         </h1>
-        <p className="text-sm text-[var(--text-muted,#94a3b8)] mt-1">
+        <p className="text-sm text-[var(--text-muted)] mt-1">
           {t("library.locations.subtitle")}
         </p>
       </div>

@@ -1,7 +1,7 @@
 """Unit tests for StorageSettings validation and environment enforcement."""
 
 import pytest
-from app.core.storage import StorageSettings
+from backend_shared.storage import StorageSettings
 from pydantic import ValidationError
 
 

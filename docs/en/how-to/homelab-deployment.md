@@ -58,7 +58,7 @@ If you prefer full control over your server configuration, follow the manual ste
 
 ### 1. Create the Installation Directory Structure
 ```bash
-mkdir -p ~/alfheim/infrastructure/telemetry/collector
+mkdir -p ~/alfheim/infrastructure/caddy ~/alfheim/infrastructure/telemetry/collector
 cd ~/alfheim
 ```
 
@@ -72,7 +72,7 @@ BASE_URL="https://raw.githubusercontent.com/KroegerLeif/Alfheim/${RELEASE_TAG}"
 curl -sSL "${BASE_URL}/compose.prod.yaml" -o compose.prod.yaml
 curl -sSL "${BASE_URL}/.env.example" -o .env.example
 curl -sSL "${BASE_URL}/scripts/init-env.sh" -o init-env.sh
-curl -sSL "${BASE_URL}/infrastructure/caddy/Caddyfile" -o Caddyfile
+curl -sSL "${BASE_URL}/infrastructure/caddy/Caddyfile" -o infrastructure/caddy/Caddyfile
 curl -sSL "${BASE_URL}/infrastructure/telemetry/collector/config.yaml" -o infrastructure/telemetry/collector/config.yaml
 
 chmod +x init-env.sh

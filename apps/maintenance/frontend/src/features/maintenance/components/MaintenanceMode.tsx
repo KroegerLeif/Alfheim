@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Device, MaintenanceSubmitPayload } from "@/shared/types";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { cn } from "@/core/utils";
-import { useAuth } from "@/core/auth/AuthContext";
+import { useAuth } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useSubmitMaintenance } from "../hooks/useMaintenance";
 import { ManualsPanel } from "./ManualsPanel";

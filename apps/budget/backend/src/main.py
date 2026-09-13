@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
 
 from backend_shared import setup_telemetry, shutdown_telemetry
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.core.audit import register_audit_hooks
+from src.core.audit import AuditRepository  # noqa: F401 - imported to trigger register_audit_hooks at module load
 from src.core.config import settings
 from src.core.database import engine, init_db
 from src.features.accounts import router as accounts_router
@@ -11,8 +12,6 @@ from src.features.plans import router as plans_router
 from src.features.pots import router as pots_router
 from src.features.transactions import router as transactions_router
 from src.mcp.server import discover_and_import_mcp_tools, mcp
-
-register_audit_hooks()
 
 # Discover and register FastMCP tools
 discover_and_import_mcp_tools()
@@ -22,11 +21,7 @@ discover_and_import_mcp_tools()
 async def lifespan(app: FastAPI):
     """Lifespan context manager for database initialization, FastMCP server, and telemetry cleanup."""
     # Initialize DB tables on application startup
-    try:
-        await init_db()
-    except Exception:
-        # DB connection might fail in test environments where DB URL is not SQLite, handled gracefully
-        pass
+    await init_db()
 
     try:
         async with mcp.lifespan():
@@ -67,8 +62,10 @@ app.include_router(
     tags=["transactions"],
 )
 
-# Mount the FastMCP SSE/HTTP app
-app.mount("/mcp", mcp.http_app())
+# Mount the FastMCP SSE/HTTP app with authentication middleware
+mcp_app = mcp.http_app()
+mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
+app.mount("/mcp", mcp_app_with_auth)
 
 # Configure CORS middleware
 app.add_middleware(

@@ -70,7 +70,7 @@ async def test_get_overdue_tasks_and_update(db_session_isolated: AsyncSession):
     assert s1.id is not None
 
     # Test Overdue Tasks
-    overdue = await TaskService.get_overdue_tasks(db_session)
+    overdue = await TaskService.get_overdue_tasks(db_session, household_id=h1.id)
     assert len(overdue) >= 1
     target = next((x for x in overdue if x["step_id"] == s1.id), None)
     assert target is not None
@@ -79,12 +79,12 @@ async def test_get_overdue_tasks_and_update(db_session_isolated: AsyncSession):
     # Test Update Task State
     new_date = (date.today() + timedelta(days=30)).isoformat()
     update_payload = TaskStateUpdate(supply_needed_date=new_date, comment="Deferred")
-    updated_step = await TaskService.update_task_state(db_session, s1.id, update_payload)
+    updated_step = await TaskService.update_task_state(db_session, s1.id, update_payload, household_id=h1.id)
     assert updated_step.supply_needed_date == new_date
     assert updated_step.description == "Deferred"
 
     # Should no longer be overdue
-    overdue_now = await TaskService.get_overdue_tasks(db_session)
+    overdue_now = await TaskService.get_overdue_tasks(db_session, household_id=h1.id)
     assert not any(x["step_id"] == s1.id for x in overdue_now)
 
 
@@ -126,7 +126,7 @@ async def test_submit_maintenance_wizard_and_history(db_session_isolated: AsyncS
     )
 
     with patch("app.features.tasks.service.TaskService.forward_supplies_to_shopping") as mock_forward:
-        event = await TaskService.submit_maintenance_wizard(db_session, payload)
+        event = await TaskService.submit_maintenance_wizard(db_session, payload, household_id=h1.id)
         assert event.performer == "Alice"
         assert event.completed_steps is not None and "Clean Coil" in event.completed_steps
         mock_forward.assert_called_once_with(["Coil Cleaner"])

@@ -6,7 +6,7 @@ import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
-import { useAuth } from "@/core/auth/AuthContext";
+import { useAuth } from "@alfheim/shared";
 import { Home, User } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";

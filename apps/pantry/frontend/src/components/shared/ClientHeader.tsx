@@ -1,27 +1,16 @@
 "use client";
 
-import { useAuth } from "@/core/authContext";
 import { usePantryChat } from "@/core/chatContext";
-import { AlfiAvatar, AppHeader, useTranslation, resolveFrontendUrl } from "@alfheim/shared";
+import { AlfiAvatar, ClientHeader as SharedClientHeader, useTranslation } from "@alfheim/shared";
 
 export function ClientHeader() {
-  const { user, logout } = useAuth();
   const { toggleChat } = usePantryChat();
   const { t } = useTranslation();
 
   return (
-    <AppHeader
+    <SharedClientHeader
       appName="pantry"
       brandTitle="ALFHEIM // PANTRY"
-      brandSubtitle={t("header.brand_subtitles.pantry")}
-      showBackToDashboard={true}
-      backToDashboardHref={resolveFrontendUrl()}
-      showHouseholdSwitcher={true}
-      showLanguageSwitcher={true}
-      showThemeToggle={true}
-      showAuthControls={true}
-      user={user}
-      onLogout={logout}
       actionsSlot={
         <button
           type="button"

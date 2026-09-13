@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
 import { useCreateUserLink } from '../queries';
 import { AddAppFormFields } from './AddAppFormFields';
 
@@ -88,28 +88,18 @@ export function AddAppModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 relative">
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]">
-              <span className="material-symbols-outlined text-xl">bookmark_add</span>
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-[var(--text-main)]">{t('catalog.add_user_link_title')}</h3>
-              <p className="text-xs text-[var(--text-muted)] font-mono">
-                {t('catalog.add_user_link_desc')}
-              </p>
-            </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]">
+            <span className="material-symbols-outlined text-xl">bookmark_add</span>
           </div>
-
-          <button
-            onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
-            aria-label={t('common.close')}
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <div>
+            <DialogTitle className="text-base font-bold text-[var(--text-main)]">{t('catalog.add_user_link_title')}</DialogTitle>
+            <p className="text-xs text-[var(--text-muted)] font-mono">
+              {t('catalog.add_user_link_desc')}
+            </p>
+          </div>
         </div>
 
         {errorMessage && (
@@ -159,7 +149,7 @@ export function AddAppModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -27,7 +27,7 @@ export function ManualViewerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] text-[var(--text-main,#f8fafc)]">
+      <DialogContent className="max-w-4xl border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]">
         <DialogHeader>
           <DialogTitle>
             {t("library.manuals.title")} - {title}
@@ -36,12 +36,12 @@ export function ManualViewerModal({
 
         <div className="space-y-4 pt-2">
           {isLoading ? (
-            <div className="flex h-96 items-center justify-center text-sm text-[var(--text-muted,#94a3b8)]">
+            <div className="flex h-96 items-center justify-center text-sm text-[var(--text-muted)]">
               Loading...
             </div>
           ) : pdfUrl ? (
             <div className="space-y-3">
-              <div className="h-[60vh] w-full overflow-hidden rounded-lg border border-[var(--border-subtle,#334155)] bg-[var(--surface-muted,#0f172a)]">
+              <div className="h-[60vh] w-full overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)]">
                 <iframe src={pdfUrl} title={title} className="h-full w-full" />
               </div>
               <div className="flex justify-end gap-2">
@@ -49,7 +49,7 @@ export function ManualViewerModal({
                   href={pdfUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border-subtle,#334155)] bg-[var(--surface-card,#1e293b)] hover:bg-[var(--surface-muted,#0f172a)] text-[var(--text-main,#f8fafc)]"
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] hover:bg-[var(--surface-elevated)] text-[var(--text-main)]"
                 >
                   🔗 {t("library.manuals.openNewTab")}
                 </a>

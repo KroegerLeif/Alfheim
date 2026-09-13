@@ -12,6 +12,7 @@ export * from './Card';
 export * from './Checkbox';
 export * from './Dialog';
 export * from './EmptyState';
+export * from './ErrorBoundary';
 export * from './Input';
 export * from './Progress';
 export * from './Select';

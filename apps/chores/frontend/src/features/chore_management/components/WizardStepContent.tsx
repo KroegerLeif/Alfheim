@@ -42,31 +42,33 @@ export function WizardStepContent({
             {t("chores.choreDetails")}
           </h2>
           <div className="space-y-2">
-            <label className="text-xs font-mono uppercase text-[var(--text-muted)]">
+            <label htmlFor="chore-name" className="text-xs font-mono uppercase text-[var(--text-muted)]">
               {t("chores.taskName")}
             </label>
             <input
+              id="chore-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("chores.taskNamePlaceholder")}
-              className={`w-full px-4 py-2 border bg-[var(--surface-elevated)] text-[var(--text-main)] focus:outline-none rounded ${
-                errors.name ? "border-red-500 focus:border-red-500" : "border-[var(--border-subtle)] focus:border-[var(--border-accent)]"
+              className={`w-full px-4 py-2 border bg-[var(--surface-elevated)] text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] rounded ${
+                errors.name ? "border-red-500" : "border-[var(--border-subtle)]"
               }`}
             />
             {errors.name && <p className="text-red-500 text-xs font-mono mt-1">{errors.name}</p>}
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-mono uppercase text-[var(--text-muted)]">
+            <label htmlFor="chore-description" className="text-xs font-mono uppercase text-[var(--text-muted)]">
               {t("chores.instructions")}
             </label>
             <textarea
+              id="chore-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t("chores.instructionsPlaceholder")}
               rows={3}
-              className={`w-full px-4 py-2 border bg-[var(--surface-elevated)] text-[var(--text-main)] focus:outline-none rounded ${
-                errors.description ? "border-red-500 focus:border-red-500" : "border-[var(--border-subtle)] focus:border-[var(--border-accent)]"
+              className={`w-full px-4 py-2 border bg-[var(--surface-elevated)] text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] rounded ${
+                errors.description ? "border-red-500" : "border-[var(--border-subtle)]"
               }`}
             />
             {errors.description && <p className="text-red-500 text-xs font-mono mt-1">{errors.description}</p>}

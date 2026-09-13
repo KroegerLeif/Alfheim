@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider as SharedThemeProvider, useTranslation } from "@alfheim/shared";
 import { ReactNode, useState, createContext, useContext } from "react";
-import { AuthContext } from "@/core/auth/AuthContext";
+import { AuthContext } from "@alfheim/shared";
 import { useOidcAuth } from "@/core/auth/useOidcAuth";
 
 export const SidebarContext = createContext<{

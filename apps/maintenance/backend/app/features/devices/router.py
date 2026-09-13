@@ -5,7 +5,7 @@ Exposes REST endpoints for devices and households, delegating all domain logic
 to DeviceService.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
@@ -26,8 +26,10 @@ async def get_households(
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
-    """Fetch all registered households from the database."""
-    return await DeviceService.get_households(session)
+    """Fetch households accessible by the authenticated user (scoped to their context)."""
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
+    return await DeviceService.get_households(session, household_id=context.household_id)
 
 
 @router.get(
@@ -36,13 +38,11 @@ async def get_households(
     summary="Retrieve all devices with steps and history",
 )
 async def get_devices(
-    household_id: int | None = Query(default=None, description="Optional household filter"),
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
-    """Fetch all devices with related service steps and service history events."""
-    target_hh = household_id if household_id is not None else context.household_id
-    return await DeviceService.get_devices(session, household_id=target_hh)
+    """Fetch all devices for the authenticated user's household with related service steps and history."""
+    return await DeviceService.get_devices(session, household_id=context.household_id)
 
 
 @router.get(
@@ -55,9 +55,14 @@ async def get_device_by_id(
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
-    """Fetch a single device by ID along with its steps and service history."""
+    """Fetch a single device by ID along with its steps and service history.
+
+    Returns 404 if the device does not exist or belongs to a different household.
+    """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
-        return await DeviceService.get_device_by_id(session, device_id=device_id)
+        return await DeviceService.get_device_by_id(session, device_id=device_id, household_id=context.household_id)
     except DeviceNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -73,9 +78,15 @@ async def create_device(
     session: AsyncSession = Depends(get_db_session),
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
-    """Create a new Device record and insert all provided MaintenanceStep children."""
+    """Create a new Device record in the authenticated user's household.
+
+    The device is assigned to the user's authenticated household regardless
+    of any household_id supplied in the payload (enforcing tenant isolation).
+    """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
-        return await DeviceService.create_device(session, payload)
+        return await DeviceService.create_device(session, payload, household_id=context.household_id)
     except HouseholdNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except DeviceError as e:

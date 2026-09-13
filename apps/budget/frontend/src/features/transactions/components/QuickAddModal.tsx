@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { Dialog, DialogContent, DialogTitle, useTranslation, useLanguage } from "@alfheim/shared";
 import { QuickAddTransactionCreate, TransactionType, Account, Pot, Plan } from "@/features/budget/types";
-import { X, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 
 export interface QuickAddModalProps {
   open: boolean;
@@ -13,6 +14,15 @@ export interface QuickAddModalProps {
   onSubmit: (data: QuickAddTransactionCreate) => Promise<void>;
 }
 
+function getCurrencySymbol(locale: string): string {
+  const symbols: Record<string, string> = {
+    en: "€",
+    de: "€",
+    pl: "zł",
+  };
+  return symbols[locale] || "€";
+}
+
 export function QuickAddModal({
   open,
   accounts = [],
@@ -21,6 +31,10 @@ export function QuickAddModal({
   onClose,
   onSubmit,
 }: QuickAddModalProps) {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  const currencySymbol = useMemo(() => getCurrencySymbol(language), [language]);
+
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [transactionType, setTransactionType] = useState<TransactionType>("EXPENSE");
@@ -58,66 +72,67 @@ export function QuickAddModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-2 font-bold text-lg text-[var(--text-main)]">
-            <Zap className="w-5 h-5 text-amber-500" />
-            <span>Quick-Add Transaction</span>
-          </div>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--surface-canvas)]">
-            <X className="w-5 h-5 text-[var(--text-muted)]" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
+        <DialogTitle className="flex items-center gap-2 font-bold text-lg text-[var(--text-main)]">
+          <Zap className="w-5 h-5 text-amber-500" />
+          <span>{t("transactions.quickAdd")}</span>
+        </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Description</label>
+            <label htmlFor="transaction-description" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.description")}</label>
             <input
+              id="transaction-description"
               type="text"
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Supermarket Grocery"
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              placeholder={t("transactions.descriptionPlaceholder")}
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Amount (€)</label>
+              <label htmlFor="transaction-amount" className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+                {t("transactions.amount")} ({currencySymbol})
+              </label>
               <input
+                id="transaction-amount"
                 type="number"
                 step="0.01"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="25.50"
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Type</label>
+              <label htmlFor="transaction-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.type")}</label>
               <select
+                id="transaction-type"
                 value={transactionType}
                 onChange={(e) => setTransactionType(e.target.value as TransactionType)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               >
-                <option value="EXPENSE">Expense (-)</option>
-                <option value="INCOME">Income (+)</option>
-                <option value="TRANSFER">Transfer (↔)</option>
+                <option value="EXPENSE">{t("transactions.expense")} (-)</option>
+                <option value="INCOME">{t("transactions.income")} (+)</option>
+                <option value="TRANSFER">{t("transactions.transfer")} (↔)</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Account (Optional)</label>
+            <label htmlFor="transaction-account" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.accountOptional")}</label>
             <select
+              id="transaction-account"
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             >
-              <option value="">-- None --</option>
+              <option value="">{t("transactions.none")}</option>
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
                   {acc.name} ({acc.account_type})
@@ -128,13 +143,14 @@ export function QuickAddModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Target Pot (Optional)</label>
+              <label htmlFor="transaction-pot" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.targetPotOptional")}</label>
               <select
+                id="transaction-pot"
                 value={potId}
                 onChange={(e) => setPotId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               >
-                <option value="">-- None --</option>
+                <option value="">{t("transactions.none")}</option>
                 {pots.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -143,13 +159,14 @@ export function QuickAddModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Plan (Optional)</label>
+              <label htmlFor="transaction-plan" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.planOptional")}</label>
               <select
+                id="transaction-plan"
                 value={planId}
                 onChange={(e) => setPlanId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               >
-                <option value="">-- None --</option>
+                <option value="">{t("transactions.none")}</option>
                 {plans.map((pl) => (
                   <option key={pl.id} value={pl.id}>
                     {pl.name}
@@ -165,18 +182,18 @@ export function QuickAddModal({
               onClick={onClose}
               className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-canvas)]"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium hover:opacity-90 disabled:opacity-50"
             >
-              {submitting ? "Logging..." : "Quick Add"}
+              {submitting ? t("transactions.logging") : t("transactions.quickAdd")}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

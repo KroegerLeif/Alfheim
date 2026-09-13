@@ -110,7 +110,7 @@ spin_stop() {
   fi
 }
 
-TEST_SERVICES=(caddy zitadel otel-collector victorialogs victoriametrics rustfs mailpit postgres-core)
+TEST_SERVICES=(caddy zitadel otel-collector victorialogs victoriametrics rustfs postgres-core)
 
 cleanup() {
   local exit_code=$?
@@ -235,8 +235,8 @@ for net in "${ALL_PROD_NETWORKS[@]}"; do
   fi
 done
 
-log_info "Launching postgres-core, rustfs, and mailpit..."
-docker compose -f "${COMPOSE_FILE}" up -d postgres-core rustfs mailpit victoriametrics victorialogs otel-collector
+log_info "Launching postgres-core and rustfs..."
+docker compose -f "${COMPOSE_FILE}" up -d postgres-core rustfs victoriametrics victorialogs otel-collector
 
 wait_for_health "alfheim_postgres_core" "PostgreSQL Core Database" 60
 wait_for_health "alfheim_rustfs" "RustFS Central Storage" 30

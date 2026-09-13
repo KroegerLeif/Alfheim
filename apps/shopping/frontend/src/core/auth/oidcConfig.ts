@@ -85,7 +85,7 @@ export function loadOidcConfig(): OidcConfig {
     issuer: resolveOidcIssuer(),
     clientId: process.env.NEXT_PUBLIC_OIDC_CLIENT_ID || "shopping-frontend",
     redirectUri,
-    scope: process.env.NEXT_PUBLIC_OIDC_SCOPE || "openid profile email offline_access",
+    scope: "openid profile email offline_access",
   };
 }
 

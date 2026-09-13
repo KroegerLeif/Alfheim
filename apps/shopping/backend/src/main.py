@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers
-        from src.core.telemetry import shutdown_telemetry
+        from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
@@ -53,16 +53,17 @@ app = FastAPI(
 
 from fastapi.middleware.cors import CORSMiddleware
 
+# Security: Restrict allowed origins instead of using wildcard '*' when allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from src.core.telemetry import setup_telemetry
+from backend_shared.telemetry import setup_telemetry
 
 setup_telemetry(app)
 

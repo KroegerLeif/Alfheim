@@ -14,6 +14,7 @@ type Config struct {
 	Port          string
 	Database      DatabaseConfig
 	OIDC          OIDCConfig
+	CORS          CORSConfig
 	StackAppsPath string
 }
 
@@ -40,6 +41,11 @@ type OIDCConfig struct {
 	Audience string
 }
 
+// CORSConfig holds CORS origin allowlist configuration.
+type CORSConfig struct {
+	AllowedOrigins []string
+}
+
 // Load fetches configurations from environment variables with sensible defaults.
 func Load() (*Config, error) {
 	port := getEnv("PORT", "8080")
@@ -56,6 +62,16 @@ func Load() (*Config, error) {
 
 	stackAppsPath := getEnv("STACK_APPS_PATH", "deploy/stack-apps.yaml")
 
+	// Parse CORS allowed origins from environment variable
+	corsOriginsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://alfheim.loegien.localhost,http://api.alfheim.loegien.localhost")
+	corsOrigins := []string{}
+	if corsOriginsStr != "" {
+		corsOrigins = strings.Split(corsOriginsStr, ",")
+		for i := range corsOrigins {
+			corsOrigins[i] = strings.TrimSpace(corsOrigins[i])
+		}
+	}
+
 	cfg := &Config{
 		Environment:   env,
 		Port:          port,
@@ -70,6 +86,9 @@ func Load() (*Config, error) {
 		OIDC: OIDCConfig{
 			IssuerURL: oidcIssuerURL,
 			Audience:  oidcAudience,
+		},
+		CORS: CORSConfig{
+			AllowedOrigins: corsOrigins,
 		},
 	}
 

@@ -8,26 +8,30 @@ exclusively from DeviceService.
 import datetime
 from typing import Any
 
+from backend_shared.mcp_middleware import get_mcp_user_context
+
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
-from app.features.devices.exceptions import DeviceError
 from app.features.devices.service import DeviceService
 
 
 @mcp_server.tool()
-async def get_device_status(household_id: int, device_name: str) -> dict[str, Any]:
-    """Return the active health state, notes, and outstanding tasks for a named device within a household.
+async def get_device_status(device_name: str) -> dict[str, Any]:
+    """Return the active health state, notes, and outstanding tasks for a named device within the authenticated household.
 
     Args:
-        household_id: Integer ID of the household space.
         device_name: Full or partial name of the device to look up.
 
     Returns:
         Structured dictionary containing status, location, notes, and step summaries.
     """
     try:
+        user_context = get_mcp_user_context()
+        if not user_context.household_id:
+            return {"found": False, "error": "No household context available"}
+
         async with async_session_factory() as session:
-            all_devices = await DeviceService.get_devices(session, household_id=household_id)
+            all_devices = await DeviceService.get_devices(session, household_id=user_context.household_id)
 
         # Filter by name matching (case-insensitive partial match)
         matching = [d for d in all_devices if device_name.lower() in d.name.lower()]
@@ -87,20 +91,22 @@ async def get_device_status(household_id: int, device_name: str) -> dict[str, An
             "as_of": today.isoformat(),
             "devices": output,
         }
+    except RuntimeError as e:
+        return {"found": False, "error": str(e)}
     except Exception as e:
         return {"found": False, "error": f"Failed to retrieve device status: {str(e)}"}
 
 
 @mcp_server.tool()
-async def list_devices(household_id: int) -> dict[str, Any]:
-    """Retrieve all registered devices for a specific household.
-
-    Args:
-        household_id: Integer ID of the household to filter by.
-    """
+async def list_devices() -> dict[str, Any]:
+    """Retrieve all registered devices for the authenticated household."""
     try:
+        user_context = get_mcp_user_context()
+        if not user_context.household_id:
+            return {"error": "No household context available"}
+
         async with async_session_factory() as session:
-            devices = await DeviceService.get_devices(session, household_id=household_id)
+            devices = await DeviceService.get_devices(session, household_id=user_context.household_id)
 
         results = [
             {
@@ -116,24 +122,28 @@ async def list_devices(household_id: int) -> dict[str, Any]:
             for d in devices
         ]
         return {"total": len(results), "devices": results}
+    except RuntimeError as e:
+        return {"error": str(e)}
     except Exception as e:
         return {"error": f"Failed to list devices: {str(e)}"}
 
 
 @mcp_server.tool()
-async def get_device_detail(household_id: int, device_id: int) -> dict[str, Any]:
+async def get_device_detail(device_id: int) -> dict[str, Any]:
     """Fetch complete metadata and steps for a specific device by ID, enforcing household isolation.
 
     Args:
-        household_id: Integer ID of the household space.
         device_id: The primary key integer ID of the target device.
     """
     try:
-        async with async_session_factory() as session:
-            device = await DeviceService.get_device_by_id(session, device_id=device_id)
+        user_context = get_mcp_user_context()
+        if not user_context.household_id:
+            return {"error": "No household context available"}
 
-        if device.household_id != household_id:
-            return {"error": f"Device with ID {device_id} not found or not authorized for household {household_id}."}
+        async with async_session_factory() as session:
+            device = await DeviceService.get_device_by_id(
+                session, device_id=device_id, household_id=user_context.household_id
+            )
 
         return {
             "id": device.id,
@@ -159,7 +169,7 @@ async def get_device_detail(household_id: int, device_id: int) -> dict[str, Any]
             ],
             "history_count": len(device.history_events),
         }
-    except DeviceError as e:
+    except RuntimeError as e:
         return {"error": str(e)}
     except Exception as e:
-        return {"error": f"Unexpected error: {str(e)}"}
+        return {"error": f"Device not found or not authorized: {str(e)}"}

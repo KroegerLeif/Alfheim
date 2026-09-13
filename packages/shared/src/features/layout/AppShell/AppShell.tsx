@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ErrorBoundary } from '../../ui/components/ErrorBoundary';
 
 export interface AppShellProps {
   header?: React.ReactNode;
@@ -20,7 +21,9 @@ export function AppShell({ header, sidebar, className = '', children }: AppShell
       <div className="flex-1 w-full flex min-w-0 min-h-0 overflow-hidden">
         {sidebar}
         <main className="flex-1 w-full min-w-0 min-h-0 flex flex-col overflow-y-auto">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

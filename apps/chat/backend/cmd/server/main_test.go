@@ -72,7 +72,7 @@ func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, nil, nil, nil, nil)
+	router := buildRouter(log, dbClient, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
 	rec := httptest.NewRecorder()
@@ -268,11 +268,13 @@ func TestRun_GracefulShutdown_Signal(t *testing.T) {
 	origNewDB := newDBClient
 	origSetupAuth := setupAuth
 	origConfigLoad := configLoad
+	origNewStorage := newStorage
 	origDiagnose := diagnoseMCPServers
 	defer func() {
 		newDBClient = origNewDB
 		setupAuth = origSetupAuth
 		configLoad = origConfigLoad
+		newStorage = origNewStorage
 		diagnoseMCPServers = origDiagnose
 	}()
 
@@ -281,6 +283,12 @@ func TestRun_GracefulShutdown_Signal(t *testing.T) {
 	}
 	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
 		return &middleware.Authenticator{}, nil
+	}
+	// Mocked so startup doesn't block on the real AWS SDK's default credential
+	// chain resolution (e.g. IMDS probing), which would otherwise race with —
+	// and can outlast — the signal delivered below.
+	newStorage = func(ctx context.Context, cfg config.StorageConfig) (storage.Client, error) {
+		return nil, errors.New("storage warning test")
 	}
 	diagnoseMCPServers = func(ctx context.Context, s mcpservers.Service, pool mcpservers.MCPClientPool) ([]mcpservers.ServerDiagnosticDTO, error) {
 		return nil, errors.New("diagnostic error test")

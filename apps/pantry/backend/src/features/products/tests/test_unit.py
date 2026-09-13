@@ -76,11 +76,11 @@ async def test_create_product_duplicate_barcode(db_session: AsyncSession):
     """Verify ProductService prevents creating a product with duplicate barcode."""
     home_id = uuid.uuid4()
     payload1 = ProductCreate(name="Prod 1", barcode="11111111", base_unit=BaseUnit.PIECE)
-    await ProductService.create_product(db_session, payload1, home_id)
+    await ProductService.create_product(db_session, home_id, payload1)
 
     payload2 = ProductCreate(name="Prod 2", barcode="11111111", base_unit=BaseUnit.PIECE)
     with pytest.raises(ValueError) as exc:
-        await ProductService.create_product(db_session, payload2, home_id)
+        await ProductService.create_product(db_session, home_id, payload2)
     assert "already exists" in str(exc.value)
 
 
@@ -137,11 +137,11 @@ async def test_update_product_barcode_clash(db_session: AsyncSession):
     home_id = uuid.uuid4()
     # p1 is global because it has a barcode
     await ProductService.create_product(
-        db_session, ProductCreate(name="P1", barcode="100", base_unit=BaseUnit.PIECE), home_id
+        db_session, home_id, ProductCreate(name="P1", barcode="100", base_unit=BaseUnit.PIECE)
     )
     # p2 is local because it has no barcode
     p2 = await ProductService.create_product(
-        db_session, ProductCreate(name="P2", barcode=None, base_unit=BaseUnit.PIECE), home_id
+        db_session, home_id, ProductCreate(name="P2", barcode=None, base_unit=BaseUnit.PIECE)
     )
 
     # Attempting to assign p1's barcode to p2 should raise ValueError (already exists)
@@ -162,7 +162,7 @@ async def test_update_product_unauthorized_category(db_session: AsyncSession):
 
     # Create product in home 1
     p1 = await ProductService.create_product(
-        db_session, ProductCreate(name="Product 1", base_unit=BaseUnit.PIECE), home_id1
+        db_session, home_id1, ProductCreate(name="Product 1", base_unit=BaseUnit.PIECE)
     )
 
     # Attempt to assign home 2's category to home 1's product

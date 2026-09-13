@@ -163,7 +163,7 @@ func run(parentCtx context.Context) error {
 	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, log)
 	conversationsHandler := conversations.NewHandler(conversationsService)
 
-	r := buildRouter(log, dbClient, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler)
+	r := buildRouter(log, dbClient, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown.
 	srv := &http.Server{
@@ -226,10 +226,11 @@ func buildRouter(
 	conversationsHandler *conversations.Handler,
 	mcpServersHandler *mcpservers.Handler,
 	attachmentsHandler *attachments.Handler,
+	allowedOrigins []string,
 ) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.CORS)
+	r.Use(middleware.CORSWithOrigins(allowedOrigins))
 	r.Use(middleware.RequestLogger(log))
 
 	r.Get("/api/v1/chat/health", healthHandler(dbClient))

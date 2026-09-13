@@ -5,6 +5,7 @@ import pathlib
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 from src.core.config import settings
@@ -105,7 +106,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
         # Gracefully flush and shutdown OpenTelemetry providers
-        from src.core.telemetry import shutdown_telemetry
+        from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
@@ -117,16 +118,17 @@ app = FastAPI(
 
 from fastapi.middleware.cors import CORSMiddleware
 
+# Security: Restrict allowed origins instead of using wildcard '*' when allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from src.core.telemetry import setup_telemetry
+from backend_shared.telemetry import setup_telemetry
 
 setup_telemetry(app)
 
@@ -148,8 +150,10 @@ from src.mcp.server import discover_and_import_mcp_tools
 
 discover_and_import_mcp_tools()
 
-# Mount the FastMCP server
-app.mount("/mcp", mcp.http_app())
+# Mount the FastMCP server with authentication middleware
+mcp_app = mcp.http_app()
+mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
+app.mount("/mcp", mcp_app_with_auth)
 
 
 @app.get("/api/v1/health")

@@ -12,7 +12,7 @@ async def test_lifespan_tracks_and_cleans_up_background_task():
     # Mock init_db and telemetry shutdown to avoid DB / telemetry side effects
     with (
         patch("src.core.database.init_db", new_callable=AsyncMock),
-        patch("src.core.telemetry.shutdown_telemetry"),
+        patch("backend_shared.telemetry.shutdown_telemetry"),
     ):
         BACKGROUND_TASKS.clear()
         async with lifespan(app):

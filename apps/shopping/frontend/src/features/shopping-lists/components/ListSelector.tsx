@@ -7,7 +7,7 @@ import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,
 } from "../services/shoppingListService";
-import { useAuth } from "@/core/auth/AuthContext";
+import { useAuth } from "@alfheim/shared";
 import type { ShoppingList } from "../types";
 import { ListTab } from "./ListTab";
 import { ListCreateForm } from "./ListCreateForm";

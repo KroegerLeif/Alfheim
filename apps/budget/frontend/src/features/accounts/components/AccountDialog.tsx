@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { Account, AccountCreate, AccountType } from "@/features/budget/types";
-import { X } from "lucide-react";
 
 export interface AccountDialogProps {
   open: boolean;
@@ -12,6 +12,7 @@ export interface AccountDialogProps {
 }
 
 export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialogProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("CHECKING");
   const [balance, setBalance] = useState("0.00");
@@ -51,65 +52,64 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
-          <h3 className="text-lg font-bold text-[var(--text-main)]">
-            {account ? "Edit Account" : "Create Account"}
-          </h3>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--surface-canvas)]">
-            <X className="w-5 h-5 text-[var(--text-muted)]" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
+        <DialogTitle className="text-lg font-bold text-[var(--text-main)]">
+          {account ? t("accounts.edit") : t("accounts.create")}
+        </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Account Name</label>
+            <label htmlFor="account-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.name")}</label>
             <input
+              id="account-name"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Primary Checking"
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              placeholder={t("accounts.placeholder")}
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Account Type</label>
+            <label htmlFor="account-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.type")}</label>
             <select
+              id="account-type"
               value={accountType}
               onChange={(e) => setAccountType(e.target.value as AccountType)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             >
-              <option value="CHECKING">Checking Account</option>
-              <option value="SAVINGS">Savings Account</option>
-              <option value="BUILDING_SAVINGS">Building Savings</option>
-              <option value="INVESTMENT">Investment Account</option>
+              <option value="CHECKING">{t("accounts.checking")}</option>
+              <option value="SAVINGS">{t("accounts.savings")}</option>
+              <option value="BUILDING_SAVINGS">{t("accounts.buildingSavings")}</option>
+              <option value="INVESTMENT">{t("accounts.investment")}</option>
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Current Balance</label>
+              <label htmlFor="account-balance" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currentBalance")}</label>
               <input
+                id="account-balance"
                 type="number"
                 step="0.01"
                 required
                 value={balance}
                 onChange={(e) => setBalance(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Currency</label>
+              <label htmlFor="account-currency" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currency")}</label>
               <input
+                id="account-currency"
                 type="text"
                 required
                 maxLength={3}
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] uppercase"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] uppercase"
               />
             </div>
           </div>
@@ -120,18 +120,18 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
               onClick={onClose}
               className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-canvas)]"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium hover:opacity-90 disabled:opacity-50"
             >
-              {submitting ? "Saving..." : account ? "Update" : "Create"}
+              {submitting ? t("common.saving") : account ? t("common.update") : t("common.create")}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

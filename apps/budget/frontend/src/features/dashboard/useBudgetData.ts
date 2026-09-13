@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { accountsApi } from "@/features/accounts";
 import { potsApi } from "@/features/pots";
 import { plansApi } from "@/features/plans";
@@ -14,71 +14,94 @@ import {
   Transaction,
 } from "@/features/budget/types";
 
+// --- Budget Query Keys ---
+export const budgetKeys = {
+  all: ["budget"] as const,
+  accounts: () => [...budgetKeys.all, "accounts"] as const,
+  netWorth: () => [...budgetKeys.all, "netWorth"] as const,
+  pots: () => [...budgetKeys.all, "pots"] as const,
+  plans: () => [...budgetKeys.all, "plans"] as const,
+  planSummary: (planId: string) => [...budgetKeys.all, "planSummary", planId] as const,
+  transactions: () => [...budgetKeys.all, "transactions"] as const,
+};
+
 export function useBudgetData(planningMode: "monthly" | "event") {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [netWorth, setNetWorth] = useState<NetWorthResponse | null>(null);
-  const [pots, setPots] = useState<Pot[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [planSummary, setPlanSummary] = useState<PlanSummaryResponse | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Fetch all base data in parallel
+  const accountsQuery = useQuery<Account[]>({
+    queryKey: budgetKeys.accounts(),
+    queryFn: () => accountsApi.listAccounts(),
+  });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [accsRes, nwRes, potsRes, plansRes, txsRes] = await Promise.all([
-        accountsApi.listAccounts().catch(() => []),
-        accountsApi.getNetWorth().catch(() => null),
-        potsApi.listPots().catch(() => []),
-        plansApi.listPlans().catch(() => []),
-        transactionsApi.listTransactions().catch(() => []),
-      ]);
+  const netWorthQuery = useQuery<NetWorthResponse | null>({
+    queryKey: budgetKeys.netWorth(),
+    queryFn: () => accountsApi.getNetWorth(),
+  });
 
-      setAccounts(accsRes);
-      setNetWorth(nwRes);
-      setPots(potsRes);
-      setPlans(plansRes);
-      setTransactions(txsRes);
+  const potsQuery = useQuery<Pot[]>({
+    queryKey: budgetKeys.pots(),
+    queryFn: () => potsApi.listPots(),
+  });
 
-      const targetPlan = plansRes.find(
-        (p: Plan) => p.plan_type === (planningMode === "monthly" ? "MONTHLY" : "EVENT") && p.is_active
-      ) || plansRes[0];
+  const plansQuery = useQuery<Plan[]>({
+    queryKey: budgetKeys.plans(),
+    queryFn: () => plansApi.listPlans(),
+  });
 
-      if (targetPlan) {
-        const sum = await plansApi.getPlanSummary(targetPlan.id).catch(() => null);
-        setPlanSummary(sum);
-      } else {
-        setPlanSummary(null);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load budget data.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [planningMode]);
+  const transactionsQuery = useQuery<Transaction[]>({
+    queryKey: budgetKeys.transactions(),
+    queryFn: () => transactionsApi.listTransactions(),
+  });
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const activePlan = plans.find(
+  // Find the target plan based on mode
+  const plans = plansQuery.data || [];
+  const targetPlan = plans.find(
     (p: Plan) => p.plan_type === (planningMode === "monthly" ? "MONTHLY" : "EVENT") && p.is_active
-  ) || plans[0] || null;
+  ) || plans[0];
+
+  // Fetch plan summary only when we have a target plan
+  const planSummaryQuery = useQuery<PlanSummaryResponse | null>({
+    queryKey: targetPlan ? budgetKeys.planSummary(targetPlan.id) : ["budget", "planSummary", null],
+    queryFn: () => (targetPlan ? plansApi.getPlanSummary(targetPlan.id) : Promise.resolve(null)),
+    enabled: !!targetPlan,
+  });
+
+  // Check if any query has an error
+  const error =
+    accountsQuery.error?.message ||
+    netWorthQuery.error?.message ||
+    potsQuery.error?.message ||
+    plansQuery.error?.message ||
+    transactionsQuery.error?.message ||
+    planSummaryQuery.error?.message ||
+    null;
+
+  // Check if any query is loading
+  const loading =
+    accountsQuery.isPending ||
+    netWorthQuery.isPending ||
+    potsQuery.isPending ||
+    plansQuery.isPending ||
+    transactionsQuery.isPending ||
+    (targetPlan ? planSummaryQuery.isPending : false);
+
+  const activePlan = targetPlan || null;
+
+  const reload = () => {
+    queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+  };
 
   return {
-    accounts,
-    netWorth,
-    pots,
-    plans,
+    accounts: accountsQuery.data || [],
+    netWorth: netWorthQuery.data || null,
+    pots: potsQuery.data || [],
+    plans: plans,
     activePlan,
-    planSummary,
-    transactions,
+    planSummary: planSummaryQuery.data || null,
+    transactions: transactionsQuery.data || [],
     loading,
     error,
-    reload: loadData,
+    reload,
   };
 }

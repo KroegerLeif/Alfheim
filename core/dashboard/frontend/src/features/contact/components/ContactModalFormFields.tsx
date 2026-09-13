@@ -42,22 +42,24 @@ export function ContactModalFormFields({
     <>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+          <label htmlFor="contact-name" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
             {t('household.name')} *
           </label>
           <input
+            id="contact-name"
             type="text" value={contactName} onChange={(e) => setContactName(e.target.value)}
             placeholder={t('household.contact_name_placeholder')} required
-            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
           />
         </div>
         <div>
-          <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+          <label htmlFor="contact-category" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
             {t('household.category')}
           </label>
           <select
+            id="contact-category"
             value={contactCatId} onChange={(e) => setContactCatId(e.target.value)}
-            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] cursor-pointer"
+            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] cursor-pointer"
           >
             <option value="">{t('household.none')}</option>
             {(categories ?? []).map((c) => (
@@ -69,29 +71,31 @@ export function ContactModalFormFields({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+          <label htmlFor="contact-phone" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
             {t('household.phone')}
           </label>
           <input
+            id="contact-phone"
             type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
             placeholder={t('household.contact_phone_placeholder')}
-            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
           />
         </div>
         <div>
-          <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+          <label htmlFor="contact-email" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
             {t('household.email')}
           </label>
           <input
+            id="contact-email"
             type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
             placeholder={t('household.contact_email_placeholder')}
-            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+        <label htmlFor="contact-address" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
           {t('household.address')} {t('household.geocoded_lookup')}
         </label>
         <AddressAutocomplete
@@ -109,12 +113,13 @@ export function ContactModalFormFields({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+          <label htmlFor="contact-icon" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
             {t('common.select_icon')}
           </label>
           <select
+            id="contact-icon"
             value={contactIcon} onChange={(e) => setContactIcon(e.target.value)}
-            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] cursor-pointer"
+            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] cursor-pointer"
           >
             <option value="person">{t('dashboard.contact.categories.person')}</option>
             <option value="call">{t('dashboard.contact.categories.call')}</option>
@@ -126,36 +131,39 @@ export function ContactModalFormFields({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+          <label htmlFor="contact-avatar" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
             {t('profile.avatar_url')}
           </label>
           <input
+            id="contact-avatar"
             type="url" value={contactAvatarUrl} onChange={(e) => setContactAvatarUrl(e.target.value)}
             placeholder={t('household.contact_avatar_placeholder')}
-            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+            className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+        <label htmlFor="contact-description" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
           {t('household.description')}
         </label>
         <textarea
+          id="contact-description"
           value={contactDesc} onChange={(e) => setContactDesc(e.target.value)}
           placeholder={t('household.contact_desc_placeholder')} rows={2}
-          className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+          className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+        <label htmlFor="contact-links" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
           {t('household.links')}
         </label>
         <textarea
+          id="contact-links"
           value={contactLinks} onChange={(e) => setContactLinks(e.target.value)}
           placeholder={t('household.contact_links_placeholder')} rows={2}
-          className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]"
+          className="w-full px-3.5 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs font-mono text-[var(--text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
         />
       </div>
     </>

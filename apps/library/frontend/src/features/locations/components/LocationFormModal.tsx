@@ -101,7 +101,7 @@ export function LocationFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-md border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] text-[var(--text-main,#f8fafc)]">
+      <DialogContent className="max-w-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]">
         <DialogHeader>
           <DialogTitle>
             {locationToEdit
@@ -118,7 +118,7 @@ export function LocationFormModal({
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--text-main,#f8fafc)]">
+            <label className="text-xs font-semibold text-[var(--text-main)]">
               {t("library.locations.name")} *
             </label>
             <input
@@ -127,18 +127,18 @@ export function LocationFormModal({
               value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               placeholder={t("library.locations.name")}
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--text-main,#f8fafc)]">
+            <label className="text-xs font-semibold text-[var(--text-main)]">
               {t("library.locations.parent")}
             </label>
             <select
               value={parentId}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setParentId(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">{t("library.itemDialog.noLocation")}</option>
               {flatList.map((loc) => (
@@ -150,7 +150,7 @@ export function LocationFormModal({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--text-main,#f8fafc)]">
+            <label className="text-xs font-semibold text-[var(--text-main)]">
               {t("library.itemDialog.description")}
             </label>
             <input
@@ -158,7 +158,7 @@ export function LocationFormModal({
               value={description}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
               placeholder={t("library.itemDialog.description")}
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </form>

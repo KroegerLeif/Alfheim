@@ -75,7 +75,7 @@ func run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth, cfg.StackAppsPath)
+	r := buildRouter(log, dbClient, auth, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -136,7 +136,7 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, stackAppsPath string) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, stackAppsPath string, allowedOrigins []string) http.Handler {
 	// Initialize Repositories
 	var pool = dbClient.Pool
 	profileRepo := profile.NewRepository(pool)
@@ -164,7 +164,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	// Router Setup
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.CORS)
+	r.Use(middleware.CORSWithOrigins(allowedOrigins))
 	r.Use(middleware.RequestLogger(log))
 
 	// Health Check Endpoints

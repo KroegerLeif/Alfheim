@@ -1,7 +1,11 @@
 """Shared fixtures for library backend testing."""
 
+import os
 import uuid
 from collections.abc import AsyncGenerator
+
+# Set test database URL BEFORE any other imports to ensure SQLite is used
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
 import pytest_asyncio
 from fastapi import FastAPI

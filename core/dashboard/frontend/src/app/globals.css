@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../../../packages/shared/src/**/*.tsx";
 @import "@alfheim/shared/styles/theme.css";
 
 @theme {

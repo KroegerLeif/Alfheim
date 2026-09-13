@@ -36,6 +36,7 @@ async def test_reserve_maintenance_funds_success():
             required_amount=Decimal("150.00"),
             due_date="2025-06-01",
             priority=1,
+            authorization="Bearer test-token",
         )
 
         assert result is not None
@@ -45,6 +46,7 @@ async def test_reserve_maintenance_funds_success():
         mock_post.assert_called_once()
         call_kwargs = mock_post.call_args.kwargs
         assert call_kwargs["headers"]["X-Household-ID"] == household_id
+        assert call_kwargs["headers"]["Authorization"] == "Bearer test-token"
         assert call_kwargs["json"]["title"] == "Washing Machine Filter Replacement"
         assert call_kwargs["json"]["required_amount"] == "150.00"
 
@@ -58,17 +60,18 @@ async def test_reserve_maintenance_funds_http_error():
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.status_code = 500
     mock_response.text = "Internal Server Error"
+    mock_response.request = MagicMock()
 
     with patch.object(httpx.AsyncClient, "post", new_callable=AsyncMock) as mock_post:
         mock_post.return_value = mock_response
 
-        result = await client.reserve_maintenance_funds(
-            household_id=household_id,
-            title="Heat Pump Maintenance",
-            required_amount=500.0,
-        )
-
-        assert result is None
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.reserve_maintenance_funds(
+                household_id=household_id,
+                title="Heat Pump Maintenance",
+                required_amount=500.0,
+                authorization="Bearer test-token",
+            )
 
 
 @pytest.mark.asyncio
@@ -78,10 +81,10 @@ async def test_reserve_maintenance_funds_connection_error():
     client = BudgetClient(base_url="http://budget-backend:8000")
 
     with patch.object(httpx.AsyncClient, "post", side_effect=httpx.ConnectError("Connection refused")):
-        result = await client.reserve_maintenance_funds(
-            household_id=household_id,
-            title="Solar Inverter Repair",
-            required_amount="1200.00",
-        )
-
-        assert result is None
+        with pytest.raises(httpx.ConnectError):
+            await client.reserve_maintenance_funds(
+                household_id=household_id,
+                title="Solar Inverter Repair",
+                required_amount="1200.00",
+                authorization="Bearer test-token",
+            )

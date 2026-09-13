@@ -23,7 +23,13 @@
       "maturityDate": "Maturity Date",
       "currentBalance": "Current Balance",
       "netWorth": "Total Net Worth",
-      "addAccount": "Add Account"
+      "addAccount": "Add Account",
+      "create": "Create Account",
+      "edit": "Edit Account",
+      "name": "Account Name",
+      "type": "Account Type",
+      "currency": "Currency",
+      "placeholder": "e.g. Primary Checking"
     },
     "pots": {
       "title": "Virtual Pots & Reserves",
@@ -65,7 +71,15 @@
       "account": "Account",
       "pot": "Pot",
       "ocrProcessing": "Analyzing receipt with OCR...",
-      "success": "Transaction successfully recorded"
+      "success": "Transaction successfully recorded",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g. Supermarket Grocery",
+      "type": "Type",
+      "accountOptional": "Account (Optional)",
+      "targetPotOptional": "Target Pot (Optional)",
+      "planOptional": "Plan (Optional)",
+      "none": "-- None --",
+      "logging": "Logging..."
     },
     "analytics": {
       "title": "Financial Analytics & Cashflow",

@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { MoneyDisplay } from "@alfheim/shared";
+import { MoneyDisplay, Dialog, DialogContent, DialogTitle } from "@alfheim/shared";
 import { CascadeAllocationResponse } from "@/features/budget/types";
 import { potsApi } from "../api/potsApi";
-import { X, GitMerge, CheckCircle } from "lucide-react";
+import { CheckCircle, GitMerge } from "lucide-react";
 
 export interface CascadeModalProps {
   open: boolean;
@@ -37,17 +37,12 @@ export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-2 font-bold text-lg text-[var(--text-main)]">
-            <GitMerge className="w-5 h-5 text-[var(--primary-main)]" />
-            <span>Priority Cascade Allocation</span>
-          </div>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--surface-canvas)]">
-            <X className="w-5 h-5 text-[var(--text-muted)]" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-lg">
+        <DialogTitle className="flex items-center gap-2 font-bold text-lg text-[var(--text-main)]">
+          <GitMerge className="w-5 h-5 text-[var(--primary-main)]" />
+          <span>Priority Cascade Allocation</span>
+        </DialogTitle>
 
         {!result ? (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -126,7 +121,7 @@ export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

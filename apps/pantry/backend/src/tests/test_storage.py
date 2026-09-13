@@ -1,8 +1,8 @@
 """Unit tests for StorageSettings validation and environment enforcement."""
 
 import pytest
+from backend_shared.storage import StorageSettings
 from pydantic import ValidationError
-from src.core.storage import StorageSettings
 
 
 def test_storage_settings_dev_default_fallback(monkeypatch):

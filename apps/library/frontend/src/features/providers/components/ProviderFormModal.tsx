@@ -55,9 +55,9 @@ export function ProviderFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)]">
+      <DialogContent className="max-w-md border-[var(--border-subtle)] bg-[var(--surface-card)]">
         <DialogHeader>
-          <DialogTitle className="text-[var(--text-main,#f8fafc)]">
+          <DialogTitle className="text-[var(--text-main)]">
             {t("library.providers.addProvider")}
           </DialogTitle>
         </DialogHeader>
@@ -70,7 +70,7 @@ export function ProviderFormModal({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-muted,#94a3b8)] mb-1">
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
               {t("library.providers.providerName")} *
             </label>
             <input
@@ -79,18 +79,18 @@ export function ProviderFormModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="z.B. Netflix, PS Plus, Xbox Game Pass"
-              className="w-full rounded-xl border border-[var(--border-main,#334155)] bg-[var(--surface-subtle,#0f172a)] px-3 py-2 text-sm text-[var(--text-main,#f8fafc)] focus:border-primary focus:outline-none"
+              className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-primary focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-muted,#94a3b8)] mb-1">
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
               {t("library.providers.providerType")}
             </label>
             <select
               value={providerType}
               onChange={(e) => setProviderType(e.target.value as ProviderType)}
-              className="w-full rounded-xl border border-[var(--border-main,#334155)] bg-[var(--surface-subtle,#0f172a)] px-3 py-2 text-sm text-[var(--text-main,#f8fafc)] focus:border-primary focus:outline-none"
+              className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-primary focus:outline-none"
             >
               <option value="MOVIE">{t("library.providers.typeMovie")}</option>
               <option value="GAME">{t("library.providers.typeGame")}</option>
@@ -99,7 +99,7 @@ export function ProviderFormModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-muted,#94a3b8)] mb-1">
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
               {t("library.lending.notes")}
             </label>
             <textarea
@@ -107,7 +107,7 @@ export function ProviderFormModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={t("library.providers.notesPlaceholder")}
-              className="w-full rounded-xl border border-[var(--border-main,#334155)] bg-[var(--surface-subtle,#0f172a)] px-3 py-2 text-sm text-[var(--text-main,#f8fafc)] focus:border-primary focus:outline-none"
+              className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-primary focus:outline-none"
             />
           </div>
 

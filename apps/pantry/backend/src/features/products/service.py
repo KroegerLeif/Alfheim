@@ -24,8 +24,8 @@ class ProductService:
     @staticmethod
     async def create_product(
         session: AsyncSession,
+        home_id: uuid.UUID,
         payload: ProductCreate | None = None,
-        home_id: uuid.UUID = uuid.UUID("00000000-0000-0000-0000-000000000001"),
         is_global: bool = False,
         *,
         name: str | None = None,

@@ -23,6 +23,7 @@ export default function CatalogPage() {
     setActiveProvidersOnly,
     items,
     isLoading,
+    isError,
     locationsMap,
     locations,
     refetch,
@@ -45,10 +46,10 @@ export default function CatalogPage() {
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-main,#f8fafc)]">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-main)]">
             {t("library.catalog.title")}
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--text-muted,#94a3b8)] mt-1">
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
             {t("library.catalog.subtitle")}
           </p>
         </div>
@@ -72,6 +73,7 @@ export default function CatalogPage() {
       <CatalogGrid
         items={items}
         isLoading={isLoading}
+        isError={isError}
         locationsMap={locationsMap}
         onEditItem={handleOpenEditDialog}
       />

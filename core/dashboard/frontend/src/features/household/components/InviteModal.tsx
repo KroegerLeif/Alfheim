@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
 import { InviteCodeResponse } from '@/shared/types';
 
 interface InviteModalProps {
-  invite: InviteCodeResponse;
+  isOpen: boolean;
+  invite: InviteCodeResponse | null;
   onClose: () => void;
 }
 
@@ -13,9 +14,11 @@ interface InviteModalProps {
  * Invite Modal component.
  * Renders stylized vector matrix QR code and copy controls for household invite tokens.
  */
-export function InviteModal({ invite, onClose }: InviteModalProps) {
+export function InviteModal({ isOpen, invite, onClose }: InviteModalProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+
+  if (!isOpen || !invite) return null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(invite.token);
@@ -24,22 +27,13 @@ export function InviteModal({ invite, onClose }: InviteModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-sm rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] p-6 shadow-2xl relative flex flex-col items-center text-center">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
-          aria-label={t('common.close')}
-        >
-          <span className="material-symbols-outlined text-xl">close</span>
-        </button>
-
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[var(--surface-card)] w-full max-w-sm flex flex-col items-center text-center">
         {/* Header */}
         <div className="w-12 h-12 rounded-2xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] mb-3 shadow-[0_0_15px_var(--accent-glow)]">
           <span className="material-symbols-outlined text-2xl">qr_code_2</span>
         </div>
-        <h3 className="text-lg font-bold text-[var(--text-main)]">{t('household.qr_code_title')}</h3>
+        <DialogTitle className="text-lg font-bold text-[var(--text-main)]">{t('household.qr_code_title')}</DialogTitle>
         <p className="text-xs text-[var(--text-muted)] font-mono mt-1 mb-5">
           {t('household.qr_code_desc')}
         </p>
@@ -116,7 +110,7 @@ export function InviteModal({ invite, onClose }: InviteModalProps) {
         <div className="text-[10px] font-mono text-[var(--text-muted)]">
           {t('household.max_uses_expiry', { max: invite.max_uses, time: new Date(invite.expires_at).toLocaleTimeString() })}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

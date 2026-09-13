@@ -247,7 +247,7 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			expectedSubstr: `"household_id":"hh-active-200"`,
 		},
 		{
-			name:       "valid token with X-Household-ID header fallback",
+			name:       "reject token with X-Household-ID header but no household claim",
 			authHeader: "GENERATE",
 			headerHH:   "hh-header-300",
 			tokenClaims: jwt.MapClaims{
@@ -257,8 +257,8 @@ func TestAuthenticateMiddleware(t *testing.T) {
 				"exp": time.Now().Add(time.Hour).Unix(),
 			},
 			signKey:        privKey,
-			expectedStatus: http.StatusOK,
-			expectedSubstr: `"household_id":"hh-header-300"`,
+			expectedStatus: http.StatusForbidden,
+			expectedSubstr: "user is not a member of the requested household",
 		},
 	}
 
@@ -390,21 +390,11 @@ func TestHouseholdRoleMiddleware(t *testing.T) {
 		}
 	})
 
-	t.Run("queries and injects household role from X-Household-ID header fallback", func(t *testing.T) {
+	t.Run("does not query household role when claims lack household_id and only header supplied", func(t *testing.T) {
+		queryWasCalled := false
 		mockDB := &mockRoleDB{
 			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
-				if len(args) == 2 && args[0] == "hh-header-1" && args[1] == "user-1" {
-					return &mockRow{
-						scanFunc: func(dest ...any) error {
-							if len(dest) > 0 {
-								if r, ok := dest[0].(*string); ok {
-									*r = "member"
-								}
-							}
-							return nil
-						},
-					}
-				}
+				queryWasCalled = true
 				return &mockRow{}
 			},
 		}
@@ -429,11 +419,57 @@ func TestHouseholdRoleMiddleware(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Errorf("expected 200 OK, got %d", rec.Code)
 		}
-		if capturedClaims == nil || capturedClaims.HouseholdRole != "member" {
-			t.Errorf("expected role 'member' in claims, got %+v", capturedClaims)
+		if queryWasCalled {
+			t.Errorf("expected database query not to be called when household_id claim is absent")
 		}
+		if capturedClaims == nil || capturedClaims.HouseholdRole != "" {
+			t.Errorf("expected empty role in claims when no JWT household_id, got %+v", capturedClaims)
+		}
+		if capturedRoleHeader != "" {
+			t.Errorf("expected empty X-Household-Role header, got %s", capturedRoleHeader)
+		}
+	})
+
+	t.Run("clears client-supplied X-Household-Role header to prevent privilege escalation", func(t *testing.T) {
+		mockDB := &mockRoleDB{
+			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
+				if len(args) == 2 && args[0] == "hh-1" && args[1] == "user-1" {
+					return &mockRow{
+						scanFunc: func(dest ...any) error {
+							if len(dest) > 0 {
+								if r, ok := dest[0].(*string); ok {
+									*r = "member"
+								}
+							}
+							return nil
+						},
+					}
+				}
+				return &mockRow{}
+			},
+		}
+
+		mwWithDB := HouseholdRoleMiddleware(mockDB, discardLog)
+		var capturedRoleHeader string
+		handler := mwWithDB(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedRoleHeader = r.Header.Get("X-Household-Role")
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		claims := &UserClaims{Subject: "user-1", HouseholdID: "hh-1"}
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("X-Household-Role", "admin")
+		req = req.WithContext(context.WithValue(req.Context(), UserContextKey, claims))
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200 OK, got %d", rec.Code)
+		}
+		// The header should be set to the database-derived value, not the client-supplied "admin".
 		if capturedRoleHeader != "member" {
-			t.Errorf("expected X-Household-Role 'member', got %s", capturedRoleHeader)
+			t.Errorf("expected X-Household-Role 'member' (from DB), got %s", capturedRoleHeader)
 		}
 	})
 
@@ -450,8 +486,10 @@ func TestHouseholdRoleMiddleware(t *testing.T) {
 
 		mwWithDB := HouseholdRoleMiddleware(mockDB, discardLog)
 		var capturedClaims *UserClaims
+		var capturedRoleHeader string
 		handler := mwWithDB(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			capturedClaims, _ = GetUserClaims(r.Context())
+			capturedRoleHeader = r.Header.Get("X-Household-Role")
 			w.WriteHeader(http.StatusOK)
 		}))
 
@@ -467,6 +505,9 @@ func TestHouseholdRoleMiddleware(t *testing.T) {
 		}
 		if capturedClaims == nil || capturedClaims.HouseholdRole != "" {
 			t.Errorf("expected empty role in claims on error, got %+v", capturedClaims)
+		}
+		if capturedRoleHeader != "" {
+			t.Errorf("expected empty X-Household-Role header on lookup error, got %s", capturedRoleHeader)
 		}
 	})
 }
@@ -522,13 +563,13 @@ func TestExtractUserClaims_EdgeCases(t *testing.T) {
 		}
 	})
 
-	t.Run("extracts household_id from header when claims have neither", func(t *testing.T) {
+	t.Run("does not extract household_id from header when claims have neither", func(t *testing.T) {
 		claims := jwt.MapClaims{
 			"sub": "user-sub-2",
 		}
 		uc := extractUserClaims(claims, req)
-		if uc.HouseholdID != "header-hh" {
-			t.Errorf("expected header-hh, got %s", uc.HouseholdID)
+		if uc.HouseholdID != "" {
+			t.Errorf("expected empty household_id, got %s", uc.HouseholdID)
 		}
 	})
 }
