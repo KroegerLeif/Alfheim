@@ -6,6 +6,7 @@ import { ItemCard } from "./ItemCard";
 interface CatalogGridProps {
   items: MediaItem[];
   isLoading: boolean;
+  isError?: boolean;
   locationsMap: Map<string, string>;
   onEditItem?: (item: MediaItem) => void;
 }
@@ -13,10 +14,27 @@ interface CatalogGridProps {
 export function CatalogGrid({
   items,
   isLoading,
+  isError,
   locationsMap,
   onEditItem,
 }: CatalogGridProps) {
   const { t } = useTranslation();
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-red-500/20 bg-red-500/5 p-12 text-center my-6">
+        <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-xl mb-3 text-red-400">
+          ⚠️
+        </div>
+        <h3 className="text-base font-bold text-[var(--text-main)]">
+          Failed to load catalog
+        </h3>
+        <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1">
+          {t("library.catalog.errorLoading") || "An error occurred while loading your library items. Please try again."}
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

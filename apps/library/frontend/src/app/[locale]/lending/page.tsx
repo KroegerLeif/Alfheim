@@ -11,8 +11,9 @@ import { LendingRecord } from "@/features/lending/types";
 
 export default function LendingPage() {
   const { t } = useTranslation();
-  const { activeLoans, history, isLoading, returnItem } = useLending();
+  const { activeLoans, history, isLoading, error, returnItem } = useLending();
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+  const isError = !!error;
 
   const handleReturnItem = async (record: LendingRecord) => {
     try {
@@ -65,7 +66,7 @@ export default function LendingPage() {
           onReturnItem={handleReturnItem}
         />
       ) : (
-        <LendingHistoryTable history={history} isLoading={isLoading} />
+        <LendingHistoryTable history={history} isLoading={isLoading} isError={isError} />
       )}
     </div>
   );

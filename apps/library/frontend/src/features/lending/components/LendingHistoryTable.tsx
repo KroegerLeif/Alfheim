@@ -5,13 +5,31 @@ import { LendingRecord } from "../types";
 interface LendingHistoryTableProps {
   history: LendingRecord[];
   isLoading?: boolean;
+  isError?: boolean;
 }
 
 export function LendingHistoryTable({
   history,
   isLoading,
+  isError,
 }: LendingHistoryTableProps) {
   const { t } = useTranslation();
+
+  if (isError) {
+    return (
+      <div className="rounded-2xl border border-dashed border-red-500/20 bg-red-500/5 p-8 text-center text-xs text-[var(--text-muted)]">
+        <div className="inline-flex h-8 w-8 rounded-full bg-red-500/10 items-center justify-center text-red-400 mb-2">
+          ⚠️
+        </div>
+        <div className="font-semibold text-[var(--text-main)]">
+          Failed to load lending history
+        </div>
+        <p className="text-xs text-[var(--text-muted)]">
+          {t("library.lending.errorLoading") || "An error occurred while loading the lending history. Please try again."}
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

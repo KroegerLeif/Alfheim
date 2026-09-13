@@ -23,6 +23,7 @@ export default function CatalogPage() {
     setActiveProvidersOnly,
     items,
     isLoading,
+    isError,
     locationsMap,
     locations,
     refetch,
@@ -72,6 +73,7 @@ export default function CatalogPage() {
       <CatalogGrid
         items={items}
         isLoading={isLoading}
+        isError={isError}
         locationsMap={locationsMap}
         onEditItem={handleOpenEditDialog}
       />
