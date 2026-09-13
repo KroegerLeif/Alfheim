@@ -6,6 +6,7 @@ from backend_shared import setup_telemetry, shutdown_telemetry
 from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI
 
+from src.api.v1 import router as api_v1_router
 from src.config import settings
 from src.mcp.server import mcp
 
@@ -81,7 +82,10 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
     )
 
 
-# Discover and register router configurations dynamically
+# Register API v1 routes
+app.include_router(api_v1_router)
+
+# Discover and register any additional feature routers dynamically (src/features/**)
 discover_and_include_routers(app)
 
 # Discover and register FastMCP tools dynamically
