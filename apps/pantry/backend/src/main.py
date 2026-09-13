@@ -2,11 +2,10 @@ import importlib
 import pathlib
 from contextlib import asynccontextmanager
 
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI, Request
-from fastapi.middleware import Middleware
 from src.core.config import settings
 from src.mcp.server import mcp
-from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 
 
 def discover_and_include_routers(app: FastAPI) -> None:
@@ -50,7 +49,6 @@ async def lifespan(app: FastAPI):
         shutdown_telemetry()
 
 
-from fastapi import Request
 from fastapi.responses import JSONResponse
 
 app = FastAPI(

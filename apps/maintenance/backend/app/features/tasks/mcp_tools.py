@@ -9,6 +9,7 @@ import datetime
 from typing import Any
 
 from backend_shared.mcp_middleware import get_mcp_user_context
+
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
 from app.features.tasks.exceptions import TaskError

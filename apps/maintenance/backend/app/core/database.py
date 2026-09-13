@@ -5,8 +5,6 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
-from app.features.devices.models import Device, Household
-from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent
 
 # Create the async engine
 engine = create_async_engine(

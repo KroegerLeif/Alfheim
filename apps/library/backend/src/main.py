@@ -2,11 +2,12 @@ import importlib
 import pathlib
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
-from src.config import settings
-from src.mcp.server import mcp
 from backend_shared import setup_telemetry, shutdown_telemetry
 from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
+from fastapi import APIRouter, FastAPI
+
+from src.config import settings
+from src.mcp.server import mcp
 
 
 def discover_and_include_routers(app: FastAPI) -> None:

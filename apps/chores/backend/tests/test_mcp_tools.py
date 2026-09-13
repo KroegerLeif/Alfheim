@@ -46,7 +46,6 @@ async def test_chores_mcp_household_isolation(db_session: AsyncSession, set_mcp_
     """Verify chores MCP tools strictly isolate data by household_id."""
     # Derive home_id using the same UUID5 derivation as the production code
     home_uuid_a = uuid.uuid5(uuid.NAMESPACE_DNS, str(HOUSEHOLD_A_ID))
-    home_uuid_b = uuid.uuid5(uuid.NAMESPACE_DNS, str(HOUSEHOLD_B_ID))
 
     template_a = ChoreTemplate(
         name="Clean Kitchen",

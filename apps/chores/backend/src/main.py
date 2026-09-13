@@ -5,11 +5,11 @@ import pathlib
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 from src.core.config import settings
 from src.mcp.server import mcp
-from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 
 logger = logging.getLogger(__name__)
 

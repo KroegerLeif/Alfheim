@@ -11,9 +11,9 @@ from app.core.dependencies import (
     is_mock_auth_allowed,
 )
 from app.core.mcp import discover_and_import_mcp_tools
-from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
 from app.main import app, lifespan
 from app.tests.conftest import test_engine, test_session_factory
+from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
 from httpx import AsyncClient
 
 

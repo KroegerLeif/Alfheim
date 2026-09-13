@@ -6,12 +6,12 @@ import importlib
 import pathlib
 from contextlib import asynccontextmanager
 
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.mcp import discover_and_import_mcp_tools, mcp_server
-from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 
 
 def discover_and_include_routers(app: FastAPI) -> None:

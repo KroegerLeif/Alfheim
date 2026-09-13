@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
 import pytest
-from backend_shared.mcp_middleware import UserHouseholdContext, mcp_user_context
 from app.features.devices.mcp_tools import get_device_detail, get_device_status, list_devices
 from app.features.devices.models import Device, Household
+from backend_shared.mcp_middleware import UserHouseholdContext, mcp_user_context
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 
