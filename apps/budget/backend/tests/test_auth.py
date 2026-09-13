@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import Depends, FastAPI, HTTPException, status
 from httpx import ASGITransport, AsyncClient
 from src.core import auth as auth_module
@@ -262,16 +265,26 @@ def test_decode_oidc_token_mock_mode_invalid_token_format():
 def test_decode_oidc_token_real_verification_success():
     """Verify successful OIDC JWT verification through the real JWKS caching path."""
     auth_module._jwks_clients.clear()
-    secret = "test-signing-key"
+
+    # Generate an RSA keypair for RS256 signing
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend(),
+    )
+    public_key = private_key.public_key()
+
     payload = {
         "sub": str(uuid.uuid4()),
         "aud": settings.OIDC_AUDIENCE,
         "iss": settings.OIDC_ISSUER_URL.rstrip("/"),
     }
-    token = jwt.encode(payload, secret, algorithm="HS256")
+    # Sign token with RS256 using the private key
+    token = jwt.encode(payload, private_key, algorithm="RS256")
 
+    # Mock the signing key to return the public key
     mock_signing_key = MagicMock()
-    mock_signing_key.key = secret
+    mock_signing_key.key = public_key
     mock_jwks_client_instance = MagicMock()
     mock_jwks_client_instance.get_signing_key_from_jwt.return_value = mock_signing_key
 
