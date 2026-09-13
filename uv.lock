@@ -754,6 +754,7 @@ version = "0.1.0"
 source = { virtual = "apps/chores/backend" }
 dependencies = [
     { name = "aioboto3" },
+    { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
@@ -785,6 +786,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
+    { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
@@ -1589,6 +1591,7 @@ name = "library-backend"
 version = "0.1.0"
 source = { virtual = "apps/library/backend" }
 dependencies = [
+    { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
@@ -1612,6 +1615,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
@@ -1639,6 +1643,7 @@ version = "0.1.0"
 source = { virtual = "apps/maintenance/backend" }
 dependencies = [
     { name = "aioboto3" },
+    { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
@@ -1671,6 +1676,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
+    { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
@@ -2163,6 +2169,7 @@ version = "0.1.0"
 source = { virtual = "apps/pantry/backend" }
 dependencies = [
     { name = "aioboto3" },
+    { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
@@ -2196,6 +2203,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
+    { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
@@ -2946,6 +2954,7 @@ version = "0.1.0"
 source = { virtual = "apps/shopping/backend" }
 dependencies = [
     { name = "aioboto3" },
+    { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
@@ -2975,6 +2984,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
+    { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
@@ -3357,6 +3367,7 @@ name = "workout-backend"
 version = "0.1.0"
 source = { virtual = "apps/workout/backend" }
 dependencies = [
+    { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
@@ -3387,6 +3398,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
