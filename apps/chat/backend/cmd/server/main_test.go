@@ -72,7 +72,7 @@ func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, nil, nil, nil, nil)
+	router := buildRouter(log, dbClient, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
 	rec := httptest.NewRecorder()

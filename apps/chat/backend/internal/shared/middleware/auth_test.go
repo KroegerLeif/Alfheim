@@ -355,7 +355,7 @@ func TestRequestLoggerAndCORS(t *testing.T) {
 		req.Header.Set("Origin", "http://localhost:3000")
 		rec := httptest.NewRecorder()
 
-		CORS(next).ServeHTTP(rec, req)
+		CORSWithOrigins([]string{"http://localhost:3000"})(next).ServeHTTP(rec, req)
 
 		if !nextCalled {
 			t.Errorf("expected next handler to be called")
@@ -375,7 +375,7 @@ func TestRequestLoggerAndCORS(t *testing.T) {
 		req.Header.Set("Origin", "http://localhost:3000")
 		rec := httptest.NewRecorder()
 
-		CORS(next).ServeHTTP(rec, req)
+		CORSWithOrigins([]string{"http://localhost:3000"})(next).ServeHTTP(rec, req)
 
 		if nextCalled {
 			t.Errorf("expected next handler NOT to be called on OPTIONS")
