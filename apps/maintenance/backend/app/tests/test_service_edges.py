@@ -190,6 +190,7 @@ async def test_task_service_submit_wizard_exceptions(db_session: AsyncSession):
         await TaskService.submit_maintenance_wizard(
             db_session,
             MaintenanceSubmission(device_id=99999, performer="Tester", completed_step_ids=[]),
+            household_id=1,
         )
 
     household = Household(name="H3", address="Addr 3")
@@ -218,6 +219,7 @@ async def test_task_service_submit_wizard_exceptions(db_session: AsyncSession):
         await TaskService.submit_maintenance_wizard(
             db_session,
             MaintenanceSubmission(device_id=device.id, performer="Tester", completed_step_ids=[99999]),
+            household_id=household.id,
         )
 
     # Supply forwarding exception
@@ -227,6 +229,7 @@ async def test_task_service_submit_wizard_exceptions(db_session: AsyncSession):
         event = await TaskService.submit_maintenance_wizard(
             db_session,
             MaintenanceSubmission(device_id=device.id, performer="Tester", completed_step_ids=[], supply_items=["Oil"]),
+            household_id=household.id,
         )
         assert event.device_id == device.id
 
@@ -236,7 +239,7 @@ async def test_task_service_update_task_state_and_overdue(db_session: AsyncSessi
     """Verify update_task_state and get_overdue_tasks edge cases."""
     # Missing step
     with pytest.raises(StepNotFoundError):
-        await TaskService.update_task_state(db_session, 99999, TaskStateUpdate(comment="test"))
+        await TaskService.update_task_state(db_session, 99999, TaskStateUpdate(comment="test"), household_id=1)
 
     household = Household(name="H4", address="Addr 4")
     db_session.add(household)
@@ -290,7 +293,7 @@ async def test_task_service_update_task_state_and_overdue(db_session: AsyncSessi
         await TaskService.update_task_state(db_session, step.id, TaskStateUpdate(comment="test"), household_id=99999)
 
     # Update supply item
-    updated = await TaskService.update_task_state(db_session, step.id, TaskStateUpdate(supply_item="O-Ring"))
+    updated = await TaskService.update_task_state(db_session, step.id, TaskStateUpdate(supply_item="O-Ring"), household_id=household.id)
     assert updated.supply_item == "O-Ring"
 
     # Get overdue tasks (should include step with 2026-05-01, skip step_no_date and step_bad_date)

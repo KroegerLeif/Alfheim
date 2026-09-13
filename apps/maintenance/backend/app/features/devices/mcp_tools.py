@@ -130,10 +130,7 @@ async def get_device_detail(household_id: int, device_id: int) -> dict[str, Any]
     """
     try:
         async with async_session_factory() as session:
-            device = await DeviceService.get_device_by_id(session, device_id=device_id)
-
-        if device.household_id != household_id:
-            return {"error": f"Device with ID {device_id} not found or not authorized for household {household_id}."}
+            device = await DeviceService.get_device_by_id(session, device_id=device_id, household_id=household_id)
 
         return {
             "id": device.id,
@@ -159,7 +156,5 @@ async def get_device_detail(household_id: int, device_id: int) -> dict[str, Any]
             ],
             "history_count": len(device.history_events),
         }
-    except DeviceError as e:
-        return {"error": str(e)}
     except Exception as e:
-        return {"error": f"Unexpected error: {str(e)}"}
+        return {"error": f"Device not found or not authorized: {str(e)}"}

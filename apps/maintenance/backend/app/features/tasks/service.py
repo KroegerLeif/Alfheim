@@ -73,11 +73,15 @@ class TaskService:
     @staticmethod
     async def get_history(
         session: AsyncSession,
-        household_id: int | None = None,
+        household_id: int,
     ) -> list[ServiceHistoryEventDetailRead]:
-        """Fetch all ServiceHistoryEvent records joined with their Device.
+        """Fetch all ServiceHistoryEvent records for the authenticated user's household.
 
         Results are ordered descending by date.
+
+        Args:
+            session: Database session
+            household_id: The user's authenticated household_id from context
         """
         statement = (
             select(ServiceHistoryEvent)
@@ -87,8 +91,7 @@ class TaskService:
         result = await session.exec(statement)
         events = list(result.all())
 
-        if household_id is not None:
-            events = [e for e in events if e.device and e.device.household_id == household_id]
+        events = [e for e in events if e.device and e.device.household_id == household_id]
 
         return [
             ServiceHistoryEventDetailRead(
@@ -108,10 +111,20 @@ class TaskService:
     async def submit_maintenance_wizard(
         session: AsyncSession,
         payload: MaintenanceSubmission,
+        household_id: int,
     ) -> ServiceHistoryEvent:
-        """Log a new service history event and update completed steps' due dates."""
+        """Log a new service history event and update completed steps' due dates.
+
+        Args:
+            session: Database session
+            payload: Maintenance submission data
+            household_id: The user's authenticated household_id from context
+
+        Raises:
+            DeviceNotFoundError: If the device does not exist or belongs to a different household.
+        """
         device = await session.get(Device, payload.device_id)
-        if not device:
+        if not device or device.household_id != household_id:
             raise DeviceNotFoundError("Device not found")
 
         completed_steps_titles = []
@@ -158,9 +171,19 @@ class TaskService:
         session: AsyncSession,
         step_id: int,
         payload: TaskStateUpdate,
-        household_id: int | None = None,
+        household_id: int,
     ) -> MaintenanceStep:
-        """Persist lightweight step updates (comments, supply dates, supply items)."""
+        """Persist lightweight step updates (comments, supply dates, supply items).
+
+        Args:
+            session: Database session
+            step_id: The MaintenanceStep primary key
+            payload: Update payload
+            household_id: The user's authenticated household_id from context
+
+        Raises:
+            StepNotFoundError: If the step does not exist or belongs to a different household.
+        """
         statement = (
             select(MaintenanceStep)
             .options(selectinload(cast(Any, MaintenanceStep.device)))
@@ -171,7 +194,7 @@ class TaskService:
         if not step:
             raise StepNotFoundError(f"MaintenanceStep {step_id} not found")
 
-        if household_id is not None and step.device and step.device.household_id != household_id:
+        if step.device and step.device.household_id != household_id:
             raise StepNotFoundError(
                 f"MaintenanceStep {step_id} not found or not authorized for household {household_id}"
             )
@@ -189,8 +212,13 @@ class TaskService:
         return step
 
     @staticmethod
-    async def get_overdue_tasks(session: AsyncSession, household_id: int | None = None) -> list[dict[str, Any]]:
-        """Fetch all maintenance steps currently overdue across all devices, optionally filtered by household_id."""
+    async def get_overdue_tasks(session: AsyncSession, household_id: int) -> list[dict[str, Any]]:
+        """Fetch all maintenance steps currently overdue for the authenticated user's household.
+
+        Args:
+            session: Database session
+            household_id: The user's authenticated household_id from context
+        """
         statement = select(MaintenanceStep).options(selectinload(cast(Any, MaintenanceStep.device)))
         result = await session.exec(statement)
         all_steps = list(result.all())
@@ -199,7 +227,7 @@ class TaskService:
         overdue: list[dict[str, Any]] = []
 
         for step in all_steps:
-            if household_id is not None and step.device and step.device.household_id != household_id:
+            if step.device and step.device.household_id != household_id:
                 continue
             if not step.supply_needed_date:
                 continue
