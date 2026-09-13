@@ -192,11 +192,19 @@ func TestRenderedEnvIsParsableAndComplete(t *testing.T) {
 
 	// Every variable the repository template declares must be present, or the
 	// stack starts with Compose defaults instead of the generated values.
+	// Exceptions are keys .env.example itself documents as local-dev-only
+	// tooling that production installs never need (see its comments).
+	devOnlyEnvKeys := map[string]bool{
+		"ZITADEL_BOOTSTRAP_USERNAME": true,
+	}
 	reference, err := envfile.ParseFile(filepath.Join("..", "..", "..", "..", "..", ".env.example"))
 	if err != nil {
 		t.Skipf("repository .env.example not reachable: %v", err)
 	}
 	for key := range reference {
+		if devOnlyEnvKeys[key] {
+			continue
+		}
 		if _, ok := vars[key]; !ok {
 			t.Errorf("the rendered .env is missing %s, which .env.example declares", key)
 		}
