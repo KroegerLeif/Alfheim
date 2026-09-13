@@ -19,37 +19,28 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Added dedicated step in `.github/workflows/smoke-test.yml` running `./scripts/test-prod-startup.sh` for end-to-end production core stack validation in CI.
   - Integrated `--smoke` / `--prod-startup` flags and Docker availability guards into unified `scripts/verify.sh` runner.
 * **`fix(deploy): resolve production compose startup race conditions, dns aliasing, and mount parity`**
-  - Configured comprehensive network aliases (`postgres-iam`, `*-db`) across all 10 attached bridge networks on `postgres-core`, ensuring backward-compatible database resolution.
-  - Standardized all host configuration volume mounts in `compose.prod.yaml` (`Caddyfile`, Keycloak realm JSON and providers) to the canonical `./infrastructure/...` repository layout.
+  - Configured comprehensive network aliases (`postgres-iam`, `*-db`) across all attached bridge networks on `postgres-core`, ensuring backward-compatible database resolution.
+  - Standardized all host configuration volume mounts in `compose.prod.yaml` (`Caddyfile`) to the canonical `./infrastructure/...` repository layout.
   - Added dedicated `/livez` 200 respond handler in `infrastructure/caddy/Caddyfile` and decoupled Caddy healthcheck from downstream frontend services.
   - Removed invalid shell healthcheck from distroless `otel-collector` service definition.
   - Standardized frontend healthchecks across `budget-frontend`, `workout-frontend`, and `library-frontend` to Node-native http probes.
   - Added automated legacy database host and database name migration logic to `scripts/init-env.sh`.
-  - Aligned download targets in `scripts/install.sh` with the canonical repository hierarchy.
   - Created `scripts/test-prod-startup.sh` preflight and smoke-test verification harness with health polling and clean teardown traps.
-* **`fix(keycloak): configure hostname options and proxy headers for keycloak 26`**
-  - Resolved `ERROR: hostname-backchannel-dynamic must be set to false when no hostname is provided` runtime crash during Keycloak 26 cold boot by explicitly configuring `KC_HOSTNAME: "${KEYCLOAK_HOSTNAME:-auth.alfheim.loegien.de}"` and `KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"`.
-  - Configured modern Quarkus/Keycloak 26 proxy headers (`KC_PROXY_HEADERS: "xforwarded"`, `KC_HTTP_ENABLED: "true"`), cleaned up legacy v1 hostname flags, and registered `KEYCLOAK_HOSTNAME` in `.env.example`.
 * **`feat(deploy): implement resilient healthcheck dependencies and staged startup`**
-  - Added robust Keycloak HTTP readiness healthcheck in `compose.prod.yaml` (`KC_HEALTH_ENABLED: "true"`, probing port 9000 `/auth/health/ready` with fallback to port 8080 `/auth/realms/master`, 45s start period, 25 retries).
-  - Increased PostgreSQL database healthcheck `start_period` to `30s` and `retries` to `10` across all 10 databases to prevent failure during cold `initdb`.
-  - Added `keycloak` and `<service>-db` `service_healthy` conditions in `depends_on` across all services consuming Keycloak JWKS (`dashboard-backend` and all 8 microservice backends), completely resolving cold-boot race conditions.
-  - Enhanced `scripts/install.sh` with staged startup pipeline mirroring `scripts/up.sh` (databases -> Keycloak -> backends/frontends/ingress) with terminal progress spinners, healthcheck polling, and clear ANSI status outputs.
+  - Added robust Zitadel HTTP readiness healthcheck in `compose.prod.yaml` (probing readiness endpoint with 45s start period, 25 retries).
+  - Increased PostgreSQL database healthcheck `start_period` to `30s` and `retries` to `10` across all databases to prevent failure during cold `initdb`.
+  - Added `zitadel` and `<service>-db` `service_healthy` conditions in `depends_on` across all services consuming OIDC tokens (dashboard-backend and all microservice backends), completely resolving cold-boot race conditions.
 * **`fix(deploy): use official upstream images in compose.prod.yaml and automate base url derivation`**
-  - Updated standard 3rd-party infrastructure services in `compose.prod.yaml` to official upstream registry images (`caddy:2-alpine`, `quay.io/keycloak/keycloak:26.1`, `minio/minio:latest`, `victoriametrics/victoria-metrics:v1.99.0`, `victoriametrics/victoria-logs:v0.25.0`, `otel/opentelemetry-collector-contrib:0.100.0`, `grafana/grafana:11.0.0`, `axllent/mailpit:v1.18`, and `postgres:16-alpine` for all 10 databases), isolating GHCR tags strictly to the 18 custom Alfheim microservices.
+  - Updated standard 3rd-party infrastructure services in `compose.prod.yaml` to official upstream registry images (`caddy:latest`, `ghcr.io/zitadel/zitadel:v2.66.1`, RustFS (replaced legacy minio), `victoriametrics/victoria-metrics:v1.99.0`, `victoriametrics/victoria-logs:v0.25.0`, `otel/opentelemetry-collector-contrib:0.100.0`, `grafana/grafana:11.0.0`, `axllent/mailpit:v1.18`, and `postgres:16-alpine` for all databases), isolating GHCR tags strictly to the custom Alfheim microservices.
   - Enhanced `scripts/init-env.sh` with `--base-url` CLI support and interactive prompt defaulting to `https://alfheim.loegien.de`.
   - Implemented automated scheme, naked host, and apex domain derivation, exporting `${ALFHEIM_BASE_URL}`-derived sub-route API variables across `.env` and `.env.example` without `localhost` residue.
   - Aligned environment interpolation in `compose.prod.yaml` to fall back to `${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}`.
 * **`feat(release): add public launch pipeline, production compose, and home-server installer`**
-  - Configured `.github/workflows/release.yml` with semver tag trigger (`v*.*.*`), GHCR container builds across 18 services with `max-parallel: 4` concurrency limits and GHA layer caching.
+  - Configured `.github/workflows/release.yml` with semver tag trigger (`v*.*.*`), GHCR container builds across services with `max-parallel: 4` concurrency limits and GHA layer caching.
   - Created standalone `compose.prod.yaml` referencing pre-built GHCR images with environment tag overrides, healthchecks, restart policies, and named persistent data volumes.
-  - Created POSIX-compliant `scripts/install.sh` single-command home-server installer with ANSI color status formatting and asset downloads.
   - Created `scripts/init-env.sh` cryptographic secret generator generating 24-character random passwords, 32-byte AES-256-GCM chat encryption keys, and setting strict `chmod 600` permissions on `.env`.
-  - Created comprehensive self-hosting installation guide `INSTALL.md` and linked prominently in `README.md`.
+  - Created installation guide in `docs/en/how-to/homelab-deployment.md` documenting home-server deployment and Zitadel IAM setup.
   - Hardened `.gitignore` against environment files, private keys (`*.key`, `*.pem`), certificates, and volume directories.
-* **`fix(keycloak): move userProfileEnabled to realm attributes in alfheim-realm.json`**
-  - Moved invalid top-level `"userProfileEnabled": true` property from `RealmRepresentation` root to `"attributes": { "userProfileEnabled": "true", ... }` in `infrastructure/keycloak/alfheim-realm.json`.
-  - Resolved Jackson deserialization error (`Unrecognized field "userProfileEnabled"`) and crash loop during Keycloak Quarkus container startup and realm import.
 * **`feat(mascot): refactor alfi mascot assets, extensible renderer, persona prompt and mcp diagnostic`**
   - Cleaned up SVG asset typo `alfi-listenig.svg` -> `alfi-listening.svg` and centralized application icons in `packages/shared/src/assets/apps/`.
   - Implemented extensible `AlfiMascot`, `AlfiAvatar`, and `useAlfiChatLifecycle` hook in `@alfheim/shared` supporting 8 canonical mascot states with smooth transitions and layout shift prevention.
@@ -60,7 +51,7 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Modularized `apps/chat/frontend/src/lib/api.ts` into specialized submodules (`client.ts`, `modelBlocks.ts`, `conversations.ts`, `attachments.ts`) with a clean facade module.
   - Extracted `ChatLandingState.tsx` from `ChatStreamView.tsx`, reducing stream view to 181 LOC.
   - Extracted `useHouseholdSwitcher.ts` custom hook from `HouseholdSwitcher.tsx`, removing hardcoded HTTP fallback URL and reducing component to 59 LOC.
-  - Replaced loose `any` typings with `KeycloakWindow` interface and strict error type guards across chat frontend and shared UI package.
+  - Added strict error type guards across chat frontend and shared UI package.
   - Added localized placeholder tokens across `de`, `en`, and `pl` dictionaries in `packages/shared/src/features/i18n/locales/*/chat.json`.
 * **`fix(chat): ensure default ollama base url and fix full-width viewport layout`**
   - Added `DefaultOllamaBaseURL` (`http://host.docker.internal:11434`) and scheme normalization (`NormalizeOllamaBaseURL`) across `apps/chat/backend/internal/shared/llm/ollama_provider.go` and `internal/features/modelblocks/service.go` to eliminate `unsupported protocol scheme ""` errors when connecting to Ollama.
@@ -69,12 +60,12 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Added `w-full` to `AppHeader` and `AppShell` main container to guarantee 100% viewport coverage across all apps.
 * **`fix(chat): handle ollama stream errors gracefully, fix layout width and hydration error`**
   - Streamlined Ollama and provider stream error propagation in `apps/chat/backend/internal/features/conversations/service.go` and `ollama_provider.go` to emit descriptive SSE error events to the client instead of unhandled 500 HTTP failures.
-  - Aligned Keycloak token validation in `apps/chat/backend/internal/shared/middleware/auth.go` with dashboard backend standard by validating issuer, expiration, and signature without enforcing strict backend client audience.
+  - Aligned OIDC token validation in `apps/chat/backend/internal/shared/middleware/auth.go` with dashboard backend standard by validating issuer, expiration, and signature without enforcing strict backend client audience.
   - Attached `X-Household-ID` across chat frontend API requests, uploads, and SSE streams via `getActiveHouseholdId()`.
   - Added token resolution and 401 retry handling across SPA tokens in `packages/shared/src/features/ui/components/HouseholdSwitcher.tsx` to resolve `/api/v1/households/me` 401 errors.
   - Fixed chat layout width constraint, allowing full responsive container width with centered 4xl reading space, and added `suppressHydrationWarning` on `body` in `apps/chat/frontend/src/app/[locale]/layout.tsx`.
 * **`fix(auth): fix frontend token refresh in chat discovery and align caddy api routes across apps`**
-  - Implemented proactive Keycloak token refresh (`getFreshAuthToken`) and 401 retry in `apps/chat/frontend/src/lib/api.ts`.
+  - Implemented proactive OIDC token refresh (`getFreshAuthToken`) and 401 retry in `apps/chat/frontend/src/lib/api.ts`.
   - Configured relative API base URLs across chat and maintenance frontends to keep requests same-origin and avoid CORS/host mismatch issues.
   - Added comprehensive `/api/v1/...` and `/<app>/api/v1...` reverse proxy and path rewrite rules in `infrastructure/caddy/Caddyfile` across frontend and API domains.
 * **`fix(chat): enable host-gateway resolution and improve discovery error handling`**
@@ -86,7 +77,7 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Implemented `POST /api/v1/chat/models/discover` backend discovery endpoint querying `{base_url}/api/tags` for installed Ollama models.
   - Implemented one-click Ollama model auto-discovery and tag select dropdown with auto display naming in `ModelBlockFormModal`.
   - Replaced plain text notice in `ConversationList` sidebar empty state with a styled card and "Add Model" CTA button triggering `ModelBlockFormModal`.
-  - Registered `chat-frontend` client in Keycloak `alfheim-realm.json` and synchronized dictionaries across `de`, `en`, and `pl`.
+  - Registered `chat-frontend` client in Zitadel and synchronized dictionaries across `de`, `en`, and `pl`.
 * **`fix(mcp): resolve FastMCP import path and runtime dependencies across python backends`**
   - Standardized FastMCP imports to `from fastmcp import FastMCP` in `apps/maintenance/backend/app/core/mcp.py`.
   - Replaced legacy `mcp[cli]` dependency with `fastmcp>=3.4.1` in `apps/maintenance/backend/pyproject.toml` and synced `uv.lock`.
@@ -172,7 +163,7 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
   - Migrated legacy `apps/logging-stack` to `infrastructure/telemetry` (VictoriaMetrics, VictoriaLogs, OTel Collector, Vector, Grafana).
   - Configured unified OTLP entrypoint via OpenTelemetry Collector Contrib (`:4317` / `:4318`) routing to VictoriaMetrics and VictoriaLogs.
   - Configured Vector Docker socket log harvester forwarding OTLP logs.
-  - Configured Grafana with VictoriaMetrics and VictoriaLogs provisioning and Keycloak OIDC SSO.
+  - Configured Grafana with VictoriaMetrics and VictoriaLogs provisioning and Zitadel OIDC SSO.
   - Updated Caddyfile, root `compose.yaml`, `up.sh`, and `down.sh`.
   - Refactored Go dashboard backend `telemetry` service to query PromQL and LogSQL with automatic system fallback.
 * **`refactor(apps): localize sidebars and docs website components`**
@@ -217,12 +208,11 @@ The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD
 * **`fix(db): add persistent volume for dashboard-db and rename pantry volume`**
   - Added persistent volume `dashboard_postgres_data` for `dashboard-db`.
   - Renamed generic `postgres_data` volume in Pantry to `pantry_postgres_data`.
-* **`fix(auth): resolve Keycloak OIDC issuer matching, strict mode init, and backend token verification`**
-  - Pinned Keycloak `KC_HOSTNAME` & `KC_HOSTNAME_URL` to `http://api.alfheim.loegien.localhost/auth`.
+* **`fix(auth): resolve OIDC issuer matching, strict mode init, and backend token verification`**
   - Fixed React 18 strict mode double-initialization using `initializedRef` across all 5 microfrontends.
   - Added URL parameter cleanup (`code`, `state`, `session_state`, `iss`) immediately post code exchange.
   - Unified token persistence in `sessionStorage` (`token_<app>` + `alfheim_access_token`).
-  - Added strict issuer signature verification (`http://api.alfheim.loegien.localhost/auth/realms/alfheim`) to Go and Python FastAPI backend auth middlewares.
+  - Added strict issuer signature verification and OIDC discovery to Go and Python FastAPI backend auth middlewares (validating issuer, JWKS via OIDC discovery endpoint).
 
 ---
 
@@ -240,23 +230,24 @@ This index maps the active applications and services running inside the monorepo
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
 | **`apps/workout`** | FastAPI, FastMCP (backend only — frontend deferred) | `api.alfheim.loegien.de/workout` | `workout-db` (`postgres_data_workout`, Port `5434`) |
 | **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
-| **`infrastructure`** | Keycloak, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `postgres-iam` & `rustfs_data` |
+| **`infrastructure`** | Zitadel, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `zitadel` (db: `postgres-core`) & `rustfs_data` |
 | **`apps/chat`** | Go, Next.js 16, OIDC | `alfheim.loegien.de/chat` / `api.alfheim.loegien.de/api/v1/chat` | `chat-db` (`chat_postgres_data`, Port `5436`) |
 
 ### Docker Network Map:
-* **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Keycloak, RustFS S3, Grafana, and API Backends.
-* **`infra-net`** (Bridge, pre-created in `up.sh`): Keycloak ↔ `postgres-iam` database ↔ RustFS S3 backend.
+* **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Zitadel, RustFS S3, Grafana, and API Backends.
+* **`infra-net`** (Bridge, pre-created in `up.sh`): Zitadel ↔ `postgres-core` database (shared) ↔ RustFS S3 backend.
 * **`core-net`** (Bridge, pre-created in `up.sh`): Control plane `dashboard-backend` ↔ `dashboard-db`.
 * **`app-<name>-net`** (Bridge, pre-created in `up.sh`): Isolated per-app database network (e.g. `app-pantry-net`, `app-shopping-net`).
 * **`observability-internal`** (External, pre-created in `up.sh`): Backends & Vector ↔ OTel Collector ↔ VictoriaMetrics & VictoriaLogs.
 
 ---
 
-## 🔑 Keycloak JWT Invariants
-All backends validate bearer tokens issued by Keycloak (External: `http://api.alfheim.loegien.localhost/auth`, Internal Docker JWKS: `http://keycloak:8080/auth`).
-* **`sub`**: Injected as user UUID.
-* **`preferred_username`**: Used for Personal List naming.
-* **`household_id` / `active_household_id`**: Active household identifier (falls back to `X-Household-ID` header, then mock UUID).
+## 🔑 OIDC JWT Invariants (Zitadel)
+All backends validate bearer tokens issued by Zitadel using OIDC discovery. The issuer URL is resolved from `OIDC_ISSUER_URL` (environment-specific: production `https://auth.loegien.de`, local `http://zitadel:8080`). The JWKS URI is dynamically discovered from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
+* **`sub`**: User identifier (UUID or derived from JWT subject claim).
+* **`household_id` / `active_household_id`**: Active household identifier (Zitadel custom claim, falls back to `X-Household-ID` header, then mock UUID).
+* **`aud` (Audience)**: Expected audience is `alfheim`. Go backends (dashboard) enforce strict audience validation; Python backends (`backend-shared`) verify issuer only.
+* **Issuer Validation**: All backends verify that the `iss` claim exactly matches `OIDC_ISSUER_URL`.
 
 ---
 
@@ -397,7 +388,7 @@ All backends validate bearer tokens issued by Keycloak (External: `http://api.al
 2. Shared `model_blocks` are usable by household members; only `owner_user_id` may edit, delete, or trigger a health check (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
 3. Bootstrap blocks (`is_bootstrap = true`, `owner_user_id = "system"`) are the one exception: visible and modifiable by any authenticated user, since they have no natural personal owner. The one-time seed is tracked via the separate `bootstrap_state` table (not `model_blocks` row presence), so deleting/editing the seeded block never causes it to reappear on the next restart.
 4. `internal/shared/llm.Provider` is constructed with primitive params (provider type, base URL, model, API key) — never a `modelblocks.ModelBlock` — so `internal/shared/llm` has no dependency on `internal/features/modelblocks`.
-5. JWT validation in `internal/shared/middleware/auth.go` checks **both** issuer and audience (`KEYCLOAK_EXPECTED_AUDIENCE`), a deliberate divergence from `core/dashboard/backend`'s issuer-only check.
+5. JWT validation in `internal/shared/middleware/auth.go` checks **both** issuer and audience (`OIDC_AUDIENCE`), a deliberate divergence from `core/dashboard/backend`'s issuer-only check.
 6. Conversations are always personal (`owner_user_id` only) — unlike `model_blocks`, there is no household-shared visibility for a conversation itself; a household member with access to a shared model block still gets their own separate conversation using it.
 7. `GET /api/v1/chat/conversations/{id}/stream` requires the conversation's last message to be an unanswered `role='user'` message (`ErrNoPendingUserMessage` otherwise). The completed assistant reply is persisted via `AppendMessageAndTouchConversation` (single transaction: insert message + bump `conversations.updated_at`), using a fresh 5s `context.Background()` timeout independent of the HTTP request context, so a client disconnecting right as the stream finishes cannot cause the reply to be silently lost. A stream that ends in an `Err` chunk persists nothing.
 8. `internal/features/conversations` depends on `internal/shared/llm` and defines its own narrow `ModelBlockResolver` interface (satisfied structurally by `modelblocks.Service`) rather than importing `internal/features/modelblocks` — kept decoupled per this repo's Go interface convention (defined at the consumer).
@@ -464,5 +455,5 @@ opaque UUID carried by the JWT/`X-Household-ID` header, matching Pantry/Chores.
 * Maintenance: `http://alfheim.loegien.localhost/maintenance`
 * Chores: `http://alfheim.loegien.localhost/chores`
 * Central API Gateway: `http://api.alfheim.loegien.localhost/api/v1`
-* Keycloak IAM: `http://api.alfheim.loegien.localhost/auth`
+* Zitadel OIDC: `http://api.alfheim.loegien.localhost/auth`
 * Grafana Telemetry UI: `http://alfheim.loegien.localhost/grafana` (API alias: `http://api.alfheim.loegien.localhost/grafana`)
