@@ -122,7 +122,7 @@ func (c *s3Client) Upload(ctx context.Context, key string, body io.Reader, size 
 		Bucket:        aws.String(c.cfg.BucketName),
 		Key:           aws.String(key),
 		Body:          body,
-		ContentLength: size,
+		ContentLength: aws.Int64(size),
 	}
 	if contentType != "" {
 		input.ContentType = aws.String(contentType)
