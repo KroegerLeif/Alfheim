@@ -63,3 +63,39 @@ vi.mock("next-intl", () => ({
     return "";
   },
 }));
+
+// Mock the shared library's useTranslation hook for tests
+vi.mock("@alfheim/shared", async () => {
+  const actual = await vi.importActual("@alfheim/shared");
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string) => {
+        // Return a human-readable version for common keys
+        const translations: Record<string, string> = {
+          "transactions.quickAdd": "Quick-Add Transaction",
+          "transactions.description": "Description",
+          "transactions.descriptionPlaceholder": "e.g. Supermarket Grocery",
+          "transactions.amount": "Amount",
+          "transactions.type": "Type",
+          "transactions.expense": "Expense",
+          "transactions.income": "Income",
+          "transactions.transfer": "Transfer",
+          "transactions.accountOptional": "Account (Optional)",
+          "transactions.targetPotOptional": "Target Pot (Optional)",
+          "transactions.planOptional": "Plan (Optional)",
+          "transactions.none": "-- None --",
+          "transactions.logging": "Logging...",
+          "common.cancel": "Cancel",
+        };
+        return translations[key] || key;
+      },
+      language: "en",
+      setLanguage: () => {},
+    }),
+    useLanguage: () => ({
+      language: "en",
+      setLanguage: () => {},
+    }),
+  };
+});

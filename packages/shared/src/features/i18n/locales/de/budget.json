@@ -23,7 +23,13 @@
       "maturityDate": "Fälligkeitsdatum",
       "currentBalance": "Aktueller Kontostand",
       "netWorth": "Gesamtvermögen",
-      "addAccount": "Konto hinzufügen"
+      "addAccount": "Konto hinzufügen",
+      "create": "Konto erstellen",
+      "edit": "Konto bearbeiten",
+      "name": "Kontoname",
+      "type": "Kontotyp",
+      "currency": "Währung",
+      "placeholder": "z.B. Hauptgiro"
     },
     "pots": {
       "title": "Virtuelle Töpfe & Rücklagen",
@@ -65,7 +71,15 @@
       "account": "Konto",
       "pot": "Topf",
       "ocrProcessing": "Beleg wird per OCR analysiert...",
-      "success": "Transaktion erfolgreich gebucht"
+      "success": "Transaktion erfolgreich gebucht",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "z.B. Supermarkt Lebensmittel",
+      "type": "Typ",
+      "accountOptional": "Konto (Optional)",
+      "targetPotOptional": "Ziel-Topf (Optional)",
+      "planOptional": "Plan (Optional)",
+      "none": "-- Keine --",
+      "logging": "Buchung wird verarbeitet..."
     },
     "analytics": {
       "title": "Finanzanalytik & Cashflow",
