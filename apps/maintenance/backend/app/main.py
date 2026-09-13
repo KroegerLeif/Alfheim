@@ -37,7 +37,7 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables and seed data on startup
+    # Initialize DB tables on startup
     from app.core.database import init_db
 
     await init_db()
@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
             yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers on shutdown
-        from app.core.telemetry import shutdown_telemetry
+        from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
@@ -79,7 +79,7 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
 
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from app.core.telemetry import setup_telemetry
+from backend_shared.telemetry import setup_telemetry
 
 setup_telemetry(app)
 

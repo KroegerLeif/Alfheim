@@ -34,9 +34,6 @@ func NewService(endpoint string, log *slog.Logger) Service {
 		vmURL = endpoint
 	}
 	if vmURL == "" {
-		vmURL = os.Getenv("SIGNOZ_QUERY_SERVICE_URL")
-	}
-	if vmURL == "" {
 		vmURL = "http://victoriametrics:8428"
 	}
 

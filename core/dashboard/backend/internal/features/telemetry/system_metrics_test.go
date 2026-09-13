@@ -62,19 +62,6 @@ func TestNewService_EnvConfigurations(t *testing.T) {
 		}
 	})
 
-	t.Run("SIGNOZ_QUERY_SERVICE_URL fallback", func(t *testing.T) {
-		t.Setenv("VICTORIAMETRICS_URL", "")
-		t.Setenv("SIGNOZ_QUERY_SERVICE_URL", "http://signoz-env:8080/")
-		t.Setenv("VICTORIALOGS_URL", "")
-		s := NewService("", logger).(*service)
-		if s.vmURL != "http://signoz-env:8080" {
-			t.Errorf("expected http://signoz-env:8080, got %s", s.vmURL)
-		}
-		if s.vlURL != "http://victorialogs:9428" {
-			t.Errorf("expected default victorialogs url, got %s", s.vlURL)
-		}
-	})
-
 	t.Run("default fallback when all empty", func(t *testing.T) {
 		t.Setenv("VICTORIAMETRICS_URL", "")
 		t.Setenv("SIGNOZ_QUERY_SERVICE_URL", "")

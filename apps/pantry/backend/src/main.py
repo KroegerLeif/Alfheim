@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
             yield
     finally:
         # Gracefully flush and shutdown OpenTelemetry providers
-        from src.core.telemetry import shutdown_telemetry
+        from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
@@ -70,7 +70,7 @@ app.add_middleware(
 )
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
-from src.core.telemetry import setup_telemetry
+from backend_shared.telemetry import setup_telemetry
 
 setup_telemetry(app)
 

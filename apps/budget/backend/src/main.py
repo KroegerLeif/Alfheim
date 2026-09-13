@@ -4,7 +4,7 @@ from backend_shared import setup_telemetry, shutdown_telemetry
 from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.core.audit import register_audit_hooks
+from src.core.audit import AuditRepository  # noqa: F401 - imported to trigger register_audit_hooks at module load
 from src.core.config import settings
 from src.core.database import engine, init_db
 from src.features.accounts import router as accounts_router
@@ -12,8 +12,6 @@ from src.features.plans import router as plans_router
 from src.features.pots import router as pots_router
 from src.features.transactions import router as transactions_router
 from src.mcp.server import discover_and_import_mcp_tools, mcp
-
-register_audit_hooks()
 
 # Discover and register FastMCP tools
 discover_and_import_mcp_tools()
