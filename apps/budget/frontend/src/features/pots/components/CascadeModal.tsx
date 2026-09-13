@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { MoneyDisplay, Dialog, DialogContent, DialogTitle } from "@alfheim/shared";
 import { CascadeAllocationResponse } from "@/features/budget/types";
 import { potsApi } from "../api/potsApi";
-import { GitMerge } from "lucide-react";
+import { CheckCircle, GitMerge } from "lucide-react";
 
 export interface CascadeModalProps {
   open: boolean;
