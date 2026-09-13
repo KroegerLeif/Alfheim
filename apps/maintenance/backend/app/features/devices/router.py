@@ -5,7 +5,7 @@ Exposes REST endpoints for devices and households, delegating all domain logic
 to DeviceService.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
@@ -27,6 +27,8 @@ async def get_households(
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
     """Fetch households accessible by the authenticated user (scoped to their context)."""
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     return await DeviceService.get_households(session, household_id=context.household_id)
 
 
@@ -57,6 +59,8 @@ async def get_device_by_id(
 
     Returns 404 if the device does not exist or belongs to a different household.
     """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
         return await DeviceService.get_device_by_id(
             session, device_id=device_id, household_id=context.household_id
@@ -81,6 +85,8 @@ async def create_device(
     The device is assigned to the user's authenticated household regardless
     of any household_id supplied in the payload (enforcing tenant isolation).
     """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
         return await DeviceService.create_device(session, payload, household_id=context.household_id)
     except HouseholdNotFoundError as e:

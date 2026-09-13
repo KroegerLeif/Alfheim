@@ -5,7 +5,7 @@ Exposes REST endpoints for service history, submission, and step updates,
 delegating all logic to TaskService.
 """
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
@@ -34,6 +34,8 @@ async def submit_maintenance(
 
     The device must belong to the user's authenticated household.
     """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
         return await TaskService.submit_maintenance_wizard(
             session, payload, household_id=context.household_id
@@ -54,6 +56,8 @@ async def get_service_history(
     context: UserHouseholdContext = Depends(get_current_user_and_household),
 ):
     """Fetch all ServiceHistoryEvent records for the authenticated user's household, sorted newest first."""
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     return await TaskService.get_history(session, household_id=context.household_id)
 
 
@@ -72,6 +76,8 @@ async def update_task_state(
 
     The step must belong to the authenticated user's household.
     """
+    if context.household_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
         return await TaskService.update_task_state(
             session, step_id, payload, household_id=context.household_id

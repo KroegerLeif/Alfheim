@@ -25,11 +25,11 @@ def upgrade() -> None:
     """Upgrade database schema."""
     op.add_column(
         "shopping_lists",
-        sa.Column("is_default", sa.Boolean(), nullable=True, server_default=False),
+        sa.Column("is_default", sa.Boolean(), nullable=True, server_default=sa.text("false")),
     )
     op.add_column(
         "shopping_lists",
-        sa.Column("is_personal", sa.Boolean(), nullable=True, server_default=False),
+        sa.Column("is_personal", sa.Boolean(), nullable=True, server_default=sa.text("false")),
     )
     op.add_column(
         "shopping_lists",

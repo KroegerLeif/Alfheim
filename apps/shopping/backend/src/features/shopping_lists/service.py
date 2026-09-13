@@ -17,6 +17,13 @@ from src.features.shopping_lists.services.shopping_item_service import ShoppingI
 
 logger = logging.getLogger(__name__)
 
+# Type guard for exhaustive None checks
+def _require_owner_id(owner_id: uuid.UUID | None) -> uuid.UUID:
+    """Assert that owner_id is not None; raise ValueError if it is."""
+    if owner_id is None:
+        raise ValueError("owner_id is required for list retrieval")
+    return owner_id
+
 
 class ShoppingListService:
     """Service class encapsulating business operations for Shopping Lists and Shopping Items.
@@ -63,7 +70,8 @@ class ShoppingListService:
         username: str | None = None,
         token: str | None = None,
     ) -> Sequence[ShoppingList]:
-        return await ListManagementService.get_lists(session, home_id, owner_id, username, token)
+        validated_owner_id = _require_owner_id(owner_id)
+        return await ListManagementService.get_lists(session, home_id, validated_owner_id, username, token)
 
     @staticmethod
     async def get_list(
