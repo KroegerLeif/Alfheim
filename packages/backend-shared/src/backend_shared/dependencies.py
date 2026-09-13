@@ -125,32 +125,56 @@ def decode_oidc_token(token: str, settings: Any = None) -> dict:
                 detail=f"invalid or expired token: {e}",
             )
 
-    last_error = None
-    fallback_urls = getattr(settings, "jwks_fallback_urls", []) if settings else []
     expected_issuer = getattr(settings, "expected_issuer", None) if settings else None
+    expected_audience = getattr(settings, "OIDC_AUDIENCE", None) if settings else None
+    jwks_url = getattr(settings, "jwks_url", None) if settings else None
 
-    for jwks_url in fallback_urls:
-        try:
-            jwks_client = get_jwks_client(jwks_url)
-            signing_key = jwks_client.get_signing_key_from_jwt(token)
-            return jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=["RS256", "HS256"],
-                issuer=expected_issuer,
-                options={"verify_aud": False, "verify_iss": bool(expected_issuer)},
-            )
-        except HTTPException:
-            raise
-        except (jwt.PyJWTError, ValueError) as e:
-            logger.warning("OIDC token verification attempt failed for endpoint %s: %s", jwks_url, e)
-            last_error = e
+    # Enforce required configuration: issuer, audience, and JWKS URL must be present
+    if not expected_issuer:
+        logger.error("OIDC issuer is not configured: cannot validate JWT")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OIDC issuer configuration missing",
+        )
 
-    logger.warning("OIDC JWT validation failed across endpoints: %s", last_error)
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=f"invalid or expired token: {last_error}",
-    )
+    if not expected_audience:
+        logger.error("OIDC audience is not configured: cannot validate JWT")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OIDC audience configuration missing",
+        )
+
+    if not jwks_url:
+        logger.error("OIDC JWKS URL is not configured: cannot validate JWT")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OIDC JWKS configuration missing",
+        )
+
+    try:
+        jwks_client = get_jwks_client(jwks_url)
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        return jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=expected_audience,
+            issuer=expected_issuer,
+            options={
+                "verify_signature": True,
+                "verify_aud": True,
+                "verify_iss": True,
+                "verify_exp": True,
+            },
+        )
+    except HTTPException:
+        raise
+    except (jwt.PyJWTError, ValueError) as e:
+        logger.warning("OIDC JWT validation failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"invalid or expired token: {e}",
+        )
 
 
 decode_token = decode_oidc_token

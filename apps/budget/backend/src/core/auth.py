@@ -77,7 +77,7 @@ def decode_oidc_token(token: str) -> dict[str, Any]:
         payload = jwt.decode(
             token,
             signing_key.key,
-            algorithms=["RS256", "ES256", "HS256"],
+            algorithms=["RS256"],
             audience=settings.OIDC_AUDIENCE,
             issuer=issuer,
             options={
