@@ -49,6 +49,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   # ----------------------------------------------------------------------------
   # 2. CONSOLIDATED POSTGRESQL CORE DATABASE SERVER & IAM / CENTRAL STORAGE
   # ----------------------------------------------------------------------------
@@ -132,6 +140,14 @@ services:
           - library-db
     stop_grace_period: 10s
 
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: 1
+        reservations:
+          memory: 1g
+          cpus: 1
   zitadel:
     image: ghcr.io/zitadel/zitadel:v2.66.1
     container_name: alfheim_zitadel
@@ -173,6 +189,14 @@ services:
       - gateway-net
     stop_grace_period: 10s
 
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: 0.5
+        reservations:
+          memory: 512m
+          cpus: 0.5
   rustfs:
     # RustFS is the intended S3 implementation (see infrastructure/rustfs/README.md).
     # MinIO was a stand-in and its Docker Hub repo was withdrawn upstream, so
@@ -200,6 +224,14 @@ services:
       - gateway-net
     stop_grace_period: 10s
 
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: 0.5
+        reservations:
+          memory: 512m
+          cpus: 0.5
   # ----------------------------------------------------------------------------
   # 3. OBSERVABILITY & TELEMETRY
   # ----------------------------------------------------------------------------
@@ -222,6 +254,14 @@ services:
     networks:
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: 0.5
+        reservations:
+          memory: 512m
+          cpus: 0.5
   victorialogs:
     image: victoriametrics/victoria-logs:v0.25.0-victorialogs
     container_name: victorialogs
@@ -241,6 +281,14 @@ services:
     networks:
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.25
+        reservations:
+          memory: 256m
+          cpus: 0.25
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.100.0
     container_name: otel-collector
@@ -256,6 +304,14 @@ services:
     networks:
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.25
+        reservations:
+          memory: 256m
+          cpus: 0.25
   grafana:
     image: grafana/grafana:11.0.0
     container_name: alfheim_grafana
@@ -278,6 +334,14 @@ services:
       - gateway-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.25
+        reservations:
+          memory: 256m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 4. CONTROL PLANE: DASHBOARD SERVICE
   # ----------------------------------------------------------------------------
@@ -305,6 +369,14 @@ services:
       - gateway-net
       - core-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   dashboard-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-frontend:${IMAGE_TAG:-latest}
     container_name: dashboard-frontend
@@ -330,6 +402,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 5. CHAT ASSISTANT SERVICE
   # ----------------------------------------------------------------------------
@@ -365,6 +445,14 @@ services:
       - app-chat-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: 0.5
+        reservations:
+          memory: 512m
+          cpus: 0.5
   chat-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-frontend:${IMAGE_TAG:-latest}
     container_name: chat-frontend
@@ -388,6 +476,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 6. PANTRY MANAGEMENT SERVICE
   # ----------------------------------------------------------------------------
@@ -419,6 +515,14 @@ services:
       - app-pantry-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   pantry-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-frontend:${IMAGE_TAG:-latest}
     container_name: pantry-frontend
@@ -442,6 +546,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 7. SHOPPING LIST SERVICE
   # ----------------------------------------------------------------------------
@@ -474,6 +586,14 @@ services:
       - app-shopping-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   shopping-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-frontend:${IMAGE_TAG:-latest}
     container_name: shopping-frontend
@@ -497,6 +617,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 8. MAINTENANCE & DEVICES SERVICE
   # ----------------------------------------------------------------------------
@@ -528,6 +656,14 @@ services:
       - app-maintenance-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   maintenance-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-frontend:${IMAGE_TAG:-latest}
     container_name: maintenance-frontend
@@ -551,6 +687,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 9. HOUSEHOLD CHORES SERVICE
   # ----------------------------------------------------------------------------
@@ -582,6 +726,14 @@ services:
       - app-chores-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   chores-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-frontend:${IMAGE_TAG:-latest}
     container_name: chores-frontend
@@ -605,6 +757,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 10. BUDGET & FINANCE SERVICE
   # ----------------------------------------------------------------------------
@@ -640,6 +800,14 @@ services:
       - app-budget-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   budget-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-frontend:${IMAGE_TAG:-latest}
     container_name: budget-frontend
@@ -664,6 +832,14 @@ services:
       - gateway-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 11. WORKOUT TRACKING SERVICE
   # ----------------------------------------------------------------------------
@@ -695,6 +871,14 @@ services:
       - app-workout-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   workout-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-frontend:${IMAGE_TAG:-latest}
     container_name: workout-frontend
@@ -718,6 +902,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
   # ----------------------------------------------------------------------------
   # 12. MEDIA LIBRARY SERVICE
   # ----------------------------------------------------------------------------
@@ -749,6 +941,14 @@ services:
       - app-library-net
       - observability-internal
 
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
   library-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-frontend:${IMAGE_TAG:-latest}
     container_name: library-frontend
@@ -772,6 +972,14 @@ services:
     networks:
       - gateway-net
 
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: 0.25
+        reservations:
+          memory: 128m
+          cpus: 0.25
 # ==============================================================================
 # VOLUMES & PERSISTENT DATA
 # ==============================================================================
