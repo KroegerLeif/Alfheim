@@ -279,26 +279,26 @@ async def test_product_service_and_router_errors(client: AsyncClient, db_session
     home_id = uuid.uuid4()
 
     p = await ProductService.create_product(
-        db_session,
-        ProductCreate(name="Olive Oil", barcode="888877776666", base_unit=BaseUnit.ML),
-        home_id,
+        session=db_session,
+        home_id=home_id,
+        payload=ProductCreate(name="Olive Oil", barcode="888877776666", base_unit=BaseUnit.ML),
     )
     assert p.id is not None
 
     # Duplicate barcode
     with pytest.raises(ValueError, match="already exists"):
         await ProductService.create_product(
-            db_session,
-            ProductCreate(name="Olive Oil Extra", barcode="888877776666", base_unit=BaseUnit.ML),
-            home_id,
+            session=db_session,
+            home_id=home_id,
+            payload=ProductCreate(name="Olive Oil Extra", barcode="888877776666", base_unit=BaseUnit.ML),
         )
 
     # Invalid category ID
     with pytest.raises(ValueError, match="Category with ID .* not found"):
         await ProductService.create_product(
-            db_session,
-            ProductCreate(name="Invalid Cat Product", category_id=uuid.uuid4(), base_unit=BaseUnit.PIECE),
-            home_id,
+            session=db_session,
+            home_id=home_id,
+            payload=ProductCreate(name="Invalid Cat Product", category_id=uuid.uuid4(), base_unit=BaseUnit.PIECE),
         )
 
     # Missing product
@@ -420,13 +420,13 @@ async def test_product_service_updates_and_deletion(db_session: AsyncSession):
 
     home_id = uuid.uuid4()
     p = await ProductService.create_product(
-        db_session,
-        ProductCreate(
+        session=db_session,
+        home_id=home_id,
+        payload=ProductCreate(
             name="Cereal",
             base_unit=BaseUnit.G,
             nutrition=ProductNutritionCreate(calories=350.0, fat=5.0, carbohydrates=70.0, protein=8.0),
         ),
-        home_id,
     )
     p_id = p.id
 

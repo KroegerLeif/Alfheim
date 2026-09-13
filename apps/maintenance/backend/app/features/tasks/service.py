@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import settings
 from app.features.devices.exceptions import DeviceNotFoundError
 from app.features.devices.models import Device
 from app.features.devices.schemas import ServiceHistoryEventDetailRead
@@ -56,8 +57,9 @@ class TaskService:
             for item in supply_items:
                 try:
                     payload = {"name": item, "quantity": 1.0, "unit": "piece"}
+                    url = f"{settings.SHOPPING_BACKEND_URL.rstrip('/')}/api/v1/shopping/items"
                     response = await client.post(
-                        "http://shopping-backend:8000/api/v1/shopping/items",
+                        url,
                         json=payload,
                         timeout=5.0,
                     )

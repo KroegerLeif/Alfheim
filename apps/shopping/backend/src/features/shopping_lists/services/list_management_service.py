@@ -159,7 +159,7 @@ class ListManagementService:
     async def get_lists(
         session: AsyncSession,
         home_id: uuid.UUID,
-        owner_id: uuid.UUID | None = None,
+        owner_id: uuid.UUID,
         username: str | None = None,
         token: str | None = None,
     ) -> Sequence[ShoppingList]:
@@ -170,7 +170,7 @@ class ListManagementService:
           - Household Lists (one per enrolled household)
           - Custom Lists (additional user-created lists for these households)
         """
-        effective_owner = owner_id or uuid.UUID("00000000-0000-0000-0000-000000000001")
+        effective_owner = owner_id
 
         # 1. Fetch user's enrolled households from dashboard backend
         households = []

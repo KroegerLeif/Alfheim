@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://maintenance_user:postgres@localhost:5432/alfheim_maintenance"
 
+    # Service URLs
+    SHOPPING_BACKEND_URL: str = "http://shopping-backend:8000"
+    BUDGET_SERVICE_URL: str = "http://budget-backend:8000"
+
     # Generic OIDC Configuration (Zitadel)
     OIDC_ISSUER_URL: str = "http://auth.alfheim.loegien.localhost"
     OIDC_AUDIENCE: str = "alfheim"
