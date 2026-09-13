@@ -753,20 +753,12 @@ name = "chores-backend"
 version = "0.1.0"
 source = { virtual = "apps/chores/backend" }
 dependencies = [
-    { name = "aioboto3" },
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
     { name = "fastmcp" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-instrumentation-fastapi" },
-    { name = "opentelemetry-instrumentation-logging" },
-    { name = "opentelemetry-instrumentation-sqlalchemy" },
-    { name = "opentelemetry-sdk" },
     { name = "pydantic-settings" },
-    { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlmodel" },
     { name = "uvicorn" },
 ]
@@ -785,20 +777,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "fastmcp", specifier = ">=3.4.1" },
-    { name = "opentelemetry-api", specifier = ">=1.25.0" },
-    { name = "opentelemetry-exporter-otlp", specifier = ">=1.25.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-instrumentation-logging", specifier = ">=0.46b0" },
-    { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.46b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.25.0" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
     { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.39.0" },
 ]
@@ -1642,20 +1626,14 @@ name = "maintenance-backend"
 version = "0.1.0"
 source = { virtual = "apps/maintenance/backend" }
 dependencies = [
-    { name = "aioboto3" },
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "httpx" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-instrumentation-fastapi" },
-    { name = "opentelemetry-sdk" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlalchemy" },
     { name = "sqlmodel" },
     { name = "uvicorn" },
@@ -1675,20 +1653,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "fastmcp", specifier = ">=3.4.1" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "opentelemetry-api", specifier = ">=1.44.0" },
-    { name = "opentelemetry-exporter-otlp", specifier = ">=1.44.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
     { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.39.0" },
@@ -2168,21 +2140,13 @@ name = "pantry-backend"
 version = "0.1.0"
 source = { virtual = "apps/pantry/backend" }
 dependencies = [
-    { name = "aioboto3" },
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
     { name = "fastmcp" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-instrumentation-fastapi" },
-    { name = "opentelemetry-instrumentation-logging" },
-    { name = "opentelemetry-instrumentation-sqlalchemy" },
-    { name = "opentelemetry-sdk" },
     { name = "pint" },
     { name = "pydantic-settings" },
-    { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlmodel" },
     { name = "uvicorn" },
 ]
@@ -2202,21 +2166,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "fastmcp", specifier = ">=3.4.1" },
-    { name = "opentelemetry-api", specifier = ">=1.25.0" },
-    { name = "opentelemetry-exporter-otlp", specifier = ">=1.25.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-instrumentation-logging", specifier = ">=0.46b0" },
-    { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.46b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.25.0" },
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
     { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.39.0" },
 ]
@@ -2953,18 +2909,12 @@ name = "shopping-backend"
 version = "0.1.0"
 source = { virtual = "apps/shopping/backend" }
 dependencies = [
-    { name = "aioboto3" },
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "backend-shared" },
     { name = "fastapi" },
     { name = "httpx" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-instrumentation-fastapi" },
-    { name = "opentelemetry-sdk" },
     { name = "pydantic-settings" },
-    { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlmodel" },
     { name = "uvicorn" },
 ]
@@ -2983,18 +2933,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "opentelemetry-api", specifier = ">=1.44.0" },
-    { name = "opentelemetry-exporter-otlp", specifier = ">=1.44.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
     { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.39.0" },
 ]
@@ -3372,14 +3316,7 @@ dependencies = [
     { name = "backend-shared" },
     { name = "fastapi" },
     { name = "fastmcp" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-instrumentation-fastapi" },
-    { name = "opentelemetry-instrumentation-logging" },
-    { name = "opentelemetry-instrumentation-sqlalchemy" },
-    { name = "opentelemetry-sdk" },
     { name = "pydantic-settings" },
-    { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlmodel" },
     { name = "uvicorn" },
 ]
@@ -3403,14 +3340,7 @@ requires-dist = [
     { name = "backend-shared", editable = "packages/backend-shared" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "fastmcp", specifier = ">=3.4.1" },
-    { name = "opentelemetry-api", specifier = ">=1.25.0" },
-    { name = "opentelemetry-exporter-otlp", specifier = ">=1.25.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-instrumentation-logging", specifier = ">=0.46b0" },
-    { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.46b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.25.0" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
     { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.39.0" },
 ]
