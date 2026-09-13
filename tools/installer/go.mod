@@ -1,11 +1,11 @@
 module alfheim/installer
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/charmbracelet/huh v1.0.0
 	github.com/google/go-cmp v0.7.0
-	golang.org/x/mod v0.25.0
+	golang.org/x/mod v0.41.0
 	golang.org/x/term v0.45.0
 )
 
