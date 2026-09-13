@@ -299,12 +299,9 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./infrastructure/telemetry/collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:13133 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+    # No healthcheck: the contrib image is a minimal/scratch-based build with no
+    # shell or wget, so a CMD-SHELL probe can never succeed and only stalls
+    # startup until timeout. Downstream services depend on service_started.
     depends_on:
       victoriametrics:
         condition: service_healthy
