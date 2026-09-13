@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-from src.core.storage import StorageSettings
+from backend_shared.storage import StorageSettings
 
 
 def test_storage_settings_dev_default_fallback(monkeypatch):

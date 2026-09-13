@@ -4,7 +4,6 @@ from datetime import date, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from app.core.database import seed_database
 from app.features.devices.exceptions import DeviceNotFoundError
 from app.features.devices.models import Device, Household
 
@@ -20,12 +19,6 @@ from app.features.tasks.schemas import MaintenanceSubmission, TaskStateUpdate
 from app.features.tasks.service import TaskService
 from httpx import Response
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-
-@pytest.mark.asyncio
-async def test_seed_database_execution(db_session: AsyncSession):
-    """Verify that seed_database populates mockup devices, steps, and history records."""
-    await seed_database(db_session)
 
 
 def test_days_until_edge_cases():

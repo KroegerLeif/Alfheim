@@ -11,7 +11,7 @@ from app.core.dependencies import (
     is_mock_auth_allowed,
 )
 from app.core.mcp import discover_and_import_mcp_tools
-from app.core.telemetry import setup_telemetry, shutdown_telemetry
+from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
 from app.main import app, lifespan
 from app.tests.conftest import test_engine, test_session_factory
 from httpx import AsyncClient
@@ -86,7 +86,7 @@ async def test_application_lifespan():
     """Verify application lifespan setup and shutdown."""
     with (
         patch("app.core.database.init_db") as mock_init,
-        patch("app.core.telemetry.shutdown_telemetry") as mock_shutdown,
+        patch("backend_shared.telemetry.shutdown_telemetry") as mock_shutdown,
     ):
         async with lifespan(app):
             pass

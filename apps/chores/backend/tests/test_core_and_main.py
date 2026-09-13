@@ -14,7 +14,7 @@ from src.core.dependencies import (
     get_jwks_client,
     is_mock_auth_allowed,
 )
-from src.core.telemetry import setup_telemetry, shutdown_telemetry
+from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
 from src.main import app, handle_task_exception
 
 _test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
