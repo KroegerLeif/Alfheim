@@ -286,7 +286,9 @@ async def test_task_service_update_task_state_and_overdue(db_session: AsyncSessi
         await TaskService.update_task_state(db_session, step.id, TaskStateUpdate(comment="test"), household_id=99999)
 
     # Update supply item
-    updated = await TaskService.update_task_state(db_session, step.id, TaskStateUpdate(supply_item="O-Ring"), household_id=household.id)
+    updated = await TaskService.update_task_state(
+        db_session, step.id, TaskStateUpdate(supply_item="O-Ring"), household_id=household.id
+    )
     assert updated.supply_item == "O-Ring"
 
     # Get overdue tasks (should include step with 2026-05-01, skip step_no_date and step_bad_date)

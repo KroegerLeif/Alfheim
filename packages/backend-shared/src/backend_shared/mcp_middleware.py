@@ -40,9 +40,7 @@ class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.settings = settings
 
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Any]]
-    ) -> Any:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Any]]) -> Any:
         """Process the request, enforce authentication, and inject user context."""
         try:
             auth_header = request.headers.get("Authorization")
@@ -149,10 +147,7 @@ class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
                     if is_mock_auth_allowed(self.settings):
                         selected_hh_str = "1"
                     else:
-                        logger.warning(
-                            "MCP request missing household context "
-                            "(X-Household-ID header or token claim)"
-                        )
+                        logger.warning("MCP request missing household context (X-Household-ID header or token claim)")
                         return JSONResponse(
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             content={"detail": "missing household context"},
@@ -204,8 +199,5 @@ def get_mcp_user_context() -> UserHouseholdContext:
     """
     context = mcp_user_context.get()
     if not context:
-        raise RuntimeError(
-            "User context not found. "
-            "Ensure MCPAuthenticationMiddleware is applied to the MCP app."
-        )
+        raise RuntimeError("User context not found. Ensure MCPAuthenticationMiddleware is applied to the MCP app.")
     return context

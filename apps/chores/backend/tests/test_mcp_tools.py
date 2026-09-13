@@ -18,12 +18,14 @@ USER_A_ID = "test-user-a"
 @pytest.fixture
 def set_mcp_context():
     """Fixture to set MCP user context for tests."""
+
     def _set_context(user_id: str, household_id: int):
         context = UserHouseholdContext(
             user_id=user_id,
             household_id=household_id,
         )
         mcp_user_context.set(context)
+
     return _set_context
 
 

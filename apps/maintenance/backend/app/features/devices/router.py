@@ -62,9 +62,7 @@ async def get_device_by_id(
     if context.household_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
-        return await DeviceService.get_device_by_id(
-            session, device_id=device_id, household_id=context.household_id
-        )
+        return await DeviceService.get_device_by_id(session, device_id=device_id, household_id=context.household_id)
     except DeviceNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

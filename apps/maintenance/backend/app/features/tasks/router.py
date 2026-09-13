@@ -37,9 +37,7 @@ async def submit_maintenance(
     if context.household_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
-        return await TaskService.submit_maintenance_wizard(
-            session, payload, household_id=context.household_id
-        )
+        return await TaskService.submit_maintenance_wizard(session, payload, household_id=context.household_id)
     except DeviceNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except InvalidStepError as e:
@@ -79,8 +77,6 @@ async def update_task_state(
     if context.household_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing household context")
     try:
-        return await TaskService.update_task_state(
-            session, step_id, payload, household_id=context.household_id
-        )
+        return await TaskService.update_task_state(session, step_id, payload, household_id=context.household_id)
     except StepNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

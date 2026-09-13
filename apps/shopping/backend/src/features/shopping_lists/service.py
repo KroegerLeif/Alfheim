@@ -17,6 +17,7 @@ from src.features.shopping_lists.services.shopping_item_service import ShoppingI
 
 logger = logging.getLogger(__name__)
 
+
 # Type guard for exhaustive None checks
 def _require_owner_id(owner_id: uuid.UUID | None) -> uuid.UUID:
     """Assert that owner_id is not None; raise ValueError if it is."""
