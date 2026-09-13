@@ -1,6 +1,7 @@
 import uuid
 from datetime import date
 
+from backend_shared.mcp_middleware import get_mcp_user_context
 from src.core.database import async_session_factory
 from src.features.inventory.alert_service import AlertService
 from src.features.inventory.exceptions import InventoryError
@@ -11,7 +12,6 @@ from src.mcp.server import mcp
 
 @mcp.tool()
 async def record_inventory_movement(
-    household_id: str,
     product_id: str,
     location_id: str,
     transaction_type: str,
@@ -24,7 +24,6 @@ async def record_inventory_movement(
     """Record a physical inventory movement (IN, OUT, WASTE, RECONCILIATION).
 
     Parameters:
-    - household_id: UUID string of the household space.
     - product_id: UUID of the target product blueprint.
     - location_id: UUID of the storage location.
     - transaction_type: Type of movement ('in', 'out', 'waste', 'reconciliation').
@@ -35,7 +34,11 @@ async def record_inventory_movement(
     - notes: Optional text note detailing transaction reasons.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
+        user_context = get_mcp_user_context()
+        if not user_context.household_id:
+            return "Error: No household context available"
+
+        home_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_context.household_id))
         payload = InventoryTransactionCreate(
             product_id=uuid.UUID(product_id),
             location_id=uuid.UUID(location_id),
@@ -62,25 +65,29 @@ async def record_inventory_movement(
         return f"Error: Inventory operation failed: {str(e)}"
     except ValueError as e:
         return f"Error: Invalid argument: {str(e)}"
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
     except Exception as e:
         return f"Error: An unexpected database error occurred: {str(e)}"
 
 
 @mcp.tool()
 async def get_current_inventory(
-    household_id: str,
     product_id: str | None = None,
     location_id: str | None = None,
 ) -> str:
     """Retrieve the real-time cached inventory levels.
 
     Parameters:
-    - household_id: UUID string of the household space.
     - product_id: Optional UUID to filter results by a specific product.
     - location_id: Optional UUID to filter results by a specific location.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
+        user_context = get_mcp_user_context()
+        if not user_context.household_id:
+            return "Error: No household context available"
+
+        home_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_context.household_id))
         p_uuid = uuid.UUID(product_id) if product_id else None
         l_uuid = uuid.UUID(location_id) if location_id else None
 
@@ -109,19 +116,21 @@ async def get_current_inventory(
                 )
             return "\n".join(lines)
 
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
     except Exception as e:
         return f"Error: Failed to fetch inventory state: {str(e)}"
 
 
 @mcp.tool()
-async def get_low_stock_alerts(household_id: str) -> str:
-    """List all products currently below their minimum stock thresholds.
-
-    Parameters:
-    - household_id: UUID string of the household space.
-    """
+async def get_low_stock_alerts() -> str:
+    """List all products currently below their minimum stock thresholds."""
     try:
-        home_uuid = uuid.UUID(household_id)
+        user_context = get_mcp_user_context()
+        if not user_context.household_id:
+            return "Error: No household context available"
+
+        home_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_context.household_id))
         async with async_session_factory() as session:
             low_stock_items = await AlertService.get_low_stock_items(
                 session=session,
@@ -141,19 +150,21 @@ async def get_low_stock_alerts(household_id: str) -> str:
                 )
             return "\n".join(lines)
 
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
     except Exception as e:
         return f"Error: Failed to fetch low stock alerts: {str(e)}"
 
 
 @mcp.tool()
-async def get_inventory_expiration_summary(household_id: str) -> str:
-    """Summarize inventory items grouped by their expiration status (Expired, Valid, Untracked).
-
-    Parameters:
-    - household_id: UUID string of the household space.
-    """
+async def get_inventory_expiration_summary() -> str:
+    """Summarize inventory items grouped by their expiration status (Expired, Valid, Untracked)."""
     try:
-        home_uuid = uuid.UUID(household_id)
+        user_context = get_mcp_user_context()
+        if not user_context.household_id:
+            return "Error: No household context available"
+
+        home_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_context.household_id))
         async with async_session_factory() as session:
             summary = await AlertService.get_expiration_summary(
                 session=session,

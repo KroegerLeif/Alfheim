@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from backend_shared import setup_telemetry, shutdown_telemetry
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.audit import register_audit_hooks
@@ -67,8 +68,10 @@ app.include_router(
     tags=["transactions"],
 )
 
-# Mount the FastMCP SSE/HTTP app
-app.mount("/mcp", mcp.http_app())
+# Mount the FastMCP SSE/HTTP app with authentication middleware
+mcp_app = mcp.http_app()
+mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
+app.mount("/mcp", mcp_app_with_auth)
 
 # Configure CORS middleware
 app.add_middleware(

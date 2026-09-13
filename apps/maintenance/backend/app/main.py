@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.mcp import discover_and_import_mcp_tools, mcp_server
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 
 
 def discover_and_include_routers(app: FastAPI) -> None:
@@ -88,8 +89,10 @@ discover_and_include_routers(app)
 # Discover and register FastMCP tools dynamically from features/*/mcp_tools.py
 discover_and_import_mcp_tools()
 
-# Mount the FastMCP HTTP server at /mcp
-app.mount("/mcp", mcp_server.http_app())
+# Mount the FastMCP HTTP server at /mcp with authentication middleware
+mcp_app = mcp_server.http_app()
+mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
+app.mount("/mcp", mcp_app_with_auth)
 
 
 @app.get("/api/v1/health")

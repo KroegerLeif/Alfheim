@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from src.core.config import settings
 from src.mcp.server import mcp
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 
 
 def discover_and_include_routers(app: FastAPI) -> None:
@@ -90,8 +91,10 @@ from src.mcp.server import discover_and_import_mcp_tools
 
 discover_and_import_mcp_tools()
 
-# Mount the FastMCP server
-app.mount("/mcp", mcp.http_app())
+# Mount the FastMCP server with authentication middleware
+mcp_app = mcp.http_app()
+mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
+app.mount("/mcp", mcp_app_with_auth)
 
 
 @app.get("/api/v1/health")

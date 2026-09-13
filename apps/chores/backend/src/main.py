@@ -9,6 +9,7 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 from src.core.config import settings
 from src.mcp.server import mcp
+from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -149,8 +150,10 @@ from src.mcp.server import discover_and_import_mcp_tools
 
 discover_and_import_mcp_tools()
 
-# Mount the FastMCP server
-app.mount("/mcp", mcp.http_app())
+# Mount the FastMCP server with authentication middleware
+mcp_app = mcp.http_app()
+mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
+app.mount("/mcp", mcp_app_with_auth)
 
 
 @app.get("/api/v1/health")
