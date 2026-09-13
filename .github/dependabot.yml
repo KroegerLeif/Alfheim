@@ -1,0 +1,85 @@
+version: 2
+updates:
+  # Python dependencies (via uv/pip)
+  - package-ecosystem: pip
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+    allow:
+      - dependency-type: 'direct'
+      - dependency-type: 'indirect'
+
+  # Go module dependencies
+  - package-ecosystem: gomod
+    directory: '/apps/chat/backend'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  - package-ecosystem: gomod
+    directory: '/core/dashboard/backend'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  - package-ecosystem: gomod
+    directory: '/tools/installer'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  # Node.js / npm dependencies (managed via pnpm)
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:tooling'

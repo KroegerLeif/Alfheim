@@ -274,6 +274,21 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
+      - name: Run Trivy Vulnerability Scan on Container Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}:${{ github.ref_name }}
+          format: 'sarif'
+          output: '${{ matrix.name }}-trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy Results to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: '${{ matrix.name }}-trivy-results.sarif'
+          category: 'trivy-image-${{ matrix.name }}'
+
   build-installer:
     name: Build Installer Binaries (${{ matrix.goarch }})
     needs:
