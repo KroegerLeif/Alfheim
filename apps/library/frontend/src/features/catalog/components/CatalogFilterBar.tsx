@@ -42,12 +42,12 @@ export function CatalogFilterBar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("library.catalog.searchPlaceholder")}
-            className="w-full rounded-xl border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] px-4 py-2.5 text-sm text-[var(--text-main,#f8fafc)] placeholder-[var(--text-muted,#64748b)] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted,#64748b)] hover:text-[var(--text-main,#f8fafc)]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
             >
               ✕
             </button>
@@ -80,7 +80,7 @@ export function CatalogFilterBar({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-[var(--border-subtle,#334155)]">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-[var(--border-subtle)]">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -88,7 +88,7 @@ export function CatalogFilterBar({
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
               category === tab.key
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-[var(--text-muted,#94a3b8)] hover:text-[var(--text-main,#f8fafc)] hover:bg-[var(--surface-card,#1e293b)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-card)]"
             }`}
           >
             {tab.label}

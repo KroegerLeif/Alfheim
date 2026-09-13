@@ -76,10 +76,10 @@ export function ItemCard({
       } ${
         item.is_cookbook
           ? "border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent"
-          : "border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)]"
+          : "border-[var(--border-subtle)] bg-[var(--surface-card)]"
       }`}
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--surface-muted,#0f172a)] flex items-center justify-center">
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--surface-elevated)] flex items-center justify-center">
         {item.cover_image_url ? (
           <img
             src={item.cover_image_url}
@@ -87,7 +87,7 @@ export function ItemCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center text-[var(--text-muted,#64748b)]">
+          <div className="flex flex-col items-center justify-center text-[var(--text-muted)]">
             <span className="text-3xl font-bold tracking-wider opacity-60">
               {item.media_type.charAt(0)}
             </span>
@@ -125,34 +125,34 @@ export function ItemCard({
 
       <div className="flex flex-1 flex-col justify-between p-4 space-y-3">
         <div>
-          <h3 className="font-bold text-base text-[var(--text-main,#f8fafc)] line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="font-bold text-base text-[var(--text-main)] line-clamp-1 group-hover:text-primary transition-colors">
             {item.title}
           </h3>
           {item.author_creator && (
-            <p className="text-xs text-[var(--text-muted,#94a3b8)] line-clamp-1 mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] line-clamp-1 mt-0.5">
               {item.author_creator}
             </p>
           )}
           {item.description && (
-            <p className="text-xs text-[var(--text-muted,#64748b)] line-clamp-2 mt-2">
+            <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-2">
               {item.description}
             </p>
           )}
         </div>
 
-        <div className="space-y-2 pt-2 border-t border-[var(--border-subtle,#334155)]">
+        <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
           {locationName && (
-            <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted,#94a3b8)]">
+            <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
               <span className="font-medium">📍 {locationName}</span>
             </div>
           )}
 
           {specs.length > 0 && (
-            <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-muted,#94a3b8)]">
+            <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-muted)]">
               {specs.map((spec, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-0.5 rounded bg-[var(--surface-muted,#0f172a)] border border-[var(--border-subtle,#334155)]"
+                  className="px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)]"
                 >
                   {spec}
                 </span>

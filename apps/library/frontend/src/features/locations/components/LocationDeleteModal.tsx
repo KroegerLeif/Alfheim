@@ -46,7 +46,7 @@ export function LocationDeleteModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-md border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] text-[var(--text-main,#f8fafc)]">
+      <DialogContent className="max-w-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]">
         <DialogHeader>
           <DialogTitle>{t("library.locations.deleteTitle")}</DialogTitle>
         </DialogHeader>
@@ -58,7 +58,7 @@ export function LocationDeleteModal({
             </div>
           )}
 
-          <p className="text-sm text-[var(--text-main,#f8fafc)]">
+          <p className="text-sm text-[var(--text-main)]">
             {t("library.locations.deleteConfirm", { name: locationToDelete.name })}
           </p>
         </div>

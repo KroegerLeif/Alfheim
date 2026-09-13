@@ -25,7 +25,7 @@ export function ProviderList() {
 
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-[var(--text-muted,#94a3b8)]">
+      <div className="p-8 text-center text-[var(--text-muted)]">
         {t("library.providers.loading")}
       </div>
     );
@@ -43,10 +43,10 @@ export function ProviderList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[var(--text-main,#f8fafc)]">
+          <h2 className="text-xl font-bold text-[var(--text-main)]">
             {t("library.providers.activeProviders")}
           </h2>
-          <p className="text-xs text-[var(--text-muted,#94a3b8)] mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             {t("library.providers.subtitle")}
           </p>
         </div>
@@ -61,7 +61,7 @@ export function ProviderList() {
       </div>
 
       {providers.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[var(--border-main,#334155)] p-12 text-center text-[var(--text-muted,#94a3b8)] space-y-3">
+        <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] p-12 text-center text-[var(--text-muted)] space-y-3">
           <p>{t("library.providers.noProviders")}</p>
           <Button
             type="button"

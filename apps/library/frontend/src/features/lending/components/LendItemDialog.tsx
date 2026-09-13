@@ -55,11 +55,11 @@ export function LendItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] text-[var(--text-main,#f8fafc)]">
+      <DialogContent className="max-w-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]">
         <DialogHeader>
           <DialogTitle>{t("library.lending.lendItem")}</DialogTitle>
           {itemTitle && (
-            <p className="text-xs text-[var(--text-muted,#94a3b8)]">{itemTitle}</p>
+            <p className="text-xs text-[var(--text-muted)]">{itemTitle}</p>
           )}
         </DialogHeader>
 
@@ -71,7 +71,7 @@ export function LendItemDialog({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-main,#f8fafc)] mb-1">
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1">
               {t("library.lending.borrower")} *
             </label>
             <input
@@ -82,12 +82,12 @@ export function LendItemDialog({
               }
               placeholder="e.g. John Doe"
               required
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] p-2 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-2 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-main,#f8fafc)] mb-1">
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1">
               {t("library.lending.dueDate")}
             </label>
             <input
@@ -96,12 +96,12 @@ export function LendItemDialog({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setDueDate(e.target.value)
               }
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] p-2 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-2 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-main,#f8fafc)] mb-1">
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1">
               {t("library.lending.notes")}
             </label>
             <textarea
@@ -110,7 +110,7 @@ export function LendItemDialog({
                 setNotes(e.target.value)
               }
               rows={3}
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] p-2.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-2.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </form>

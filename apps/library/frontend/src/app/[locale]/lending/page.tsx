@@ -26,21 +26,21 @@ export default function LendingPage() {
     <div className="space-y-6 p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-main,#f8fafc)]">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-main)]">
             {t("library.lending.title")}
           </h1>
-          <p className="text-sm text-[var(--text-muted,#94a3b8)]">
+          <p className="text-sm text-[var(--text-muted)]">
             {t("library.lending.subtitle")}
           </p>
         </div>
 
-        <div className="flex rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] p-1">
+        <div className="flex rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] p-1">
           <button
             onClick={() => setActiveTab("active")}
             className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               activeTab === "active"
                 ? "bg-primary text-white"
-                : "text-[var(--text-muted,#94a3b8)] hover:text-[var(--text-main,#f8fafc)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}
           >
             {t("library.lending.activeLoans")} ({activeLoans.length})
@@ -50,7 +50,7 @@ export default function LendingPage() {
             className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               activeTab === "history"
                 ? "bg-primary text-white"
-                : "text-[var(--text-muted,#94a3b8)] hover:text-[var(--text-main,#f8fafc)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}
           >
             {t("library.lending.history")} ({history.length})

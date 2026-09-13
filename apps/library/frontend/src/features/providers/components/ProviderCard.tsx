@@ -29,10 +29,10 @@ export function ProviderCard({
   };
 
   return (
-    <div className="rounded-xl border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] p-4 shadow-sm flex flex-col justify-between gap-4 transition-colors hover:border-primary/50">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4 shadow-sm flex flex-col justify-between gap-4 transition-colors hover:border-primary/50">
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-[var(--text-main,#f8fafc)] text-base">
+          <h3 className="font-semibold text-[var(--text-main)] text-base">
             {provider.name}
           </h3>
           <Badge
@@ -56,13 +56,13 @@ export function ProviderCard({
         </div>
 
         {provider.notes && (
-          <p className="text-xs text-[var(--text-muted,#94a3b8)] line-clamp-2">
+          <p className="text-xs text-[var(--text-muted)] line-clamp-2">
             {provider.notes}
           </p>
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle,#334155)]">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
         <Button
           type="button"
           variant={provider.is_active ? "outline" : "default"}

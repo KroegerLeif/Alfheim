@@ -21,7 +21,7 @@ export function ActiveLoansList({
         {Array.from({ length: 3 }).map((_, idx) => (
           <div
             key={idx}
-            className="h-36 rounded-2xl border border-[var(--border-subtle,#334155)] bg-[var(--surface-card,#1e293b)] animate-pulse p-4"
+            className="h-36 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] animate-pulse p-4"
           />
         ))}
       </div>
@@ -30,7 +30,7 @@ export function ActiveLoansList({
 
   if (loans.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--border-main,#334155)] p-8 text-center text-xs text-[var(--text-muted,#64748b)]">
+      <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] p-8 text-center text-xs text-[var(--text-muted)]">
         {t("library.lending.noActiveLoans")}
       </div>
     );
@@ -45,11 +45,11 @@ export function ActiveLoansList({
         return (
           <div
             key={record.id}
-            className="flex flex-col justify-between rounded-2xl border border-[var(--border-main,#334155)] bg-[var(--surface-card,#1e293b)] p-4 space-y-3"
+            className="flex flex-col justify-between rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4 space-y-3"
           >
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <h4 className="font-bold text-sm text-[var(--text-main,#f8fafc)] line-clamp-1">
+                <h4 className="font-bold text-sm text-[var(--text-main)] line-clamp-1">
                   {record.item?.title || record.item_id}
                 </h4>
                 {isOverdue ? (
@@ -63,13 +63,13 @@ export function ActiveLoansList({
                 )}
               </div>
 
-              <div className="text-xs text-[var(--text-muted,#94a3b8)]">
-                <span className="font-medium text-[var(--text-main,#f8fafc)]">
+              <div className="text-xs text-[var(--text-muted)]">
+                <span className="font-medium text-[var(--text-main)]">
                   👤 {record.contact_name}
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--text-muted,#64748b)] pt-1">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--text-muted)] pt-1">
                 <span>
                   📅 {t("library.lending.lentAt")}:{" "}
                   {new Date(record.lent_at).toLocaleDateString()}
@@ -83,7 +83,7 @@ export function ActiveLoansList({
               </div>
 
               {record.notes && (
-                <p className="text-[11px] text-[var(--text-muted,#64748b)] italic line-clamp-2 pt-1 border-t border-[var(--border-subtle,#334155)]">
+                <p className="text-[11px] text-[var(--text-muted)] italic line-clamp-2 pt-1 border-t border-[var(--border-subtle)]">
                   &quot;{record.notes}&quot;
                 </p>
               )}

@@ -25,13 +25,13 @@ export function LocationTreeNodeItem({
     <div className="flex flex-col space-y-2">
       <div
         style={{ paddingLeft: `${level * 1.5}rem` }}
-        className="group flex items-center justify-between rounded-xl border border-[var(--border-subtle,#334155)] bg-[var(--surface-card,#1e293b)] p-3 transition-colors hover:border-[var(--border-main,#475569)]"
+        className="group flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-3 transition-colors hover:border-[var(--border-subtle)]"
       >
         <div className="flex items-center space-x-3 min-w-0 flex-1">
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold text-[var(--text-muted,#94a3b8)] hover:bg-[var(--surface-muted,#0f172a)] ${
+            className={`flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-elevated)] ${
               !hasChildren ? "invisible" : ""
             }`}
             aria-label={isExpanded ? "Collapse node" : "Expand node"}
@@ -41,7 +41,7 @@ export function LocationTreeNodeItem({
 
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-[var(--text-main,#f8fafc)] truncate">
+              <span className="font-semibold text-[var(--text-main)] truncate">
                 {node.name}
               </span>
               {typeof node.itemCount === "number" && (
@@ -51,7 +51,7 @@ export function LocationTreeNodeItem({
               )}
             </div>
             {node.description && (
-              <p className="text-xs text-[var(--text-muted,#94a3b8)] truncate mt-0.5">
+              <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
                 {node.description}
               </p>
             )}

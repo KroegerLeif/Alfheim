@@ -20,23 +20,23 @@ export function MediaSpecificFields({
       {formData.media_type === "BOOK" && (
         <>
           <div>
-            <label className="block text-[var(--text-muted,#94a3b8)] mb-1 font-medium">
+            <label className="block text-[var(--text-muted)] mb-1 font-medium">
               {t("library.itemDialog.isbn")}
             </label>
             <input
               type="text"
               value={formData.isbn_gtin || ""}
               onChange={(e) => onChange({ isbn_gtin: e.target.value })}
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div className="flex items-center pt-5">
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-main,#f8fafc)]">
+            <label className="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-main)]">
               <input
                 type="checkbox"
                 checked={formData.is_cookbook}
                 onChange={(e) => onChange({ is_cookbook: e.target.checked })}
-                className="h-4 w-4 rounded border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-primary focus:ring-primary"
               />
               📖 {t("library.itemDialog.isCookbook")}
             </label>
@@ -47,7 +47,7 @@ export function MediaSpecificFields({
       {formData.media_type === "GAME" && (
         <>
           <div>
-            <label className="block text-[var(--text-muted,#94a3b8)] mb-1 font-medium">
+            <label className="block text-[var(--text-muted)] mb-1 font-medium">
               {t("library.itemDialog.minPlayers")}
             </label>
             <input
@@ -57,11 +57,11 @@ export function MediaSpecificFields({
               onChange={(e) =>
                 onChange({ min_players: e.target.value ? parseInt(e.target.value, 10) : null })
               }
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-[var(--text-muted,#94a3b8)] mb-1 font-medium">
+            <label className="block text-[var(--text-muted)] mb-1 font-medium">
               {t("library.itemDialog.maxPlayers")}
             </label>
             <input
@@ -71,7 +71,7 @@ export function MediaSpecificFields({
               onChange={(e) =>
                 onChange({ max_players: e.target.value ? parseInt(e.target.value, 10) : null })
               }
-              className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </>
@@ -81,7 +81,7 @@ export function MediaSpecificFields({
         formData.media_type === "MOVIE" ||
         formData.media_type === "SERIES") && (
         <div>
-          <label className="block text-[var(--text-muted,#94a3b8)] mb-1 font-medium">
+          <label className="block text-[var(--text-muted)] mb-1 font-medium">
             {t("library.itemDialog.playingTime")}
           </label>
           <input
@@ -91,14 +91,14 @@ export function MediaSpecificFields({
             onChange={(e) =>
               onChange({ runtime_minutes: e.target.value ? parseInt(e.target.value, 10) : null })
             }
-            className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
       )}
 
       {(formData.media_type === "MOVIE" || formData.media_type === "SERIES") && (
         <div>
-          <label className="block text-[var(--text-muted,#94a3b8)] mb-1 font-medium">
+          <label className="block text-[var(--text-muted)] mb-1 font-medium">
             {t("library.itemDialog.fsk")}
           </label>
           <input
@@ -109,7 +109,7 @@ export function MediaSpecificFields({
             onChange={(e) =>
               onChange({ fsk_rating: e.target.value !== "" ? parseInt(e.target.value, 10) : null })
             }
-            className="w-full rounded-lg border border-[var(--border-main,#334155)] bg-[var(--surface-muted,#0f172a)] px-3 py-1.5 text-xs text-[var(--text-main,#f8fafc)] focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
       )}

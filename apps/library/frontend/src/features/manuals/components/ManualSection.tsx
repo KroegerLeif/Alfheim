@@ -40,9 +40,9 @@ export function ManualSection({
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-[var(--border-subtle,#334155)] p-3 bg-[var(--surface-muted,#0f172a)]/40">
+    <div className="space-y-2 rounded-lg border border-[var(--border-subtle)] p-3 bg-[var(--surface-elevated)]/40">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold text-[var(--text-main,#f8fafc)] uppercase tracking-wider">
+        <h4 className="text-xs font-semibold text-[var(--text-main)] uppercase tracking-wider">
           {t("library.manuals.title")}
         </h4>
         {hasManual && (
