@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - 'apps/*/backend/**'
       - 'core/*/backend/**'
@@ -62,7 +63,7 @@ jobs:
         run: uv sync --all-packages --all-groups
 
       - name: Run pip-audit on Root Workspace
-        run: uv run pip-audit --desc
+        run: uvx pip-audit --desc
 
   go-vulncheck:
     name: Go Dependency Audit (govulncheck)
