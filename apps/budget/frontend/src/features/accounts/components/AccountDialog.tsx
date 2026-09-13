@@ -60,23 +60,25 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.name")}</label>
+            <label htmlFor="account-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.name")}</label>
             <input
+              id="account-name"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("accounts.placeholder")}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.type")}</label>
+            <label htmlFor="account-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.type")}</label>
             <select
+              id="account-type"
               value={accountType}
               onChange={(e) => setAccountType(e.target.value as AccountType)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             >
               <option value="CHECKING">{t("accounts.checking")}</option>
               <option value="SAVINGS">{t("accounts.savings")}</option>
@@ -87,25 +89,27 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currentBalance")}</label>
+              <label htmlFor="account-balance" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currentBalance")}</label>
               <input
+                id="account-balance"
                 type="number"
                 step="0.01"
                 required
                 value={balance}
                 onChange={(e) => setBalance(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currency")}</label>
+              <label htmlFor="account-currency" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currency")}</label>
               <input
+                id="account-currency"
                 type="text"
                 required
                 maxLength={3}
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] uppercase"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] uppercase"
               />
             </div>
           </div>

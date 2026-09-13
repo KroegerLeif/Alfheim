@@ -70,7 +70,8 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
                 <button
                   onClick={() => handleComplete(chore.id, chore.status)}
                   disabled={isCompleted}
-                  className={`cursor-pointer focus:outline-none transition-transform active:scale-95 ${
+                  aria-label={isCompleted ? t("chores.choreCompleted") : t("chores.completeChore")}
+                  className={`cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] rounded transition-transform active:scale-95 ${
                     isCompleted ? "text-emerald-500" : "text-[var(--text-muted)] hover:text-[var(--primary-main)]"
                   }`}
                 >

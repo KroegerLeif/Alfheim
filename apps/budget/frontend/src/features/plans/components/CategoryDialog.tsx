@@ -44,26 +44,28 @@ export function CategoryDialog({ open, parentId, onClose, onSubmit }: CategoryDi
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Category Name</label>
+            <label htmlFor="category-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Category Name</label>
             <input
+              id="category-name"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Groceries"
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Allocated Amount</label>
+            <label htmlFor="category-amount" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Allocated Amount</label>
             <input
+              id="category-amount"
               type="number"
               step="0.01"
               required
               value={allocatedAmount}
               onChange={(e) => setAllocatedAmount(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
             />
           </div>
 

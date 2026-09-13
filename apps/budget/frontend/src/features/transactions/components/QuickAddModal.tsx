@@ -81,38 +81,41 @@ export function QuickAddModal({
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.description")}</label>
+            <label htmlFor="transaction-description" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.description")}</label>
             <input
+              id="transaction-description"
               type="text"
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t("transactions.descriptionPlaceholder")}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+              <label htmlFor="transaction-amount" className="block text-xs font-medium text-[var(--text-muted)] mb-1">
                 {t("transactions.amount")} ({currencySymbol})
               </label>
               <input
+                id="transaction-amount"
                 type="number"
                 step="0.01"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="25.50"
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.type")}</label>
+              <label htmlFor="transaction-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.type")}</label>
               <select
+                id="transaction-type"
                 value={transactionType}
                 onChange={(e) => setTransactionType(e.target.value as TransactionType)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               >
                 <option value="EXPENSE">{t("transactions.expense")} (-)</option>
                 <option value="INCOME">{t("transactions.income")} (+)</option>
@@ -122,11 +125,12 @@ export function QuickAddModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.accountOptional")}</label>
+            <label htmlFor="transaction-account" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.accountOptional")}</label>
             <select
+              id="transaction-account"
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             >
               <option value="">{t("transactions.none")}</option>
               {accounts.map((acc) => (
@@ -139,11 +143,12 @@ export function QuickAddModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.targetPotOptional")}</label>
+              <label htmlFor="transaction-pot" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.targetPotOptional")}</label>
               <select
+                id="transaction-pot"
                 value={potId}
                 onChange={(e) => setPotId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               >
                 <option value="">{t("transactions.none")}</option>
                 {pots.map((p) => (
@@ -154,11 +159,12 @@ export function QuickAddModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.planOptional")}</label>
+              <label htmlFor="transaction-plan" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("transactions.planOptional")}</label>
               <select
+                id="transaction-plan"
                 value={planId}
                 onChange={(e) => setPlanId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               >
                 <option value="">{t("transactions.none")}</option>
                 {plans.map((pl) => (

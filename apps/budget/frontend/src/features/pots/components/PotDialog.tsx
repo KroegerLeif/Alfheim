@@ -71,36 +71,39 @@ export function PotDialog({ open, pot, onClose, onSubmit }: PotDialogProps) {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Pot Name</label>
+            <label htmlFor="pot-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Pot Name</label>
             <input
+              id="pot-name"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Emergency Fund"
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Priority (1-10)</label>
+              <label htmlFor="pot-priority" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Priority (1-10)</label>
               <input
+                id="pot-priority"
                 type="number"
                 min={1}
                 max={10}
                 required
                 value={priority}
                 onChange={(e) => setPriority(parseInt(e.target.value) || 1)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Overflow Strategy</label>
+              <label htmlFor="pot-overflow" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Overflow Strategy</label>
               <select
+                id="pot-overflow"
                 value={overflowTarget}
                 onChange={(e) => setOverflowTarget(e.target.value as OverflowTarget)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               >
                 <option value="CASCADE">Cascade to Next Pot</option>
                 <option value="UNASSIGNED">Unassigned Buffer</option>
@@ -111,46 +114,50 @@ export function PotDialog({ open, pot, onClose, onSubmit }: PotDialogProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Current Amount</label>
+              <label htmlFor="pot-current" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Current Amount</label>
               <input
+                id="pot-current"
                 type="number"
                 step="0.01"
                 value={currentAmount}
                 onChange={(e) => setCurrentAmount(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Target Amount</label>
+              <label htmlFor="pot-target" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Target Amount</label>
               <input
+                id="pot-target"
                 type="number"
                 step="0.01"
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
                 placeholder="Optional"
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Monthly Contribution</label>
+              <label htmlFor="pot-monthly" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Monthly Contribution</label>
               <input
+                id="pot-monthly"
                 type="number"
                 step="0.01"
                 value={monthlyContribution}
                 onChange={(e) => setMonthlyContribution(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)] font-mono"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Target Date</label>
+              <label htmlFor="pot-target-date" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Target Date</label>
               <input
+                id="pot-target-date"
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus:outline-none focus:border-[var(--primary-main)]"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
               />
             </div>
           </div>
