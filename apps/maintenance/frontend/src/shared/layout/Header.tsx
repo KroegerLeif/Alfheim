@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { AppHeader, useTranslation, resolveFrontendUrl } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useLayout, NavOption } from "./LayoutContext";
-import { useAuth } from "@/core/auth/AuthContext";
+import { useAuth } from "@alfheim/shared";
 import { Bell } from "lucide-react";
 import { cn } from "@/core/utils";
 

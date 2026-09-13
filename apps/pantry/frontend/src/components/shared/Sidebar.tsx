@@ -1,8 +1,7 @@
 "use client";
 
-import { useTranslation, AppLogo } from "@alfheim/shared";
-import { Link, usePathname } from "@/navigation";
-import { cn } from "@/core/utils";
+import { usePathname } from "@/navigation";
+import { useTranslation, Sidebar as SharedSidebar, cn } from "@alfheim/shared";
 import {
   LayoutDashboard,
   Archive,
@@ -34,108 +33,77 @@ export function Sidebar() {
     {
       href: "/",
       label: t("nav.dashboard"),
-      icon: LayoutDashboard,
+      icon: <LayoutDashboard className="h-4 w-4 shrink-0" />,
     },
     {
       href: "/inventory",
       label: t("pantry.stockInventory"),
-      icon: Archive,
+      icon: <Archive className="h-4 w-4 shrink-0" />,
     },
     {
       href: "/products",
       label: t("pantry.productsTitle"),
-      icon: Package,
+      icon: <Package className="h-4 w-4 shrink-0" />,
     },
     {
       href: "/locations",
       label: t("pantry.locationsTitle"),
-      icon: MapPin,
+      icon: <MapPin className="h-4 w-4 shrink-0" />,
     },
     {
       href: "/analytics",
       label: t("pantry.analyticsTitle"),
-      icon: BarChart3,
+      icon: <BarChart3 className="h-4 w-4 shrink-0" />,
     },
     {
       href: "/ledger",
       label: t("pantry.ledgerTitle"),
-      icon: History,
+      icon: <History className="h-4 w-4 shrink-0" />,
     },
   ];
 
   return (
-    <aside className="w-64 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] flex flex-col h-full select-none font-sans">
-      {/* Brand Header */}
-      <div className="p-5 border-b border-[var(--border-subtle)] flex items-center gap-3">
-        <AppLogo appName="pantry" size={32} />
-        <div className="flex flex-col">
-          <div className="font-heading text-sm font-bold uppercase tracking-wider text-[var(--text-main)] leading-tight">
-            ALFHEIM // PANTRY
+    <SharedSidebar
+      appName="pantry"
+      navItems={navItems}
+      activeHref={pathname}
+      isCollapsible={false}
+      expandedWidth="w-64"
+      bottomContent={
+        <div className="flex flex-col gap-2.5">
+          <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider font-mono">
+            {t("pantry.systemAlerts")}
           </div>
-          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-mono">
-            Inventory & Ledger
+
+          {/* Low Stock Notification */}
+          <div className={cn(
+            "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
+            lowStockCount > 0
+              ? "border-amber-800/40 bg-amber-950/20 text-amber-400"
+              : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"
+          )}>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span>{t("pantry.lowStock")}</span>
+            </div>
+            <span className="font-bold font-mono">{lowStockCount}</span>
+          </div>
+
+          {/* Expired Items Notification */}
+          <div className={cn(
+            "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
+            expiredCount > 0
+              ? "border-red-800/40 bg-red-950/20 text-red-400"
+              : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"
+          )}>
+            <div className="flex items-center gap-2">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{t("pantry.expired")}</span>
+            </div>
+            <span className="font-bold font-mono">{expiredCount}</span>
           </div>
         </div>
-      </div>
-
-      {/* Navigation Menu */}
-      <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3.5 py-2.5 text-xs uppercase font-semibold transition-all border border-transparent cursor-pointer rounded-lg",
-                isActive
-                  ? "bg-[var(--primary-main)] text-black font-bold border-[var(--primary-main)] shadow-[0_0_12px_var(--accent-glow)]"
-                  : "hover:bg-[var(--surface-elevated)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Alert Monitor Panel */}
-      <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)] flex flex-col gap-2.5">
-        <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider font-mono">
-          {t("pantry.systemAlerts")}
-        </div>
-
-        {/* Low Stock Notification */}
-        <div className={cn(
-          "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
-          lowStockCount > 0
-            ? "border-amber-800/40 bg-amber-950/20 text-amber-400"
-            : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"
-        )}>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span>{t("pantry.lowStock")}</span>
-          </div>
-          <span className="font-bold font-mono">{lowStockCount}</span>
-        </div>
-
-        {/* Expired Items Notification */}
-        <div className={cn(
-          "flex items-center justify-between px-3 py-2 border text-xs font-semibold uppercase transition-colors rounded-lg",
-          expiredCount > 0
-            ? "border-red-800/40 bg-red-950/20 text-red-400"
-            : "border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--surface-card)]"
-        )}>
-          <div className="flex items-center gap-2">
-            <Clock className="h-3.5 w-3.5" />
-            <span>{t("pantry.expired")}</span>
-          </div>
-          <span className="font-bold font-mono">{expiredCount}</span>
-        </div>
-      </div>
-    </aside>
+      }
+    />
   );
 }

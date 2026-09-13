@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
 import { AppHeader, resolveFrontendUrl } from "@alfheim/shared";
 import { useSidebar } from "@/app/[locale]/providers";
-import { useAuth } from "@/core/auth/AuthContext";
+import { useAuth } from "@alfheim/shared";
 
 /**
  * Sticky top application bar utilizing the unified @alfheim/shared AppHeader.

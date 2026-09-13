@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
-import { AuthContext } from "@/core/authContext";
+import { AuthContext } from "@alfheim/shared";
 import { useTranslation } from "@alfheim/shared";
 import { useOidcAuth } from "@/core/auth/useOidcAuth";
 

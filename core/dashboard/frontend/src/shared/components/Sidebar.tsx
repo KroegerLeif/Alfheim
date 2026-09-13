@@ -21,7 +21,7 @@ const NAV_CONFIG: NavItemConfig[] = [
 ];
 
 /**
- * Persistent 280px Sidebar component adhering to the Stitch Obsidian Flux design system.
+ * Persistent 64 (w-64) Sidebar component adhering to the Stitch Obsidian Flux design system.
  * Features an active 4px leading indicator pill for selected navigation items, user session identity, and logout.
  */
 export function Sidebar() {
@@ -30,7 +30,7 @@ export function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="hidden md:flex w-[280px] h-full bg-[var(--surface-card)] border-r border-[var(--border-subtle)] flex-col shrink-0 select-none z-20">
+    <aside className="hidden md:flex w-64 h-full bg-[var(--surface-card)] border-r border-[var(--border-subtle)] flex-col shrink-0 select-none z-20">
       {/* Brand Header */}
       <div className="h-16 px-6 flex items-center gap-3 border-b border-[var(--border-subtle)]">
         <AppLogo appName="dashboard" size={32} />

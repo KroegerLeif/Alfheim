@@ -16,7 +16,7 @@ import {
   useSyncToPantry, useDeleteShoppingItem, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
-import { useAuth } from "@/core/auth/AuthContext";
+import { useAuth } from "@alfheim/shared";
 import { cn } from "@/lib/utils";
 
 export default function ShoppingDashboard() {
