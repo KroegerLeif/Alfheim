@@ -50,7 +50,7 @@ describe("Accounts Feature Components", () => {
     );
 
     expect(screen.getByText("Main Checking")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Account" }));
+    fireEvent.click(screen.getByRole("button", { name: /add new account/i }));
     expect(handleAdd).toHaveBeenCalledTimes(1);
   });
 });
