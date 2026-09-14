@@ -2,8 +2,9 @@
 # ==============================================================================
 # alfheim: Bootstrap Installer
 # ==============================================================================
-# Downloads the alfheim-setup binary matching this host's architecture,
-# verifies its checksum and hands over to it.
+# Downloads the alfheim-setup binary matching this host's architecture, the
+# static stack assets it needs alongside it, verifies their checksums and
+# hands over to the binary.
 #
 #   curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
 #
@@ -28,6 +29,31 @@ BOLD="\033[1m"; GREEN="\033[0;32m"; CYAN="\033[0;36m"; RED="\033[0;31m"; RESET="
 log_info()    { printf "${CYAN}▶${RESET}  %s\n" "$*"; }
 log_success() { printf "${GREEN}✔${RESET}  %s\n" "$*"; }
 log_error()   { printf "${RED}✖${RESET}  %s\n" "$*" >&2; }
+
+# Verifies file against the checksum SHA256SUMS lists under name. Shared by
+# the binary download and the standalone stack assets below.
+verify_checksum() {
+  local file="$1" name="$2" sums="$3" expected actual
+  expected="$(grep " ${name}\$" "${sums}" | awk '{print $1}' | head -n 1)"
+  if [[ -z "${expected}" ]]; then
+    log_error "SHA256SUMS does not list ${name}. Refusing to use an unverified file."
+    exit 1
+  fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "${file}" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "${file}" | awk '{print $1}')"
+  else
+    log_error "Neither sha256sum nor shasum is available. Refusing to use an unverified file."
+    exit 1
+  fi
+  if [[ "${expected}" != "${actual}" ]]; then
+    log_error "Checksum mismatch for ${name}."
+    log_error "  expected ${expected}"
+    log_error "  actual   ${actual}"
+    exit 1
+  fi
+}
 
 # ------------------------------------------------------------------------------
 # Cleanup
@@ -164,27 +190,7 @@ fi
 
 log_info "Verifying checksum..."
 if curl -fsSL "${BASE_URL}/SHA256SUMS" -o "${WORKDIR}/SHA256SUMS" 2>/dev/null; then
-  expected="$(grep " ${ASSET}\$" "${WORKDIR}/SHA256SUMS" | awk '{print $1}' | head -n 1)"
-  if [[ -z "${expected}" ]]; then
-    log_error "SHA256SUMS does not list ${ASSET}. Refusing to run an unverified binary."
-    exit 1
-  fi
-
-  if command -v sha256sum >/dev/null 2>&1; then
-    actual="$(sha256sum "${WORKDIR}/${BINARY}" | awk '{print $1}')"
-  elif command -v shasum >/dev/null 2>&1; then
-    actual="$(shasum -a 256 "${WORKDIR}/${BINARY}" | awk '{print $1}')"
-  else
-    log_error "Neither sha256sum nor shasum is available. Refusing to run an unverified binary."
-    exit 1
-  fi
-
-  if [[ "${expected}" != "${actual}" ]]; then
-    log_error "Checksum mismatch for ${ASSET}."
-    log_error "  expected ${expected}"
-    log_error "  actual   ${actual}"
-    exit 1
-  fi
+  verify_checksum "${WORKDIR}/${BINARY}" "${ASSET}" "${WORKDIR}/SHA256SUMS"
   log_success "Checksum verified"
 else
   log_error "SHA256SUMS could not be downloaded. Refusing to run an unverified binary."
@@ -192,6 +198,36 @@ else
 fi
 
 chmod +x "${WORKDIR}/${BINARY}"
+
+# ------------------------------------------------------------------------------
+# 4b. Standalone stack assets
+# ------------------------------------------------------------------------------
+# alfheim-setup only ever writes .env and the Caddyfile (see
+# tools/installer/internal/features/templating); compose.prod.yaml and the
+# static config/init files it bind-mounts are expected to already sit on
+# disk. That holds when setup runs inside a checked-out repository, but never
+# for this curl | bash flow, which starts from an empty directory. Fetch them
+# the same way as the binary, verified against the same SHA256SUMS, so a
+# standalone install has everything `docker compose` will look for.
+if [[ ! -f compose.prod.yaml ]]; then
+  log_info "Fetching the production stack definition..."
+  fetch_stack_asset() {
+    local asset="$1" dest="$2"
+    mkdir -p "$(dirname "${dest}")"
+    if ! curl -fsSL "${BASE_URL}/${asset}" -o "${WORKDIR}/${asset}"; then
+      log_error "Download failed: ${BASE_URL}/${asset}"
+      exit 1
+    fi
+    verify_checksum "${WORKDIR}/${asset}" "${asset}" "${WORKDIR}/SHA256SUMS"
+    mv "${WORKDIR}/${asset}" "${dest}"
+  }
+  fetch_stack_asset compose.prod.yaml compose.prod.yaml
+  fetch_stack_asset otelcol-config.yaml infrastructure/telemetry/collector/config.yaml
+  fetch_stack_asset init-multiple-dbs.sh infrastructure/postgres/init-multiple-dbs.sh
+  chmod +x infrastructure/postgres/init-multiple-dbs.sh
+  fetch_stack_asset vector.toml infrastructure/telemetry/vector/vector.toml
+  log_success "Stack assets verified"
+fi
 
 # ------------------------------------------------------------------------------
 # 5. Hand over

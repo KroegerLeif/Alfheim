@@ -349,10 +349,25 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Stage Standalone Install Assets
+        working-directory: dist
+        run: |
+          # install.sh fetches these onto a bare host that has no checkout of
+          # the repo, so they must ship as release assets in their own right,
+          # not just live under infrastructure/ for the local-repo install
+          # path. Release assets are flattened to their basename, so staging
+          # them here under their final upload name keeps SHA256SUMS (and
+          # install.sh's lookup into it) matched to what actually gets
+          # downloaded.
+          cp ../compose.prod.yaml compose.prod.yaml
+          cp ../infrastructure/telemetry/collector/config.yaml otelcol-config.yaml
+          cp ../infrastructure/postgres/init-multiple-dbs.sh init-multiple-dbs.sh
+          cp ../infrastructure/telemetry/vector/vector.toml vector.toml
+
       - name: Generate Checksums
         working-directory: dist
         run: |
-          sha256sum alfheim-setup_linux_* > SHA256SUMS
+          sha256sum alfheim-setup_linux_* compose.prod.yaml otelcol-config.yaml init-multiple-dbs.sh vector.toml > SHA256SUMS
           cat SHA256SUMS
 
       - name: Create GitHub Release & Attach Production Artifacts
@@ -367,8 +382,10 @@ jobs:
             dist/alfheim-setup_linux_amd64
             dist/alfheim-setup_linux_arm64
             dist/SHA256SUMS
+            dist/compose.prod.yaml
+            dist/otelcol-config.yaml
+            dist/init-multiple-dbs.sh
+            dist/vector.toml
             install.sh
-            compose.prod.yaml
             .env.example
             infrastructure/caddy/Caddyfile
-            infrastructure/telemetry/collector/config.yaml
