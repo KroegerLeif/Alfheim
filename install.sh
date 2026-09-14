@@ -49,6 +49,31 @@ for tool in curl uname mktemp; do
 done
 
 # ------------------------------------------------------------------------------
+# 1b. Re-exec from a file when piped
+# ------------------------------------------------------------------------------
+# `curl | bash` feeds this script to bash on fd 0 (`bash -s`). Section 5 below
+# needs to reattach fd 0 to the controlling terminal so the wizard gets a TTY,
+# but bash also reads the *remainder of this script* from fd 0 while it is
+# still running from a pipe. Redirecting fd 0 there yanks script parsing out
+# from under bash: everything after that point is read from the terminal
+# instead of from the script, and whatever the user has typed or buffered
+# gets executed as a shell command.
+#
+# Downloading a copy of this script to disk and re-executing bash on that
+# file moves script parsing off fd 0 entirely, so the later `exec < /dev/tty`
+# no longer disturbs it. The env var guards against re-downloading forever
+# once we are already running from that file.
+if [[ ! -t 0 && -z "${_ALFHEIM_INSTALL_REEXEC:-}" ]]; then
+  SELF_COPY="$(mktemp)"
+  if ! curl -fsSL "${SELF_URL}" -o "${SELF_COPY}"; then
+    log_error "Could not download a local copy of install.sh from ${SELF_URL}."
+    exit 1
+  fi
+  export _ALFHEIM_INSTALL_REEXEC=1
+  exec bash "${SELF_COPY}" "$@"
+fi
+
+# ------------------------------------------------------------------------------
 # 2. Detect platform
 # ------------------------------------------------------------------------------
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
