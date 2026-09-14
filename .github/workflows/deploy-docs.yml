@@ -76,7 +76,7 @@ jobs:
           test -d websites/landing/dist/docs/pagefind
 
       - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: './websites/landing/dist'
 
