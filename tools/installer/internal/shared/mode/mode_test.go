@@ -17,10 +17,13 @@ func TestDetect(t *testing.T) {
 	}{
 		{"fresh host", false, false, false, ModeInstall},
 		{"fresh host with reconfigure flag", false, false, true, ModeInstall},
-		{"env only", true, false, false, ModeUpdate},
+		// A .env with no marker is a crashed or interrupted earlier run,
+		// never a completed install: it must fall back to a full install,
+		// not the single-phase update path.
+		{"env only, no marker: crashed earlier run", true, false, false, ModeInstall},
+		{"env only with reconfigure: still just an install", true, false, true, ModeInstall},
 		{"marker only", false, true, false, ModeUpdate},
 		{"installed with reconfigure", true, true, true, ModeReconfigure},
-		{"env only with reconfigure", true, false, true, ModeReconfigure},
 	}
 
 	for _, tc := range tests {
