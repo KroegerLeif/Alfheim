@@ -376,6 +376,111 @@ func TestReconfigurePreservesExistingSecrets(t *testing.T) {
 	}
 }
 
+func TestReconfigureCarriesForwardProvisionedCredentials(t *testing.T) {
+	root := t.TempDir()
+	existing := "ZITADEL_BOOTSTRAP_PAT=old-pat\n" +
+		"ZITADEL_PROJECT_ID=proj-123\n" +
+		"OIDC_AUDIENCE=proj-123\n" +
+		"ALFHEIM_WEB_CLIENT_ID=web-client-1\n" +
+		"GRAFANA_OIDC_CLIENT_ID=grafana-client-1\n" +
+		"GRAFANA_OIDC_CLIENT_SECRET=grafana-secret-1\n"
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte(existing), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// A dry run renders into a fresh temp directory and returns before
+	// provisioning ever runs, so it isolates exactly the render-time
+	// carry-forward this test targets.
+	opts := &Options{
+		Reconfigure: true, DryRun: true, NonInteractive: true, InstallDir: root,
+		Domain: "new.example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com",
+	}
+	app, stdout, _ := newTestApp(t, opts, healthyDocker(), nil)
+
+	if code := app.Run(context.Background()); code != ExitOK {
+		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
+	}
+
+	target := dryRunTargetFromStdout(t, stdout.String())
+	vars, err := envfile.ParseFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"ZITADEL_BOOTSTRAP_PAT":      "old-pat",
+		"ZITADEL_PROJECT_ID":         "proj-123",
+		"OIDC_AUDIENCE":              "proj-123",
+		"ALFHEIM_WEB_CLIENT_ID":      "web-client-1",
+		"GRAFANA_OIDC_CLIENT_ID":     "grafana-client-1",
+		"GRAFANA_OIDC_CLIENT_SECRET": "grafana-secret-1",
+	}
+	for key, want := range want {
+		if vars[key] != want {
+			t.Errorf("%s = %q, want the previous value %q carried forward", key, vars[key], want)
+		}
+	}
+}
+
+func TestRenderConfigurationPlaceholderWhenNoPreviousValue(t *testing.T) {
+	root := t.TempDir()
+	opts := &Options{
+		DryRun: true, NonInteractive: true, InstallDir: root,
+		Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com",
+	}
+	app, stdout, _ := newTestApp(t, opts, healthyDocker(), nil)
+
+	if code := app.Run(context.Background()); code != ExitOK {
+		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
+	}
+
+	target := dryRunTargetFromStdout(t, stdout.String())
+	vars, err := envfile.ParseFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vars["ZITADEL_PROJECT_ID"] != "__PROVISIONED__" {
+		t.Errorf("ZITADEL_PROJECT_ID = %q, want the template placeholder with no previous install",
+			vars["ZITADEL_PROJECT_ID"])
+	}
+	if vars["ZITADEL_BOOTSTRAP_PAT"] != "" {
+		t.Errorf("ZITADEL_BOOTSTRAP_PAT = %q, want empty with no previous install", vars["ZITADEL_BOOTSTRAP_PAT"])
+	}
+}
+
+// dryRunTargetFromStdout extracts the rendered .env path from the "Wrote
+// <path>" line renderConfiguration prints.
+func dryRunTargetFromStdout(t *testing.T, out string) string {
+	t.Helper()
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasPrefix(line, "Wrote ") && strings.HasSuffix(line, ".env") {
+			return strings.TrimPrefix(line, "Wrote ")
+		}
+	}
+	t.Fatalf("no 'Wrote ...env' line found in stdout:\n%s", out)
+	return ""
+}
+
+func TestCarryForwardProvisioned(t *testing.T) {
+	got := carryForwardProvisioned(map[string]string{
+		"ZITADEL_BOOTSTRAP_PAT": "real-pat",
+		"ZITADEL_PROJECT_ID":    "__PROVISIONED__",
+		"OIDC_AUDIENCE":         "",
+		"ALFHEIM_WEB_CLIENT_ID": "web-1",
+	})
+	want := map[string]string{
+		"ZITADEL_BOOTSTRAP_PAT": "real-pat",
+		"ALFHEIM_WEB_CLIENT_ID": "web-1",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("carryForwardProvisioned() = %v, want %v", got, want)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %q, want %q", k, got[k], v)
+		}
+	}
+}
+
 func TestRunRejectsAnInvalidInstallDir(t *testing.T) {
 	app, _, stderr := newTestApp(t, &Options{InstallDir: ""}, healthyDocker(), nil)
 	if code := app.Run(context.Background()); code != ExitFailure {

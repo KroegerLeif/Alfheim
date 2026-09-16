@@ -251,8 +251,52 @@ func (a *App) renderConfiguration(
 	if err := renderer.WriteAll(target, model); err != nil {
 		return model, target, err
 	}
+
+	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
+	// or the __PROVISIONED__ placeholder, since provisioning runs after
+	// rendering. Carry forward whatever an earlier run actually provisioned
+	// (the same way security.GenerateAll carries forward secrets above), or
+	// --reconfigure would silently discard a working Grafana secret and the
+	// bootstrap PAT and force a full re-provision on the next boot.
+	if provisioned := carryForwardProvisioned(existing); len(provisioned) > 0 {
+		if err := envfile.Update(target.EnvFile(), provisioned); err != nil {
+			return model, target, fmt.Errorf(
+				"alfheim-setup: carry forward provisioned Zitadel credentials: %w", err)
+		}
+	}
+
 	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\n", target.EnvFile(), target.Caddyfile())
 	return model, target, nil
+}
+
+// provisionedEnvKeys are the values internal/features/provisioning writes
+// into .env (plus the bootstrap PAT, which readPAT persists there too).
+// env.tmpl renders each as empty or as the __PROVISIONED__ placeholder,
+// since provisioning always runs after rendering.
+var provisionedEnvKeys = []string{
+	"ZITADEL_BOOTSTRAP_PAT",
+	"ZITADEL_PROJECT_ID",
+	"OIDC_AUDIENCE",
+	"ALFHEIM_WEB_CLIENT_ID",
+	"GRAFANA_OIDC_CLIENT_ID",
+	"GRAFANA_OIDC_CLIENT_SECRET",
+}
+
+// carryForwardProvisioned picks out the previously provisioned values worth
+// restoring after a re-render. A value equal to the template's own
+// placeholder is not a real previous value (for example a dry run rendered
+// into a fresh directory) and is skipped, or it would just overwrite the
+// freshly rendered placeholder with itself.
+func carryForwardProvisioned(existing map[string]string) map[string]string {
+	out := map[string]string{}
+	for _, key := range provisionedEnvKeys {
+		v := existing[key]
+		if v == "" || v == "__PROVISIONED__" {
+			continue
+		}
+		out[key] = v
+	}
+	return out
 }
 
 // runBootstrap performs the staged container boot for a fresh install,
