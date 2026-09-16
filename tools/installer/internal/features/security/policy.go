@@ -66,7 +66,10 @@ var Manifest = []Secret{
 
 	// Observability.
 	{Key: "GRAFANA_ADMIN_PASSWORD", Kind: KindAlnum, Size: 24},
-	{Key: "GRAFANA_OIDC_CLIENT_SECRET", Kind: KindAlnum, Size: 40},
+	// GRAFANA_OIDC_CLIENT_ID/_SECRET are not generated here: Zitadel assigns
+	// them when the installer provisions the OIDC application, and the
+	// provisioning step writes them into .env itself
+	// (internal/features/provisioning, called from app.runBootstrap).
 }
 
 // GenerateAll produces a value for every entry in the manifest.

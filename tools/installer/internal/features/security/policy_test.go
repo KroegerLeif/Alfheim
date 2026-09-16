@@ -144,6 +144,9 @@ var secretKeyPattern = regexp.MustCompile(`^[A-Z0-9_]*(PASSWORD|SECRET|MASTERKEY
 var allowedUngenerated = map[string]string{
 	// A pure identifier, not a credential.
 	"CHAT_ENCRYPTION_KEY_ID": "key version label",
+	// Zitadel assigns this when the installer's provisioning step reconciles
+	// the Grafana OIDC application; it is never generated locally.
+	"GRAFANA_OIDC_CLIENT_SECRET": "provisioned by Zitadel, not generated",
 }
 
 func TestManifestCoversEveryRepositorySecret(t *testing.T) {

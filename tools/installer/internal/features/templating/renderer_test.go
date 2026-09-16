@@ -49,6 +49,7 @@ func model(t *testing.T, preset onboarding.PresetID, tlsCfg tls.Config) Model {
 		on.BaseDomain = "example.com"
 		on.AppHost = "alfheim.example.com"
 	}
+	on.AdminEmail = "ops@example.com"
 	if err := onboarding.Derive(&on); err != nil {
 		t.Fatal(err)
 	}
@@ -196,6 +197,11 @@ func TestRenderedEnvIsParsableAndComplete(t *testing.T) {
 	// tooling that production installs never need (see its comments).
 	devOnlyEnvKeys := map[string]bool{
 		"ZITADEL_BOOTSTRAP_USERNAME": true,
+		// Superseded by the single provisioned ALFHEIM_WEB_CLIENT_ID shared by
+		// every frontend (issue #452); .env.example still documents them for
+		// the dev compose stack, which this installer does not render.
+		"NEXT_PUBLIC_OIDC_CLIENT_ID":    true,
+		"NEXT_PUBLIC_OIDC_REDIRECT_URI": true,
 	}
 	reference, err := envfile.ParseFile(filepath.Join("..", "..", "..", "..", "..", ".env.example"))
 	if err != nil {
