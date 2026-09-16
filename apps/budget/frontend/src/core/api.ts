@@ -1,5 +1,5 @@
 import ky from "ky";
-import { createTraceparentHook, resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
+import { createTraceparentHook, resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
 
 export class ApiError extends Error {
   status?: number;
@@ -56,9 +56,7 @@ export const budgetClient = ky.create({
       createTraceparentHook(),
       (request) => {
         if (typeof window !== "undefined") {
-          const token =
-            sessionStorage.getItem("token_budget-frontend") ||
-            sessionStorage.getItem("alfheim_access_token");
+          const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
@@ -70,7 +68,21 @@ export const budgetClient = ky.create({
       },
     ],
     afterResponse: [
-      async (_request, _options, response) => {
+      async (request, options, response) => {
+        if (response.status === 401 && typeof window !== "undefined") {
+          const oidcBridge = window.__alfheim_oidc__;
+          if (oidcBridge && typeof oidcBridge.refresh === "function") {
+            try {
+              const newToken = await oidcBridge.refresh();
+              if (newToken) {
+                request.headers.set("Authorization", `Bearer ${newToken}`);
+                return ky(request, options);
+              }
+            } catch (err) {
+              console.warn("OIDC token refresh failed on 401:", err);
+            }
+          }
+        }
         if (!response.ok) {
           await handleResponseError(response);
         }
