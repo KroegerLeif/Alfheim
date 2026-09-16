@@ -52,6 +52,7 @@ declare global {
 function claimsToUser(claims: ReturnType<typeof decodeClaims>): UserIdentity | null {
   if (!claims) return null;
   return {
+    sub: claims.sub,
     name: claims.name,
     preferred_username: claims.preferred_username,
     email: claims.email,
