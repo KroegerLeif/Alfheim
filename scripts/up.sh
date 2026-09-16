@@ -317,10 +317,29 @@ info "Starting zitadel (first-instance setup may take up to 5 min on a cold data
 dc up ${BUILD_FLAG} -d zitadel
 wait_healthy "alfheim_zitadel" "zitadel" 300
 
+info "Starting rustfs S3 object storage …"
+dc up ${BUILD_FLAG} -d rustfs
+wait_healthy "alfheim_rustfs" "rustfs" 60
+
+info "Starting caddy reverse proxy gateway …"
+dc up ${BUILD_FLAG} -d caddy
+wait_healthy "alfheim_caddy" "caddy" 60
+
 # Zitadel has no admin CLI, so client provisioning goes through its Management
-# API. See scripts/zitadel-bootstrap.sh for the mechanics.
-info "Provisioning Zitadel OIDC clients (Grafana) …"
-"${SCRIPT_DIR}/zitadel-bootstrap.sh"
+# API, reached through Caddy on 127.0.0.1:80 (Zitadel resolves the instance
+# from the Host header, not from how it was dialled) — hence caddy must
+# already be up. This shares the exact reconciliation logic
+# (internal/features/provisioning) that alfheim-setup uses for a production
+# install, via the installer's hidden `provision` subcommand — see
+# tools/installer/internal/app/provision_cmd.go.
+info "Provisioning Zitadel OIDC clients (dashboard, every app frontend, Grafana) …"
+(
+  cd "${REPO_ROOT}/tools/installer" && \
+  go run ./cmd/alfheim-setup provision \
+    --env-file "${REPO_ROOT}/.env" \
+    --pat-file "${REPO_ROOT}/infrastructure/zitadel/machinekey/pat.txt" \
+    --zitadel-url "http://127.0.0.1:80"
+) || fail "Zitadel OIDC provisioning failed."
 
 # Grafana's browser-facing OAuth endpoints come from OIDC_ISSUER_URL, which has
 # to be the host Zitadel issues tokens for or the login redirect 404s.
@@ -330,14 +349,6 @@ if [[ -n "${issuer_host}" && -n "${external_domain}" && "${issuer_host}" != "${e
   warn "OIDC_ISSUER_URL points at '${issuer_host}' but Zitadel issues for '${external_domain}'."
   warn "Browser logins will fail until they agree — re-run ./scripts/init-env.sh."
 fi
-
-info "Starting rustfs S3 object storage …"
-dc up ${BUILD_FLAG} -d rustfs
-wait_healthy "alfheim_rustfs" "rustfs" 60
-
-info "Starting caddy reverse proxy gateway …"
-dc up ${BUILD_FLAG} -d caddy
-wait_healthy "alfheim_caddy" "caddy" 60
 
 notice "🟢 IAM Core, RustFS Storage & Caddy Ingress Gateway Ready"
 
