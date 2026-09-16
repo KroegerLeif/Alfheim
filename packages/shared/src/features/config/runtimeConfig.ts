@@ -6,12 +6,15 @@
 
 declare var process: any;
 
+export interface AlfheimRuntimeEnv {
+  OIDC_ISSUER?: string;
+  OIDC_CLIENT_ID?: string;
+  FRONTEND_URL?: string;
+  API_URL?: string;
+}
+
 export interface AlfheimRuntimeWindow extends Window {
-  __ALFHEIM_ENV__?: {
-    OIDC_ISSUER?: string;
-    FRONTEND_URL?: string;
-    API_URL?: string;
-  };
+  __ALFHEIM_ENV__?: AlfheimRuntimeEnv;
 }
 
 /**
