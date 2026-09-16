@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AppShell, LanguageProvider, ThemeProvider } from "@alfheim/shared";
+import { AppShell, AuthGuard, LanguageProvider, ThemeProvider } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ClientHeader } from "@/components/shared/ClientHeader";
@@ -40,22 +40,30 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
+        {/*
+          Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
+          by a dynamic route handler, never baked into the prerendered HTML: the
+          container's environment is not known at CI build time.
+        */}
+        <script src="/workout/runtime-config.js" />
       </head>
       <body className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <LanguageProvider defaultLanguage={locale === "en" || locale === "pl" ? locale : "de"}>
-            <ThemeProvider defaultMode="dark" defaultVariant="nordic">
-              <Providers>
-                {/* Sidebar is desktop-only; the bottom nav takes over below md.
-                    pb-20 reserves room for the fixed bar so it never covers content. */}
-                <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
-                  <div className="p-4 pb-20 md:p-6 md:pb-6">{children}</div>
-                </AppShell>
-                <WorkoutBottomNav />
-              </Providers>
-            </ThemeProvider>
-          </LanguageProvider>
-        </NextIntlClientProvider>
+        <AuthGuard basePath="/workout">
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <LanguageProvider defaultLanguage={locale === "en" || locale === "pl" ? locale : "de"}>
+              <ThemeProvider defaultMode="dark" defaultVariant="nordic">
+                <Providers>
+                  {/* Sidebar is desktop-only; the bottom nav takes over below md.
+                      pb-20 reserves room for the fixed bar so it never covers content. */}
+                  <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
+                    <div className="p-4 pb-20 md:p-6 md:pb-6">{children}</div>
+                  </AppShell>
+                  <WorkoutBottomNav />
+                </Providers>
+              </ThemeProvider>
+            </LanguageProvider>
+          </NextIntlClientProvider>
+        </AuthGuard>
       </body>
     </html>
   );
