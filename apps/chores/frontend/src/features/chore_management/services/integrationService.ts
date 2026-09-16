@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { resolveFrontendUrl } from "@alfheim/shared";
+import { resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
 import { useActiveHouseholdId } from "./choresService";
 
 const getApiUrl = (path: string) => {
@@ -25,7 +25,7 @@ export function useShoppingIntegration() {
   return useQuery<ShoppingIntegrationData>({
     queryKey: ["integrations", "shopping", activeHouseholdId],
     queryFn: async () => {
-      const token = typeof window !== "undefined" ? sessionStorage.getItem("token_chores-frontend") : null;
+      const token = typeof window !== "undefined" ? sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY) : null;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
@@ -61,7 +61,7 @@ export function useMaintenanceIntegration() {
   return useQuery<MaintenanceIntegrationData>({
     queryKey: ["integrations", "maintenance", activeHouseholdId],
     queryFn: async () => {
-      const token = typeof window !== "undefined" ? sessionStorage.getItem("token_chores-frontend") : null;
+      const token = typeof window !== "undefined" ? sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY) : null;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };

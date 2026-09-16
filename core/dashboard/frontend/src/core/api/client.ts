@@ -1,6 +1,5 @@
 import ky from 'ky';
-import { resolveApiUrl, resolveFrontendUrl } from '@alfheim/shared';
-import { getInMemoryToken, setInMemoryToken } from '@/core/providers/AuthProvider';
+import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from '@alfheim/shared';
 
 // Sanitize and resolve base host URLs to bypass client-side path mutations
 const sanitizeBaseUrl = (url: string | undefined) => {
@@ -25,10 +24,16 @@ const sanitizeBaseUrl = (url: string | undefined) => {
 const BASE_URL = sanitizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
 
 /**
- * Get Bearer auth token dynamically from in-memory AuthProvider state.
+ * Get the Bearer auth token dynamically from the shared session-storage-backed
+ * token store written by the OIDC auth module (packages/shared/src/features/auth).
  */
 function getAuthToken(): string | null {
-  return getInMemoryToken();
+  if (typeof window === 'undefined') return null;
+  try {
+    return sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -65,7 +70,8 @@ export const api = ky.create({
             try {
               const refreshedToken = await oidc.refresh();
               if (refreshedToken) {
-                setInMemoryToken(refreshedToken);
+                // The shared OIDC module already persisted the refreshed token to
+                // sessionStorage; only the in-flight request header needs updating.
                 request.headers.set('Authorization', `Bearer ${refreshedToken}`);
                 return ky(request);
               }

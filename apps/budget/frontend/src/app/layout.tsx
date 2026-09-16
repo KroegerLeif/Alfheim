@@ -39,6 +39,12 @@ export default async function RootLayout({ children, params }: RootLayoutProps) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
+        {/*
+          Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
+          by a dynamic route handler, never baked into the prerendered HTML: the
+          container's environment is not known at CI build time.
+        */}
+        <script src="/budget/runtime-config.js" />
       </head>
       <body className="min-h-screen h-screen w-full flex flex-col bg-background text-foreground font-sans antialiased overflow-hidden selection:bg-primary selection:text-white" suppressHydrationWarning>
         {children}

@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AppShell, LanguageProvider, ThemeProvider } from "@alfheim/shared";
+import { AppShell, AuthGuard, LanguageProvider, ThemeProvider } from "@alfheim/shared";
 import Providers from "./providers";
 import { ClientHeader } from "@/components/shared/ClientHeader";
 
@@ -39,20 +39,28 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
+        {/*
+          Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
+          by a dynamic route handler, never baked into the prerendered HTML: the
+          container's environment is not known at CI build time.
+        */}
+        <script src="/chat/runtime-config.js" />
       </head>
       <body
         className="min-h-screen h-screen w-full flex flex-col bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black"
         suppressHydrationWarning
       >
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <LanguageProvider defaultLanguage={locale === "en" || locale === "pl" ? locale : "de"}>
-            <ThemeProvider defaultMode="dark" defaultVariant="nordic">
-              <Providers>
-                <AppShell header={<ClientHeader />}>{children}</AppShell>
-              </Providers>
-            </ThemeProvider>
-          </LanguageProvider>
-        </NextIntlClientProvider>
+        <AuthGuard basePath="/chat">
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <LanguageProvider defaultLanguage={locale === "en" || locale === "pl" ? locale : "de"}>
+              <ThemeProvider defaultMode="dark" defaultVariant="nordic">
+                <Providers>
+                  <AppShell header={<ClientHeader />}>{children}</AppShell>
+                </Providers>
+              </ThemeProvider>
+            </LanguageProvider>
+          </NextIntlClientProvider>
+        </AuthGuard>
       </body>
     </html>
   );

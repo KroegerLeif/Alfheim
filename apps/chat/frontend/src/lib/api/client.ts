@@ -1,5 +1,5 @@
 import type { ApiErrorPayload } from "@/features/conversations/types";
-import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
+import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
 
 export function sanitizeUrl(url: string | undefined, defaultFallback: string): string {
   let resolved = resolveApiUrl(defaultFallback, url);
@@ -43,7 +43,7 @@ async function refreshAuthToken(): Promise<string | null> {
 
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem("token_chat-frontend") || sessionStorage.getItem("alfheim_access_token");
+  return sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
 }
 
 export function getActiveHouseholdId(): string | null {
