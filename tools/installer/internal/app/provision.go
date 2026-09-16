@@ -9,6 +9,7 @@ import (
 
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
 )
 
@@ -44,13 +45,35 @@ func (p *DefaultProvisioner) Provision(
 		return provisioning.Result{}, err
 	}
 
+	// The PAT file only exists while Zitadel's first instance is created, so
+	// once we have a PAT — from the file or from .env — persist it into .env
+	// (issue #452, fact I). That is what lets a later run, against an
+	// already-initialised Zitadel whose machinekey volume was lost, still
+	// find it. Only write when it actually changed, so a plain re-run does
+	// not touch .env for no reason.
+	if pat != strings.TrimSpace(existing["ZITADEL_BOOTSTRAP_PAT"]) {
+		if err := envfile.Update(layout.EnvFile(), map[string]string{"ZITADEL_BOOTSTRAP_PAT": pat}); err != nil {
+			return provisioning.Result{}, fmt.Errorf("alfheim-setup: store the Zitadel bootstrap PAT: %w", err)
+		}
+	}
+
 	client := &provisioning.HTTPClient{
 		BaseURL: p.baseURL(),
 		Host:    on.AuthHost,
 		PAT:     pat,
 	}
 	in := provisioning.BuildInput(defaultProjectName, on.BaseURL, !on.Secure, provisioning.AppSlugs)
-	return provisioning.Provision(ctx, client, in, existing)
+	result, err := provisioning.Provision(ctx, client, in, existing)
+	if err != nil {
+		if provisioning.IsUnauthorized(err) {
+			return provisioning.Result{}, fmt.Errorf(
+				"alfheim-setup: Zitadel rejected the bootstrap PAT: it likely does not belong to "+
+					"this Zitadel instance — check %s for a PAT left over from an earlier install: %w",
+				layout.ZitadelPATFile(), err)
+		}
+		return provisioning.Result{}, err
+	}
+	return result, nil
 }
 
 // defaultProjectName is the Zitadel project every OIDC application lives
@@ -64,14 +87,28 @@ func (p *DefaultProvisioner) baseURL() string {
 	return "http://127.0.0.1:80"
 }
 
-// readPAT waits for Zitadel to write the bootstrap machine user's personal
-// access token, then falls back to a copy the installer stored in .env on an
-// earlier run — the file is only written while the *first* instance is
-// created, so a re-run against an already-initialised Zitadel has no other
-// source for it.
+// readPAT resolves the bootstrap machine user's personal access token.
+//
+// Order matters: the PAT file only exists while Zitadel's first instance is
+// created, so on an update against an already-initialised Zitadel (or one
+// whose machinekey volume was lost) it never reappears — blocking the whole
+// 60s timeout waiting for a file that will never come back would make every
+// Day-2 run that slow. So a file present right now wins immediately (the
+// common case: fresh install, first boot); failing that, a copy already
+// stored in .env from an earlier run wins immediately too; only when neither
+// is available yet do we actually wait for the file, up to the timeout —
+// this covers the fresh-install race where Zitadel's healthcheck can turn
+// green a moment before the PAT file lands on disk.
 func (p *DefaultProvisioner) readPAT(
 	ctx context.Context, layout paths.Layout, existing map[string]string,
 ) (string, error) {
+	if pat := readPATFileOnce(layout); pat != "" {
+		return pat, nil
+	}
+	if pat := strings.TrimSpace(existing["ZITADEL_BOOTSTRAP_PAT"]); pat != "" {
+		return pat, nil
+	}
+
 	timeout := p.PATWaitTimeout
 	if timeout <= 0 {
 		timeout = 60 * time.Second
@@ -83,26 +120,31 @@ func (p *DefaultProvisioner) readPAT(
 
 	deadline := time.Now().Add(timeout)
 	for {
-		if content, err := os.ReadFile(layout.ZitadelPATFile()); err == nil {
-			if pat := strings.TrimSpace(string(content)); pat != "" {
-				return pat, nil
-			}
-		}
 		if !time.Now().Before(deadline) {
 			break
 		}
 		if err := sleep(ctx, time.Second); err != nil {
 			return "", err
 		}
+		if pat := readPATFileOnce(layout); pat != "" {
+			return pat, nil
+		}
 	}
 
-	if pat := strings.TrimSpace(existing["ZITADEL_BOOTSTRAP_PAT"]); pat != "" {
-		return pat, nil
-	}
 	return "", fmt.Errorf(
 		"alfheim-setup: Zitadel never wrote a bootstrap PAT to %s, and none is stored in .env "+
 			"(ZITADEL_BOOTSTRAP_PAT); it is only written while the first instance is created",
 		layout.ZitadelPATFile())
+}
+
+// readPATFileOnce reads the PAT file without waiting, returning "" when it
+// is absent or empty.
+func readPATFileOnce(layout paths.Layout) string {
+	content, err := os.ReadFile(layout.ZitadelPATFile())
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(content))
 }
 
 // realSleep waits for d, or returns early when ctx is cancelled.

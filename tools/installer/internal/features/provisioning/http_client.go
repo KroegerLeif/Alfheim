@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,6 +96,22 @@ type apiError struct {
 
 func (e *apiError) Error() string {
 	return fmt.Sprintf("zitadel API %s %s returned HTTP %d: %s", e.method, e.path, e.status, e.body)
+}
+
+// Status is the HTTP status Zitadel answered with.
+func (e *apiError) Status() int { return e.status }
+
+// IsUnauthorized reports whether err is (or wraps) a Zitadel API error with
+// status 401 or 403 — the bearer PAT was rejected outright, as opposed to a
+// transient or a request-shape problem. The caller uses this to give a more
+// actionable message than the raw HTTP error, since the overwhelmingly
+// common cause is a stale PAT left over from an earlier install.
+func IsUnauthorized(err error) bool {
+	var apiErr *apiError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return apiErr.status == http.StatusUnauthorized || apiErr.status == http.StatusForbidden
 }
 
 // request performs one Management API call, retrying transient failures

@@ -3,6 +3,8 @@ package provisioning
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -245,6 +247,51 @@ func TestHTTPClient_RetriesTransientServerErrors(t *testing.T) {
 	}
 	if atomic.LoadInt32(&sleep.slept) != 2 {
 		t.Errorf("slept %d times, want 2 (one between each retry)", sleep.slept)
+	}
+}
+
+func TestIsUnauthorized(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"401", &apiError{status: http.StatusUnauthorized}, true},
+		{"403", &apiError{status: http.StatusForbidden}, true},
+		{"404", &apiError{status: http.StatusNotFound}, false},
+		{"wrapped 401", errWrap(&apiError{status: http.StatusUnauthorized}), true},
+		{"unrelated error", errors.New("boom"), false},
+		{"nil", nil, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IsUnauthorized(tc.err); got != tc.want {
+				t.Errorf("IsUnauthorized(%v) = %v, want %v", tc.err, got, tc.want)
+			}
+		})
+	}
+}
+
+func errWrap(err error) error {
+	return fmt.Errorf("provisioning: ensure project %q: %w", "Alfheim", err)
+}
+
+func TestHTTPClient_DoesNotRetryOn401(t *testing.T) {
+	var attempts int32
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		http.Error(w, `{"message":"unauthenticated"}`, http.StatusUnauthorized)
+	})
+
+	_, err := c.EnsureProject(context.Background(), "Alfheim")
+	if err == nil {
+		t.Fatal("EnsureProject() error = nil, want the 401 to fail immediately")
+	}
+	if !IsUnauthorized(err) {
+		t.Errorf("IsUnauthorized(%v) = false, want true", err)
+	}
+	if atomic.LoadInt32(&attempts) != 1 {
+		t.Errorf("attempts = %d, want exactly 1 (no retry on a 401)", attempts)
 	}
 }
 
