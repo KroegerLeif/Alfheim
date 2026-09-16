@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../../../tests/mocks/server'
 import { createTestQueryClient } from '../../../../tests/test-utils'
 import { useShoppingIntegration, useMaintenanceIntegration } from '../integrationService'
+import { LEGACY_ACCESS_TOKEN_KEY } from '@alfheim/shared'
 
 function createWrapper(queryClient: QueryClient) {
   return function QueryWrapper({ children }: { children: React.ReactNode }) {
@@ -53,7 +54,7 @@ describe('integrationService Hooks', () => {
         })
       )
 
-      sessionStorage.setItem('token_chores-frontend', 'test-bearer-token')
+      sessionStorage.setItem(LEGACY_ACCESS_TOKEN_KEY, 'test-bearer-token')
 
       const { result } = renderHook(() => useShoppingIntegration(), {
         wrapper: createWrapper(queryClient),
@@ -129,7 +130,7 @@ describe('integrationService Hooks', () => {
         })
       )
 
-      sessionStorage.setItem('token_chores-frontend', 'test-bearer-token')
+      sessionStorage.setItem(LEGACY_ACCESS_TOKEN_KEY, 'test-bearer-token')
 
       const { result } = renderHook(() => useMaintenanceIntegration(), {
         wrapper: createWrapper(queryClient),

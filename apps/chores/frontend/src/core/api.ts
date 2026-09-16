@@ -1,5 +1,5 @@
 import ky from "ky";
-import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
+import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
 
 export interface ApiError {
   status?: number;
@@ -45,7 +45,7 @@ export const choresClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem("token_chores-frontend") || sessionStorage.getItem("alfheim_access_token");
+          const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
