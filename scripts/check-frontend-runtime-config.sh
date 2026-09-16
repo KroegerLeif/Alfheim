@@ -38,6 +38,35 @@ if [[ -d "$BUILD_DIR/static" ]] && grep -rlq 'auth\.loegien' "$BUILD_DIR/static"
   fail=1
 fi
 
+# The AuthGuard must never leak its "identity provider not reachable" error page,
+# or any protected content, into prerendered HTML: with no OIDC env at build
+# time, useOidcAuth resolves loadOidcConfig() only after mount (a useEffect),
+# so both the server render and the client's first paint must show nothing but
+# its neutral loader (packages/shared/src/features/auth/AuthGuard.tsx). That
+# loader (and any custom loadingFallback) carries the marker attribute
+# data-alfheim-auth-guard="pending". Every prerendered app page must therefore
+# contain that marker, and never the error page's copy.
+if [[ -d "$BUILD_DIR/server/app" ]]; then
+  while IFS= read -r -d '' html_file; do
+    base_name="$(basename "$html_file")"
+    # Next.js framework-internal pages (_not-found, _global-error, ...) are
+    # rendered outside our root layout, so they never go through AuthGuard.
+    if [[ "$base_name" == _*.html ]]; then
+      continue
+    fi
+
+    if grep -q 'Identity provider not reachable' "$html_file"; then
+      echo "FAIL: $html_file prerenders the AuthGuard error page (config must be resolved after mount, not during render)" >&2
+      fail=1
+    fi
+
+    if ! grep -q 'data-alfheim-auth-guard="pending"' "$html_file"; then
+      echo "FAIL: $html_file is missing the AuthGuard loading marker (data-alfheim-auth-guard=\"pending\") - it may be leaking protected content into prerendered HTML" >&2
+      fail=1
+    fi
+  done < <(find "$BUILD_DIR/server/app" -name '*.html' -print0)
+fi
+
 if [[ "$fail" -ne 0 ]]; then
   exit 1
 fi

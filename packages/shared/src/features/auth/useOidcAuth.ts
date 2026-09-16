@@ -69,21 +69,17 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  // Config is intentionally NOT resolved during render: the server has no
+  // window.__ALFHEIM_ENV__ and no NEXT_PUBLIC_OIDC_* build-time fallback, so
+  // resolving it synchronously would make the very first server- and
+  // client-render show the misconfiguration error page (and mismatch on
+  // hydration once the client re-checks and finds runtime env has loaded).
+  // Instead every render before mount reports "still loading", identical on
+  // the server and the client's first paint, and the config (or its error)
+  // is only established from an effect after mount.
+  const [configError, setConfigError] = useState<OidcConfigError | null>(null);
 
-  let config: OidcConfig | null = null;
-  let configError: OidcConfigError | null = null;
-  try {
-    config = loadOidcConfig(basePath);
-  } catch (err) {
-    if (err instanceof OidcConfigError) {
-      configError = err;
-    } else {
-      throw err;
-    }
-  }
-
-  const configRef = useRef<OidcConfig | null>(config);
-  configRef.current = config;
+  const configRef = useRef<OidcConfig | null>(null);
   const tokensRef = useRef<OidcTokenSet | null>(null);
   const initializedRef = useRef(false);
 
@@ -131,13 +127,21 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
 
   useEffect(() => {
     if (typeof window === 'undefined' || initializedRef.current) return;
-    if (!configRef.current) {
-      // Misconfigured: there is nothing to initialize. AuthGuard renders the error page.
-      setIsLoading(false);
-      return;
-    }
     initializedRef.current = true;
-    const activeConfig = configRef.current;
+
+    let activeConfig: OidcConfig;
+    try {
+      activeConfig = loadOidcConfig(basePath);
+    } catch (err) {
+      if (err instanceof OidcConfigError) {
+        // Misconfigured: there is nothing to initialize. AuthGuard renders the error page.
+        setConfigError(err);
+        setIsLoading(false);
+        return;
+      }
+      throw err;
+    }
+    configRef.current = activeConfig;
 
     window.__alfheim_oidc__ = {
       getToken: () => tokensRef.current?.accessToken ?? null,
@@ -178,7 +182,7 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
         setIsLoading(false);
       }
     })();
-  }, [applyTokens, login, runRefresh]);
+  }, [applyTokens, login, runRefresh, basePath]);
 
   // Schedule a silent refresh shortly before the current access token expires.
   useEffect(() => {

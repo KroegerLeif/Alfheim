@@ -15,6 +15,7 @@ function DefaultLoader() {
     <div
       role="status"
       aria-live="polite"
+      data-alfheim-auth-guard="pending"
       style={{
         display: 'flex',
         height: '100vh',
@@ -85,7 +86,9 @@ export function AuthGuard({ basePath = '', children, loadingFallback }: AuthGuar
   }
 
   if (auth.isLoading || !auth.isAuthenticated) {
-    return <>{loadingFallback ?? <DefaultLoader />}</>;
+    // The marker on the wrapper (not just DefaultLoader) guarantees the check
+    // script's invariant holds even if a caller supplies its own loadingFallback.
+    return <div data-alfheim-auth-guard="pending">{loadingFallback ?? <DefaultLoader />}</div>;
   }
 
   return (
