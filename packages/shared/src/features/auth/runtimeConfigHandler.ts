@@ -8,6 +8,8 @@
  * `process.env` directly (the container's environment), not `window.__ALFHEIM_ENV__`.
  */
 
+declare var process: { env: Record<string, string | undefined> };
+
 export interface RuntimeEnvPayload {
   OIDC_ISSUER: string;
   OIDC_CLIENT_ID: string;
