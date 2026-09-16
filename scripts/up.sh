@@ -169,6 +169,34 @@ wait_healthy() {
   fail "Timed out after ${timeout}s waiting for ${label} to become healthy."
 }
 
+# prepare_zitadel_machinekey ensures the host directory compose bind-mounts
+# to Zitadel's /machinekey is writable by the container's own user before
+# Zitadel ever starts.
+#
+# The ghcr.io/zitadel/zitadel:v2.66.1 image runs as uid:gid 1000:1000 (the
+# "zitadel" user baked into its /etc/passwd). A bind-mount directory that
+# does not exist yet is created by the Docker daemon itself, root-owned —
+# not by the container — which denies that user the write it needs to save
+# its first-instance bootstrap PAT. The result is a crash loop: the first
+# start fails the 03_default_instance migration with
+# "open /machinekey/pat.txt: permission denied", and every restart after
+# that fails again with Errors.Instance.Domain.AlreadyExists because the
+# migration is half-applied.
+prepare_zitadel_machinekey() {
+  local dir="${REPO_ROOT}/infrastructure/zitadel/machinekey"
+  mkdir -p "${dir}"
+
+  if [[ "$(id -u)" == "0" ]]; then
+    chown 1000:1000 "${dir}"
+  elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+    sudo chown 1000:1000 "${dir}"
+  else
+    # Not root and no passwordless sudo (a typical dev machine): widen the
+    # mode instead of guessing at a chown we cannot actually perform.
+    chmod 0777 "${dir}"
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # wait_running — blocks until a container's state is "running"
 # Used for services without a HEALTHCHECK
@@ -313,6 +341,7 @@ wait_healthy "alfheim_postgres_core" "postgres-core" 60
 
 # A cold Zitadel runs its first-instance migration here, which is the slowest
 # step of the whole boot; the installer allows 300 s for the same wait.
+prepare_zitadel_machinekey
 info "Starting zitadel (first-instance setup may take up to 5 min on a cold database) …"
 dc up ${BUILD_FLAG} -d zitadel
 wait_healthy "alfheim_zitadel" "zitadel" 300

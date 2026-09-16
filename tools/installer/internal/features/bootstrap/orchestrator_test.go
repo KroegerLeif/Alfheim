@@ -322,6 +322,61 @@ func TestRunPhase_NoLoggerIsSilentlyIgnored(t *testing.T) {
 	_ = io.Discard
 }
 
+func TestRunPhase_ExplainsZitadelMachinekeyFailure(t *testing.T) {
+	rec := healthyRunner()
+	rec.ScriptResult(inspectKey("alfheim_zitadel"),
+		runner.Result{ExitCode: 0, Stdout: "running|unhealthy\n"})
+	rec.ScriptResult("docker logs --tail 200 alfheim_zitadel", runner.Result{
+		ExitCode: 0,
+		Stderr:   "migration failed: open /machinekey/pat.txt: permission denied name=03_default_instance",
+	})
+
+	o, _ := newTestOrchestrator(rec)
+	err := o.RunPhase(context.Background(), PhaseEdgeAuth)
+	if err == nil {
+		t.Fatal("RunPhase() error = nil, want the unhealthy container to fail")
+	}
+	if !strings.Contains(err.Error(), "chown 1000:1000") {
+		t.Errorf("error = %v, want the machinekey permission explanation", err)
+	}
+	if !strings.Contains(err.Error(), "Zitadel") {
+		t.Errorf("error = %v, want it to still name the failing service", err)
+	}
+}
+
+func TestRunPhase_LeavesUnrelatedZitadelFailureUnexplained(t *testing.T) {
+	rec := healthyRunner()
+	rec.ScriptResult(inspectKey("alfheim_zitadel"),
+		runner.Result{ExitCode: 0, Stdout: "running|unhealthy\n"})
+	rec.ScriptResult("docker logs --tail 200 alfheim_zitadel",
+		runner.Result{ExitCode: 0, Stdout: "some unrelated startup error\n"})
+
+	o, _ := newTestOrchestrator(rec)
+	err := o.RunPhase(context.Background(), PhaseEdgeAuth)
+	if err == nil {
+		t.Fatal("RunPhase() error = nil, want the unhealthy container to fail")
+	}
+	if strings.Contains(err.Error(), "chown 1000:1000") {
+		t.Errorf("error = %v, want no machinekey explanation for an unrelated failure", err)
+	}
+}
+
+func TestRunPhase_LogFetchFailureFallsBackToOriginalError(t *testing.T) {
+	rec := healthyRunner()
+	rec.ScriptResult(inspectKey("alfheim_zitadel"),
+		runner.Result{ExitCode: 0, Stdout: "running|unhealthy\n"})
+	rec.ScriptError("docker logs --tail 200 alfheim_zitadel", errors.New("docker vanished"))
+
+	o, _ := newTestOrchestrator(rec)
+	err := o.RunPhase(context.Background(), PhaseEdgeAuth)
+	if err == nil {
+		t.Fatal("RunPhase() error = nil, want the unhealthy container to fail")
+	}
+	if !strings.Contains(err.Error(), "Zitadel") {
+		t.Errorf("error = %v, want the original error preserved when logs cannot be fetched", err)
+	}
+}
+
 func TestTrimForError(t *testing.T) {
 	if got := trimForError("short"); got != "short" {
 		t.Errorf("trimForError(short) = %q", got)

@@ -65,6 +65,10 @@ type App struct {
 	// Injectable for tests, which must not depend on a live Zitadel. When
 	// nil, DefaultProvisioner is used.
 	Provisioner Provisioner
+	// MachineKeyPreparer readies the Zitadel machinekey bind-mount directory
+	// before the Edge & Identity phase starts Zitadel. Injectable for tests;
+	// when its fields are nil, the real os.Geteuid/os.Chown/os.Stat are used.
+	MachineKeyPreparer MachineKeyPreparer
 }
 
 // Run performs the installation and returns a process exit code.
@@ -307,6 +311,10 @@ func carryForwardProvisioned(existing map[string]string) map[string]string {
 func (a *App) runBootstrap(
 	ctx context.Context, layout paths.Layout, model templating.Model,
 ) error {
+	if err := a.machineKeyPreparer().Prepare(layout); err != nil {
+		return err
+	}
+
 	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
 
 	if err := orch.RunPhase(ctx, bootstrap.PhaseEdgeAuth); err != nil {
@@ -363,6 +371,15 @@ func (a *App) provisioner() Provisioner {
 		return a.Provisioner
 	}
 	return &DefaultProvisioner{}
+}
+
+// machineKeyPreparer returns the configured MachineKeyPreparer, defaulting
+// to the real os.Geteuid/os.Chown/os.Stat.
+func (a *App) machineKeyPreparer() MachineKeyPreparer {
+	if a.MachineKeyPreparer.Geteuid != nil {
+		return a.MachineKeyPreparer
+	}
+	return newMachineKeyPreparer()
 }
 
 // runUpdate performs the Day-2 path: reconcile Zitadel, pull new images and

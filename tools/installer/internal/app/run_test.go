@@ -114,6 +114,13 @@ func newTestApp(t *testing.T, opts *Options, rec runner.Runner, wiz Wizard) (*Ap
 		Now:         func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
 		Inspector:   readyHost(),
 		Provisioner: &stubProvisioner{},
+		// Simulate running as root, like a fresh install on a Proxmox LXC,
+		// so tests do not depend on the test runner's real uid or on being
+		// able to chown anything.
+		MachineKeyPreparer: MachineKeyPreparer{
+			Geteuid: func() int { return 0 },
+			Chown:   func(string, int, int) error { return nil },
+		},
 	}, &stdout, &stderr
 }
 

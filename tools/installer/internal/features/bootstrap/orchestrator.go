@@ -4,10 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"alfheim/installer/internal/shared/paths"
 	"alfheim/installer/internal/shared/runner"
 )
+
+// zitadelContainer is the container name PhaseEdgeAuth waits on. It is also
+// used to single out Zitadel's own startup failure for a more actionable
+// error message.
+const zitadelContainer = "alfheim_zitadel"
 
 // Orchestrator drives the staged Docker Compose lifecycle.
 type Orchestrator struct {
@@ -52,10 +58,37 @@ func (o *Orchestrator) RunPhase(ctx context.Context, phase Phase) error {
 
 	for _, target := range phase.WaitFor {
 		if err := o.waitHealthy(ctx, target); err != nil {
+			if target.Container == zitadelContainer {
+				err = o.explainZitadelFailure(ctx, err)
+			}
 			return err
 		}
 	}
 	return nil
+}
+
+// explainZitadelFailure looks at Zitadel's own logs after a startup failure
+// and, when they show the machinekey permission problem (a bind-mount
+// directory Docker created root-owned before the non-root container user
+// could write its bootstrap PAT into it), appends a concrete explanation
+// instead of leaving the operator with just a timeout or unhealthy message.
+// Best-effort: any failure to fetch logs falls back to the original error.
+func (o *Orchestrator) explainZitadelFailure(ctx context.Context, original error) error {
+	res, err := o.runner.Run(ctx, runner.Command{
+		Name: "docker", Args: []string{"logs", "--tail", "200", zitadelContainer},
+	})
+	if err != nil || res.ExitCode != 0 {
+		return original
+	}
+	if !strings.Contains(res.Stdout+res.Stderr, "open /machinekey/pat.txt") {
+		return original
+	}
+	return fmt.Errorf("%w\n\n"+
+		"Zitadel could not write its bootstrap PAT to /machinekey/pat.txt. This is a "+
+		"permissions problem: the host directory bind-mounted there was created "+
+		"root-owned (by Docker itself) before it could be made writable by the "+
+		"container's own user. Fix its ownership (chown 1000:1000 on the machinekey "+
+		"directory under your install root) and re-run", original)
 }
 
 // compose runs one docker compose sub-command against the production file.
