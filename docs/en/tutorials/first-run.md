@@ -116,20 +116,7 @@ grep ZITADEL_ADMIN_PASSWORD .env
 Open `https://auth.example.com`, sign in as `admin` with that password, and
 complete Zitadel's onboarding.
 
-## Step 6: Start the application stack
-
-Back in the terminal, confirm the prompt. The installer pulls and starts the
-remaining services, then prints your access URLs:
-
-```
-Alfheim is up.
-
-  Dashboard       https://example.com
-  Identity        https://auth.example.com
-  Observability   https://example.com/grafana/
-```
-
-## Step 7: Verify
+## Step 6: Verify
 
 ```bash
 docker compose -f compose.prod.yaml ps

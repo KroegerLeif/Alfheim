@@ -34,7 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 Arguments are forwarded to the binary:
 
 ```bash
-curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --tls internal
+curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --tls internal --admin-email you@example.com
 ```
 
 ### Environment Variables

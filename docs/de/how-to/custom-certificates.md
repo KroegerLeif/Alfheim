@@ -59,7 +59,8 @@ Interaktiv: **Custom certificates → Custom absolute host path**. Headless:
 alfheim-setup --non-interactive \
   --domain example.com \
   --tls custom \
-  --cert-path /etc/letsencrypt/live/example.com
+  --cert-path /etc/letsencrypt/live/example.com \
+  --admin-email du@example.com
 ```
 
 Das Verzeichnis wird schreibgeschützt nach `/etc/caddy/certs` in das Gateway

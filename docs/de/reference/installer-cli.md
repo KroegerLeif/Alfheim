@@ -37,7 +37,7 @@ curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --
 | Flag | Beschreibung |
 | :--- | :--- |
 | `--dry-run` | Führe jede Validierung aus, generiere Secrets und rendere `.env` und die `Caddyfile` in ein temporäres Verzeichnis. Startet keine Container und modifiziert keine bestehende Installation. Ein Host ohne Docker erzeugt Warnungen statt eines Fehlers. |
-| `--non-interactive` | Nehme jede Antwort aus Flags und Umgebungsvariablen statt des Assistenten. Die manuelle Zitadel-Pause wird übersprungen; die URL wird stattdessen gedruckt. |
+| `--non-interactive` | Nehme jede Antwort aus Flags und Umgebungsvariablen statt des Assistenten. Zitadel wird automatisch bereitgestellt; der Anmeldename und das Passwort werden gedruckt. |
 | `--reconfigure` | Führe den Assistenten über einer bestehenden Installation erneut aus. **Bestehende Secrets werden beibehalten, niemals rotiert.** |
 | `--install-dir DIR` | Installations-Root-Verzeichnis. Standard: das aktuelle Arbeitsverzeichnis. |
 | `--version` | Drucke Build-Metadaten und beende, vor jeder Host-Überprüfung. |
@@ -50,7 +50,7 @@ Jedes Flag hat ein Umgebungsvariablen-Äquivalent. Das Flag gewinnt, wenn beide 
 | :--- | :--- | :--- |
 | `--domain HOST` | `ALFHEIM_DOMAIN` | Basis-Domain, z.B. `example.com`. **Erforderlich** im nicht-interaktiven Modus. |
 | `--app-host HOST` | `ALFHEIM_APP_HOST` | Host, der das Dashboard bedient. Standardmäßig die Basis-Domain. |
-| `--admin-email MAIL` | `ALFHEIM_ADMIN_EMAIL` | ACME-Kontakt und Zitadel-Administrator-Kontakt. |
+| `--admin-email MAIL` | `ALFHEIM_ADMIN_EMAIL` | Zitadel-Administrator-Anmeldename (verifiziert, keine E-Mail erforderlich) und ACME-Kontakt. **Erforderlich** im nicht-interaktiven Modus. |
 | `--tls STRATEGY` | `ALFHEIM_TLS_STRATEGY` | `hetzner`, `cloudflare`, `custom` oder `internal`. **Erforderlich** im nicht-interaktiven Modus. |
 | `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN` | DNS-Provider-Token. Erforderlich für `hetzner` und `cloudflare`. |
 | `--cert-path DIR` | `ALFHEIM_CERT_PATH` | Absolutes Verzeichnis mit `fullchain.pem` und `privkey.pem`. Nur für `--tls custom`; weglassen zum Standard `./data/caddy/certs/` nutzen. |
@@ -105,7 +105,7 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 | Phase | Services | Wartet auf |
 | :--- | :--- | :--- |
 | 1 — Edge & Identität | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
-| *Pause* | — | Der Operator erstellt den Zitadel-Administrator |
+| 2 — Bereitstellung & Verifikation | `zitadel-admin` (optional) | Zitadel-Bereitstellung (erstellt Projekt, Client, Benutzer); schreibt `.env`-Updates. Nur im interaktiven Modus. |
 | 2 — Kern & Anwendungs-Stack | alle verbleibenden | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
 Die Pause wird unter `--non-interactive` übersprungen.
