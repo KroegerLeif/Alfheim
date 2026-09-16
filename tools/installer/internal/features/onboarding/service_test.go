@@ -10,6 +10,7 @@ func TestApplyPresetLoegienMatchesRepositoryDefaults(t *testing.T) {
 	if !ApplyPreset(&c, PresetLoegien) {
 		t.Fatal("ApplyPreset() = false for a known preset")
 	}
+	c.AdminEmail = "ops@example.com"
 	if err := Derive(&c); err != nil {
 		t.Fatalf("Derive() error = %v", err)
 	}
@@ -142,7 +143,7 @@ func TestDerivePreservesExplicitImageCoordinates(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	base := func() Config {
-		c := Config{Preset: PresetCustom, BaseDomain: "example.com", Secure: true}
+		c := Config{Preset: PresetCustom, BaseDomain: "example.com", Secure: true, AdminEmail: "ops@example.com"}
 		if err := Derive(&c); err != nil {
 			t.Fatal(err)
 		}
@@ -169,6 +170,7 @@ func TestValidate(t *testing.T) {
 		}, "exceeds 253 characters"},
 		{"bad email", func(c *Config) { c.AdminEmail = "not-an-email" }, "is not valid"},
 		{"good email", func(c *Config) { c.AdminEmail = "ops@example.com" }, ""},
+		{"empty admin email", func(c *Config) { c.AdminEmail = "" }, "administrator e-mail is required"},
 		{"empty tag", func(c *Config) { c.ImageTag = "" }, "image tag must not be empty"},
 	}
 
@@ -207,5 +209,69 @@ func TestWildcardDomain(t *testing.T) {
 	c := Config{BaseDomain: "loegien.de"}
 	if got := c.WildcardDomain(); got != "*.loegien.de" {
 		t.Fatalf("WildcardDomain() = %q", got)
+	}
+}
+
+func TestHeadlessConfigFromEnv(t *testing.T) {
+	env := map[string]string{
+		"DOMAIN":                 "example.com",
+		"ALFHEIM_HOST":           "alfheim.example.com",
+		"ZITADEL_ADMIN_EMAIL":    "ops@example.com",
+		"ZITADEL_EXTERNALSECURE": "true",
+	}
+	c, err := HeadlessConfigFromEnv(env)
+	if err != nil {
+		t.Fatalf("HeadlessConfigFromEnv() error = %v", err)
+	}
+	if c.BaseDomain != "example.com" || c.AppHost != "alfheim.example.com" ||
+		c.AuthHost != "auth.example.com" || c.AdminEmail != "ops@example.com" || !c.Secure {
+		t.Fatalf("HeadlessConfigFromEnv() = %+v", c)
+	}
+	if c.BaseURL != "https://alfheim.example.com" {
+		t.Errorf("BaseURL = %q", c.BaseURL)
+	}
+}
+
+func TestHeadlessConfigFromEnvInsecure(t *testing.T) {
+	c, err := HeadlessConfigFromEnv(map[string]string{"DOMAIN": "example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Secure {
+		t.Error("a missing ZITADEL_EXTERNALSECURE must default to insecure")
+	}
+}
+
+func TestHeadlessConfigFromEnvUsesLiteralAuthHostAndBaseURL(t *testing.T) {
+	// A dev .env can use an auth host that does not follow the
+	// "auth.<domain>" convention; provisioning must target the real one.
+	c, err := HeadlessConfigFromEnv(map[string]string{
+		"DOMAIN":                 "loegien.de",
+		"ZITADEL_EXTERNALDOMAIN": "auth.alfheim.loegien.localhost",
+		"ALFHEIM_BASE_URL":       "https://alfheim.loegien.de",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.AuthHost != "auth.alfheim.loegien.localhost" {
+		t.Errorf("AuthHost = %q, want the literal ZITADEL_EXTERNALDOMAIN", c.AuthHost)
+	}
+	if c.BaseURL != "https://alfheim.loegien.de" {
+		t.Errorf("BaseURL = %q, want the literal ALFHEIM_BASE_URL", c.BaseURL)
+	}
+}
+
+func TestHeadlessConfigFromEnvRequiresBaseDomain(t *testing.T) {
+	if _, err := HeadlessConfigFromEnv(map[string]string{}); err == nil {
+		t.Fatal("HeadlessConfigFromEnv() error = nil, want a failure for a missing domain")
+	}
+}
+
+func TestScheme(t *testing.T) {
+	if (Config{Secure: true}).Scheme() != "https" {
+		t.Error("Scheme() with Secure=true must be https")
+	}
+	if (Config{Secure: false}).Scheme() != "http" {
+		t.Error("Scheme() with Secure=false must be http")
 	}
 }

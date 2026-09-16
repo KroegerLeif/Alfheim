@@ -159,6 +159,10 @@ func (o *Options) HeadlessConfig() (onboarding.Config, tls.Config, error) {
 		return on, tlsCfg, fmt.Errorf(
 			"alfheim-setup: --tls (or ALFHEIM_TLS_STRATEGY) is required in non-interactive mode")
 	}
+	if o.AdminEmail == "" {
+		return on, tlsCfg, fmt.Errorf(
+			"alfheim-setup: --admin-email (or ALFHEIM_ADMIN_EMAIL) is required in non-interactive mode")
+	}
 
 	strategy, err := tls.ParseStrategy(o.TLSStrategy)
 	if err != nil {
