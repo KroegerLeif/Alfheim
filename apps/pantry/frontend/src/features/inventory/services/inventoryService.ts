@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { resolveApiUrl } from "@alfheim/shared";
+import { resolveApiUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
 import { pantryClient } from "@/core/api";
 import {
   InventoryStateReadWithRelations,
@@ -121,7 +121,7 @@ export async function pushLowStockToShoppingApp(): Promise<{ success: boolean; p
 
   let token = "";
   if (typeof window !== "undefined") {
-    token = sessionStorage.getItem("token_pantry-frontend") || "";
+    token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY) || "";
   }
 
   const headers: Record<string, string> = {
