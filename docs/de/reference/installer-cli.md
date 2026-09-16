@@ -105,10 +105,10 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 | Phase | Services | Wartet auf |
 | :--- | :--- | :--- |
 | 1 — Edge & Identität | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
-| 2 — Bereitstellung & Verifikation | `zitadel-admin` (optional) | Zitadel-Bereitstellung (erstellt Projekt, Client, Benutzer); schreibt `.env`-Updates. Nur im interaktiven Modus. |
-| 2 — Kern & Anwendungs-Stack | alle verbleibenden | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
+| 2 — Zitadel-Provisionierung | — | Gleicht das Projekt `Alfheim`, den Web-Client und den Grafana-Client über die Management-API ab und schreibt ihre IDs in die `.env` |
+| 3 — Kern & Anwendungs-Stack | alle verbleibenden | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
-Die Pause wird unter `--non-interactive` übersprungen.
+Danach gibt der Installer den Anmeldenamen des Administrators (die eingegebene E-Mail) und das generierte Passwort aus; beim ersten Login ist ein Passwortwechsel Pflicht.
 
 ---
 

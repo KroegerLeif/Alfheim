@@ -74,7 +74,7 @@ Der Wizard fragt vier Dinge ab:
 1. **Deployment-Ziel.** Wähle *Custom domain* und gib `example.com` ein. Der
    Dashboard-Host entspricht standardmäßig deiner Basis-Domain; der Identity
    Provider liegt immer auf `auth.example.com`.
-2. **Administrator-E-Mail.** Dient als ACME-Kontakt und als Zitadel-Admin-Kontakt.
+2. **Administrator-E-Mail.** Wird Anmeldename des Zitadel-Administrators und ACME-Kontakt.
 3. **Zertifikatsstrategie.** Wähle *Hetzner DNS-01* oder *Cloudflare DNS-01*, wenn
    deine Domain dort gehostet ist — das stellt Wildcard-Zertifikate aus und
    benötigt keinen eingehenden Port 80. Andernfalls wähle *Custom certificates*
@@ -87,36 +87,13 @@ Anschließend erzeugt der Installer sämtliche Zugangsdaten aus `crypto/rand` un
 * `.env` — gesamte Konfiguration und Secrets, Modus `0600`
 * `infrastructure/caddy/Caddyfile` — die gerenderte Ingress-Konfiguration
 
-## Schritt 5: Zitadel-Administrator anlegen
+## Schritt 5: Den Installer durchlaufen lassen
 
-Der Installer startet Datenbank, Ingress-Gateway und Zitadel, wartet bis alle drei
-gesund sind — und **pausiert dann**:
-
-```
-The identity provider is up and holds a certificate.
-
-  1. Open https://auth.example.com
-  2. Sign in with the administrator credentials from .env
-  3. Complete the initial onboarding
-```
-
-Diese Pause ist Absicht. Kein Anwendungsdienst kann eine Anmeldung verifizieren,
-solange in Zitadel kein Administrator existiert — und dieses Konto lässt sich nur
-über den Browser anlegen.
-
-Das generierte Passwort findest du so:
-
-```bash
-grep ZITADEL_ADMIN_PASSWORD .env
-```
-
-Öffne `https://auth.example.com`, melde dich als `admin` mit diesem Passwort an und
-schließe das Zitadel-Onboarding ab.
-
-## Schritt 6: Anwendungs-Stack starten
-
-Zurück im Terminal die Abfrage bestätigen. Der Installer lädt und startet die
-restlichen Dienste und gibt danach deine Zugriffs-URLs aus:
+Der Installer startet Datenbank, Ingress-Gateway und Zitadel, wartet, bis alle drei
+gesund sind, und richtet Zitadel dann selbst ein: Er legt das Projekt `Alfheim`,
+einen Anmelde-Client für das Dashboard und alle Apps sowie einen Client für Grafana
+an und schreibt deren IDs in die `.env`. Danach lädt und startet er die restlichen
+Dienste und gibt deine Zugriffs-URLs und den Administrator-Login aus:
 
 ```
 Alfheim is up.
@@ -124,9 +101,17 @@ Alfheim is up.
   Dashboard       https://example.com
   Identity        https://auth.example.com
   Observability   https://example.com/grafana/
+
+  Administrator login
+    E-mail (login name):  du@example.com
+    Password:              <generiert> (also in .env, ZITADEL_ADMIN_PASSWORD)
+    A password change is required on first login.
 ```
 
-## Schritt 7: Prüfen
+Du musst kein Konto registrieren und die Zitadel-Konsole nicht öffnen. Die
+Administrator-E-Mail ist bereits verifiziert, es wird keine Mail verschickt.
+
+## Schritt 6: Prüfen
 
 ```bash
 docker compose -f compose.prod.yaml ps

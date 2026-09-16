@@ -114,10 +114,10 @@ The mode is detected from the installation directory, not chosen by a flag.
 | Phase | Services | Waits for |
 | :--- | :--- | :--- |
 | 1 — Edge & Identity | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
-| 2 — Provisioning & Verification | `zitadel-admin` (optional) | Zitadel provisioning (creates project, client, user); writes `.env` updates. Only in interactive mode. |
-| 2 — Core & Application Stack | all remaining | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
+| 2 — Zitadel provisioning | — | Reconciles the `Alfheim` project, the web client and the Grafana client via the Management API and writes their IDs to `.env` |
+| 3 — Core & Application Stack | all remaining | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
-During provisioning, the installer creates the Zitadel project "Alfheim", a client for the dashboard and frontends, and a Grafana read-only client. It writes the client IDs to `.env`. The final output prints the administrator login name and a temporary password; a password change is required at first login.
+During provisioning, the installer creates the Zitadel project "Alfheim", one client shared by the dashboard and every app frontend, and a client for Grafana. It writes the client IDs to `.env`. The final output prints the administrator login name and the generated password; a password change is required at first login.
 
 ---
 
