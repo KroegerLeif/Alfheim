@@ -47,6 +47,20 @@ func (l Layout) DefaultCertDir() string {
 	return filepath.Join(l.Root, "data", "caddy", "certs")
 }
 
+// ZitadelPATFile is where Zitadel writes the bootstrap machine user's
+// personal access token on first init (ZITADEL_FIRSTINSTANCE_PATPATH in
+// compose.prod.yaml, bind-mounted from ZitadelMachineKeyDir).
+func (l Layout) ZitadelPATFile() string {
+	return filepath.Join(l.ZitadelMachineKeyDir(), "pat.txt")
+}
+
+// ZitadelMachineKeyDir is bind-mounted into the Zitadel container at
+// /machinekey. It is created ahead of time so Docker does not create it
+// root-owned when the bind mount is first used.
+func (l Layout) ZitadelMachineKeyDir() string {
+	return filepath.Join(l.Root, "infrastructure", "zitadel", "machinekey")
+}
+
 // Marker is the Day-1 completion marker.
 func (l Layout) Marker() string { return filepath.Join(l.Root, MarkerName) }
 
@@ -71,6 +85,9 @@ func (l Layout) EnsureDirs() error {
 		{filepath.Join(l.Root, "infrastructure", "telemetry", "collector"), 0o755},
 		// Certificates may hold private keys, so the tree is owner-only.
 		{l.DefaultCertDir(), 0o700},
+		// The PAT Zitadel writes here is a credential, so the tree is
+		// owner-only.
+		{l.ZitadelMachineKeyDir(), 0o700},
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d.path, d.perm); err != nil {
