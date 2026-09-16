@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,6 +66,7 @@ func NewRenderer() (*TemplateRenderer, error) {
 		Funcs(template.FuncMap{
 			"envQuote": EnvQuote,
 			"join":     strings.Join,
+			"urlQuery": url.QueryEscape,
 		}).
 		ParseFS(templates, "embedded/*.tmpl")
 	if err != nil {

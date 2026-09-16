@@ -64,11 +64,12 @@ func Validate(c Config) error {
 	if err := validateHost("auth host", c.AuthHost); err != nil {
 		return err
 	}
-	if c.AdminEmail != "" {
-		if _, err := mail.ParseAddress(c.AdminEmail); err != nil {
-			return fmt.Errorf("onboarding: administrator e-mail %q is not valid: %w",
-				c.AdminEmail, err)
-		}
+	if c.AdminEmail == "" {
+		return fmt.Errorf("onboarding: administrator e-mail is required")
+	}
+	if _, err := mail.ParseAddress(c.AdminEmail); err != nil {
+		return fmt.Errorf("onboarding: administrator e-mail %q is not valid: %w",
+			c.AdminEmail, err)
 	}
 	if c.ImageTag == "" {
 		return fmt.Errorf("onboarding: image tag must not be empty")
@@ -121,4 +122,49 @@ func (c Config) Scheme() string {
 		return "https"
 	}
 	return "http"
+}
+
+// HeadlessConfigFromEnv reconstructs the Config an earlier run derived, by
+// reading back its own .env output (env.tmpl writes DOMAIN, ALFHEIM_HOST,
+// ZITADEL_EXTERNALSECURE and ZITADEL_ADMIN_EMAIL from exactly these fields).
+// The Day-2 update path, and scripts/up.sh's `provision` subcommand, use it
+// to re-run Zitadel provisioning without re-running the wizard.
+//
+// AuthHost and BaseURL are read back verbatim (ZITADEL_EXTERNALDOMAIN,
+// ALFHEIM_BASE_URL) rather than re-derived from BaseDomain: a hand-edited or
+// dev .env can use an auth host that does not follow the "auth.<domain>"
+// convention Derive assumes, and provisioning must target the host Zitadel
+// was actually configured with, not a recomputed guess.
+func HeadlessConfigFromEnv(env map[string]string) (Config, error) {
+	c := Config{
+		Preset:     PresetCustom,
+		BaseDomain: normaliseHost(env["DOMAIN"]),
+		AppHost:    normaliseHost(env["ALFHEIM_HOST"]),
+		AdminEmail: env["ZITADEL_ADMIN_EMAIL"],
+		Secure:     env["ZITADEL_EXTERNALSECURE"] == "true",
+	}
+	if c.BaseDomain == "" {
+		return Config{}, fmt.Errorf("onboarding: reconstruct configuration from .env: DOMAIN is required")
+	}
+	if c.AppHost == "" {
+		c.AppHost = c.BaseDomain
+	}
+
+	c.AuthHost = env["ZITADEL_EXTERNALDOMAIN"]
+	if c.AuthHost == "" {
+		c.AuthHost = "auth." + c.BaseDomain
+	}
+	c.BaseURL = env["ALFHEIM_BASE_URL"]
+	if c.BaseURL == "" {
+		c.BaseURL = c.Scheme() + "://" + c.AppHost
+	}
+	c.IssuerURL = env["OIDC_ISSUER_URL"]
+	if c.IssuerURL == "" {
+		c.IssuerURL = c.Scheme() + "://" + c.AuthHost
+	}
+
+	c.Registry = DefaultRegistry
+	c.Repo = DefaultRepo
+	c.ImageTag = DefaultImageTag
+	return c, nil
 }

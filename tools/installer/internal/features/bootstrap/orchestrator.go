@@ -4,28 +4,23 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"alfheim/installer/internal/shared/paths"
 	"alfheim/installer/internal/shared/runner"
 )
 
-// ConfirmFunc blocks until the operator has completed the manual Zitadel
-// admin onboarding step. Returning an error aborts before the second phase,
-// leaving the already-started containers running.
-type ConfirmFunc func(ctx context.Context, authURL string) error
+// zitadelContainer is the container name PhaseEdgeAuth waits on. It is also
+// used to single out Zitadel's own startup failure for a more actionable
+// error message.
+const zitadelContainer = "alfheim_zitadel"
 
 // Orchestrator drives the staged Docker Compose lifecycle.
 type Orchestrator struct {
-	runner  runner.Runner
-	layout  paths.Layout
-	confirm ConfirmFunc
-	clock   clock
-	log     io.Writer
-
-	// AuthURL is shown to the operator during the pause between phases.
-	AuthURL string
-	// SkipConfirm suppresses the manual pause, for headless runs.
-	SkipConfirm bool
+	runner runner.Runner
+	layout paths.Layout
+	clock  clock
+	log    io.Writer
 }
 
 // Option customises an Orchestrator.
@@ -38,32 +33,16 @@ func WithClock(c clock) Option { return func(o *Orchestrator) { o.clock = c } }
 func WithLogger(w io.Writer) Option { return func(o *Orchestrator) { o.log = w } }
 
 // New returns an Orchestrator.
-func New(r runner.Runner, l paths.Layout, confirm ConfirmFunc, opts ...Option) *Orchestrator {
+func New(r runner.Runner, l paths.Layout, opts ...Option) *Orchestrator {
 	o := &Orchestrator{
-		runner:  r,
-		layout:  l,
-		confirm: confirm,
-		clock:   realClock{},
+		runner: r,
+		layout: l,
+		clock:  realClock{},
 	}
 	for _, opt := range opts {
 		opt(o)
 	}
 	return o
-}
-
-// Run performs the full two-phase bootstrap.
-func (o *Orchestrator) Run(ctx context.Context) error {
-	if err := o.RunPhase(ctx, PhaseEdgeAuth); err != nil {
-		return err
-	}
-
-	// The pause is the whole point of splitting the boot: Zitadel needs a
-	// human to create the first admin before any service can verify a token.
-	if err := o.pause(ctx); err != nil {
-		return err
-	}
-
-	return o.RunPhase(ctx, PhaseCoreStack)
 }
 
 // RunPhase pulls images, starts the services of one phase and waits for them.
@@ -79,23 +58,37 @@ func (o *Orchestrator) RunPhase(ctx context.Context, phase Phase) error {
 
 	for _, target := range phase.WaitFor {
 		if err := o.waitHealthy(ctx, target); err != nil {
+			if target.Container == zitadelContainer {
+				err = o.explainZitadelFailure(ctx, err)
+			}
 			return err
 		}
 	}
 	return nil
 }
 
-// pause runs the interactive confirmation between the two phases.
-func (o *Orchestrator) pause(ctx context.Context) error {
-	if o.SkipConfirm || o.confirm == nil {
-		o.logf("Skipping the manual Zitadel onboarding pause.")
-		o.logf("Create the administrator account at %s before using the stack.", o.AuthURL)
-		return nil
+// explainZitadelFailure looks at Zitadel's own logs after a startup failure
+// and, when they show the machinekey permission problem (a bind-mount
+// directory Docker created root-owned before the non-root container user
+// could write its bootstrap PAT into it), appends a concrete explanation
+// instead of leaving the operator with just a timeout or unhealthy message.
+// Best-effort: any failure to fetch logs falls back to the original error.
+func (o *Orchestrator) explainZitadelFailure(ctx context.Context, original error) error {
+	res, err := o.runner.Run(ctx, runner.Command{
+		Name: "docker", Args: []string{"logs", "--tail", "200", zitadelContainer},
+	})
+	if err != nil || res.ExitCode != 0 {
+		return original
 	}
-	if err := o.confirm(ctx, o.AuthURL); err != nil {
-		return fmt.Errorf("bootstrap: aborted before the application stack was started: %w", err)
+	if !strings.Contains(res.Stdout+res.Stderr, "open /machinekey/pat.txt") {
+		return original
 	}
-	return nil
+	return fmt.Errorf("%w\n\n"+
+		"Zitadel could not write its bootstrap PAT to /machinekey/pat.txt. This is a "+
+		"permissions problem: the host directory bind-mounted there was created "+
+		"root-owned (by Docker itself) before it could be made writable by the "+
+		"container's own user. Fix its ownership (chown 1000:1000 on the machinekey "+
+		"directory under your install root) and re-run", original)
 }
 
 // compose runs one docker compose sub-command against the production file.

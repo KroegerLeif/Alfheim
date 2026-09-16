@@ -147,7 +147,7 @@ func TestHeadlessConfig(t *testing.T) {
 }
 
 func TestHeadlessConfigInternalIsInsecure(t *testing.T) {
-	opts := &Options{Domain: "example.com", TLSStrategy: "internal"}
+	opts := &Options{Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com"}
 	on, _, err := opts.HeadlessConfig()
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +159,7 @@ func TestHeadlessConfigInternalIsInsecure(t *testing.T) {
 
 func TestHeadlessConfigCustomCertPath(t *testing.T) {
 	opts := &Options{
-		Domain: "example.com", TLSStrategy: "custom",
+		Domain: "example.com", TLSStrategy: "custom", AdminEmail: "ops@example.com",
 		CertPath: "/etc/letsencrypt/live/example.com",
 	}
 	_, tlsCfg, err := opts.HeadlessConfig()
@@ -175,7 +175,7 @@ func TestHeadlessConfigCustomCertPath(t *testing.T) {
 }
 
 func TestHeadlessConfigCustomCertDefaultPath(t *testing.T) {
-	opts := &Options{Domain: "example.com", TLSStrategy: "custom"}
+	opts := &Options{Domain: "example.com", TLSStrategy: "custom", AdminEmail: "ops@example.com"}
 	_, tlsCfg, err := opts.HeadlessConfig()
 	if err != nil {
 		t.Fatal(err)
@@ -193,8 +193,9 @@ func TestHeadlessConfigMissingInputsAreNamed(t *testing.T) {
 	}{
 		{"no domain", &Options{TLSStrategy: "internal"}, "--domain"},
 		{"no strategy", &Options{Domain: "example.com"}, "--tls"},
-		{"bad strategy", &Options{Domain: "example.com", TLSStrategy: "acme"}, "unknown strategy"},
-		{"dns without token", &Options{Domain: "example.com", TLSStrategy: "hetzner"}, "--api-token"},
+		{"no admin email", &Options{Domain: "example.com", TLSStrategy: "internal"}, "--admin-email"},
+		{"bad strategy", &Options{Domain: "example.com", TLSStrategy: "acme", AdminEmail: "ops@example.com"}, "unknown strategy"},
+		{"dns without token", &Options{Domain: "example.com", TLSStrategy: "hetzner", AdminEmail: "ops@example.com"}, "--api-token"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

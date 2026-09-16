@@ -100,4 +100,5 @@ jobs:
           go run ./cmd/alfheim-setup --version
           go run ./cmd/alfheim-setup --dry-run --non-interactive \
             --domain alfheim.example.com --tls internal \
+            --admin-email admin@alfheim.example.com \
             --install-dir "$(mktemp -d)"
