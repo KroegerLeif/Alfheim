@@ -21,7 +21,7 @@ Allow about 30 minutes, most of which is spent waiting for container images.
 
 You need:
 
-* A Debian 12 (or comparable) host with at least 4 GB RAM and 20 GB free disk.
+* A Debian 12 (or comparable) host with at least 4 GB RAM and 10 GB free disk.
 * Root or `sudo` access.
 * A domain you control, with DNS pointing at the host. This tutorial uses
   `example.com`; substitute your own throughout.

@@ -17,8 +17,10 @@ Welcome to the **Alfheim Home Server OS** installation guide. This document prov
 | :--- | :--- | :--- |
 | **CPU** | 2 Cores (x86_64 or arm64) | 4+ Cores (x86_64 or arm64) |
 | **RAM** | 4 GB (with 2 GB swap) | 8 GB+ |
-| **Storage** | 20 GB SSD / NVMe | 50 GB+ SSD |
+| **Storage** | 10 GB SSD / NVMe | 20 GB+ SSD |
 | **Network** | 100 Mbps Ethernet | 1 Gbps Gigabit Ethernet |
+
+**Storage Breakdown:** Fresh Alfheim install requires ~5.5–6.5 GB: container images (≈3.6 GB extracted), base OS + Docker Engine (≈1.5–2.5 GB), fresh volumes (≈0.2 GB). Headroom is for RustFS uploads (budget receipts, library PDFs), unrotated container logs, and backups. Metrics retention is bounded to 14 days, logs to 7 days (configured in `compose.prod.yaml`).
 
 ### Supported Operating Systems
 * **Linux (Recommended)**: Debian 12 (Bookworm), Ubuntu 22.04 / 24.04 LTS, Fedora Server, Rocky Linux / AlmaLinux 9.

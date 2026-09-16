@@ -20,7 +20,7 @@ Plane etwa 30 Minuten ein; der Großteil davon ist Wartezeit auf Container-Image
 
 Du brauchst:
 
-* Einen Debian-12-Host (oder vergleichbar) mit mindestens 4 GB RAM und 20 GB freiem Speicher.
+* Einen Debian-12-Host (oder vergleichbar) mit mindestens 4 GB RAM und 10 GB freiem Speicher.
 * Root- oder `sudo`-Zugriff.
 * Eine Domain, die du kontrollierst, mit DNS-Eintrag auf den Host. Dieses Tutorial
   verwendet `example.com`; ersetze sie durchgehend durch deine eigene.
