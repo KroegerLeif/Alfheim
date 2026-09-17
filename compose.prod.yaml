@@ -385,9 +385,15 @@ services:
       - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=${GRAFANA_OIDC_CLIENT_ID:?GRAFANA_OIDC_CLIENT_ID must be set}
       - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_CLIENT_SECRET:?GRAFANA_OIDC_CLIENT_SECRET must be set}
       - GF_AUTH_GENERIC_OAUTH_SCOPES=openid email profile
+      # Zitadel resolves the instance from the Host header, not from how it
+      # was dialled: going straight to zitadel:8080 sends "Host: zitadel:8080",
+      # which matches no instance (Instance not found / 404 on token
+      # exchange). Route through the same external issuer URL as AUTH_URL —
+      # Grafana is already on gateway-net, which aliases ZITADEL_EXTERNALDOMAIN
+      # to Caddy.
       - GF_AUTH_GENERIC_OAUTH_AUTH_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}/oauth/v2/authorize
-      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=${OIDC_INTERNAL_URL:-http://zitadel:8080}/oauth/v2/token
-      - GF_AUTH_GENERIC_OAUTH_API_URL=${OIDC_INTERNAL_URL:-http://zitadel:8080}/oidc/v1/userinfo
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}/oauth/v2/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}/oidc/v1/userinfo
       # GRAFANA_SIGNOUT_REDIRECT_URL is the URL-encoded ${ALFHEIM_BASE_URL}/grafana/login,
       # rendered once by env.tmpl (Go's url.QueryEscape) instead of hardcoding
       # grafana.loegien.de here (issue #452, fact G).
