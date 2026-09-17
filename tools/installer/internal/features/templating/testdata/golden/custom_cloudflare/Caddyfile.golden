@@ -11,6 +11,16 @@
 	# drives DNS-01 issuance. The API token is read from the environment, so
 	# this file never contains a credential.
 	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	# Certificate management stays on, but Caddy's own blanket HTTP->HTTPS
+	# redirect is disabled: without this, any site here that manages a TLS
+	# certificate makes Caddy install a catch-all redirect on port 80 for
+	# EVERY host that isn't explicitly routed elsewhere — including this
+	# container's own healthcheck hitting http://127.0.0.1/livez, which has
+	# no matching certificate and fails the TLS handshake, so the healthcheck
+	# never passes (reproduced and confirmed locally). The friendly redirect
+	# real visitors expect on the bare domain is added explicitly below
+	# instead of relying on this automatic behaviour.
+	auto_https disable_redirects
 }
 
 # =============================================================================
@@ -26,6 +36,13 @@ https://auth.example.com {
 			versions h2c 1.1
 		}
 	}
+}
+
+# Explicit redirect, since auto_https disable_redirects (see global options)
+# no longer adds one automatically: a visitor on plain HTTP still lands on
+# HTTPS, but 127.0.0.1 (the container's own healthcheck) is left alone.
+http://auth.example.com {
+	redir https://auth.example.com{uri} permanent
 }
 
 # =============================================================================
@@ -164,4 +181,9 @@ https://alfheim.example.com {
 	handle {
 		reverse_proxy dashboard-frontend:3000
 	}
+}
+
+# See the identity provider domain block above for why this is explicit.
+http://alfheim.example.com {
+	redir https://alfheim.example.com{uri} permanent
 }

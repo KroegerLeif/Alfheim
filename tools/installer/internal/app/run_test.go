@@ -228,6 +228,42 @@ func TestRunInteractiveUsesTheWizard(t *testing.T) {
 	}
 }
 
+// TestRunInteractiveSecureMatchesChosenTLSStrategy guards against a real bug:
+// choosing "Custom domain" (or any preset) in the wizard and then --tls
+// internal must render a plain-HTTP site, not one that mismatches Secure
+// from the domain preset with a plain-HTTP TLS strategy. That mismatch made
+// Caddy manage an unwanted HTTPS certificate for the site, which in turn
+// made Caddy's own /livez healthcheck against 127.0.0.1 fail its TLS
+// handshake on a real install — reproduced against a real Caddy container.
+func TestRunInteractiveSecureMatchesChosenTLSStrategy(t *testing.T) {
+	root := t.TempDir()
+	wiz := &stubWizard{
+		on: onboarding.Config{
+			Preset: onboarding.PresetCustom, BaseDomain: "wizard.example.com",
+			AdminEmail: "ops@example.com",
+		},
+		tls: tls.Config{Strategy: tls.StrategyInternal},
+	}
+	app, stdout, _ := newTestApp(t, &Options{InstallDir: root}, healthyDocker(), wiz)
+	app.Provisioner = &stubProvisioner{}
+
+	if code := app.Run(context.Background()); code != ExitOK {
+		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
+	}
+
+	vars, err := envfile.ParseFile(filepath.Join(root, ".env"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vars["ZITADEL_EXTERNALSECURE"] != "false" {
+		t.Errorf("ZITADEL_EXTERNALSECURE = %q, want %q for --tls internal regardless of the domain preset",
+			vars["ZITADEL_EXTERNALSECURE"], "false")
+	}
+	if got := vars["ALFHEIM_BASE_URL"]; !strings.HasPrefix(got, "http://") {
+		t.Errorf("ALFHEIM_BASE_URL = %q, want a plain-HTTP URL for --tls internal", got)
+	}
+}
+
 func TestRunWizardFailureIsReported(t *testing.T) {
 	wiz := &stubWizard{runErr: errors.New("form aborted")}
 	app, _, stderr := newTestApp(t, &Options{InstallDir: t.TempDir()}, healthyDocker(), wiz)
