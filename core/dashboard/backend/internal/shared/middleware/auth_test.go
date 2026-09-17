@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,29 +27,46 @@ import (
 // provider: it serves an OIDC discovery document at
 // /.well-known/openid-configuration and the matching JWKS at /jwks.
 func generateJWKSServer(t *testing.T, keyID string) (*rsa.PrivateKey, *httptest.Server) {
+	privateKey, jwks := newMutableJWKSServer(t)
+	jwks.addKey(keyID, privateKey)
+	return privateKey, jwks.server
+}
+
+// jwkKeyEntry describes a single JWK to expose from a mutableJWKS.
+func rsaJWK(keyID string, privateKey *rsa.PrivateKey) map[string]interface{} {
+	nStr := base64.RawURLEncoding.EncodeToString(privateKey.N.Bytes())
+	eStr := base64.RawURLEncoding.EncodeToString(big.NewInt(int64(privateKey.E)).Bytes())
+	return map[string]interface{}{
+		"kty": "RSA",
+		"alg": "RS256",
+		"use": "sig",
+		"kid": keyID,
+		"n":   nStr,
+		"e":   eStr,
+	}
+}
+
+// mutableJWKS is an httptest-backed OIDC provider whose served JWKS can be
+// updated after the server has started, so tests can simulate a key that
+// appears only after the authenticator has already been constructed.
+type mutableJWKS struct {
+	mu     sync.Mutex
+	keys   []map[string]interface{}
+	server *httptest.Server
+}
+
+// newMutableJWKSServer starts a mutableJWKS with no keys yet, generates a
+// first RSA key pair, and returns it alongside the server (without adding it
+// to the served set) for callers that want to control when it's added.
+func newMutableJWKSServer(t *testing.T) (*rsa.PrivateKey, *mutableJWKS) {
+	t.Helper()
+
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("failed to generate rsa key: %v", err)
 	}
 
-	nBytes := privateKey.N.Bytes()
-	eBytes := big.NewInt(int64(privateKey.E)).Bytes()
-
-	nStr := base64.RawURLEncoding.EncodeToString(nBytes)
-	eStr := base64.RawURLEncoding.EncodeToString(eBytes)
-
-	jwksResponse := map[string]interface{}{
-		"keys": []map[string]interface{}{
-			{
-				"kty": "RSA",
-				"alg": "RS256",
-				"use": "sig",
-				"kid": keyID,
-				"n":   nStr,
-				"e":   eStr,
-			},
-		},
-	}
+	m := &mutableJWKS{}
 
 	mux := http.NewServeMux()
 	server := httptest.NewUnstartedServer(mux)
@@ -60,12 +78,24 @@ func generateJWKSServer(t *testing.T, keyID string) (*rsa.PrivateKey, *httptest.
 		})
 	})
 	mux.HandleFunc("/jwks", func(w http.ResponseWriter, r *http.Request) {
+		m.mu.Lock()
+		keys := append([]map[string]interface{}{}, m.keys...)
+		m.mu.Unlock()
+
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(jwksResponse)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"keys": keys})
 	})
 	server.Start()
 
-	return privateKey, server
+	m.server = server
+	return privateKey, m
+}
+
+// addKey adds an RSA key to the set served at /jwks.
+func (m *mutableJWKS) addKey(keyID string, privateKey *rsa.PrivateKey) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.keys = append(m.keys, rsaJWK(keyID, privateKey))
 }
 
 func TestGetUserClaims(t *testing.T) {
@@ -293,6 +323,62 @@ func TestAuthenticateMiddleware(t *testing.T) {
 				t.Errorf("expected response body to contain %q, got %q", tt.expectedSubstr, rec.Body.String())
 			}
 		})
+	}
+}
+
+// TestAuthenticateMiddleware_SelfHealsOnUnknownKID reproduces the scenario from
+// GitHub issue #461: a JWT is signed with a key that did not exist in the JWKS
+// at authenticator-construction time. It must be accepted on first use, without
+// recreating the Authenticator and without waiting for the hourly background
+// refresh, because RefreshUnknownKID triggers an out-of-band refresh.
+func TestAuthenticateMiddleware_SelfHealsOnUnknownKID(t *testing.T) {
+	discardLog := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	firstKeyID := "key-at-startup"
+	firstKey, jwks := newMutableJWKSServer(t)
+	jwks.addKey(firstKeyID, firstKey)
+	defer jwks.server.Close()
+
+	auth, err := NewAuthenticator(jwks.server.URL, "alfheim", discardLog)
+	if err != nil {
+		t.Fatalf("failed to create authenticator: %v", err)
+	}
+
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	middleware := auth.AuthenticateMiddleware(testHandler)
+
+	// A key minted after the authenticator was constructed (e.g. Zitadel
+	// rotating/adding a signing key after backend startup) is not present in
+	// the JWKS the authenticator originally fetched.
+	newKeyID := "key-minted-after-startup"
+	newKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate rsa key: %v", err)
+	}
+	jwks.addKey(newKeyID, newKey)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"sub": "user-new-key",
+		"iss": jwks.server.URL,
+		"aud": "alfheim",
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+	token.Header["kid"] = newKeyID
+	signed, err := token.SignedString(newKey)
+	if err != nil {
+		t.Fatalf("failed to sign token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+signed)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected token signed with a post-startup key to be accepted without a restart, got status %d body %q", rec.Code, rec.Body.String())
 	}
 }
 
