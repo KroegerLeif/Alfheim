@@ -101,6 +101,9 @@ func TestUploadAttachment(t *testing.T) {
 		mockRepo := &mockRepository{
 			createImageRefFunc: func(ctx context.Context, ref *ImageRef) error {
 				repoCreated = true
+				if ref.OwnerUserID == "" {
+					t.Errorf("expected owner user id to be recorded on upload")
+				}
 				if ref.MimeType != "image/png" {
 					t.Errorf("expected mime image/png, got %s", ref.MimeType)
 				}
@@ -176,16 +179,17 @@ func TestGetAttachment(t *testing.T) {
 		mockRepo := &mockRepository{
 			getImageRefByIDFunc: func(ctx context.Context, id string) (*ImageRef, error) {
 				return &ImageRef{
-					ID:         id,
-					StorageKey: "users/u1/chat/pic.png",
-					MimeType:   "image/png",
-					SizeBytes:  1024,
-					CreatedAt:  time.Now(),
+					ID:          id,
+					OwnerUserID: "u1",
+					StorageKey:  "users/u1/chat/pic.png",
+					MimeType:    "image/png",
+					SizeBytes:   1024,
+					CreatedAt:   time.Now(),
 				}, nil
 			},
 		}
 		svc := NewService(mockRepo, &mockStorageClient{}, log)
-		dto, err := svc.GetAttachment(context.Background(), "att-1")
+		dto, err := svc.GetAttachment(context.Background(), "u1", "att-1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -196,7 +200,33 @@ func TestGetAttachment(t *testing.T) {
 
 	t.Run("get non-existent attachment", func(t *testing.T) {
 		svc := NewService(&mockRepository{}, &mockStorageClient{}, log)
-		_, err := svc.GetAttachment(context.Background(), "missing")
+		_, err := svc.GetAttachment(context.Background(), "u1", "missing")
+		if !errors.Is(err, ErrAttachmentNotFound) {
+			t.Errorf("expected ErrAttachmentNotFound, got %v", err)
+		}
+	})
+
+	t.Run("attachment owned by another user is reported as not found", func(t *testing.T) {
+		mockRepo := &mockRepository{
+			getImageRefByIDFunc: func(ctx context.Context, id string) (*ImageRef, error) {
+				return &ImageRef{ID: id, OwnerUserID: "victim", StorageKey: "users/victim/chat/pic.png"}, nil
+			},
+		}
+		svc := NewService(mockRepo, &mockStorageClient{}, log)
+		_, err := svc.GetAttachment(context.Background(), "attacker", "att-1")
+		if !errors.Is(err, ErrAttachmentNotFound) {
+			t.Errorf("expected ErrAttachmentNotFound, got %v", err)
+		}
+	})
+
+	t.Run("legacy attachment without owner is reported as not found", func(t *testing.T) {
+		mockRepo := &mockRepository{
+			getImageRefByIDFunc: func(ctx context.Context, id string) (*ImageRef, error) {
+				return &ImageRef{ID: id, StorageKey: "users/u1/chat/pic.png"}, nil
+			},
+		}
+		svc := NewService(mockRepo, &mockStorageClient{}, log)
+		_, err := svc.GetAttachment(context.Background(), "u1", "att-1")
 		if !errors.Is(err, ErrAttachmentNotFound) {
 			t.Errorf("expected ErrAttachmentNotFound, got %v", err)
 		}

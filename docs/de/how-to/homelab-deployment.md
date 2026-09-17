@@ -45,79 +45,94 @@ Der schnellste Weg zur Installation auf einem Home-Server ist der automatische I
 curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
 ```
 
-### Was der Installer automatisch erledigt:
-1. Prüft Docker Engine, Docker Compose v2 und die Systemvoraussetzungen.
-2. Legt das Anwendungsverzeichnis unter `~/alfheim` an.
-3. Lädt die offiziellen Release-Orchestrierungsdateien (`compose.prod.yaml`, `Caddyfile`, Telemetrie-Konfigurationen).
-4. Erzeugt kryptografisch starke Zufalls-Zugangsdaten (AES-256-Chat-Verschlüsselungsschlüssel, PostgreSQL-Passwörter, Zitadel-Masterkey und Admin-Passwort, S3-Zugangsdaten) und speichert sie mit `chmod 600` in der `.env`.
-5. Gibt die nächsten Schritte zum Starten des Stacks aus.
+### Was der Installer automatisch erledigt
+1. **`install.sh`** prüft auf `curl`, stellt einen Linux-Host mit `amd64` oder `arm64` fest, ermittelt das Release (standardmäßig das neueste *stabile*), lädt das passende `alfheim-setup`-Binary und die Stack-Dateien (`compose.prod.yaml`, Telemetrie- und PostgreSQL-Init-Dateien) ins **aktuelle Verzeichnis** und prüft jede Datei gegen die `SHA256SUMS` des Releases. Bei fehlender oder abweichender Prüfsumme bricht es ab.
+2. **`alfheim-setup`** prüft den Host (Docker Engine und Compose v2) und erkennt den Modus: *install*, *update* (vorhandene `.env` oder `.alfheim.installed`) oder *reconfigure* (`--reconfigure`).
+3. Domain, Administrator-E-Mail und TLS-Strategie fragt es im Assistenten ab oder liest sie mit `--non-interactive` aus Flags und Umgebungsvariablen.
+4. Es erzeugt alle Zugangsdaten aus `crypto/rand` und schreibt `.env` (Modus `0600`) und `infrastructure/caddy/Caddyfile`. Werte, die schon in der `.env` stehen, werden übernommen, nie neu erzeugt.
+5. Für die TLS-Strategie `internal` legt es einmalig eine lokale Root-CA an (`infrastructure/caddy/pki/root.{crt,key}`, öffentliche Kopie `infrastructure/ca/alfheim-root-ca.crt`) und gibt ihren SHA-256-Fingerprint aus.
+6. **Phase 1, Edge & Identität:** startet `postgres-core`, `caddy` und `zitadel` und wartet, bis sie gesund sind.
+7. **Phase 2, Zitadel-Provisionierung:** legt über die Management-API von Zitadel das Projekt `Alfheim`, den gemeinsamen Web-Client für Dashboard und alle Apps sowie den Grafana-Client an und schreibt deren IDs in die `.env`.
+8. **Phase 3, Core- & Anwendungs-Stack:** lädt und startet alle übrigen Dienste, wartet auf das Dashboard und gibt die Zugangs-URLs, den Administrator-Login und bei `internal` die Schritte zum Vertrauen der Root-CA aus.
+
+Jede Strategie liefert HTTPS aus. `hetzner` und `cloudflare` beziehen Let's-Encrypt-Wildcard-Zertifikate, `custom` nutzt deine PEM-Dateien, und `internal` signiert mit der lokalen Root-CA ([auf jedem Gerät vertrauen](./trust-local-root-ca.md)).
+
+Für ein Pre-Release pinnst du einen Tag oder wählst den Pre-Release-Kanal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_VERSION=v0.1.1-rc.12 bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_CHANNEL=prerelease bash
+```
 
 ---
 
 ## 🛠️ Manuelle Installation
 
-Wenn du die volle Kontrolle über die Serverkonfiguration möchtest, folge dieser Schritt-für-Schritt-Anleitung:
+Nutze diesen Weg, wenn du jede Datei prüfen willst, bevor etwas läuft, oder kein Skript an `bash` weiterreichen kannst. Er wiederholt die Schritte von `install.sh` von Hand; Konfiguration und Start übernimmt weiterhin `alfheim-setup`.
 
-### 1. Verzeichnisstruktur anlegen
+### 1. Installationsverzeichnis anlegen
 ```bash
-mkdir -p ~/alfheim/infrastructure/caddy ~/alfheim/infrastructure/telemetry/collector
-cd ~/alfheim
+mkdir -p ~/alfheim && cd ~/alfheim
+mkdir -p infrastructure/ca infrastructure/caddy/pki \
+         infrastructure/telemetry/collector infrastructure/telemetry/vector infrastructure/postgres
 ```
 
-### 2. Release-Dateien herunterladen
-Lade die Dateien direkt vom letzten getaggten Release:
+Werden `infrastructure/ca` und `infrastructure/caddy/pki` vorab angelegt, erzeugt Docker diese Bind-Mount-Quellen nicht mit root als Besitzer.
 
+### 2. Release-Dateien herunterladen und prüfen
 ```bash
-RELEASE_TAG="v0.1.0-beta.1"
-BASE_URL="https://raw.githubusercontent.com/KroegerLeif/Alfheim/${RELEASE_TAG}"
+TAG="v0.1.1-rc.12"          # zu installierendes Release
+ARCH="amd64"                # oder arm64
+BASE="https://github.com/KroegerLeif/Alfheim/releases/download/${TAG}"
 
-curl -sSL "${BASE_URL}/compose.prod.yaml" -o compose.prod.yaml
-curl -sSL "${BASE_URL}/.env.example" -o .env.example
-curl -sSL "${BASE_URL}/scripts/init-env.sh" -o init-env.sh
-curl -sSL "${BASE_URL}/infrastructure/caddy/Caddyfile" -o infrastructure/caddy/Caddyfile
-curl -sSL "${BASE_URL}/infrastructure/telemetry/collector/config.yaml" -o infrastructure/telemetry/collector/config.yaml
+curl -fsSLO "${BASE}/SHA256SUMS"
+curl -fsSLO "${BASE}/alfheim-setup_linux_${ARCH}"
+curl -fsSLO "${BASE}/compose.prod.yaml"
+curl -fsSLO "${BASE}/otelcol-config.yaml"
+curl -fsSLO "${BASE}/init-multiple-dbs.sh"
+curl -fsSLO "${BASE}/vector.toml"
 
-chmod +x init-env.sh
+sha256sum --check --ignore-missing SHA256SUMS
 ```
 
-### 3. Umgebung & Secrets erzeugen
-Den kryptografischen Secret-Generator ausführen:
+Jede Datei muss `OK` melden. Dann die Dateien dorthin verschieben, wo `compose.prod.yaml` sie erwartet:
 
 ```bash
-# Nicht-interaktiv (Standard: https://alfheim.loegien.de)
-./init-env.sh --auto
-
-# Oder mit eigener Basis-URL / Domain und Registry-Overrides:
-./init-env.sh --base-url https://home.myhomelab.net --registry ghcr.io --repo myuser/alfheim --tag v0.1.0-beta.1
+mv otelcol-config.yaml infrastructure/telemetry/collector/config.yaml
+mv vector.toml infrastructure/telemetry/vector/vector.toml
+mv init-multiple-dbs.sh infrastructure/postgres/init-multiple-dbs.sh
+chmod +x infrastructure/postgres/init-multiple-dbs.sh "alfheim-setup_linux_${ARCH}"
 ```
 
-### 4. Konfiguration prüfen (`.env`)
-Die erzeugte `.env` durchsehen und bei Bedarf anpassen:
+### 3. Konfiguration vorab ansehen (optional)
 ```bash
-nano .env
+./alfheim-setup_linux_${ARCH} --dry-run --non-interactive --domain example.com --tls internal
 ```
 
-Wichtige Optionen:
-* `ALFHEIM_BASE_URL`: Wurzel-URL deines Servers (z. B. `https://alfheim.loegien.de` oder `http://192.168.1.100`), aus der alle Frontend- und API-Routen abgeleitet werden.
-* `IMAGE_REGISTRY`: Container-Registry für vorgebaute Images (aus dem Git-Remote abgeleitet; Standard: `ghcr.io`).
-* `IMAGE_REPO`: Namespace des Container-Repositories (aus dem Git-Remote abgeleitet; Standard: `kroegerleif/alfheim`).
-* `IMAGE_TAG`: Ziel-Versions-Tag (Standard: `latest`).
-* `ZITADEL_EXTERNALDOMAIN`: Öffentlicher Host der Zitadel-Konsole und des OIDC-Issuers (z. B. `auth.loegien.de`).
-* `OIDC_ISSUER_URL`: Kanonischer OIDC-Issuer für die JWT-Verifikation (der blanke Origin des IAM-Hosts).
-* `CHAT_ENCRYPTION_KEY`: Automatisch erzeugter 32-Byte-Base64-Schlüssel, der LLM-API-Schlüssel im Ruhezustand mit AES-256-GCM schützt.
+Ein Dry Run rendert `.env` und Caddyfile, ohne einen Container zu starten.
 
-### 5. Stack starten
-Alle Dienste im Hintergrund starten:
+### 4. Installer ausführen
+Interaktiv:
 
 ```bash
-docker compose -f compose.prod.yaml up -d
+./alfheim-setup_linux_${ARCH}
 ```
 
-Start und Healthchecks beobachten:
+Oder ohne Assistent, zum Beispiel mit Hetzner DNS-01:
+
+```bash
+ALFHEIM_DNS_API_TOKEN="<token>" ./alfheim-setup_linux_${ARCH} \
+  --non-interactive --domain example.com --tls hetzner --admin-email du@example.com
+```
+
+Der Installer durchläuft dieselben drei Phasen wie oben und startet den gesamten Stack. Alle Flags und Umgebungsvariablen stehen in der [Installer-CLI-Referenz](../reference/installer-cli.md).
+
+### 5. Ergebnis prüfen
 ```bash
 docker compose -f compose.prod.yaml ps
-docker compose -f compose.prod.yaml logs -f
 ```
+
+Jeder Dienst meldet `running`, Dienste mit Healthcheck melden `healthy`. Die erzeugte `.env` enthält Konfiguration und Zugangsdaten; Domain oder TLS änderst du mit `alfheim-setup --reconfigure` statt von Hand, damit Caddyfile und Zitadel-Clients zueinander passen.
 
 ---
 
@@ -126,7 +141,9 @@ docker compose -f compose.prod.yaml logs -f
 Sobald die Container `healthy` melden:
 
 1. **Zentrales Alfheim-Dashboard**:
-   * Im Browser aufrufen: `http://<server-ip>` oder `http://localhost`
+   * Im Browser `https://<deine-domain>` aufrufen (der Wert von `ALFHEIM_BASE_URL`).
+   * Nutze `https://`. Die Anmeldung braucht einen sicheren Kontext, deshalb zeigt das Dashboard über reines `http://` auf jedem Host außer `localhost` *Secure connection (HTTPS) required* statt des Logins.
+   * Mit der Installer-Strategie `internal` vertraust du zuerst der erzeugten Root-CA oder akzeptierst die Zertifikatswarnung für App-Host und Auth-Host. Siehe [Der lokalen Root-CA vertrauen](./trust-local-root-ca.md).
    * Das Wurzel-Dashboard bündelt alle registrierten Haushaltsmodule (Pantry, Shopping, Chores, Maintenance, Chat, Budget, Workout, Library).
 
 2. **Zitadel-IAM-Administration**:
@@ -135,7 +152,7 @@ Sobald die Container `healthy` melden:
    * Passwort: siehe `ZITADEL_ADMIN_PASSWORD` in der `.env`.
 
 3. **Grafana-Observability-Stack**:
-   * URL: `http://<server-ip>/grafana/`
+   * URL: `https://<deine-domain>/grafana/`
    * Benutzername: `admin`
    * Passwort: siehe `GRAFANA_ADMIN_PASSWORD` in der `.env`.
 

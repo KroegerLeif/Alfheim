@@ -7,6 +7,7 @@ from typing import Any
 import backend_shared.dependencies as _deps
 import jwt
 from backend_shared.oidc_discovery import _discovered_jwks_uris, get_jwks_uri
+from backend_shared.tls import get_oidc_ssl_context
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
 from src.core.config import settings
@@ -27,7 +28,7 @@ __all__ = ["get_jwks_uri", "_discovered_jwks_uris"]
 def get_jwks_client(jwks_uri: str) -> jwt.PyJWKClient:
     """Get cached PyJWKClient instance for a JWKS URI."""
     if jwks_uri not in _jwks_clients:
-        _jwks_clients[jwks_uri] = jwt.PyJWKClient(jwks_uri)
+        _jwks_clients[jwks_uri] = jwt.PyJWKClient(jwks_uri, ssl_context=get_oidc_ssl_context())
     return _jwks_clients[jwks_uri]
 
 

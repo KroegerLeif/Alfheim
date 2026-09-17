@@ -229,23 +229,6 @@ func TestDefaultProvisioner_ReadPAT_WaitsWhenNeitherIsAvailableYet(t *testing.T)
 // against an already-initialised Zitadel (whose machinekey volume may be
 // gone) can still find it.
 func TestDefaultProvisioner_Provision_PersistsPATToEnv(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/projects/_search"):
-			_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
-		case r.URL.Path == "/management/v1/projects":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "proj-1"})
-		case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-			_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
-		case strings.HasSuffix(r.URL.Path, "/apps/oidc"):
-			_ = json.NewEncoder(w).Encode(map[string]any{"appId": "app-1", "clientId": "client-1"})
-		default:
-			t.Fatalf("unexpected request: %s", r.URL.Path)
-		}
-	}))
-	defer srv.Close()
-
 	root := t.TempDir()
 	layout := paths.Layout{Root: root}
 	if err := layout.EnsureDirs(); err != nil {
@@ -258,7 +241,34 @@ func TestDefaultProvisioner_Provision_PersistsPATToEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := &DefaultProvisioner{BaseURL: srv.URL, Sleep: instantSleep}
+	var devModes []any
+	var redirects []string
+	addr := startSecureZitadel(t, layout, "auth.example.com", http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch {
+			case strings.HasSuffix(r.URL.Path, "/projects/_search"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
+			case r.URL.Path == "/management/v1/projects":
+				_ = json.NewEncoder(w).Encode(map[string]any{"id": "proj-1"})
+			case strings.HasSuffix(r.URL.Path, "/apps/_search"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
+			case strings.HasSuffix(r.URL.Path, "/apps/oidc"):
+				var body map[string]any
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				devModes = append(devModes, body["devMode"])
+				for _, u := range body["redirectUris"].([]any) {
+					redirects = append(redirects, u.(string))
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"appId": "app-1", "clientId": "client-1"})
+			default:
+				t.Errorf("unexpected request: %s", r.URL.Path)
+			}
+		}))
+
+	// No BaseURL, no RootCAFile: a secure install must be reached over HTTPS
+	// on the dialled listener, trusting the generated root by default.
+	p := &DefaultProvisioner{TLSAddr: addr, Sleep: instantSleep}
 	on := onboarding.Config{AuthHost: "auth.example.com", BaseURL: "https://alfheim.example.com", Secure: true}
 	if _, err := p.Provision(context.Background(), layout, on, map[string]string{}); err != nil {
 		t.Fatalf("Provision() error = %v", err)
@@ -273,6 +283,60 @@ func TestDefaultProvisioner_Provision_PersistsPATToEnv(t *testing.T) {
 	}
 	if vars["FOO"] != "bar" {
 		t.Errorf("FOO = %q, want other keys left alone", vars["FOO"])
+	}
+	// A secure install registers HTTPS redirect URIs without Zitadel's
+	// DevMode, which only exists to allow plain-HTTP redirects.
+	if len(devModes) == 0 {
+		t.Fatal("no OIDC application was created")
+	}
+	for _, dm := range devModes {
+		if dm != false {
+			t.Errorf("devMode = %v, want false for a secure install", dm)
+		}
+	}
+	for _, u := range redirects {
+		if !strings.HasPrefix(u, "https://") {
+			t.Errorf("redirect URI %q, want HTTPS", u)
+		}
+	}
+}
+
+// TestDefaultProvisioner_Provision_LegacyInsecureUsesPlainHTTP keeps an
+// install whose .env predates HTTPS for every strategy provisionable: its
+// Caddy still serves plain HTTP, so provisioning must too.
+func TestDefaultProvisioner_Provision_LegacyInsecureUsesPlainHTTP(t *testing.T) {
+	var gotHost string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHost = r.Host
+		http.Error(w, `{"message":"token invalid"}`, http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	layout := paths.Layout{Root: t.TempDir()}
+	if err := layout.EnsureDirs(); err != nil {
+		t.Fatal(err)
+	}
+	p := &DefaultProvisioner{BaseURL: srv.URL, Sleep: instantSleep}
+	on := onboarding.Config{AuthHost: "auth.example.com", BaseURL: "http://alfheim.example.com", Secure: false}
+	_, err := p.Provision(context.Background(), layout, on, map[string]string{"ZITADEL_BOOTSTRAP_PAT": "pat"})
+	if err == nil || !strings.Contains(err.Error(), "does not belong") {
+		t.Fatalf("error = %v, want the plain-HTTP server's 401", err)
+	}
+	if gotHost != "auth.example.com" {
+		t.Errorf("Host = %q, want the auth host", gotHost)
+	}
+}
+
+func TestDefaultProvisioner_Provision_ReportsABadRootCA(t *testing.T) {
+	layout := paths.Layout{Root: t.TempDir()}
+	if err := layout.EnsureDirs(); err != nil {
+		t.Fatal(err)
+	}
+	p := &DefaultProvisioner{RootCAFile: filepath.Join(layout.Root, "missing.crt"), Sleep: instantSleep}
+	on := onboarding.Config{AuthHost: "auth.example.com", BaseURL: "https://alfheim.example.com", Secure: true}
+	_, err := p.Provision(context.Background(), layout, on, map[string]string{"ZITADEL_BOOTSTRAP_PAT": "pat"})
+	if err == nil || !strings.Contains(err.Error(), "missing.crt") {
+		t.Fatalf("error = %v, want the unreadable root CA named", err)
 	}
 }
 
@@ -300,11 +364,11 @@ func TestDefaultProvisioner_Provision_SkipsPATWriteWhenUnchanged(t *testing.T) {
 	// A failing (but fast, non-retried) Zitadel call after the PAT step
 	// still lets us assert the .env write (or non-write) that happens
 	// before it, without paying for the HTTP client's real retry backoff.
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
-	}))
-	defer srv.Close()
-	p := &DefaultProvisioner{BaseURL: srv.URL, Sleep: instantSleep}
+	addr := startSecureZitadel(t, layout, "auth.example.com", http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+		}))
+	p := &DefaultProvisioner{TLSAddr: addr, Sleep: instantSleep}
 	on := onboarding.Config{AuthHost: "auth.example.com", BaseURL: "https://alfheim.example.com", Secure: true}
 	_, _ = p.Provision(context.Background(), layout, on, map[string]string{"ZITADEL_BOOTSTRAP_PAT": "same-pat"})
 
@@ -329,18 +393,17 @@ func TestDefaultProvisioner_Provision_SkipsPATWriteWhenUnchanged(t *testing.T) {
 // pointing at a different Zitadel instance): the failure must name that
 // specific, common cause rather than surfacing a bare HTTP 401.
 func TestDefaultProvisioner_Provision_ReportsUnauthorizedClearly(t *testing.T) {
-	var attempts int32
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&attempts, 1)
-		http.Error(w, `{"message":"token invalid or expired"}`, http.StatusUnauthorized)
-	}))
-	defer srv.Close()
-
 	root := t.TempDir()
 	layout := paths.Layout{Root: root}
 	if err := layout.EnsureDirs(); err != nil {
 		t.Fatal(err)
 	}
+	var attempts int32
+	addr := startSecureZitadel(t, layout, "auth.example.com", http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&attempts, 1)
+			http.Error(w, `{"message":"token invalid or expired"}`, http.StatusUnauthorized)
+		}))
 	if err := os.WriteFile(layout.ZitadelPATFile(), []byte("stale-pat"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -348,7 +411,7 @@ func TestDefaultProvisioner_Provision_ReportsUnauthorizedClearly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := &DefaultProvisioner{BaseURL: srv.URL, Sleep: instantSleep}
+	p := &DefaultProvisioner{TLSAddr: addr, Sleep: instantSleep}
 	on := onboarding.Config{AuthHost: "auth.example.com", BaseURL: "https://alfheim.example.com", Secure: true}
 	_, err := p.Provision(context.Background(), layout, on, map[string]string{})
 	if err == nil {

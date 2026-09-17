@@ -96,4 +96,4 @@ Befüllt die Datenbanken mit Test-Haushalten, Nutzern und Beispiel-Vorratsartike
 ## Nächste Schritte
 
 * Einen neuen Microservice bauen: [Neuen FDD-Microservice erstellen](./create-new-fdd-service.md).
-* Technische Spezifikationen nachschlagen im [Anwendungskatalog](../../en/reference/apps-catalog.md).
+* Technische Spezifikationen nachschlagen im [Anwendungskatalog](../reference/apps-catalog.md).

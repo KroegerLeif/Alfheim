@@ -80,8 +80,12 @@ The wizard asks four things:
    administrator and the ACME contact.
 3. **Certificate strategy.** Choose *Hetzner DNS-01* or *Cloudflare DNS-01* if
    your domain is hosted there — this issues wildcard certificates and needs no
-   inbound port 80. Otherwise choose *Custom certificates*, or *Caddy internal
-   CA* for a LAN-only install.
+   inbound port 80. Otherwise choose *Custom certificates*, or *Local CA
+   (self-signed HTTPS)* for a LAN-only install. With the local CA, import
+   `infrastructure/ca/alfheim-root-ca.crt` into your OS or browser trust store
+   after the install. Otherwise you must accept the certificate warning for
+   **both** the app host and the auth host before signing in (see
+   [Trust the local root CA](../how-to/trust-local-root-ca.md)).
 4. **DNS API token**, if you chose a DNS-01 strategy. See
    [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) for how to create one.
 
@@ -135,6 +139,7 @@ report `healthy`. Open the dashboard URL and sign in with your Zitadel account.
 
 * [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) — wildcard certificates
 * [Custom certificates](../how-to/custom-certificates.md) — bring your own
+* [Trust the local root CA](../how-to/trust-local-root-ca.md) — for the local CA strategy
 * [Installer CLI reference](../reference/installer-cli.md) — every flag
 * [Backup and restore](../how-to/backup-restore.md) — protect your data
 

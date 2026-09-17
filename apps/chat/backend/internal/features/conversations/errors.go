@@ -11,6 +11,9 @@ var (
 	// block id; since there is no endpoint to set one later in this phase, it must
 	// be supplied up front.
 	ErrModelBlockRequired = errors.New("model_block_id is required")
+	// ErrAttachmentUnavailable indicates a message referenced an attachment that does
+	// not exist, belongs to another user, or is already linked to a message.
+	ErrAttachmentUnavailable = errors.New("one or more attachments do not exist or cannot be used")
 	// ErrEmptyMessageContent indicates a message was posted with no content.
 	ErrEmptyMessageContent = errors.New("message content must not be empty")
 	// ErrNoPendingUserMessage indicates the stream endpoint was called but the

@@ -3,6 +3,7 @@ package conversations
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -258,6 +259,54 @@ func TestRepository_Messages(t *testing.T) {
 
 		if err := repo.AppendMessageAndTouchConversation(ctx, m); err != nil {
 			t.Fatalf("unexpected AppendMessageAndTouchConversation err: %v", err)
+		}
+	})
+
+	t.Run("CreateMessage scopes attachment linking to the conversation owner", func(t *testing.T) {
+		var linkSQL string
+		var linkArgs []any
+		mtx := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				if strings.Contains(sql, "UPDATE image_refs") {
+					linkSQL, linkArgs = sql, arguments
+					return pgconn.NewCommandTag("UPDATE 2"), nil
+				}
+				return pgconn.NewCommandTag("INSERT 0 1"), nil
+			},
+		}
+		repo := newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil }}, nil)
+
+		m := &Message{ID: "m1", ConversationID: "c1", Content: "Hello"}
+		if err := repo.CreateMessage(ctx, m, "att-1", "att-2", "att-1"); err != nil {
+			t.Fatalf("unexpected CreateMessage err: %v", err)
+		}
+		for _, want := range []string{"message_id IS NULL", "owner_user_id = (SELECT owner_user_id FROM conversations WHERE id = $3)"} {
+			if !strings.Contains(linkSQL, want) {
+				t.Errorf("expected link query to contain %q, got %q", want, linkSQL)
+			}
+		}
+		if len(linkArgs) != 3 || linkArgs[2] != "c1" {
+			t.Errorf("expected conversation id as third link argument, got %v", linkArgs)
+		}
+		if ids, ok := linkArgs[1].([]string); !ok || len(ids) != 2 {
+			t.Errorf("expected de-duplicated attachment ids, got %v", linkArgs[1])
+		}
+	})
+
+	t.Run("CreateMessage rejects attachments that are foreign, missing or already linked", func(t *testing.T) {
+		mtx := &mockTx{
+			execFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+				if strings.Contains(sql, "UPDATE image_refs") {
+					return pgconn.NewCommandTag("UPDATE 0"), nil
+				}
+				return pgconn.NewCommandTag("INSERT 0 1"), nil
+			},
+		}
+		repo := newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil }}, nil)
+
+		err := repo.CreateMessage(ctx, &Message{ID: "m1", ConversationID: "c1"}, "someone-elses-att")
+		if !errors.Is(err, ErrAttachmentUnavailable) {
+			t.Fatalf("expected ErrAttachmentUnavailable, got %v", err)
 		}
 	})
 

@@ -199,7 +199,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "not_found", "conversation not found")
 	case errors.Is(err, ErrForbidden):
 		writeError(w, http.StatusForbidden, "forbidden", err.Error())
-	case errors.Is(err, ErrModelBlockRequired), errors.Is(err, ErrEmptyMessageContent), errors.Is(err, ErrNoPendingUserMessage):
+	case errors.Is(err, ErrModelBlockRequired), errors.Is(err, ErrEmptyMessageContent), errors.Is(err, ErrNoPendingUserMessage), errors.Is(err, ErrAttachmentUnavailable):
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 	case errors.Is(err, ErrModelBlockUnavailable):
 		writeError(w, http.StatusUnprocessableEntity, "model_block_unavailable", err.Error())

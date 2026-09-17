@@ -28,7 +28,10 @@ type Config struct {
 	// Derived values, filled by Derive.
 	BaseURL   string // https://alfheim.loegien.de
 	IssuerURL string // https://auth.loegien.de
-	Secure    bool   // false only for a plain-HTTP localhost install
+	// Secure is true for every installer-rendered install (all TLS strategies
+	// serve HTTPS). It is false only for a legacy or hand-written .env read
+	// back through HeadlessConfigFromEnv.
+	Secure bool
 }
 
 // Defaults for the container image coordinates, matching .env.example.

@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Central Application Catalog (`docs/en/reference/apps-catalog.md`) covering all Tier-1 Core microservices and Tier-2 Stack applications.
 - Master Environment Variables reference (`docs/en/reference/environment-variables.md`) and Caddy Ingress Matrix (`docs/en/reference/ingress-matrix.md`).
 - Central Known Issues & System Trade-Offs register (`docs/en/explanation/known-issues.md`).
+- `ALFHEIM_EXTRA_CA_FILE`: server-side OIDC clients (`backend_shared`, the dashboard and chat Go backends) and Grafana (`GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) trust an extra PEM root CA on top of the system roots for discovery, JWKS and token calls. `compose.prod.yaml` mounts `./infrastructure/ca` read-only at `/etc/alfheim/ca` for those services and `./infrastructure/caddy/pki` at `/etc/caddy/pki` for Caddy only. Unset keeps library defaults; an unreadable or non-PEM file is an error naming the path.
+- How-to guide `trust-local-root-ca.md` (EN and DE): verifying the root CA fingerprint, importing it per OS, browser and mobile device, and the fallback of accepting the warning for both hosts.
 
 ### Changed
 - `install.sh` resolves releases per channel. `latest` now means the newest *stable* release, so publishing an `-rc`, `-beta` or `-alpha` tag no longer becomes the default download. When no stable release exists the installer stops and names the newest pre-release alongside the commands that would install it, instead of failing on GitHub's 404 from `/releases/latest`. `ALFHEIM_CHANNEL=prerelease` opts into testing builds.
@@ -69,6 +71,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 - The `KEYCLOAK_*` environment variable names. `scripts/init-env.sh` migrates them in place for one release; after that, only the `OIDC_*` names are read.
+
+### Fixed
+- `alfheim-setup --tls internal` now serves HTTPS. It used to render `http://` URLs, `ZITADEL_EXTERNALSECURE=false` and plain-HTTP Caddy sites, and browsers disable `crypto.subtle` outside a secure context, so the PKCE login in every frontend crashed on a real hostname. The installer generates an ECDSA P-256 root CA once (`infrastructure/caddy/pki/root.{crt,key}`, public copy `infrastructure/ca/alfheim-root-ca.crt`, never rotated silently) and Caddy signs every site with it. `.env` gains `ALFHEIM_EXTRA_CA_FILE` (`/etc/alfheim/ca/alfheim-root-ca.crt` for `internal`, empty otherwise), and the install summary prints the root's path, its SHA-256 fingerprint and how to trust it. The LAN `.localhost` preset is HTTPS too.
+- Installer Zitadel provisioning (and `alfheim-setup provision`, used by `scripts/up.sh`) talks to a secure install as `https://<auth host>` on Caddy's loopback listener `127.0.0.1:443`. Before, it would have received Caddy's HTTP-to-HTTPS redirect, and following it goes through public DNS and drops the bearer token. It verifies against the system roots plus the generated root, never follows redirects, and gains `--zitadel-tls-addr` and `--ca-file`.
+- `alfheim-setup --reconfigure` restarts Caddy after the Edge & Identity phase, so a regenerated Caddyfile takes effect before provisioning. An existing plain-HTTP `internal` install migrates with `--reconfigure`, which also re-provisions the OIDC redirect URIs as `https://`; a plain update warns until that has happened.
+- Frontends opened over plain `http://` on a host other than `localhost` show *Secure connection (HTTPS) required* with a link to the same page over `https://`. Before, browsers disabled `crypto.subtle`, PKCE threw on `digest` and the page claimed the identity provider was unreachable.
+- When OIDC discovery to an `https` issuer on another host fails without an HTTP response, frontends show *Sign-in service not reachable* with a link to the issuer's discovery URL, instead of a bare "Failed to fetch". On `internal` TLS installs this usually means the auth host's certificate has not been accepted yet.
+
+### Security
+- The chat backend no longer takes the household from a client-supplied `X-Household-ID` header when the token carries no household claim. The household comes only from the `household_id` / `active_household_id` claim, and a header without a claim or naming a different household is rejected with `403`, matching the dashboard and Python backends.
+- Chat attachments are restricted to their uploader. Migration `000003_add_image_ref_owner` adds `image_refs.owner_user_id`; reading another user's attachment returns `404`, and messages can only link unlinked attachments owned by the conversation owner (`400` otherwise). Attachments uploaded before the migration have no owner and can no longer be read by ID or linked.
 
 ---
 

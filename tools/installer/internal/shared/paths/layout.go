@@ -47,6 +47,38 @@ func (l Layout) DefaultCertDir() string {
 	return filepath.Join(l.Root, "data", "caddy", "certs")
 }
 
+// CaddyPKIDir holds the root certificate authority the installer generates
+// for the internal TLS strategy. compose.prod.yaml bind-mounts it read-only
+// into Caddy at /etc/caddy/pki, where the Caddyfile's pki block reads it.
+// It holds a private key, so it is owner-only.
+func (l Layout) CaddyPKIDir() string {
+	return filepath.Join(l.Root, "infrastructure", "caddy", "pki")
+}
+
+// CaddyPKIRootCert is the generated root certificate Caddy signs with.
+func (l Layout) CaddyPKIRootCert() string {
+	return filepath.Join(l.CaddyPKIDir(), "root.crt")
+}
+
+// CaddyPKIRootKey is the generated root certificate's private key.
+func (l Layout) CaddyPKIRootKey() string {
+	return filepath.Join(l.CaddyPKIDir(), "root.key")
+}
+
+// TrustedCADir holds only the public half of the generated root CA. It is
+// bind-mounted read-only into the backends at /etc/alfheim/ca, so their
+// server-to-server OIDC calls trust the internal certificate
+// (ALFHEIM_EXTRA_CA_FILE), and it holds the file operators import into a
+// browser or OS trust store.
+func (l Layout) TrustedCADir() string {
+	return filepath.Join(l.Root, "infrastructure", "ca")
+}
+
+// TrustedCARootCert is the public copy of the generated root certificate.
+func (l Layout) TrustedCARootCert() string {
+	return filepath.Join(l.TrustedCADir(), "alfheim-root-ca.crt")
+}
+
 // ZitadelPATFile is where Zitadel writes the bootstrap machine user's
 // personal access token on first init (ZITADEL_FIRSTINSTANCE_PATPATH in
 // compose.prod.yaml, bind-mounted from ZitadelMachineKeyDir).
@@ -85,6 +117,10 @@ func (l Layout) EnsureDirs() error {
 		{filepath.Join(l.Root, "infrastructure", "telemetry", "collector"), 0o755},
 		// Certificates may hold private keys, so the tree is owner-only.
 		{l.DefaultCertDir(), 0o700},
+		// Created for every TLS strategy so Docker never creates these bind
+		// mount sources root-owned. The PKI tree holds a private key.
+		{l.CaddyPKIDir(), 0o700},
+		{l.TrustedCADir(), 0o755},
 		// The PAT Zitadel writes here is a credential, so the tree is
 		// owner-only.
 		{l.ZitadelMachineKeyDir(), 0o700},

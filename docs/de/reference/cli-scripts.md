@@ -102,7 +102,9 @@ go run ./tools/installer/cmd/alfheim-setup provision \
 | :--- | :--- |
 | `--env-file` | Die zu lesende und aktualisierende `.env` |
 | `--pat-file` | Die PAT-Datei des Zitadel-Bootstrap-Maschinenbenutzers |
-| `--zitadel-url` | Wo Caddy lauscht (Standard `http://127.0.0.1:80`) |
+| `--zitadel-url` | Caddys HTTP-Listener, nur genutzt, wenn `ZITADEL_EXTERNALSECURE` nicht `true` ist (Standard `http://127.0.0.1:80`) |
+| `--zitadel-tls-addr` | Caddys HTTPS-Listener für eine sichere Installation; Anfragen nennen `https://<ZITADEL_EXTERNALDOMAIN>`, werden aber immer hierhin verbunden (Standard `127.0.0.1:443`) |
+| `--ca-file` | Root-CA, der zusätzlich zu den System-Roots vertraut wird (Standard `infrastructure/ca/alfheim-root-ca.crt` neben der `.env`, falls vorhanden) |
 
 > Die PAT-Datei wird nur geschrieben, während die *erste* Instanz erstellt wird. Wenn die Zitadel-Datenbank überlebt, aber die Datei weg ist, wird stattdessen `ZITADEL_BOOTSTRAP_PAT` aus `.env` verwendet; ist auch das nicht verfügbar, setzen Sie den lokalen IAM-Zustand mit `./scripts/down.sh --volumes` zurück und starten Sie erneut.
 

@@ -64,7 +64,14 @@ func NewAuthenticator(issuerURL string, audience string, log *slog.Logger) (*Aut
 	}
 	issuerURL = strings.TrimRight(issuerURL, "/")
 
-	jwksURI, err := discoverJWKSURI(issuerURL)
+	// Nil unless ALFHEIM_EXTRA_CA_FILE is set; then discovery and JWKS refreshes
+	// trust the installer's private root CA in addition to the system roots.
+	transport, err := extraCATransport()
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure oidc tls trust: %w", err)
+	}
+
+	jwksURI, err := discoverJWKSURI(issuerURL, transport)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover oidc configuration for issuer %s: %w", issuerURL, err)
 	}
@@ -77,6 +84,10 @@ func NewAuthenticator(issuerURL string, audience string, log *slog.Logger) (*Aut
 		RefreshErrorHandler: func(err error) {
 			log.Error("failed to refresh oidc JWKS keys", slog.String("error", err.Error()))
 		},
+	}
+
+	if transport != nil {
+		options.Client = &http.Client{Transport: transport}
 	}
 
 	jwks, err := keyfunc.Get(jwksURI, options)
@@ -93,9 +104,9 @@ func NewAuthenticator(issuerURL string, audience string, log *slog.Logger) (*Aut
 }
 
 // discoverJWKSURI fetches {issuerURL}/.well-known/openid-configuration and returns
-// its jwks_uri value.
-func discoverJWKSURI(issuerURL string) (string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+// its jwks_uri value. A nil transport uses Go's default transport.
+func discoverJWKSURI(issuerURL string, transport http.RoundTripper) (string, error) {
+	client := &http.Client{Timeout: 10 * time.Second, Transport: transport}
 
 	resp, err := client.Get(issuerURL + discoveryPath)
 	if err != nil {
@@ -157,7 +168,29 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		userClaims := extractUserClaims(claimsMap, r)
+		userClaims := extractUserClaims(claimsMap)
+
+		// X-Household-ID is only a selector; it can never grant access to a household
+		// the token does not carry. Reject it when the token has no household claim or
+		// names a different household than the one in the token.
+		if headerHH := strings.TrimSpace(r.Header.Get("X-Household-ID")); headerHH != "" {
+			if userClaims.HouseholdID == "" {
+				a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID supplied but no household claims present in token",
+					slog.String("header_household_id", headerHH),
+					slog.String("user_id", userClaims.Subject))
+				writeForbidden(w, "user is not a member of the requested household")
+				return
+			}
+			if !strings.EqualFold(headerHH, userClaims.HouseholdID) {
+				a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID does not match token household claim",
+					slog.String("header_household_id", headerHH),
+					slog.String("token_household_id", userClaims.HouseholdID),
+					slog.String("user_id", userClaims.Subject))
+				writeForbidden(w, "user is not a member of the requested household")
+				return
+			}
+		}
+
 		ctx := context.WithValue(r.Context(), UserContextKey, userClaims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -169,6 +202,12 @@ func writeUnauthorized(w http.ResponseWriter, message string) {
 	_, _ = fmt.Fprintf(w, `{"error":"unauthorized","message":%q}`, message)
 }
 
+func writeForbidden(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = fmt.Fprintf(w, `{"error":"forbidden","message":%q}`, message)
+}
+
 // GetUserClaims retrieves UserClaims from the HTTP request context.
 func GetUserClaims(ctx context.Context) (*UserClaims, error) {
 	claims, ok := ctx.Value(UserContextKey).(*UserClaims)
@@ -178,7 +217,7 @@ func GetUserClaims(ctx context.Context) (*UserClaims, error) {
 	return claims, nil
 }
 
-func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
+func extractUserClaims(claims jwt.MapClaims) *UserClaims {
 	uc := &UserClaims{}
 
 	if sub, ok := claims["sub"].(string); ok {
@@ -197,12 +236,11 @@ func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 		uc.FamilyName = familyName
 	}
 
+	// Only extract household from JWT claims; never accept client-supplied header as fallback.
 	if householdID, ok := claims["household_id"].(string); ok && householdID != "" {
 		uc.HouseholdID = householdID
 	} else if activeHouseholdID, ok := claims["active_household_id"].(string); ok && activeHouseholdID != "" {
 		uc.HouseholdID = activeHouseholdID
-	} else if headerHousehold := r.Header.Get("X-Household-ID"); headerHousehold != "" {
-		uc.HouseholdID = headerHousehold
 	}
 
 	if realmAccess, ok := claims["realm_access"].(map[string]interface{}); ok {

@@ -15,7 +15,9 @@ const (
 	StrategyCloudflareDNS Strategy = "cloudflare"
 	// StrategyCustomCerts mounts operator-supplied certificate files.
 	StrategyCustomCerts Strategy = "custom"
-	// StrategyInternal uses Caddy's internal CA, for LAN or offline use.
+	// StrategyInternal serves HTTPS with a root CA the installer generates
+	// (see EnsureLocalCA), for LAN or offline use without any external
+	// dependency. Browsers warn until the root is imported or accepted.
 	StrategyInternal Strategy = "internal"
 )
 
@@ -63,6 +65,10 @@ type Config struct {
 	ACMEEmail  string
 	CertSource CertSource
 
+	// LocalCA is the generated root CA once the internal strategy has
+	// ensured one; nil for every other strategy.
+	LocalCA *LocalCA
+
 	// Warnings collects non-fatal findings surfaced to the operator.
 	Warnings []string
 }
@@ -79,8 +85,8 @@ var Strategies = []struct {
 		"Automatic wildcard certificates via the Cloudflare DNS API."},
 	{StrategyCustomCerts, "Custom certificates",
 		"Mount certificate files you already hold."},
-	{StrategyInternal, "Caddy internal CA (self-signed)",
-		"Self-signed certificates for LAN or offline operation."},
+	{StrategyInternal, "Local CA (self-signed HTTPS)",
+		"HTTPS with a root CA generated on this host. Browsers warn until you import or accept it."},
 }
 
 // UsesDNSChallenge reports whether the strategy solves ACME over DNS-01.

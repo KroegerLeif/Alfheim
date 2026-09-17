@@ -360,6 +360,7 @@ version = "0.1.0"
 source = { editable = "packages/backend-shared" }
 dependencies = [
     { name = "aioboto3" },
+    { name = "certifi" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "opentelemetry-api" },
@@ -377,6 +378,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
+    { name = "certifi", specifier = ">=2024.2.2" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "opentelemetry-api", specifier = ">=1.25.0" },

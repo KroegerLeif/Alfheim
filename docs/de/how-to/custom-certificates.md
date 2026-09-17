@@ -153,5 +153,5 @@ Der Bind-Mount ist leer. Prüfe, ob der Host-Pfad existiert und Docker ihn lesen
 ## Siehe auch
 
 * [Wildcard-TLS mit Hetzner DNS-01](./hetzner-dns-tls.md)
-* [Installer-CLI-Referenz](../../en/reference/installer-cli.md)
-* [Secrets Hardening](../../en/how-to/secrets-hardening.md)
+* [Installer-CLI-Referenz](../reference/installer-cli.md)
+* [Secrets Hardening](../how-to/secrets-hardening.md)

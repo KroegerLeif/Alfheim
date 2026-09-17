@@ -13,6 +13,7 @@
  */
 
 import type { OidcConfig, OidcProviderMetadata, OidcTokenSet, OidcClaims } from './oidcTypes';
+import { InsecureContextError, IssuerUnreachableError } from './oidcTypes';
 
 export const VERIFIER_KEY = 'alfheim_oidc_pkce_verifier';
 export const STATE_KEY = 'alfheim_oidc_state';
@@ -43,11 +44,45 @@ async function sha256Challenge(verifier: string): Promise<string> {
   return base64UrlEncode(digest);
 }
 
+/**
+ * Returns an {@link InsecureContextError} when the page runs outside a browser Secure
+ * Context, where `crypto.subtle` (required for the PKCE challenge) is unavailable.
+ * Returns null on the server and wherever Web Crypto is usable.
+ */
+export function detectInsecureContext(): InsecureContextError | null {
+  if (typeof window === 'undefined') return null;
+  // Only an explicit `false` counts: DOMs that do not implement the flag (e.g. jsdom)
+  // are judged solely by whether crypto.subtle actually exists.
+  if (window.isSecureContext !== false && globalThis.crypto?.subtle) return null;
+  const { host, pathname, search, hash } = window.location;
+  return new InsecureContextError(host, `https://${host}${pathname}${search}${hash}`);
+}
+
 let metadataCache: Promise<OidcProviderMetadata> | null = null;
+
+/**
+ * Maps a network-level discovery failure (the fetch promise rejected, no HTTP response) to
+ * {@link IssuerUnreachableError} when the issuer is HTTPS on another host than the page:
+ * that is where an untrusted private-CA certificate silently breaks the request, because
+ * browsers accept certificate exceptions per host and never show an interstitial for fetch.
+ * Any other failure is returned unchanged.
+ */
+export function classifyDiscoveryNetworkError(issuer: string, discoveryUrl: string, err: unknown): unknown {
+  if (!(err instanceof TypeError) || typeof window === 'undefined') return err;
+  let issuerUrl: URL;
+  try {
+    issuerUrl = new URL(issuer);
+  } catch {
+    return err;
+  }
+  if (issuerUrl.protocol !== 'https:' || issuerUrl.host === window.location?.host) return err;
+  return new IssuerUnreachableError(issuer.replace(/\/+$/, ''), discoveryUrl, issuerUrl.host, { cause: err });
+}
 
 export function discoverProviderMetadata(issuer: string): Promise<OidcProviderMetadata> {
   if (!metadataCache) {
-    metadataCache = fetch(`${issuer.replace(/\/+$/, '')}${DISCOVERY_SUFFIX}`, {
+    const discoveryUrl = `${issuer.replace(/\/+$/, '')}${DISCOVERY_SUFFIX}`;
+    metadataCache = fetch(discoveryUrl, {
       headers: { Accept: 'application/json' },
     }).then(async (res) => {
       if (!res.ok) {
@@ -55,6 +90,8 @@ export function discoverProviderMetadata(issuer: string): Promise<OidcProviderMe
         throw new Error(`OIDC discovery failed with status ${res.status}`);
       }
       return (await res.json()) as OidcProviderMetadata;
+    }, (err: unknown) => {
+      throw classifyDiscoveryNetworkError(issuer, discoveryUrl, err);
     });
     metadataCache.catch(() => {
       metadataCache = null;
@@ -101,6 +138,9 @@ export function decodeJwtPayload(token: string): Record<string, any> | null {
 
 /** Builds the authorize URL, persisting the PKCE verifier and state, then redirects the browser. */
 export async function beginLogin(config: OidcConfig): Promise<void> {
+  const insecure = detectInsecureContext();
+  if (insecure) throw insecure;
+
   const metadata = await discoverProviderMetadata(config.issuer);
 
   const verifier = randomString(32);

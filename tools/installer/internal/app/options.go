@@ -145,6 +145,17 @@ func (o *Options) applyEnvDefaults() {
 	}
 }
 
+// secureFor reports whether an installation using strategy is served over
+// HTTPS. It is the single derivation both the wizard and the headless path
+// use, so the two can never disagree.
+//
+// Every strategy is HTTPS, the internal one included: browsers disable
+// crypto.subtle outside a secure context, so the PKCE login every frontend
+// performs cannot work over plain HTTP on a real hostname. The internal
+// strategy signs with a root CA the installer generates instead, which
+// browsers warn about until it is imported or accepted.
+func secureFor(tls.Strategy) bool { return true }
+
 // HeadlessConfig converts the headless answers into feature configuration.
 // It reports precisely which input is missing, so a CI failure is actionable.
 func (o *Options) HeadlessConfig() (onboarding.Config, tls.Config, error) {
@@ -174,9 +185,7 @@ func (o *Options) HeadlessConfig() (onboarding.Config, tls.Config, error) {
 	on.AppHost = o.AppHost
 	on.AdminEmail = o.AdminEmail
 	on.ImageTag = o.ImageTag
-	// Only the internal CA is served over plain HTTP for a LAN install; every
-	// other strategy produces a publicly trusted certificate.
-	on.Secure = strategy != tls.StrategyInternal
+	on.Secure = secureFor(strategy)
 
 	tlsCfg.Strategy = strategy
 	tlsCfg.APIToken = o.APIToken

@@ -159,9 +159,20 @@ func (r *repository) CreateMessage(ctx context.Context, m *Message, attachmentID
 	}
 
 	if len(attachmentIDs) > 0 {
-		_, err = tx.Exec(ctx, `UPDATE image_refs SET message_id = $1 WHERE id = ANY($2)`, m.ID, attachmentIDs)
+		ids := uniqueStrings(attachmentIDs)
+		// Only link attachments uploaded by the conversation owner that are not yet
+		// attached to another message; anything else aborts the whole message.
+		res, err := tx.Exec(ctx, `
+			UPDATE image_refs SET message_id = $1
+			WHERE id = ANY($2)
+			  AND message_id IS NULL
+			  AND owner_user_id = (SELECT owner_user_id FROM conversations WHERE id = $3)
+		`, m.ID, ids, m.ConversationID)
 		if err != nil {
 			return fmt.Errorf("failed to link image_refs to message %s: %w", m.ID, err)
+		}
+		if res.RowsAffected() != int64(len(ids)) {
+			return ErrAttachmentUnavailable
 		}
 	}
 
@@ -251,4 +262,17 @@ func (r *repository) AppendMessageAndTouchConversation(ctx context.Context, m *M
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
+}
+
+func uniqueStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
 }
