@@ -12,7 +12,7 @@ eine Instanz mit funktionierendem Dashboard, Identity Provider und Ingress-Gatew
 Plane etwa 30 Minuten ein; der Großteil davon ist Wartezeit auf Container-Images.
 
 > **Tutorial, keine Referenz.** Diese Seite geht bewusst einen einzigen Weg. Alle
-> Flags und Optionen stehen in der [Installer-CLI-Referenz](../../en/reference/installer-cli.md).
+> Flags und Optionen stehen in der [Installer-CLI-Referenz](../reference/installer-cli.md).
 
 ---
 
@@ -85,7 +85,7 @@ Der Wizard fragt vier Dinge ab:
    Anmeldung für **beide** Hosts akzeptieren, App-Host und Auth-Host (siehe
    [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md)).
 4. **DNS-API-Token**, falls du eine DNS-01-Strategie gewählt hast. Wie du eines
-   anlegst, steht unter [Wildcard-TLS mit Hetzner DNS-01](../../en/how-to/hetzner-dns-tls.md).
+   anlegst, steht unter [Wildcard-TLS mit Hetzner DNS-01](../how-to/hetzner-dns-tls.md).
 
 Anschließend erzeugt der Installer sämtliche Zugangsdaten aus `crypto/rand` und schreibt:
 
@@ -135,11 +135,11 @@ Jeder Dienst sollte `running` melden, Dienste mit Healthcheck zusätzlich `healt
 
 ## Nächste Schritte
 
-* [Wildcard-TLS mit Hetzner DNS-01](../../en/how-to/hetzner-dns-tls.md) — Wildcard-Zertifikate
-* [Eigene TLS-Zertifikate](../../en/how-to/custom-certificates.md) — Bring your own
+* [Wildcard-TLS mit Hetzner DNS-01](../how-to/hetzner-dns-tls.md) — Wildcard-Zertifikate
+* [Eigene TLS-Zertifikate](../how-to/custom-certificates.md) — Bring your own
 * [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md) — für die Strategie mit lokaler CA
-* [Installer-CLI-Referenz](../../en/reference/installer-cli.md) — jedes Flag
-* [Backup & Wiederherstellung](../../en/how-to/backup-restore.md) — Daten sichern
+* [Installer-CLI-Referenz](../reference/installer-cli.md) — jedes Flag
+* [Backup & Wiederherstellung](../how-to/backup-restore.md) — Daten sichern
 
 ## Später aktualisieren
 

@@ -71,7 +71,7 @@ docker logs --tail 100 -f alfheim_caddy
 
 ### Symptom 3: Chat antwortet nach der Haushaltsauswahl mit `403 Forbidden`
 * **Ursache:** Das Chat-Backend übernimmt den Haushalt nur aus dem Claim `household_id` (oder `active_household_id`) des Access-Tokens. Eine Anfrage, deren `X-Household-ID`-Header einen anderen Haushalt nennt oder die mit einem Token ohne Haushalts-Claim gesendet wird, wird abgelehnt, wie es Dashboard und Python-Backends bereits tun.
-* **Lösung:** Access-Token prüfen und sicherstellen, dass es einen zum gewählten Haushalt passenden Haushalts-Claim trägt. Wird `alfheim_active_household_id` geleert, entfällt der Header, und Chat beschränkt sich auf private Ressourcen.
+* **Lösung:** Access-Token prüfen und sicherstellen, dass es einen zum gewählten Haushalt passenden Haushalts-Claim trägt. Wird `alfheim_active_household_id` geleert, entfällt der Header, und Chat beschränkt sich auf private Ressourcen. Zitadel stellt diesen Claim noch nicht aus, daher betrifft das derzeit jede Haushaltsauswahl; siehe [Bekannte Probleme](../explanation/known-issues.md).
 
 ### Symptom 4: Dashboard zeigt *Secure connection (HTTPS) required*
 * **Ursache:** Die App wurde über reines `http://` auf einem anderen Host als `localhost` geöffnet. Browser deaktivieren Web Crypto außerhalb eines sicheren Kontexts, und die PKCE-Anmeldung braucht es.

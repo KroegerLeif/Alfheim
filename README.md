@@ -2,7 +2,7 @@
 
 This is the central orchestration repository for `alfheim`, managing common infrastructure (Zitadel identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
-[![Release](https://img.shields.io/badge/release-v0.1.0--beta.1-blue.svg)](https://github.com/KroegerLeif/Alfheim/releases)
+[![Release](https://img.shields.io/github/v/release/KroegerLeif/Alfheim?include_prereleases)](https://github.com/KroegerLeif/Alfheim/releases)
 [![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/en/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -20,10 +20,16 @@ cryptographically secure secrets, and bring up the whole platform:
 curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
 ```
 
-Once installed, start the entire platform with:
+The installer starts the whole stack itself and prints the access URLs and the
+administrator login when it finishes. Re-running it in the same directory
+updates the installation.
+
+By default only stable releases are installed. To install a pre-release, pin a
+tag or opt into the pre-release channel:
+
 ```bash
-cd ~/alfheim
-docker compose -f compose.prod.yaml up -d
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_VERSION=v0.1.1-rc.12 bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_CHANNEL=prerelease bash
 ```
 
 👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
