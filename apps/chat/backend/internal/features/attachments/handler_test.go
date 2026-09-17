@@ -19,7 +19,7 @@ import (
 
 type mockAttachmentsService struct {
 	uploadAttachmentFunc   func(ctx context.Context, userID string, householdID *string, filename string, contentType string, r io.Reader, size int64) (AttachmentResponseDTO, error)
-	getAttachmentFunc      func(ctx context.Context, id string) (AttachmentResponseDTO, error)
+	getAttachmentFunc      func(ctx context.Context, userID, id string) (AttachmentResponseDTO, error)
 	ensureStorageReadyFunc func(ctx context.Context) error
 }
 
@@ -30,9 +30,9 @@ func (m *mockAttachmentsService) UploadAttachment(ctx context.Context, userID st
 	return AttachmentResponseDTO{}, nil
 }
 
-func (m *mockAttachmentsService) GetAttachment(ctx context.Context, id string) (AttachmentResponseDTO, error) {
+func (m *mockAttachmentsService) GetAttachment(ctx context.Context, userID, id string) (AttachmentResponseDTO, error) {
 	if m.getAttachmentFunc != nil {
-		return m.getAttachmentFunc(ctx, id)
+		return m.getAttachmentFunc(ctx, userID, id)
 	}
 	return AttachmentResponseDTO{}, ErrAttachmentNotFound
 }
@@ -126,7 +126,10 @@ func TestAttachmentsHandler(t *testing.T) {
 
 	t.Run("GET /api/v1/chat/attachments/{id} success", func(t *testing.T) {
 		mockSvc := &mockAttachmentsService{
-			getAttachmentFunc: func(ctx context.Context, id string) (AttachmentResponseDTO, error) {
+			getAttachmentFunc: func(ctx context.Context, userID, id string) (AttachmentResponseDTO, error) {
+				if userID != "user-1" {
+					t.Errorf("expected authenticated subject user-1 to be passed, got %q", userID)
+				}
 				return AttachmentResponseDTO{
 					ID:         id,
 					StorageKey: "users/u1/chat/uuid_img.jpg",
@@ -209,7 +212,7 @@ func TestAttachmentsHandler(t *testing.T) {
 
 		for _, tt := range tests {
 			mockSvc := &mockAttachmentsService{
-				getAttachmentFunc: func(ctx context.Context, id string) (AttachmentResponseDTO, error) {
+				getAttachmentFunc: func(ctx context.Context, userID, id string) (AttachmentResponseDTO, error) {
 					return AttachmentResponseDTO{}, tt.err
 				},
 			}

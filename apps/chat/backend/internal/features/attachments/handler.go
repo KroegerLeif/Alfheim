@@ -75,7 +75,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 // Get retrieves attachment metadata by ID (GET /api/v1/chat/attachments/{id}).
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
-	_, err := middleware.GetUserClaims(r.Context())
+	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -87,7 +87,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto, err := h.service.GetAttachment(r.Context(), id)
+	dto, err := h.service.GetAttachment(r.Context(), claims.Subject, id)
 	if err != nil {
 		writeServiceError(w, err)
 		return

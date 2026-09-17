@@ -26,7 +26,7 @@ var allowedMimeTypes = map[string]bool{
 // Service defines domain logic for image attachment upload and metadata retrieval.
 type Service interface {
 	UploadAttachment(ctx context.Context, userID string, householdID *string, filename string, contentType string, r io.Reader, size int64) (AttachmentResponseDTO, error)
-	GetAttachment(ctx context.Context, id string) (AttachmentResponseDTO, error)
+	GetAttachment(ctx context.Context, userID, id string) (AttachmentResponseDTO, error)
 	EnsureStorageReady(ctx context.Context) error
 }
 
@@ -105,10 +105,11 @@ func (s *service) UploadAttachment(
 	}
 
 	ref := &ImageRef{
-		ID:         uuid.NewString(),
-		StorageKey: storageKey,
-		MimeType:   resolvedMime,
-		SizeBytes:  size,
+		ID:          uuid.NewString(),
+		OwnerUserID: userID,
+		StorageKey:  storageKey,
+		MimeType:    resolvedMime,
+		SizeBytes:   size,
 	}
 
 	if err := s.repo.CreateImageRef(ctx, ref); err != nil {
@@ -124,10 +125,15 @@ func (s *service) UploadAttachment(
 	return ToAttachmentResponse(ref, url), nil
 }
 
-func (s *service) GetAttachment(ctx context.Context, id string) (AttachmentResponseDTO, error) {
+func (s *service) GetAttachment(ctx context.Context, userID, id string) (AttachmentResponseDTO, error) {
 	ref, err := s.repo.GetImageRefByID(ctx, id)
 	if err != nil {
 		return AttachmentResponseDTO{}, err
+	}
+	// Report someone else's attachment (or a legacy row without an owner) as not
+	// found rather than forbidden, so attachment IDs cannot be probed.
+	if ref.OwnerUserID == "" || ref.OwnerUserID != userID {
+		return AttachmentResponseDTO{}, ErrAttachmentNotFound
 	}
 	url := s.storage.GetPublicURL(ref.StorageKey)
 	return ToAttachmentResponse(ref, url), nil
