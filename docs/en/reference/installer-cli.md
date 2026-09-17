@@ -111,6 +111,9 @@ fingerprint with the one the installer prints first.
 `https://<app host>` and `https://<auth host>` (the installer prints both URLs)
 and accept the certificate warning on each.
 
+Per-device steps (including Android and iOS) and fingerprint verification:
+[Trust the local root CA](../how-to/trust-local-root-ca.md).
+
 ---
 
 ## Operating modes

@@ -98,7 +98,7 @@ nano .env
 ```
 
 Key environment options:
-* `ALFHEIM_BASE_URL`: Root URL of your server (e.g. `https://alfheim.loegien.de` or `http://192.168.1.100`), from which all frontend and API routes are derived.
+* `ALFHEIM_BASE_URL`: Root URL of your server (e.g. `https://alfheim.loegien.de`), from which all frontend and API routes are derived. Use `https://`: sign-in does not work over plain HTTP on a LAN address or hostname.
 * `IMAGE_REGISTRY`: Container registry for prebuilt images (auto-derived from Git remote; default: `ghcr.io`).
 * `IMAGE_REPO`: Container repository namespace (auto-derived from Git remote; default: `kroegerleif/alfheim`).
 * `IMAGE_TAG`: Target image version tag (default: `latest`).
@@ -126,7 +126,9 @@ docker compose -f compose.prod.yaml logs -f
 Once the containers report `healthy`:
 
 1. **Alfheim Central Dashboard**:
-   * Open your browser and navigate to: `http://<server-ip>` or `http://localhost`
+   * Open your browser and navigate to `https://<your-domain>` (the value of `ALFHEIM_BASE_URL`).
+   * Use `https://`. Sign-in needs a secure context, so opening the dashboard over plain `http://` on anything but `localhost` shows *Secure connection (HTTPS) required* instead of the login.
+   * With the installer's `internal` TLS strategy, trust the generated root CA first, or accept the certificate warning for both the app host and the auth host. See [Trust the local root CA](./trust-local-root-ca.md).
    * Catch-all root dashboard providing access to all registered household modules (Pantry, Shopping, Chores, Maintenance, Chat, Budget, Workout, Library).
 
 2. **Zitadel IAM Administration**:
@@ -135,7 +137,7 @@ Once the containers report `healthy`:
    * Default Password: See `ZITADEL_ADMIN_PASSWORD` in your `.env` file.
 
 3. **Grafana Observability Stack**:
-   * URL: `http://<server-ip>/grafana/`
+   * URL: `https://<your-domain>/grafana/`
    * Username: `admin`
    * Password: See `GRAFANA_ADMIN_PASSWORD` in your `.env` file.
 

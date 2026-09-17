@@ -85,7 +85,7 @@ The wizard asks four things:
    `infrastructure/ca/alfheim-root-ca.crt` into your OS or browser trust store
    after the install. Otherwise you must accept the certificate warning for
    **both** the app host and the auth host before signing in (see
-   [Trusting the internal root CA](../reference/installer-cli.md#trusting-the-internal-root-ca)).
+   [Trust the local root CA](../how-to/trust-local-root-ca.md)).
 4. **DNS API token**, if you chose a DNS-01 strategy. See
    [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) for how to create one.
 
@@ -139,6 +139,7 @@ report `healthy`. Open the dashboard URL and sign in with your Zitadel account.
 
 * [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) — wildcard certificates
 * [Custom certificates](../how-to/custom-certificates.md) — bring your own
+* [Trust the local root CA](../how-to/trust-local-root-ca.md) — for the local CA strategy
 * [Installer CLI reference](../reference/installer-cli.md) — every flag
 * [Backup and restore](../how-to/backup-restore.md) — protect your data
 

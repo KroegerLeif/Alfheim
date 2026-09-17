@@ -73,7 +73,7 @@ Zitadel stellt standardisierte OIDC-Identitäts-Tokens aus:
 Um strikte Mandantengrenzen über alle Microservices hinweg durchzusetzen:
 
 1. **Header-Prüfung**: Die Backends prüfen, dass eingehende HTTP-Anfragen einen gültigen `X-Household-ID`-Header tragen.
-2. **Autorisierungsprüfung**: Die Auth-Middleware (`backend_shared.auth` sowie die Go-Auth-Handler) validiert die Nutzeridentität (`sub`) und prüft die Haushaltsmitgliedschaft über Alfheim Core.
+2. **Autorisierungsprüfung**: Die Auth-Middleware (`backend_shared.auth` sowie die Go-Auth-Handler) validiert die Nutzeridentität (`sub`) und prüft die Haushaltsmitgliedschaft über Alfheim Core. Der Haushalt stammt aus dem Claim `household_id` / `active_household_id` des Tokens; eine Anfrage, deren `X-Household-ID`-Header davon abweicht oder die den Header mit einem Token ohne Haushalts-Claim sendet, wird mit `403` abgelehnt. Der Header allein legt nie einen Haushalt fest.
 3. **Query-Filterung**: Alle Lese-, Schreib-, Update- und Löschoperationen im Repository-Layer filtern nach `household_id == active_household_id`.
 
 ---

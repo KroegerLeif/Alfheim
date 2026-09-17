@@ -52,7 +52,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 
 - `conversations`: Conversation sessions, message histories, and SSE streaming handlers.
 - `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption.
-- `attachments`: File attachment uploads backed by RustFS S3 object storage.
+- `attachments`: File attachment uploads backed by RustFS S3 object storage. Each upload records its uploader (`image_refs.owner_user_id`); reading an attachment by ID returns `404` to anyone else, and a message can only link unlinked attachments owned by the conversation owner (otherwise `400`). Attachments uploaded before this ownership column existed have no owner and can no longer be read by ID or linked.
 - `mcpservers`: FastMCP server connection definitions and dynamic tool discovery.
 
 ---

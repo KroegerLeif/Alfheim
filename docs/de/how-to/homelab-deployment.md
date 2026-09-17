@@ -98,7 +98,7 @@ nano .env
 ```
 
 Wichtige Optionen:
-* `ALFHEIM_BASE_URL`: Wurzel-URL deines Servers (z. B. `https://alfheim.loegien.de` oder `http://192.168.1.100`), aus der alle Frontend- und API-Routen abgeleitet werden.
+* `ALFHEIM_BASE_URL`: Wurzel-URL deines Servers (z. B. `https://alfheim.loegien.de`), aus der alle Frontend- und API-Routen abgeleitet werden. Nutze `https://`: Über reines HTTP funktioniert die Anmeldung auf einer LAN-Adresse oder einem LAN-Hostnamen nicht.
 * `IMAGE_REGISTRY`: Container-Registry für vorgebaute Images (aus dem Git-Remote abgeleitet; Standard: `ghcr.io`).
 * `IMAGE_REPO`: Namespace des Container-Repositories (aus dem Git-Remote abgeleitet; Standard: `kroegerleif/alfheim`).
 * `IMAGE_TAG`: Ziel-Versions-Tag (Standard: `latest`).
@@ -126,7 +126,9 @@ docker compose -f compose.prod.yaml logs -f
 Sobald die Container `healthy` melden:
 
 1. **Zentrales Alfheim-Dashboard**:
-   * Im Browser aufrufen: `http://<server-ip>` oder `http://localhost`
+   * Im Browser `https://<deine-domain>` aufrufen (der Wert von `ALFHEIM_BASE_URL`).
+   * Nutze `https://`. Die Anmeldung braucht einen sicheren Kontext, deshalb zeigt das Dashboard über reines `http://` auf jedem Host außer `localhost` *Secure connection (HTTPS) required* statt des Logins.
+   * Mit der Installer-Strategie `internal` vertraust du zuerst der erzeugten Root-CA oder akzeptierst die Zertifikatswarnung für App-Host und Auth-Host. Siehe [Der lokalen Root-CA vertrauen](./trust-local-root-ca.md).
    * Das Wurzel-Dashboard bündelt alle registrierten Haushaltsmodule (Pantry, Shopping, Chores, Maintenance, Chat, Budget, Workout, Library).
 
 2. **Zitadel-IAM-Administration**:
@@ -135,7 +137,7 @@ Sobald die Container `healthy` melden:
    * Passwort: siehe `ZITADEL_ADMIN_PASSWORD` in der `.env`.
 
 3. **Grafana-Observability-Stack**:
-   * URL: `http://<server-ip>/grafana/`
+   * URL: `https://<deine-domain>/grafana/`
    * Benutzername: `admin`
    * Passwort: siehe `GRAFANA_ADMIN_PASSWORD` in der `.env`.
 

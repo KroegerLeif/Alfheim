@@ -207,6 +207,7 @@ The monorepo shares a centralized design system and dynamic theme engine through
 * **Public Issuer URL**: `https://auth.loegien.de` (development: `http://auth.alfheim.loegien.localhost`) — the bare origin of the IAM host.
 * **Discovery**: Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
 * **Internal Docker Base URL**: `http://zitadel:8080` (`OIDC_INTERNAL_URL`) for server-to-server calls.
+* **Private CAs**: Server-side OIDC clients trust the system roots plus any root named by `ALFHEIM_EXTRA_CA_FILE`. The installer's `internal` TLS strategy sets it to its generated root CA; browsers need that root imported too ([Trust the local root CA](docs/en/how-to/trust-local-root-ca.md)).
 * **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `OIDC_ISSUER_URL`.
 
 ---

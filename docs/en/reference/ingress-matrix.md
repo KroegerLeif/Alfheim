@@ -24,6 +24,14 @@ Traffic entering Alfheim passes through a central Caddy ingress proxy (`infrastr
 * **Frontend Domain**: `alfheim.loegien.de` / `alfheim.loegien.localhost`
 * **API Gateway Domain**: `api.alfheim.loegien.de` / `api.alfheim.loegien.localhost`
 
+The tables below list the development stack (`scripts/up.sh`), which serves the `*.localhost` hosts over plain HTTP. Chromium and Firefox treat `localhost` names as a secure context, so sign-in works there. Installer-generated deployments serve every host over HTTPS with the certificate strategy chosen at install time:
+
+| TLS strategy | Certificates | Browser trust |
+| :--- | :--- | :--- |
+| `hetzner`, `cloudflare` | Let's Encrypt wildcard via DNS-01 | Trusted |
+| `custom` | Your own PEM files | Depends on the issuing CA |
+| `internal` (also the LAN `.localhost` preset) | Signed by the installer's root CA (Caddy CA id `alfheim`, root mounted read-only from `infrastructure/caddy/pki/`) | Warns until [the local root CA is trusted](../how-to/trust-local-root-ca.md) |
+
 ---
 
 ## Frontend Domain Routing (`alfheim.loegien.localhost`)

@@ -83,7 +83,7 @@ Der Wizard fragt vier Dinge ab:
    `infrastructure/ca/alfheim-root-ca.crt` in den Zertifikatsspeicher deines
    Betriebssystems oder Browsers. Sonst musst du die Zertifikatswarnung vor der
    Anmeldung für **beide** Hosts akzeptieren, App-Host und Auth-Host (siehe
-   [Der Root-CA von internal vertrauen](../reference/installer-cli.md#der-root-ca-von-internal-vertrauen)).
+   [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md)).
 4. **DNS-API-Token**, falls du eine DNS-01-Strategie gewählt hast. Wie du eines
    anlegst, steht unter [Wildcard-TLS mit Hetzner DNS-01](../../en/how-to/hetzner-dns-tls.md).
 
@@ -137,6 +137,7 @@ Jeder Dienst sollte `running` melden, Dienste mit Healthcheck zusätzlich `healt
 
 * [Wildcard-TLS mit Hetzner DNS-01](../../en/how-to/hetzner-dns-tls.md) — Wildcard-Zertifikate
 * [Eigene TLS-Zertifikate](../../en/how-to/custom-certificates.md) — Bring your own
+* [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md) — für die Strategie mit lokaler CA
 * [Installer-CLI-Referenz](../../en/reference/installer-cli.md) — jedes Flag
 * [Backup & Wiederherstellung](../../en/how-to/backup-restore.md) — Daten sichern
 

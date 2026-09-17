@@ -59,6 +59,7 @@ source with a translation notice, so untranslated paths never 404.
 * [Self-Hosting & Installation Guide](./en/how-to/homelab-deployment.md) — Deploying on Linux bare-metal or Proxmox VE.
 * [Wildcard TLS with Hetzner DNS-01](./en/how-to/hetzner-dns-tls.md) — API token and wildcard certificates without inbound port 80.
 * [Use Your Own TLS Certificates](./en/how-to/custom-certificates.md) — Bundled directory versus a custom absolute host path.
+* [Trust the Local Root CA](./en/how-to/trust-local-root-ca.md) — Importing the installer's root CA for the `internal` TLS strategy, or accepting the warning for both hosts.
 * [Secrets Hardening](./en/how-to/secrets-hardening.md) — Generating, storing and rotating secrets; verifying no development fallback reaches production.
 * [Backup, Restore & Data Migration](./en/how-to/backup-restore.md) — PostgreSQL databases, RustFS S3 object storage, and volumes.
 * [Platform Troubleshooting & Operations](./en/how-to/troubleshooting.md) — Container boot races, migration locks, and gateway errors.

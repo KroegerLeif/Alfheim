@@ -69,6 +69,18 @@ docker logs --tail 100 -f alfheim_caddy
 * **Cause:** Frontend session lacks an active household context selection.
 * **Resolution:** Clear local storage key `alfheim_active_household_id` or re-select active household in the header switcher dropdown.
 
+### Symptom 3: Chat Returns `403 Forbidden` After Selecting a Household
+* **Cause:** The chat backend takes the household only from the access token's `household_id` (or `active_household_id`) claim. A request whose `X-Household-ID` header names a different household, or is sent with a token that carries no household claim, is rejected, as the dashboard and Python backends already do.
+* **Resolution:** Inspect the access token and confirm it carries a household claim matching the selected household. Clearing `alfheim_active_household_id` stops the header being sent, which limits chat to private resources.
+
+### Symptom 4: Dashboard Shows *Secure connection (HTTPS) required*
+* **Cause:** The app was opened over plain `http://` on a host other than `localhost`. Browsers disable Web Crypto outside a secure context, and PKCE sign-in needs it.
+* **Resolution:** Follow the `https://` link on the page. An installer `internal` install from before that strategy served HTTPS migrates with `alfheim-setup --reconfigure`.
+
+### Symptom 5: Dashboard Shows *Sign-in service not reachable*
+* **Cause:** The browser request to the issuer's discovery document on the auth host failed without an HTTP response. On an `internal` TLS install this usually means the auth host's certificate is not trusted yet, because certificate exceptions are stored per host. It also happens when Zitadel is down or the client is offline.
+* **Resolution:** Open the link on the page, trust or accept the auth host's certificate, and reload. To avoid this entirely, [trust the local root CA](./trust-local-root-ca.md). Otherwise check `docker compose ps zitadel caddy`.
+
 ---
 
 ## Database Locks & Connection Pool Exhaustion
