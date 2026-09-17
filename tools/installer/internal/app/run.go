@@ -129,7 +129,7 @@ func (a *App) execute(ctx context.Context) error {
 		return nil
 	}
 
-	return a.runBootstrap(ctx, layout, model)
+	return a.runBootstrap(ctx, layout, model, current)
 }
 
 // inspector returns the configured host inspector, defaulting to the real one.
@@ -244,6 +244,16 @@ func (a *App) renderConfiguration(
 		return templating.Model{}, layout, err
 	}
 
+	target := layout
+	if a.Options.DryRun {
+		// A dry run must never touch an existing installation.
+		tmp, err := os.MkdirTemp("", "alfheim-dry-run-*")
+		if err != nil {
+			return templating.Model{}, layout, fmt.Errorf("alfheim-setup: create dry-run directory: %w", err)
+		}
+		target = paths.Layout{Root: tmp}
+	}
+
 	model := templating.Model{
 		Onboarding: on,
 		TLS:        tlsCfg,
@@ -252,18 +262,24 @@ func (a *App) renderConfiguration(
 		Generated:  a.now(),
 	}
 
-	target := layout
-	if a.Options.DryRun {
-		// A dry run must never touch an existing installation.
-		tmp, err := os.MkdirTemp("", "alfheim-dry-run-*")
-		if err != nil {
-			return model, layout, fmt.Errorf("alfheim-setup: create dry-run directory: %w", err)
-		}
-		target = paths.Layout{Root: tmp}
-	}
-
 	if err := renderer.WriteAll(target, model); err != nil {
 		return model, target, err
+	}
+
+	// The internal strategy's Caddyfile signs with a root CA that must exist
+	// before Caddy starts. It is created once and reused on every later run
+	// (including --reconfigure), so an imported root stays trusted.
+	if tlsCfg.Strategy == tls.StrategyInternal {
+		ca, err := tls.EnsureLocalCA(target, on.BaseDomain, a.now())
+		if err != nil {
+			return model, target, err
+		}
+		model.TLS.LocalCA = &ca
+		verb := "Reusing"
+		if ca.Created {
+			verb = "Generated"
+		}
+		fmt.Fprintf(a.Stdout, "%s local root CA %s\n", verb, ca.CertFile)
 	}
 
 	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
@@ -319,7 +335,7 @@ func carryForwardProvisioned(existing map[string]string) map[string]string {
 // picks up the freshly generated client ids and secrets when the second
 // phase starts them.
 func (a *App) runBootstrap(
-	ctx context.Context, layout paths.Layout, model templating.Model,
+	ctx context.Context, layout paths.Layout, model templating.Model, current mode.Mode,
 ) error {
 	if err := a.machineKeyPreparer().Prepare(layout); err != nil {
 		return err
@@ -329,6 +345,17 @@ func (a *App) runBootstrap(
 
 	if err := orch.RunPhase(ctx, bootstrap.PhaseEdgeAuth); err != nil {
 		return err
+	}
+
+	// On a reconfigure Caddy may already be running with the previous
+	// Caddyfile (for example plain HTTP before the internal strategy became
+	// HTTPS), and `up -d` does not reload a bind-mounted file. Provisioning
+	// below reaches Zitadel through Caddy with the new scheme, so the new
+	// configuration must be live first.
+	if current == mode.ModeReconfigure {
+		if err := orch.RestartIngress(ctx); err != nil {
+			return err
+		}
 	}
 
 	if err := a.provision(ctx, layout, model.Onboarding); err != nil {
@@ -413,12 +440,37 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 	if err != nil {
 		return err
 	}
+	warnPlainHTTPInstall(a.Stderr, existing)
 	if err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}
 
 	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
 	return orch.RunPhase(ctx, bootstrap.PhaseCoreStack)
+}
+
+// warnPlainHTTPInstall flags an installation rendered before every strategy
+// served HTTPS. A plain update reuses the configuration on disk as is, so it
+// cannot fix that on its own; --reconfigure regenerates .env and the
+// Caddyfile, creates the local root CA and re-provisions Zitadel's redirect
+// URIs as https.
+func warnPlainHTTPInstall(w io.Writer, env map[string]string) {
+	if env["ZITADEL_EXTERNALSECURE"] == "true" {
+		return
+	}
+	fmt.Fprintf(w, "Warning: this installation is served over plain HTTP (ZITADEL_EXTERNALSECURE=%s). "+
+		"Browsers block the PKCE login outside HTTPS, so sign-in to the dashboard and apps fails.\n"+
+		"  Migrate once with: alfheim-setup --reconfigure\n"+
+		"  (with --non-interactive, pass --domain, --admin-email and --tls %s again). "+
+		"Existing secrets and OIDC clients are kept.\n",
+		orDefault(env["ZITADEL_EXTERNALSECURE"], "unset"), orDefault(env["ALFHEIM_TLS_STRATEGY"], "internal"))
+}
+
+func orDefault(v, fallback string) string {
+	if v == "" {
+		return fallback
+	}
+	return v
 }
 
 // printSummary reports how to reach the finished installation. It names the
@@ -445,6 +497,25 @@ Alfheim is up.
 `,
 		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, m.Onboarding.BaseURL,
 		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL)
+
+	if ca := m.TLS.LocalCA; ca != nil {
+		a.printLocalCA(m.Onboarding, *ca)
+	}
+}
+
+// printLocalCA tells the operator how to get past the browser warning the
+// internal strategy's self-generated root causes, and how to check that the
+// root they import really is this installation's.
+func (a *App) printLocalCA(on onboarding.Config, ca tls.LocalCA) {
+	fmt.Fprintf(a.Stdout, `
+  HTTPS certificate (locally generated root CA)
+    Root certificate:  %s
+    SHA-256:           %s
+    Open %s. The browser warns until you import that file into the
+    browser or OS trust store (compare the fingerprint first), or accept the
+    warning once for %s and %s.
+`,
+		ca.TrustFile, ca.Fingerprint, on.BaseURL, on.AppHost, on.AuthHost)
 }
 
 // markInstalled records that a Day-1 install completed.

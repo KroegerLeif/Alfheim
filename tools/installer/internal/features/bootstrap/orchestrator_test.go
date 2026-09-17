@@ -173,6 +173,31 @@ func TestRunPhase_UpFailureIsReported(t *testing.T) {
 	}
 }
 
+func TestRestartIngress_RestartsCaddyAndWaits(t *testing.T) {
+	rec := healthyRunner()
+	o, _ := newTestOrchestrator(rec)
+	if err := o.RestartIngress(context.Background()); err != nil {
+		t.Fatalf("RestartIngress() error = %v", err)
+	}
+	calls := rec.CallStrings()
+	restart := indexOf(calls, "docker compose -f "+composeFile+" restart caddy")
+	wait := indexOf(calls, inspectKey("alfheim_caddy"))
+	if restart < 0 || wait < restart {
+		t.Fatalf("calls = %v, want a caddy restart followed by a health wait", calls)
+	}
+}
+
+func TestRestartIngress_FailureIsReported(t *testing.T) {
+	rec := healthyRunner()
+	rec.ScriptResult("docker compose -f "+composeFile+" restart caddy",
+		runner.Result{ExitCode: 1, Stderr: "no such service"})
+	o, _ := newTestOrchestrator(rec)
+	err := o.RestartIngress(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "restart caddy") {
+		t.Fatalf("error = %v, want the restart failure", err)
+	}
+}
+
 func TestRunPhase_RunnerErrorPropagates(t *testing.T) {
 	rec := healthyRunner()
 	sentinel := errors.New("docker vanished")

@@ -65,6 +65,10 @@ type Config struct {
 	ACMEEmail  string
 	CertSource CertSource
 
+	// LocalCA is the generated root CA once the internal strategy has
+	// ensured one; nil for every other strategy.
+	LocalCA *LocalCA
+
 	// Warnings collects non-fatal findings surfaced to the operator.
 	Warnings []string
 }
