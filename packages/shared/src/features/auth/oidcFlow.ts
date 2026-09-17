@@ -55,10 +55,10 @@ export function detectInsecureContext(): InsecureContextError | null {
   // are judged solely by whether crypto.subtle actually exists.
   if (window.isSecureContext !== false && globalThis.crypto?.subtle) return null;
   const { host, pathname, search, hash } = window.location;
-  return new InsecureContextError(host, `https://${host}${pathname}${search ?? ''}${hash ?? ''}`);
+  return new InsecureContextError(host, `https://${host}${pathname}${search}${hash}`);
 }
 
-let metadataCache:Promise<OidcProviderMetadata> | null = null;
+let metadataCache: Promise<OidcProviderMetadata> | null = null;
 
 export function discoverProviderMetadata(issuer: string): Promise<OidcProviderMetadata> {
   if (!metadataCache) {
