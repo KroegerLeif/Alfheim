@@ -20,7 +20,7 @@
 # Zitadel is served on its own dedicated host; it does not support sub-path
 # hosting. The issuer therefore is the bare origin of this domain.
 # =============================================================================
-http://auth.loegien.localhost {
+https://auth.loegien.localhost {
 	tls internal
 
 	reverse_proxy zitadel:8080 {
@@ -31,10 +31,17 @@ http://auth.loegien.localhost {
 	}
 }
 
+# Explicit redirect, since auto_https disable_redirects (see global options)
+# no longer adds one automatically: a visitor on plain HTTP still lands on
+# HTTPS, but 127.0.0.1 (the container's own healthcheck) is left alone.
+http://auth.loegien.localhost {
+	redir https://auth.loegien.localhost{uri} permanent
+}
+
 # =============================================================================
 # 1. FRONTEND DOMAIN
 # =============================================================================
-http://alfheim.loegien.localhost {
+https://alfheim.loegien.localhost {
 	tls internal
 
 	# Dedicated ingress healthcheck endpoint, isolated from downstream services.
@@ -168,4 +175,9 @@ http://alfheim.loegien.localhost {
 	handle {
 		reverse_proxy dashboard-frontend:3000
 	}
+}
+
+# See the identity provider domain block above for why this is explicit.
+http://alfheim.loegien.localhost {
+	redir https://alfheim.loegien.localhost{uri} permanent
 }

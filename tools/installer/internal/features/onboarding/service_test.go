@@ -36,17 +36,17 @@ func TestApplyPresetLoegienMatchesRepositoryDefaults(t *testing.T) {
 	}
 }
 
-func TestApplyPresetLocalhostIsPlainHTTP(t *testing.T) {
+func TestApplyPresetLocalhostIsHTTPS(t *testing.T) {
 	var c Config
 	ApplyPreset(&c, PresetLocalhost)
 	if err := Derive(&c); err != nil {
 		t.Fatal(err)
 	}
-	if c.Secure {
-		t.Error("the localhost preset must not claim a secure external port")
+	if !c.Secure {
+		t.Error("the localhost preset is served over HTTPS by the locally generated CA")
 	}
-	if !strings.HasPrefix(c.BaseURL, "http://") {
-		t.Errorf("BaseURL = %q, want a plain-HTTP URL", c.BaseURL)
+	if !strings.HasPrefix(c.BaseURL, "https://") || !strings.HasPrefix(c.IssuerURL, "https://") {
+		t.Errorf("BaseURL = %q, IssuerURL = %q, want HTTPS URLs", c.BaseURL, c.IssuerURL)
 	}
 	if c.AuthHost != "auth.loegien.localhost" {
 		t.Errorf("AuthHost = %q", c.AuthHost)

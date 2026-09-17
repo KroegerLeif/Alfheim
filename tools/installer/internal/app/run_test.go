@@ -228,39 +228,78 @@ func TestRunInteractiveUsesTheWizard(t *testing.T) {
 	}
 }
 
-// TestRunInteractiveSecureMatchesChosenTLSStrategy guards against a real bug:
-// choosing "Custom domain" (or any preset) in the wizard and then --tls
-// internal must render a plain-HTTP site, not one that mismatches Secure
-// from the domain preset with a plain-HTTP TLS strategy. That mismatch made
-// Caddy manage an unwanted HTTPS certificate for the site, which in turn
-// made Caddy's own /livez healthcheck against 127.0.0.1 fail its TLS
-// handshake on a real install — reproduced against a real Caddy container.
+// TestRunInteractiveSecureMatchesChosenTLSStrategy guards two real bugs. The
+// wizard must derive Secure from the TLS strategy exactly like the headless
+// path, never from whichever domain preset was applied last (the LAN preset
+// once left a mismatched scheme behind). And --tls internal must be HTTPS:
+// over plain http:// on a real hostname browsers disable crypto.subtle, so
+// every frontend's PKCE login crashed on a fresh internal install.
 func TestRunInteractiveSecureMatchesChosenTLSStrategy(t *testing.T) {
-	root := t.TempDir()
-	wiz := &stubWizard{
-		on: onboarding.Config{
-			Preset: onboarding.PresetCustom, BaseDomain: "wizard.example.com",
-			AdminEmail: "ops@example.com",
-		},
-		tls: tls.Config{Strategy: tls.StrategyInternal},
-	}
-	app, stdout, _ := newTestApp(t, &Options{InstallDir: root}, healthyDocker(), wiz)
-	app.Provisioner = &stubProvisioner{}
+	for _, preset := range []onboarding.PresetID{onboarding.PresetCustom, onboarding.PresetLocalhost} {
+		for _, s := range tls.Strategies {
+			t.Run(string(preset)+"/"+string(s.ID), func(t *testing.T) {
+				root := t.TempDir()
+				tlsCfg := tls.Config{Strategy: s.ID, APIToken: "tok"}
+				if s.ID == tls.StrategyCustomCerts {
+					writeCustomCerts(t, root)
+				}
+				wiz := &stubWizard{
+					on: onboarding.Config{
+						Preset: preset, BaseDomain: "wizard.example.com",
+						AppHost: "alfheim.wizard.example.com", AdminEmail: "ops@example.com",
+					},
+					tls: tlsCfg,
+				}
+				app, stdout, stderr := newTestApp(t, &Options{InstallDir: root}, healthyDocker(), wiz)
 
-	if code := app.Run(context.Background()); code != ExitOK {
-		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
-	}
+				if code := app.Run(context.Background()); code != ExitOK {
+					t.Fatalf("exit code = %d; stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+				}
 
-	vars, err := envfile.ParseFile(filepath.Join(root, ".env"))
-	if err != nil {
+				vars, err := envfile.ParseFile(filepath.Join(root, ".env"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if vars["ZITADEL_EXTERNALSECURE"] != "true" || vars["ZITADEL_EXTERNALPORT"] != "443" {
+					t.Errorf("ZITADEL_EXTERNALSECURE = %q, ZITADEL_EXTERNALPORT = %q, want true/443",
+						vars["ZITADEL_EXTERNALSECURE"], vars["ZITADEL_EXTERNALPORT"])
+				}
+				for _, key := range []string{"ALFHEIM_BASE_URL", "OIDC_ISSUER_URL"} {
+					if got := vars[key]; !strings.HasPrefix(got, "https://") {
+						t.Errorf("%s = %q, want an HTTPS URL", key, got)
+					}
+				}
+
+				// The headless path must derive the identical scheme.
+				headless := &Options{
+					Domain: "wizard.example.com", TLSStrategy: string(s.ID),
+					AdminEmail: "ops@example.com", APIToken: "tok",
+				}
+				on, _, err := headless.HeadlessConfig()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if on.Secure != (vars["ZITADEL_EXTERNALSECURE"] == "true") {
+					t.Errorf("headless Secure = %t disagrees with the wizard's .env", on.Secure)
+				}
+			})
+		}
+	}
+}
+
+// writeCustomCerts places PEM-looking files where the custom strategy's
+// default certificate mode expects them.
+func writeCustomCerts(t *testing.T, root string) {
+	t.Helper()
+	dir := paths.Layout{Root: root}.DefaultCertDir()
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if vars["ZITADEL_EXTERNALSECURE"] != "false" {
-		t.Errorf("ZITADEL_EXTERNALSECURE = %q, want %q for --tls internal regardless of the domain preset",
-			vars["ZITADEL_EXTERNALSECURE"], "false")
-	}
-	if got := vars["ALFHEIM_BASE_URL"]; !strings.HasPrefix(got, "http://") {
-		t.Errorf("ALFHEIM_BASE_URL = %q, want a plain-HTTP URL for --tls internal", got)
+	for _, name := range []string{tls.ChainFileName, tls.KeyFileName} {
+		if err := os.WriteFile(filepath.Join(dir, name),
+			[]byte("-----BEGIN X-----\nAA==\n-----END X-----\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

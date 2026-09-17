@@ -187,17 +187,12 @@ func (a *App) configure(layout paths.Layout) (onboarding.Config, tls.Config, err
 			if preset, ok := onboarding.Lookup(on.Preset); ok {
 				preset.Apply(&on)
 			}
-			// Secure must reflect the operator's actual TLS strategy choice,
-			// not whichever domain preset was applied last: every preset's
-			// Apply sets its own Secure default, so picking e.g. "Custom
-			// domain" and then "--tls internal" left Secure=true and Scheme
-			// "https" here even though Zitadel and Caddy are configured for
-			// plain HTTP. That mismatch renders an https:// Caddy site
-			// address for a certificate that was never meant to exist,
-			// which made Caddy's own /livez healthcheck against 127.0.0.1
-			// fail its TLS handshake (reproduced against a real Proxmox
-			// install). Mirrors HeadlessConfig's derivation below.
-			on.Secure = tlsCfg.Strategy != tls.StrategyInternal
+			// Secure is derived from the TLS strategy exactly the way
+			// HeadlessConfig derives it, never from whichever domain preset
+			// was applied last, so the wizard and the headless path always
+			// render the same scheme. Every strategy, internal included, is
+			// HTTPS (see secureFor).
+			on.Secure = secureFor(tlsCfg.Strategy)
 			tlsCfg.ACMEEmail = firstNonEmpty(tlsCfg.ACMEEmail, on.AdminEmail)
 		}
 	}

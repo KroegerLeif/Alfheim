@@ -146,14 +146,23 @@ func TestHeadlessConfig(t *testing.T) {
 	}
 }
 
-func TestHeadlessConfigInternalIsInsecure(t *testing.T) {
-	opts := &Options{Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com"}
-	on, _, err := opts.HeadlessConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if on.Secure {
-		t.Error("the internal CA strategy must not claim a publicly trusted certificate")
+func TestHeadlessConfigEveryStrategyIsSecure(t *testing.T) {
+	for _, s := range tls.Strategies {
+		t.Run(string(s.ID), func(t *testing.T) {
+			opts := &Options{
+				Domain: "example.com", TLSStrategy: string(s.ID), AdminEmail: "ops@example.com",
+				APIToken: "tok",
+			}
+			on, _, err := opts.HeadlessConfig()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Browsers disable crypto.subtle outside a secure context, which
+			// breaks the PKCE login, so the internal CA must be HTTPS too.
+			if !on.Secure {
+				t.Errorf("Secure = false for %s, want HTTPS for every strategy", s.ID)
+			}
+		})
 	}
 }
 
