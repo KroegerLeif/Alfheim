@@ -95,7 +95,13 @@ type apiError struct {
 }
 
 func (e *apiError) Error() string {
-	return fmt.Sprintf("zitadel API %s %s returned HTTP %d: %s", e.method, e.path, e.status, e.body)
+	msg := fmt.Sprintf("zitadel API %s %s returned HTTP %d: %s", e.method, e.path, e.status, e.body)
+	if e.status >= 300 && e.status < 400 {
+		// Redirects are never followed (see Endpoint): the usual cause is a
+		// plain-HTTP request against an install Caddy serves over HTTPS.
+		msg += " (redirect not followed: check that ZITADEL_EXTERNALSECURE in .env matches how Caddy serves the auth host)"
+	}
+	return msg
 }
 
 // Status is the HTTP status Zitadel answered with.
