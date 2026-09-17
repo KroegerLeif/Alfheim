@@ -70,6 +70,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - The `KEYCLOAK_*` environment variable names. `scripts/init-env.sh` migrates them in place for one release; after that, only the `OIDC_*` names are read.
 
+### Fixed
+- `alfheim-setup --tls internal` now serves HTTPS. It used to render `http://` URLs, `ZITADEL_EXTERNALSECURE=false` and plain-HTTP Caddy sites, and browsers disable `crypto.subtle` outside a secure context, so the PKCE login in every frontend crashed on a real hostname. The installer generates an ECDSA P-256 root CA once (`infrastructure/caddy/pki/root.{crt,key}`, public copy `infrastructure/ca/alfheim-root-ca.crt`, never rotated silently) and Caddy signs every site with it. `.env` gains `ALFHEIM_EXTRA_CA_FILE` (`/etc/alfheim/ca/alfheim-root-ca.crt` for `internal`, empty otherwise), and the install summary prints the root's path, its SHA-256 fingerprint and how to trust it. The LAN `.localhost` preset is HTTPS too.
+- Installer Zitadel provisioning (and `alfheim-setup provision`, used by `scripts/up.sh`) talks to a secure install as `https://<auth host>` on Caddy's loopback listener `127.0.0.1:443`. Before, it would have received Caddy's HTTP-to-HTTPS redirect, and following it goes through public DNS and drops the bearer token. It verifies against the system roots plus the generated root, never follows redirects, and gains `--zitadel-tls-addr` and `--ca-file`.
+- `alfheim-setup --reconfigure` restarts Caddy after the Edge & Identity phase, so a regenerated Caddyfile takes effect before provisioning. An existing plain-HTTP `internal` install migrates with `--reconfigure`, which also re-provisions the OIDC redirect URIs as `https://`; a plain update warns until that has happened.
+
 ---
 
 ## [v0.1.0-beta.1] - 2026-03-01
