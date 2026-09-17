@@ -38,6 +38,9 @@ services:
       CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Installer-generated root cert + key that sign the --tls internal
+      # certificates. Only Caddy may see the private key.
+      - ./infrastructure/caddy/pki:/etc/caddy/pki:ro
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:
@@ -400,8 +403,13 @@ services:
       - GF_AUTH_GENERIC_OAUTH_SIGNOUT_REDIRECT_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}/oidc/v1/end_session?post_logout_redirect_uri=${GRAFANA_SIGNOUT_REDIRECT_URL:?GRAFANA_SIGNOUT_REDIRECT_URL must be set}
       - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT=false
       - GF_AUTH_GENERIC_OAUTH_USE_REFRESH_TOKEN=true
+      # Token/userinfo calls go through the issuer, which --tls internal serves
+      # with the installer's private root CA. Grafana ignores an empty value.
+      - GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA=${ALFHEIM_EXTRA_CA_FILE:-}
     volumes:
       - grafana_data:/var/lib/grafana
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
       interval: 5s
@@ -432,6 +440,12 @@ services:
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
       interval: 10s
@@ -501,11 +515,17 @@ services:
       - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}
       - S3_PUBLIC_URL=${S3_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/storage}
       - CHAT_ENCRYPTION_KEY=${CHAT_ENCRYPTION_KEY:?CHAT_ENCRYPTION_KEY must be set}
       - CHAT_ENCRYPTION_KEY_ID=${CHAT_ENCRYPTION_KEY_ID:-v1}
       - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
       interval: 10s
@@ -573,10 +593,16 @@ services:
       - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=pantry-backend
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
@@ -645,10 +671,16 @@ services:
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=shopping-backend
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
       interval: 10s
@@ -716,10 +748,16 @@ services:
       - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=maintenance-backend
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
@@ -787,10 +825,16 @@ services:
       - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=chores-backend
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
@@ -858,6 +902,9 @@ services:
       - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:?S3_ACCESS_KEY must be set}
       - S3_SECRET_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY must be set}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://rustfs:9000}
@@ -866,6 +913,9 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=budget-backend
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
       interval: 10s
@@ -934,10 +984,16 @@ services:
       - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=workout-backend
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 10s
@@ -1005,10 +1061,16 @@ services:
       - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=library-backend
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
       interval: 10s
