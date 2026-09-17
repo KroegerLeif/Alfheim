@@ -49,7 +49,7 @@ function AuthErrorPage({
 }: {
   detail: string;
   title?: string;
-  action?: { href: string; label: string };
+  action?: { href: string; label: string; external?: boolean; hint?: string };
 }) {
   return (
     <div
@@ -74,12 +74,14 @@ function AuthErrorPage({
           <p style={{ fontSize: '0.875rem', marginTop: '1rem' }}>
             <a
               href={action.href}
+              {...(action.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               style={{ color: 'var(--primary-main, #22c55e)', fontWeight: 600, textDecoration: 'underline' }}
             >
               {action.label}
             </a>
           </p>
         )}
+        {action?.hint && <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', opacity: 0.6 }}>{action.hint}</p>}
       </div>
     </div>
   );
@@ -106,6 +108,22 @@ export function AuthGuard({ basePath = '', children, loadingFallback }: AuthGuar
         title="Secure connection (HTTPS) required"
         detail={message}
         action={{ href: httpsUrl, label: `Open ${httpsUrl}` }}
+      />
+    );
+  }
+
+  if (auth.issuerUnreachableError) {
+    const { discoveryUrl, issuerHost, message } = auth.issuerUnreachableError;
+    return (
+      <AuthErrorPage
+        title="Sign-in service not reachable"
+        detail={message}
+        action={{
+          href: discoveryUrl,
+          label: `Open ${issuerHost} in a new tab`,
+          external: true,
+          hint: 'After accepting the certificate there, return to this tab and reload the page.',
+        }}
       />
     );
   }
