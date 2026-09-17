@@ -32,11 +32,13 @@ var Presets = []Preset{
 	{
 		ID:          PresetLocalhost,
 		Title:       "LAN / offline (localhost)",
-		Description: "No public DNS. Uses .localhost hosts and Caddy's internal CA.",
+		Description: "No public DNS. Uses .localhost hosts and a locally generated CA.",
 		Apply: func(c *Config) {
 			c.BaseDomain = "loegien.localhost"
 			c.AppHost = "alfheim.loegien.localhost"
-			c.Secure = false
+			// HTTPS too: the installer derives Secure from the TLS strategy,
+			// and every strategy serves HTTPS.
+			c.Secure = true
 		},
 	},
 }

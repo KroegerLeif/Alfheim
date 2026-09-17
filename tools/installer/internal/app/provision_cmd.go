@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"alfheim/installer/internal/features/provisioning"
 	"alfheim/installer/internal/shared/envfile"
+	"alfheim/installer/internal/shared/paths"
 )
 
 // provisionUsage documents the hidden `provision` subcommand, which exists so
@@ -18,7 +20,8 @@ import (
 const provisionUsage = `alfheim-setup provision - reconcile Zitadel OIDC clients for an existing .env
 
 Usage:
-  alfheim-setup provision --env-file PATH --pat-file PATH [--zitadel-url URL]
+  alfheim-setup provision --env-file PATH --pat-file PATH
+                          [--zitadel-url URL] [--zitadel-tls-addr HOST:PORT] [--ca-file PATH]
 
 Flags:
   --env-file PATH      The .env to read (for ZITADEL_EXTERNALDOMAIN,
@@ -26,7 +29,16 @@ Flags:
                        previously provisioned credentials) and update in place.
   --pat-file PATH      The Zitadel bootstrap machine user's personal access
                        token file (ZITADEL_FIRSTINSTANCE_PATPATH).
-  --zitadel-url URL    Where Caddy listens. Default: http://127.0.0.1:80.
+  --zitadel-url URL    Caddy's plain-HTTP listener, used only when
+                       ZITADEL_EXTERNALSECURE is not true.
+                       Default: http://127.0.0.1:80.
+  --zitadel-tls-addr HOST:PORT
+                       Caddy's HTTPS listener, dialled for a secure install
+                       while requests name https://<ZITADEL_EXTERNALDOMAIN>.
+                       Default: 127.0.0.1:443.
+  --ca-file PATH       Root CA trusted in addition to the system roots.
+                       Default: infrastructure/ca/alfheim-root-ca.crt next to
+                       the .env, when it exists.
 
 Exit codes:
   0 success   1 failure   2 usage error
@@ -44,7 +56,9 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 
 	envFile := fs.String("env-file", "", "path to the .env file to read and update")
 	patFile := fs.String("pat-file", "", "path to the Zitadel bootstrap PAT file")
-	zitadelURL := fs.String("zitadel-url", "http://127.0.0.1:80", "base URL Caddy listens on")
+	zitadelURL := fs.String("zitadel-url", provisioning.DefaultPlainURL, "Caddy's plain-HTTP base URL")
+	tlsAddr := fs.String("zitadel-tls-addr", provisioning.DefaultTLSAddr, "Caddy's HTTPS listener address")
+	caFile := fs.String("ca-file", "", "extra root CA to trust")
 
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
@@ -85,7 +99,22 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 		return ExitFailure
 	}
 
-	client := &provisioning.HTTPClient{BaseURL: *zitadelURL, Host: authHost, PAT: pat}
+	rootCA := *caFile
+	if rootCA == "" {
+		rootCA = existingRootCA(paths.Layout{Root: filepath.Dir(*envFile)})
+	}
+	endpointURL, httpClient, err := provisioning.Endpoint{
+		Secure:          secure,
+		AuthHost:        authHost,
+		PlainURL:        *zitadelURL,
+		TLSAddr:         *tlsAddr,
+		ExtraRootCAFile: rootCA,
+	}.Client()
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+	client := &provisioning.HTTPClient{BaseURL: endpointURL, Host: authHost, PAT: pat, HTTP: httpClient}
 	in := provisioning.BuildInput(defaultProjectName, baseURL, !secure, provisioning.AppSlugs)
 
 	result, err := provisioning.Provision(context.Background(), client, in, existing)

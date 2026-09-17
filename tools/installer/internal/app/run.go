@@ -129,7 +129,7 @@ func (a *App) execute(ctx context.Context) error {
 		return nil
 	}
 
-	return a.runBootstrap(ctx, layout, model)
+	return a.runBootstrap(ctx, layout, model, current)
 }
 
 // inspector returns the configured host inspector, defaulting to the real one.
@@ -187,17 +187,12 @@ func (a *App) configure(layout paths.Layout) (onboarding.Config, tls.Config, err
 			if preset, ok := onboarding.Lookup(on.Preset); ok {
 				preset.Apply(&on)
 			}
-			// Secure must reflect the operator's actual TLS strategy choice,
-			// not whichever domain preset was applied last: every preset's
-			// Apply sets its own Secure default, so picking e.g. "Custom
-			// domain" and then "--tls internal" left Secure=true and Scheme
-			// "https" here even though Zitadel and Caddy are configured for
-			// plain HTTP. That mismatch renders an https:// Caddy site
-			// address for a certificate that was never meant to exist,
-			// which made Caddy's own /livez healthcheck against 127.0.0.1
-			// fail its TLS handshake (reproduced against a real Proxmox
-			// install). Mirrors HeadlessConfig's derivation below.
-			on.Secure = tlsCfg.Strategy != tls.StrategyInternal
+			// Secure is derived from the TLS strategy exactly the way
+			// HeadlessConfig derives it, never from whichever domain preset
+			// was applied last, so the wizard and the headless path always
+			// render the same scheme. Every strategy, internal included, is
+			// HTTPS (see secureFor).
+			on.Secure = secureFor(tlsCfg.Strategy)
 			tlsCfg.ACMEEmail = firstNonEmpty(tlsCfg.ACMEEmail, on.AdminEmail)
 		}
 	}
@@ -249,6 +244,16 @@ func (a *App) renderConfiguration(
 		return templating.Model{}, layout, err
 	}
 
+	target := layout
+	if a.Options.DryRun {
+		// A dry run must never touch an existing installation.
+		tmp, err := os.MkdirTemp("", "alfheim-dry-run-*")
+		if err != nil {
+			return templating.Model{}, layout, fmt.Errorf("alfheim-setup: create dry-run directory: %w", err)
+		}
+		target = paths.Layout{Root: tmp}
+	}
+
 	model := templating.Model{
 		Onboarding: on,
 		TLS:        tlsCfg,
@@ -257,18 +262,24 @@ func (a *App) renderConfiguration(
 		Generated:  a.now(),
 	}
 
-	target := layout
-	if a.Options.DryRun {
-		// A dry run must never touch an existing installation.
-		tmp, err := os.MkdirTemp("", "alfheim-dry-run-*")
-		if err != nil {
-			return model, layout, fmt.Errorf("alfheim-setup: create dry-run directory: %w", err)
-		}
-		target = paths.Layout{Root: tmp}
-	}
-
 	if err := renderer.WriteAll(target, model); err != nil {
 		return model, target, err
+	}
+
+	// The internal strategy's Caddyfile signs with a root CA that must exist
+	// before Caddy starts. It is created once and reused on every later run
+	// (including --reconfigure), so an imported root stays trusted.
+	if tlsCfg.Strategy == tls.StrategyInternal {
+		ca, err := tls.EnsureLocalCA(target, on.BaseDomain, a.now())
+		if err != nil {
+			return model, target, err
+		}
+		model.TLS.LocalCA = &ca
+		verb := "Reusing"
+		if ca.Created {
+			verb = "Generated"
+		}
+		fmt.Fprintf(a.Stdout, "%s local root CA %s (SHA-256 %s)\n", verb, ca.CertFile, ca.Fingerprint)
 	}
 
 	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
@@ -324,7 +335,7 @@ func carryForwardProvisioned(existing map[string]string) map[string]string {
 // picks up the freshly generated client ids and secrets when the second
 // phase starts them.
 func (a *App) runBootstrap(
-	ctx context.Context, layout paths.Layout, model templating.Model,
+	ctx context.Context, layout paths.Layout, model templating.Model, current mode.Mode,
 ) error {
 	if err := a.machineKeyPreparer().Prepare(layout); err != nil {
 		return err
@@ -334,6 +345,17 @@ func (a *App) runBootstrap(
 
 	if err := orch.RunPhase(ctx, bootstrap.PhaseEdgeAuth); err != nil {
 		return err
+	}
+
+	// On a reconfigure Caddy may already be running with the previous
+	// Caddyfile (for example plain HTTP before the internal strategy became
+	// HTTPS), and `up -d` does not reload a bind-mounted file. Provisioning
+	// below reaches Zitadel through Caddy with the new scheme, so the new
+	// configuration must be live first.
+	if current == mode.ModeReconfigure {
+		if err := orch.RestartIngress(ctx); err != nil {
+			return err
+		}
 	}
 
 	if err := a.provision(ctx, layout, model.Onboarding); err != nil {
@@ -418,12 +440,37 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 	if err != nil {
 		return err
 	}
+	warnPlainHTTPInstall(a.Stderr, existing)
 	if err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}
 
 	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
 	return orch.RunPhase(ctx, bootstrap.PhaseCoreStack)
+}
+
+// warnPlainHTTPInstall flags an installation rendered before every strategy
+// served HTTPS. A plain update reuses the configuration on disk as is, so it
+// cannot fix that on its own; --reconfigure regenerates .env and the
+// Caddyfile, creates the local root CA and re-provisions Zitadel's redirect
+// URIs as https.
+func warnPlainHTTPInstall(w io.Writer, env map[string]string) {
+	if env["ZITADEL_EXTERNALSECURE"] == "true" {
+		return
+	}
+	fmt.Fprintf(w, "Warning: this installation is served over plain HTTP (ZITADEL_EXTERNALSECURE=%s). "+
+		"Browsers block the PKCE login outside HTTPS, so sign-in to the dashboard and apps fails.\n"+
+		"  Migrate once with: alfheim-setup --reconfigure\n"+
+		"  (with --non-interactive, pass --domain, --admin-email and --tls %s again). "+
+		"Existing secrets and OIDC clients are kept.\n",
+		orDefault(env["ZITADEL_EXTERNALSECURE"], "unset"), orDefault(env["ALFHEIM_TLS_STRATEGY"], "internal"))
+}
+
+func orDefault(v, fallback string) string {
+	if v == "" {
+		return fallback
+	}
+	return v
 }
 
 // printSummary reports how to reach the finished installation. It names the
@@ -450,6 +497,41 @@ Alfheim is up.
 `,
 		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, m.Onboarding.BaseURL,
 		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL)
+
+	if ca := m.TLS.LocalCA; ca != nil {
+		a.printLocalCA(m.Onboarding, *ca)
+	}
+}
+
+// printLocalCA tells the operator how to trust the internal strategy's
+// self-generated root. Importing the root is the recommended path: browsers
+// keep certificate exceptions per host, so accepting the warning only for the
+// app host leaves the login's background OIDC discovery fetch to the auth
+// host silently rejected ("Failed to fetch").
+func (a *App) printLocalCA(on onboarding.Config, ca tls.LocalCA) {
+	appURL := "https://" + on.AppHost
+	authURL := "https://" + on.AuthHost
+	fmt.Fprintf(a.Stdout, `
+  HTTPS certificate (locally generated root CA)
+    Root certificate:  %s
+    SHA-256:           %s
+
+    Recommended: import that file into your OS or browser trust store once;
+    it covers every Alfheim host. Compare the SHA-256 fingerprint first.
+      macOS:          Keychain Access > System keychain > import, then set
+                      Trust to "Always Trust"
+      Windows:        certmgr.msc > Trusted Root Certification Authorities >
+                      Certificates > All Tasks > Import
+      Linux/Firefox:  the browser's certificate settings > Authorities > Import
+                      (Firefox keeps its own store)
+
+    Fallback without importing: before signing in, open BOTH of these and
+    accept the certificate warning on each, or login fails with
+    "Failed to fetch":
+      %s
+      %s
+`,
+		ca.TrustFile, ca.Fingerprint, appURL, authURL)
 }
 
 // markInstalled records that a Day-1 install completed.

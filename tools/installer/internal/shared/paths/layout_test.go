@@ -34,6 +34,11 @@ func TestLayoutPaths(t *testing.T) {
 		{"cert dir", l.DefaultCertDir(), "/srv/alfheim/data/caddy/certs"},
 		{"zitadel machine key dir", l.ZitadelMachineKeyDir(), "/srv/alfheim/infrastructure/zitadel/machinekey"},
 		{"zitadel pat file", l.ZitadelPATFile(), "/srv/alfheim/infrastructure/zitadel/machinekey/pat.txt"},
+		{"caddy pki dir", l.CaddyPKIDir(), "/srv/alfheim/infrastructure/caddy/pki"},
+		{"caddy pki root cert", l.CaddyPKIRootCert(), "/srv/alfheim/infrastructure/caddy/pki/root.crt"},
+		{"caddy pki root key", l.CaddyPKIRootKey(), "/srv/alfheim/infrastructure/caddy/pki/root.key"},
+		{"trusted ca dir", l.TrustedCADir(), "/srv/alfheim/infrastructure/ca"},
+		{"trusted ca root cert", l.TrustedCARootCert(), "/srv/alfheim/infrastructure/ca/alfheim-root-ca.crt"},
 		{"marker", l.Marker(), "/srv/alfheim/" + MarkerName},
 	}
 	for _, tc := range tests {
@@ -56,6 +61,8 @@ func TestEnsureDirs(t *testing.T) {
 		filepath.Join(l.Root, "infrastructure", "telemetry", "collector"),
 		l.DefaultCertDir(),
 		l.ZitadelMachineKeyDir(),
+		l.CaddyPKIDir(),
+		l.TrustedCADir(),
 	} {
 		info, err := os.Stat(dir)
 		if err != nil {
@@ -73,6 +80,14 @@ func TestEnsureDirs(t *testing.T) {
 	}
 	if perm := info.Mode().Perm(); perm != 0o700 {
 		t.Fatalf("cert dir permissions = %o, want 700", perm)
+	}
+	// The PKI directory holds the generated root CA's private key.
+	info, err = os.Stat(l.CaddyPKIDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o700 {
+		t.Fatalf("pki dir permissions = %o, want 700", perm)
 	}
 
 	// EnsureDirs is idempotent.

@@ -26,9 +26,19 @@ type Provisioner interface {
 // DefaultProvisioner talks to Zitadel through Caddy, the same way scripts/up.sh's
 // `provision` subcommand does: Zitadel resolves the instance by Host header,
 // so every request targets Caddy's own listener on the loopback interface.
+// A secure install is reached as https://<auth host> dialled to Caddy's
+// loopback HTTPS listener (see provisioning.Endpoint), trusting the system
+// roots plus the installation's generated root CA when one exists.
 type DefaultProvisioner struct {
-	// BaseURL is where Caddy listens. Defaults to http://127.0.0.1:80.
+	// BaseURL is Caddy's plain-HTTP listener, used only for an insecure
+	// (legacy) .env. Defaults to http://127.0.0.1:80.
 	BaseURL string
+	// TLSAddr is Caddy's HTTPS listener for a secure install. Defaults to
+	// 127.0.0.1:443.
+	TLSAddr string
+	// RootCAFile is trusted in addition to the system roots. Defaults to the
+	// layout's generated root CA copy, when that file exists.
+	RootCAFile string
 	// PATWaitTimeout bounds how long to wait for Zitadel to write the
 	// bootstrap PAT on first init. Defaults to 60s.
 	PATWaitTimeout time.Duration
@@ -57,10 +67,21 @@ func (p *DefaultProvisioner) Provision(
 		}
 	}
 
+	baseURL, httpClient, err := provisioning.Endpoint{
+		Secure:          on.Secure,
+		AuthHost:        on.AuthHost,
+		PlainURL:        p.baseURL(),
+		TLSAddr:         p.TLSAddr,
+		ExtraRootCAFile: p.rootCAFile(layout),
+	}.Client()
+	if err != nil {
+		return provisioning.Result{}, err
+	}
 	client := &provisioning.HTTPClient{
-		BaseURL: p.baseURL(),
+		BaseURL: baseURL,
 		Host:    on.AuthHost,
 		PAT:     pat,
+		HTTP:    httpClient,
 	}
 	in := provisioning.BuildInput(defaultProjectName, on.BaseURL, !on.Secure, provisioning.AppSlugs)
 	result, err := provisioning.Provision(ctx, client, in, existing)
@@ -84,7 +105,26 @@ func (p *DefaultProvisioner) baseURL() string {
 	if p.BaseURL != "" {
 		return p.BaseURL
 	}
-	return "http://127.0.0.1:80"
+	return provisioning.DefaultPlainURL
+}
+
+func (p *DefaultProvisioner) rootCAFile(layout paths.Layout) string {
+	if p.RootCAFile != "" {
+		return p.RootCAFile
+	}
+	return existingRootCA(layout)
+}
+
+// existingRootCA returns the installation's generated root CA copy, or ""
+// when this install has none (a strategy with a publicly trusted
+// certificate). Trusting our own root is harmless for those, but a missing
+// file must not fail provisioning.
+func existingRootCA(layout paths.Layout) string {
+	path := layout.TrustedCARootCert()
+	if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		return path
+	}
+	return ""
 }
 
 // readPAT resolves the bootstrap machine user's personal access token.

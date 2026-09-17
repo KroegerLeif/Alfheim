@@ -80,8 +80,12 @@ The wizard asks four things:
    administrator and the ACME contact.
 3. **Certificate strategy.** Choose *Hetzner DNS-01* or *Cloudflare DNS-01* if
    your domain is hosted there — this issues wildcard certificates and needs no
-   inbound port 80. Otherwise choose *Custom certificates*, or *Caddy internal
-   CA* for a LAN-only install.
+   inbound port 80. Otherwise choose *Custom certificates*, or *Local CA
+   (self-signed HTTPS)* for a LAN-only install. With the local CA, import
+   `infrastructure/ca/alfheim-root-ca.crt` into your OS or browser trust store
+   after the install. Otherwise you must accept the certificate warning for
+   **both** the app host and the auth host before signing in (see
+   [Trusting the internal root CA](../reference/installer-cli.md#trusting-the-internal-root-ca)).
 4. **DNS API token**, if you chose a DNS-01 strategy. See
    [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) for how to create one.
 

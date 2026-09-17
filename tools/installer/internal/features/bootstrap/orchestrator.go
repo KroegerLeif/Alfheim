@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"alfheim/installer/internal/shared/paths"
 	"alfheim/installer/internal/shared/runner"
@@ -65,6 +66,28 @@ func (o *Orchestrator) RunPhase(ctx context.Context, phase Phase) error {
 		}
 	}
 	return nil
+}
+
+// ingressService and ingressTarget identify Caddy in compose.prod.yaml.
+const ingressService = "caddy"
+
+var ingressTarget = HealthTarget{
+	Container: "alfheim_caddy", Label: "Caddy ingress gateway", Timeout: 90 * time.Second,
+}
+
+// RestartIngress restarts Caddy and waits for it to turn healthy again.
+//
+// The Caddyfile is a bind-mounted file and Caddy runs with its admin API
+// off, so a re-rendered Caddyfile is never picked up by `up -d` alone when
+// nothing else about the service changed. A reconfigure calls this so a
+// changed scheme or TLS strategy takes effect before provisioning talks to
+// Zitadel through Caddy.
+func (o *Orchestrator) RestartIngress(ctx context.Context) error {
+	o.logf("Restarting %s to apply the regenerated Caddyfile", ingressTarget.Label)
+	if err := o.compose(ctx, []string{"restart", ingressService}); err != nil {
+		return fmt.Errorf("bootstrap: restart %s: %w", ingressService, err)
+	}
+	return o.waitHealthy(ctx, ingressTarget)
 }
 
 // explainZitadelFailure looks at Zitadel's own logs after a startup failure

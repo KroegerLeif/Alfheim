@@ -181,8 +181,13 @@ func TestValidateInternalWarnsAboutTrust(t *testing.T) {
 	if err := m.Validate(c); err != nil {
 		t.Fatalf("Validate() error = %v", err)
 	}
-	if len(c.Warnings) != 1 || !strings.Contains(c.Warnings[0], "not trusted by browsers") {
+	if len(c.Warnings) != 1 {
 		t.Fatalf("Warnings = %v", c.Warnings)
+	}
+	for _, want := range []string{"infrastructure/ca/alfheim-root-ca.crt", "trust store", "BOTH the app host and the auth host"} {
+		if !strings.Contains(c.Warnings[0], want) {
+			t.Errorf("warning %q is missing %q", c.Warnings[0], want)
+		}
 	}
 }
 

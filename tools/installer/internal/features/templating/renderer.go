@@ -48,6 +48,16 @@ func (m Model) ExternalPort() string {
 	return "80"
 }
 
+// ExtraCAFile is the container path of the generated root CA's public copy
+// (ALFHEIM_EXTRA_CA_FILE), empty for strategies with a publicly trusted
+// certificate.
+func (m Model) ExtraCAFile() string {
+	if m.TLS.Strategy == tls.StrategyInternal {
+		return tls.LocalCAContainerTrustFile
+	}
+	return ""
+}
+
 // Renderer produces the generated configuration files.
 type Renderer interface {
 	RenderEnv(m Model) ([]byte, error)

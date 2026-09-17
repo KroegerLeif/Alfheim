@@ -11,13 +11,14 @@ import (
 	"testing"
 
 	"alfheim/installer/internal/shared/envfile"
+	"alfheim/installer/internal/shared/paths"
 )
 
 // zitadelStub answers just enough of the Management API for RunProvision to
 // reconcile a project and two OIDC applications from scratch.
-func zitadelStub(t *testing.T) *httptest.Server {
+func zitadelStub(t *testing.T) http.Handler {
 	t.Helper()
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/projects/_search"):
@@ -38,20 +39,40 @@ func zitadelStub(t *testing.T) *httptest.Server {
 		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
-	}))
+	})
 }
 
+// TestRunProvision_Succeeds covers scripts/up.sh's headless path against an
+// internal-strategy install: HTTPS to the auth host on the dialled listener,
+// trusting the generated root found next to the .env without any flag.
 func TestRunProvision_Succeeds(t *testing.T) {
-	srv := zitadelStub(t)
+	dir := t.TempDir()
+	addr := startSecureZitadel(t, paths.Layout{Root: dir}, "auth.example.com", zitadelStub(t))
+
+	envPath := writeProvisionEnv(t, dir, "true")
+	patPath := filepath.Join(dir, "pat.txt")
+	if err := os.WriteFile(patPath, []byte("test-pat\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := RunProvision([]string{
+		"--env-file", envPath, "--pat-file", patPath, "--zitadel-tls-addr", addr,
+	}, &stdout, &stderr)
+	if code != ExitOK {
+		t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
+	}
+	assertProvisionedEnv(t, envPath)
+}
+
+// TestRunProvision_LegacyInsecureEnv keeps a plain-HTTP .env provisionable
+// through --zitadel-url.
+func TestRunProvision_LegacyInsecureEnv(t *testing.T) {
+	srv := httptest.NewServer(zitadelStub(t))
 	defer srv.Close()
 
 	dir := t.TempDir()
-	envPath := filepath.Join(dir, ".env")
-	if err := os.WriteFile(envPath, []byte(
-		"ZITADEL_EXTERNALDOMAIN=auth.example.com\nALFHEIM_BASE_URL=https://alfheim.example.com\n"+
-			"ZITADEL_EXTERNALSECURE=true\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	envPath := writeProvisionEnv(t, dir, "false")
 	patPath := filepath.Join(dir, "pat.txt")
 	if err := os.WriteFile(patPath, []byte("test-pat\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -64,7 +85,43 @@ func TestRunProvision_Succeeds(t *testing.T) {
 	if code != ExitOK {
 		t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
 	}
+	assertProvisionedEnv(t, envPath)
+}
 
+func TestRunProvision_BadCAFile(t *testing.T) {
+	dir := t.TempDir()
+	envPath := writeProvisionEnv(t, dir, "true")
+	patPath := filepath.Join(dir, "pat.txt")
+	if err := os.WriteFile(patPath, []byte("test-pat\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := RunProvision([]string{
+		"--env-file", envPath, "--pat-file", patPath, "--ca-file", filepath.Join(dir, "nope.crt"),
+	}, &stdout, &stderr)
+	if code != ExitFailure || !strings.Contains(stderr.String(), "nope.crt") {
+		t.Fatalf("RunProvision() = %d, stderr=%s; want a failure naming the CA file", code, stderr.String())
+	}
+}
+
+func writeProvisionEnv(t *testing.T, dir, secure string) string {
+	t.Helper()
+	scheme := "https"
+	if secure != "true" {
+		scheme = "http"
+	}
+	envPath := filepath.Join(dir, ".env")
+	if err := os.WriteFile(envPath, []byte(
+		"ZITADEL_EXTERNALDOMAIN=auth.example.com\nALFHEIM_BASE_URL="+scheme+"://alfheim.example.com\n"+
+			"ZITADEL_EXTERNALSECURE="+secure+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return envPath
+}
+
+func assertProvisionedEnv(t *testing.T, envPath string) {
+	t.Helper()
 	vars, err := envfile.ParseFile(envPath)
 	if err != nil {
 		t.Fatal(err)
