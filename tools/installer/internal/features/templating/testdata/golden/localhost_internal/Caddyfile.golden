@@ -7,8 +7,28 @@
 # Global options
 {
 	admin off
-	# Caddy's internal CA issues on demand; no ACME account is involved.
+	# Certificates are issued locally; no ACME account is involved.
 	local_certs
+	# Nothing inside the container benefits from trusting the root; clients
+	# import infrastructure/ca/alfheim-root-ca.crt instead.
+	skip_install_trust
+	# Sign with the root CA alfheim-setup generated
+	# (infrastructure/caddy/pki, mounted read-only at /etc/caddy/pki), so
+	# backends and browsers can trust one stable, known root. Caddy derives
+	# and renews its own intermediate from it. The CA id is deliberately not
+	# Caddy's default "local": an install upgraded from plain HTTP may still
+	# hold a "local" intermediate and leaf certificates in caddy_data signed
+	# by Caddy's previously auto-generated root, which Caddy would keep
+	# serving and which nothing trusts.
+	pki {
+		ca alfheim {
+			name "Alfheim Local CA"
+			root {
+				cert /etc/caddy/pki/root.crt
+				key /etc/caddy/pki/root.key
+			}
+		}
+	}
 	# See the comment on the DNS-01 branch above: this stops Caddy's own
 	# managed-HTTPS redirect from swallowing the container's plain-HTTP
 	# healthcheck on 127.0.0.1.
@@ -21,7 +41,11 @@
 # hosting. The issuer therefore is the bare origin of this domain.
 # =============================================================================
 https://auth.loegien.localhost {
-	tls internal
+	tls {
+		issuer internal {
+			ca alfheim
+		}
+	}
 
 	reverse_proxy zitadel:8080 {
 		# Zitadel speaks gRPC-Web / HTTP/2 to its own frontend and API.
@@ -42,7 +66,11 @@ http://auth.loegien.localhost {
 # 1. FRONTEND DOMAIN
 # =============================================================================
 https://alfheim.loegien.localhost {
-	tls internal
+	tls {
+		issuer internal {
+			ca alfheim
+		}
+	}
 
 	# Dedicated ingress healthcheck endpoint, isolated from downstream services.
 	handle /livez {

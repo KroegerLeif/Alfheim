@@ -120,6 +120,13 @@ func TestRenderGoldenFiles(t *testing.T) {
 			},
 		},
 		{
+			// A real domain with the internal CA: the combination the
+			// alfheim.loegien.de PKCE login failure was reported against.
+			"custom_internal_secure",
+			onboarding.PresetCustom,
+			tls.Config{Strategy: tls.StrategyInternal},
+		},
+		{
 			"localhost_internal",
 			onboarding.PresetLocalhost,
 			tls.Config{Strategy: tls.StrategyInternal},
@@ -415,5 +422,56 @@ func TestModelAccessors(t *testing.T) {
 	}
 	if len(m.APIRoutes()) == 0 {
 		t.Error("APIRoutes() must not be empty")
+	}
+}
+
+// TestRenderedExtraCAFileContract pins the contract with compose.prod.yaml
+// and the backends: only the internal strategy points ALFHEIM_EXTRA_CA_FILE
+// at the mounted root CA, every other strategy renders it empty, and the
+// internal Caddyfile signs with the mounted root.
+func TestRenderedExtraCAFileContract(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range tls.Strategies {
+		t.Run(string(s.ID), func(t *testing.T) {
+			cfg := tls.Config{Strategy: s.ID, APIToken: "tok"}
+			m := model(t, onboarding.PresetCustom, cfg)
+
+			env, err := r.RenderEnv(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			vars, err := envfile.Parse(strings.NewReader(string(env)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, ok := vars["ALFHEIM_EXTRA_CA_FILE"]
+			if !ok {
+				t.Fatal("ALFHEIM_EXTRA_CA_FILE is missing")
+			}
+			want := ""
+			if s.ID == tls.StrategyInternal {
+				want = "/etc/alfheim/ca/alfheim-root-ca.crt"
+			}
+			if got != want || m.ExtraCAFile() != want {
+				t.Errorf("ALFHEIM_EXTRA_CA_FILE = %q, want %q", got, want)
+			}
+
+			caddy, err := r.RenderCaddyfile(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			signsWithRoot := strings.Contains(string(caddy), "cert /etc/caddy/pki/root.crt") &&
+				strings.Contains(string(caddy), "key /etc/caddy/pki/root.key")
+			if signsWithRoot != (s.ID == tls.StrategyInternal) {
+				t.Errorf("Caddyfile references the generated root = %t for %s", signsWithRoot, s.ID)
+			}
+			if !strings.Contains(string(caddy), "https://auth.example.com {") ||
+				!strings.Contains(string(caddy), "http://auth.example.com {\n\tredir https://") {
+				t.Errorf("the %s Caddyfile must serve HTTPS with an explicit HTTP redirect", s.ID)
+			}
+		})
 	}
 }
