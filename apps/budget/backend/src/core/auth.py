@@ -5,8 +5,8 @@ import uuid
 from typing import Any
 
 import backend_shared.dependencies as _deps
-import httpx
 import jwt
+from backend_shared.oidc_discovery import _discovered_jwks_uris, get_jwks_uri
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
 from src.core.config import settings
@@ -17,32 +17,11 @@ MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 MOCK_HOME_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
 _jwks_clients: dict[str, jwt.PyJWKClient] = {}
-_discovered_jwks_uris: dict[str, str] = {}
 
-
-def get_jwks_uri(issuer_url: str) -> str:
-    """Fetch OpenID configuration from issuer and discover jwks_uri."""
-    normalized_issuer = issuer_url.rstrip("/")
-    if normalized_issuer in _discovered_jwks_uris:
-        return _discovered_jwks_uris[normalized_issuer]
-
-    discovery_url = f"{normalized_issuer}/.well-known/openid-configuration"
-    try:
-        with httpx.Client(timeout=5.0) as client:
-            resp = client.get(discovery_url)
-            resp.raise_for_status()
-            data = resp.json()
-            jwks_uri = data.get("jwks_uri")
-            if not jwks_uri:
-                raise ValueError("Missing jwks_uri in OpenID configuration")
-            _discovered_jwks_uris[normalized_issuer] = jwks_uri
-            return jwks_uri
-    except Exception as e:
-        logger.error("Failed to discover JWKS URI from %s: %s", discovery_url, e)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Unable to discover OIDC JWKS configuration: {e}",
-        )
+# Re-exported for backwards compatibility: callers and tests that reference
+# get_jwks_uri / _discovered_jwks_uris on this module keep working, backed by
+# the shared, cached OIDC-discovery implementation in backend_shared.
+__all__ = ["get_jwks_uri", "_discovered_jwks_uris"]
 
 
 def get_jwks_client(jwks_uri: str) -> jwt.PyJWKClient:

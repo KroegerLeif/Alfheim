@@ -1,3 +1,4 @@
+from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,29 +32,12 @@ class Settings(BaseSettings):
 
     @property
     def jwks_url(self) -> str:
-        if self.OIDC_JWKS_URL:
-            return self.OIDC_JWKS_URL
-        base = self.OIDC_ISSUER_URL.rstrip("/")
-        return f"{base}/keys"
+        """Return the JWKS endpoint: explicit override wins, otherwise OIDC discovery."""
+        return resolve_jwks_url(self.OIDC_ISSUER_URL, self.OIDC_JWKS_URL or None)
 
     @property
     def expected_issuer(self) -> str:
         return self.OIDC_ISSUER_URL.rstrip("/")
-
-    @property
-    def jwks_fallback_urls(self) -> list[str]:
-        urls = [self.jwks_url]
-        base = self.OIDC_ISSUER_URL.rstrip("/")
-        for cert_path in [
-            "/keys",
-            "/oauth/v2/keys",
-            "/protocol/openid-connect/certs",
-            "/certs",
-        ]:
-            url = f"{base}{cert_path}"
-            if url not in urls:
-                urls.append(url)
-        return urls
 
     # OpenTelemetry Configuration
     OTEL_ENABLED: bool = False
