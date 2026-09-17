@@ -35,13 +35,13 @@ func newRepositoryWithDB(db db.DBTX) Repository {
 }
 
 const imageRefColumns = `
-	id, message_id, storage_key, mime_type, size_bytes, created_at
+	id, message_id, storage_key, mime_type, size_bytes, created_at, COALESCE(owner_user_id, '')
 `
 
 func scanImageRef(row pgx.Row) (*ImageRef, error) {
 	ref := &ImageRef{}
 	err := row.Scan(
-		&ref.ID, &ref.MessageID, &ref.StorageKey, &ref.MimeType, &ref.SizeBytes, &ref.CreatedAt,
+		&ref.ID, &ref.MessageID, &ref.StorageKey, &ref.MimeType, &ref.SizeBytes, &ref.CreatedAt, &ref.OwnerUserID,
 	)
 	if err != nil {
 		return nil, err
@@ -53,11 +53,11 @@ func (r *repository) CreateImageRef(ctx context.Context, ref *ImageRef) error {
 	ref.CreatedAt = time.Now()
 
 	query := `
-		INSERT INTO image_refs (id, message_id, storage_key, mime_type, size_bytes, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO image_refs (id, message_id, storage_key, mime_type, size_bytes, created_at, owner_user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	_, err := r.db.Exec(ctx, query,
-		ref.ID, ref.MessageID, ref.StorageKey, ref.MimeType, ref.SizeBytes, ref.CreatedAt,
+		ref.ID, ref.MessageID, ref.StorageKey, ref.MimeType, ref.SizeBytes, ref.CreatedAt, ref.OwnerUserID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert image_ref %s: %w", ref.ID, err)

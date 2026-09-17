@@ -6,10 +6,11 @@ import "time"
 
 // ImageRef represents an uploaded image attachment stored in RustFS/S3.
 type ImageRef struct {
-	ID         string
-	MessageID  *string
-	StorageKey string
-	MimeType   string
-	SizeBytes  int64
-	CreatedAt  time.Time
+	ID          string
+	OwnerUserID string
+	MessageID   *string
+	StorageKey  string
+	MimeType    string
+	SizeBytes   int64
+	CreatedAt   time.Time
 }

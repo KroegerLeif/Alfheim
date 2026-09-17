@@ -330,6 +330,7 @@ func TestHandler_WriteServiceErrorMappings(t *testing.T) {
 		{"Forbidden", conversations.ErrForbidden, http.StatusForbidden},
 		{"ModelBlockRequired", conversations.ErrModelBlockRequired, http.StatusBadRequest},
 		{"EmptyMessageContent", conversations.ErrEmptyMessageContent, http.StatusBadRequest},
+		{"AttachmentUnavailable", conversations.ErrAttachmentUnavailable, http.StatusBadRequest},
 		{"NoPendingUserMessage", conversations.ErrNoPendingUserMessage, http.StatusBadRequest},
 		{"ModelBlockUnavailable", conversations.ErrModelBlockUnavailable, http.StatusUnprocessableEntity},
 		{"GenericError", errors.New("other"), http.StatusInternalServerError},
