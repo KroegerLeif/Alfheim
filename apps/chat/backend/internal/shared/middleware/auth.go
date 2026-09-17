@@ -168,7 +168,29 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		userClaims := extractUserClaims(claimsMap, r)
+		userClaims := extractUserClaims(claimsMap)
+
+		// X-Household-ID is only a selector; it can never grant access to a household
+		// the token does not carry. Reject it when the token has no household claim or
+		// names a different household than the one in the token.
+		if headerHH := strings.TrimSpace(r.Header.Get("X-Household-ID")); headerHH != "" {
+			if userClaims.HouseholdID == "" {
+				a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID supplied but no household claims present in token",
+					slog.String("header_household_id", headerHH),
+					slog.String("user_id", userClaims.Subject))
+				writeForbidden(w, "user is not a member of the requested household")
+				return
+			}
+			if !strings.EqualFold(headerHH, userClaims.HouseholdID) {
+				a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID does not match token household claim",
+					slog.String("header_household_id", headerHH),
+					slog.String("token_household_id", userClaims.HouseholdID),
+					slog.String("user_id", userClaims.Subject))
+				writeForbidden(w, "user is not a member of the requested household")
+				return
+			}
+		}
+
 		ctx := context.WithValue(r.Context(), UserContextKey, userClaims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -180,6 +202,12 @@ func writeUnauthorized(w http.ResponseWriter, message string) {
 	_, _ = fmt.Fprintf(w, `{"error":"unauthorized","message":%q}`, message)
 }
 
+func writeForbidden(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = fmt.Fprintf(w, `{"error":"forbidden","message":%q}`, message)
+}
+
 // GetUserClaims retrieves UserClaims from the HTTP request context.
 func GetUserClaims(ctx context.Context) (*UserClaims, error) {
 	claims, ok := ctx.Value(UserContextKey).(*UserClaims)
@@ -189,7 +217,7 @@ func GetUserClaims(ctx context.Context) (*UserClaims, error) {
 	return claims, nil
 }
 
-func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
+func extractUserClaims(claims jwt.MapClaims) *UserClaims {
 	uc := &UserClaims{}
 
 	if sub, ok := claims["sub"].(string); ok {
@@ -208,12 +236,11 @@ func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 		uc.FamilyName = familyName
 	}
 
+	// Only extract household from JWT claims; never accept client-supplied header as fallback.
 	if householdID, ok := claims["household_id"].(string); ok && householdID != "" {
 		uc.HouseholdID = householdID
 	} else if activeHouseholdID, ok := claims["active_household_id"].(string); ok && activeHouseholdID != "" {
 		uc.HouseholdID = activeHouseholdID
-	} else if headerHousehold := r.Header.Get("X-Household-ID"); headerHousehold != "" {
-		uc.HouseholdID = headerHousehold
 	}
 
 	if realmAccess, ok := claims["realm_access"].(map[string]interface{}); ok {
