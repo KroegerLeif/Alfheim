@@ -9,6 +9,10 @@
 	admin off
 	# Caddy's internal CA issues on demand; no ACME account is involved.
 	local_certs
+	# See the comment on the DNS-01 branch above: this stops Caddy's own
+	# managed-HTTPS redirect from swallowing the container's plain-HTTP
+	# healthcheck on 127.0.0.1.
+	auto_https disable_redirects
 }
 
 # =============================================================================
