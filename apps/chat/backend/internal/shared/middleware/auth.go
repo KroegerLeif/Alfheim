@@ -64,7 +64,14 @@ func NewAuthenticator(issuerURL string, audience string, log *slog.Logger) (*Aut
 	}
 	issuerURL = strings.TrimRight(issuerURL, "/")
 
-	jwksURI, err := discoverJWKSURI(issuerURL)
+	// Nil unless ALFHEIM_EXTRA_CA_FILE is set; then discovery and JWKS refreshes
+	// trust the installer's private root CA in addition to the system roots.
+	transport, err := extraCATransport()
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure oidc tls trust: %w", err)
+	}
+
+	jwksURI, err := discoverJWKSURI(issuerURL, transport)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover oidc configuration for issuer %s: %w", issuerURL, err)
 	}
@@ -77,6 +84,10 @@ func NewAuthenticator(issuerURL string, audience string, log *slog.Logger) (*Aut
 		RefreshErrorHandler: func(err error) {
 			log.Error("failed to refresh oidc JWKS keys", slog.String("error", err.Error()))
 		},
+	}
+
+	if transport != nil {
+		options.Client = &http.Client{Transport: transport}
 	}
 
 	jwks, err := keyfunc.Get(jwksURI, options)
@@ -93,9 +104,9 @@ func NewAuthenticator(issuerURL string, audience string, log *slog.Logger) (*Aut
 }
 
 // discoverJWKSURI fetches {issuerURL}/.well-known/openid-configuration and returns
-// its jwks_uri value.
-func discoverJWKSURI(issuerURL string) (string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+// its jwks_uri value. A nil transport uses Go's default transport.
+func discoverJWKSURI(issuerURL string, transport http.RoundTripper) (string, error) {
+	client := &http.Client{Timeout: 10 * time.Second, Transport: transport}
 
 	resp, err := client.Get(issuerURL + discoveryPath)
 	if err != nil {
