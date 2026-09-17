@@ -279,7 +279,7 @@ func (a *App) renderConfiguration(
 		if ca.Created {
 			verb = "Generated"
 		}
-		fmt.Fprintf(a.Stdout, "%s local root CA %s\n", verb, ca.CertFile)
+		fmt.Fprintf(a.Stdout, "%s local root CA %s (SHA-256 %s)\n", verb, ca.CertFile, ca.Fingerprint)
 	}
 
 	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
