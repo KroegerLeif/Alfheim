@@ -69,6 +69,18 @@ docker logs --tail 100 -f alfheim_caddy
 * **Ursache:** Die Frontend-Session hat keinen aktiven Haushaltskontext gewählt.
 * **Lösung:** Den Local-Storage-Schlüssel `alfheim_active_household_id` leeren oder den aktiven Haushalt im Header-Umschalter neu auswählen.
 
+### Symptom 3: Chat antwortet nach der Haushaltsauswahl mit `403 Forbidden`
+* **Ursache:** Das Chat-Backend übernimmt den Haushalt nur aus dem Claim `household_id` (oder `active_household_id`) des Access-Tokens. Eine Anfrage, deren `X-Household-ID`-Header einen anderen Haushalt nennt oder die mit einem Token ohne Haushalts-Claim gesendet wird, wird abgelehnt, wie es Dashboard und Python-Backends bereits tun.
+* **Lösung:** Access-Token prüfen und sicherstellen, dass es einen zum gewählten Haushalt passenden Haushalts-Claim trägt. Wird `alfheim_active_household_id` geleert, entfällt der Header, und Chat beschränkt sich auf private Ressourcen. Zitadel stellt diesen Claim noch nicht aus, daher betrifft das derzeit jede Haushaltsauswahl; siehe [Bekannte Probleme](../explanation/known-issues.md).
+
+### Symptom 4: Dashboard zeigt *Secure connection (HTTPS) required*
+* **Ursache:** Die App wurde über reines `http://` auf einem anderen Host als `localhost` geöffnet. Browser deaktivieren Web Crypto außerhalb eines sicheren Kontexts, und die PKCE-Anmeldung braucht es.
+* **Lösung:** Dem `https://`-Link auf der Seite folgen. Eine Installer-Installation mit `internal` aus der Zeit, als diese Strategie noch kein HTTPS auslieferte, migriert mit `alfheim-setup --reconfigure`.
+
+### Symptom 5: Dashboard zeigt *Sign-in service not reachable*
+* **Ursache:** Die Browser-Anfrage an das Discovery-Dokument des Issuers auf dem Auth-Host ist ohne HTTP-Antwort gescheitert. Bei einer Installation mit TLS `internal` heißt das meist, dass dem Zertifikat des Auth-Hosts noch nicht vertraut wird, weil Zertifikatsausnahmen pro Host gespeichert werden. Es passiert auch, wenn Zitadel nicht läuft oder der Client offline ist.
+* **Lösung:** Den Link auf der Seite öffnen, dem Zertifikat des Auth-Hosts vertrauen oder es akzeptieren und neu laden. Dauerhaft vermeiden lässt sich das, indem du [der lokalen Root-CA vertraust](./trust-local-root-ca.md). Andernfalls `docker compose ps zitadel caddy` prüfen.
+
 ---
 
 ## Datenbank-Locks & erschöpfte Verbindungspools

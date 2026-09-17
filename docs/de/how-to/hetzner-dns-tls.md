@@ -121,7 +121,7 @@ Nameservern bedient.
 Das Gateway läuft auf dem Standard-Caddy-Image, das keine DNS-Provider-Module
 enthält. Alfheim baut ein eigenes aus `infrastructure/caddy/Dockerfile`; baue es neu
 mit `docker compose -f compose.prod.yaml build caddy`. Siehe
-[ADR 0004](../../en/explanation/decisions/0004-standalone-go-tui-installer.md).
+[ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md).
 
 ## Token rotieren
 
@@ -134,6 +134,6 @@ Es wird kein Zertifikat neu ausgestellt — Caddy nutzt das vorhandene bis zur E
 
 ## Siehe auch
 
-* [Eigene TLS-Zertifikate](../../en/how-to/custom-certificates.md)
-* [Installer-CLI-Referenz](../../en/reference/installer-cli.md)
-* [Secrets Hardening](../../en/how-to/secrets-hardening.md)
+* [Eigene TLS-Zertifikate](../how-to/custom-certificates.md)
+* [Installer-CLI-Referenz](../reference/installer-cli.md)
+* [Secrets Hardening](../how-to/secrets-hardening.md)

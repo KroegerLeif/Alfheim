@@ -31,7 +31,8 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `IMAGE_REGISTRY` | `ghcr.io` | Container image registry |
 | `IMAGE_REPO` | `kroegerleif/alfheim` | Container image repository |
 | `IMAGE_TAG` | `latest` | Container image tag |
-| `CADDY_TLS_DIRECTIVE` | _(empty)_ | Optional Caddy TLS override (`tls internal` for self-signed; leave empty for auto-HTTPS) |
+| `CADDY_TLS_DIRECTIVE` | _(empty)_ | Optional Caddy TLS override (`tls internal` for locally signed HTTPS; leave empty for auto-HTTPS) |
+| `ALFHEIM_EXTRA_CA_FILE` | _(empty)_ | In-container path to a PEM bundle of extra root CAs that server-side OIDC clients (Python backends, dashboard and chat Go backends, Grafana via `GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) trust **in addition to** the system roots. The installer sets `/etc/alfheim/ca/alfheim-root-ca.crt` for the `internal` TLS strategy (host directory `infrastructure/ca/`, mounted read-only) and leaves it empty otherwise. An unreadable or non-PEM file is reported as an error naming the path, never silently ignored |
 
 ---
 

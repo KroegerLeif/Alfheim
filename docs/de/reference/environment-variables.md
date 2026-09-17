@@ -31,7 +31,8 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `IMAGE_REGISTRY` | `ghcr.io` | Container-Image-Registry |
 | `IMAGE_REPO` | `kroegerleif/alfheim` | Container-Image-Repository |
 | `IMAGE_TAG` | `latest` | Container-Image-Tag |
-| `CADDY_TLS_DIRECTIVE` | _(leer)_ | Optional Caddy-TLS-Override (`tls internal` für selbstsigniert; leer lassen für Auto-HTTPS) |
+| `CADDY_TLS_DIRECTIVE` | _(leer)_ | Optional Caddy-TLS-Override (`tls internal` für lokal signiertes HTTPS; leer lassen für Auto-HTTPS) |
+| `ALFHEIM_EXTRA_CA_FILE` | _(leer)_ | Pfad im Container zu einem PEM-Bundle zusätzlicher Root-CAs, denen serverseitige OIDC-Clients (Python-Backends, Go-Backends von Dashboard und Chat, Grafana über `GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) **zusätzlich** zu den System-Roots vertrauen. Der Installer setzt `/etc/alfheim/ca/alfheim-root-ca.crt` für die TLS-Strategie `internal` (Host-Verzeichnis `infrastructure/ca/`, schreibgeschützt eingebunden) und lässt ihn sonst leer. Eine unlesbare oder Nicht-PEM-Datei wird als Fehler mit dem Pfad gemeldet, nie stillschweigend ignoriert |
 
 ---
 

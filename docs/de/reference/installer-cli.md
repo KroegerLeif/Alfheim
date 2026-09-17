@@ -96,6 +96,8 @@ Browser speichern Zertifikatsausnahmen pro Host. Akzeptierst du die Warnung nur 
 
 **Ohne Import:** Öffne vor der Anmeldung **beide** Adressen, `https://<App-Host>` und `https://<Auth-Host>` (der Installer gibt beide aus), und akzeptiere auf jeder die Zertifikatswarnung.
 
+Schritte pro Gerät (auch Android und iOS) und die Prüfung des Fingerprints: [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md).
+
 ---
 
 ## Betriebsmodi

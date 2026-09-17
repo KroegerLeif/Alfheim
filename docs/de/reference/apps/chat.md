@@ -52,7 +52,7 @@ Quelle: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 
 - `conversations`: Gesprächs-Sessions, Nachrichts-Historien und SSE-Streaming-Handler.
 - `modelblocks`: Provider-Konfigurationsblöcke (Ollama, OpenAI) mit AES-256-Schlüssel-Verschlüsselung.
-- `attachments`: Datei-Anhang-Uploads mit RustFS S3-Objektspeicher.
+- `attachments`: Datei-Anhang-Uploads mit RustFS S3-Objektspeicher. Jeder Upload speichert den Hochladenden (`image_refs.owner_user_id`); allen anderen liefert das Lesen eines Anhangs per ID `404`, und eine Nachricht kann nur noch nicht verknüpfte Anhänge des Gesprächsinhabers verknüpfen (sonst `400`). Anhänge aus der Zeit vor dieser Spalte haben keinen Inhaber und lassen sich weder per ID lesen noch verknüpfen.
 - `mcpservers`: FastMCP-Server-Verbindungsdefinitionen und dynamische Tool-Ermittlung.
 
 ---

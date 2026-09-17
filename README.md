@@ -2,7 +2,7 @@
 
 This is the central orchestration repository for `alfheim`, managing common infrastructure (Zitadel identity provider, Caddy gateway proxy, databases) and micro-applications (such as Digital Pantry, Shopping, Chores, Maintenance, and Dashboard modules).
 
-[![Release](https://img.shields.io/badge/release-v0.1.0--beta.1-blue.svg)](https://github.com/KroegerLeif/Alfheim/releases)
+[![Release](https://img.shields.io/github/v/release/KroegerLeif/Alfheim?include_prereleases)](https://github.com/KroegerLeif/Alfheim/releases)
 [![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/en/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -20,10 +20,16 @@ cryptographically secure secrets, and bring up the whole platform:
 curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash
 ```
 
-Once installed, start the entire platform with:
+The installer starts the whole stack itself and prints the access URLs and the
+administrator login when it finishes. Re-running it in the same directory
+updates the installation.
+
+By default only stable releases are installed. To install a pre-release, pin a
+tag or opt into the pre-release channel:
+
 ```bash
-cd ~/alfheim
-docker compose -f compose.prod.yaml up -d
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_VERSION=v0.1.1-rc.12 bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_CHANNEL=prerelease bash
 ```
 
 👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
@@ -207,6 +213,7 @@ The monorepo shares a centralized design system and dynamic theme engine through
 * **Public Issuer URL**: `https://auth.loegien.de` (development: `http://auth.alfheim.loegien.localhost`) — the bare origin of the IAM host.
 * **Discovery**: Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
 * **Internal Docker Base URL**: `http://zitadel:8080` (`OIDC_INTERNAL_URL`) for server-to-server calls.
+* **Private CAs**: Server-side OIDC clients trust the system roots plus any root named by `ALFHEIM_EXTRA_CA_FILE`. The installer's `internal` TLS strategy sets it to its generated root CA; browsers need that root imported too ([Trust the local root CA](docs/en/how-to/trust-local-root-ca.md)).
 * **Token Verification Policy**: Frontends exchange authorization codes via PKCE (S256). All microservice backends (Go & Python FastAPI) fetch JWKS public keys internally via container networking while enforcing strict issuer signature verification against `OIDC_ISSUER_URL`.
 
 ---

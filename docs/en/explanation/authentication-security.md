@@ -73,7 +73,7 @@ Zitadel issues standardized OIDC identity tokens:
 To enforce strict tenant boundaries across all microservices:
 
 1. **Request Header Enforcement**: Microservice backends validate that incoming HTTP requests carry a valid `X-Household-ID` header.
-2. **Household Authorization Check**: Backend authentication middleware (`backend_shared.auth` and Go auth handlers) validates user identity (`sub`) and checks household membership authorization via Alfheim Core.
+2. **Household Authorization Check**: Backend authentication middleware (`backend_shared.auth` and Go auth handlers) validates user identity (`sub`) and checks household membership authorization via Alfheim Core. The household is taken from the token's `household_id` / `active_household_id` claim; a request whose `X-Household-ID` header disagrees with that claim, or that sends the header with a token carrying no household claim, is rejected with `403`. The header never supplies a household on its own.
 3. **Query Filtering**: Database repository queries filter all reads, writes, updates, and deletes by `household_id == active_household_id`.
 
 ---
