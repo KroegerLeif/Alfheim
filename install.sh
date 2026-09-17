@@ -226,6 +226,9 @@ if [[ ! -f compose.prod.yaml ]]; then
   fetch_stack_asset init-multiple-dbs.sh infrastructure/postgres/init-multiple-dbs.sh
   chmod +x infrastructure/postgres/init-multiple-dbs.sh
   fetch_stack_asset vector.toml infrastructure/telemetry/vector/vector.toml
+  # Bind-mount sources for the private root CA (--tls internal). They ship no
+  # files; creating them here keeps Docker from creating them root-owned.
+  mkdir -p infrastructure/ca infrastructure/caddy/pki
   log_success "Stack assets verified"
 fi
 
