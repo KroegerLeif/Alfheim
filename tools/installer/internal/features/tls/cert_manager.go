@@ -119,7 +119,9 @@ func (m *Manager) Validate(c *Config) error {
 
 	case StrategyInternal:
 		c.Warnings = append(c.Warnings,
-			"Caddy's internal CA is not trusted by browsers; expect a warning until you install its root certificate.")
+			"The internal strategy serves HTTPS with a root CA this installer generates, which browsers do "+
+				"not trust yet: expect a certificate warning until you import infrastructure/ca/alfheim-root-ca.crt "+
+				"(its fingerprint is printed at the end) or accept the warning once.")
 	}
 	return nil
 }

@@ -181,7 +181,7 @@ func TestValidateInternalWarnsAboutTrust(t *testing.T) {
 	if err := m.Validate(c); err != nil {
 		t.Fatalf("Validate() error = %v", err)
 	}
-	if len(c.Warnings) != 1 || !strings.Contains(c.Warnings[0], "not trusted by browsers") {
+	if len(c.Warnings) != 1 || !strings.Contains(c.Warnings[0], "infrastructure/ca/alfheim-root-ca.crt") {
 		t.Fatalf("Warnings = %v", c.Warnings)
 	}
 }
