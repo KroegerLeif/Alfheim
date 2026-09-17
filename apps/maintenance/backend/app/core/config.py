@@ -1,3 +1,4 @@
+from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,37 +38,18 @@ class Settings(BaseSettings):
 
     @property
     def jwks_url(self) -> str:
-        """Return the primary OIDC JWKS endpoint URL.
+        """Return the OIDC JWKS endpoint URL.
 
-        Uses the explicit override when configured, otherwise derives the default
-        Zitadel keys endpoint from the issuer. This property performs no network
-        I/O: the JWKS document is fetched and cached lazily by the PyJWKClient on
-        first token verification.
+        Uses the explicit override when configured, otherwise resolves the
+        endpoint via OIDC discovery (``{issuer}/.well-known/openid-configuration``),
+        cached per issuer.
         """
-        if self.OIDC_JWKS_URL:
-            return self.OIDC_JWKS_URL
-        return f"{self.OIDC_ISSUER_URL.rstrip('/')}/keys"
+        return resolve_jwks_url(self.OIDC_ISSUER_URL, self.OIDC_JWKS_URL or None)
 
     @property
     def expected_issuer(self) -> str:
         """Return expected JWT issuer URI."""
         return self.OIDC_ISSUER_URL.rstrip("/")
-
-    @property
-    def jwks_fallback_urls(self) -> list[str]:
-        """Return the ordered list of candidate JWKS endpoints to try during verification."""
-        base = self.OIDC_ISSUER_URL.rstrip("/")
-        urls = [self.jwks_url]
-        for cert_path in (
-            "/keys",
-            "/oauth/v2/keys",
-            "/protocol/openid-connect/certs",
-            "/certs",
-        ):
-            candidate = f"{base}{cert_path}"
-            if candidate not in urls:
-                urls.append(candidate)
-        return urls
 
     # OpenTelemetry Configuration
     OTEL_ENABLED: bool = False
