@@ -70,8 +70,10 @@ func NewAuthenticator(issuerURL string, audience string, log *slog.Logger) (*Aut
 	}
 
 	options := keyfunc.Options{
-		RefreshInterval: time.Hour,
-		RefreshTimeout:  time.Second * 10,
+		RefreshInterval:   time.Hour,
+		RefreshTimeout:    time.Second * 10,
+		RefreshUnknownKID: true,
+		RefreshRateLimit:  time.Second * 5,
 		RefreshErrorHandler: func(err error) {
 			log.Error("failed to refresh oidc JWKS keys", slog.String("error", err.Error()))
 		},
