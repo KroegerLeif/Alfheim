@@ -105,7 +105,7 @@ func TestEnsureLocalCAGeneratesARootCA(t *testing.T) {
 	if strings.Contains(string(trust), "PRIVATE KEY") {
 		t.Fatal("the trust copy must not contain the private key")
 	}
-	if parseCertFile(t, ca.TrustFile).Equal(cert) == false {
+	if !parseCertFile(t, ca.TrustFile).Equal(cert) {
 		t.Error("the trust copy differs from the root certificate")
 	}
 }
