@@ -80,7 +80,7 @@ Nutze `ALFHEIM_CHANNEL=prerelease`, um den neuesten Release jeglicher Art zu neh
 | `hetzner` | Let's Encrypt Wildcard via DNS-01 | Nicht erforderlich | Benötigt einen Hetzner DNS API-Token. |
 | `cloudflare` | Let's Encrypt Wildcard via DNS-01 | Nicht erforderlich | Benötigt einen Cloudflare-Token mit `Zone:DNS:Edit`. |
 | `custom` | Von dir bereitgestellt | Nicht erforderlich | Benötigt `fullchain.pem` und `privkey.pem`. |
-| `internal` | Caddy's internes CA | Nicht erforderlich | Selbstsigniert; Browser warnen, bis das Root vertraut wird. |
+| `internal` | Vom Installer erzeugte Root-CA (HTTPS) | Nicht erforderlich | Browser warnen, bis du `infrastructure/ca/alfheim-root-ca.crt` importierst (Fingerprint wird am Ende ausgegeben) oder die Warnung akzeptierst. Die Root wird einmal erzeugt und nie stillschweigend ersetzt. Installationen aus der Zeit, als hier noch HTTP galt, migrieren mit `--reconfigure`. |
 
 Siehe [Hetzner DNS-01](../how-to/hetzner-dns-tls.md) und [Benutzerdefinierte Zertifikate](../how-to/custom-certificates.md).
 

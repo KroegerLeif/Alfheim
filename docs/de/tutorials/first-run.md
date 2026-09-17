@@ -78,7 +78,7 @@ Der Wizard fragt vier Dinge ab:
 3. **Zertifikatsstrategie.** Wähle *Hetzner DNS-01* oder *Cloudflare DNS-01*, wenn
    deine Domain dort gehostet ist — das stellt Wildcard-Zertifikate aus und
    benötigt keinen eingehenden Port 80. Andernfalls wähle *Custom certificates*
-   oder *Caddy internal CA* für eine reine LAN-Installation.
+   oder *Local CA (self-signed HTTPS)* für eine reine LAN-Installation.
 4. **DNS-API-Token**, falls du eine DNS-01-Strategie gewählt hast. Wie du eines
    anlegst, steht unter [Wildcard-TLS mit Hetzner DNS-01](../../en/how-to/hetzner-dns-tls.md).
 

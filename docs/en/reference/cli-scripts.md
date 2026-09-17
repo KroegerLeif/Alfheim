@@ -127,7 +127,9 @@ go run ./tools/installer/cmd/alfheim-setup provision \
 | :--- | :--- |
 | `--env-file` | The `.env` to read and update in place |
 | `--pat-file` | The Zitadel bootstrap machine user's personal access token file |
-| `--zitadel-url` | Where Caddy listens (default `http://127.0.0.1:80`) |
+| `--zitadel-url` | Caddy's plain-HTTP listener, used only when `ZITADEL_EXTERNALSECURE` is not `true` (default `http://127.0.0.1:80`) |
+| `--zitadel-tls-addr` | Caddy's HTTPS listener for a secure install; requests name `https://<ZITADEL_EXTERNALDOMAIN>` but are always dialled here (default `127.0.0.1:443`) |
+| `--ca-file` | Root CA trusted in addition to the system roots (default `infrastructure/ca/alfheim-root-ca.crt` next to the `.env`, when present) |
 
 > The PAT file is only written while the *first* instance is created. If the
 > Zitadel database survives but the file is gone, `ZITADEL_BOOTSTRAP_PAT` in
