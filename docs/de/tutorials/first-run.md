@@ -78,7 +78,12 @@ Der Wizard fragt vier Dinge ab:
 3. **Zertifikatsstrategie.** Wähle *Hetzner DNS-01* oder *Cloudflare DNS-01*, wenn
    deine Domain dort gehostet ist — das stellt Wildcard-Zertifikate aus und
    benötigt keinen eingehenden Port 80. Andernfalls wähle *Custom certificates*
-   oder *Local CA (self-signed HTTPS)* für eine reine LAN-Installation.
+   oder *Local CA (self-signed HTTPS)* für eine reine LAN-Installation. Mit der
+   lokalen CA importierst du nach der Installation
+   `infrastructure/ca/alfheim-root-ca.crt` in den Zertifikatsspeicher deines
+   Betriebssystems oder Browsers. Sonst musst du die Zertifikatswarnung vor der
+   Anmeldung für **beide** Hosts akzeptieren, App-Host und Auth-Host (siehe
+   [Der Root-CA von internal vertrauen](../reference/installer-cli.md#der-root-ca-von-internal-vertrauen)).
 4. **DNS-API-Token**, falls du eine DNS-01-Strategie gewählt hast. Wie du eines
    anlegst, steht unter [Wildcard-TLS mit Hetzner DNS-01](../../en/how-to/hetzner-dns-tls.md).
 

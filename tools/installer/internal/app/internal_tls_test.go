@@ -68,8 +68,14 @@ func TestRunInternalInstallServesHTTPSWithAGeneratedRoot(t *testing.T) {
 		"Generated local root CA",
 		layout.TrustedCARootCert(),
 		ca.Fingerprint,
-		"Open https://alfheim.example.com",
 		"trust store",
+		"covers every Alfheim host",
+		"Keychain Access",
+		"certmgr.msc",
+		"Firefox",
+		"BOTH",
+		"      https://alfheim.example.com\n",
+		"      https://auth.alfheim.example.com\n",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("stdout is missing %q:\n%s", want, out)

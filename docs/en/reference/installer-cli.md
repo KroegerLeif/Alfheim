@@ -90,6 +90,27 @@ Use `ALFHEIM_CHANNEL=prerelease` to take the newest release of any kind, or
 See [Hetzner DNS-01](../how-to/hetzner-dns-tls.md) and
 [Custom certificates](../how-to/custom-certificates.md).
 
+### Trusting the `internal` root CA
+
+Browsers keep certificate exceptions per host. If you accept the warning only
+for the app host, the login's background request to the auth host is rejected
+without a prompt, and sign-in fails with "Failed to fetch".
+
+**Recommended:** import `infrastructure/ca/alfheim-root-ca.crt` into the OS or
+browser trust store once. That covers every Alfheim host. Compare its SHA-256
+fingerprint with the one the installer prints first.
+
+* **macOS:** Keychain Access → *System* keychain → import the file, then set
+  *Trust* to *Always Trust*.
+* **Windows:** `certmgr.msc` → *Trusted Root Certification Authorities* →
+  *Certificates* → *All Tasks* → *Import*.
+* **Linux / Firefox:** the browser's certificate settings → *Authorities* →
+  *Import*. Firefox uses its own store on every OS.
+
+**Fallback without importing:** before signing in, open **both**
+`https://<app host>` and `https://<auth host>` (the installer prints both URLs)
+and accept the certificate warning on each.
+
 ---
 
 ## Operating modes

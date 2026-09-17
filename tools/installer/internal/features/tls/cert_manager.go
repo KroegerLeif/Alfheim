@@ -120,8 +120,10 @@ func (m *Manager) Validate(c *Config) error {
 	case StrategyInternal:
 		c.Warnings = append(c.Warnings,
 			"The internal strategy serves HTTPS with a root CA this installer generates, which browsers do "+
-				"not trust yet: expect a certificate warning until you import infrastructure/ca/alfheim-root-ca.crt "+
-				"(its fingerprint is printed at the end) or accept the warning once.")
+				"not trust yet. Recommended: import infrastructure/ca/alfheim-root-ca.crt into your OS or browser "+
+				"trust store (one step, covers every host; per-OS steps and the fingerprint are printed at the end). "+
+				"Without importing, accept the certificate warning separately for BOTH the app host and the auth "+
+				"host before signing in, or login fails with \"Failed to fetch\".")
 	}
 	return nil
 }

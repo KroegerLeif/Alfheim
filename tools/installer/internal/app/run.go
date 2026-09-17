@@ -503,19 +503,35 @@ Alfheim is up.
 	}
 }
 
-// printLocalCA tells the operator how to get past the browser warning the
-// internal strategy's self-generated root causes, and how to check that the
-// root they import really is this installation's.
+// printLocalCA tells the operator how to trust the internal strategy's
+// self-generated root. Importing the root is the recommended path: browsers
+// keep certificate exceptions per host, so accepting the warning only for the
+// app host leaves the login's background OIDC discovery fetch to the auth
+// host silently rejected ("Failed to fetch").
 func (a *App) printLocalCA(on onboarding.Config, ca tls.LocalCA) {
+	appURL := "https://" + on.AppHost
+	authURL := "https://" + on.AuthHost
 	fmt.Fprintf(a.Stdout, `
   HTTPS certificate (locally generated root CA)
     Root certificate:  %s
     SHA-256:           %s
-    Open %s. The browser warns until you import that file into the
-    browser or OS trust store (compare the fingerprint first), or accept the
-    warning once for %s and %s.
+
+    Recommended: import that file into your OS or browser trust store once;
+    it covers every Alfheim host. Compare the SHA-256 fingerprint first.
+      macOS:          Keychain Access > System keychain > import, then set
+                      Trust to "Always Trust"
+      Windows:        certmgr.msc > Trusted Root Certification Authorities >
+                      Certificates > All Tasks > Import
+      Linux/Firefox:  the browser's certificate settings > Authorities > Import
+                      (Firefox keeps its own store)
+
+    Fallback without importing: before signing in, open BOTH of these and
+    accept the certificate warning on each, or login fails with
+    "Failed to fetch":
+      %s
+      %s
 `,
-		ca.TrustFile, ca.Fingerprint, on.BaseURL, on.AppHost, on.AuthHost)
+		ca.TrustFile, ca.Fingerprint, appURL, authURL)
 }
 
 // markInstalled records that a Day-1 install completed.
