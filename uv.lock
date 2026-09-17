@@ -361,6 +361,7 @@ source = { editable = "packages/backend-shared" }
 dependencies = [
     { name = "aioboto3" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp" },
     { name = "opentelemetry-instrumentation-fastapi" },
@@ -377,6 +378,7 @@ dependencies = [
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
     { name = "fastapi", specifier = ">=0.128.8" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "opentelemetry-api", specifier = ">=1.25.0" },
     { name = "opentelemetry-exporter-otlp", specifier = ">=1.25.0" },
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },

@@ -1,5 +1,5 @@
 import ky from "ky";
-import { resolveApiUrl, resolveFrontendUrl } from "@alfheim/shared";
+import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
 
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
   let resolved = resolveApiUrl(defaultFallback, url);
@@ -34,9 +34,7 @@ export const libraryClient = ky.create({
     beforeRequest: [
       (request) => {
         if (typeof window !== "undefined") {
-          const token =
-            sessionStorage.getItem("token_library-frontend") ||
-            sessionStorage.getItem("alfheim_access_token");
+          const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }

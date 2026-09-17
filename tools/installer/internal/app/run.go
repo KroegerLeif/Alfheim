@@ -44,7 +44,6 @@ func orUnknown(s string) string {
 // headless path and the tests can substitute a non-TUI implementation.
 type Wizard interface {
 	Run(on *onboarding.Config, tlsCfg *tls.Config) error
-	Confirm(ctx context.Context, authURL string) error
 }
 
 // App is the assembled installer.
@@ -61,6 +60,15 @@ type App struct {
 	// depend on ports 80 and 443 being free on the build machine. When nil,
 	// the real host inspector is used.
 	Inspector system.Inspector
+	// Provisioner reconciles the Zitadel project and OIDC applications
+	// between the Edge & Identity and Core & Application Stack phases.
+	// Injectable for tests, which must not depend on a live Zitadel. When
+	// nil, DefaultProvisioner is used.
+	Provisioner Provisioner
+	// MachineKeyPreparer readies the Zitadel machinekey bind-mount directory
+	// before the Edge & Identity phase starts Zitadel. Injectable for tests;
+	// when its fields are nil, the real os.Geteuid/os.Chown/os.Stat are used.
+	MachineKeyPreparer MachineKeyPreparer
 }
 
 // Run performs the installation and returns a process exit code.
@@ -247,19 +255,77 @@ func (a *App) renderConfiguration(
 	if err := renderer.WriteAll(target, model); err != nil {
 		return model, target, err
 	}
+
+	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
+	// or the __PROVISIONED__ placeholder, since provisioning runs after
+	// rendering. Carry forward whatever an earlier run actually provisioned
+	// (the same way security.GenerateAll carries forward secrets above), or
+	// --reconfigure would silently discard a working Grafana secret and the
+	// bootstrap PAT and force a full re-provision on the next boot.
+	if provisioned := carryForwardProvisioned(existing); len(provisioned) > 0 {
+		if err := envfile.Update(target.EnvFile(), provisioned); err != nil {
+			return model, target, fmt.Errorf(
+				"alfheim-setup: carry forward provisioned Zitadel credentials: %w", err)
+		}
+	}
+
 	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\n", target.EnvFile(), target.Caddyfile())
 	return model, target, nil
 }
 
-// runBootstrap performs the staged container boot for a fresh install.
+// provisionedEnvKeys are the values internal/features/provisioning writes
+// into .env (plus the bootstrap PAT, which readPAT persists there too).
+// env.tmpl renders each as empty or as the __PROVISIONED__ placeholder,
+// since provisioning always runs after rendering.
+var provisionedEnvKeys = []string{
+	"ZITADEL_BOOTSTRAP_PAT",
+	"ZITADEL_PROJECT_ID",
+	"OIDC_AUDIENCE",
+	"ALFHEIM_WEB_CLIENT_ID",
+	"GRAFANA_OIDC_CLIENT_ID",
+	"GRAFANA_OIDC_CLIENT_SECRET",
+}
+
+// carryForwardProvisioned picks out the previously provisioned values worth
+// restoring after a re-render. A value equal to the template's own
+// placeholder is not a real previous value (for example a dry run rendered
+// into a fresh directory) and is skipped, or it would just overwrite the
+// freshly rendered placeholder with itself.
+func carryForwardProvisioned(existing map[string]string) map[string]string {
+	out := map[string]string{}
+	for _, key := range provisionedEnvKeys {
+		v := existing[key]
+		if v == "" || v == "__PROVISIONED__" {
+			continue
+		}
+		out[key] = v
+	}
+	return out
+}
+
+// runBootstrap performs the staged container boot for a fresh install,
+// provisioning Zitadel's project and OIDC applications between the Edge &
+// Identity phase and the Core & Application Stack phase so every consumer
+// picks up the freshly generated client ids and secrets when the second
+// phase starts them.
 func (a *App) runBootstrap(
 	ctx context.Context, layout paths.Layout, model templating.Model,
 ) error {
-	orch := bootstrap.New(a.Runner, layout, a.confirmFunc(), bootstrap.WithLogger(a.Stdout))
-	orch.AuthURL = model.Onboarding.IssuerURL
-	orch.SkipConfirm = a.Options.NonInteractive
+	if err := a.machineKeyPreparer().Prepare(layout); err != nil {
+		return err
+	}
 
-	if err := orch.Run(ctx); err != nil {
+	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+
+	if err := orch.RunPhase(ctx, bootstrap.PhaseEdgeAuth); err != nil {
+		return err
+	}
+
+	if err := a.provision(ctx, layout, model.Onboarding); err != nil {
+		return err
+	}
+
+	if err := orch.RunPhase(ctx, bootstrap.PhaseCoreStack); err != nil {
 		return err
 	}
 	if err := markInstalled(layout, a.Build.Version); err != nil {
@@ -270,7 +336,55 @@ func (a *App) runBootstrap(
 	return nil
 }
 
-// runUpdate performs the Day-2 path: pull new images and restart.
+// provision reconciles the Zitadel project and OIDC applications and writes
+// the results back into .env, from where docker compose's automatic .env
+// loading feeds them to every consumer started in the next phase.
+func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.Config) error {
+	fmt.Fprintln(a.Stdout, "Provisioning Zitadel OIDC clients …")
+
+	existing, err := envfile.ParseFile(layout.EnvFile())
+	if err != nil {
+		return fmt.Errorf("alfheim-setup: read .env before provisioning: %w", err)
+	}
+
+	result, err := a.provisioner().Provision(ctx, layout, on, existing)
+	if err != nil {
+		return fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
+	}
+
+	if err := envfile.Update(layout.EnvFile(), map[string]string{
+		"ZITADEL_PROJECT_ID":         result.ProjectID,
+		"OIDC_AUDIENCE":              result.ProjectID,
+		"ALFHEIM_WEB_CLIENT_ID":      result.WebClientID,
+		"GRAFANA_OIDC_CLIENT_ID":     result.GrafanaClientID,
+		"GRAFANA_OIDC_CLIENT_SECRET": result.GrafanaSecret,
+	}); err != nil {
+		return fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
+	}
+	fmt.Fprintln(a.Stdout, "Zitadel OIDC clients are provisioned.")
+	return nil
+}
+
+// provisioner returns the configured Provisioner, defaulting to the real one.
+func (a *App) provisioner() Provisioner {
+	if a.Provisioner != nil {
+		return a.Provisioner
+	}
+	return &DefaultProvisioner{}
+}
+
+// machineKeyPreparer returns the configured MachineKeyPreparer, defaulting
+// to the real os.Geteuid/os.Chown/os.Stat.
+func (a *App) machineKeyPreparer() MachineKeyPreparer {
+	if a.MachineKeyPreparer.Geteuid != nil {
+		return a.MachineKeyPreparer
+	}
+	return newMachineKeyPreparer()
+}
+
+// runUpdate performs the Day-2 path: reconcile Zitadel, pull new images and
+// restart. Provisioning runs again so a re-run reconciles any drift (for
+// example a secret rotated by hand in the Zitadel console).
 func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 	fmt.Fprintln(a.Stdout, "An existing installation was detected.")
 	fmt.Fprintln(a.Stdout, "Updating images and restarting services. "+
@@ -281,20 +395,28 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 		return nil
 	}
 
-	orch := bootstrap.New(a.Runner, layout, nil, bootstrap.WithLogger(a.Stdout))
-	orch.SkipConfirm = true
+	existing, err := envfile.ParseFile(layout.EnvFile())
+	if err != nil {
+		return fmt.Errorf("alfheim-setup: read .env: %w", err)
+	}
+	on, err := onboarding.HeadlessConfigFromEnv(existing)
+	if err != nil {
+		return err
+	}
+	if err := a.provision(ctx, layout, on); err != nil {
+		return err
+	}
+
+	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
 	return orch.RunPhase(ctx, bootstrap.PhaseCoreStack)
 }
 
-// confirmFunc returns the manual Zitadel onboarding pause.
-func (a *App) confirmFunc() bootstrap.ConfirmFunc {
-	if a.Options.NonInteractive || a.Wizard == nil {
-		return nil
-	}
-	return a.Wizard.Confirm
-}
-
-// printSummary reports how to reach the finished installation.
+// printSummary reports how to reach the finished installation. It names the
+// login name explicitly (the administrator e-mail the operator entered)
+// because that is not guessable from the auth domain, and states that no
+// self-registration is needed, since an unconfigured mail setup could never
+// complete the verification round-trip a self-registered account would wait
+// on.
 func (a *App) printSummary(m templating.Model) {
 	fmt.Fprintf(a.Stdout, `
 Alfheim is up.
@@ -304,10 +426,15 @@ Alfheim is up.
   Observability   %s/grafana/
 
   Credentials are stored in .env (mode 0600).
-  Administrator:  %s
+
+  Administrator login
+    E-mail (login name):  %s
+    Password:              %s (also in .env, ZITADEL_ADMIN_PASSWORD)
+    A password change is required on first login.
+    No self-registration is needed: sign in at %s with the credentials above.
 `,
 		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, m.Onboarding.BaseURL,
-		m.Secret("ZITADEL_ADMIN_PASSWORD"))
+		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL)
 }
 
 // markInstalled records that a Day-1 install completed.

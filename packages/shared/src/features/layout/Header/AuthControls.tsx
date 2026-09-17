@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from '../../i18n/utils';
 
 export interface UserIdentity {
+  sub?: string;
   name?: string;
   preferred_username?: string;
   email?: string;

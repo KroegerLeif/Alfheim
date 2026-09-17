@@ -60,7 +60,8 @@ Headless:
 alfheim-setup --non-interactive \
   --domain example.com \
   --tls custom \
-  --cert-path /etc/letsencrypt/live/example.com
+  --cert-path /etc/letsencrypt/live/example.com \
+  --admin-email you@example.com
 ```
 
 The directory is bind-mounted read-only into the gateway at

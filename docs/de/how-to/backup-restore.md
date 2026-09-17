@@ -43,7 +43,7 @@ docker exec -t alfheim_postgres_core pg_dump -U postgres zitadel > zitadel_backu
 
 ## Objektspeicher sichern (RustFS S3)
 
-RustFS legt hochgeladene Anhänge (z. B. Budget-Belege, Chat-Dateianhänge) in persistenten Volumes ab.
+RustFS legt hochgeladene Anhänge (z. B. Budget-Belege, Bibliotheks-PDFs) in persistenten Volumes ab.
 
 ```bash
 docker run --rm \

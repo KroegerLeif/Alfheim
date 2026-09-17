@@ -32,6 +32,8 @@ func TestLayoutPaths(t *testing.T) {
 		{"compose", l.ComposeFile(), "/srv/alfheim/compose.prod.yaml"},
 		{"caddyfile", l.Caddyfile(), "/srv/alfheim/infrastructure/caddy/Caddyfile"},
 		{"cert dir", l.DefaultCertDir(), "/srv/alfheim/data/caddy/certs"},
+		{"zitadel machine key dir", l.ZitadelMachineKeyDir(), "/srv/alfheim/infrastructure/zitadel/machinekey"},
+		{"zitadel pat file", l.ZitadelPATFile(), "/srv/alfheim/infrastructure/zitadel/machinekey/pat.txt"},
 		{"marker", l.Marker(), "/srv/alfheim/" + MarkerName},
 	}
 	for _, tc := range tests {
@@ -53,6 +55,7 @@ func TestEnsureDirs(t *testing.T) {
 		filepath.Join(l.Root, "infrastructure", "postgres"),
 		filepath.Join(l.Root, "infrastructure", "telemetry", "collector"),
 		l.DefaultCertDir(),
+		l.ZitadelMachineKeyDir(),
 	} {
 		info, err := os.Stat(dir)
 		if err != nil {

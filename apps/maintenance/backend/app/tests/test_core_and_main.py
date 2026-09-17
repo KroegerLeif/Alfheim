@@ -13,21 +13,34 @@ from app.core.dependencies import (
 from app.core.mcp import discover_and_import_mcp_tools
 from app.main import app, lifespan
 from app.tests.conftest import test_engine, test_session_factory
+from backend_shared import oidc_discovery
 from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
 from httpx import AsyncClient
 
 
-def test_settings_properties():
-    """Verify JWKS URLs and issuer configurations computed properties."""
-    assert "/keys" in settings.jwks_url
+def test_settings_jwks_url_explicit_override_wins():
+    """Verify an explicit OIDC_JWKS_URL override is used without any discovery call."""
     assert settings.expected_issuer == settings.OIDC_ISSUER_URL.rstrip("/")
 
-    fallback_urls = settings.jwks_fallback_urls
-    assert len(fallback_urls) >= 1
-    assert any("localhost" in u for u in fallback_urls)
-
     with patch.object(settings, "OIDC_JWKS_URL", "http://custom-jwks:8080/keys"):
-        assert settings.jwks_url == "http://custom-jwks:8080/keys"
+        with patch("httpx.Client") as mock_client:
+            assert settings.jwks_url == "http://custom-jwks:8080/keys"
+            mock_client.assert_not_called()
+
+
+def test_settings_jwks_url_resolved_via_oidc_discovery():
+    """Verify jwks_url is resolved from the issuer's discovery document, not guessed."""
+    oidc_discovery._discovered_jwks_uris.clear()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.json.return_value = {"jwks_uri": f"{settings.expected_issuer}/oauth/v2/keys"}
+
+    with patch.object(settings, "OIDC_JWKS_URL", ""), patch("httpx.Client") as mock_client:
+        mock_client.return_value.__enter__.return_value.get.return_value = mock_resp
+        assert settings.jwks_url == f"{settings.expected_issuer}/oauth/v2/keys"
+
+    oidc_discovery._discovered_jwks_uris.clear()
 
 
 def test_core_dependencies_wrappers():

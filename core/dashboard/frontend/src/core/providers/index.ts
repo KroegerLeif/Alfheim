@@ -1,3 +1,3 @@
-export * from './AuthProvider';
 export * from './QueryProvider';
-export { LanguageProvider, ThemeProvider, useTheme } from '@alfheim/shared';
+export { LanguageProvider, ThemeProvider, useTheme, useAuth, AuthGuard } from '@alfheim/shared';
+export type { UserIdentity as UserIdentityClaims } from '@alfheim/shared';

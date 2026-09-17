@@ -1,10 +1,8 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider as SharedThemeProvider, useTranslation } from "@alfheim/shared";
+import { ThemeProvider as SharedThemeProvider } from "@alfheim/shared";
 import { ReactNode, useState, createContext, useContext } from "react";
-import { AuthContext } from "@alfheim/shared";
-import { useOidcAuth } from "@/core/auth/useOidcAuth";
 
 export const SidebarContext = createContext<{
   isSidebarOpen: boolean;
@@ -26,8 +24,12 @@ export const ActiveListContext = createContext<{
 
 export const useActiveList = () => useContext(ActiveListContext);
 
+/**
+ * Non-auth application providers. Authentication (OIDC session validation,
+ * login redirect, misconfiguration/discovery error pages) is handled by the
+ * shared AuthGuard wrapping this component in the locale layout.
+ */
 export default function Providers({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -44,50 +46,15 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeListId, setActiveListId] = useState<string | null>(null);
 
-  const { user, token, isAuthenticated, isLoading, authError, logout } = useOidcAuth();
-
-  if (authError) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground p-6">
-        <div className="text-center space-y-4 max-w-md p-6 rounded-2xl glass-card border border-red-500/20">
-          <div className="h-12 w-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto text-xl font-bold">
-            !
-          </div>
-          <h2 className="text-lg font-bold">{t("auth.error")}</h2>
-          <p className="text-sm text-muted-foreground">{authError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-          >
-            {t("auth.retry_connection")}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
-        <div className="text-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-          <p className="text-lg font-medium tracking-wide">{t("auth.securing_session")}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <AuthContext.Provider value={{ user, token, logout }}>
-      <QueryClientProvider client={queryClient}>
-        <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
-          <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-            <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
-              {children}
-            </ActiveListContext.Provider>
-          </SidebarContext.Provider>
-        </SharedThemeProvider>
-      </QueryClientProvider>
-    </AuthContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
+        <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
+          <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
+            {children}
+          </ActiveListContext.Provider>
+        </SidebarContext.Provider>
+      </SharedThemeProvider>
+    </QueryClientProvider>
   );
 }

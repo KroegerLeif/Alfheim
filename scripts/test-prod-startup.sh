@@ -182,6 +182,34 @@ wait_for_health() {
   return 1
 }
 
+# prepare_zitadel_machinekey ensures the host directory compose bind-mounts
+# to Zitadel's /machinekey is writable by the container's own user before
+# Zitadel ever starts.
+#
+# The ghcr.io/zitadel/zitadel:v2.66.1 image runs as uid:gid 1000:1000 (the
+# "zitadel" user baked into its /etc/passwd). A bind-mount directory that
+# does not exist yet is created by the Docker daemon itself, root-owned —
+# not by the container — which denies that user the write it needs to save
+# its first-instance bootstrap PAT. The result is a crash loop: the first
+# start fails the 03_default_instance migration with
+# "open /machinekey/pat.txt: permission denied", and every restart after
+# that fails again with Errors.Instance.Domain.AlreadyExists because the
+# migration is half-applied.
+prepare_zitadel_machinekey() {
+  local dir="${REPO_ROOT}/infrastructure/zitadel/machinekey"
+  mkdir -p "${dir}"
+
+  if [[ "$(id -u)" == "0" ]]; then
+    chown 1000:1000 "${dir}"
+  elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+    sudo chown 1000:1000 "${dir}"
+  else
+    # Not root and no passwordless sudo (a typical CI runner): widen the
+    # mode instead of guessing at a chown we cannot actually perform.
+    chmod 0777 "${dir}"
+  fi
+}
+
 # ==============================================================================
 # Execution Stages
 # ==============================================================================
@@ -244,6 +272,7 @@ wait_for_health "victoriametrics" "VictoriaMetrics" 30
 wait_for_health "victorialogs" "VictoriaLogs" 30
 wait_for_health "otel-collector" "OpenTelemetry Collector" 30
 
+prepare_zitadel_machinekey
 log_info "Launching Zitadel Identity Provider (bootstraps first instance on cold start)..."
 docker compose -f "${COMPOSE_FILE}" up -d zitadel
 

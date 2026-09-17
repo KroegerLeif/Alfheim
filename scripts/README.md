@@ -18,7 +18,6 @@ scripts/
 ├── init-env.sh             # Cryptographic secret generator & legacy variable migrator
 ├── up.sh                   # Staged multi-zone platform boot orchestrator
 ├── down.sh                 # Platform shutdown & volume cleanup script
-├── zitadel-bootstrap.sh    # Zitadel OIDC client provisioning (Management API)
 ├── seed.sh                 # Database test data seeding utility
 └── verify.sh               # Monorepo verification suite (Python, Go, Frontend, Security)
 ```
@@ -36,8 +35,11 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
   * `-b`, `--build`: Force Docker image rebuild before starting containers.
   * `--skip-obs`: Skip the VictoriaStack observability stage.
 * **Requires** a root `.env`; generate one with `./scripts/init-env.sh --auto`.
-* Stage 1 boots `postgres-core → zitadel → rustfs → caddy` and provisions the
-  Grafana OIDC client via `zitadel-bootstrap.sh` before the stack comes up.
+* Stage 1 boots `postgres-core → zitadel → rustfs → caddy` and then provisions
+  the Zitadel project and every OIDC client (dashboard, every app frontend,
+  Grafana) via `go run ./tools/installer/cmd/alfheim-setup provision`, which
+  shares its reconciliation logic with the production installer
+  (`tools/installer/internal/features/provisioning`).
 
 #### 2. `down.sh` — Cluster Teardown
 Stops and removes active Docker compose service containers across all stages.
@@ -59,20 +61,11 @@ Generates `.env` files from `.env.example` with cryptographic secrets and dynami
   * `--repo <repo>`: Container image repository path (e.g. `owner/repo`, auto-derived from Git remote if omitted).
   * `--tag <tag>`: Container image tag (default: `latest`).
 
-#### 5. `zitadel-bootstrap.sh` — OIDC Client Provisioning
-Reconciles the `Alfheim` project and the `Grafana` OIDC application through
-Zitadel's Management API, then writes the generated client id and secret into
-the root `.env`. `up.sh` calls it; run it directly only to repair or rotate
-those credentials.
-* **Usage**: `./scripts/zitadel-bootstrap.sh [--force]`
-* **Key Flags**:
-  * `--force`: Regenerate the Grafana client secret even when `.env` holds a valid one.
-
-#### 6. `setup-env.sh` — Environment Provisioning
+#### 5. `setup-env.sh` — Environment Provisioning
 Generates `.env` files from `.env.example` templates if missing, validating required secret keys and port configurations.
 * **Usage**: `./scripts/setup-env.sh`
 
-#### 7. `verify.sh` — Workspace Verification Suite
+#### 6. `verify.sh` — Workspace Verification Suite
 Executes comprehensive linting, type-checking, formatting, and test suites across all monorepo technologies.
 * **Usage**: `./scripts/verify.sh [FLAGS]`
 * **Flags**:

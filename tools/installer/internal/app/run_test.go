@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/provisioning"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/envfile"
+	"alfheim/installer/internal/shared/paths"
 	"alfheim/installer/internal/shared/runner"
 	"alfheim/installer/internal/shared/system"
 )
@@ -50,11 +52,9 @@ func readyHost() stubInspector {
 
 // stubWizard answers the forms without a terminal.
 type stubWizard struct {
-	on         onboarding.Config
-	tls        tls.Config
-	runErr     error
-	confirmErr error
-	confirmed  bool
+	on     onboarding.Config
+	tls    tls.Config
+	runErr error
 }
 
 func (s *stubWizard) Run(on *onboarding.Config, tlsCfg *tls.Config) error {
@@ -66,9 +66,29 @@ func (s *stubWizard) Run(on *onboarding.Config, tlsCfg *tls.Config) error {
 	return nil
 }
 
-func (s *stubWizard) Confirm(context.Context, string) error {
-	s.confirmed = true
-	return s.confirmErr
+// stubProvisioner answers Zitadel provisioning without a live Zitadel or the
+// PAT wait, which a live DefaultProvisioner would otherwise block real time
+// on for every test that reaches runBootstrap.
+type stubProvisioner struct {
+	result provisioning.Result
+	err    error
+	calls  int
+}
+
+func (s *stubProvisioner) Provision(
+	context.Context, paths.Layout, onboarding.Config, map[string]string,
+) (provisioning.Result, error) {
+	s.calls++
+	if s.err != nil {
+		return provisioning.Result{}, s.err
+	}
+	if s.result != (provisioning.Result{}) {
+		return s.result, nil
+	}
+	return provisioning.Result{
+		ProjectID: "test-project-id", WebClientID: "test-web-client",
+		GrafanaClientID: "test-grafana-client", GrafanaSecret: "test-grafana-secret",
+	}, nil
 }
 
 // healthyDocker scripts a host and stack where everything succeeds.
@@ -85,14 +105,22 @@ func newTestApp(t *testing.T, opts *Options, rec runner.Runner, wiz Wizard) (*Ap
 	t.Helper()
 	var stdout, stderr bytes.Buffer
 	return &App{
-		Options:   opts,
-		Build:     BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
-		Runner:    rec,
-		Wizard:    wiz,
-		Stdout:    &stdout,
-		Stderr:    &stderr,
-		Now:       func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
-		Inspector: readyHost(),
+		Options:     opts,
+		Build:       BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
+		Runner:      rec,
+		Wizard:      wiz,
+		Stdout:      &stdout,
+		Stderr:      &stderr,
+		Now:         func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
+		Inspector:   readyHost(),
+		Provisioner: &stubProvisioner{},
+		// Simulate running as root, like a fresh install on a Proxmox LXC,
+		// so tests do not depend on the test runner's real uid or on being
+		// able to chown anything.
+		MachineKeyPreparer: MachineKeyPreparer{
+			Geteuid: func() int { return 0 },
+			Chown:   func(string, int, int) error { return nil },
+		},
 	}, &stdout, &stderr
 }
 
@@ -116,7 +144,7 @@ func TestRunHeadlessDryRunWritesElsewhere(t *testing.T) {
 	root := t.TempDir()
 	opts := &Options{
 		DryRun: true, NonInteractive: true, InstallDir: root,
-		Domain: "example.com", TLSStrategy: "internal",
+		Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com",
 	}
 	app, stdout, _ := newTestApp(t, opts, healthyDocker(), nil)
 
@@ -174,16 +202,21 @@ func TestRunHeadlessFullInstall(t *testing.T) {
 func TestRunInteractiveUsesTheWizard(t *testing.T) {
 	root := t.TempDir()
 	wiz := &stubWizard{
-		on:  onboarding.Config{Preset: onboarding.PresetCustom, BaseDomain: "wizard.example.com"},
+		on: onboarding.Config{
+			Preset: onboarding.PresetCustom, BaseDomain: "wizard.example.com",
+			AdminEmail: "ops@example.com",
+		},
 		tls: tls.Config{Strategy: tls.StrategyInternal},
 	}
+	prov := &stubProvisioner{}
 	app, stdout, _ := newTestApp(t, &Options{InstallDir: root}, healthyDocker(), wiz)
+	app.Provisioner = prov
 
 	if code := app.Run(context.Background()); code != ExitOK {
 		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
 	}
-	if !wiz.confirmed {
-		t.Error("the interactive run must pause for the Zitadel onboarding step")
+	if prov.calls == 0 {
+		t.Error("the interactive run must provision Zitadel between the two phases")
 	}
 
 	vars, err := envfile.ParseFile(filepath.Join(root, ".env"))
@@ -209,11 +242,16 @@ func TestRunWizardFailureIsReported(t *testing.T) {
 
 func TestRunInterruptReturns130(t *testing.T) {
 	wiz := &stubWizard{
-		on:         onboarding.Config{Preset: onboarding.PresetCustom, BaseDomain: "example.com"},
-		tls:        tls.Config{Strategy: tls.StrategyInternal},
-		confirmErr: context.Canceled,
+		on: onboarding.Config{
+			Preset: onboarding.PresetCustom, BaseDomain: "example.com",
+			AdminEmail: "ops@example.com",
+		},
+		tls: tls.Config{Strategy: tls.StrategyInternal},
 	}
 	app, _, stderr := newTestApp(t, &Options{InstallDir: t.TempDir()}, healthyDocker(), wiz)
+	// An interrupt arriving during provisioning surfaces the same way as one
+	// arriving during a container wait: as a cancelled context.
+	app.Provisioner = &stubProvisioner{err: context.Canceled}
 
 	if code := app.Run(context.Background()); code != ExitInterrupt {
 		t.Fatalf("exit code = %d, want %d", code, ExitInterrupt)
@@ -228,7 +266,7 @@ func TestRunRefusesAnUnpreparedHost(t *testing.T) {
 	rec.StrictLookPath = true // Docker is absent.
 
 	opts := &Options{NonInteractive: true, InstallDir: t.TempDir(),
-		Domain: "example.com", TLSStrategy: "internal"}
+		Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com"}
 	app, _, stderr := newTestApp(t, opts, rec, nil)
 	// The point of this test: an install must refuse on a host it cannot use.
 	app.Inspector = unpreparedHost()
@@ -246,7 +284,7 @@ func TestDryRunToleratesAnUnpreparedHost(t *testing.T) {
 	rec.StrictLookPath = true
 
 	opts := &Options{DryRun: true, NonInteractive: true, InstallDir: t.TempDir(),
-		Domain: "example.com", TLSStrategy: "internal"}
+		Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com"}
 	app, stdout, stderr := newTestApp(t, opts, rec, nil)
 	// The point of this test: a host that cannot run an install must still
 	// render configuration during a dry run.
@@ -320,7 +358,7 @@ func TestReconfigurePreservesExistingSecrets(t *testing.T) {
 
 	opts := &Options{
 		Reconfigure: true, NonInteractive: true, InstallDir: root,
-		Domain: "new.example.com", TLSStrategy: "internal",
+		Domain: "new.example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com",
 	}
 	app, stdout, _ := newTestApp(t, opts, healthyDocker(), nil)
 
@@ -342,6 +380,111 @@ func TestReconfigurePreservesExistingSecrets(t *testing.T) {
 	// The new domain must have been applied.
 	if vars["DOMAIN"] != "new.example.com" {
 		t.Errorf("DOMAIN = %q, want the reconfigured value", vars["DOMAIN"])
+	}
+}
+
+func TestReconfigureCarriesForwardProvisionedCredentials(t *testing.T) {
+	root := t.TempDir()
+	existing := "ZITADEL_BOOTSTRAP_PAT=old-pat\n" +
+		"ZITADEL_PROJECT_ID=proj-123\n" +
+		"OIDC_AUDIENCE=proj-123\n" +
+		"ALFHEIM_WEB_CLIENT_ID=web-client-1\n" +
+		"GRAFANA_OIDC_CLIENT_ID=grafana-client-1\n" +
+		"GRAFANA_OIDC_CLIENT_SECRET=grafana-secret-1\n"
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte(existing), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// A dry run renders into a fresh temp directory and returns before
+	// provisioning ever runs, so it isolates exactly the render-time
+	// carry-forward this test targets.
+	opts := &Options{
+		Reconfigure: true, DryRun: true, NonInteractive: true, InstallDir: root,
+		Domain: "new.example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com",
+	}
+	app, stdout, _ := newTestApp(t, opts, healthyDocker(), nil)
+
+	if code := app.Run(context.Background()); code != ExitOK {
+		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
+	}
+
+	target := dryRunTargetFromStdout(t, stdout.String())
+	vars, err := envfile.ParseFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"ZITADEL_BOOTSTRAP_PAT":      "old-pat",
+		"ZITADEL_PROJECT_ID":         "proj-123",
+		"OIDC_AUDIENCE":              "proj-123",
+		"ALFHEIM_WEB_CLIENT_ID":      "web-client-1",
+		"GRAFANA_OIDC_CLIENT_ID":     "grafana-client-1",
+		"GRAFANA_OIDC_CLIENT_SECRET": "grafana-secret-1",
+	}
+	for key, want := range want {
+		if vars[key] != want {
+			t.Errorf("%s = %q, want the previous value %q carried forward", key, vars[key], want)
+		}
+	}
+}
+
+func TestRenderConfigurationPlaceholderWhenNoPreviousValue(t *testing.T) {
+	root := t.TempDir()
+	opts := &Options{
+		DryRun: true, NonInteractive: true, InstallDir: root,
+		Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com",
+	}
+	app, stdout, _ := newTestApp(t, opts, healthyDocker(), nil)
+
+	if code := app.Run(context.Background()); code != ExitOK {
+		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
+	}
+
+	target := dryRunTargetFromStdout(t, stdout.String())
+	vars, err := envfile.ParseFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vars["ZITADEL_PROJECT_ID"] != "__PROVISIONED__" {
+		t.Errorf("ZITADEL_PROJECT_ID = %q, want the template placeholder with no previous install",
+			vars["ZITADEL_PROJECT_ID"])
+	}
+	if vars["ZITADEL_BOOTSTRAP_PAT"] != "" {
+		t.Errorf("ZITADEL_BOOTSTRAP_PAT = %q, want empty with no previous install", vars["ZITADEL_BOOTSTRAP_PAT"])
+	}
+}
+
+// dryRunTargetFromStdout extracts the rendered .env path from the "Wrote
+// <path>" line renderConfiguration prints.
+func dryRunTargetFromStdout(t *testing.T, out string) string {
+	t.Helper()
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasPrefix(line, "Wrote ") && strings.HasSuffix(line, ".env") {
+			return strings.TrimPrefix(line, "Wrote ")
+		}
+	}
+	t.Fatalf("no 'Wrote ...env' line found in stdout:\n%s", out)
+	return ""
+}
+
+func TestCarryForwardProvisioned(t *testing.T) {
+	got := carryForwardProvisioned(map[string]string{
+		"ZITADEL_BOOTSTRAP_PAT": "real-pat",
+		"ZITADEL_PROJECT_ID":    "__PROVISIONED__",
+		"OIDC_AUDIENCE":         "",
+		"ALFHEIM_WEB_CLIENT_ID": "web-1",
+	})
+	want := map[string]string{
+		"ZITADEL_BOOTSTRAP_PAT": "real-pat",
+		"ALFHEIM_WEB_CLIENT_ID": "web-1",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("carryForwardProvisioned() = %v, want %v", got, want)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %q, want %q", k, got[k], v)
+		}
 	}
 }
 
@@ -371,7 +514,7 @@ func TestRunCustomCertsWithMissingFilesFails(t *testing.T) {
 	root := t.TempDir()
 	opts := &Options{
 		NonInteractive: true, InstallDir: root,
-		Domain: "example.com", TLSStrategy: "custom",
+		Domain: "example.com", TLSStrategy: "custom", AdminEmail: "ops@example.com",
 	}
 	app, _, stderr := newTestApp(t, opts, healthyDocker(), nil)
 

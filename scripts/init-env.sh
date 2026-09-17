@@ -87,6 +87,21 @@ generate_zitadel_password() {
   printf 'Aa1!%s' "$(generate_secret 20)"
 }
 
+# urlencode percent-encodes its argument (RFC 3986), used for
+# GRAFANA_SIGNOUT_REDIRECT_URL's post_logout_redirect_uri query parameter.
+# Mirrors what the Go installer does with url.QueryEscape in env.tmpl.
+urlencode() {
+  local string="$1" length=${#1} pos c encoded=""
+  for (( pos = 0; pos < length; pos++ )); do
+    c="${string:$pos:1}"
+    case "$c" in
+      [-_.~a-zA-Z0-9]) encoded+="$c" ;;
+      *) printf -v c '%%%02X' "'$c"; encoded+="$c" ;;
+    esac
+  done
+  printf '%s' "$encoded"
+}
+
 # ------------------------------------------------------------------------------
 # CLI Arguments Parsing
 # ------------------------------------------------------------------------------
@@ -94,6 +109,7 @@ AUTO_MODE=false
 FORCE=false
 CUSTOM_BASE_URL=""
 CUSTOM_DOMAIN=""
+CUSTOM_ADMIN_EMAIL=""
 CUSTOM_REGISTRY=""
 CUSTOM_REPO=""
 CUSTOM_TAG=""
@@ -106,6 +122,7 @@ Options:
   -a, --auto                  Run non-interactively and generate secure defaults
   -b, --base-url <url>        Configure root base URL (default: https://alfheim.loegien.de)
   -d, --domain <domain>       Configure domain / host (backwards compatible)
+  -e, --admin-email <email>   Zitadel administrator e-mail / login name (default: admin@<domain>)
   -r, --registry <registry>   Configure container registry (auto-derived from Git remote if omitted)
   --repo <repo>               Configure image repository (auto-derived from Git remote if omitted)
   --tag <tag>                 Configure container image tag (default: latest)
@@ -135,6 +152,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --domain=*)
       CUSTOM_DOMAIN="${1#*=}"
+      shift
+      ;;
+    -e|--admin-email)
+      CUSTOM_ADMIN_EMAIL="$2"
+      shift 2
+      ;;
+    --admin-email=*)
+      CUSTOM_ADMIN_EMAIL="${1#*=}"
       shift
       ;;
     -r|--registry|--image-registry)
@@ -271,6 +296,32 @@ migrate_existing_env() {
     migrated=true
   fi
 
+  # 5b. Inject Zitadel provisioning keys compose.prod.yaml now requires
+  #     (issue #452), if this .env predates them. Only appended when absent,
+  #     so an already-provisioned value (a real client id/secret) is never
+  #     touched.
+  if ! grep -q "^ZITADEL_ADMIN_EMAIL=" "$env_file"; then
+    echo "ZITADEL_ADMIN_EMAIL=admin@$(grep -E '^DOMAIN=' "$env_file" | tail -n 1 | cut -d= -f2-)" >> "$env_file"
+    migrated=true
+    log_warn "Added missing ZITADEL_ADMIN_EMAIL to $(basename "$env_file"); review and adjust it."
+  fi
+  if ! grep -q "^ZITADEL_BOOTSTRAP_USERNAME=" "$env_file"; then
+    printf "ZITADEL_BOOTSTRAP_USERNAME=bootstrap\nZITADEL_BOOTSTRAP_PAT=\n" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^ZITADEL_PROJECT_ID=" "$env_file"; then
+    echo "ZITADEL_PROJECT_ID=__PROVISIONED__" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^ALFHEIM_WEB_CLIENT_ID=" "$env_file"; then
+    echo "ALFHEIM_WEB_CLIENT_ID=__PROVISIONED__" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^GRAFANA_SIGNOUT_REDIRECT_URL=" "$env_file"; then
+    echo "GRAFANA_SIGNOUT_REDIRECT_URL=__PROVISIONED__" >> "$env_file"
+    migrated=true
+  fi
+
   # 6. Rename legacy identity-provider variables (issue #358).
   #    ADR 0003 replaced Keycloak with Zitadel; the variable names followed in
   #    this release. Old names are rewritten in place so existing installations
@@ -395,6 +446,22 @@ log_info "Derived Host Header:     ${BOLD}${HOST_HEADER}${RESET}"
 log_info "Derived Apex Domain:     ${BOLD}${DOMAIN}${RESET}"
 
 # ------------------------------------------------------------------------------
+# Administrator E-mail — this is also the Zitadel login name
+# (ZITADEL_ADMIN_USER=ZITADEL_ADMIN_EMAIL), so the operator logs in with the
+# address they entered instead of guessing an admin@auth.<domain> name.
+# ------------------------------------------------------------------------------
+DEFAULT_ADMIN_EMAIL="admin@${DOMAIN}"
+if [[ -n "${CUSTOM_ADMIN_EMAIL}" ]]; then
+  ZITADEL_ADMIN_EMAIL="$CUSTOM_ADMIN_EMAIL"
+elif [[ "$AUTO_MODE" == false ]]; then
+  read -r -p "Administrator e-mail [default: ${DEFAULT_ADMIN_EMAIL}]: " user_email
+  ZITADEL_ADMIN_EMAIL="${user_email:-${ALFHEIM_ADMIN_EMAIL:-$DEFAULT_ADMIN_EMAIL}}"
+else
+  ZITADEL_ADMIN_EMAIL="${ALFHEIM_ADMIN_EMAIL:-$DEFAULT_ADMIN_EMAIL}"
+fi
+log_info "Configuring Admin E-mail: ${BOLD}${ZITADEL_ADMIN_EMAIL}${RESET}"
+
+# ------------------------------------------------------------------------------
 # OIDC Issuer Derivation (Zitadel is served on its own dedicated auth.* host)
 #
 # The derived host must be one infrastructure/caddy/compose.yml declares as a
@@ -411,7 +478,14 @@ else
   AUTH_HOST="auth.${DOMAIN}"
 fi
 OIDC_ISSUER_URL="${SCHEME}://${AUTH_HOST}"
-OIDC_AUDIENCE="alfheim"
+# Zitadel sets a token's audience to the provisioned project id (plus each
+# authorised client id), not a custom string, so this placeholder is written
+# now and overwritten by `alfheim-setup provision` (scripts/up.sh) once the
+# project actually exists, the same way env.tmpl renders it for a production
+# install.
+ZITADEL_PROJECT_ID="__PROVISIONED__"
+OIDC_AUDIENCE="__PROVISIONED__"
+ALFHEIM_WEB_CLIENT_ID="__PROVISIONED__"
 
 # Zitadel mints tokens for whatever EXTERNALDOMAIN it is told, so it has to be
 # the issuer host itself; a disagreement here breaks every token validation.
@@ -425,6 +499,10 @@ else
 fi
 
 log_info "Derived OIDC Issuer URL: ${BOLD}${OIDC_ISSUER_URL}${RESET}"
+
+# URL-encoded ${BASE_URL}/grafana/login, used as Zitadel's end_session
+# post_logout_redirect_uri query parameter (compose.prod.yaml).
+GRAFANA_SIGNOUT_REDIRECT_URL="$(urlencode "${BASE_URL}/grafana/login")"
 
 # ------------------------------------------------------------------------------
 # Image Registry & Repository Derivation
@@ -499,16 +577,16 @@ CHAT_ENC_KEY="$(generate_base64_32)"
 WORKOUT_PW="$(generate_secret 24)"
 LIBRARY_PW="$(generate_secret 24)"
 GRAFANA_PW="$(generate_secret 24)"
-GRAFANA_CLIENT_SECRET="$(generate_secret 32)"
 
 # Build .env from template with variable replacement
 sed \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^IAM_POSTGRES_PASSWORD=.*|IAM_POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^ZITADEL_MASTERKEY=.*|ZITADEL_MASTERKEY=${ZITADEL_MASTERKEY}|" \
-  -e "s|^ZITADEL_ADMIN_USER=.*|ZITADEL_ADMIN_USER=admin|" \
+  -e "s|^ZITADEL_ADMIN_EMAIL=.*|ZITADEL_ADMIN_EMAIL=${ZITADEL_ADMIN_EMAIL}|" \
+  -e "s|^ZITADEL_ADMIN_USER=.*|ZITADEL_ADMIN_USER=${ZITADEL_ADMIN_EMAIL}|" \
   -e "s|^ZITADEL_ADMIN_PASSWORD=.*|ZITADEL_ADMIN_PASSWORD=${ZITADEL_ADMIN_PW}|" \
-  -e "s|^ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=.*|ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=admin|" \
+  -e "s|^ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=.*|ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=\${ZITADEL_ADMIN_USER}|" \
   -e "s|^ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=.*|ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=${ZITADEL_ADMIN_PW}|" \
   -e "s|^ZITADEL_DB_PASSWORD=.*|ZITADEL_DB_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^ZITADEL_EXTERNALDOMAIN=.*|ZITADEL_EXTERNALDOMAIN=${ZITADEL_EXTERNALDOMAIN}|" \
@@ -527,7 +605,7 @@ sed \
   -e "s|^WORKOUT_POSTGRES_PASSWORD=.*|WORKOUT_POSTGRES_PASSWORD=${WORKOUT_PW}|" \
   -e "s|^LIBRARY_POSTGRES_PASSWORD=.*|LIBRARY_POSTGRES_PASSWORD=${LIBRARY_PW}|" \
   -e "s|^GRAFANA_ADMIN_PASSWORD=.*|GRAFANA_ADMIN_PASSWORD=${GRAFANA_PW}|" \
-  -e "s|^GRAFANA_OIDC_CLIENT_SECRET=.*|GRAFANA_OIDC_CLIENT_SECRET=${GRAFANA_CLIENT_SECRET}|" \
+  -e "s|^GRAFANA_SIGNOUT_REDIRECT_URL=.*|GRAFANA_SIGNOUT_REDIRECT_URL=${GRAFANA_SIGNOUT_REDIRECT_URL}|" \
   -e "s|^ALFHEIM_BASE_URL=.*|ALFHEIM_BASE_URL=${BASE_URL}|" \
   -e "s|^DOMAIN=.*|DOMAIN=${DOMAIN}|" \
   -e "s|^HOST_HEADER=.*|HOST_HEADER=${HOST_HEADER}|" \
@@ -539,9 +617,11 @@ sed \
   -e "s|^NEXT_PUBLIC_FRONTEND_URL=.*|NEXT_PUBLIC_FRONTEND_URL=\${ALFHEIM_BASE_URL}|" \
   -e "s|^NEXT_PUBLIC_API_GATEWAY_URL=.*|NEXT_PUBLIC_API_GATEWAY_URL=\${ALFHEIM_BASE_URL}/api|" \
   -e "s|^OIDC_ISSUER_URL=.*|OIDC_ISSUER_URL=${OIDC_ISSUER_URL}|" \
+  -e "s|^ZITADEL_PROJECT_ID=.*|ZITADEL_PROJECT_ID=${ZITADEL_PROJECT_ID}|" \
   -e "s|^OIDC_AUDIENCE=.*|OIDC_AUDIENCE=${OIDC_AUDIENCE}|" \
+  -e "s|^ALFHEIM_WEB_CLIENT_ID=.*|ALFHEIM_WEB_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID}|" \
   -e "s|^NEXT_PUBLIC_OIDC_ISSUER=.*|NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL}|" \
-  -e "s|^S3_PUBLIC_URL=.*|S3_PUBLIC_URL=\${ALFHEIM_BASE_URL}/storage|" \
+  -e "s|^S3_PUBLIC_URL=.*|S3_PUBLIC_URL=${BASE_URL}/storage|" \
   -e "s|^NEXT_PUBLIC_PANTRY_API_URL=.*|NEXT_PUBLIC_PANTRY_API_URL=\${ALFHEIM_BASE_URL}/api/pantry/api/v1|" \
   -e "s|^NEXT_PUBLIC_SHOPPING_API_URL=.*|NEXT_PUBLIC_SHOPPING_API_URL=\${ALFHEIM_BASE_URL}/api/shopping/api/v1|" \
   -e "s|^NEXT_PUBLIC_CHORES_API_URL=.*|NEXT_PUBLIC_CHORES_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/chores|" \
@@ -562,6 +642,29 @@ if ! grep -q '^IMAGE_REGISTRY=' "$OUTPUT_FILE"; then
   printf "IMAGE_REGISTRY=%s\nIMAGE_REPO=%s\nIMAGE_TAG=%s\n" "${IMAGE_REGISTRY}" "${IMAGE_REPO}" "${IMAGE_TAG}" >> "$OUTPUT_FILE"
 fi
 
+# Fallback injection if the template was missing the Zitadel provisioning
+# keys compose.prod.yaml now requires (an older .env.example checked out
+# from a stale template would otherwise render a .env docker compose refuses
+# to load).
+if ! grep -q '^ZITADEL_ADMIN_EMAIL=' "$OUTPUT_FILE"; then
+  printf "ZITADEL_ADMIN_EMAIL=%s\n" "${ZITADEL_ADMIN_EMAIL}" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^ZITADEL_BOOTSTRAP_USERNAME=' "$OUTPUT_FILE"; then
+  printf "ZITADEL_BOOTSTRAP_USERNAME=bootstrap\nZITADEL_BOOTSTRAP_PAT=\n" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^ZITADEL_PROJECT_ID=' "$OUTPUT_FILE"; then
+  printf "ZITADEL_PROJECT_ID=%s\n" "${ZITADEL_PROJECT_ID}" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^ALFHEIM_WEB_CLIENT_ID=' "$OUTPUT_FILE"; then
+  printf "ALFHEIM_WEB_CLIENT_ID=%s\n" "${ALFHEIM_WEB_CLIENT_ID}" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^GRAFANA_OIDC_CLIENT_ID=' "$OUTPUT_FILE"; then
+  printf "GRAFANA_OIDC_CLIENT_ID=__PROVISIONED__\nGRAFANA_OIDC_CLIENT_SECRET=__PROVISIONED__\n" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^GRAFANA_SIGNOUT_REDIRECT_URL=' "$OUTPUT_FILE"; then
+  printf "GRAFANA_SIGNOUT_REDIRECT_URL=%s\n" "${GRAFANA_SIGNOUT_REDIRECT_URL}" >> "$OUTPUT_FILE"
+fi
+
 # Restrict file permissions to current user only (0600)
 chmod 600 "$OUTPUT_FILE"
 
@@ -574,7 +677,7 @@ echo -e "  Host Header:               ${CYAN}${HOST_HEADER}${RESET}"
 echo -e "  Domain:                    ${CYAN}${DOMAIN}${RESET}"
 echo -e "  OIDC Issuer URL (Zitadel): ${CYAN}${OIDC_ISSUER_URL}${RESET}"
 echo -e "  OIDC Audience:             ${CYAN}${OIDC_AUDIENCE}${RESET}"
-echo -e "  Zitadel Admin User:        ${CYAN}admin${RESET}"
+echo -e "  Zitadel Admin E-mail:      ${CYAN}${ZITADEL_ADMIN_EMAIL}${RESET}"
 echo -e "  Zitadel Admin Password:    ${YELLOW}${ZITADEL_ADMIN_PW}${RESET}"
 echo -e "  Zitadel Masterkey:         ${DIM}${ZITADEL_MASTERKEY:0:8}...${RESET}"
 echo -e "  Grafana Admin User:        ${CYAN}admin${RESET}"

@@ -80,7 +80,7 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `GRAFANA_ADMIN_USER` | `admin` | Grafana initial admin username |
 | `GRAFANA_ADMIN_PASSWORD` | `admin` | Grafana initial admin password |
 | `GRAFANA_OIDC_CLIENT_ID` | `alfheim-grafana` | Zitadel OIDC client ID for Grafana SSO |
-| `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel OIDC client secret for Grafana SSO (set by `scripts/zitadel-bootstrap.sh`) |
+| `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel OIDC client secret for Grafana SSO (set by `alfheim-setup provision` / the installer's provisioning step) |
 
 ---
 

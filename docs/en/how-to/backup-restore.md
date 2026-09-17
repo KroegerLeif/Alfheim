@@ -43,7 +43,7 @@ docker exec -t alfheim_postgres_core pg_dump -U postgres zitadel > zitadel_backu
 
 ## Backing Up Object Storage (RustFS S3)
 
-RustFS stores uploaded attachments (e.g. budget receipts, chat file attachments) in persistent storage volumes.
+RustFS stores uploaded attachments (e.g. budget receipts, library PDFs) in persistent storage volumes.
 
 ```bash
 docker run --rm \

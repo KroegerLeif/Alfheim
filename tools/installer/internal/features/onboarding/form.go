@@ -1,6 +1,9 @@
 package onboarding
 
 import (
+	"fmt"
+	"net/mail"
+
 	"github.com/charmbracelet/huh"
 )
 
@@ -52,9 +55,19 @@ func NewForm(c *Config) *huh.Form {
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Administrator e-mail").
-				Description("Used for ACME registration and as the Zitadel admin contact.").
+				Description("Required. Used to log into Zitadel (no self-registration or mail round-trip "+
+					"is needed) and, unless you configure otherwise, as the ACME contact.").
 				Placeholder("ops@example.com").
-				Value(&c.AdminEmail),
+				Value(&c.AdminEmail).
+				Validate(func(s string) error {
+					if s == "" {
+						return fmt.Errorf("the administrator e-mail is required")
+					}
+					if _, err := mail.ParseAddress(s); err != nil {
+						return fmt.Errorf("not a valid e-mail address")
+					}
+					return nil
+				}),
 			huh.NewInput().
 				Title("Image tag").
 				Description("Container image tag to deploy.").

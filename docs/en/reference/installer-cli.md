@@ -37,7 +37,7 @@ curl -fsSL .../install.sh | bash -s -- --non-interactive --domain example.com --
 | Flag | Description |
 | :--- | :--- |
 | `--dry-run` | Run every validation, generate secrets and render `.env` and the `Caddyfile` into a temporary directory. Starts no container and modifies no existing installation. A host that is missing Docker produces warnings rather than a failure. |
-| `--non-interactive` | Take every answer from flags and environment variables instead of the wizard. The manual Zitadel pause is skipped; the URL is printed instead. |
+| `--non-interactive` | Take every answer from flags and environment variables instead of the wizard. Zitadel is provisioned automatically; the login name and password are printed. |
 | `--reconfigure` | Re-run the wizard over an existing installation. **Existing secrets are preserved, never rotated.** |
 | `--install-dir DIR` | Installation root. Default: the current working directory. |
 | `--version` | Print build metadata and exit, before any host inspection. |
@@ -50,7 +50,7 @@ Each flag has an environment-variable equivalent. The flag wins when both are se
 | :--- | :--- | :--- |
 | `--domain HOST` | `ALFHEIM_DOMAIN` | Base domain, e.g. `example.com`. **Required** in non-interactive mode. |
 | `--app-host HOST` | `ALFHEIM_APP_HOST` | Host serving the dashboard. Defaults to the base domain. |
-| `--admin-email MAIL` | `ALFHEIM_ADMIN_EMAIL` | ACME contact and Zitadel administrator contact. |
+| `--admin-email MAIL` | `ALFHEIM_ADMIN_EMAIL` | Zitadel administrator login name (verified, no mail needed) and ACME contact. **Required** in non-interactive mode. |
 | `--tls STRATEGY` | `ALFHEIM_TLS_STRATEGY` | `hetzner`, `cloudflare`, `custom` or `internal`. **Required** in non-interactive mode. |
 | `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN` | DNS provider token. Required for `hetzner` and `cloudflare`. |
 | `--cert-path DIR` | `ALFHEIM_CERT_PATH` | Absolute directory holding `fullchain.pem` and `privkey.pem`. Only for `--tls custom`; omit to use `./data/caddy/certs/`. |
@@ -114,10 +114,10 @@ The mode is detected from the installation directory, not chosen by a flag.
 | Phase | Services | Waits for |
 | :--- | :--- | :--- |
 | 1 — Edge & Identity | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
-| *pause* | — | The operator creates the Zitadel administrator |
-| 2 — Core & Application Stack | all remaining | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
+| 2 — Zitadel provisioning | — | Reconciles the `Alfheim` project, the web client and the Grafana client via the Management API and writes their IDs to `.env` |
+| 3 — Core & Application Stack | all remaining | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
-The pause is skipped under `--non-interactive`.
+During provisioning, the installer creates the Zitadel project "Alfheim", one client shared by the dashboard and every app frontend, and a client for Grafana. It writes the client IDs to `.env`. The final output prints the administrator login name and the generated password; a password change is required at first login.
 
 ---
 

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { LanguageProvider, ThemeProvider, QueryProvider, AuthProvider } from '@/core/providers';
+import { AuthGuard } from '@alfheim/shared';
+import { LanguageProvider, ThemeProvider, QueryProvider } from '@/core/providers';
 import { Sidebar } from '@/shared/components/Sidebar';
 import { Header } from '@/shared/components/Header';
 import { BottomNavBar } from '@/shared/components/BottomNavBar';
@@ -38,16 +39,12 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
-        <script
-          id="alfheim-runtime-env"
-          dangerouslySetInnerHTML={{
-            __html: `window.__ALFHEIM_ENV__ = ${JSON.stringify({
-              OIDC_ISSUER: process.env.OIDC_ISSUER_URL || process.env.NEXT_PUBLIC_OIDC_ISSUER || '',
-              FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.ALFHEIM_BASE_URL || '',
-              API_URL: process.env.NEXT_PUBLIC_API_URL || '',
-            })};`,
-          }}
-        />
+        {/*
+          Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
+          by a dynamic route handler, never baked into the prerendered HTML: the
+          container's environment is not known at CI build time.
+        */}
+        <script src="/runtime-config.js" />
       </head>
       <body
         className="h-full bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black"
@@ -63,7 +60,7 @@ export default function RootLayout({
             </div>
           </div>
         }>
-          <AuthProvider>
+          <AuthGuard basePath="">
             <LanguageProvider defaultLanguage="de">
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
                 <QueryProvider>
@@ -80,7 +77,7 @@ export default function RootLayout({
                 </QueryProvider>
               </ThemeProvider>
             </LanguageProvider>
-          </AuthProvider>
+          </AuthGuard>
         </Suspense>
       </body>
     </html>

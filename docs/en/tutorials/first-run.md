@@ -21,7 +21,7 @@ Allow about 30 minutes, most of which is spent waiting for container images.
 
 You need:
 
-* A Debian 12 (or comparable) host with at least 4 GB RAM and 20 GB free disk.
+* A Debian 12 (or comparable) host with at least 4 GB RAM and 10 GB free disk.
 * Root or `sudo` access.
 * A domain you control, with DNS pointing at the host. This tutorial uses
   `example.com`; substitute your own throughout.
@@ -76,8 +76,8 @@ The wizard asks four things:
 1. **Deployment target.** Choose *Custom domain* and enter `example.com`. The
    dashboard host defaults to your base domain; the identity provider is always
    placed at `auth.example.com`.
-2. **Administrator e-mail.** Used as the ACME contact and the Zitadel admin
-   contact.
+2. **Administrator e-mail.** Becomes the login name of the Zitadel
+   administrator and the ACME contact.
 3. **Certificate strategy.** Choose *Hetzner DNS-01* or *Cloudflare DNS-01* if
    your domain is hosted there — this issues wildcard certificates and needs no
    inbound port 80. Otherwise choose *Custom certificates*, or *Caddy internal
@@ -90,36 +90,13 @@ The installer then generates every credential from `crypto/rand` and writes:
 * `.env` — all configuration and secrets, mode `0600`
 * `infrastructure/caddy/Caddyfile` — the rendered ingress configuration
 
-## Step 5: Create the Zitadel administrator
+## Step 5: Let the installer finish
 
 The installer starts the database, the ingress gateway and Zitadel, waits for
-all three to become healthy, and then **pauses**:
-
-```
-The identity provider is up and holds a certificate.
-
-  1. Open https://auth.example.com
-  2. Sign in with the administrator credentials from .env
-  3. Complete the initial onboarding
-```
-
-This pause is deliberate. No application service can verify a login until an
-administrator exists in Zitadel, and that account can only be created through
-the browser.
-
-Find your generated password:
-
-```bash
-grep ZITADEL_ADMIN_PASSWORD .env
-```
-
-Open `https://auth.example.com`, sign in as `admin` with that password, and
-complete Zitadel's onboarding.
-
-## Step 6: Start the application stack
-
-Back in the terminal, confirm the prompt. The installer pulls and starts the
-remaining services, then prints your access URLs:
+all three to become healthy, and then provisions Zitadel on its own: it creates
+the `Alfheim` project, one sign-in client for the dashboard and every app, and a
+client for Grafana, and writes their IDs into `.env`. It then pulls and starts
+the remaining services and prints your access URLs and the administrator login:
 
 ```
 Alfheim is up.
@@ -127,9 +104,17 @@ Alfheim is up.
   Dashboard       https://example.com
   Identity        https://auth.example.com
   Observability   https://example.com/grafana/
+
+  Administrator login
+    E-mail (login name):  you@example.com
+    Password:              <generated> (also in .env, ZITADEL_ADMIN_PASSWORD)
+    A password change is required on first login.
 ```
 
-## Step 7: Verify
+You do not need to register an account or open the Zitadel console. The
+administrator e-mail is already verified, so no mail is sent.
+
+## Step 6: Verify
 
 ```bash
 docker compose -f compose.prod.yaml ps

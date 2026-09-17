@@ -31,6 +31,14 @@ func main() {
 // run is the real entry point. It returns the process exit code instead of
 // terminating, so its behaviour can be asserted in tests.
 func run(args []string, stdout, stderr *os.File) int {
+	// The hidden `provision` subcommand reconciles Zitadel OIDC clients
+	// against an existing .env without the wizard or any container
+	// lifecycle; scripts/up.sh calls it via `go run` so the dev stack shares
+	// the same reconciliation logic as a production install.
+	if len(args) > 0 && args[0] == "provision" {
+		return app.RunProvision(args[1:], stdout, stderr)
+	}
+
 	// Restore the terminal even when we unwind through a signal. An interrupt
 	// during a container wait would otherwise leave the operator's shell in
 	// raw mode with a hidden cursor.
