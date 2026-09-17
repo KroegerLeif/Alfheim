@@ -13,6 +13,8 @@ import logging
 import httpx
 from fastapi import HTTPException, status
 
+from backend_shared.tls import get_oidc_ssl_context
+
 logger = logging.getLogger(__name__)
 
 _discovered_jwks_uris: dict[str, str] = {}
@@ -30,8 +32,11 @@ def get_jwks_uri(issuer_url: str) -> str:
         return _discovered_jwks_uris[normalized_issuer]
 
     discovery_url = f"{normalized_issuer}/.well-known/openid-configuration"
+    # Resolved outside the try block: a misconfigured extra CA must fail loudly,
+    # not be reported as a generic 401 discovery failure.
+    ssl_context = get_oidc_ssl_context()
     try:
-        with httpx.Client(timeout=5.0) as client:
+        with httpx.Client(timeout=5.0, verify=ssl_context or True) as client:
             resp = client.get(discovery_url)
             resp.raise_for_status()
             data = resp.json()

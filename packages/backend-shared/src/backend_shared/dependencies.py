@@ -8,6 +8,8 @@ import jwt
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
 
+from backend_shared.tls import get_oidc_ssl_context
+
 logger = logging.getLogger(__name__)
 
 MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
@@ -109,7 +111,7 @@ def is_mock_auth_allowed(settings: Any = None) -> bool:
 
 def get_jwks_client(jwks_url: str) -> jwt.PyJWKClient:
     if jwks_url not in _jwks_clients:
-        _jwks_clients[jwks_url] = jwt.PyJWKClient(jwks_url)
+        _jwks_clients[jwks_url] = jwt.PyJWKClient(jwks_url, ssl_context=get_oidc_ssl_context())
     return _jwks_clients[jwks_url]
 
 

@@ -294,7 +294,7 @@ def test_decode_oidc_token_real_verification_success():
     ):
         decoded = decode_oidc_token(token)
         assert decoded["sub"] == payload["sub"]
-        mock_pyjwkclient_cls.assert_called_once_with("http://auth.example.com/keys")
+        mock_pyjwkclient_cls.assert_called_once_with("http://auth.example.com/keys", ssl_context=None)
 
     auth_module._jwks_clients.clear()
 

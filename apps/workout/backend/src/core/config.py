@@ -2,6 +2,7 @@ import json
 import logging
 import urllib.request
 
+from backend_shared.tls import get_oidc_ssl_context
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -41,9 +42,10 @@ class Settings(BaseSettings):
             return self.OIDC_JWKS_URL
         issuer = self.OIDC_ISSUER_URL.rstrip("/")
         discovery_url = f"{issuer}/.well-known/openid-configuration"
+        ssl_context = get_oidc_ssl_context()
         try:
             req = urllib.request.Request(discovery_url, headers={"Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=3, context=ssl_context) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode())
                     if "jwks_uri" in data:
