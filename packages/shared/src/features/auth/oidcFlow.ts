@@ -13,7 +13,7 @@
  */
 
 import type { OidcConfig, OidcProviderMetadata, OidcTokenSet, OidcClaims } from './oidcTypes';
-import { InsecureContextError } from './oidcTypes';
+import { InsecureContextError, IssuerUnreachableError } from './oidcTypes';
 
 export const VERIFIER_KEY = 'alfheim_oidc_pkce_verifier';
 export const STATE_KEY = 'alfheim_oidc_state';
@@ -60,9 +60,29 @@ export function detectInsecureContext(): InsecureContextError | null {
 
 let metadataCache: Promise<OidcProviderMetadata> | null = null;
 
+/**
+ * Maps a network-level discovery failure (the fetch promise rejected, no HTTP response) to
+ * {@link IssuerUnreachableError} when the issuer is HTTPS on another host than the page:
+ * that is where an untrusted private-CA certificate silently breaks the request, because
+ * browsers accept certificate exceptions per host and never show an interstitial for fetch.
+ * Any other failure is returned unchanged.
+ */
+export function classifyDiscoveryNetworkError(issuer: string, discoveryUrl: string, err: unknown): unknown {
+  if (!(err instanceof TypeError) || typeof window === 'undefined') return err;
+  let issuerUrl: URL;
+  try {
+    issuerUrl = new URL(issuer);
+  } catch {
+    return err;
+  }
+  if (issuerUrl.protocol !== 'https:' || issuerUrl.host === window.location?.host) return err;
+  return new IssuerUnreachableError(issuer.replace(/\/+$/, ''), discoveryUrl, issuerUrl.host, { cause: err });
+}
+
 export function discoverProviderMetadata(issuer: string): Promise<OidcProviderMetadata> {
   if (!metadataCache) {
-    metadataCache = fetch(`${issuer.replace(/\/+$/, '')}${DISCOVERY_SUFFIX}`, {
+    const discoveryUrl = `${issuer.replace(/\/+$/, '')}${DISCOVERY_SUFFIX}`;
+    metadataCache = fetch(discoveryUrl, {
       headers: { Accept: 'application/json' },
     }).then(async (res) => {
       if (!res.ok) {
@@ -70,6 +90,8 @@ export function discoverProviderMetadata(issuer: string): Promise<OidcProviderMe
         throw new Error(`OIDC discovery failed with status ${res.status}`);
       }
       return (await res.json()) as OidcProviderMetadata;
+    }, (err: unknown) => {
+      throw classifyDiscoveryNetworkError(issuer, discoveryUrl, err);
     });
     metadataCache.catch(() => {
       metadataCache = null;
