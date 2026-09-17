@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UserIdentity } from '@alfheim/shared';
-import { OidcConfig, OidcConfigError, OidcTokenSet } from './oidcTypes';
+import { InsecureContextError, OidcConfig, OidcConfigError, OidcTokenSet } from './oidcTypes';
 import { loadOidcConfig } from './oidcConfig';
 import {
   beginLogin,
   clearPersistedTokens,
   completeLoginIfRedirected,
   decodeClaims,
+  detectInsecureContext,
   endSession,
   loadPersistedTokens,
   refreshTokens,
@@ -32,6 +33,8 @@ export interface OidcAuthState {
   configError: OidcConfigError | null;
   /** Set when discovery or the token exchange failed against a reachable-but-broken issuer. */
   discoveryError: string | null;
+  /** Set when the page is served outside a Secure Context (plain HTTP), so login cannot run. */
+  insecureContextError: InsecureContextError | null;
   login: () => void;
   logout: () => void;
 }
@@ -78,6 +81,7 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
   // the server and the client's first paint, and the config (or its error)
   // is only established from an effect after mount.
   const [configError, setConfigError] = useState<OidcConfigError | null>(null);
+  const [insecureContextError, setInsecureContextError] = useState<InsecureContextError | null>(null);
 
   const configRef = useRef<OidcConfig | null>(null);
   const tokensRef = useRef<OidcTokenSet | null>(null);
@@ -110,6 +114,11 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
   const login = useCallback(() => {
     if (!configRef.current) return;
     void beginLogin(configRef.current).catch((err) => {
+      if (err instanceof InsecureContextError) {
+        setInsecureContextError(err);
+        setIsLoading(false);
+        return;
+      }
       console.error('Failed to start OIDC login', err);
       setDiscoveryError(err instanceof Error ? err.message : 'Failed to reach the identity provider.');
       setIsLoading(false);
@@ -142,6 +151,15 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
       throw err;
     }
     configRef.current = activeConfig;
+
+    // Detect a missing Secure Context up front, so the operator is told how to fix it
+    // instead of seeing a spinner followed by a cryptic "reading 'digest'" TypeError.
+    const insecure = detectInsecureContext();
+    if (insecure) {
+      setInsecureContextError(insecure);
+      setIsLoading(false);
+      return;
+    }
 
     window.__alfheim_oidc__ = {
       getToken: () => tokensRef.current?.accessToken ?? null,
@@ -203,6 +221,7 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
     isLoading,
     configError,
     discoveryError,
+    insecureContextError,
     login,
     logout,
   };

@@ -13,6 +13,7 @@
  */
 
 import type { OidcConfig, OidcProviderMetadata, OidcTokenSet, OidcClaims } from './oidcTypes';
+import { InsecureContextError } from './oidcTypes';
 
 export const VERIFIER_KEY = 'alfheim_oidc_pkce_verifier';
 export const STATE_KEY = 'alfheim_oidc_state';
@@ -41,6 +42,20 @@ function randomString(byteLength = 32): string {
 async function sha256Challenge(verifier: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
   return base64UrlEncode(digest);
+}
+
+/**
+ * Returns an {@link InsecureContextError} when the page runs outside a browser Secure
+ * Context, where `crypto.subtle` (required for the PKCE challenge) is unavailable.
+ * Returns null on the server and wherever Web Crypto is usable.
+ */
+export function detectInsecureContext(): InsecureContextError | null {
+  if (typeof window === 'undefined') return null;
+  // Only an explicit `false` counts: DOMs that do not implement the flag (e.g. jsdom)
+  // are judged solely by whether crypto.subtle actually exists.
+  if (window.isSecureContext !== false && globalThis.crypto?.subtle) return null;
+  const { host, pathname, search, hash } = window.location;
+  return new InsecureContextError(host, `https://${host}${pathname}${search}${hash}`);
 }
 
 let metadataCache: Promise<OidcProviderMetadata> | null = null;
@@ -101,6 +116,9 @@ export function decodeJwtPayload(token: string): Record<string, any> | null {
 
 /** Builds the authorize URL, persisting the PKCE verifier and state, then redirects the browser. */
 export async function beginLogin(config: OidcConfig): Promise<void> {
+  const insecure = detectInsecureContext();
+  if (insecure) throw insecure;
+
   const metadata = await discoverProviderMetadata(config.issuer);
 
   const verifier = randomString(32);

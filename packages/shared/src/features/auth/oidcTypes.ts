@@ -46,3 +46,23 @@ export class OidcConfigError extends Error {
     this.name = 'OidcConfigError';
   }
 }
+
+/**
+ * Thrown when sign-in is attempted outside a browser Secure Context (plain HTTP on a
+ * non-localhost host). Browsers withhold `crypto.subtle` there, which PKCE requires.
+ * {@link InsecureContextError.httpsUrl} is the same page over HTTPS.
+ */
+export class InsecureContextError extends Error {
+  readonly host: string;
+  readonly httpsUrl: string;
+
+  constructor(host: string, httpsUrl: string) {
+    super(
+      `Sign-in requires HTTPS. This page was opened over plain HTTP on ${host}, where the browser ` +
+        `disables the Web Crypto API needed for secure login. Open ${httpsUrl} instead.`,
+    );
+    this.name = 'InsecureContextError';
+    this.host = host;
+    this.httpsUrl = httpsUrl;
+  }
+}
