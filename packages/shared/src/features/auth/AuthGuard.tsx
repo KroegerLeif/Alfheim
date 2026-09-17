@@ -42,7 +42,15 @@ function DefaultLoader() {
   );
 }
 
-function AuthErrorPage({ detail }: { detail: string }) {
+function AuthErrorPage({
+  detail,
+  title = 'Identity provider not reachable or misconfigured',
+  action,
+}: {
+  detail: string;
+  title?: string;
+  action?: { href: string; label: string };
+}) {
   return (
     <div
       role="alert"
@@ -59,9 +67,19 @@ function AuthErrorPage({ detail }: { detail: string }) {
     >
       <div style={{ maxWidth: 420, textAlign: 'center' }}>
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-          Identity provider not reachable or misconfigured
+          {title}
         </h1>
         <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>{detail}</p>
+        {action && (
+          <p style={{ fontSize: '0.875rem', marginTop: '1rem' }}>
+            <a
+              href={action.href}
+              style={{ color: 'var(--primary-main, #22c55e)', fontWeight: 600, textDecoration: 'underline' }}
+            >
+              {action.label}
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -79,6 +97,17 @@ export function AuthGuard({ basePath = '', children, loadingFallback }: AuthGuar
 
   if (auth.configError) {
     return <AuthErrorPage detail={auth.configError.message} />;
+  }
+
+  if (auth.insecureContextError) {
+    const { httpsUrl, message } = auth.insecureContextError;
+    return (
+      <AuthErrorPage
+        title="Secure connection (HTTPS) required"
+        detail={message}
+        action={{ href: httpsUrl, label: `Open ${httpsUrl}` }}
+      />
+    );
   }
 
   if (auth.discoveryError) {
