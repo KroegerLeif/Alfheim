@@ -26,7 +26,14 @@ const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
 };
 
 const SHOPPING_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "/shopping/api/v1");
-const PANTRY_API_URL = sanitizeUrl(process.env.NEXT_PUBLIC_PANTRY_API_URL, "/pantry/api/v1");
+// The runtime config (window.__ALFHEIM_ENV__.API_URL) carries only the
+// shopping API, and resolveApiUrl prefers it over any argument. In the browser
+// the pantry API is therefore always reached on the same origin, where Caddy
+// routes /pantry/api/v1* to pantry-backend.
+const PANTRY_API_URL =
+  typeof window !== "undefined"
+    ? `${window.location.origin}/pantry/`
+    : sanitizeUrl(process.env.NEXT_PUBLIC_PANTRY_API_URL, "/pantry/api/v1");
 
 /**
  * Normalizes HTTP error payloads from FastAPI and throws custom ApiError objects.
