@@ -46,5 +46,8 @@ var PhaseCoreStack = Phase{
 	WaitFor: []HealthTarget{
 		{Container: "dashboard-backend", Label: "Dashboard control plane", Timeout: 240 * time.Second},
 		{Container: "dashboard-frontend", Label: "Dashboard frontend", Timeout: 180 * time.Second},
+		// Tier-1 household & roles service (core/household).
+		{Container: "household-backend", Label: "Household & roles service", Timeout: 240 * time.Second},
+		{Container: "household-frontend", Label: "Household & roles frontend", Timeout: 180 * time.Second},
 	},
 }

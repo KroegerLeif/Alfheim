@@ -80,6 +80,12 @@
 {{ $on.Scheme }}://{{ $on.AuthHost }} {
 {{- template "tlsDirective" $tls }}
 
+	# Defense in depth: /internal/* is the service-to-service API authenticated
+	# by ALFHEIM_INTERNAL_TOKEN and must never be reachable from outside.
+	handle /internal/* {
+		respond 404
+	}
+
 	reverse_proxy zitadel:8080 {
 		# Zitadel speaks gRPC-Web / HTTP/2 to its own frontend and API.
 		transport http {
@@ -108,6 +114,12 @@ http://{{ $on.AuthHost }} {
 		respond "OK" 200
 	}
 
+	# Service-to-service API (ALFHEIM_INTERNAL_TOKEN) is internal only and is
+	# never proxied to any upstream.
+	handle /internal/* {
+		respond 404
+	}
+
 	# Exact locale redirects for bare base paths.
 	redir /pantry /pantry/en 302
 	redir /pantry/ /pantry/en 302
@@ -128,6 +140,19 @@ http://{{ $on.AuthHost }} {
 
 	# API gateway proxies on the frontend domain, so browsers can issue
 	# relative /api/v1/... calls without a CORS preflight.
+	#
+	# Caddy sorts handle and handle_path blocks together by path length
+	# (longest first) and runs only the first match, so these Tier-1
+	# household & roles routes win over the generic /api/v1* dashboard route
+	# below. The path is forwarded unchanged: the household backend serves
+	# /api/v1/households and /api/v1/profile itself. No app slug is a prefix
+	# of "households" or "profile", so no /api/v1/<slug>* rule can take them.
+	handle /api/v1/households* {
+		reverse_proxy household-backend:8080
+	}
+	handle /api/v1/profile* {
+		reverse_proxy household-backend:8080
+	}
 {{- range .APIRoutes }}
 	handle_path /api/v1/{{ .Slug }}* {
 		rewrite * /api/v1{path}
@@ -148,6 +173,11 @@ http://{{ $on.AuthHost }} {
 	# Observability.
 	handle /grafana* {
 		reverse_proxy grafana:3000
+	}
+
+	# Household & roles core frontend (Next.js basePath /household).
+	handle /household* {
+		reverse_proxy household-frontend:3000
 	}
 
 	# Application frontends.
