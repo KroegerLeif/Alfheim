@@ -6,24 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
-
-func (r *repository) AddMember(ctx context.Context, m *Member) error {
-	query := `
-		INSERT INTO household_members (household_id, user_id, role)
-		VALUES ($1, $2, $3)
-	`
-	_, err := r.db.Exec(ctx, query, m.HouseholdID, m.UserID, string(m.Role))
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return ErrMemberAlreadyExists
-		}
-		return fmt.Errorf("failed to add member to household: %w", err)
-	}
-	return nil
-}
 
 func (r *repository) RemoveMember(ctx context.Context, householdID string, userID string) error {
 	query := `
@@ -65,7 +48,8 @@ func (r *repository) GetMemberRole(ctx context.Context, householdID string, user
 	var roleStr string
 	err := r.db.QueryRow(ctx, query, householdID, userID).Scan(&roleStr)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		// A malformed (non-UUID) household id can never have members.
+		if errors.Is(err, pgx.ErrNoRows) || isPgError(err, pgInvalidTextRepresentation) {
 			return "", ErrUnauthorizedHouseholdAccess
 		}
 		return "", fmt.Errorf("failed to query member role: %w", err)

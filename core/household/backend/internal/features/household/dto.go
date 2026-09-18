@@ -21,6 +21,7 @@ type HouseholdResponse struct {
 	Latitude  *float64         `json:"latitude,omitempty"`
 	Longitude *float64         `json:"longitude,omitempty"`
 	Role      string           `json:"role,omitempty"`
+	IsDefault bool             `json:"is_default"`
 	Members   []MemberResponse `json:"members,omitempty"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
@@ -75,6 +76,16 @@ type JoinHouseholdRequest struct {
 // UpdateMemberRoleRequest DTO for modifying member privileges.
 type UpdateMemberRoleRequest struct {
 	Role string `json:"role"`
+}
+
+// RenameHouseholdRequest DTO for PATCH /api/v1/households/{id}.
+type RenameHouseholdRequest struct {
+	Name string `json:"name"`
+}
+
+// TransferOwnershipRequest DTO for POST /api/v1/households/{id}/transfer-ownership.
+type TransferOwnershipRequest struct {
+	UserID string `json:"user_id"`
 }
 
 // ToHouseholdResponse converts domain Household entity to response DTO.

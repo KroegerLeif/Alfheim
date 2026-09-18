@@ -18,10 +18,66 @@ type mockService struct {
 	getUserHouseholdsFn      func(ctx context.Context, userID string) ([]HouseholdResponse, error)
 	getHouseholdDetailsFn    func(ctx context.Context, requesterID string, householdID string) (*HouseholdResponse, error)
 	createInviteFn           func(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error)
-	joinHouseholdFn          func(ctx context.Context, userID string, token string) (*HouseholdResponse, error)
+	joinHouseholdFn          func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error)
 	removeMemberFn           func(ctx context.Context, requesterID string, householdID string, targetUserID string) error
 	updateMemberRoleFn       func(ctx context.Context, requesterID string, householdID string, targetUserID string, newRole HouseholdRole) error
 	updateHouseholdAddressFn func(ctx context.Context, requesterID string, householdID string, req UpdateHouseholdAddressRequest) error
+	renameHouseholdFn        func(ctx context.Context, requesterID, householdID string, req RenameHouseholdRequest) (*HouseholdResponse, error)
+	deleteHouseholdFn        func(ctx context.Context, requesterID, householdID string) error
+	transferOwnershipFn      func(ctx context.Context, requesterID, householdID, targetUserID string) (*HouseholdResponse, error)
+	leaveHouseholdFn         func(ctx context.Context, requesterID, householdID string) error
+	setDefaultHouseholdFn    func(ctx context.Context, requesterID, householdID string) error
+	listInvitesFn            func(ctx context.Context, requesterID, householdID string) ([]InviteResponse, error)
+	revokeInviteFn           func(ctx context.Context, requesterID, householdID, token string) error
+}
+
+func (m *mockService) RenameHousehold(ctx context.Context, requesterID, householdID string, req RenameHouseholdRequest) (*HouseholdResponse, error) {
+	if m.renameHouseholdFn != nil {
+		return m.renameHouseholdFn(ctx, requesterID, householdID, req)
+	}
+	return &HouseholdResponse{}, nil
+}
+
+func (m *mockService) DeleteHousehold(ctx context.Context, requesterID, householdID string) error {
+	if m.deleteHouseholdFn != nil {
+		return m.deleteHouseholdFn(ctx, requesterID, householdID)
+	}
+	return nil
+}
+
+func (m *mockService) TransferOwnership(ctx context.Context, requesterID, householdID, targetUserID string) (*HouseholdResponse, error) {
+	if m.transferOwnershipFn != nil {
+		return m.transferOwnershipFn(ctx, requesterID, householdID, targetUserID)
+	}
+	return &HouseholdResponse{}, nil
+}
+
+func (m *mockService) LeaveHousehold(ctx context.Context, requesterID, householdID string) error {
+	if m.leaveHouseholdFn != nil {
+		return m.leaveHouseholdFn(ctx, requesterID, householdID)
+	}
+	return nil
+}
+
+func (m *mockService) SetDefaultHousehold(ctx context.Context, requesterID, householdID string) error {
+	if m.setDefaultHouseholdFn != nil {
+		return m.setDefaultHouseholdFn(ctx, requesterID, householdID)
+	}
+	return nil
+}
+
+func (m *mockService) ListInvites(ctx context.Context, requesterID, householdID string) ([]InviteResponse, error) {
+	if m.listInvitesFn != nil {
+		return m.listInvitesFn(ctx, requesterID, householdID)
+	}
+	return []InviteResponse{}, nil
+}
+
+func (m *mockService) RevokeInvite(ctx context.Context, requesterID, householdID, token string) error {
+	if m.revokeInviteFn != nil {
+		return m.revokeInviteFn(ctx, requesterID, householdID, token)
+	}
+	return nil
 }
 
 func (m *mockService) CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
@@ -52,9 +108,9 @@ func (m *mockService) CreateInvite(ctx context.Context, requesterID string, req 
 	return nil, nil
 }
 
-func (m *mockService) JoinHousehold(ctx context.Context, userID string, token string) (*HouseholdResponse, error) {
+func (m *mockService) JoinHousehold(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
 	if m.joinHouseholdFn != nil {
-		return m.joinHouseholdFn(ctx, userID, token)
+		return m.joinHouseholdFn(ctx, claims, token)
 	}
 	return nil, nil
 }
@@ -387,7 +443,7 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 		name           string
 		claims         *middleware.UserClaims
 		body           string
-		mockFn         func(ctx context.Context, userID string, token string) (*HouseholdResponse, error)
+		mockFn         func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error)
 		expectedStatus int
 		expectedSubstr string
 	}{
@@ -409,7 +465,7 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 			name:   "bad request on invalid or expired invite token",
 			claims: &middleware.UserClaims{Subject: "user-1"},
 			body:   `{"token":"expired-token"}`,
-			mockFn: func(ctx context.Context, userID, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
 				return nil, ErrInviteExpiredOrInvalid
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -419,7 +475,7 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 			name:   "conflict when user already member",
 			claims: &middleware.UserClaims{Subject: "user-1"},
 			body:   `{"token":"valid-token"}`,
-			mockFn: func(ctx context.Context, userID, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
 				return nil, ErrMemberAlreadyExists
 			},
 			expectedStatus: http.StatusConflict,
@@ -429,7 +485,7 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 			name:   "internal error on generic service error",
 			claims: &middleware.UserClaims{Subject: "user-1"},
 			body:   `{"token":"valid-token"}`,
-			mockFn: func(ctx context.Context, userID, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
 				return nil, errors.New("db error")
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -439,7 +495,7 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 			name:   "success joining household",
 			claims: &middleware.UserClaims{Subject: "user-1"},
 			body:   `{"token":"valid-token"}`,
-			mockFn: func(ctx context.Context, userID, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
 				return &HouseholdResponse{ID: "hh-joined", Name: "Joined House"}, nil
 			},
 			expectedStatus: http.StatusOK,
@@ -534,6 +590,42 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedSubstr: "failed to update member role",
+		},
+		{
+			name:         "bad request on invalid role",
+			claims:       &middleware.UserClaims{Subject: "user-1"},
+			hhID:         "hh-1",
+			targetUserID: "user-2",
+			body:         `{"role":"superuser"}`,
+			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string, newRole HouseholdRole) error {
+				return ErrInvalidRole
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedSubstr: "role must be one of",
+		},
+		{
+			name:         "forbidden when assigning OWNER",
+			claims:       &middleware.UserClaims{Subject: "user-1"},
+			hhID:         "hh-1",
+			targetUserID: "user-2",
+			body:         `{"role":"OWNER"}`,
+			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string, newRole HouseholdRole) error {
+				return ErrOwnerRoleNotAssignable
+			},
+			expectedStatus: http.StatusForbidden,
+			expectedSubstr: "transfer-ownership",
+		},
+		{
+			name:         "bad request when changing the owner's role",
+			claims:       &middleware.UserClaims{Subject: "user-1"},
+			hhID:         "hh-1",
+			targetUserID: "owner-1",
+			body:         `{"role":"MEMBER"}`,
+			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string, newRole HouseholdRole) error {
+				return ErrCannotChangeOwnerRole
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedSubstr: "transfer-ownership",
 		},
 		{
 			name:         "success updating member role",

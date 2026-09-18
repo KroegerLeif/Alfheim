@@ -2,10 +2,12 @@ package household
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"alfheim/household/internal/shared/middleware"
 	"github.com/google/uuid"
@@ -28,23 +30,33 @@ func formatSlug(s string) string {
 	return str
 }
 
+// validateHouseholdName trims and checks a household name.
+func validateHouseholdName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || utf8.RuneCountInString(name) > maxHouseholdNameLength {
+		return "", ErrInvalidHouseholdName
+	}
+	return name, nil
+}
+
 func (s *service) CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
-	if req.Name == "" {
-		return nil, fmt.Errorf("household name is required")
+	name, err := validateHouseholdName(req.Name)
+	if err != nil {
+		return nil, err
 	}
 
 	slug := req.Slug
 	if slug == "" {
-		slug = req.Name
+		slug = name
 	}
 	slug = formatSlug(slug)
-	if slug == "" {
-		return nil, fmt.Errorf("invalid household name for slug generation")
+	if slug == "" || len(slug) > maxHouseholdNameLength {
+		return nil, fmt.Errorf("%w: cannot derive a slug", ErrInvalidHouseholdName)
 	}
 
 	h := &Household{
 		ID:      uuid.NewString(),
-		Name:    req.Name,
+		Name:    name,
 		Slug:    slug,
 		OwnerID: claims.Subject,
 	}
@@ -63,6 +75,9 @@ func (s *service) CreateHousehold(ctx context.Context, claims *middleware.UserCl
 			JoinedAt:    time.Now(),
 		},
 	})
+	if defaultID, err := s.repo.GetDefaultHouseholdID(ctx, claims.Subject); err == nil {
+		resp.IsDefault = defaultID == h.ID
+	}
 	return &resp, nil
 }
 
@@ -74,6 +89,11 @@ func (s *service) GetUserHouseholds(ctx context.Context, userID string) ([]House
 
 	if len(households) == 0 {
 		return []HouseholdResponse{}, nil
+	}
+
+	defaultID, err := s.repo.GetDefaultHouseholdID(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Fetch roles concurrently for each household using errgroup
@@ -97,6 +117,7 @@ func (s *service) GetUserHouseholds(ctx context.Context, userID string) ([]House
 				memberResponses[j] = ToMemberResponse(m)
 			}
 			results[index] = ToHouseholdResponse(item, string(role), memberResponses)
+			results[index].IsDefault = item.ID == defaultID
 			return nil
 		})
 	}
@@ -109,15 +130,22 @@ func (s *service) GetUserHouseholds(ctx context.Context, userID string) ([]House
 }
 
 func (s *service) GetHouseholdDetails(ctx context.Context, requesterID string, householdID string) (*HouseholdResponse, error) {
+	// Membership is checked first so non-members get a deterministic 403 and
+	// learn nothing about the household.
+	role, err := s.requireRole(ctx, householdID, requesterID)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
-		h       *Household
-		members []*Member
-		role    HouseholdRole
+		h         *Household
+		members   []*Member
+		defaultID string
 	)
 
 	g, gCtx := errgroup.WithContext(ctx)
 
-	// Fetch household entity, member list, and requester role in parallel
+	// Fetch household entity, member list and default flag in parallel
 	g.Go(func() error {
 		var err error
 		h, err = s.repo.GetHouseholdByID(gCtx, householdID)
@@ -132,7 +160,7 @@ func (s *service) GetHouseholdDetails(ctx context.Context, requesterID string, h
 
 	g.Go(func() error {
 		var err error
-		role, err = s.repo.GetMemberRole(gCtx, householdID, requesterID)
+		defaultID, err = s.repo.GetDefaultHouseholdID(gCtx, requesterID)
 		return err
 	})
 
@@ -146,18 +174,71 @@ func (s *service) GetHouseholdDetails(ctx context.Context, requesterID string, h
 	}
 
 	resp := ToHouseholdResponse(h, string(role), memberResponses)
+	resp.IsDefault = defaultID == householdID
 	return &resp, nil
 }
 
 func (s *service) UpdateHouseholdAddress(ctx context.Context, requesterID string, householdID string, req UpdateHouseholdAddressRequest) error {
-	role, err := s.repo.GetMemberRole(ctx, householdID, requesterID)
-	if err != nil {
+	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner, RoleAdmin); err != nil {
 		return err
 	}
 
-	if role != RoleOwner && role != RoleAdmin {
-		return ErrUnauthorizedHouseholdAccess
-	}
-
 	return s.repo.UpdateHouseholdAddress(ctx, householdID, req.Street, req.Zip, req.City, req.Country, req.Latitude, req.Longitude)
+}
+
+func (s *service) RenameHousehold(ctx context.Context, requesterID string, householdID string, req RenameHouseholdRequest) (*HouseholdResponse, error) {
+	name, err := validateHouseholdName(req.Name)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner, RoleAdmin); err != nil {
+		return nil, err
+	}
+	if err := s.repo.RenameHousehold(ctx, householdID, name); err != nil {
+		return nil, err
+	}
+	s.log.Info("renamed household", slog.String("household_id", householdID), slog.String("user_id", requesterID))
+	return s.GetHouseholdDetails(ctx, requesterID, householdID)
+}
+
+func (s *service) DeleteHousehold(ctx context.Context, requesterID string, householdID string) error {
+	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner); err != nil {
+		return err
+	}
+	if err := s.repo.DeleteHousehold(ctx, householdID); err != nil {
+		return err
+	}
+	s.log.Info("deleted household", slog.String("household_id", householdID), slog.String("user_id", requesterID))
+	return nil
+}
+
+func (s *service) TransferOwnership(ctx context.Context, requesterID string, householdID string, targetUserID string) (*HouseholdResponse, error) {
+	targetUserID = strings.TrimSpace(targetUserID)
+	if targetUserID == "" || targetUserID == requesterID {
+		return nil, ErrInvalidTransferTarget
+	}
+	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner); err != nil {
+		return nil, err
+	}
+	if _, err := s.repo.GetMemberRole(ctx, householdID, targetUserID); err != nil {
+		if errors.Is(err, ErrUnauthorizedHouseholdAccess) {
+			return nil, ErrMemberNotFound
+		}
+		return nil, err
+	}
+	if err := s.repo.TransferOwnershipTx(ctx, householdID, requesterID, targetUserID); err != nil {
+		return nil, err
+	}
+	s.log.Info("transferred household ownership",
+		slog.String("household_id", householdID),
+		slog.String("from_user_id", requesterID),
+		slog.String("to_user_id", targetUserID))
+	return s.GetHouseholdDetails(ctx, requesterID, householdID)
+}
+
+func (s *service) SetDefaultHousehold(ctx context.Context, requesterID string, householdID string) error {
+	if _, err := s.requireRole(ctx, householdID, requesterID); err != nil {
+		return err
+	}
+	return s.repo.SetDefaultHouseholdTx(ctx, requesterID, householdID)
 }

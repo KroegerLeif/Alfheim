@@ -13,6 +13,26 @@ const (
 	RoleGuest  HouseholdRole = "GUEST"
 )
 
+// ParseRole validates a role string. Only the exact upper-case names OWNER,
+// ADMIN, MEMBER and GUEST are accepted; anything else yields ErrInvalidRole.
+func ParseRole(s string) (HouseholdRole, error) {
+	switch r := HouseholdRole(s); r {
+	case RoleOwner, RoleAdmin, RoleMember, RoleGuest:
+		return r, nil
+	default:
+		return "", ErrInvalidRole
+	}
+}
+
+// CanManage reports whether the role may administer a household
+// (invites, member roles, address, name).
+func (r HouseholdRole) CanManage() bool {
+	return r == RoleOwner || r == RoleAdmin
+}
+
+// maxHouseholdNameLength mirrors households.name VARCHAR(150).
+const maxHouseholdNameLength = 150
+
 // Household represents a household business domain entity.
 type Household struct {
 	ID        string    `json:"id"`
@@ -52,15 +72,4 @@ type Invite struct {
 	MaxUses     int           `json:"max_uses"`
 	Uses        int           `json:"uses"`
 	CreatedAt   time.Time     `json:"created_at"`
-}
-
-// IsValid checks whether an invitation is expired or has reached its usage limit.
-func (i *Invite) IsValid() bool {
-	if time.Now().After(i.ExpiresAt) {
-		return false
-	}
-	if i.MaxUses > 0 && i.Uses >= i.MaxUses {
-		return false
-	}
-	return true
 }

@@ -2,6 +2,7 @@ package household_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"testing"
@@ -10,137 +11,6 @@ import (
 	"alfheim/household/internal/features/household"
 	"alfheim/household/internal/shared/middleware"
 )
-
-type mockRepository struct {
-	households map[string]*household.Household
-	members    map[string]map[string]household.HouseholdRole
-	invites    map[string]*household.Invite
-}
-
-func newMockRepository() *mockRepository {
-	return &mockRepository{
-		households: make(map[string]*household.Household),
-		members:    make(map[string]map[string]household.HouseholdRole),
-		invites:    make(map[string]*household.Invite),
-	}
-}
-
-func (m *mockRepository) CreateHouseholdTx(ctx context.Context, h *household.Household, ownerEmail, ownerUsername string) error {
-	h.ID = "test-household-id-1"
-	h.CreatedAt = time.Now()
-	h.UpdatedAt = time.Now()
-	m.households[h.ID] = h
-
-	if m.members[h.ID] == nil {
-		m.members[h.ID] = make(map[string]household.HouseholdRole)
-	}
-	m.members[h.ID][h.OwnerID] = household.RoleOwner
-	return nil
-}
-
-func (m *mockRepository) GetHouseholdByID(ctx context.Context, id string) (*household.Household, error) {
-	h, ok := m.households[id]
-	if !ok {
-		return nil, household.ErrHouseholdNotFound
-	}
-	return h, nil
-}
-
-func (m *mockRepository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*household.Household, error) {
-	var res []*household.Household
-	for hid, userRoles := range m.members {
-		if _, ok := userRoles[userID]; ok {
-			res = append(res, m.households[hid])
-		}
-	}
-	return res, nil
-}
-
-func (m *mockRepository) AddMember(ctx context.Context, mem *household.Member) error {
-	if m.members[mem.HouseholdID] == nil {
-		m.members[mem.HouseholdID] = make(map[string]household.HouseholdRole)
-	}
-	if _, exists := m.members[mem.HouseholdID][mem.UserID]; exists {
-		return household.ErrMemberAlreadyExists
-	}
-	m.members[mem.HouseholdID][mem.UserID] = mem.Role
-	return nil
-}
-
-func (m *mockRepository) RemoveMember(ctx context.Context, householdID string, userID string) error {
-	if m.members[householdID] == nil {
-		return household.ErrMemberNotFound
-	}
-	delete(m.members[householdID], userID)
-	return nil
-}
-
-func (m *mockRepository) UpdateMemberRole(ctx context.Context, householdID string, userID string, role household.HouseholdRole) error {
-	if m.members[householdID] == nil || m.members[householdID][userID] == "" {
-		return household.ErrMemberNotFound
-	}
-	m.members[householdID][userID] = role
-	return nil
-}
-
-func (m *mockRepository) GetMemberRole(ctx context.Context, householdID string, userID string) (household.HouseholdRole, error) {
-	if m.members[householdID] == nil {
-		return "", household.ErrUnauthorizedHouseholdAccess
-	}
-	role, ok := m.members[householdID][userID]
-	if !ok {
-		return "", household.ErrUnauthorizedHouseholdAccess
-	}
-	return role, nil
-}
-
-func (m *mockRepository) GetMembers(ctx context.Context, householdID string) ([]*household.Member, error) {
-	var res []*household.Member
-	userRoles := m.members[householdID]
-	for uid, r := range userRoles {
-		res = append(res, &household.Member{
-			HouseholdID: householdID,
-			UserID:      uid,
-			Role:        r,
-			JoinedAt:    time.Now(),
-		})
-	}
-	return res, nil
-}
-
-func (m *mockRepository) CreateInvite(ctx context.Context, invite *household.Invite) error {
-	m.invites[invite.Token] = invite
-	return nil
-}
-
-func (m *mockRepository) GetInviteByToken(ctx context.Context, token string) (*household.Invite, error) {
-	inv, ok := m.invites[token]
-	if !ok {
-		return nil, household.ErrInviteNotFound
-	}
-	return inv, nil
-}
-
-func (m *mockRepository) IncrementInviteUses(ctx context.Context, token string) error {
-	if inv, ok := m.invites[token]; ok {
-		inv.Uses++
-	}
-	return nil
-}
-
-func (m *mockRepository) UpdateHouseholdAddress(ctx context.Context, id string, street, zip, city, country string, latitude, longitude *float64) error {
-	h, ok := m.households[id]
-	if !ok {
-		return household.ErrHouseholdNotFound
-	}
-	h.Street = street
-	h.Zip = zip
-	h.City = city
-	h.Country = country
-	h.Latitude = latitude
-	h.Longitude = longitude
-	return nil
-}
 
 func TestHouseholdService_CreateAndInvite(t *testing.T) {
 	repo := newMockRepository()
@@ -185,7 +55,7 @@ func TestHouseholdService_CreateAndInvite(t *testing.T) {
 
 	// Member joins via token
 	joinUserID := "user-member-456"
-	joinedH, err := svc.JoinHousehold(ctx, joinUserID, invResp.Token)
+	joinedH, err := svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: joinUserID}, invResp.Token)
 	if err != nil {
 		t.Fatalf("expected member to join household via token, got error: %v", err)
 	}
@@ -293,41 +163,6 @@ func TestHouseholdService_UpdateHouseholdAddress(t *testing.T) {
 	}
 }
 
-func TestHouseholdInvite_IsValid(t *testing.T) {
-	t.Run("valid invite", func(t *testing.T) {
-		inv := &household.Invite{
-			ExpiresAt: time.Now().Add(time.Hour),
-			MaxUses:   5,
-			Uses:      2,
-		}
-		if !inv.IsValid() {
-			t.Errorf("expected invite to be valid")
-		}
-	})
-
-	t.Run("expired invite", func(t *testing.T) {
-		inv := &household.Invite{
-			ExpiresAt: time.Now().Add(-time.Hour),
-			MaxUses:   5,
-			Uses:      0,
-		}
-		if inv.IsValid() {
-			t.Errorf("expected expired invite to be invalid")
-		}
-	})
-
-	t.Run("max uses reached", func(t *testing.T) {
-		inv := &household.Invite{
-			ExpiresAt: time.Now().Add(time.Hour),
-			MaxUses:   2,
-			Uses:      2,
-		}
-		if inv.IsValid() {
-			t.Errorf("expected invite with max uses reached to be invalid")
-		}
-	})
-}
-
 func TestHouseholdService_EdgeCases(t *testing.T) {
 	repo := newMockRepository()
 	discardLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -369,7 +204,7 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("JoinHousehold invalid token", func(t *testing.T) {
-		_, err := svc.JoinHousehold(ctx, "new-user", "non-existent-token")
+		_, err := svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "new-user"}, "non-existent-token")
 		if err != household.ErrInviteNotFound {
 			t.Errorf("expected ErrInviteNotFound, got %v", err)
 		}
@@ -378,8 +213,9 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 			Token:       "expired-token",
 			HouseholdID: hhID,
 			ExpiresAt:   time.Now().Add(-time.Hour),
+			MaxUses:     1,
 		}
-		_, err = svc.JoinHousehold(ctx, "new-user", "expired-token")
+		_, err = svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "new-user"}, "expired-token")
 		if err != household.ErrInviteExpiredOrInvalid {
 			t.Errorf("expected ErrInviteExpiredOrInvalid, got %v", err)
 		}
@@ -387,7 +223,7 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 
 	t.Run("UpdateMemberRole trying to change owner role", func(t *testing.T) {
 		err := svc.UpdateMemberRole(ctx, ownerID, hhID, ownerID, household.RoleMember)
-		if err == nil || err.Error() != "cannot change role of household owner" {
+		if !errors.Is(err, household.ErrCannotChangeOwnerRole) {
 			t.Errorf("expected cannot change role error, got %v", err)
 		}
 	})

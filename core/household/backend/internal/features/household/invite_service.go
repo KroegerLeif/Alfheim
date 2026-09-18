@@ -7,16 +7,29 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"alfheim/household/internal/shared/middleware"
 )
 
 func (s *service) CreateInvite(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error) {
-	role, err := s.repo.GetMemberRole(ctx, req.HouseholdID, requesterID)
-	if err != nil {
+	targetRole := RoleMember
+	if req.Role != "" {
+		role, err := ParseRole(req.Role)
+		if err != nil {
+			return nil, err
+		}
+		targetRole = role
+	}
+
+	if _, err := s.requireRole(ctx, req.HouseholdID, requesterID, RoleOwner, RoleAdmin); err != nil {
 		return nil, err
 	}
 
-	if role != RoleOwner && role != RoleAdmin {
-		return nil, ErrUnauthorizedHouseholdAccess
+	// Nobody can invite someone as OWNER: that would let an ADMIN escalate
+	// (by redeeming their own invite on a second account) and there is exactly
+	// one owner, changed only via transfer-ownership.
+	if targetRole == RoleOwner {
+		return nil, ErrOwnerRoleNotAssignable
 	}
 
 	tokenBytes := make([]byte, 32)
@@ -33,11 +46,6 @@ func (s *service) CreateInvite(ctx context.Context, requesterID string, req Crea
 	maxUses := 1
 	if req.MaxUses > 0 {
 		maxUses = req.MaxUses
-	}
-
-	targetRole := RoleMember
-	if req.Role != "" {
-		targetRole = HouseholdRole(req.Role)
 	}
 
 	invite := &Invite{
@@ -60,29 +68,39 @@ func (s *service) CreateInvite(ctx context.Context, requesterID string, req Crea
 	return &resp, nil
 }
 
-func (s *service) JoinHousehold(ctx context.Context, userID string, token string) (*HouseholdResponse, error) {
-	invite, err := s.repo.GetInviteByToken(ctx, token)
+func (s *service) ListInvites(ctx context.Context, requesterID string, householdID string) ([]InviteResponse, error) {
+	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner, RoleAdmin); err != nil {
+		return nil, err
+	}
+	invites, err := s.repo.ListActiveInvites(ctx, householdID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]InviteResponse, len(invites))
+	for i, inv := range invites {
+		res[i] = ToInviteResponse(inv)
+	}
+	return res, nil
+}
+
+func (s *service) RevokeInvite(ctx context.Context, requesterID string, householdID string, token string) error {
+	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner, RoleAdmin); err != nil {
+		return err
+	}
+	if err := s.repo.DeleteInvite(ctx, householdID, token); err != nil {
+		return err
+	}
+	s.log.Info("revoked household invite", slog.String("household_id", householdID), slog.String("user_id", requesterID))
+	return nil
+}
+
+// JoinHousehold redeems an invite token atomically (see RedeemInviteTx).
+func (s *service) JoinHousehold(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+	invite, err := s.repo.RedeemInviteTx(ctx, token, claims.Subject, claims.Email, claims.PreferredUsername)
 	if err != nil {
 		return nil, err
 	}
 
-	if !invite.IsValid() {
-		return nil, ErrInviteExpiredOrInvalid
-	}
-
-	member := &Member{
-		HouseholdID: invite.HouseholdID,
-		UserID:      userID,
-		Role:        invite.Role,
-		JoinedAt:    time.Now(),
-	}
-
-	if err := s.repo.AddMember(ctx, member); err != nil {
-		return nil, err
-	}
-
-	_ = s.repo.IncrementInviteUses(ctx, token)
-
-	s.log.Info("user joined household via invite", slog.String("user_id", userID), slog.String("household_id", invite.HouseholdID))
-	return s.GetHouseholdDetails(ctx, userID, invite.HouseholdID)
+	s.log.Info("user joined household via invite", slog.String("user_id", claims.Subject), slog.String("household_id", invite.HouseholdID))
+	return s.GetHouseholdDetails(ctx, claims.Subject, invite.HouseholdID)
 }

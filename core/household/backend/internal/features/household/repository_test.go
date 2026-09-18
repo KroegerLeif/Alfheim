@@ -333,7 +333,7 @@ func TestRepository_Households(t *testing.T) {
 func TestRepository_Invites(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("CreateInvite and IncrementInviteUses success", func(t *testing.T) {
+	t.Run("CreateInvite success", func(t *testing.T) {
 		dbtxOK := &mockDBTX{
 			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
 				return pgconn.NewCommandTag("INSERT 0 1"), nil
@@ -343,53 +343,14 @@ func TestRepository_Invites(t *testing.T) {
 		if err := repoOK.CreateInvite(ctx, &Invite{Token: "tok1", Role: RoleMember}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if err := repoOK.IncrementInviteUses(ctx, "tok1"); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
 	})
 
-	t.Run("GetInviteByToken not found and success", func(t *testing.T) {
-		dbtxNF := &mockDBTX{
-			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
-				return &mockRow{scanFunc: func(dest ...any) error { return pgx.ErrNoRows }}
-			},
-		}
-		repoNF := newRepositoryWithDB(dbtxNF)
-		if _, err := repoNF.GetInviteByToken(ctx, "tok999"); !errors.Is(err, ErrInviteNotFound) {
-			t.Errorf("expected ErrInviteNotFound, got %v", err)
-		}
-
-		now := time.Now()
-		dbtxOK := &mockDBTX{
-			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
-				return &mockRow{scanFunc: func(dest ...any) error {
-					*dest[0].(*string) = "tok1"
-					*dest[1].(*string) = "h1"
-					*dest[2].(*string) = "u1"
-					*dest[3].(*string) = "MEMBER"
-					*dest[4].(*time.Time) = now
-					*dest[5].(*int) = 5
-					*dest[6].(*int) = 1
-					*dest[7].(*time.Time) = now
-					return nil
-				}}
-			},
-		}
-		repoOK := newRepositoryWithDB(dbtxOK)
-		inv, err := repoOK.GetInviteByToken(ctx, "tok1")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if inv.Role != RoleMember || inv.MaxUses != 5 {
-			t.Errorf("unexpected invite: %+v", inv)
-		}
-	})
 }
 
 func TestRepository_Members(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("AddMember, RemoveMember, UpdateMemberRole, GetMemberRole, GetMembers", func(t *testing.T) {
+	t.Run("RemoveMember, UpdateMemberRole, GetMemberRole, GetMembers", func(t *testing.T) {
 		dbtxOK := &mockDBTX{
 			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
 				return pgconn.NewCommandTag("OK 1"), nil
@@ -410,9 +371,6 @@ func TestRepository_Members(t *testing.T) {
 		}
 		repo := newRepositoryWithDB(dbtxOK)
 
-		if err := repo.AddMember(ctx, &Member{HouseholdID: "h1", UserID: "u1", Role: RoleAdmin}); err != nil {
-			t.Fatalf("unexpected AddMember err: %v", err)
-		}
 		if err := repo.UpdateMemberRole(ctx, "h1", "u1", RoleAdmin); err != nil {
 			t.Fatalf("unexpected UpdateMemberRole err: %v", err)
 		}
@@ -443,9 +401,6 @@ func TestRepository_Members(t *testing.T) {
 		}
 		repo := newRepositoryWithDB(dbtxErr)
 
-		if err := repo.AddMember(ctx, &Member{HouseholdID: "h1", UserID: "u1"}); err == nil {
-			t.Error("expected error from AddMember")
-		}
 		if err := repo.RemoveMember(ctx, "h1", "u1"); err == nil {
 			t.Error("expected error from RemoveMember")
 		}
@@ -485,30 +440,6 @@ func TestRepository_InvitesAndAddressErrors(t *testing.T) {
 		err := repo.CreateInvite(ctx, &Invite{HouseholdID: "h1"})
 		if err == nil {
 			t.Fatal("expected error from CreateInvite")
-		}
-	})
-
-	t.Run("GetInviteByToken underlying DB error", func(t *testing.T) {
-		repo := newRepositoryWithDB(&mockDBTX{
-			queryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
-				return &mockRow{scanFunc: func(dest ...any) error { return dbErr }}
-			},
-		})
-		_, err := repo.GetInviteByToken(ctx, "token")
-		if err == nil || errors.Is(err, ErrInviteNotFound) {
-			t.Fatalf("expected DB error, got %v", err)
-		}
-	})
-
-	t.Run("IncrementInviteUses error", func(t *testing.T) {
-		repo := newRepositoryWithDB(&mockDBTX{
-			execFunc: func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
-				return pgconn.NewCommandTag(""), dbErr
-			},
-		})
-		err := repo.IncrementInviteUses(ctx, "token")
-		if err == nil {
-			t.Fatal("expected error from IncrementInviteUses")
 		}
 	})
 

@@ -22,14 +22,20 @@ type Service interface {
 	DeleteContact(ctx context.Context, requesterID, householdID, contactID string) error
 }
 
+// MembershipReader resolves a user's role in a household. It is satisfied by
+// household.Repository; contacts only need this one lookup for authorization.
+type MembershipReader interface {
+	GetMemberRole(ctx context.Context, householdID string, userID string) (household.HouseholdRole, error)
+}
+
 type service struct {
 	repo          Repository
-	householdRepo household.Repository
+	householdRepo MembershipReader
 	log           *slog.Logger
 }
 
 // NewService constructs a Contact Service instance.
-func NewService(repo Repository, householdRepo household.Repository, log *slog.Logger) Service {
+func NewService(repo Repository, householdRepo MembershipReader, log *slog.Logger) Service {
 	return &service{
 		repo:          repo,
 		householdRepo: householdRepo,
