@@ -12,6 +12,10 @@ services:
       - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:-dev-internal-token-change-me}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -24,6 +28,8 @@ services:
       start_period: 15s
     depends_on:
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
