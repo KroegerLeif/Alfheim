@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { choresClient } from "@/core/api";
 import { ChoreInstanceRead } from "../types";
-import { choreKeys, useActiveHouseholdId } from "./choresService";
+import { useActiveHousehold } from "@alfheim/shared";
+import { choreKeys } from "./choresService";
 
 export function useAssignChoreInstance() {
   const queryClient = useQueryClient();
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId } = useActiveHousehold();
 
   return useMutation<ChoreInstanceRead, Error, { id: string; assignedTo: string | null; dueDate?: string }, { prevInstances?: ChoreInstanceRead[]; key: readonly unknown[] }>({
     mutationFn: ({ id, assignedTo }) =>
@@ -42,7 +43,7 @@ export function useAssignChoreInstance() {
 
 export function useCompleteChoreInstance() {
   const queryClient = useQueryClient();
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId } = useActiveHousehold();
 
   return useMutation<ChoreInstanceRead, Error, { id: string; dueDate?: string }, { prevInstances?: ChoreInstanceRead[]; key: readonly unknown[] }>({
     mutationFn: ({ id }) =>
