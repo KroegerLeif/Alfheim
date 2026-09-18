@@ -33,6 +33,8 @@ services:
       WORKOUT_POSTGRES_PASSWORD: ${WORKOUT_POSTGRES_PASSWORD:-postgres}
       LIBRARY_POSTGRES_USER: ${LIBRARY_POSTGRES_USER:-library_user}
       LIBRARY_POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:-postgres}
+      HOUSEHOLD_POSTGRES_USER: ${HOUSEHOLD_POSTGRES_USER:-household_user}
+      HOUSEHOLD_POSTGRES_PASSWORD: ${HOUSEHOLD_POSTGRES_PASSWORD:-postgres}
     volumes:
       - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
       - ./postgres/data:/var/lib/postgresql/data
@@ -96,7 +98,11 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2519-04-01T08:45:00Z"
       ZITADEL_FIRSTINSTANCE_PATPATH: /machinekey/pat.txt
     volumes:
-      - ./zitadel/machinekey:/machinekey
+      # Named volume, not a bind mount: the image runs as uid 1000, and a
+      # host directory would need a root-only chown first (impossible
+      # without sudo on a dev Mac). zitadel-machinekey-init chowns it.
+      # Read the PAT with: docker compose cp zitadel:/machinekey/pat.txt <dest>
+      - zitadel_machinekey:/machinekey
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
       interval: 5s
@@ -106,10 +112,29 @@ services:
     depends_on:
       postgres-core:
         condition: service_healthy
+      zitadel-machinekey-init:
+        condition: service_completed_successfully
     networks:
       - infra-net
       - gateway-net
     stop_grace_period: 10s
+
+  # One-shot: hands the machinekey volume to Zitadel's container user
+  # (uid:gid 1000:1000 in ghcr.io/zitadel/zitadel). A fresh named volume is
+  # root-owned, and Zitadel writing its first-instance PAT into it would fail
+  # with "open /machinekey/pat.txt: permission denied", leaving the
+  # 03_default_instance migration half-applied (every restart then fails with
+  # Errors.Instance.Domain.AlreadyExists). Runs as root inside the Docker VM,
+  # so it needs no sudo on the host and works the same on macOS and Linux.
+  zitadel-machinekey-init:
+    image: alpine:3.20
+    container_name: alfheim_zitadel_machinekey_init
+    user: "0:0"
+    restart: "no"
+    command: ["sh", "-c", "chown 1000:1000 /machinekey && chmod 0700 /machinekey"]
+    volumes:
+      - zitadel_machinekey:/machinekey
+    network_mode: none
 
   mailpit:
     image: axllent/mailpit:latest
@@ -148,6 +173,7 @@ services:
 
 volumes:
   rustfs_data:
+  zitadel_machinekey:
 
 networks:
   infra-net:

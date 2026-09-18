@@ -322,6 +322,36 @@ migrate_existing_env() {
     migrated=true
   fi
 
+  # 5c. Household app (core/household). Appended only when absent, and the
+  #     internal token only filled when empty, so existing values survive a
+  #     re-run. A fresh password here is fine: household-db-init applies it
+  #     to household_user on every start.
+  if ! grep -q "^HOUSEHOLD_POSTGRES_USER=" "$env_file"; then
+    echo "HOUSEHOLD_POSTGRES_USER=household_user" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^HOUSEHOLD_POSTGRES_DB=" "$env_file"; then
+    echo "HOUSEHOLD_POSTGRES_DB=alfheim_household" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^HOUSEHOLD_POSTGRES_PASSWORD=" "$env_file"; then
+    echo "HOUSEHOLD_POSTGRES_PASSWORD=$(generate_secret 24)" >> "$env_file"
+    migrated=true
+  fi
+  # An empty value or the .env.example placeholder counts as missing.
+  if ! grep -qE "^ALFHEIM_INTERNAL_TOKEN=.+" "$env_file" \
+    || grep -qxF "ALFHEIM_INTERNAL_TOKEN=change-me-internal-token" "$env_file"; then
+    local internal_token
+    internal_token="$(generate_secret 64)"
+    if grep -q "^ALFHEIM_INTERNAL_TOKEN=" "$env_file"; then
+      sed -i.bak -e "s|^ALFHEIM_INTERNAL_TOKEN=.*|ALFHEIM_INTERNAL_TOKEN=${internal_token}|" "$env_file" && rm -f "${env_file}.bak"
+    else
+      echo "ALFHEIM_INTERNAL_TOKEN=${internal_token}" >> "$env_file"
+    fi
+    migrated=true
+    log_warn "Generated missing ALFHEIM_INTERNAL_TOKEN in $(basename "$env_file")"
+  fi
+
   # 6. Rename legacy identity-provider variables (issue #358).
   #    ADR 0003 replaced Keycloak with Zitadel; the variable names followed in
   #    this release. Old names are rewritten in place so existing installations
@@ -667,6 +697,13 @@ if ! grep -q '^GRAFANA_OIDC_CLIENT_ID=' "$OUTPUT_FILE"; then
 fi
 if ! grep -q '^GRAFANA_SIGNOUT_REDIRECT_URL=' "$OUTPUT_FILE"; then
   printf "GRAFANA_SIGNOUT_REDIRECT_URL=%s\n" "${GRAFANA_SIGNOUT_REDIRECT_URL}" >> "$OUTPUT_FILE"
+fi
+
+if ! grep -q '^HOUSEHOLD_POSTGRES_PASSWORD=' "$OUTPUT_FILE"; then
+  printf "HOUSEHOLD_POSTGRES_USER=household_user\nHOUSEHOLD_POSTGRES_PASSWORD=%s\nHOUSEHOLD_POSTGRES_DB=alfheim_household\n" "${HOUSEHOLD_PW}" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^ALFHEIM_INTERNAL_TOKEN=' "$OUTPUT_FILE"; then
+  printf "ALFHEIM_INTERNAL_TOKEN=%s\n" "${INTERNAL_TOKEN}" >> "$OUTPUT_FILE"
 fi
 
 # Restrict file permissions to current user only (0600)

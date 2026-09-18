@@ -106,20 +106,25 @@ shell script.
 
 Zitadel has no admin CLI, so this drives the Management API through Caddy. It
 authenticates with the personal access token that Zitadel writes to
-`infrastructure/zitadel/machinekey/pat.txt` while creating its first instance
-(`ZITADEL_FIRSTINSTANCE_PATPATH`); that PAT is also copied into `.env`
+`/machinekey/pat.txt` while creating its first instance
+(`ZITADEL_FIRSTINSTANCE_PATPATH`). In the development stack that path is the
+`zitadel_machinekey` Docker volume; `scripts/up.sh` copies the file out with
+`docker compose cp` into a private temp file and also stores the PAT in `.env`
 (`ZITADEL_BOOTSTRAP_PAT`), so a later run against an already-initialised
-Zitadel still has it even if the machinekey file is gone. A Zitadel client id
+Zitadel still has it even if the volume is gone. A production install keeps
+the installer's bind mount at `infrastructure/zitadel/machinekey/`. A Zitadel client id
 is generated rather than chosen, and a client secret is returned exactly
 once, so `.env` — not Zitadel — is the source of truth for the secret; a
 missing or mismatched one is repaired by regenerating it.
 
 ### Usage Syntax
 ```bash
+docker compose cp zitadel:/machinekey/pat.txt ./pat.txt   # development stack
 go run ./tools/installer/cmd/alfheim-setup provision \
   --env-file .env \
-  --pat-file infrastructure/zitadel/machinekey/pat.txt \
+  --pat-file ./pat.txt \
   --zitadel-url http://127.0.0.1:80
+rm ./pat.txt
 ```
 
 ### Options & Flags

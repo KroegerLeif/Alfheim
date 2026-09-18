@@ -119,8 +119,25 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 		reverse_proxy library-backend:8000
 	}
 
+	# Household app (core/household): households, memberships and the user
+	# profile, path preserved. Caddy sorts handle blocks by path length, so
+	# these win over the dashboard /api/v1/* catch-all below.
+	handle /api/v1/households* {
+		reverse_proxy household-backend:8080
+	}
+	handle /api/v1/profile* {
+		reverse_proxy household-backend:8080
+	}
+
 	handle /api/v1/* {
 		reverse_proxy dashboard-backend:8080
+	}
+
+	# Service-to-service endpoints (ALFHEIM_INTERNAL_TOKEN) are never exposed
+	# through the gateway.
+	@internal path /internal /internal/*
+	handle @internal {
+		respond 404
 	}
 
 	# RustFS S3 Storage Ingress Gateway & Presigned URL Handler
@@ -129,6 +146,9 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 	}
 
 	# Microfrontend proxies (keep basePath prefix intact for Next.js apps)
+	handle /household* {
+		reverse_proxy household-frontend:3000
+	}
 	handle /pantry* {
 		reverse_proxy pantry-frontend:3000
 	}
@@ -301,9 +321,24 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 		reverse_proxy chat-backend:8080
 	}
 
-	# Dashboard Backend (Go backend expects /api/v1/apps, /profile, /households, /telemetry)
+	# Household API (core/household), path preserved. Same routes as on the
+	# frontend host; longer paths than the dashboard catch-all, so they win.
+	handle /api/v1/households* {
+		reverse_proxy household-backend:8080
+	}
+	handle /api/v1/profile* {
+		reverse_proxy household-backend:8080
+	}
+
+	# Dashboard Backend (Go backend: /api/v1/apps, /telemetry, ...)
 	handle /api/v1/* {
 		reverse_proxy dashboard-backend:8080
+	}
+
+	# Service-to-service endpoints are never exposed through the gateway.
+	@internal path /internal /internal/*
+	handle @internal {
+		respond 404
 	}
 
 	# RustFS S3 Storage Ingress Gateway & Presigned URL Handler
