@@ -15,6 +15,7 @@ sidebar:
 - [Objektspeicher (RustFS S3)](#objektspeicher-rustfs-s3)
 - [Beobachtungs-Stack (VictoriaStack & Telemetrie)](#beobachtungs-stack-victoriastack--telemetrie)
 - [Microservice-Backend-Variablen](#microservice-backend-variablen)
+- [Haushalts- & Rollendienst (`core/household`)](#haushalts---rollendienst-corehousehold)
 - [Microfrontend-Umgebungsvariablen](#microfrontend-umgebungsvariablen)
 
 ---
@@ -96,6 +97,20 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Interne URL für Shopping-List-Dienst zum Erreichen der Speisekammer-Inventar-API |
 | `GOOGLE_BOOKS_API_KEY` | _(leer)_ | Google Books API-Schlüssel für Bibliotheks-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
 | `TMDB_API_KEY` | _(leer)_ | The Movie Database API-Schlüssel für Bibliotheks-Medien-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
+
+---
+
+## Haushalts- & Rollendienst (`core/household`)
+
+Tier-1-Kerndienst, dem Haushalte und Mitgliederrollen gehören. `compose.prod.yaml` betreibt ihn als `household-backend` (Go, Port `8080`, Health-Check `GET /healthz`) und `household-frontend` (Next.js, Port `3000`, basePath `/household`). Das Frontend erhält dieselben Variablen wie `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` aus `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
+
+| Variable | Standardwert | Beschreibung |
+| :--- | :--- | :--- |
+| `HOUSEHOLD_POSTGRES_USER` | `household_user` | Datenbankrolle des Household-Backends |
+| `HOUSEHOLD_POSTGRES_PASSWORD` | `postgres` | Passwort von `household_user`. `alfheim-setup` erzeugt einen zufälligen Wert mit 32 Zeichen; ein einfaches Day-2-Update ergänzt ihn in einer älteren `.env`, ohne bestehende Secrets anzufassen |
+| `HOUSEHOLD_POSTGRES_DB` | `alfheim_household` | Datenbank des Household-Backends, angelegt von `infrastructure/postgres/init-multiple-dbs.sh` |
+| `HOUSEHOLD_DATABASE_URL` | _(konstruiert)_ | Optionale vollständige Verbindungszeichenkette; wenn leer, baut `compose.prod.yaml` `postgres://household_user:…@postgres-core:5432/alfheim_household?sslmode=disable` |
+| `ALFHEIM_INTERNAL_TOKEN` | `change-me-internal-token` | Gemeinsames Secret für Service-zu-Service-Aufrufe an die `/internal/*`-API des Household-Backends. `alfheim-setup` erzeugt 32 Zufallsbytes (64 Hex-Zeichen) und erzeugt einen vorhandenen Wert nie neu. Caddy routet `/internal/*` nie (Antwort `404` auf beiden Hosts). Bisher erhält nur `household-backend` den Wert |
 
 ---
 
