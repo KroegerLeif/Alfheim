@@ -9,7 +9,7 @@ const locales = ['de', 'en', 'pl'];
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if pathname starts with a locale prefix (e.g. /de/household)
+  // Check if pathname starts with a locale prefix (e.g. /de/settings)
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );

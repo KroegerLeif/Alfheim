@@ -38,7 +38,8 @@ function getAuthToken(): string | null {
 
 /**
  * Centralized HTTP client using `ky`.
- * Features automatic Bearer token injection, active household context headers, and token refresh.
+ * Features automatic Bearer token injection, the active household ID header, and token refresh.
+ * X-Household-Role is never sent: roles are resolved server-side (core/household).
  */
 export const api = ky.create({
   prefix: BASE_URL,
@@ -54,10 +55,6 @@ export const api = ky.create({
           const activeHhId = localStorage.getItem("alfheim_active_household_id");
           if (activeHhId) {
             request.headers.set("X-Household-ID", activeHhId);
-          }
-          const activeRole = localStorage.getItem("alfheim_active_household_role");
-          if (activeRole) {
-            request.headers.set("X-Household-Role", activeRole);
           }
         }
       },

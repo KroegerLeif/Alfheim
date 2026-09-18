@@ -1,5 +1,6 @@
 /**
- * DTO contracts matching Go backend models for apps, profile, and household services.
+ * DTO contracts matching Go backend models for the apps and telemetry services.
+ * Household, profile and contact DTOs live in core/household.
  */
 
 export type TierType = 'core' | 'stack' | 'user';
@@ -56,105 +57,6 @@ export interface AppCatalogResponse {
   internal: AppItem[];
   external: AppItem[];
   total: number;
-}
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  avatar_url: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UpdateProfileRequest {
-  first_name: string;
-  last_name: string;
-  avatar_url: string;
-}
-
-export interface HouseholdMember {
-  household_id: string;
-  user_id: string;
-  email?: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  avatar_url?: string;
-  role: string;
-  joined_at: string;
-}
-
-export interface CreateHouseholdRequest {
-  name: string;
-  slug?: string;
-}
-
-export interface Household {
-  id: string;
-  name: string;
-  slug: string;
-  owner_id: string;
-  street: string;
-  zip: string;
-  city: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-  role?: string;
-  members?: HouseholdMember[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ContactCategory {
-  id: string;
-  household_id: string;
-  name: string;
-  icon: string;
-  color: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Contact {
-  id: string;
-  household_id: string;
-  category_id?: string | null;
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  description: string;
-  links: string[];
-  icon?: string;
-  avatar_url?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateInviteRequest {
-  household_id: string;
-  role: string;
-  ttl_minutes: number;
-  max_uses: number;
-}
-
-export interface InviteCodeResponse {
-  token: string;
-  household_id: string;
-  role: string;
-  expires_at: string;
-  max_uses: number;
-  uses: number;
-}
-
-export interface JoinHouseholdRequest {
-  token: string;
 }
 
 export interface TelemetryMetrics {
