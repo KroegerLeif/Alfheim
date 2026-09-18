@@ -83,6 +83,8 @@ services:
       ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD:?ZITADEL_DB_PASSWORD must be set}
       DASHBOARD_POSTGRES_USER: ${DASHBOARD_POSTGRES_USER:?DASHBOARD_POSTGRES_USER must be set}
       DASHBOARD_POSTGRES_PASSWORD: ${DASHBOARD_POSTGRES_PASSWORD:?DASHBOARD_POSTGRES_PASSWORD must be set}
+      HOUSEHOLD_POSTGRES_USER: ${HOUSEHOLD_POSTGRES_USER:-household_user}
+      HOUSEHOLD_POSTGRES_PASSWORD: ${HOUSEHOLD_POSTGRES_PASSWORD:?HOUSEHOLD_POSTGRES_PASSWORD must be set}
       PANTRY_POSTGRES_USER: ${PANTRY_POSTGRES_USER:?PANTRY_POSTGRES_USER must be set}
       PANTRY_POSTGRES_PASSWORD: ${PANTRY_POSTGRES_PASSWORD:?PANTRY_POSTGRES_PASSWORD must be set}
       SHOPPING_POSTGRES_USER: ${SHOPPING_POSTGRES_USER:?SHOPPING_POSTGRES_USER must be set}
@@ -500,6 +502,83 @@ services:
           cpus: 0.25
         reservations:
           memory: 128m
+          cpus: 0.25
+  # ----------------------------------------------------------------------------
+  # 4b. CORE: HOUSEHOLD & ROLES SERVICE (core/household)
+  # ----------------------------------------------------------------------------
+  household-backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-backend:${IMAGE_TAG:-latest}
+    container_name: household-backend
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      - DATABASE_URL=${HOUSEHOLD_DATABASE_URL:-postgres://${HOUSEHOLD_POSTGRES_USER:-household_user}:${HOUSEHOLD_POSTGRES_PASSWORD:?HOUSEHOLD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${HOUSEHOLD_POSTGRES_DB:-alfheim_household}?sslmode=disable}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Extra PEM roots (the private CA of --tls internal) added to the system
+      # store for OIDC discovery/JWKS. Empty keeps the default trust store.
+      - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
+      # Shared secret guarding the service-to-service /internal/* API. Caddy
+      # never routes /internal/*; only containers on these networks reach it.
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+    volumes:
+      # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
+      - ./infrastructure/ca:/etc/alfheim/ca:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    depends_on:
+      zitadel:
+        condition: service_healthy
+      postgres-core:
+        condition: service_healthy
+    networks:
+      - gateway-net
+      - core-net
+
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.5
+        reservations:
+          memory: 256m
+          cpus: 0.5
+  household-frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-frontend:${IMAGE_TAG:-latest}
+    container_name: household-frontend
+    restart: unless-stopped
+    depends_on:
+      household-backend:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - NODE_OPTIONS=--max-http-header-size=65536
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
+      - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
+      - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+    healthcheck:
+      # Next.js basePath is /household, so / itself is a 404.
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/household', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    networks:
+      - gateway-net
+
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: 0.25
+        reservations:
+          memory: 256m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 5. CHAT ASSISTANT SERVICE
