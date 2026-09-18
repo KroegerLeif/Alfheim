@@ -3,10 +3,12 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 // rpcRequest is a minimal decode target used only by the test server to branch on
@@ -202,6 +204,78 @@ func TestClient_Unreachable(t *testing.T) {
 	if diag.Error == "" {
 		t.Errorf("expected error message in diagnostic result")
 	}
+}
+
+func TestClient_Ping_ClassifiesReachability(t *testing.T) {
+	statusServer := func(status int) *httptest.Server {
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Authorization") != "" {
+				t.Errorf("health probe must not send credentials, got %q", r.Header.Get("Authorization"))
+			}
+			w.Header().Set(headerContentType, contentTypeJSON)
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(`{"detail":"missing bearer token"}`))
+		}))
+		t.Cleanup(s.Close)
+		return s
+	}
+
+	for _, tc := range []struct {
+		name             string
+		status           int
+		wantReachable    bool
+		wantAuthRequired bool
+	}{
+		{"401 auth required is online", http.StatusUnauthorized, true, true},
+		{"403 auth required is online", http.StatusForbidden, true, true},
+		{"500 is offline", http.StatusInternalServerError, false, false},
+		{"503 is offline", http.StatusServiceUnavailable, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			diag := NewClient(statusServer(tc.status).URL).Ping(context.Background())
+			if diag.Reachable != tc.wantReachable || diag.AuthRequired != tc.wantAuthRequired {
+				t.Fatalf("expected reachable=%v auth_required=%v, got %+v", tc.wantReachable, tc.wantAuthRequired, diag)
+			}
+			if !tc.wantReachable && diag.Error == "" {
+				t.Errorf("expected an error message for an offline server")
+			}
+		})
+	}
+
+	t.Run("connection refused is offline", func(t *testing.T) {
+		s := httptest.NewServer(http.NotFoundHandler())
+		url := s.URL
+		s.Close()
+		diag := NewClient(url).Ping(context.Background())
+		if diag.Reachable || diag.AuthRequired || diag.Error == "" {
+			t.Fatalf("expected offline with error, got %+v", diag)
+		}
+	})
+
+	t.Run("timeout is offline", func(t *testing.T) {
+		release := make(chan struct{})
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-release:
+			case <-r.Context().Done():
+			}
+		}))
+		defer s.Close()
+		defer close(release)
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+		diag := NewClient(s.URL).Ping(ctx)
+		if diag.Reachable || diag.AuthRequired {
+			t.Fatalf("expected offline on timeout, got %+v", diag)
+		}
+	})
+
+	t.Run("tool calls surface ErrAuthRequired", func(t *testing.T) {
+		_, _, err := NewClient(statusServer(http.StatusUnauthorized).URL).CallTool(context.Background(), "t", nil)
+		if !errors.Is(err, ErrAuthRequired) {
+			t.Fatalf("expected ErrAuthRequired, got %v", err)
+		}
+	})
 }
 
 func TestClient_Ping_Success(t *testing.T) {

@@ -136,6 +136,7 @@ func run(parentCtx context.Context) error {
 					slog.String("endpoint", d.EndpointURL),
 					slog.Int64("latency_ms", d.LatencyMs),
 					slog.Int("tools_count", d.ToolsCount),
+					slog.Bool("auth_required", d.AuthRequired),
 				)
 			} else {
 				log.Warn("mcp server offline or degraded (chat fallback active)",
