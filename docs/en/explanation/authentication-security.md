@@ -38,7 +38,7 @@ To ensure clear architectural boundaries and keep external identity infrastructu
    - Zitadel does not manage microservice application business data or complex household memberships.
 
 2. **Household Authorization & Context (AuthZ - Alfheim Core)**:
-   - Alfheim Core/Dashboard manages household domain entities, household invitations, member roles (`owner`, `member`, `guest`), and tenant boundaries.
+   - The Tier-1 app `core/household` manages household domain entities, household invitations, member roles (`owner`, `member`, `guest`), contacts, the user profile, and tenant boundaries. The dashboard no longer does: it serves only the app catalog, user preferences and links, and telemetry, and ignores `X-Household-ID` / `X-Household-Role`.
    - Microservices accept authenticated identity tokens from Zitadel and validate household access against active household contexts (`X-Household-ID`) governed by Alfheim Core.
 
 ---
@@ -75,6 +75,8 @@ To enforce strict tenant boundaries across all microservices:
 1. **Request Header Enforcement**: Microservice backends validate that incoming HTTP requests carry a valid `X-Household-ID` header.
 2. **Household Authorization Check**: Backend authentication middleware (`backend_shared.auth` and Go auth handlers) validates user identity (`sub`) and checks household membership authorization via Alfheim Core. The household is taken from the token's `household_id` / `active_household_id` claim; a request whose `X-Household-ID` header disagrees with that claim, or that sends the header with a token carrying no household claim, is rejected with `403`. The header never supplies a household on its own.
 3. **Query Filtering**: Database repository queries filter all reads, writes, updates, and deletes by `household_id == active_household_id`.
+
+The dashboard backend is not household-scoped: its data (preferences, links) is keyed by the user's `sub`, so it neither validates nor rejects `X-Household-ID`, and it never reads or emits `X-Household-Role`.
 
 ---
 

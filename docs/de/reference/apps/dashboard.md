@@ -1,9 +1,11 @@
 ---
 title: "Zentrales Dashboard-Kontrollzentrum"
-description: "Zentrales Kontrollzentrum, Landing-Page-Launcher, Anwendungsregister, Haushaltsverwaltung und Telemetrie-Interface für die Alfheim-Plattform."
+description: "Zentrales Kontrollzentrum, Landing-Page-Launcher, Anwendungsregister und Telemetrie-Interface für die Alfheim-Plattform."
 ---
 
-> **Kurzfassung:** Zentrales Kontrollzentrum, Landing-Page-Launcher, Anwendungsregister, Haushaltsverwaltung und Telemetrie-Interface für die Alfheim-Plattform.
+> **Kurzfassung:** Zentrales Kontrollzentrum, Landing-Page-Launcher, Anwendungsregister und Telemetrie-Interface für die Alfheim-Plattform.
+
+> **Hinweis:** Haushalte, Mitglieder und Rollen, Einladungen, Kontakte und das Benutzerprofil sind in die Tier-1-App `core/household` umgezogen (erreichbar unter `/household`). Das Dashboard stellt `/api/v1/households*` und `/api/v1/profile*` nicht mehr bereit und ignoriert die Header `X-Household-ID` / `X-Household-Role`.
 
 Quelle: [`core/dashboard/`](https://github.com/KroegerLeif/Alfheim/tree/main/core/dashboard)
 
@@ -15,7 +17,7 @@ Quelle: [`core/dashboard/`](https://github.com/KroegerLeif/Alfheim/tree/main/cor
 | :--- | :--- |
 | Einzelner Eingangspunkt für alle Home-Apps | Zentralisierter Dashboard-Launcher, der registrierte Microservices rendert |
 | Gemischtes Ökosystem (Native vs. Homelab) | 3-Tier-Anwendungsregister (Native Kern-Apps, Stack YAML, Benutzer-Lesezeichen) |
-| Multi-Haushalt-Verwaltung | Haushalt-Erstellung, Einladungs-Management und Mitglieds-Rollenausweisung |
+| Haushaltsverwaltung | Launcher-Kachel und Navigationslinks zur App `core/household` (`/household`, `/household/profile`) |
 | System-Gesundheits-Sichtbarkeit | Plattform-Telemetrie-Endpunkte für System-Metriken (CPU, RAM) und Logs |
 
 ---
@@ -38,8 +40,6 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 
 ### FDD Domain-Features (`internal/features/`)
 - `apps`: Einheitliche 3-Tier-Anwendungsregister-Handler und YAML-Loader.
-- `household`: Haushalt-Erstellung, Mitglied-Rollen-Management, Einladungs-Token-Generierung und Kontakt-Verzeichnis.
-- `profile`: Just-In-Time-Benutzer-Profil-Bereitstellung von verifizierten OIDC-Token-Claims.
 - `telemetry`: System-Metriken und Log-Abfragen.
 
 ---
@@ -50,7 +50,7 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 | Service | Interner Port | Host-Mapping / Gateway-Route | Beschreibung |
 | :--- | :--- | :--- | :--- |
 | `postgres-core` | 5432 | Gemeinsame Multi-Zone-Netzwerke | PostgreSQL 16 Kern-Datenbankserver |
-| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/households` | Go REST API Kontrollzentrum |
+| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/user/*`, `/api/v1/telemetry*` | Go REST API Kontrollzentrum |
 | `dashboard-frontend` | 3000 | `alfheim.loegien.localhost/` | Next.js Landing-Page-Kontrollzentrum |
 
 ### Essenzielle Umgebungsvariablen
@@ -67,7 +67,7 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 ## 🗄️ Datenbankschema (PostgreSQL)
 
 Das Go-Kontrollzentrum initialisiert drei Kern-Tabellen via SQL-Migrationen:
-* `user_profiles`: Lokal synchronisierte Benutzerprofile von OIDC-Token-Claims (`id`, `email`, `username`, `first_name`, `last_name`).
+* `user_profiles`: Minimale lokale Benutzerzeile, beim ersten Schreibzugriff Just-In-Time aus den OIDC-Token-Claims angelegt, da `user_preferences` und `user_links` per Fremdschlüssel darauf verweisen. Profildaten verwaltet das Dashboard nicht; sie liegen in `core/household`. Migration `000007` hat die früheren Tabellen `households`, `household_members`, `household_invites`, `contacts` und `contact_categories` entfernt.
 * `user_preferences`: Benutzer-Dashboard-Einstellungen und versteckte Kern-App-IDs (`hidden_app_ids TEXT[]`).
 * `user_links`: Persönliche benutzerdefinierte Lesezeichen (`title`, `url`, `icon`, `category`, `display_order`).
 

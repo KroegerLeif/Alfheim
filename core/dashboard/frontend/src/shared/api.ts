@@ -4,8 +4,6 @@ import {
   DashboardAppsResponse,
   UserPreferences,
   CreateUserLinkRequest,
-  UserProfile,
-  UpdateProfileRequest,
   TelemetryMetrics,
   TelemetryLogEntry,
   TelemetryLogsResponse,
@@ -47,15 +45,6 @@ export async function createApp(payload: CreateUserLinkRequest): Promise<AppItem
 
 export async function updateApp(id: string, payload: Partial<CreateUserLinkRequest>): Promise<AppItem> {
   return updateUserLink(id, payload);
-}
-
-/* User Profile API */
-export async function fetchUserProfile(): Promise<UserProfile> {
-  return await api.get('api/v1/profile/me').json<UserProfile>();
-}
-
-export async function updateUserProfile(payload: UpdateProfileRequest): Promise<UserProfile> {
-  return await api.put('api/v1/profile/me', { json: payload }).json<UserProfile>();
 }
 
 /* Telemetry API */

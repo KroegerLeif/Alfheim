@@ -29,6 +29,9 @@ Tier-1-Anwendungen sind native Monorepo-Microservices, registriert in Go (`core/
 | `library` | Medien & Bibliotheks-Hub | FastAPI / Next.js | `/library` | `3000` / `8000` | Aktiv | [library](./apps/library.md) |
 | `maintenance`| Wartungs-Tracker| FastAPI / Next.js | `/maintenance` | `3000` / `8000` | Aktiv | [maintenance](./apps/maintenance.md) |
 | `shopping` | Einkaufslisten | FastAPI / Next.js | `/shopping` | `3010` / `8000` | Aktiv | [shopping](./apps/shopping.md) |
+| `household` | Haushalt | `core/household` | `/household` | — | Aktiv | — |
+
+> **Hinweis:** Haushalte, Mitglieder und Rollen, Einladungen, Kontakte und das Benutzerprofil sind aus dem Dashboard in `core/household` umgezogen. Das Dashboard zeigt nur die Launcher-Kachel (Symbol `home`, für alle angemeldeten Benutzer sichtbar) und verlinkt auf `/household` und `/household/profile`.
 
 ---
 

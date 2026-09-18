@@ -1,19 +1,21 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { NavAnchor } from './NavAnchor';
 import { useTranslation } from '@alfheim/shared';
 
 interface NavItem {
   key: string;
   href: string;
   icon: string;
+  /** Served by another app (core/household): full-page navigation, not client routing. */
+  external?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { key: 'nav.dashboard', href: '/', icon: 'dashboard' },
-  { key: 'nav.profile', href: '/profile', icon: 'person' },
-  { key: 'nav.household', href: '/household', icon: 'home_app_logo' },
+  { key: 'nav.profile', href: '/household/profile', icon: 'person', external: true },
+  { key: 'nav.household', href: '/household', icon: 'home_app_logo', external: true },
   { key: 'nav.settings', href: '/settings', icon: 'settings' },
 ];
 
@@ -32,9 +34,10 @@ export function BottomNavBar() {
           pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
         return (
-          <Link
+          <NavAnchor
             key={item.key}
             href={item.href}
+            external={item.external}
             className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-all duration-200 ${
               isActive
                 ? 'text-[var(--primary-main)] font-bold'
@@ -54,7 +57,7 @@ export function BottomNavBar() {
               {item.icon}
             </span>
             <span className="text-[10px] font-mono tracking-tight mt-0.5">{t(item.key)}</span>
-          </Link>
+          </NavAnchor>
         );
       })}
     </nav>

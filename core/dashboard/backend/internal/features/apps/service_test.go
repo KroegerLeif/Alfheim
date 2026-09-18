@@ -132,14 +132,26 @@ func Test3TierAppService_GetDashboardApps(t *testing.T) {
 	svc := apps.NewService(repo, stackLoader, logger)
 	ctx := context.Background()
 
-	// 1. Query for standard user (roles: []) -> should get non-hidden Core apps (8), Stack apps (1: Home Assistant), User links (1)
+	// 1. Query for standard user (roles: []) -> should get non-hidden Core apps (9), Stack apps (1: Home Assistant), User links (1)
 	resUser, err := svc.GetDashboardApps(ctx, "user-1", []string{})
 	if err != nil {
 		t.Fatalf("expected no error querying dashboard apps, got: %v", err)
 	}
 
-	if len(resUser.Core) != 8 {
-		t.Errorf("expected 8 visible Core apps (todo is hidden), got %d", len(resUser.Core))
+	if len(resUser.Core) != 9 {
+		t.Errorf("expected 9 visible Core apps (todo is hidden), got %d", len(resUser.Core))
+	}
+	householdVisible := false
+	for _, app := range resUser.Core {
+		if app.Slug == "household" {
+			householdVisible = true
+			if app.URL != "/household" || app.Title != "Household" || app.Icon != "home" {
+				t.Errorf("unexpected household tile: %+v", app)
+			}
+		}
+	}
+	if !householdVisible {
+		t.Error("expected the household tile to be visible to a user without roles")
 	}
 	if len(resUser.Stack) != 1 || resUser.Stack[0].ID != "home-assistant" {
 		t.Errorf("expected 1 permitted stack app (home-assistant), got %v", resUser.Stack)

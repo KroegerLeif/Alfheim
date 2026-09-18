@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { NavAnchor } from './NavAnchor';
 import { useTranslation, AppLogo } from '@alfheim/shared';
 import { useAuth } from '@/core/providers';
 
@@ -11,12 +11,14 @@ interface NavItemConfig {
   href: string;
   icon: string;
   badge?: string;
+  /** Served by another app (core/household): full-page navigation, not client routing. */
+  external?: boolean;
 }
 
 const NAV_CONFIG: NavItemConfig[] = [
   { key: 'nav.dashboard', defaultName: 'Dashboard', href: '/', icon: 'dashboard' },
-  { key: 'nav.profile', defaultName: 'Profile', href: '/profile', icon: 'person' },
-  { key: 'nav.household', defaultName: 'Household', href: '/household', icon: 'home_app_logo' },
+  { key: 'nav.profile', defaultName: 'Profile', href: '/household/profile', icon: 'person', external: true },
+  { key: 'nav.household', defaultName: 'Household', href: '/household', icon: 'home_app_logo', external: true },
   { key: 'nav.settings', defaultName: 'Settings', href: '/settings', icon: 'settings' },
 ];
 
@@ -55,9 +57,10 @@ export function Sidebar() {
           const translatedName = t(item.key);
 
           return (
-            <Link
+            <NavAnchor
               key={item.key}
               href={item.href}
+            external={item.external}
               className={`relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
                 isActive
                   ? 'bg-[var(--surface-elevated)] text-[var(--text-main)] shadow-[0_0_15px_rgba(0,0,0,0.2)]'
@@ -86,7 +89,7 @@ export function Sidebar() {
                   {item.badge}
                 </span>
               )}
-            </Link>
+            </NavAnchor>
           );
         })}
       </nav>

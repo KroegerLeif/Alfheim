@@ -1,6 +1,8 @@
 # Central Dashboard Control Plane (`core/dashboard/`)
 
-> **TL;DR:** Central control plane, landing page launcher, application registry, household manager, and telemetry interface for the Alfheim platform.
+> **TL;DR:** Central control plane, landing page launcher, application registry, and telemetry interface for the Alfheim platform.
+
+> **Note:** Households, members and roles, invites, contacts and the user profile moved to the Tier-1 app `core/household`. The dashboard no longer serves `/api/v1/households*`, `/api/v1/profile*` or the `/household` and `/profile` pages, and it ignores the `X-Household-ID` / `X-Household-Role` headers. It links to the household app via a launcher tile and its navigation.
 
 📖 **Full specification** — purpose, architecture, ingress routing, environment
 variables and domain model — lives in the documentation portal:
