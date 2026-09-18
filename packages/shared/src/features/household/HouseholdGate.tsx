@@ -112,11 +112,14 @@ function GateContent({ children, loadingFallback }: HouseholdGateProps) {
     );
   }
 
-  return <>{children}</>;
+  // Keyed by household: switching remounts the content so effect-based fetches
+  // and local state never carry over from the previous household.
+  return <React.Fragment key={householdId ?? 'none'}>{children}</React.Fragment>;
 }
 
 /**
- * Renders its children only once an active household is `ready`. Otherwise it
+ * Renders its children only once an active household is `ready` (and remounts
+ * them when the active household changes). Otherwise it
  * explains what is missing: no membership (link to household onboarding),
  * household rejected by the backend (switch or onboard), or core/household
  * unavailable (retry).

@@ -92,6 +92,28 @@ describe('HouseholdGate', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 
+  it('remounts its content when the active household changes', () => {
+    const mounts = vi.fn()
+    function Probe() {
+      React.useEffect(() => mounts(), [])
+      return <p>probe</p>
+    }
+    const tree = (value: ActiveHouseholdContextValue) => (
+      <LanguageProvider defaultLanguage="en">
+        <HouseholdContext.Provider value={value}>
+          <HouseholdGate>
+            <Probe />
+          </HouseholdGate>
+        </HouseholdContext.Provider>
+      </LanguageProvider>
+    )
+    const { rerender } = render(tree(makeValue()))
+    rerender(tree(makeValue()))
+    expect(mounts).toHaveBeenCalledTimes(1)
+    rerender(tree(makeValue({ householdId: 'hh-2', household: households[1] })))
+    expect(mounts).toHaveBeenCalledTimes(2)
+  })
+
   it('does not gate on role errors', () => {
     renderGate(makeValue({ error: 'household_role_forbidden' }))
     expect(screen.getByText('scoped content')).toBeInTheDocument()
