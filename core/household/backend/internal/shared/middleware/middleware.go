@@ -45,7 +45,7 @@ func CORS(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
 
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-Household-ID, X-Household-Role")
 
 		if r.Method == "OPTIONS" {
@@ -79,7 +79,7 @@ func CORSWithOrigins(allowedOrigins []string) func(next http.Handler) http.Handl
 				}
 			}
 
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-Household-ID, X-Household-Role")
 
 			if r.Method == "OPTIONS" {

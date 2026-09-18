@@ -42,7 +42,7 @@ func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, []string{})
+	router := buildRouter(log, dbClient, nil, "test-token", []string{})
 
 	t.Run("/healthz endpoint returns 200 healthy", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
@@ -55,6 +55,25 @@ func TestBuildRouter(t *testing.T) {
 		}
 		if !strings.Contains(rec.Body.String(), `"status":"healthy"`) {
 			t.Errorf("expected body to contain healthy status, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("internal membership API is mounted without JWT and requires the internal token", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/internal/v1/memberships/0b9f6c2e-4f5a-4c1d-9e0a-6a1c2b3d4e5f/user-1", nil)
+		req.Header.Set("Authorization", "Bearer wrong")
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("CORS preflight allows PATCH", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodOptions, "/api/v1/households/x", nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if !strings.Contains(rec.Header().Get("Access-Control-Allow-Methods"), "PATCH") {
+			t.Errorf("expected PATCH in allowed methods, got %q", rec.Header().Get("Access-Control-Allow-Methods"))
 		}
 	})
 

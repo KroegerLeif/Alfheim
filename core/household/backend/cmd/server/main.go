@@ -19,6 +19,7 @@ import (
 	"alfheim/household/config"
 	"alfheim/household/internal/features/contact"
 	"alfheim/household/internal/features/household"
+	"alfheim/household/internal/features/membership"
 	"alfheim/household/internal/features/profile"
 	"alfheim/household/internal/shared/db"
 	"alfheim/household/internal/shared/logger"
@@ -73,7 +74,7 @@ func run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth, cfg.CORS.AllowedOrigins)
+	r := buildRouter(log, dbClient, auth, cfg.InternalToken, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -134,7 +135,7 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, allowedOrigins []string) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, internalToken string, allowedOrigins []string) http.Handler {
 	// Initialize Repositories
 	var pool = dbClient.Pool
 	profileRepo := profile.NewRepository(pool)
@@ -150,6 +151,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	profileHandler := profile.NewHandler(profileService)
 	householdHandler := household.NewHandler(householdService)
 	contactHandler := contact.NewHandler(contactService)
+	membershipHandler := membership.NewHandler(householdRepo, internalToken, log)
 
 	// Router Setup
 	r := chi.NewRouter()
@@ -191,6 +193,9 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	profileHandler.RegisterRoutes(r, authMw)
 	householdHandler.RegisterRoutes(r, authMw)
 	contactHandler.RegisterRoutes(r, authMw)
+
+	// Internal service-to-service API: shared bearer token, no JWT, never routed by Caddy.
+	membershipHandler.RegisterRoutes(r)
 
 	return r
 }
