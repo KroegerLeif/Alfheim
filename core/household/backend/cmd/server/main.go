@@ -1,0 +1,196 @@
+// Package main is the entry point for the alfheim household-backend service.
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/sync/errgroup"
+
+	"alfheim/household/config"
+	"alfheim/household/internal/features/contact"
+	"alfheim/household/internal/features/household"
+	"alfheim/household/internal/features/profile"
+	"alfheim/household/internal/shared/db"
+	"alfheim/household/internal/shared/logger"
+	"alfheim/household/internal/shared/middleware"
+)
+
+var (
+	osExit      = os.Exit
+	newDBClient = db.NewClient
+	setupAuth   = setupAuthenticator
+)
+
+func main() {
+	if err := run(context.Background()); err != nil {
+		fmt.Printf("application stopped with error: %v\n", err)
+		osExit(1)
+	}
+}
+
+func run(parentCtx context.Context) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load application configuration: %w", err)
+	}
+
+	log := logger.Init(cfg.Environment)
+	log.Info("starting household-backend service",
+		slog.String("environment", cfg.Environment),
+		slog.String("port", cfg.Port),
+	)
+
+	ctx, cancel := context.WithTimeout(parentCtx, 30*time.Second)
+	defer cancel()
+
+	// Initialize PostgreSQL DB Pool
+	dbClient, err := newDBClient(ctx, cfg.Database, log)
+	if err != nil {
+		log.Error("failed to connect to database", slog.String("error", err.Error()))
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+	defer dbClient.Close()
+
+	// Execute migrations
+	if err := dbClient.RunMigrations(cfg.Database.URL, cfg.Database.MigrationsDir); err != nil {
+		log.Warn("database schema migration skipped or encountered notice", slog.String("error", err.Error()))
+	}
+
+	// Generic OIDC Bearer token authenticator (JWKS discovered from the issuer)
+	auth, err := setupAuth(cfg, log)
+	if err != nil {
+		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
+		return fmt.Errorf("failed to initialize authenticator: %w", err)
+	}
+
+	r := buildRouter(log, dbClient, auth, cfg.CORS.AllowedOrigins)
+
+	// HTTP Server & Graceful Shutdown
+	srv := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	g, gCtx := errgroup.WithContext(parentCtx)
+
+	g.Go(func() error {
+		log.Info("http server listening", slog.String("port", cfg.Port))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("http server error: %w", err)
+		}
+		return nil
+	})
+
+	// Interrupt listener
+	g.Go(func() error {
+		shutdownSignal := make(chan os.Signal, 1)
+		signal.Notify(shutdownSignal, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+		select {
+		case <-gCtx.Done():
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer shutdownCancel()
+			_ = srv.Shutdown(shutdownCtx)
+			return gCtx.Err()
+		case sig := <-shutdownSignal:
+			log.Info("received shutdown signal, initiating graceful stop", slog.String("signal", sig.String()))
+
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer shutdownCancel()
+
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				return fmt.Errorf("server graceful shutdown failed: %w", err)
+			}
+			log.Info("server shutdown complete")
+			return nil
+		}
+	})
+
+	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		log.Error("application stopped with error", slog.String("error", err.Error()))
+		return err
+	}
+
+	log.Info("household-backend service stopped cleanly")
+	return nil
+}
+
+// setupAuthenticator initializes the generic OIDC JWT authenticator from application configuration.
+func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	return middleware.NewAuthenticator(cfg.OIDC.IssuerURL, cfg.OIDC.Audience, log)
+}
+
+// buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
+func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, allowedOrigins []string) http.Handler {
+	// Initialize Repositories
+	var pool = dbClient.Pool
+	profileRepo := profile.NewRepository(pool)
+	householdRepo := household.NewRepository(pool)
+	contactRepo := contact.NewRepository(pool)
+
+	// Initialize Services
+	profileService := profile.NewService(profileRepo, log)
+	householdService := household.NewService(householdRepo, log)
+	contactService := contact.NewService(contactRepo, householdRepo, log)
+
+	// Initialize Handlers
+	profileHandler := profile.NewHandler(profileService)
+	householdHandler := household.NewHandler(householdService)
+	contactHandler := contact.NewHandler(contactService)
+
+	// Router Setup
+	r := chi.NewRouter()
+	r.Use(chimiddleware.Recoverer)
+	r.Use(middleware.CORSWithOrigins(allowedOrigins))
+	r.Use(middleware.RequestLogger(log))
+
+	// Health Check Endpoints
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"healthy","service":"household-backend"}`))
+	})
+
+	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if pool != nil {
+			if err := pool.Ping(r.Context()); err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(`{"status":"unready","database":"disconnected"}`))
+				return
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ready","database":"connected"}`))
+	})
+
+	// OIDC JWT validation only. Household authorization happens per request
+	// against household_members, keyed by the household id in the URL path;
+	// X-Household-ID / X-Household-Role headers are ignored.
+	authMw := func(next http.Handler) http.Handler {
+		if auth == nil {
+			return next
+		}
+		return auth.AuthenticateMiddleware(next)
+	}
+
+	// Register Feature Domain Routes
+	profileHandler.RegisterRoutes(r, authMw)
+	householdHandler.RegisterRoutes(r, authMw)
+	contactHandler.RegisterRoutes(r, authMw)
+
+	return r
+}
