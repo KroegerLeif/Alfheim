@@ -7,6 +7,8 @@ import {
   AuthGuard,
   LanguageProvider,
   ThemeProvider,
+  HouseholdProvider,
+  HouseholdGate,
 } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
@@ -57,11 +59,15 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           <NextIntlClientProvider locale={locale} messages={messages}>
             <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
-                <Providers>
-                  <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
-                    <div className="p-6">{children}</div>
-                  </AppShell>
-                </Providers>
+                <HouseholdProvider>
+                  <Providers>
+                    <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
+                      <HouseholdGate>
+                        <div className="p-6">{children}</div>
+                      </HouseholdGate>
+                    </AppShell>
+                  </Providers>
+                </HouseholdProvider>
               </ThemeProvider>
             </LanguageProvider>
           </NextIntlClientProvider>
