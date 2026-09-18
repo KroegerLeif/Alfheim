@@ -1,9 +1,11 @@
 ---
 title: "Central Dashboard Control Plane"
-description: "Central control plane, landing page launcher, application registry, household manager, and telemetry interface for the Alfheim platform."
+description: "Central control plane, landing page launcher, application registry, and telemetry interface for the Alfheim platform."
 ---
 
-> **TL;DR:** Central control plane, landing page launcher, application registry, household manager, and telemetry interface for the Alfheim platform.
+> **TL;DR:** Central control plane, landing page launcher, application registry, and telemetry interface for the Alfheim platform.
+
+> **Note:** Households, members and roles, invites, contacts and the user profile moved to the Tier-1 app `core/household` (served under `/household`). The dashboard no longer exposes `/api/v1/households*` or `/api/v1/profile*` and ignores the `X-Household-ID` / `X-Household-Role` headers.
 
 Source: [`core/dashboard/`](https://github.com/KroegerLeif/Alfheim/tree/main/core/dashboard)
 
@@ -15,7 +17,7 @@ Source: [`core/dashboard/`](https://github.com/KroegerLeif/Alfheim/tree/main/cor
 | :--- | :--- |
 | Single entry point for all home apps | Centralized dashboard launcher rendering registered microservices |
 | Mixed ecosystem (Native vs. Homelab) | 3-Tier Application Registry (Native Core Apps, Stack YAML, User Bookmarks) |
-| Multi-household management | Household creation, invitation management, and member role assignment |
+| Household management | Launcher tile and navigation links to the `core/household` app (`/household`, `/household/profile`) |
 | System health visibility | Platform telemetry endpoints for system metrics (CPU, RAM) and logs |
 
 ---
@@ -38,8 +40,6 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 
 ### FDD Domain Features (`internal/features/`)
 - `apps`: Unified 3-Tier application registry handlers and YAML loaders.
-- `household`: Household creation, member role management, invite token generation, and contact directory.
-- `profile`: User profile Just-In-Time provisioning from verified OIDC token claims.
 - `telemetry`: System metrics and log queries.
 
 ---
@@ -50,7 +50,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 | Service | Internal Port | Host Mapping / Gateway Route | Description |
 | :--- | :--- | :--- | :--- |
 | `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
-| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/households` | Go REST API Control Plane |
+| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/user/*`, `/api/v1/telemetry*` | Go REST API Control Plane |
 | `dashboard-frontend` | 3000 | `alfheim.loegien.localhost/` | Next.js Landing Page Control Plane |
 
 ### Essential Environment Variables
@@ -67,7 +67,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 ## 🗄️ Database Schema (PostgreSQL)
 
 The Go control plane initializes three core tables via SQL migrations:
-* `user_profiles`: Local synced user profiles from OIDC token claims (`id`, `email`, `username`, `first_name`, `last_name`).
+* `user_profiles`: Minimal local user row, provisioned Just-In-Time from OIDC token claims on the first write, because `user_preferences` and `user_links` reference it by foreign key. The dashboard does not manage profile data; that lives in `core/household`. Migration `000007` dropped the former `households`, `household_members`, `household_invites`, `contacts` and `contact_categories` tables.
 * `user_preferences`: User dashboard settings and hidden core app IDs (`hidden_app_ids TEXT[]`).
 * `user_links`: Personal custom bookmarks (`title`, `url`, `icon`, `category`, `display_order`).
 
