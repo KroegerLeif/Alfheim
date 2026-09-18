@@ -238,6 +238,14 @@ func (c *Client) send(ctx context.Context, id *int64, method string, params any)
 	if negotiatedVer != "" {
 		httpReq.Header.Set(headerProtocolVersion, negotiatedVer)
 	}
+	if creds, ok := CallerCredentialsFrom(ctx); ok {
+		if creds.AccessToken != "" {
+			httpReq.Header.Set(headerAuthorization, "Bearer "+creds.AccessToken)
+		}
+		if creds.HouseholdID != "" {
+			httpReq.Header.Set(headerHouseholdID, creds.HouseholdID)
+		}
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
