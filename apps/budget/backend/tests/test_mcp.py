@@ -4,6 +4,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from backend_shared.household.testing import make_test_token, mcp_household_context
 from httpx import ASGITransport, AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.plans.models import Plan, PlanType
@@ -57,7 +58,8 @@ async def test_get_pot_balances(db_session: AsyncSession):
     db_session.add(pot2)
     await db_session.commit()
 
-    result = await get_pot_balances(household_id=household_id)
+    with mcp_household_context(household_id=household_id):
+        result = await get_pot_balances()
     assert "Emergency Fund" in result
     assert "Vacation" in result
     assert "400.00 / 1000.00" in result
@@ -79,7 +81,8 @@ async def test_suggest_budget_allocation(db_session: AsyncSession):
     db_session.add(pot1)
     await db_session.commit()
 
-    result = await suggest_budget_allocation(household_id=household_id, income=300.0)
+    with mcp_household_context(household_id=household_id):
+        result = await suggest_budget_allocation(income=300.0)
     assert "Suggested Budget Allocation" in result
     assert "Bills" in result
     assert "Allocated 150.00" in result
@@ -109,7 +112,8 @@ async def test_analyze_spending_gap(db_session: AsyncSession):
     db_session.add(tx)
     await db_session.commit()
 
-    result = await analyze_spending_gap(household_id=household_id, month="2025-03")
+    with mcp_household_context(household_id=household_id):
+        result = await analyze_spending_gap(month="2025-03")
     assert "Spending Gap Analysis for 2025-03" in result
     assert "Total Budgeted Plans: 500.00" in result
     assert "Total Actual Expenses: 150.00" in result
@@ -133,7 +137,8 @@ async def test_calculate_sinking_gap(db_session: AsyncSession):
     db_session.add(pot)
     await db_session.commit()
 
-    result = await calculate_sinking_gap(household_id=household_id, pot_id=pot.id)
+    with mcp_household_context(household_id=household_id):
+        result = await calculate_sinking_gap(pot_id=pot.id)
     assert "Sinking Fund Analysis for Pot 'Car Repair'" in result
     assert "Target Amount: 1200.00" in result
     assert "Current Amount: 200.00" in result
@@ -147,3 +152,45 @@ async def test_mcp_health_endpoint():
         res = await client.get("/healthz")
         assert res.status_code == 200
         assert res.json()["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_mcp_tools_only_see_the_middleware_household(db_session: AsyncSession):
+    """Tools take the household from the MCP context, so another household's pots are invisible."""
+    own_household = uuid.uuid4()
+    other_household = uuid.uuid4()
+    other_pot = Pot(
+        household_id=other_household,
+        name="Someone Else's Pot",
+        priority=1,
+        target_amount=Decimal("100.00"),
+        current_amount=Decimal("10.00"),
+        overflow_target=OverflowTarget.CASCADE,
+    )
+    db_session.add(other_pot)
+    await db_session.commit()
+
+    with mcp_household_context(household_id=own_household):
+        balances = await get_pot_balances()
+        sinking = await calculate_sinking_gap(pot_id=other_pot.id)
+
+    assert "Someone Else's Pot" not in balances
+    assert f"No active pots found for household {own_household}" in balances
+    assert "Error calculating sinking fund gap" in sinking
+
+
+@pytest.mark.asyncio
+async def test_mcp_tools_require_household_context():
+    """Without MCPAuthenticationMiddleware (no context) tools refuse to run instead of guessing a household."""
+    with pytest.raises(RuntimeError, match="Household context not found"):
+        await get_pot_balances()
+
+
+@pytest.mark.asyncio
+async def test_mcp_endpoint_requires_household_header():
+    """The mounted MCP app is guarded by the shared household middleware."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        res = await client.post("/mcp/", headers={"Authorization": f"Bearer {make_test_token('mcp-user')}"})
+    assert res.status_code == 400
+    assert res.json()["detail"]["code"] == "household_required"

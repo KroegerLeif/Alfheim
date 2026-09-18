@@ -31,7 +31,7 @@ from src.features.pots.service import PotService
 from src.features.transactions.models import TransactionCreate, TransactionType, TransactionUpdate
 from src.features.transactions.repository import TransactionRepository
 from src.features.transactions.service import TransactionService
-from tests.test_plans import create_auth_headers
+from tests.helpers import create_auth_headers
 
 
 def test_settings_properties():
@@ -39,6 +39,13 @@ def test_settings_properties():
     s1 = Settings(OIDC_ISSUER_URL="http://auth.example.com", OIDC_AUDIENCE="custom-aud")
     assert s1.OIDC_ISSUER_URL == "http://auth.example.com"
     assert s1.OIDC_AUDIENCE == "custom-aud"
+
+
+def test_settings_oidc_properties_used_by_shared_household_auth():
+    """expected_issuer/jwks_url feed backend_shared.dependencies.decode_oidc_token."""
+    s = Settings(OIDC_ISSUER_URL="http://auth.example.com/", OIDC_JWKS_URL="http://auth.example.com/keys")
+    assert s.expected_issuer == "http://auth.example.com"
+    assert s.jwks_url == "http://auth.example.com/keys"
 
 
 @pytest.mark.asyncio
