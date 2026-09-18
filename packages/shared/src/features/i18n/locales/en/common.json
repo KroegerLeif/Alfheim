@@ -223,7 +223,19 @@
     "category_icon_placeholder": "e.g. home, call, local_hospital",
     "color_indicator": "Color Indicator",
     "close_modal": "Close modal",
-    "household_name_placeholder": "e.g. Residence"
+    "household_name_placeholder": "e.g. Residence",
+    "gate": {
+      "loading": "Loading household…",
+      "none_title": "Create or join a household",
+      "none_desc": "This app works with household data. Create a household or join one with an invite to get started.",
+      "create_or_join": "Create or join a household",
+      "forbidden_title": "No access to this household",
+      "forbidden_desc": "You are not (or no longer) a member of the selected household. Switch to another household or create or join one.",
+      "switch_to": "Switch to {name}",
+      "unavailable_title": "Household service unavailable",
+      "unavailable_desc": "Your households could not be loaded right now. Please try again in a moment.",
+      "retry": "Try again"
+    }
   },
   "settings": {
     "title": "Platform Settings & Design Theme",

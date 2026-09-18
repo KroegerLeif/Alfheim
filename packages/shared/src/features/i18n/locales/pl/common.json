@@ -223,7 +223,19 @@
     "category_icon_placeholder": "np. home, call, local_hospital",
     "color_indicator": "Wskaźnik koloru",
     "close_modal": "Zamknij okno",
-    "household_name_placeholder": "np. Rezydencja"
+    "household_name_placeholder": "np. Rezydencja",
+    "gate": {
+      "loading": "Ładowanie gospodarstwa…",
+      "none_title": "Utwórz gospodarstwo lub dołącz do niego",
+      "none_desc": "Ta aplikacja korzysta z danych gospodarstwa domowego. Utwórz gospodarstwo lub dołącz do istniejącego za pomocą zaproszenia.",
+      "create_or_join": "Utwórz gospodarstwo lub dołącz",
+      "forbidden_title": "Brak dostępu do tego gospodarstwa",
+      "forbidden_desc": "Nie jesteś (już) członkiem wybranego gospodarstwa. Przełącz się na inne gospodarstwo albo utwórz nowe lub dołącz do istniejącego.",
+      "switch_to": "Przełącz na {name}",
+      "unavailable_title": "Usługa gospodarstw niedostępna",
+      "unavailable_desc": "Nie udało się teraz wczytać Twoich gospodarstw. Spróbuj ponownie za chwilę.",
+      "retry": "Spróbuj ponownie"
+    }
   },
   "settings": {
     "title": "Ustawienia platformy i motyw graficzny",

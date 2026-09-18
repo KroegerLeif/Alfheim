@@ -3,8 +3,18 @@
 import React from 'react';
 import { useTranslation } from '../../i18n/utils/useTranslation';
 import { useHouseholdSwitcher } from '../hooks/useHouseholdSwitcher';
+import { HouseholdProvider } from '../../household/HouseholdProvider';
 
+/** Header switcher; uses the surrounding HouseholdProvider or mounts its own. */
 export function HouseholdSwitcher({ className = '' }: { className?: string }) {
+  return (
+    <HouseholdProvider>
+      <HouseholdSwitcherInner className={className} />
+    </HouseholdProvider>
+  );
+}
+
+function HouseholdSwitcherInner({ className = '' }: { className?: string }) {
   const { t } = useTranslation();
   const {
     households,

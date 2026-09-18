@@ -223,7 +223,19 @@
     "category_icon_placeholder": "z.B. home, call, local_hospital",
     "color_indicator": "Farbindikator",
     "close_modal": "Modal schließen",
-    "household_name_placeholder": "z.B. Wohnsitz"
+    "household_name_placeholder": "z.B. Wohnsitz",
+    "gate": {
+      "loading": "Haushalt wird geladen…",
+      "none_title": "Haushalt erstellen oder beitreten",
+      "none_desc": "Diese App arbeitet mit Haushaltsdaten. Erstelle einen Haushalt oder tritt einem per Einladung bei, um loszulegen.",
+      "create_or_join": "Haushalt erstellen oder beitreten",
+      "forbidden_title": "Kein Zugriff auf diesen Haushalt",
+      "forbidden_desc": "Du bist nicht (mehr) Mitglied des ausgewählten Haushalts. Wechsle zu einem anderen Haushalt oder erstelle einen bzw. tritt einem bei.",
+      "switch_to": "Zu {name} wechseln",
+      "unavailable_title": "Haushaltsdienst nicht erreichbar",
+      "unavailable_desc": "Deine Haushalte konnten gerade nicht geladen werden. Bitte versuche es gleich noch einmal.",
+      "retry": "Erneut versuchen"
+    }
   },
   "settings": {
     "title": "Plattform-Einstellungen & Design-Theme",
