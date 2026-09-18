@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useActiveHousehold } from "@alfheim/shared";
 import { pantryClient } from "@/core/api";
 import { CategoryRead, CategoryCreate } from "@/features/categories/types";
 
@@ -6,12 +7,14 @@ import { CategoryRead, CategoryCreate } from "@/features/categories/types";
  * Hook to retrieve product category classifications from the backend.
  */
 export function useCategories() {
+  const { householdId, status } = useActiveHousehold();
   return useQuery<CategoryRead[]>({
-    queryKey: ["categories"],
+    queryKey: ["categories", { householdId }],
     queryFn: () =>
       pantryClient
         .get("api/v1/categories")
         .json<CategoryRead[]>(),
+    enabled: status === "ready",
   });
 }
 
