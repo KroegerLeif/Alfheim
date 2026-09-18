@@ -41,6 +41,8 @@ SAFE_TEST_SUFFIXES = (
 
 
 class UserHomeContext(BaseModel):
+    """Deprecated: use ``backend_shared.household.require_household`` (membership via the household app). Removed once all apps are migrated."""
+
     user_id: uuid.UUID
     home_id: uuid.UUID
     email: str | None = None
@@ -49,6 +51,8 @@ class UserHomeContext(BaseModel):
 
 
 class UserHouseholdContext(BaseModel):
+    """Deprecated: use ``backend_shared.household.require_household`` (membership via the household app). Removed once all apps are migrated."""
+
     user_id: str
     household_id: int | None = None
     email: str | None = None
@@ -183,7 +187,11 @@ decode_token = decode_oidc_token
 
 
 async def get_current_user_and_home(request: Request, settings: Any = None) -> UserHomeContext:
-    """Dependency injector providing authenticated user and active household context from the OIDC JWT (UUID home_id)."""
+    """Dependency injector providing authenticated user and active household context from the OIDC JWT (UUID home_id).
+
+    Deprecated: use ``backend_shared.household.require_household`` (membership via the household app). Removed once all apps are migrated.
+    It trusts household claims Zitadel never issues and Keycloak-style ``realm_access.roles``.
+    """
     auth_header = request.headers.get("Authorization")
     header_hh = request.headers.get("X-Household-ID")
 
@@ -302,7 +310,11 @@ async def get_current_user_and_home(request: Request, settings: Any = None) -> U
 
 
 async def get_current_user_and_household(request: Request, settings: Any = None) -> UserHouseholdContext:
-    """Dependency injector providing authenticated user and household context from the OIDC JWT (integer household_id)."""
+    """Dependency injector providing authenticated user and household context from the OIDC JWT (integer household_id).
+
+    Deprecated: use ``backend_shared.household.require_household`` (membership via the household app). Removed once all apps are migrated.
+    It trusts household claims Zitadel never issues and Keycloak-style ``realm_access.roles``.
+    """
     auth_header = request.headers.get("Authorization")
     header_hh = request.headers.get("X-Household-ID")
 
