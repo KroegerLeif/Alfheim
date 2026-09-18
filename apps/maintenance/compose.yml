@@ -41,6 +41,12 @@ services:
     environment:
       - PORT=3000
       - NODE_OPTIONS=--max-http-header-size=65536
+      # Served at request time by <basePath>/runtime-config.js
+      # (packages/shared/src/features/auth/runtimeConfigHandler.ts).
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
+      - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:-}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_MAINTENANCE_API_URL:-http://api.alfheim.loegien.localhost/maintenance/api/v1}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 5s
