@@ -1,47 +1,19 @@
-"""Authentication and tenant isolation dependencies for the Library microservice."""
+"""Household-scoped request dependencies for the Library microservice.
+
+Membership and roles are owned by the household app (``core/household``);
+:func:`backend_shared.household.require_household` validates the JWT, reads
+``X-Household-ID`` and confirms membership through the household app's internal
+membership API.
+"""
 
 import uuid
-from typing import Any
 
-import backend_shared.dependencies as _deps
-from fastapi import Depends, Request
-
-from src.config import settings
-
-MOCK_USER_ID = _deps.MOCK_USER_ID
-MOCK_HOME_ID = _deps.MOCK_HOME_ID
-SAFE_TEST_HOSTS = _deps.SAFE_TEST_HOSTS
-SAFE_TEST_SUFFIXES = _deps.SAFE_TEST_SUFFIXES
-UserHomeContext = _deps.UserHomeContext
-
-
-def is_mock_auth_allowed() -> bool:
-    """Check if mock authentication is permitted in current environment."""
-    return _deps.is_mock_auth_allowed(settings=settings)
-
-
-def get_jwks_client(jwks_url: str):
-    """Get PyJWKClient instance for token verification."""
-    return _deps.get_jwks_client(jwks_url)
-
-
-def decode_oidc_token(token: str) -> dict[str, Any]:
-    """Decode and validate OIDC JWT token using application settings."""
-    return _deps.decode_oidc_token(token, settings=settings)
-
-
-async def get_current_user_and_home(request: Request) -> UserHomeContext:
-    """Dependency injector providing authenticated user and active household context from OIDC JWT.
-
-    Enforces X-Household-ID header validation against authorized JWT claims
-    (household_id, active_household_id, or households list). Returns HTTP 403 Forbidden
-    if X-Household-ID is unauthorized.
-    """
-    return await _deps.get_current_user_and_home(request, settings=settings)
+from backend_shared.household import HouseholdContext, require_household
+from fastapi import Depends
 
 
 async def get_current_household_id(
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ) -> uuid.UUID:
-    """Dependency returning validated household UUID for route handler signatures."""
-    return context.home_id
+    """Return the household UUID confirmed by :func:`require_household` for route handlers."""
+    return context.household_id

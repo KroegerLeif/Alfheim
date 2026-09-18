@@ -6,15 +6,17 @@ from collections.abc import AsyncGenerator
 
 # Set test database URL BEFORE any other imports to ensure SQLite is used
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+# Test context for backend_shared.household (configure_household_auth runs at import time).
+os.environ.setdefault("TESTING", "true")
 
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.api.dependencies import get_current_household_id
 from src.db.database import get_db_session
 from src.main import app
 
@@ -62,11 +64,8 @@ async def test_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI, None]:
     async def _get_test_db() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
 
-    async def _get_test_household_id() -> uuid.UUID:
-        return DEFAULT_TEST_HOUSEHOLD_ID
-
     app.dependency_overrides[get_db_session] = _get_test_db
-    app.dependency_overrides[get_current_household_id] = _get_test_household_id
+    override_household(app, household_id=DEFAULT_TEST_HOUSEHOLD_ID)
     yield app
     app.dependency_overrides.clear()
 
