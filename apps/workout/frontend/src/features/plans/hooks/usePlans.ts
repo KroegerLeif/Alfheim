@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useActiveHouseholdId } from "@/core/hooks/useActiveHouseholdId";
+import { useActiveHousehold } from "@alfheim/shared";
 import { plansApi, type PlanListParams } from "../api/plansApi";
 import type {
   PlanCreate,
@@ -29,26 +29,27 @@ export const planKeys = {
 };
 
 export function usePlans(params: PlanListParams = {}) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<PlanRead[]>({
     queryKey: planKeys.list(householdId, params),
     queryFn: () => plansApi.list(params),
+    enabled: status === "ready",
   });
 }
 
 export function usePlan(planId: string | null) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<PlanRead>({
     queryKey: planId ? planKeys.detail(householdId, planId) : ["plans", "disabled"],
     queryFn: () => plansApi.get(planId!),
-    enabled: Boolean(planId),
+    enabled: status === "ready" && Boolean(planId),
   });
 }
 
 export function useResolvedDay(planId: string | null, dayId: string | null) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<ResolvedDayRead>({
     queryKey:
@@ -56,13 +57,13 @@ export function useResolvedDay(planId: string | null, dayId: string | null) {
         ? planKeys.resolvedDay(householdId, planId, dayId)
         : ["plans", "resolved", "disabled"],
     queryFn: () => plansApi.getResolvedDay(planId!, dayId!),
-    enabled: Boolean(planId && dayId),
+    enabled: status === "ready" && Boolean(planId && dayId),
   });
 }
 
 export function useCreatePlan() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (payload: PlanCreate) => plansApi.create(payload),
@@ -74,7 +75,7 @@ export function useCreatePlan() {
 
 export function useUpdatePlan(planId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (payload: PlanUpdate) => plansApi.update(planId, payload),
@@ -88,7 +89,7 @@ export function useUpdatePlan(planId: string) {
 
 export function useDeletePlan() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (planId: string) => plansApi.remove(planId),
@@ -100,7 +101,7 @@ export function useDeletePlan() {
 
 export function useAddPlanDay(planId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (payload: PlanDayCreate) => plansApi.addDay(planId, payload),
@@ -112,7 +113,7 @@ export function useAddPlanDay(planId: string) {
 
 export function useDeletePlanDay(planId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (dayId: string) => plansApi.removeDay(planId, dayId),
@@ -124,7 +125,7 @@ export function useDeletePlanDay(planId: string) {
 
 export function useAddPlanExercise(planId: string, dayId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (payload: PlanExerciseCreate) => plansApi.addExercise(planId, dayId, payload),
@@ -137,7 +138,7 @@ export function useAddPlanExercise(planId: string, dayId: string) {
 
 export function useDeletePlanExercise(planId: string, dayId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (planExerciseId: string) => plansApi.removeExercise(planId, dayId, planExerciseId),
@@ -150,7 +151,7 @@ export function useDeletePlanExercise(planId: string, dayId: string) {
 
 export function useAddPlanSet(planId: string, dayId: string, planExerciseId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (payload: PlanSetCreate) => plansApi.addSet(planId, dayId, planExerciseId, payload),
@@ -163,7 +164,7 @@ export function useAddPlanSet(planId: string, dayId: string, planExerciseId: str
 
 export function useUpdatePlanSet(planId: string, dayId: string, planExerciseId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: ({ setId, payload }: { setId: string; payload: PlanSetUpdate }) =>
@@ -177,7 +178,7 @@ export function useUpdatePlanSet(planId: string, dayId: string, planExerciseId: 
 
 export function useDeletePlanSet(planId: string, dayId: string, planExerciseId: string) {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation({
     mutationFn: (setId: string) => plansApi.removeSet(planId, dayId, planExerciseId, setId),

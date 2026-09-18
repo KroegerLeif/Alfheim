@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useActiveHouseholdId } from "@/core/hooks/useActiveHouseholdId";
+import { useActiveHousehold } from "@alfheim/shared";
 import { exercisesApi } from "../api/exercisesApi";
 import type {
   ExerciseCreate,
@@ -30,47 +30,49 @@ export const exerciseKeys = {
 };
 
 export function useExerciseList(params: ExerciseListParams = {}) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<ExerciseRead[]>({
     queryKey: exerciseKeys.list(householdId, params),
     queryFn: () => exercisesApi.list(params),
+    enabled: status === "ready",
   });
 }
 
 export function useFavoriteExercises() {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<ExerciseRead[]>({
     queryKey: exerciseKeys.favorites(householdId),
     queryFn: () => exercisesApi.listFavorites(),
+    enabled: status === "ready",
   });
 }
 
 export function useExerciseDetail(id: string) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<ExerciseRead>({
     queryKey: exerciseKeys.detail(householdId, id),
     queryFn: () => exercisesApi.get(id),
-    enabled: Boolean(id),
+    enabled: status === "ready" && Boolean(id),
   });
 }
 
 export function useExercisePreference(id: string) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<UserExercisePreferenceRead>({
     queryKey: exerciseKeys.preference(householdId, id),
     queryFn: () => exercisesApi.getPreference(id),
-    enabled: Boolean(id),
+    enabled: status === "ready" && Boolean(id),
     retry: false,
   });
 }
 
 export function useCreateExercise() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<ExerciseRead, Error, ExerciseCreate>({
     mutationFn: (payload) => exercisesApi.create(payload),
@@ -82,7 +84,7 @@ export function useCreateExercise() {
 
 export function useUpdateExercise() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<ExerciseRead, Error, { id: string; payload: ExerciseUpdate }>({
     mutationFn: ({ id, payload }) => exercisesApi.update(id, payload),
@@ -94,7 +96,7 @@ export function useUpdateExercise() {
 
 export function useDeleteExercise() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<void, Error, string>({
     mutationFn: (id) => exercisesApi.remove(id),
@@ -106,7 +108,7 @@ export function useDeleteExercise() {
 
 export function useUpsertExercisePreference() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<
     UserExercisePreferenceRead,
@@ -122,7 +124,7 @@ export function useUpsertExercisePreference() {
 
 export function useAddFavorite() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<ExerciseFavoriteRead, Error, string>({
     mutationFn: (id) => exercisesApi.addFavorite(id),
@@ -134,7 +136,7 @@ export function useAddFavorite() {
 
 export function useRemoveFavorite() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<void, Error, string>({
     mutationFn: (id) => exercisesApi.removeFavorite(id),
