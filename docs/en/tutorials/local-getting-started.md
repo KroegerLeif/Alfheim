@@ -15,6 +15,7 @@ sidebar:
 - [Step 2: Start Platform Stack (`up.sh`)](#step-2-start-platform-stack-upsh)
 - [Step 3: Verify Running Services & Access Applications](#step-3-verify-running-services--access-applications)
 - [Step 4: Seed Initial Test Data (`seed.sh`)](#step-4-seed-initial-test-data-seedsh)
+- [Stop & Clean Up](#stop--clean-up)
 - [Next Steps](#next-steps)
 
 ---
@@ -38,31 +39,36 @@ Before starting, ensure your machine meets the following requirements:
    cd alfheim
    ```
 
-2. Initialize your local `.env` environment configuration:
+2. Generate your local `.env` for the plain-HTTP `*.localhost` development hosts. It creates random dev secrets (database passwords, `ALFHEIM_INTERNAL_TOKEN`, …); re-running it keeps existing values and only adds missing keys:
    ```bash
-   ./scripts/setup-env.sh
+   ./scripts/init-env.sh --auto --base-url http://alfheim.loegien.localhost
    ```
 
-3. Add local domain aliases to your hosts file (`/etc/hosts` on Linux/macOS):
+3. Optional: Chromium and Firefox resolve every `*.localhost` name to `127.0.0.1` on their own. Only for other tools (for example an older `curl`) add the aliases to `/etc/hosts`:
    ```hosts
    127.0.0.1 alfheim.loegien.localhost
    127.0.0.1 api.alfheim.loegien.localhost
+   127.0.0.1 auth.alfheim.loegien.localhost
    ```
 
 ---
 
 ## Step 2: Start Platform Stack (`up.sh`)
 
-Run the automated multi-stage boot orchestrator to launch infrastructure, core control plane, and microservice applications:
+Run the automated multi-stage boot orchestrator to launch infrastructure, core control plane, and microservice applications. On macOS this is one command with Docker Desktop running — no `sudo`, and no world-writable directories:
 
 ```bash
-./scripts/up.sh -b -d
+./scripts/up.sh -b
 ```
 
-The script will boot the cluster in ordered dependency stages:
-* **Stage 0**: Gateway, Zitadel IAM, RustFS, VictoriaStack
-* **Stage 1**: Core Dashboard Control Plane
-* **Stage 2**: Domain Application Microservices (Pantry, Budget, Chores, etc.)
+Add `--skip-obs` to leave out the observability stack. The script boots the cluster in ordered dependency stages:
+* **Stage 0**: Docker network pre-flight
+* **Stage 1**: Postgres, Zitadel IAM, RustFS, Caddy gateway, then Zitadel OIDC client provisioning
+* **Stage 2**: Core apps: dashboard, then household (`/household`, skipped with a warning until its sources exist on your checkout)
+* **Stages 3–8**: Domain application microservices (Shopping, Pantry, Maintenance, Chores, Budget, Chat)
+* **Stage 9**: Observability (VictoriaMetrics, VictoriaLogs, OTel Collector, Vector, Grafana)
+
+Zitadel writes its bootstrap token (PAT) into the `zitadel_machinekey` Docker volume. A one-shot `zitadel-machinekey-init` container hands that volume to Zitadel's container user (uid 1000) before Zitadel starts, so nothing on your host needs a `chown`. `up.sh` copies the PAT out with `docker compose cp` and stores it as `ZITADEL_BOOTSTRAP_PAT` in `.env`.
 
 ---
 
@@ -77,6 +83,7 @@ The script will boot the cluster in ordered dependency stages:
    `http://alfheim.loegien.localhost/`
 
 3. Access microservices:
+   * **Household**: `http://alfheim.loegien.localhost/household/`
    * **Digital Pantry**: `http://alfheim.loegien.localhost/pantry`
    * **Budget & Treasury**: `http://alfheim.loegien.localhost/budget`
    * **ALFI AI Assistant**: `http://alfheim.loegien.localhost/chat`
@@ -90,6 +97,25 @@ Populate relational databases with test households, users, and sample pantry ite
 ```bash
 ./scripts/seed.sh
 ```
+
+---
+
+## Stop & Clean Up
+
+Stop the stack and keep all data:
+
+```bash
+./scripts/down.sh
+```
+
+Reset to a clean slate (removes containers, Docker volumes including `zitadel_machinekey`, the external networks, and the Postgres data directory). Run it before a fresh `up.sh` when you want Zitadel to initialise again:
+
+```bash
+./scripts/down.sh --volumes
+docker run --rm -v "$PWD/infrastructure/postgres:/pg" alpine:3.20 rm -rf /pg/data
+```
+
+The data directory is deleted from a throwaway container because on Linux it belongs to the Postgres container user; this needs no `sudo` on either platform. `down.sh --volumes` alone keeps `infrastructure/postgres/data`. Zitadel then stays initialised and never writes a new PAT, so `up.sh` falls back to `ZITADEL_BOOTSTRAP_PAT` in `.env`.
 
 ---
 

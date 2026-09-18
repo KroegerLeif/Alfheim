@@ -144,14 +144,15 @@ The bare origin of that host is the canonical OIDC issuer.
 
 Prior to starting the platform, configure the required environment variables:
 
-1. **Root Configuration**: Copy the template from `.env.example` at the root and fill in the values:
+1. **Root Configuration**: Generate `.env` for the plain-HTTP `*.localhost` development hosts (random dev secrets; a re-run keeps existing values):
    ```bash
-   cp .env.example .env
+   ./scripts/init-env.sh --auto --base-url http://alfheim.loegien.localhost
    ```
-2. **Staged Boot**: Run the automated staged boot script to start all infrastructure and microservices:
+2. **Staged Boot**: Run the automated staged boot script to start all infrastructure and microservices. On macOS this needs only Docker Desktop — no `sudo`:
    ```bash
    ./scripts/up.sh -b
    ```
+3. **Stop / Clean Up**: `./scripts/down.sh` stops the stack and keeps data. For a clean slate see [Stop & Clean Up](docs/en/tutorials/local-getting-started.md#stop--clean-up).
 
 ---
 

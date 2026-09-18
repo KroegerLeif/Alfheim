@@ -48,6 +48,9 @@ The tables below list the development stack (`scripts/up.sh`), which serves the 
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `3010` | Redirects bare `/shopping` to `/shopping/en` |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `3000` | Redirects bare `/chat` to `/chat/de` |
 | `http://alfheim.loegien.localhost/grafana` | `grafana` | `3000` | Zitadel SSO Observability Dashboard |
+| `http://alfheim.loegien.localhost/household` | `household-frontend` | `3000` | basePath `/household`, no locale redirect |
+| `http://alfheim.loegien.localhost/api/v1/households`, `/api/v1/profile` | `household-backend` | `8080` | Path preserved; wins over the dashboard `/api/v1/*` catch-all |
+| `http://alfheim.loegien.localhost/internal/` | — | — | `404`: service-to-service endpoints are never routed (same on `api.*`) |
 
 ---
 
@@ -65,6 +68,7 @@ The tables below list the development stack (`scripts/up.sh`), which serves the 
 | `http://api.alfheim.loegien.localhost/library/api/v1/`| `library-backend` | `8000` | Strips `/library` prefix via `handle_path` |
 | `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `8000` | Native route (no stripping) |
 | `http://api.alfheim.loegien.localhost/api/v1/chat` | `chat-backend` | `8080` | Native Go API route (no stripping) |
+| `http://api.alfheim.loegien.localhost/api/v1/households`, `/api/v1/profile` | `household-backend` | `8080` | Native Go API route (no stripping); wins over the dashboard catch-all |
 | `http://api.alfheim.loegien.localhost/api/v1/apps` | `dashboard-backend` | `8080` | Native Go API route (no stripping) |
 
 ---

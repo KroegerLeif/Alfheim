@@ -48,6 +48,9 @@ Die Tabellen unten beschreiben den Entwicklungs-Stack (`scripts/up.sh`), der die
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `3010` | Leitet nacktes `/shopping` zu `/shopping/en` um |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `3000` | Leitet nacktes `/chat` zu `/chat/de` um |
 | `http://alfheim.loegien.localhost/grafana` | `grafana` | `3000` | Zitadel-SSO-Beobachtungs-Dashboard |
+| `http://alfheim.loegien.localhost/household` | `household-frontend` | `3000` | basePath `/household`, keine Sprach-Weiterleitung |
+| `http://alfheim.loegien.localhost/api/v1/households`, `/api/v1/profile` | `household-backend` | `8080` | Pfad bleibt erhalten; hat Vorrang vor dem Dashboard-Catch-all `/api/v1/*` |
+| `http://alfheim.loegien.localhost/internal/` | — | — | `404`: Service-zu-Service-Endpunkte werden nie geroutet (ebenso auf `api.*`) |
 
 ---
 
@@ -65,6 +68,7 @@ Die Tabellen unten beschreiben den Entwicklungs-Stack (`scripts/up.sh`), der die
 | `http://api.alfheim.loegien.localhost/library/api/v1/`| `library-backend` | `8000` | Streift `/library`-Präfix via `handle_path` ab |
 | `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `8000` | Native Route (kein Stripping) |
 | `http://api.alfheim.loegien.localhost/api/v1/chat` | `chat-backend` | `8080` | Native Go-API-Route (kein Stripping) |
+| `http://api.alfheim.loegien.localhost/api/v1/households`, `/api/v1/profile` | `household-backend` | `8080` | Native Go-API-Route (kein Stripping); hat Vorrang vor dem Dashboard-Catch-all |
 | `http://api.alfheim.loegien.localhost/api/v1/apps` | `dashboard-backend` | `8080` | Native Go-API-Route (kein Stripping) |
 
 ---
