@@ -38,7 +38,7 @@ services:
       context: ../..
       dockerfile: apps/maintenance/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_MAINTENANCE_API_URL:-http://api.alfheim.loegien.localhost/maintenance/api/v1}
+        - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}/api/v1/maintenance
         - NEXT_PUBLIC_OIDC_ISSUER=${NEXT_PUBLIC_OIDC_ISSUER:-http://auth.alfheim.loegien.localhost}
         - NEXT_PUBLIC_OIDC_CLIENT_ID=${NEXT_PUBLIC_OIDC_CLIENT_ID:-maintenance-frontend}
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}

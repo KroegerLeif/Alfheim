@@ -486,6 +486,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -562,6 +563,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1
     healthcheck:
       # Next.js basePath is /household, so / itself is a 404.
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/household', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
@@ -650,6 +652,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chat
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -733,6 +736,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/pantry/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/pantry/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -817,6 +821,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/shopping/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -900,6 +905,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/maintenance
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -983,6 +989,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chores
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chores/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -1070,6 +1077,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/budget
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/budget/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -1154,6 +1162,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/workout
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/workout/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -1237,6 +1246,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/library
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/library/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
