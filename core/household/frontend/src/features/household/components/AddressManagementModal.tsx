@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useTranslation, AddressAutocomplete, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { AddressAutocomplete, Dialog, DialogContent, DialogTitle, type AddressResult } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import { Household } from '@/shared/types';
 
 const OSMMapViewer = dynamic(
@@ -14,7 +15,7 @@ interface AddressManagementModalProps {
   isOpen: boolean;
   household: Household;
   onClose: () => void;
-  onAddressSelect: (addr: any) => void;
+  onAddressSelect: (addr: AddressResult) => void;
 }
 
 /**
@@ -31,7 +32,7 @@ export function AddressManagementModal({
 
   if (!isOpen) return null;
 
-  const handleSelect = (addr: any) => {
+  const handleSelect = (addr: AddressResult) => {
     if (addr && addr.lat && addr.lng) {
       setSelectedCoords([addr.lat, addr.lng]);
     }

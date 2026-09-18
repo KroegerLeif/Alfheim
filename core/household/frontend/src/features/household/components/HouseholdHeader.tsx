@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import { Household } from '@/shared/types';
 
 interface HouseholdHeaderProps {
@@ -34,7 +34,7 @@ export function HouseholdHeader({
     <div className="col-span-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
       <div className="space-y-1">
         <Link
-          href="/household"
+          href="/"
           className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--primary-main)] transition-colors mb-1 self-start"
         >
           <span className="material-symbols-outlined text-sm">arrow_back</span>

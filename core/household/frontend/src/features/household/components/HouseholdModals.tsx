@@ -1,6 +1,7 @@
 'use client';
 
-import { Contact, ContactCategory, InviteCodeResponse, Household } from '@/shared/types';
+import type { AddressResult } from '@alfheim/shared';
+import { Contact, ContactCategory, ContactPayload, InviteCodeResponse, Household } from '@/shared/types';
 import { AddressManagementModal } from './AddressManagementModal';
 import { InviteModal } from './InviteModal';
 import { ContactModal, CategoryModal } from '@/features/contact';
@@ -11,7 +12,7 @@ interface HouseholdModalsProps {
   isAddressModalOpen: boolean;
   setIsAddressModalOpen: (open: boolean) => void;
   household: Household;
-  handleAddressSelect: (addr: any) => void;
+  handleAddressSelect: (addr: AddressResult) => void;
   isCategoryModalOpen: boolean;
   setIsCategoryModalOpen: (open: boolean) => void;
   editingCategory: ContactCategory | null;
@@ -20,7 +21,7 @@ interface HouseholdModalsProps {
   setIsContactModalOpen: (open: boolean) => void;
   editingContact: Contact | null;
   categories: ContactCategory[];
-  handleContactSubmit: (payload: any) => void;
+  handleContactSubmit: (payload: ContactPayload) => void;
 }
 
 export function HouseholdModals({
@@ -52,6 +53,7 @@ export function HouseholdModals({
       />
 
       <CategoryModal
+        key={`category-${isCategoryModalOpen}-${editingCategory?.id ?? 'new'}`}
         isOpen={isCategoryModalOpen}
         editingCategory={editingCategory}
         onClose={() => setIsCategoryModalOpen(false)}
@@ -59,6 +61,7 @@ export function HouseholdModals({
       />
 
       <ContactModal
+        key={`contact-${isContactModalOpen}-${editingContact?.id ?? 'new'}`}
         isOpen={isContactModalOpen}
         editingContact={editingContact}
         categories={categories}

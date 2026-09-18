@@ -1,6 +1,7 @@
 'use client';
 
-import { useTranslation, AddressAutocomplete } from '@alfheim/shared';
+import { AddressAutocomplete } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import { ContactCategory } from '@/shared/types';
 
 interface ContactModalFormFieldsProps {

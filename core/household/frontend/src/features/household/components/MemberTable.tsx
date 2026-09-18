@@ -1,7 +1,8 @@
 'use client';
 
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import { Household, HouseholdMember } from '@/shared/types';
+import { memberDisplayName, memberInitials } from './memberDisplay';
 
 interface MemberTableProps {
   household: Household;
@@ -29,26 +30,8 @@ export function MemberTable({
     return translated === key ? role : translated;
   };
 
-  const getMemberDisplayName = (m: HouseholdMember) => {
-    if (m.first_name || m.last_name) {
-      return `${m.first_name || ''} ${m.last_name || ''}`.trim();
-    }
-    if (m.username) return `@${m.username}`;
-    if (m.email) return m.email;
-    if (m.user_id) {
-      return `User (${m.user_id.substring(0, 8)}...)`;
-    }
-    return t('household.member_user');
-  };
-
-  const getMemberInitials = (m: HouseholdMember) => {
-    if (m.first_name && m.last_name) {
-      return `${m.first_name[0]}${m.last_name[0]}`.toUpperCase();
-    }
-    if (m.username) return m.username.substring(0, 2).toUpperCase();
-    if (m.email) return m.email.substring(0, 2).toUpperCase();
-    return 'MU';
-  };
+  const getMemberDisplayName = (m: HouseholdMember) => memberDisplayName(m, t('household.member_user'));
+  const getMemberInitials = memberInitials;
 
   return (
     <div className="lg:col-span-5 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] space-y-4">

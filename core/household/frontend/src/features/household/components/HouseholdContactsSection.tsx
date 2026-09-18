@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import { ContactCards, CategoryManager } from '@/features/contact';
 import { Contact, ContactCategory } from '@/shared/types';
 

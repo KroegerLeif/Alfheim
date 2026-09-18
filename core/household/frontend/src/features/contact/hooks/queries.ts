@@ -9,7 +9,7 @@ import {
   updateContactCategory,
   deleteContactCategory,
 } from '../api/contact';
-import { Contact, ContactCategory } from '@/shared/types';
+import { Contact, ContactCategory, ContactPayload, ContactCategoryPayload } from '@/shared/types';
 
 export const CONTACTS_KEY = (householdId: string) => ['contacts', householdId];
 export const CATEGORIES_KEY = (householdId: string) => ['contact-categories', householdId];
@@ -31,7 +31,7 @@ export function useContacts(householdId: string) {
 export function useCreateContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => {
+    mutationFn: (payload: ContactPayload) => {
       if (!householdId) throw new Error("Missing active household selection");
       return createContact(householdId, payload);
     },
@@ -47,7 +47,7 @@ export function useCreateContact(householdId: string) {
 export function useUpdateContact(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ contactId, payload }: { contactId: string; payload: any }) => {
+    mutationFn: ({ contactId, payload }: { contactId: string; payload: ContactPayload }) => {
       if (!householdId) throw new Error("Missing active household selection");
       return updateContact(householdId, contactId, payload);
     },
@@ -90,7 +90,7 @@ export function useCategories(householdId: string) {
 export function useCreateCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => {
+    mutationFn: (payload: ContactCategoryPayload) => {
       if (!householdId) throw new Error("Missing active household selection");
       return createContactCategory(householdId, payload);
     },
@@ -106,7 +106,7 @@ export function useCreateCategory(householdId: string) {
 export function useUpdateCategory(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ catId, payload }: { catId: string; payload: any }) => {
+    mutationFn: ({ catId, payload }: { catId: string; payload: ContactCategoryPayload }) => {
       if (!householdId) throw new Error("Missing active household selection");
       return updateContactCategory(householdId, catId, payload);
     },

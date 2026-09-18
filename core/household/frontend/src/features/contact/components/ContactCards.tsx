@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import dynamic from 'next/dynamic';
 import { Contact, ContactCategory } from '@/shared/types';
 

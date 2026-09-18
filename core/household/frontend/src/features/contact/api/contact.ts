@@ -1,5 +1,5 @@
 import { api } from '@/core/api/client';
-import { Contact, ContactCategory } from '@/shared/types';
+import { Contact, ContactCategory, ContactPayload } from '@/shared/types';
 
 /* Contact Categories API */
 export async function fetchContactCategories(householdId: string): Promise<ContactCategory[]> {
@@ -21,8 +21,8 @@ export async function updateContactCategory(
   return await api.put(`api/v1/households/${householdId}/contact-categories/${catId}`, { json: payload }).json<ContactCategory>();
 }
 
-export async function deleteContactCategory(householdId: string, catId: string): Promise<any> {
-  return await api.delete(`api/v1/households/${householdId}/contact-categories/${catId}`).json();
+export async function deleteContactCategory(householdId: string, catId: string): Promise<void> {
+  await api.delete(`api/v1/households/${householdId}/contact-categories/${catId}`);
 }
 
 /* Contacts API */
@@ -32,7 +32,7 @@ export async function fetchContacts(householdId: string): Promise<Contact[]> {
 
 export async function createContact(
   householdId: string,
-  payload: { category_id: string | null; name: string; phone: string; email: string; address: string; latitude: number | null; longitude: number | null; description: string; links: string[]; icon: string; avatar_url: string }
+  payload: ContactPayload
 ): Promise<Contact> {
   return await api.post(`api/v1/households/${householdId}/contacts`, { json: payload }).json<Contact>();
 }
@@ -40,11 +40,11 @@ export async function createContact(
 export async function updateContact(
   householdId: string,
   contactId: string,
-  payload: { category_id: string | null; name: string; phone: string; email: string; address: string; latitude: number | null; longitude: number | null; description: string; links: string[]; icon: string; avatar_url: string }
+  payload: ContactPayload
 ): Promise<Contact> {
   return await api.put(`api/v1/households/${householdId}/contacts/${contactId}`, { json: payload }).json<Contact>();
 }
 
-export async function deleteContact(householdId: string, contactId: string): Promise<any> {
-  return await api.delete(`api/v1/households/${householdId}/contacts/${contactId}`).json();
+export async function deleteContact(householdId: string, contactId: string): Promise<void> {
+  await api.delete(`api/v1/households/${householdId}/contacts/${contactId}`);
 }

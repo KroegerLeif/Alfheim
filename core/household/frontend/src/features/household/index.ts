@@ -1,4 +1,5 @@
 export * from './hooks/queries';
+export * from './permissions';
 export * from './components/HouseholdDetailView';
 export * from './components/HouseholdDetailSkeleton';
 export * from './components/HouseholdHeader';
@@ -7,4 +8,11 @@ export * from './components/MemberTable';
 export * from './components/MemberGrid';
 export * from './components/MapAddressBanner';
 export * from './components/InviteModal';
+export * from './components/InviteList';
 export * from './components/HouseholdCreateModal';
+export * from './components/HouseholdSettingsPanel';
+export * from './components/DeleteHouseholdModal';
+export * from './components/JoinHouseholdForm';
+export * from './components/CreateHouseholdCard';
+export * from './components/QrCode';
+export * from './components/StatusBanner';

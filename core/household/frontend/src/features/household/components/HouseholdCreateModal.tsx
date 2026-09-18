@@ -1,6 +1,7 @@
 'use client';
 
-import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 
 interface HouseholdCreateModalProps {
   isOpen: boolean;
@@ -36,10 +37,11 @@ export function HouseholdCreateModal({
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
-              {t('household.title')} {t('catalog.app_name')} *
+            <label htmlFor="household-create-name" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-1">
+              {t('household_app.create.name_label')} *
             </label>
             <input
+              id="household-create-name"
               type="text"
               value={newHouseholdName}
               onChange={(e) => setNewHouseholdName(e.target.value)}

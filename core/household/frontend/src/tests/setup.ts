@@ -2,11 +2,16 @@ import '@testing-library/jest-dom'
 import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import * as matchers from 'vitest-axe/matchers'
 import { server } from './mocks/server'
+import { resetNavigationMock } from './mocks/navigation'
 
 expect.extend(matchers)
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
-afterEach(() => server.resetHandlers())
+afterEach(() => {
+  server.resetHandlers()
+  resetNavigationMock()
+  localStorage.clear()
+})
 afterAll(() => server.close())
 
 // Mock localStorage and sessionStorage globally for tests
@@ -35,49 +40,21 @@ Object.defineProperty(global, 'sessionStorage', {
   writable: true,
 });
 
-// Mock next/navigation router hooks
-vi.mock('next/navigation', () => ({
-  useRouter() {
-    return {
-      prefetch: () => null,
-      push: () => null,
-      replace: () => null,
-      back: () => null,
-    }
-  },
-  usePathname() {
-    return ''
-  },
-  useSearchParams() {
-    return new URLSearchParams()
-  },
-  useParams() {
-    return {}
-  },
-}))
+// Mock next/navigation router hooks; tests assert on the shared mockRouter.
+vi.mock('next/navigation', async () => {
+  const nav = await import('./mocks/navigation')
+  return {
+    useRouter: () => nav.mockRouter,
+    usePathname: () => nav.mockNavigation.pathname,
+    useSearchParams: () => new URLSearchParams(nav.mockNavigation.search),
+    useParams: () => ({}),
+  }
+})
 
-// Mock next-intl translations and localized routing
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-  useLocale: () => 'en',
-  Link: ({ children, ...props }: any) => {
-    const React = require('react')
-    return React.createElement('a', props, children)
-  },
-  useRouter() {
-    return {
-      push: () => null,
-      replace: () => null,
-    }
-  },
-  usePathname() {
-    return ''
-  },
-}))
-
-// Mock @alfheim/shared translation hook
+// Mock @alfheim/shared translation hook: shared keys render as their last
+// segment. App-local `household_app.*` keys resolve from src/i18n (EN).
 vi.mock('@alfheim/shared', async () => {
-  const actual = await vi.importActual<any>('@alfheim/shared')
+  const actual = await vi.importActual<Record<string, unknown>>('@alfheim/shared')
   return {
     ...actual,
     useTranslation: () => ({

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import { Contact, ContactCategory } from '@/shared/types';
 import { ContactModalFormFields } from './ContactModalFormFields';
 
@@ -34,45 +35,20 @@ export function ContactModal({
 }: ContactModalProps) {
   const { t } = useTranslation();
 
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactAddress, setContactAddress] = useState('');
-  const [contactLat, setContactLat] = useState<number | null>(null);
-  const [contactLng, setContactLng] = useState<number | null>(null);
-  const [contactDesc, setContactDesc] = useState('');
-  const [contactLinks, setContactLinks] = useState('');
-  const [contactCatId, setContactCatId] = useState('');
-  const [contactIcon, setContactIcon] = useState('person');
-  const [contactAvatarUrl, setContactAvatarUrl] = useState('');
-
-  useEffect(() => {
-    if (editingContact) {
-      setContactName(editingContact.name);
-      setContactPhone(editingContact.phone);
-      setContactEmail(editingContact.email);
-      setContactAddress(editingContact.address);
-      setContactLat(editingContact.latitude || null);
-      setContactLng(editingContact.longitude || null);
-      setContactDesc(editingContact.description);
-      setContactLinks((editingContact.links ?? []).join('\n'));
-      setContactCatId(editingContact.category_id || '');
-      setContactIcon(editingContact.icon || 'person');
-      setContactAvatarUrl(editingContact.avatar_url || '');
-    } else {
-      setContactName('');
-      setContactPhone('');
-      setContactEmail('');
-      setContactAddress('');
-      setContactLat(null);
-      setContactLng(null);
-      setContactDesc('');
-      setContactLinks('');
-      setContactCatId('');
-      setContactIcon('person');
-      setContactAvatarUrl('');
-    }
-  }, [editingContact]);
+  // Form state is seeded from props; the parent remounts this modal (via
+  // `key`) whenever it opens or the edited contact changes.
+  const c = editingContact;
+  const [contactName, setContactName] = useState(c?.name ?? '');
+  const [contactPhone, setContactPhone] = useState(c?.phone ?? '');
+  const [contactEmail, setContactEmail] = useState(c?.email ?? '');
+  const [contactAddress, setContactAddress] = useState(c?.address ?? '');
+  const [contactLat, setContactLat] = useState<number | null>(c?.latitude || null);
+  const [contactLng, setContactLng] = useState<number | null>(c?.longitude || null);
+  const [contactDesc, setContactDesc] = useState(c?.description ?? '');
+  const [contactLinks, setContactLinks] = useState((c?.links ?? []).join('\n'));
+  const [contactCatId, setContactCatId] = useState(c?.category_id || '');
+  const [contactIcon, setContactIcon] = useState(c?.icon || 'person');
+  const [contactAvatarUrl, setContactAvatarUrl] = useState(c?.avatar_url || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

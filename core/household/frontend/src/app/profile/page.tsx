@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTranslation } from '@alfheim/shared';
+import { useState } from 'react';
+import { useTranslation } from '@/i18n';
 import { useUserProfile, useUpdateProfile, ProfileHeaderBanner, ProfileOidcClaims } from '@/features/profile';
 import { useAuth } from '@/core/providers';
+import { describeApiError } from '@/lib/apiErrors';
 
 export default function ProfilePage() {
   const { t } = useTranslation();
@@ -11,21 +12,17 @@ export default function ProfilePage() {
   const { data: profile } = useUserProfile();
   const updateMutation = useUpdateProfile();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  // Edited values override the server / OIDC values; untouched fields
+  // (undefined) follow the loaded profile.
+  const [draft, setDraft] = useState<{ firstName?: string; lastName?: string; avatarUrl?: string }>({});
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (profile) {
-      setFirstName(profile.first_name || authUser?.given_name || '');
-      setLastName(profile.last_name || authUser?.family_name || '');
-      setAvatarUrl(profile.avatar_url || '');
-    } else if (authUser) {
-      setFirstName(authUser.given_name || '');
-      setLastName(authUser.family_name || '');
-    }
-  }, [profile, authUser]);
+  const firstName = draft.firstName ?? (profile?.first_name || authUser?.given_name || '');
+  const lastName = draft.lastName ?? (profile?.last_name || authUser?.family_name || '');
+  const avatarUrl = draft.avatarUrl ?? (profile?.avatar_url || '');
+  const setFirstName = (firstName: string) => setDraft((d) => ({ ...d, firstName }));
+  const setLastName = (lastName: string) => setDraft((d) => ({ ...d, lastName }));
+  const setAvatarUrl = (avatarUrl: string) => setDraft((d) => ({ ...d, avatarUrl }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +40,7 @@ export default function ProfilePage() {
           setTimeout(() => setStatusMessage(null), 4000);
         },
         onError: (error) => {
-          setStatusMessage(`Update failed: ${error.message}`);
+          setStatusMessage(describeApiError(error, t));
         },
       }
     );

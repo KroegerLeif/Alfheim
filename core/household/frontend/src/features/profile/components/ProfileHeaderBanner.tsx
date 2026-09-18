@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 
 interface ProfileHeaderBannerProps {
   displayName: string;

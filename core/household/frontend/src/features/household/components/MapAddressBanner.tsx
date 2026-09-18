@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import dynamic from 'next/dynamic';
 import { Household } from '@/shared/types';
 

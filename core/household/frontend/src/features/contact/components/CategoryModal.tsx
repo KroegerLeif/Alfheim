@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { useTranslation } from '@/i18n';
 import { ContactCategory } from '@/shared/types';
 
 interface CategoryModalProps {
@@ -22,21 +23,11 @@ export function CategoryModal({
 }: CategoryModalProps) {
   const { t } = useTranslation();
 
-  const [categoryName, setCategoryName] = useState('');
-  const [categoryIcon, setCategoryIcon] = useState('person');
-  const [categoryColor, setCategoryColor] = useState('#2563eb');
-
-  useEffect(() => {
-    if (editingCategory) {
-      setCategoryName(editingCategory.name);
-      setCategoryIcon(editingCategory.icon || 'person');
-      setCategoryColor(editingCategory.color || '#2563eb');
-    } else {
-      setCategoryName('');
-      setCategoryIcon('person');
-      setCategoryColor('#2563eb');
-    }
-  }, [editingCategory]);
+  // Form state is seeded from props; the parent remounts this modal (via
+  // `key`) whenever it opens or the edited category changes.
+  const [categoryName, setCategoryName] = useState(editingCategory?.name ?? '');
+  const [categoryIcon, setCategoryIcon] = useState(editingCategory?.icon || 'person');
+  const [categoryColor, setCategoryColor] = useState(editingCategory?.color || '#2563eb');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

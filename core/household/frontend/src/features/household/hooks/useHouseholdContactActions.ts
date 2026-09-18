@@ -1,13 +1,18 @@
 'use client';
 
-import { Contact, ContactCategory } from '@/shared/types';
+import { Contact, ContactCategory, ContactPayload, ContactCategoryPayload } from '@/shared/types';
+
+/** The slice of a TanStack mutation result these handlers use. */
+interface Mutation<TVariables> {
+  mutate: (variables: TVariables, options?: { onSuccess?: () => void }) => void;
+}
 
 interface HouseholdContactHandlers {
   openCategoryModal: (cat?: ContactCategory | null) => void;
   handleCategorySubmit: (payload: { name: string; icon: string; color: string }) => void;
   handleDeleteCategory: (catId: string) => void;
   openContactModal: (c?: Contact | null) => void;
-  handleContactSubmit: (payload: any) => void;
+  handleContactSubmit: (payload: ContactPayload) => void;
   handleDeleteContact: (contactId: string) => void;
 }
 
@@ -15,15 +20,15 @@ export function useHouseholdContactActions(
   editingCategory: ContactCategory | null,
   setIsCategoryModalOpen: (open: boolean) => void,
   setEditingCategory: (cat: ContactCategory | null) => void,
-  createCategoryMutation: any,
-  updateCategoryMutation: any,
-  deleteCategoryMutation: any,
+  createCategoryMutation: Mutation<ContactCategoryPayload>,
+  updateCategoryMutation: Mutation<{ catId: string; payload: ContactCategoryPayload }>,
+  deleteCategoryMutation: Mutation<string>,
   editingContact: Contact | null,
   setIsContactModalOpen: (open: boolean) => void,
   setEditingContact: (c: Contact | null) => void,
-  createContactMutation: any,
-  updateContactMutation: any,
-  deleteContactMutation: any,
+  createContactMutation: Mutation<ContactPayload>,
+  updateContactMutation: Mutation<{ contactId: string; payload: ContactPayload }>,
+  deleteContactMutation: Mutation<string>,
   t: (key: string) => string
 ): HouseholdContactHandlers {
   const openCategoryModal = (cat: ContactCategory | null = null) => {
@@ -50,7 +55,7 @@ export function useHouseholdContactActions(
     setIsContactModalOpen(true);
   };
 
-  const handleContactSubmit = (payload: any) => {
+  const handleContactSubmit = (payload: ContactPayload) => {
     if (editingContact) {
       updateContactMutation.mutate({ contactId: editingContact.id, payload }, { onSuccess: () => setIsContactModalOpen(false) });
     } else {
