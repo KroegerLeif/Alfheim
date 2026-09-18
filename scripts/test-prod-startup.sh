@@ -195,18 +195,20 @@ wait_for_health() {
 # "open /machinekey/pat.txt: permission denied", and every restart after
 # that fails again with Errors.Instance.Domain.AlreadyExists because the
 # migration is half-applied.
+#
+# compose.prod.yaml keeps the installer's bind mount, so the directory has to
+# be chowned on the host. Doing that from a throwaway root container (the
+# same trick the dev stack's zitadel-machinekey-init one-shot uses on its
+# named volume) needs neither sudo nor a world-writable directory, and works
+# on Linux and on macOS (Docker Desktop) alike.
 prepare_zitadel_machinekey() {
   local dir="${REPO_ROOT}/infrastructure/zitadel/machinekey"
   mkdir -p "${dir}"
 
-  if [[ "$(id -u)" == "0" ]]; then
-    chown 1000:1000 "${dir}"
-  elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-    sudo chown 1000:1000 "${dir}"
-  else
-    # Not root and no passwordless sudo (a typical CI runner): widen the
-    # mode instead of guessing at a chown we cannot actually perform.
-    chmod 0777 "${dir}"
+  if ! docker run --rm --network none --user 0:0 -v "${dir}:/machinekey" alpine:3.20 \
+      chown 1000:1000 /machinekey; then
+    log_error "Could not hand ${dir} to Zitadel's container user (uid 1000)."
+    exit 1
   fi
 }
 
