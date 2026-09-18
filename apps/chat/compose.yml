@@ -57,7 +57,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:-}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_CHAT_API_URL:-http://api.alfheim.loegien.localhost/api/v1/chat}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}/api/v1/chat
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 5s

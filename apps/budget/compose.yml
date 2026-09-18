@@ -59,7 +59,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:-}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_BUDGET_API_URL:-http://api.alfheim.loegien.localhost/budget/api/v1}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}/api/v1/budget
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/budget/en || exit 1"]
       interval: 5s
