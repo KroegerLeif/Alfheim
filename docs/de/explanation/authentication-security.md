@@ -38,7 +38,7 @@ Für klare Architekturgrenzen und eine schlanke externe Identitätsinfrastruktur
    - Zitadel verwaltet weder fachliche Anwendungsdaten noch komplexe Haushaltsmitgliedschaften.
 
 2. **Haushalts-Autorisierung & Kontext (AuthZ — Alfheim Core)**:
-   - Alfheim Core/Dashboard verwaltet Haushalts-Entitäten, Einladungen, Mitgliedsrollen (`owner`, `member`, `guest`) und Mandantengrenzen.
+   - Die Tier-1-App `core/household` verwaltet Haushalts-Entitäten, Einladungen, Mitgliedsrollen (`owner`, `member`, `guest`), Kontakte, das Benutzerprofil und Mandantengrenzen. Das Dashboard tut das nicht mehr: Es liefert nur den App-Katalog, Benutzereinstellungen und -Links sowie Telemetrie und ignoriert `X-Household-ID` / `X-Household-Role`.
    - Microservices akzeptieren die von Zitadel authentifizierten Identitäts-Tokens und prüfen den Haushaltszugriff gegen den aktiven Haushaltskontext (`X-Household-ID`), der von Alfheim Core verwaltet wird.
 
 ---
@@ -75,6 +75,8 @@ Um strikte Mandantengrenzen über alle Microservices hinweg durchzusetzen:
 1. **Header-Prüfung**: Die Backends prüfen, dass eingehende HTTP-Anfragen einen gültigen `X-Household-ID`-Header tragen.
 2. **Autorisierungsprüfung**: Die Auth-Middleware (`backend_shared.auth` sowie die Go-Auth-Handler) validiert die Nutzeridentität (`sub`) und prüft die Haushaltsmitgliedschaft über Alfheim Core. Der Haushalt stammt aus dem Claim `household_id` / `active_household_id` des Tokens; eine Anfrage, deren `X-Household-ID`-Header davon abweicht oder die den Header mit einem Token ohne Haushalts-Claim sendet, wird mit `403` abgelehnt. Der Header allein legt nie einen Haushalt fest.
 3. **Query-Filterung**: Alle Lese-, Schreib-, Update- und Löschoperationen im Repository-Layer filtern nach `household_id == active_household_id`.
+
+Das Dashboard-Backend ist nicht haushaltsbezogen: Seine Daten (Einstellungen, Links) hängen an der `sub` des Benutzers. Es prüft `X-Household-ID` daher weder noch lehnt es den Header ab, und es liest oder setzt nie `X-Household-Role`.
 
 ---
 
