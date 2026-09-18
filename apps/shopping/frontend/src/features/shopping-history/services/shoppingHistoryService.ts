@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useActiveHousehold } from "@alfheim/shared";
 import { shoppingClient } from "@/lib/api";
 import { z } from "zod";
 import { ShoppingHistorySchema } from "../schemas";
@@ -7,19 +8,22 @@ import { ShoppingHistory } from "../types";
 // --- Shopping History Query Keys ---
 export const historyKeys = {
   all: ["shopping-history"] as const,
+  household: (householdId: string | null) => [...historyKeys.all, { householdId }] as const,
 };
 
 /**
  * Hook to retrieve frequently purchased items history logs.
  */
 export function useShoppingHistory() {
+  const { householdId, status } = useActiveHousehold();
   return useQuery<ShoppingHistory[]>({
-    queryKey: historyKeys.all,
+    queryKey: historyKeys.household(householdId),
     queryFn: () =>
       shoppingClient
         .get("api/v1/shopping-history")
         .json()
         .then((data) => z.array(ShoppingHistorySchema).parse(data)),
+    enabled: status === "ready",
   });
 }
 

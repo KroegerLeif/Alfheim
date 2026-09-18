@@ -99,6 +99,8 @@
     "sessionExpired": "Session Expired",
     "sessionExpiredDesc": "Your security token has expired or is invalid. Please re-authenticate with Zitadel to resume.",
     "logIn": "Log In",
-    "retry": "Retry"
+    "retry": "Retry",
+    "forbidden": "Access Denied",
+    "forbiddenDesc": "You do not have permission to view these shopping lists in the selected household."
   }
 }

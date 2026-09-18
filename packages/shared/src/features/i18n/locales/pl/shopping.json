@@ -99,6 +99,8 @@
     "sessionExpired": "Sesja wygasła",
     "sessionExpiredDesc": "Twój token bezpieczeństwa wygasł. Zaloguj się ponownie przez Zitadel.",
     "logIn": "Zaloguj",
-    "retry": "Ponów"
+    "retry": "Ponów",
+    "forbidden": "Brak dostępu",
+    "forbiddenDesc": "Nie masz uprawnień do wyświetlania list zakupów w wybranym gospodarstwie."
   }
 }
