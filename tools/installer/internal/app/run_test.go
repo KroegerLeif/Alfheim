@@ -197,6 +197,120 @@ func TestRunHeadlessFullInstall(t *testing.T) {
 	if !containsString(calls, "docker compose -f "+compose+" up -d") {
 		t.Errorf("phase 2 was not started; calls = %v", calls)
 	}
+	// On a fresh volume the Postgres entrypoint runs the init script itself;
+	// running it again concurrently would race the entrypoint.
+	for _, c := range calls {
+		if strings.Contains(c, "init-multiple-dbs.sh") {
+			t.Errorf("a fresh install must not re-run the database init script: %s", c)
+		}
+	}
+	// The new household service's secrets are generated on Day 1.
+	if len(vars["ALFHEIM_INTERNAL_TOKEN"]) != 64 || vars["HOUSEHOLD_POSTGRES_PASSWORD"] == "" {
+		t.Errorf("household secrets were not generated: token=%q password=%q",
+			vars["ALFHEIM_INTERNAL_TOKEN"], vars["HOUSEHOLD_POSTGRES_PASSWORD"])
+	}
+}
+
+const ensureDatabasesSuffix = " exec -T postgres-core bash /docker-entrypoint-initdb.d/init-multiple-dbs.sh"
+
+func TestUpdateBackfillsNewSecretsAndEnsuresDatabases(t *testing.T) {
+	root := t.TempDir()
+	// An installation from before the household service existed.
+	env := "DOMAIN=old.example.com\nPOSTGRES_PASSWORD=keep-me\nDASHBOARD_POSTGRES_PASSWORD=keep-dash\n"
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte(env), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".alfheim.installed"), []byte("version=v1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := healthyDocker()
+	app, stdout, _ := newTestApp(t, &Options{InstallDir: root}, rec, nil)
+	if code := app.Run(context.Background()); code != ExitOK {
+		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
+	}
+
+	vars, err := envfile.ParseFile(filepath.Join(root, ".env"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vars["POSTGRES_PASSWORD"] != "keep-me" || vars["DASHBOARD_POSTGRES_PASSWORD"] != "keep-dash" {
+		t.Errorf("existing secrets were rotated: %v", vars)
+	}
+	if len(vars["ALFHEIM_INTERNAL_TOKEN"]) != 64 {
+		t.Errorf("ALFHEIM_INTERNAL_TOKEN = %q, want a generated 64 character value", vars["ALFHEIM_INTERNAL_TOKEN"])
+	}
+	if vars["HOUSEHOLD_POSTGRES_PASSWORD"] == "" {
+		t.Error("HOUSEHOLD_POSTGRES_PASSWORD was not generated")
+	}
+	if !strings.Contains(stdout.String(), "ALFHEIM_INTERNAL_TOKEN") {
+		t.Errorf("stdout = %q, want the generated keys listed", stdout.String())
+	}
+
+	calls := rec.CallStrings()
+	compose := "docker compose -f " + filepath.Join(root, "compose.prod.yaml")
+	ensure := indexOfString(calls, compose+ensureDatabasesSuffix)
+	stack := indexOfString(calls, compose+" up -d")
+	if ensure < 0 || stack < 0 || ensure > stack {
+		t.Fatalf("the database init script must run before the stack starts; calls = %v", calls)
+	}
+
+	// A second update finds nothing missing and keeps the generated values.
+	token := vars["ALFHEIM_INTERNAL_TOKEN"]
+	app2, stdout2, _ := newTestApp(t, &Options{InstallDir: root}, healthyDocker(), nil)
+	if code := app2.Run(context.Background()); code != ExitOK {
+		t.Fatalf("second run exit code = %d", code)
+	}
+	again, err := envfile.ParseFile(filepath.Join(root, ".env"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again["ALFHEIM_INTERNAL_TOKEN"] != token {
+		t.Error("a second update must not regenerate ALFHEIM_INTERNAL_TOKEN")
+	}
+	if strings.Contains(stdout2.String(), "new secret") {
+		t.Errorf("second run generated secrets again: %s", stdout2.String())
+	}
+}
+
+func TestUpdateFailsWhenDatabasesCannotBeEnsured(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte("DOMAIN=old.example.com\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".alfheim.installed"), []byte("v1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rec := healthyDocker()
+	compose := "docker compose -f " + filepath.Join(root, "compose.prod.yaml")
+	rec.ScriptResult(compose+ensureDatabasesSuffix, runner.Result{ExitCode: 1, Stderr: "psql: error"})
+	app, _, stderr := newTestApp(t, &Options{InstallDir: root}, rec, nil)
+	if code := app.Run(context.Background()); code != ExitFailure {
+		t.Fatalf("exit code = %d, want %d", code, ExitFailure)
+	}
+	if !strings.Contains(stderr.String(), "ensure service databases") {
+		t.Errorf("stderr = %q", stderr.String())
+	}
+}
+
+func TestReconfigureOfAnInstallEnsuresDatabases(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".alfheim.installed"), []byte("v1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	opts := &Options{
+		Reconfigure: true, NonInteractive: true, InstallDir: root,
+		Domain: "example.com", TLSStrategy: "internal", AdminEmail: "ops@example.com",
+	}
+	rec := healthyDocker()
+	app, stdout, _ := newTestApp(t, opts, rec, nil)
+	if code := app.Run(context.Background()); code != ExitOK {
+		t.Fatalf("exit code = %d; stdout=%s", code, stdout.String())
+	}
+	compose := "docker compose -f " + filepath.Join(root, "compose.prod.yaml")
+	if !containsString(rec.CallStrings(), compose+ensureDatabasesSuffix) {
+		t.Errorf("a reconfigure must ensure the service databases; calls = %v", rec.CallStrings())
+	}
 }
 
 func TestRunInteractiveUsesTheWizard(t *testing.T) {

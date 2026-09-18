@@ -52,6 +52,7 @@ var Manifest = []Secret{
 
 	// Per-service database credentials.
 	{Key: "DASHBOARD_POSTGRES_PASSWORD", Kind: KindAlnum, Size: 32},
+	{Key: "HOUSEHOLD_POSTGRES_PASSWORD", Kind: KindAlnum, Size: 32},
 	{Key: "PANTRY_POSTGRES_PASSWORD", Kind: KindAlnum, Size: 32},
 	{Key: "SHOPPING_POSTGRES_PASSWORD", Kind: KindAlnum, Size: 32},
 	{Key: "MAINTENANCE_POSTGRES_PASSWORD", Kind: KindAlnum, Size: 32},
@@ -63,6 +64,11 @@ var Manifest = []Secret{
 
 	// Application level encryption.
 	{Key: "CHAT_ENCRYPTION_KEY", Kind: KindBase64, Size: 32},
+
+	// Shared bearer secret for service-to-service calls to the household
+	// backend's /internal/* API, which Caddy never routes. 32 random bytes,
+	// hex encoded (64 characters), so it is safe in a header and a dotenv.
+	{Key: "ALFHEIM_INTERNAL_TOKEN", Kind: KindHex, Size: 32},
 
 	// Observability.
 	{Key: "GRAFANA_ADMIN_PASSWORD", Kind: KindAlnum, Size: 24},

@@ -172,8 +172,10 @@ func BuildInput(projectName, baseURL string, devMode bool, appSlugs []string) In
 
 // AppSlugs is the fixed list of application frontends that share the web
 // client, in the order redirect URIs are generated. It mirrors the basePath
-// each app's next.config.ts/.js declares.
+// each app's next.config.ts/.js declares. "household" is the Tier-1 core
+// household & roles frontend (core/household, basePath /household). New
+// slugs are appended, so a Day-2 re-provisioning only adds redirect URIs.
 var AppSlugs = []string{
 	"pantry", "shopping", "chores", "maintenance",
-	"budget", "chat", "workout", "library",
+	"budget", "chat", "workout", "library", "household",
 }

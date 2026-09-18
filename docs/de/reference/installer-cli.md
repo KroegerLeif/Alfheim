@@ -107,7 +107,7 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 | Erkannter Zustand | Modus | Verhalten |
 | :--- | :--- | :--- |
 | Keine `.env`, keine `.alfheim.installed` | **install** | Volständiger Assistent, Secret-Generierung, mehrstufiger Boot. |
-| Eines der beiden Files vorhanden | **update** | Pull-Images und Neustart. Kein Assistent, keine Secret-Änderungen. |
+| Eines der beiden Files vorhanden | **update** | Pull-Images und Neustart. Kein Assistent. Bestehende Secrets werden nie geändert; ein Secret, das ein neueres Release braucht und in der `.env` fehlt, wird erzeugt und angehängt. Fehlende Dienst-Datenbanken legt ein erneuter Lauf von `init-multiple-dbs.sh` an. |
 | Eines der Dateien vorhanden, plus `--reconfigure` | **reconfigure** | Assistent läuft erneut; bestehende Secrets werden beibehalten. |
 
 > **Warum Secrets niemals rotiert werden.** Die Neugenerierung von `ZITADEL_MASTERKEY` auf einer konfigurierten Instanz macht ihre Datenbank permanent unlesbar. Jeder bereits in `.env` vorhandene Wert wird weitergeleitet; nur genuinely fehlende werden generiert.

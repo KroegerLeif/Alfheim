@@ -90,6 +90,44 @@ func (o *Orchestrator) RestartIngress(ctx context.Context) error {
 	return o.waitHealthy(ctx, ingressTarget)
 }
 
+// postgresService, postgresTarget and dbInitScript identify the core
+// database in compose.prod.yaml and the idempotent initializer mounted into
+// it (infrastructure/postgres/init-multiple-dbs.sh).
+const (
+	postgresService = "postgres-core"
+	dbInitScript    = "/docker-entrypoint-initdb.d/init-multiple-dbs.sh"
+)
+
+var postgresTarget = HealthTarget{
+	Container: "alfheim_postgres_core", Label: "PostgreSQL core", Timeout: 120 * time.Second,
+}
+
+// EnsureDatabases makes sure every service database and role in
+// init-multiple-dbs.sh exists on an existing installation.
+//
+// Postgres only runs /docker-entrypoint-initdb.d on an empty data volume, so
+// a database added in a later release (alfheim_household, for instance)
+// would never be created on an upgraded install. The script is idempotent,
+// so re-running it against the running server only creates what is missing
+// and re-applies the passwords from .env. It must not be called on a fresh
+// install: there the entrypoint is still running the same script against a
+// socket-only server that pg_isready already reports as ready.
+func (o *Orchestrator) EnsureDatabases(ctx context.Context) error {
+	o.logf("Ensuring every service database exists")
+	// up -d also recreates postgres-core when .env gained a new database
+	// credential, so the script below sees it in its environment.
+	if err := o.compose(ctx, []string{"up", "-d", postgresService}); err != nil {
+		return fmt.Errorf("bootstrap: start %s: %w", postgresService, err)
+	}
+	if err := o.waitHealthy(ctx, postgresTarget); err != nil {
+		return err
+	}
+	if err := o.compose(ctx, []string{"exec", "-T", postgresService, "bash", dbInitScript}); err != nil {
+		return fmt.Errorf("bootstrap: ensure service databases: %w", err)
+	}
+	return nil
+}
+
 // explainZitadelFailure looks at Zitadel's own logs after a startup failure
 // and, when they show the machinekey permission problem (a bind-mount
 // directory Docker created root-owned before the non-root container user
