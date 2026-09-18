@@ -1,8 +1,17 @@
 import ky from "ky";
-import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
+import {
+  resolveApiUrl,
+  resolveFrontendUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  applyHouseholdHeaders,
+  reportHouseholdErrorResponse,
+  parseApiErrorBody,
+} from "@alfheim/shared";
 
 export interface ApiError {
   status?: number;
+  /** Backend error code, e.g. `household_role_forbidden`. */
+  code?: string;
   message: string;
 }
 
@@ -28,16 +37,21 @@ const MAINTENANCE_API_URL = sanitizeUrl(
  * Normalizes HTTP error payloads from FastAPI and throws custom ApiError objects.
  */
 const handleResponseError = async (response: Response) => {
+  let code: string | undefined;
   let message = "maintenance.error.unrecognized_error";
   try {
     const data = await response.json();
-    message = data?.detail || data?.message || message;
+    // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
+    const parsed = parseApiErrorBody(data);
+    code = parsed.code ?? undefined;
+    message = parsed.message || message;
   } catch {
     message = response.statusText || message;
   }
 
   throw {
     status: response.status,
+    code,
     message,
   } as ApiError;
 };
@@ -57,10 +71,7 @@ export const maintenanceClient = ky.create({
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
-          const activeHhId = localStorage.getItem("alfheim_active_household_id");
-          if (activeHhId) {
-            request.headers.set("X-Household-ID", activeHhId);
-          }
+          applyHouseholdHeaders(request.headers);
         }
       },
     ],
@@ -80,6 +91,7 @@ export const maintenanceClient = ky.create({
             }
           }
         }
+        await reportHouseholdErrorResponse(response);
         if (!response.ok) {
           await handleResponseError(response);
         }

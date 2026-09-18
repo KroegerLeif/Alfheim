@@ -3,6 +3,7 @@ import { screen, render } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { axe } from 'vitest-axe'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { StaticHouseholdProvider } from '@alfheim/shared'
 import { LayoutProvider } from '../../../../shared/layout/LayoutContext'
 import { HistoryView } from '../HistoryView'
 import * as useHistoryHook from '../../hooks/useHistory'
@@ -17,11 +18,13 @@ describe('HistoryView Component', () => {
 
     const queryClient = new QueryClient()
     render(
-      <QueryClientProvider client={queryClient}>
-        <LayoutProvider>
-          <HistoryView />
-        </LayoutProvider>
-      </QueryClientProvider>
+      <StaticHouseholdProvider householdId="hh-1">
+        <QueryClientProvider client={queryClient}>
+          <LayoutProvider>
+            <HistoryView />
+          </LayoutProvider>
+        </QueryClientProvider>
+      </StaticHouseholdProvider>
     )
 
     // With mock next-intl, t("history.load_error") returns "history.load_error"
@@ -37,11 +40,13 @@ describe('HistoryView Component', () => {
 
     const queryClient = new QueryClient()
     const { container } = render(
-      <QueryClientProvider client={queryClient}>
-        <LayoutProvider>
-          <HistoryView />
-        </LayoutProvider>
-      </QueryClientProvider>
+      <StaticHouseholdProvider householdId="hh-1">
+        <QueryClientProvider client={queryClient}>
+          <LayoutProvider>
+            <HistoryView />
+          </LayoutProvider>
+        </QueryClientProvider>
+      </StaticHouseholdProvider>
     )
 
     expect(screen.getByText('serviceHistory.noHistoryFound')).toBeInTheDocument()

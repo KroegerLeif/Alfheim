@@ -1,14 +1,21 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { useActiveHousehold } from "@alfheim/shared";
 
 export type NavOption = "devices" | "maintenance" | "scheduled" | "history" | "shopping";
 
 interface LayoutContextType {
   activeNav: NavOption;
   setActiveNav: (nav: NavOption) => void;
+  /** Active core/household id (UUID) from the shared HouseholdProvider. */
+  activeHouseholdId: string | null;
+  /**
+   * Legacy numeric maintenance household id for the `household_id` query
+   * filter: `undefined` while the household loads, `null` for UUID ids (the
+   * backend then scopes by X-Household-ID).
+   */
   householdId: number | null | undefined;
-  setHouseholdId: (id: number | null) => void;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (collapsed: boolean) => void;
 }
@@ -17,44 +24,24 @@ const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
   const [activeNav, setActiveNav] = useState<NavOption>("devices");
-  const [householdIdState, setHouseholdIdState] = useState<number | string | null | undefined>(undefined);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Load from localStorage on mount
-  React.useEffect(() => {
-    const saved = localStorage.getItem("alfheim_active_household_id");
-    if (saved !== null) {
-      setHouseholdIdState(saved);
-    } else {
-      setHouseholdIdState(null); // explicitly set to null if not found
-    }
-  }, []);
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
-  const setHouseholdId = (id: number | null) => {
-    if (id === null) {
-      localStorage.removeItem("alfheim_active_household_id");
-    } else {
-      localStorage.setItem("alfheim_active_household_id", id.toString());
-    }
-    setHouseholdIdState(id);
-    window.dispatchEvent(new Event("storage-household-changed"));
-  };
-
-  // Safely parse string/UUID IDs into integer numbers for Maintenance views
   const householdId = React.useMemo(() => {
-    if (householdIdState === null) return null;
-    if (householdIdState === undefined) return undefined;
-    const num = Number(householdIdState);
+    if (status === "loading") return undefined;
+    if (!activeHouseholdId) return null;
+    const num = Number(activeHouseholdId);
     return isNaN(num) ? null : num;
-  }, [householdIdState]);
+  }, [activeHouseholdId, status]);
 
   return (
     <LayoutContext.Provider
       value={{
         activeNav,
         setActiveNav,
+        activeHouseholdId,
         householdId,
-        setHouseholdId,
         isSidebarCollapsed,
         setIsSidebarCollapsed,
       }}

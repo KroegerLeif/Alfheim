@@ -3,6 +3,7 @@ import { screen, render } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { axe } from 'vitest-axe'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { StaticHouseholdProvider } from '@alfheim/shared'
 import { LayoutProvider } from '../../../../shared/layout/LayoutContext'
 import { DevicesView } from '../DevicesView'
 
@@ -10,11 +11,13 @@ describe('DevicesView Component', () => {
   it('passes accessibility audit', async () => {
     const queryClient = new QueryClient()
     const { container } = render(
-      <QueryClientProvider client={queryClient}>
-        <LayoutProvider>
-          <DevicesView />
-        </LayoutProvider>
-      </QueryClientProvider>
+      <StaticHouseholdProvider householdId="hh-1">
+        <QueryClientProvider client={queryClient}>
+          <LayoutProvider>
+            <DevicesView />
+          </LayoutProvider>
+        </QueryClientProvider>
+      </StaticHouseholdProvider>
     )
     const results = await axe(container)
     expect(results).toHaveNoViolations()
@@ -22,7 +25,7 @@ describe('DevicesView Component', () => {
 
   it('renders provided devices when query cache is populated', () => {
     const queryClient = new QueryClient()
-    queryClient.setQueryData(['devices', undefined], [
+    queryClient.setQueryData(['devices', { activeHouseholdId: 'hh-1' }, null], [
       {
         id: 1,
         name: 'Washing Machine',
@@ -48,11 +51,13 @@ describe('DevicesView Component', () => {
     ])
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <LayoutProvider>
-          <DevicesView />
-        </LayoutProvider>
-      </QueryClientProvider>
+      <StaticHouseholdProvider householdId="hh-1">
+        <QueryClientProvider client={queryClient}>
+          <LayoutProvider>
+            <DevicesView />
+          </LayoutProvider>
+        </QueryClientProvider>
+      </StaticHouseholdProvider>
     )
 
     expect(screen.getByText('Washing Machine')).toBeInTheDocument()
