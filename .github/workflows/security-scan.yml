@@ -74,6 +74,7 @@ jobs:
         service:
           - apps/chat/backend
           - core/dashboard/backend
+          - core/household/backend
           - tools/installer
     defaults:
       run:
