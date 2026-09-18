@@ -20,12 +20,12 @@ type ModelBlockResolver interface {
 
 // Service defines domain logic for conversations, messages, and streamed assistant replies.
 type Service interface {
-	ListConversations(ctx context.Context, userID string) ([]ConversationResponseDTO, error)
+	ListConversations(ctx context.Context, userID, householdID string) ([]ConversationResponseDTO, error)
 	CreateConversation(ctx context.Context, userID, householdID string, req CreateConversationRequest) (ConversationResponseDTO, error)
-	DeleteConversation(ctx context.Context, userID, id string) error
+	DeleteConversation(ctx context.Context, userID, householdID, id string) error
 
-	ListMessages(ctx context.Context, userID, conversationID string) ([]MessageResponseDTO, error)
-	PostMessage(ctx context.Context, userID, conversationID string, req CreateMessageRequest) (MessageResponseDTO, error)
+	ListMessages(ctx context.Context, userID, householdID, conversationID string) ([]MessageResponseDTO, error)
+	PostMessage(ctx context.Context, userID, householdID, conversationID string, req CreateMessageRequest) (MessageResponseDTO, error)
 
 	// StreamAssistantReply verifies ownership, resolves the conversation's model
 	// block into a live llm.Provider, and starts streaming a reply to the
@@ -49,8 +49,11 @@ func NewService(repo Repository, modelBlocks ModelBlockResolver, mcpServers MCPS
 	return &service{repo: repo, modelBlocks: modelBlocks, mcpServers: mcpServers, mcpPool: mcpPool, log: log}
 }
 
-func (s *service) ListConversations(ctx context.Context, userID string) ([]ConversationResponseDTO, error) {
-	convos, err := s.repo.ListConversationsByOwner(ctx, userID)
+func (s *service) ListConversations(ctx context.Context, userID, householdID string) ([]ConversationResponseDTO, error) {
+	if householdID == "" {
+		return []ConversationResponseDTO{}, nil
+	}
+	convos, err := s.repo.ListConversationsByOwner(ctx, userID, householdID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,9 +77,10 @@ func (s *service) CreateConversation(ctx context.Context, userID, householdID st
 		ModelBlockID:  req.ModelBlockID,
 		Title:         req.Title,
 	}
-	if householdID != "" {
-		c.HouseholdID = &householdID
+	if householdID == "" {
+		return ConversationResponseDTO{}, ErrHouseholdRequired
 	}
+	c.HouseholdID = &householdID
 
 	if err := s.repo.CreateConversation(ctx, c); err != nil {
 		return ConversationResponseDTO{}, err
@@ -86,12 +90,12 @@ func (s *service) CreateConversation(ctx context.Context, userID, householdID st
 	return ToConversationResponse(c), nil
 }
 
-func (s *service) DeleteConversation(ctx context.Context, userID, id string) error {
+func (s *service) DeleteConversation(ctx context.Context, userID, householdID, id string) error {
 	c, err := s.repo.GetConversationByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	if !c.IsOwnedBy(userID) {
+	if !c.IsAccessibleTo(userID, householdID) {
 		return ErrForbidden
 	}
 	if err := s.repo.DeleteConversation(ctx, id); err != nil {
@@ -101,12 +105,12 @@ func (s *service) DeleteConversation(ctx context.Context, userID, id string) err
 	return nil
 }
 
-func (s *service) ListMessages(ctx context.Context, userID, conversationID string) ([]MessageResponseDTO, error) {
+func (s *service) ListMessages(ctx context.Context, userID, householdID, conversationID string) ([]MessageResponseDTO, error) {
 	c, err := s.repo.GetConversationByID(ctx, conversationID)
 	if err != nil {
 		return nil, err
 	}
-	if !c.IsOwnedBy(userID) {
+	if !c.IsAccessibleTo(userID, householdID) {
 		return nil, ErrForbidden
 	}
 
@@ -121,7 +125,7 @@ func (s *service) ListMessages(ctx context.Context, userID, conversationID strin
 	return out, nil
 }
 
-func (s *service) PostMessage(ctx context.Context, userID, conversationID string, req CreateMessageRequest) (MessageResponseDTO, error) {
+func (s *service) PostMessage(ctx context.Context, userID, householdID, conversationID string, req CreateMessageRequest) (MessageResponseDTO, error) {
 	if req.Content == "" && len(req.AttachmentIDs) == 0 {
 		return MessageResponseDTO{}, ErrEmptyMessageContent
 	}
@@ -130,7 +134,7 @@ func (s *service) PostMessage(ctx context.Context, userID, conversationID string
 	if err != nil {
 		return MessageResponseDTO{}, err
 	}
-	if !c.IsOwnedBy(userID) {
+	if !c.IsAccessibleTo(userID, householdID) {
 		return MessageResponseDTO{}, ErrForbidden
 	}
 
@@ -164,7 +168,7 @@ func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID,
 	if err != nil {
 		return nil, err
 	}
-	if !c.IsOwnedBy(userID) {
+	if !c.IsAccessibleTo(userID, householdID) {
 		return nil, ErrForbidden
 	}
 	if c.ModelBlockID == nil || *c.ModelBlockID == "" {
@@ -202,7 +206,7 @@ func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID,
 		roundLimit = 8
 	}
 
-	go s.runToolLoop(conversationID, provider, tools, toolServers, messages, firstRoundChunks, roundLimit, out)
+	go s.runToolLoop(ctx, conversationID, provider, tools, toolServers, messages, firstRoundChunks, roundLimit, out)
 	return out, nil
 }
 

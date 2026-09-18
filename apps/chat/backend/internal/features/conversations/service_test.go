@@ -43,10 +43,10 @@ func (f *fakeRepository) GetConversationByID(ctx context.Context, id string) (*c
 	return c, nil
 }
 
-func (f *fakeRepository) ListConversationsByOwner(ctx context.Context, ownerUserID string) ([]*conversations.Conversation, error) {
+func (f *fakeRepository) ListConversationsByOwner(ctx context.Context, ownerUserID, householdID string) ([]*conversations.Conversation, error) {
 	var out []*conversations.Conversation
 	for _, c := range f.convos {
-		if c.OwnerUserID == ownerUserID {
+		if c.OwnerUserID == ownerUserID && c.HouseholdID != nil && *c.HouseholdID == householdID {
 			out = append(out, c)
 		}
 	}
@@ -146,6 +146,7 @@ type fakeToolCaller struct {
 	tools       []mcp.Tool
 	callResults map[string]string // toolName -> result text
 	calls       []string          // records every tool name invoked, for assertions
+	creds       []mcp.CallerCredentials
 }
 
 func (f *fakeToolCaller) ListTools(ctx context.Context) ([]mcp.Tool, error) {
@@ -154,6 +155,8 @@ func (f *fakeToolCaller) ListTools(ctx context.Context) ([]mcp.Tool, error) {
 
 func (f *fakeToolCaller) CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
 	f.calls = append(f.calls, toolName)
+	creds, _ := mcp.CallerCredentialsFrom(ctx)
+	f.creds = append(f.creds, creds)
 	if result, ok := f.callResults[toolName]; ok {
 		return result, false, nil
 	}
@@ -219,25 +222,55 @@ func TestService_CreateListDeleteConversation(t *testing.T) {
 	sourceApp := "pantry"
 
 	t.Run("requires a model_block_id", func(t *testing.T) {
-		_, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{})
+		_, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{})
 		if err != conversations.ErrModelBlockRequired {
 			t.Errorf("expected ErrModelBlockRequired, got %v", err)
 		}
 	})
 
-	created, err := svc.CreateConversation(ctx, "user-1", "hh-1", conversations.CreateConversationRequest{
+	t.Run("rejects missing household", func(t *testing.T) {
+		_, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		if !errors.Is(err, conversations.ErrHouseholdRequired) {
+			t.Fatalf("expected ErrHouseholdRequired, got %v", err)
+		}
+	})
+
+	created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{
 		ModelBlockID: &modelBlockID,
 		SourceApp:    &sourceApp,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if created.HouseholdID == nil || *created.HouseholdID != "hh-1" {
-		t.Errorf("expected household_id hh-1, got %v", created.HouseholdID)
+	if created.HouseholdID == nil || *created.HouseholdID != testHouseholdID {
+		t.Errorf("expected household_id %s, got %v", testHouseholdID, created.HouseholdID)
 	}
 
+	t.Run("same owner in another household cannot see or use it", func(t *testing.T) {
+		const otherHH = "22222222-2222-2222-2222-222222222222"
+		list, err := svc.ListConversations(ctx, "user-1", otherHH)
+		if err != nil || len(list) != 0 {
+			t.Fatalf("expected empty list in other household, got %v %v", list, err)
+		}
+		if _, err := svc.ListMessages(ctx, "user-1", otherHH, created.ID); !errors.Is(err, conversations.ErrForbidden) {
+			t.Errorf("ListMessages: expected ErrForbidden, got %v", err)
+		}
+		if _, err := svc.PostMessage(ctx, "user-1", otherHH, created.ID, conversations.CreateMessageRequest{Content: "x"}); !errors.Is(err, conversations.ErrForbidden) {
+			t.Errorf("PostMessage: expected ErrForbidden, got %v", err)
+		}
+		if _, err := svc.StreamAssistantReply(ctx, "user-1", otherHH, created.ID); !errors.Is(err, conversations.ErrForbidden) {
+			t.Errorf("StreamAssistantReply: expected ErrForbidden, got %v", err)
+		}
+		if err := svc.DeleteConversation(ctx, "user-1", otherHH, created.ID); !errors.Is(err, conversations.ErrForbidden) {
+			t.Errorf("DeleteConversation: expected ErrForbidden, got %v", err)
+		}
+		if list, _ := svc.ListConversations(ctx, "user-1", ""); len(list) != 0 {
+			t.Errorf("expected empty list without household")
+		}
+	})
+
 	t.Run("owner sees their conversation in the list", func(t *testing.T) {
-		list, err := svc.ListConversations(ctx, "user-1")
+		list, err := svc.ListConversations(ctx, "user-1", testHouseholdID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -247,7 +280,7 @@ func TestService_CreateListDeleteConversation(t *testing.T) {
 	})
 
 	t.Run("other users do not see it", func(t *testing.T) {
-		list, err := svc.ListConversations(ctx, "user-2")
+		list, err := svc.ListConversations(ctx, "user-2", testHouseholdID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -257,13 +290,13 @@ func TestService_CreateListDeleteConversation(t *testing.T) {
 	})
 
 	t.Run("non-owner cannot delete", func(t *testing.T) {
-		if err := svc.DeleteConversation(ctx, "user-2", created.ID); err != conversations.ErrForbidden {
+		if err := svc.DeleteConversation(ctx, "user-2", testHouseholdID, created.ID); err != conversations.ErrForbidden {
 			t.Errorf("expected ErrForbidden, got %v", err)
 		}
 	})
 
 	t.Run("owner can delete", func(t *testing.T) {
-		if err := svc.DeleteConversation(ctx, "user-1", created.ID); err != nil {
+		if err := svc.DeleteConversation(ctx, "user-1", testHouseholdID, created.ID); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
@@ -275,19 +308,19 @@ func TestService_PostAndListMessages(t *testing.T) {
 	ctx := context.Background()
 
 	modelBlockID := "mb-1"
-	created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	t.Run("rejects empty content", func(t *testing.T) {
-		_, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{})
+		_, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{})
 		if err != conversations.ErrEmptyMessageContent {
 			t.Errorf("expected ErrEmptyMessageContent, got %v", err)
 		}
 	})
 
-	msg, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hello", AttachmentIDs: []string{"att-1"}})
+	msg, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hello", AttachmentIDs: []string{"att-1"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -296,20 +329,20 @@ func TestService_PostAndListMessages(t *testing.T) {
 	}
 
 	t.Run("non-owner cannot post a message", func(t *testing.T) {
-		_, err := svc.PostMessage(ctx, "user-2", created.ID, conversations.CreateMessageRequest{Content: "hijack"})
+		_, err := svc.PostMessage(ctx, "user-2", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hijack"})
 		if err != conversations.ErrForbidden {
 			t.Errorf("expected ErrForbidden, got %v", err)
 		}
 	})
 
 	t.Run("non-owner cannot list messages", func(t *testing.T) {
-		_, err := svc.ListMessages(ctx, "user-2", created.ID)
+		_, err := svc.ListMessages(ctx, "user-2", testHouseholdID, created.ID)
 		if err != conversations.ErrForbidden {
 			t.Errorf("expected ErrForbidden, got %v", err)
 		}
 	})
 
-	list, err := svc.ListMessages(ctx, "user-1", created.ID)
+	list, err := svc.ListMessages(ctx, "user-1", testHouseholdID, created.ID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -331,15 +364,15 @@ func TestService_StreamAssistantReply(t *testing.T) {
 		svc := newTestService(repo, &fakeResolver{provider: provider})
 
 		modelBlockID := "mb-1"
-		created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if _, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
+		if _, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -383,15 +416,15 @@ func TestService_StreamAssistantReply(t *testing.T) {
 		svc := newTestService(repo, &fakeResolver{provider: provider})
 
 		modelBlockID := "mb-1"
-		created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if _, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
+		if _, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -408,12 +441,12 @@ func TestService_StreamAssistantReply(t *testing.T) {
 		svc := newTestService(repo, &fakeResolver{provider: &fakeProvider{}})
 
 		modelBlockID := "mb-1"
-		created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		_, err = svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != conversations.ErrNoPendingUserMessage {
 			t.Errorf("expected ErrNoPendingUserMessage, got %v", err)
 		}
@@ -424,12 +457,12 @@ func TestService_StreamAssistantReply(t *testing.T) {
 		svc := newTestService(repo, &fakeResolver{provider: &fakeProvider{}})
 
 		modelBlockID := "mb-1"
-		created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = svc.StreamAssistantReply(ctx, "user-2", "", created.ID)
+		_, err = svc.StreamAssistantReply(ctx, "user-2", testHouseholdID, created.ID)
 		if err != conversations.ErrForbidden {
 			t.Errorf("expected ErrForbidden, got %v", err)
 		}
@@ -440,15 +473,15 @@ func TestService_StreamAssistantReply(t *testing.T) {
 		svc := newTestService(repo, &fakeResolver{err: errors.New("model block gone")})
 
 		modelBlockID := "mb-1"
-		created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if _, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
+		if _, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		_, err = svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if !errors.Is(err, conversations.ErrModelBlockUnavailable) {
 			t.Errorf("expected ErrModelBlockUnavailable, got %v", err)
 		}
@@ -481,19 +514,26 @@ func TestService_ToolCallingLoop(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if _, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "how much milk do we have?"}); err != nil {
+		if _, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "how much milk do we have?"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		// The handler puts the caller's credentials on the request context; the
+		// tool loop must use that context (not context.Background) for tools/call.
+		requestCtx := mcp.WithCallerCredentials(ctx, mcp.CallerCredentials{AccessToken: "user-token", HouseholdID: testHouseholdID})
+		chunks, err := svc.StreamAssistantReply(requestCtx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		received := drainChunks(t, chunks, 2*time.Second)
+
+		if len(pantryTools.creds) != 1 || pantryTools.creds[0].AccessToken != "user-token" || pantryTools.creds[0].HouseholdID != testHouseholdID {
+			t.Fatalf("expected tool call to carry the caller's credentials, got %+v", pantryTools.creds)
+		}
 
 		var toolCallChunks, doneChunks int
 		var finalText string
@@ -555,15 +595,15 @@ func TestService_ToolCallingLoop(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider, policy: llm.ProviderPolicy{ToolRoundLimit: 2}}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, err := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if _, err := svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "how much milk do we have?"}); err != nil {
+		if _, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "how much milk do we have?"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -583,10 +623,10 @@ func TestService_StreamAssistantReply_ChatStreamInitialFailure(t *testing.T) {
 	ctx := context.Background()
 
 	modelBlockID := "mb-1"
-	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-	svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+	created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-	chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+	chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 	if err != nil {
 		t.Fatalf("unexpected synchronous error: %v", err)
 	}
@@ -623,10 +663,10 @@ func TestService_StreamAssistantReply_EmptyContent(t *testing.T) {
 	ctx := context.Background()
 
 	modelBlockID := "mb-1"
-	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-	svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+	created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-	chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+	chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -651,9 +691,9 @@ func TestService_DeleteConversation_RepoDeleteError(t *testing.T) {
 	ctx := context.Background()
 
 	modelBlockID := "mb-1"
-	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 
-	err := svc.DeleteConversation(ctx, "user-1", created.ID)
+	err := svc.DeleteConversation(ctx, "user-1", testHouseholdID, created.ID)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -677,10 +717,10 @@ func TestService_BuildToolDefinitions_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: fakeProviderOnce([]llm.StreamChunk{{Done: true}})}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -697,10 +737,10 @@ func TestService_BuildToolDefinitions_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: fakeProviderOnce([]llm.StreamChunk{{Done: true}})}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -719,10 +759,10 @@ func TestService_BuildToolDefinitions_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: fakeProviderOnce([]llm.StreamChunk{{Done: true}})}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -745,10 +785,10 @@ func TestService_BuildToolDefinitions_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, resolver, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, err := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -795,10 +835,10 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		drainChunks(t, chunks, 2*time.Second)
 	})
 
@@ -822,10 +862,10 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		drainChunks(t, chunks, 2*time.Second)
 	})
 
@@ -848,10 +888,10 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		drainChunks(t, chunks, 2*time.Second)
 	})
 
@@ -876,10 +916,10 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 		svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider}, lister, pool)
 
 		modelBlockID := "mb-1"
-		created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-		svc.PostMessage(ctx, "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+		created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+		svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
-		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", "", created.ID)
+		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		received := drainChunks(t, chunks, 2*time.Second)
 		last := received[len(received)-1]
 		if last.Err == nil || !last.Done {
@@ -963,7 +1003,7 @@ type failingListRepo struct {
 	*fakeRepository
 }
 
-func (f *failingListRepo) ListConversationsByOwner(ctx context.Context, ownerUserID string) ([]*conversations.Conversation, error) {
+func (f *failingListRepo) ListConversationsByOwner(ctx context.Context, ownerUserID, _ string) ([]*conversations.Conversation, error) {
 	return nil, errors.New("list convos error")
 }
 
@@ -975,7 +1015,7 @@ func TestService_ListConversations_RepoError(t *testing.T) {
 	repo := &failingListRepo{fakeRepository: newFakeRepository()}
 	svc := newTestService(repo, &fakeResolver{})
 
-	_, err := svc.ListConversations(context.Background(), "user-1")
+	_, err := svc.ListConversations(context.Background(), "user-1", testHouseholdID)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -987,9 +1027,9 @@ func TestService_ListMessages_RepoError(t *testing.T) {
 	ctx := context.Background()
 
 	modelBlockID := "mb-1"
-	created, _ := svc.CreateConversation(ctx, "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	created, _ := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 
-	_, err := svc.ListMessages(ctx, "user-1", created.ID)
+	_, err := svc.ListMessages(ctx, "user-1", testHouseholdID, created.ID)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -1009,7 +1049,7 @@ func TestService_CreateConversation_RepoError(t *testing.T) {
 	svc := newTestService(repo, &fakeResolver{})
 
 	modelBlockID := "mb-1"
-	_, err := svc.CreateConversation(context.Background(), "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	_, err := svc.CreateConversation(context.Background(), "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -1019,7 +1059,7 @@ func TestService_DeleteConversation_NotFound(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
 
-	err := svc.DeleteConversation(context.Background(), "user-1", "nonexistent")
+	err := svc.DeleteConversation(context.Background(), "user-1", testHouseholdID, "nonexistent")
 	if !errors.Is(err, conversations.ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
@@ -1029,7 +1069,7 @@ func TestService_PostMessage_NotFound(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
 
-	_, err := svc.PostMessage(context.Background(), "user-1", "nonexistent", conversations.CreateMessageRequest{Content: "hello"})
+	_, err := svc.PostMessage(context.Background(), "user-1", testHouseholdID, "nonexistent", conversations.CreateMessageRequest{Content: "hello"})
 	if !errors.Is(err, conversations.ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
@@ -1062,5 +1102,64 @@ func TestBuildLLMMessages_WithExistingSystemPrompt(t *testing.T) {
 	// Should NOT add a system prompt since one exists
 	if len(result) != 2 {
 		t.Fatalf("expected 2 messages (no extra system prompt), got %d", len(result))
+	}
+}
+
+// cancelingToolCaller cancels the request context while a tool call runs,
+// simulating the SSE client disconnecting mid-turn.
+type cancelingToolCaller struct {
+	fakeToolCaller
+	cancel context.CancelFunc
+}
+
+func (c *cancelingToolCaller) CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
+	c.cancel()
+	return c.fakeToolCaller.CallTool(ctx, toolName, arguments)
+}
+
+func TestService_ToolLoopStopsWhenRequestContextIsCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	server := mcp.ServerRef{ID: "srv", Slug: "pantry", EndpointURL: "http://pantry/mcp"}
+	tools := &cancelingToolCaller{
+		fakeToolCaller: fakeToolCaller{tools: []mcp.Tool{{Name: "get_stock", InputSchema: map[string]any{"type": "object"}}}},
+		cancel:         cancel,
+	}
+	provider := &fakeProvider{rounds: [][]llm.StreamChunk{
+		{{ToolCall: &llm.ToolCallRequest{ID: "c0", ToolName: "get_stock"}}, {Done: true}},
+		{{DeltaText: "must not be generated"}, {Done: true}},
+	}}
+	repo := newFakeRepository()
+	svc := newTestServiceWithTools(repo, &fakeResolver{provider: provider},
+		&fakeServerLister{servers: []mcp.ServerRef{server}},
+		&fakeClientPool{byURL: map[string]mcp.ToolCaller{server.EndpointURL: tools}})
+
+	modelBlockID := "mb-1"
+	created, err := svc.CreateConversation(context.Background(), "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.PostMessage(context.Background(), "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
+		t.Fatal(err)
+	}
+
+	chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	received := drainChunks(t, chunks, 2*time.Second)
+
+	last := received[len(received)-1]
+	if !last.Done || !errors.Is(last.Err, context.Canceled) {
+		t.Fatalf("expected terminal context.Canceled error chunk, got %+v", last)
+	}
+	for _, c := range received {
+		if c.DeltaText == "must not be generated" {
+			t.Fatal("tool loop started another LLM round after the request was canceled")
+		}
+	}
+	if provider.callCount != 1 {
+		t.Fatalf("expected exactly 1 LLM round, got %d", provider.callCount)
 	}
 }

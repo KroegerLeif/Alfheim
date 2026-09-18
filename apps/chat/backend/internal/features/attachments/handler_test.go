@@ -13,7 +13,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
+	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/middleware"
 )
 
@@ -47,11 +49,11 @@ func (m *mockAttachmentsService) EnsureStorageReady(ctx context.Context) error {
 func mockAuthMiddleware(userID, householdID string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims := &middleware.UserClaims{
-				Subject:     userID,
-				HouseholdID: householdID,
-			}
+			claims := &middleware.UserClaims{Subject: userID}
 			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			if hh, err := uuid.Parse(householdID); err == nil {
+				ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: hh, Role: householdclient.RoleMember, Subject: userID})
+			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -74,7 +76,7 @@ func TestAttachmentsHandler(t *testing.T) {
 
 		handler := NewHandler(mockSvc)
 		r := chi.NewRouter()
-		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "hh-1"))
+		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "11111111-1111-1111-1111-111111111111"))
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -107,7 +109,7 @@ func TestAttachmentsHandler(t *testing.T) {
 	t.Run("POST /api/v1/chat/attachments missing file part", func(t *testing.T) {
 		handler := NewHandler(&mockAttachmentsService{})
 		r := chi.NewRouter()
-		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "hh-1"))
+		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "11111111-1111-1111-1111-111111111111"))
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -142,7 +144,7 @@ func TestAttachmentsHandler(t *testing.T) {
 
 		handler := NewHandler(mockSvc)
 		r := chi.NewRouter()
-		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "hh-1"))
+		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "11111111-1111-1111-1111-111111111111"))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/attachments/att-456", nil)
 		rec := httptest.NewRecorder()
@@ -186,7 +188,7 @@ func TestAttachmentsHandler(t *testing.T) {
 	t.Run("Upload multipart parse error", func(t *testing.T) {
 		handler := NewHandler(&mockAttachmentsService{})
 		r := chi.NewRouter()
-		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "hh-1"))
+		handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "11111111-1111-1111-1111-111111111111"))
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/attachments", bytes.NewReader([]byte("not multipart")))
 		req.Header.Set("Content-Type", "multipart/form-data; boundary=invalid-boundary")
@@ -218,7 +220,7 @@ func TestAttachmentsHandler(t *testing.T) {
 			}
 			handler := NewHandler(mockSvc)
 			r := chi.NewRouter()
-			handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "hh-1"))
+			handler.RegisterRoutes(r, mockAuthMiddleware("user-1", "11111111-1111-1111-1111-111111111111"))
 
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/attachments/att-1", nil)
 			rec := httptest.NewRecorder()

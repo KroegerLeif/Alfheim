@@ -255,69 +255,25 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			expectedSubstr: `"sub":"user-42"`,
 		},
 		{
-			name:       "valid token with active_household_id fallback",
+			name:       "rejects token without sub",
 			authHeader: "GENERATE",
 			tokenClaims: jwt.MapClaims{
-				"sub":                 "user-active-hh",
-				"iss":                 issuer,
-				"aud":                 audience,
-				"exp":                 time.Now().Add(time.Hour).Unix(),
-				"active_household_id": "hh-active-200",
-			},
-			signKey:        privKey,
-			expectedStatus: http.StatusOK,
-			expectedSubstr: `"household_id":"hh-active-200"`,
-		},
-		{
-			name:       "rejects X-Household-ID header when token has no household claim",
-			authHeader: "GENERATE",
-			headerHH:   "hh-victim-300",
-			tokenClaims: jwt.MapClaims{
-				"sub": "user-no-hh",
 				"iss": issuer,
 				"aud": audience,
 				"exp": time.Now().Add(time.Hour).Unix(),
 			},
 			signKey:        privKey,
-			expectedStatus: http.StatusForbidden,
-			expectedSubstr: "user is not a member of the requested household",
+			expectedStatus: http.StatusUnauthorized,
+			expectedSubstr: "token has no subject",
 		},
 		{
-			name:       "rejects X-Household-ID header that does not match the token household claim",
+			// Household selection is no longer a token concern: the header is ignored
+			// here and checked by RequireHousehold against core/household.
+			name:       "ignores household claims and header; never serializes the access token",
 			authHeader: "GENERATE",
-			headerHH:   "hh-victim-300",
+			headerHH:   "hh-anything",
 			tokenClaims: jwt.MapClaims{
-				"sub":          "user-hh-100",
-				"iss":          issuer,
-				"aud":          audience,
-				"exp":          time.Now().Add(time.Hour).Unix(),
-				"household_id": "hh-100",
-			},
-			signKey:        privKey,
-			expectedStatus: http.StatusForbidden,
-			expectedSubstr: "user is not a member of the requested household",
-		},
-		{
-			name:       "rejects X-Household-ID header that does not match active_household_id claim",
-			authHeader: "GENERATE",
-			headerHH:   "hh-victim-300",
-			tokenClaims: jwt.MapClaims{
-				"sub":                 "user-active-hh",
-				"iss":                 issuer,
-				"aud":                 audience,
-				"exp":                 time.Now().Add(time.Hour).Unix(),
-				"active_household_id": "hh-active-200",
-			},
-			signKey:        privKey,
-			expectedStatus: http.StatusForbidden,
-			expectedSubstr: "user is not a member of the requested household",
-		},
-		{
-			name:       "accepts X-Household-ID header matching the token household claim",
-			authHeader: "GENERATE",
-			headerHH:   "HH-100",
-			tokenClaims: jwt.MapClaims{
-				"sub":          "user-hh-100",
+				"sub":          "user-hh",
 				"iss":          issuer,
 				"aud":          audience,
 				"exp":          time.Now().Add(time.Hour).Unix(),
@@ -325,20 +281,7 @@ func TestAuthenticateMiddleware(t *testing.T) {
 			},
 			signKey:        privKey,
 			expectedStatus: http.StatusOK,
-			expectedSubstr: `"household_id":"hh-100"`,
-		},
-		{
-			name:       "token without household claim and no header yields no household",
-			authHeader: "GENERATE",
-			tokenClaims: jwt.MapClaims{
-				"sub": "user-no-hh",
-				"iss": issuer,
-				"aud": audience,
-				"exp": time.Now().Add(time.Hour).Unix(),
-			},
-			signKey:        privKey,
-			expectedStatus: http.StatusOK,
-			expectedSubstr: `"household_id":""`,
+			expectedSubstr: `{"sub":"user-hh","email":"","preferred_username":"","given_name":"","family_name":""}`,
 		},
 	}
 
@@ -373,6 +316,35 @@ func TestAuthenticateMiddleware(t *testing.T) {
 				t.Errorf("expected response body to contain %q, got %q", tt.expectedSubstr, rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestAuthenticateMiddleware_StoresAccessTokenForForwarding(t *testing.T) {
+	privKey, server := generateJWKSServer(t, "k1")
+	defer server.Close()
+	auth, err := NewAuthenticator(server.URL, "alfheim", slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatalf("failed to create authenticator: %v", err)
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"sub": "user-1", "iss": server.URL, "aud": "alfheim", "exp": time.Now().Add(time.Hour).Unix(),
+	})
+	token.Header["kid"] = "k1"
+	signed, err := token.SignedString(privKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var got string
+	h := auth.AuthenticateMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, _ := GetUserClaims(r.Context())
+		got = claims.AccessToken
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+signed)
+	h.ServeHTTP(httptest.NewRecorder(), req)
+	if got != signed {
+		t.Fatalf("expected raw access token in claims for MCP forwarding")
 	}
 }
 

@@ -4,6 +4,7 @@ package conversations
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -29,6 +30,18 @@ type Conversation struct {
 // personal (unlike model blocks, there is no household-shared visibility).
 func (c *Conversation) IsOwnedBy(userID string) bool {
 	return c.OwnerUserID == userID
+}
+
+// IsAccessibleTo reports whether userID may use this conversation while acting in
+// householdID: the caller must own it AND it must belong to that household. A
+// conversation is bound to the household it was created in, so its tool history
+// (MCP results from that household) never flows into another household's context.
+// Legacy conversations without a household are inaccessible (fail closed).
+func (c *Conversation) IsAccessibleTo(userID, householdID string) bool {
+	return c.IsOwnedBy(userID) &&
+		householdID != "" &&
+		c.HouseholdID != nil &&
+		strings.EqualFold(*c.HouseholdID, householdID)
 }
 
 // Role identifies the author of a Message, mirroring llm.Role.

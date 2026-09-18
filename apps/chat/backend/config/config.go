@@ -21,7 +21,17 @@ type Config struct {
 	Encryption     EncryptionConfig
 	Bootstrap      BootstrapConfig
 	Storage        StorageConfig
+	Household      HouseholdConfig
 	MCPServersSpec string
+}
+
+// HouseholdConfig locates core/household's internal membership API.
+type HouseholdConfig struct {
+	// InternalURL is HOUSEHOLD_INTERNAL_URL (default http://household-backend:8080).
+	InternalURL string
+	// InternalToken is ALFHEIM_INTERNAL_TOKEN, the shared service-to-service secret.
+	// Required: without it every household-scoped request would fail with 503.
+	InternalToken string
 }
 
 // DatabaseConfig holds PostgreSQL connection configuration settings.
@@ -146,7 +156,15 @@ func Load() (*Config, error) {
 			Region:     s3Region,
 			PublicURL:  s3PublicURL,
 		},
+		Household: HouseholdConfig{
+			InternalURL:   strings.TrimRight(getEnv("HOUSEHOLD_INTERNAL_URL", "http://household-backend:8080"), "/"),
+			InternalToken: getEnv("ALFHEIM_INTERNAL_TOKEN", ""),
+		},
 		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
+	}
+
+	if strings.TrimSpace(cfg.Household.InternalToken) == "" {
+		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")
 	}
 
 	if encryptionKeyB64 != "" {

@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"alfheim/chat/internal/shared/llm"
+	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
 )
 
@@ -36,13 +37,13 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, hh, err := callerScope(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user or household context")
 		return
 	}
 
-	convos, err := h.service.ListConversations(r.Context(), claims.Subject)
+	convos, err := h.service.ListConversations(r.Context(), claims.Subject, hh)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_server_error", "failed to list conversations")
 		return
@@ -52,9 +53,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, hh, err := callerScope(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user or household context")
 		return
 	}
 
@@ -64,7 +65,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.service.CreateConversation(r.Context(), claims.Subject, claims.HouseholdID, req)
+	created, err := h.service.CreateConversation(r.Context(), claims.Subject, hh, req)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -74,14 +75,14 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, hh, err := callerScope(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user or household context")
 		return
 	}
 
 	id := chi.URLParam(r, "id")
-	if err := h.service.DeleteConversation(r.Context(), claims.Subject, id); err != nil {
+	if err := h.service.DeleteConversation(r.Context(), claims.Subject, hh, id); err != nil {
 		writeServiceError(w, err)
 		return
 	}
@@ -90,14 +91,14 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListMessages(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, hh, err := callerScope(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user or household context")
 		return
 	}
 
 	id := chi.URLParam(r, "id")
-	messages, err := h.service.ListMessages(r.Context(), claims.Subject, id)
+	messages, err := h.service.ListMessages(r.Context(), claims.Subject, hh, id)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -107,9 +108,9 @@ func (h *Handler) ListMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostMessage(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, hh, err := callerScope(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user or household context")
 		return
 	}
 
@@ -121,7 +122,7 @@ func (h *Handler) PostMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.service.PostMessage(r.Context(), claims.Subject, id, req)
+	created, err := h.service.PostMessage(r.Context(), claims.Subject, hh, id, req)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -136,15 +137,15 @@ func (h *Handler) PostMessage(w http.ResponseWriter, r *http.Request) {
 // reported as a normal JSON error response; errors that occur mid-stream are reported
 // as an SSE "error" event instead, since response headers are already committed by then.
 func (h *Handler) Stream(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, hh, err := callerScope(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
+		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user or household context")
 		return
 	}
 
 	id := chi.URLParam(r, "id")
 
-	chunks, err := h.service.StreamAssistantReply(r.Context(), claims.Subject, claims.HouseholdID, id)
+	chunks, err := h.service.StreamAssistantReply(mcp.WithCallerCredentials(r.Context(), mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hh}), claims.Subject, hh, id)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -192,6 +193,21 @@ func writeSSEChunk(w http.ResponseWriter, chunk llm.StreamChunk) {
 	}
 }
 
+// callerScope returns the authenticated caller and the verified household id
+// (canonical UUID string) set by middleware.AuthenticateMiddleware and
+// middleware.RequireHousehold.
+func callerScope(r *http.Request) (*middleware.UserClaims, string, error) {
+	claims, err := middleware.GetUserClaims(r.Context())
+	if err != nil {
+		return nil, "", err
+	}
+	hc, err := middleware.GetHousehold(r.Context())
+	if err != nil {
+		return nil, "", err
+	}
+	return claims, hc.HouseholdID.String(), nil
+}
+
 // writeServiceError maps domain errors to their corresponding HTTP status codes.
 func writeServiceError(w http.ResponseWriter, err error) {
 	switch {
@@ -199,7 +215,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "not_found", "conversation not found")
 	case errors.Is(err, ErrForbidden):
 		writeError(w, http.StatusForbidden, "forbidden", err.Error())
-	case errors.Is(err, ErrModelBlockRequired), errors.Is(err, ErrEmptyMessageContent), errors.Is(err, ErrNoPendingUserMessage), errors.Is(err, ErrAttachmentUnavailable):
+	case errors.Is(err, ErrModelBlockRequired), errors.Is(err, ErrHouseholdRequired), errors.Is(err, ErrEmptyMessageContent), errors.Is(err, ErrNoPendingUserMessage), errors.Is(err, ErrAttachmentUnavailable):
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 	case errors.Is(err, ErrModelBlockUnavailable):
 		writeError(w, http.StatusUnprocessableEntity, "model_block_unavailable", err.Error())

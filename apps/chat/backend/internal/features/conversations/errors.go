@@ -7,6 +7,9 @@ var (
 	ErrNotFound = errors.New("conversation not found")
 	// ErrForbidden indicates the caller does not own this conversation.
 	ErrForbidden = errors.New("caller does not own this conversation")
+	// ErrHouseholdRequired indicates a conversation was created without a verified
+	// household scope.
+	ErrHouseholdRequired = errors.New("household context is required")
 	// ErrModelBlockRequired indicates a conversation was created without a model
 	// block id; since there is no endpoint to set one later in this phase, it must
 	// be supplied up front.
