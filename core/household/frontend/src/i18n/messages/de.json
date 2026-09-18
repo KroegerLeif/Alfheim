@@ -1,0 +1,120 @@
+{
+  "household_app": {
+    "brand_subtitle": "Haushalte & Rollen",
+    "nav": {
+      "households": "Haushalte",
+      "profile": "Profil"
+    },
+    "list": {
+      "default_badge": "Standard",
+      "set_default": "Als Standard festlegen",
+      "open": "Öffnen"
+    },
+    "onboarding": {
+      "badge": "Willkommen",
+      "title": "Richte deinen Haushalt ein",
+      "description": "Alfheim-Apps teilen Daten innerhalb eines Haushalts. Erstelle einen neuen oder tritt einem bestehenden Haushalt per Einladungscode oder QR-Code bei.",
+      "create_title": "Haushalt erstellen",
+      "create_desc": "Starte neu und lade danach Familienmitglieder oder Mitbewohner ein.",
+      "join_title": "Mit Code oder QR beitreten",
+      "join_desc": "Füge den erhaltenen Einladungscode ein oder scanne den Einladungs-QR-Code mit der Handykamera, um den Beitrittslink direkt zu öffnen."
+    },
+    "join": {
+      "title": "Haushalt beitreten",
+      "description": "Löse einen Einladungscode ein, um Mitglied zu werden.",
+      "token_label": "Einladungscode",
+      "submit": "Haushalt beitreten",
+      "joining": "Trete Haushalt bei…",
+      "redeeming": "Einladung wird eingelöst…",
+      "success": "Du bist \"{name}\" beigetreten.",
+      "missing_token": "Dieser Link enthält keinen Einladungscode. Gib den Code manuell ein."
+    },
+    "create": {
+      "name_label": "Name des Haushalts",
+      "submit": "Haushalt erstellen"
+    },
+    "invites": {
+      "title": "Aktive Einladungen",
+      "empty": "Keine aktiven Einladungen.",
+      "generate": "Einladung erstellen",
+      "role_label": "Rolle für neue Einladung",
+      "revoke": "Widerrufen",
+      "revoke_label": "Einladung {token} widerrufen",
+      "confirm_revoke": "Diese Einladung widerrufen? Code und QR-Code funktionieren dann sofort nicht mehr.",
+      "revoked": "Einladung widerrufen.",
+      "uses": "{uses}/{max} Nutzungen",
+      "expires": "Läuft ab {time}",
+      "expired": "Abgelaufen",
+      "show_qr": "QR anzeigen",
+      "qr_label": "QR-Code zum Beitreten des Haushalts",
+      "join_link": "Beitrittslink",
+      "copy_link": "Link kopieren"
+    },
+    "settings": {
+      "title": "Haushaltseinstellungen",
+      "rename_label": "Name des Haushalts",
+      "rename_submit": "Umbenennen",
+      "renamed": "Haushalt umbenannt.",
+      "default_title": "Standardhaushalt",
+      "default_desc": "Apps öffnen nach der Anmeldung zuerst diesen Haushalt.",
+      "is_default": "Das ist dein Standardhaushalt.",
+      "set_default": "Als Standard festlegen",
+      "default_set": "Standardhaushalt aktualisiert.",
+      "transfer_title": "Eigentum übertragen",
+      "transfer_desc": "Übergib die Eigentümerrolle an ein anderes Mitglied. Du wirst Admin.",
+      "transfer_select": "Neuer Eigentümer",
+      "transfer_placeholder": "Mitglied auswählen…",
+      "transfer_submit": "Übertragen",
+      "confirm_transfer": "Eigentum an {name} übertragen? Du bist danach nicht mehr Eigentümer.",
+      "transferred": "Eigentum übertragen.",
+      "no_transfer_candidates": "Lade zuerst ein weiteres Mitglied ein, um das Eigentum zu übertragen.",
+      "leave_title": "Haushalt verlassen",
+      "leave_desc": "Du verlierst in allen Apps den Zugriff auf die Daten dieses Haushalts.",
+      "leave_owner_hint": "Eigentümer müssen das Eigentum übertragen, bevor sie austreten.",
+      "leave_submit": "Haushalt verlassen",
+      "confirm_leave": "\"{name}\" verlassen?",
+      "danger_zone": "Gefahrenbereich",
+      "delete_title": "Haushalt löschen",
+      "delete_desc": "Löscht den Haushalt samt Mitgliedern, Einladungen und Kontakten dauerhaft.",
+      "delete_submit": "Haushalt löschen…"
+    },
+    "delete_modal": {
+      "title": "\"{name}\" löschen?",
+      "description": "Das kann nicht rückgängig gemacht werden. Gib zur Bestätigung den Namen des Haushalts ein.",
+      "input_label": "Gib {name} zur Bestätigung ein",
+      "confirm": "Endgültig löschen",
+      "deleting": "Wird gelöscht…"
+    },
+    "errors": {
+      "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+      "forbidden": "Du hast keine Berechtigung, das in diesem Haushalt zu tun.",
+      "household_not_found": "Dieser Haushalt existiert nicht oder du bist kein Mitglied mehr.",
+      "invite_not_found": "Dieser Einladungscode ist ungültig, abgelaufen oder wurde widerrufen.",
+      "conflict": "Das steht im Konflikt mit dem aktuellen Zustand. {detail}",
+      "generic": "Etwas ist schiefgelaufen: {detail}",
+      "load_failed": "Haushalt konnte nicht geladen werden"
+    }
+  },
+  "dashboard": {
+    "authenticated_user": "Authentifizierter Benutzer",
+    "household": {
+      "roles": {
+        "admin": "ADMIN",
+        "member": "MITGLIED",
+        "guest": "GAST",
+        "owner": "EIGENTÜMER"
+      }
+    },
+    "contact": {
+      "categories": {
+        "person": "Person",
+        "business": "Unternehmen",
+        "important": "Wichtig",
+        "call": "Anruf / Telefon",
+        "police": "Polizei / Sicherheit",
+        "doctor": "Arzt / Medizin",
+        "handyman": "Handwerker / Service"
+      }
+    }
+  }
+}
