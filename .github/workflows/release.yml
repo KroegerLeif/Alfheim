@@ -104,6 +104,7 @@ jobs:
         service:
           - apps/chat/backend
           - core/dashboard/backend
+          - core/household/backend
     defaults:
       run:
         working-directory: ${{ matrix.service }}
@@ -177,6 +178,14 @@ jobs:
           - name: dashboard-frontend
             context: .
             dockerfile: core/dashboard/frontend/Dockerfile
+
+          # Household & Roles Core Service
+          - name: household-backend
+            context: core/household/backend
+            dockerfile: core/household/backend/Dockerfile
+          - name: household-frontend
+            context: .
+            dockerfile: core/household/frontend/Dockerfile
 
           # Chat Assistant Service
           - name: chat-backend

@@ -48,6 +48,7 @@ func healthyRunner() *runner.RecordingRunner {
 	for _, c := range []string{
 		"alfheim_postgres_core", "alfheim_caddy", "alfheim_zitadel",
 		"dashboard-backend", "dashboard-frontend",
+		"household-backend", "household-frontend",
 	} {
 		rec.ScriptResult(inspectKey(c), runner.Result{ExitCode: 0, Stdout: "running|healthy\n"})
 	}
@@ -184,6 +185,54 @@ func TestRestartIngress_RestartsCaddyAndWaits(t *testing.T) {
 	wait := indexOf(calls, inspectKey("alfheim_caddy"))
 	if restart < 0 || wait < restart {
 		t.Fatalf("calls = %v, want a caddy restart followed by a health wait", calls)
+	}
+}
+
+func TestEnsureDatabases_StartsPostgresWaitsAndRunsInitScript(t *testing.T) {
+	rec := healthyRunner()
+	o, _ := newTestOrchestrator(rec)
+	if err := o.EnsureDatabases(context.Background()); err != nil {
+		t.Fatalf("EnsureDatabases() error = %v", err)
+	}
+	calls := rec.CallStrings()
+	up := indexOf(calls, "docker compose -f "+composeFile+" up -d postgres-core")
+	wait := indexOf(calls, inspectKey("alfheim_postgres_core"))
+	exec := indexOf(calls, "docker compose -f "+composeFile+
+		" exec -T postgres-core bash /docker-entrypoint-initdb.d/init-multiple-dbs.sh")
+	if up < 0 || wait < up || exec < wait {
+		t.Fatalf("calls = %v, want up, then a health wait, then the init script", calls)
+	}
+}
+
+func TestEnsureDatabases_FailuresAreReported(t *testing.T) {
+	upKey := "docker compose -f " + composeFile + " up -d postgres-core"
+	execKey := "docker compose -f " + composeFile +
+		" exec -T postgres-core bash /docker-entrypoint-initdb.d/init-multiple-dbs.sh"
+	for _, tc := range []struct {
+		name   string
+		script func(*runner.RecordingRunner)
+		want   string
+	}{
+		{"up", func(r *runner.RecordingRunner) {
+			r.ScriptResult(upKey, runner.Result{ExitCode: 1, Stderr: "boom"})
+		}, "start postgres-core"},
+		{"unhealthy", func(r *runner.RecordingRunner) {
+			r.ScriptResult(inspectKey("alfheim_postgres_core"),
+				runner.Result{ExitCode: 0, Stdout: "running|unhealthy\n"})
+		}, "PostgreSQL core"},
+		{"exec", func(r *runner.RecordingRunner) {
+			r.ScriptResult(execKey, runner.Result{ExitCode: 1, Stderr: "psql: error"})
+		}, "ensure service databases"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := healthyRunner()
+			tc.script(rec)
+			o, _ := newTestOrchestrator(rec)
+			err := o.EnsureDatabases(context.Background())
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v, want it to mention %q", err, tc.want)
+			}
+		})
 	}
 }
 

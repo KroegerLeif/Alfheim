@@ -338,9 +338,11 @@ migrate_existing_env() {
     echo "HOUSEHOLD_POSTGRES_PASSWORD=$(generate_secret 24)" >> "$env_file"
     migrated=true
   fi
-  if ! grep -qE "^ALFHEIM_INTERNAL_TOKEN=.+" "$env_file"; then
+  # An empty value or the .env.example placeholder counts as missing.
+  if ! grep -qE "^ALFHEIM_INTERNAL_TOKEN=.+" "$env_file" \
+    || grep -qxF "ALFHEIM_INTERNAL_TOKEN=change-me-internal-token" "$env_file"; then
     local internal_token
-    internal_token="$(generate_secret 48)"
+    internal_token="$(generate_secret 64)"
     if grep -q "^ALFHEIM_INTERNAL_TOKEN=" "$env_file"; then
       sed -i.bak -e "s|^ALFHEIM_INTERNAL_TOKEN=.*|ALFHEIM_INTERNAL_TOKEN=${internal_token}|" "$env_file" && rm -f "${env_file}.bak"
     else
@@ -596,7 +598,7 @@ POSTGRES_IAM_PW="$(generate_secret 24)"
 S3_PW="$(generate_secret 24)"
 DASHBOARD_PW="$(generate_secret 24)"
 HOUSEHOLD_PW="$(generate_secret 24)"
-INTERNAL_TOKEN="$(generate_secret 48)"
+INTERNAL_TOKEN="$(generate_secret 64)"
 PANTRY_PW="$(generate_secret 24)"
 SHOPPING_PW="$(generate_secret 24)"
 MAINTENANCE_PW="$(generate_secret 24)"

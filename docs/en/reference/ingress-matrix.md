@@ -14,6 +14,7 @@ sidebar:
 - [Frontend Domain Routing (`alfheim.loegien.localhost`)](#frontend-domain-routing-alfheimloegienlocalhost)
 - [API Gateway Domain Routing (`api.alfheim.loegien.localhost`)](#api-gateway-domain-routing-apialfheimloegienlocalhost)
 - [Caddy Path Stripping Rules (`handle_path`)](#caddy-path-stripping-rules-handle_path)
+- [Installer-Generated App Host: Household & Internal Routes](#installer-generated-app-host-household--internal-routes)
 
 ---
 
@@ -85,3 +86,19 @@ handle_path /pantry/* {
 ```
 
 This strips `/pantry` before forwarding HTTP traffic to `pantry-backend:8000`, so the backend receives `/api/v1/items`.
+
+---
+
+## Installer-Generated App Host: Household & Internal Routes
+
+The Caddyfile `alfheim-setup` renders (`tools/installer/internal/features/templating/embedded/Caddyfile.tmpl`) serves every API on the app host itself, so browsers call relative `/api/v1/...` paths. The Tier-1 household & roles service adds these rules:
+
+| Public URL Path | Target Container | Container Port | Rule |
+| :--- | :--- | :--- | :--- |
+| `https://alfheim.loegien.de/api/v1/households*` | `household-backend` | `8080` | `handle`, path preserved (no rewrite) |
+| `https://alfheim.loegien.de/api/v1/profile*` | `household-backend` | `8080` | `handle`, path preserved (no rewrite) |
+| `https://alfheim.loegien.de/household*` | `household-frontend` | `3000` | Next.js basePath `/household` |
+| `https://alfheim.loegien.de/internal/*` | _(none)_ | — | `respond 404`: the service-to-service API is never routed |
+| `https://auth.loegien.de/internal/*` | _(none)_ | — | `respond 404`, defense in depth on the IAM host |
+
+Caddy puts all `handle` and `handle_path` blocks of a site into one mutually exclusive group and sorts them by path length, longest first. `/api/v1/households*` and `/api/v1/profile*` are longer than the catch-all `/api/v1*` dashboard route, so they always win. No app slug is a prefix of `households` or `profile`, so no `/api/v1/<slug>*` rule can match them either. The dashboard frontend still serves every path no other rule matches.

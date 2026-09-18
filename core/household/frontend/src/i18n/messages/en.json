@@ -1,0 +1,120 @@
+{
+  "household_app": {
+    "brand_subtitle": "Households & Roles",
+    "nav": {
+      "households": "Households",
+      "profile": "Profile"
+    },
+    "list": {
+      "default_badge": "Default",
+      "set_default": "Set as default",
+      "open": "Open"
+    },
+    "onboarding": {
+      "badge": "Welcome",
+      "title": "Set up your household",
+      "description": "Alfheim apps share data within a household. Create a new one or join an existing household with an invite code or QR code.",
+      "create_title": "Create a household",
+      "create_desc": "Start fresh and invite family members or flatmates afterwards.",
+      "join_title": "Join with code or QR",
+      "join_desc": "Paste the invite code you received, or scan the invite QR code with your phone's camera to open the join link directly."
+    },
+    "join": {
+      "title": "Join a household",
+      "description": "Redeem an invite code to become a member.",
+      "token_label": "Invite code",
+      "submit": "Join household",
+      "joining": "Joining household…",
+      "redeeming": "Redeeming your invite…",
+      "success": "You joined \"{name}\".",
+      "missing_token": "No invite code in this link. Enter the code manually."
+    },
+    "create": {
+      "name_label": "Household name",
+      "submit": "Create household"
+    },
+    "invites": {
+      "title": "Active invites",
+      "empty": "No active invites.",
+      "generate": "Generate invite",
+      "role_label": "Role for new invite",
+      "revoke": "Revoke",
+      "revoke_label": "Revoke invite {token}",
+      "confirm_revoke": "Revoke this invite? The code and QR code stop working immediately.",
+      "revoked": "Invite revoked.",
+      "uses": "{uses}/{max} uses",
+      "expires": "Expires {time}",
+      "expired": "Expired",
+      "show_qr": "Show QR",
+      "qr_label": "QR code for joining household",
+      "join_link": "Join link",
+      "copy_link": "Copy link"
+    },
+    "settings": {
+      "title": "Household settings",
+      "rename_label": "Household name",
+      "rename_submit": "Rename",
+      "renamed": "Household renamed.",
+      "default_title": "Default household",
+      "default_desc": "Apps open this household first after you sign in.",
+      "is_default": "This is your default household.",
+      "set_default": "Make default",
+      "default_set": "Default household updated.",
+      "transfer_title": "Transfer ownership",
+      "transfer_desc": "Hand the owner role to another member. You become an admin.",
+      "transfer_select": "New owner",
+      "transfer_placeholder": "Select a member…",
+      "transfer_submit": "Transfer",
+      "confirm_transfer": "Transfer ownership to {name}? You will no longer be the owner.",
+      "transferred": "Ownership transferred.",
+      "no_transfer_candidates": "Invite another member first to transfer ownership.",
+      "leave_title": "Leave household",
+      "leave_desc": "You lose access to this household's data in all apps.",
+      "leave_owner_hint": "Owners must transfer ownership before leaving.",
+      "leave_submit": "Leave household",
+      "confirm_leave": "Leave \"{name}\"?",
+      "danger_zone": "Danger zone",
+      "delete_title": "Delete household",
+      "delete_desc": "Permanently deletes the household, its members, invites and contacts.",
+      "delete_submit": "Delete household…"
+    },
+    "delete_modal": {
+      "title": "Delete \"{name}\"?",
+      "description": "This cannot be undone. Type the household name to confirm.",
+      "input_label": "Type {name} to confirm",
+      "confirm": "Delete permanently",
+      "deleting": "Deleting…"
+    },
+    "errors": {
+      "unauthorized": "Your session has expired. Please sign in again.",
+      "forbidden": "You don't have permission to do this in this household.",
+      "household_not_found": "This household doesn't exist or you are no longer a member.",
+      "invite_not_found": "This invite code is invalid, expired or has been revoked.",
+      "conflict": "This conflicts with the current state. {detail}",
+      "generic": "Something went wrong: {detail}",
+      "load_failed": "Could not load household"
+    }
+  },
+  "dashboard": {
+    "authenticated_user": "Authenticated User",
+    "household": {
+      "roles": {
+        "admin": "ADMIN",
+        "member": "MEMBER",
+        "guest": "GUEST",
+        "owner": "OWNER"
+      }
+    },
+    "contact": {
+      "categories": {
+        "person": "Person",
+        "business": "Business",
+        "important": "Important",
+        "call": "Call / Phone",
+        "police": "Police / Safety",
+        "doctor": "Medical / Doctor",
+        "handyman": "Handyman / Service"
+      }
+    }
+  }
+}

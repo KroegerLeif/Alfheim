@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"alfheim/installer/internal/features/bootstrap"
@@ -356,6 +358,11 @@ func (a *App) runBootstrap(
 		if err := orch.RestartIngress(ctx); err != nil {
 			return err
 		}
+		// An existing data volume never re-runs the Postgres init script,
+		// so a database added since the first install must be created here.
+		if err := orch.EnsureDatabases(ctx); err != nil {
+			return err
+		}
 	}
 
 	if err := a.provision(ctx, layout, model.Onboarding); err != nil {
@@ -441,12 +448,50 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 		return err
 	}
 	warnPlainHTTPInstall(a.Stderr, existing)
+	if err := a.backfillSecrets(layout, existing); err != nil {
+		return err
+	}
 	if err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}
 
 	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	if err := orch.EnsureDatabases(ctx); err != nil {
+		return err
+	}
 	return orch.RunPhase(ctx, bootstrap.PhaseCoreStack)
+}
+
+// backfillSecrets appends a generated value for every manifest secret the
+// existing .env lacks (or holds empty) and leaves every present value
+// untouched. A plain update never re-renders .env, so without this a release
+// that introduces a new required secret (HOUSEHOLD_POSTGRES_PASSWORD,
+// ALFHEIM_INTERNAL_TOKEN) would make docker compose refuse to start the stack
+// until the operator ran --reconfigure.
+func (a *App) backfillSecrets(layout paths.Layout, existing map[string]string) error {
+	all, err := security.GenerateAll(security.NewGenerator(), existing)
+	if err != nil {
+		return err
+	}
+	missing := map[string]string{}
+	for key, value := range all {
+		if existing[key] == "" {
+			missing[key] = value
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	if err := envfile.Update(layout.EnvFile(), missing); err != nil {
+		return fmt.Errorf("alfheim-setup: add new secrets to .env: %w", err)
+	}
+	keys := make([]string, 0, len(missing))
+	for key := range missing {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	fmt.Fprintf(a.Stdout, "Generated %d new secret(s) in .env: %s\n", len(keys), strings.Join(keys, ", "))
+	return nil
 }
 
 // warnPlainHTTPInstall flags an installation rendered before every strategy

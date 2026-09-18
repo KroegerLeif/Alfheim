@@ -123,7 +123,7 @@ The mode is detected from the installation directory, not chosen by a flag.
 | Detected state | Mode | Behaviour |
 | :--- | :--- | :--- |
 | No `.env`, no `.alfheim.installed` | **install** | Full wizard, secret generation, two-phase boot. |
-| Either file present | **update** | Pull images and restart. No wizard, no secret changes. |
+| Either file present | **update** | Pull images and restart. No wizard. Existing secrets are never changed; a secret a newer release requires and `.env` lacks is generated and appended. Missing service databases are created by re-running `init-multiple-dbs.sh`. |
 | Either file present, plus `--reconfigure` | **reconfigure** | Wizard re-runs; existing secrets are preserved. |
 
 > **Why secrets are never rotated.** Regenerating `ZITADEL_MASTERKEY` on a
