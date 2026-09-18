@@ -39,6 +39,13 @@ describe('householdStore', () => {
     expect(headers.get('X-Household-ID')).toBeNull()
   })
 
+  it('keeps an explicitly set household header over the active one', () => {
+    localStorage.setItem(ACTIVE_HOUSEHOLD_STORAGE_KEY, 'hh-active')
+    const explicit = new Headers({ 'X-Household-ID': 'hh-target' })
+    expect(applyHouseholdHeaders(explicit).get('X-Household-ID')).toBe('hh-target')
+    expect(applyHouseholdHeaders(new Headers()).get('X-Household-ID')).toBe('hh-active')
+  })
+
   it('persists the active household and dispatches the change event only on change', () => {
     const spy = vi.fn()
     window.addEventListener(HOUSEHOLD_CHANGED_EVENT, spy)

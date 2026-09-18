@@ -88,10 +88,14 @@ export function householdHeaders(
   return householdId ? { [HOUSEHOLD_ID_HEADER]: householdId } : {};
 }
 
-/** Sets (or removes) the household header on a mutable `Headers` instance. */
+/**
+ * Sets (or removes) the household header on a mutable `Headers` instance.
+ * Without an explicit id, a header the call site already set (e.g. a chosen
+ * target household) wins over the active household.
+ */
 export function applyHouseholdHeaders(
   headers: Headers,
-  householdId: string | null | undefined = getActiveHouseholdId(),
+  householdId: string | null | undefined = headers.get(HOUSEHOLD_ID_HEADER) || getActiveHouseholdId(),
 ): Headers {
   headers.delete('X-Household-Role');
   if (householdId) headers.set(HOUSEHOLD_ID_HEADER, householdId);
