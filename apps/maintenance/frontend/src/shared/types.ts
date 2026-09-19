@@ -1,10 +1,10 @@
 // Shared type definitions matching backend models
 
-export interface Household {
-  id: number;
-  name: string;
-  address?: string | null;
-}
+/**
+ * Households are owned by core/household (UUID ids) and come from the shared
+ * HouseholdProvider; the maintenance backend no longer serves them.
+ */
+export type { Household } from "@alfheim/shared";
 
 export interface Manual {
   id: string;
@@ -49,7 +49,8 @@ export interface Device {
   status: "active" | "maintenance" | "inactive";
   service_interval_months?: number | null;
   notes?: string | null;
-  household_id: number;
+  /** core/household UUID of the owning household. */
+  household_id: string;
   steps: MaintenanceStep[];
   history_events: ServiceHistoryEvent[];
 }
@@ -80,7 +81,7 @@ export interface CreateDevicePayload {
   status: string;
   service_interval_months?: number | null;
   notes?: string | null;
-  household_id: number;
+  // No household_id: the backend creates the device in the X-Household-ID household.
   steps: CreateStepPayload[];
 }
 

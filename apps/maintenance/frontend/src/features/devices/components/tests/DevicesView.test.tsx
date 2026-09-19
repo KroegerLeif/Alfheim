@@ -25,7 +25,7 @@ describe('DevicesView Component', () => {
 
   it('renders provided devices when query cache is populated', () => {
     const queryClient = new QueryClient()
-    queryClient.setQueryData(['devices', { activeHouseholdId: 'hh-1' }, null], [
+    queryClient.setQueryData(['devices', { householdId: 'hh-1' }], [
       {
         id: 1,
         name: 'Washing Machine',
@@ -35,7 +35,7 @@ describe('DevicesView Component', () => {
         location: 'Laundry Room',
         status: 'active',
         service_interval_months: 6,
-        household_id: 1,
+        household_id: '33333333-3333-4333-a333-333333333333',
       },
       {
         id: 2,
@@ -46,7 +46,7 @@ describe('DevicesView Component', () => {
         location: 'Kitchen',
         status: 'active',
         service_interval_months: 3,
-        household_id: 1,
+        household_id: '33333333-3333-4333-a333-333333333333',
       },
     ])
 

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { useLayout } from "@/shared/layout/LayoutContext";
 import { formatDate } from "@/core/utils";
 import { CheckCircle2, History, Info, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -9,10 +8,9 @@ import { useServiceHistory } from "../hooks/useHistory";
 
 export function HistoryView() {
   const t = useTranslations("maintenance");
-  const { householdId } = useLayout();
 
   // Fetch service history using FDD custom hook
-  const { data: events = [], isLoading, isError } = useServiceHistory(householdId);
+  const { data: events = [], isLoading, isError } = useServiceHistory();
 
   if (isLoading) {
     return (

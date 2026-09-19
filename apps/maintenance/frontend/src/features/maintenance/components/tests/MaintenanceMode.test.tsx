@@ -40,7 +40,7 @@ describe('MaintenanceMode Component', () => {
     location: 'Laundry Room',
     status: 'active',
     service_interval_months: 6,
-    household_id: 1,
+    household_id: '33333333-3333-4333-a333-333333333333',
     history_events: [],
     steps: [
       {
@@ -71,7 +71,7 @@ describe('MaintenanceMode Component', () => {
     location: 'Bedroom',
     status: 'active',
     service_interval_months: 12,
-    household_id: 1,
+    household_id: '33333333-3333-4333-a333-333333333333',
     history_events: [],
     steps: [],
   }

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useLayout } from "@/shared/layout/LayoutContext";
 import { Device, MaintenanceStep } from "@/shared/types";
 import { ScheduledTaskItem } from "./ScheduledTaskItem";
 import { CalendarRange, Info, Loader2 } from "lucide-react";
@@ -17,11 +16,10 @@ interface FlattenedTask {
 
 export function ScheduledView() {
   const t = useTranslations("maintenance");
-  const { householdId } = useLayout();
   const [filter, setFilter] = useState<"upcoming" | "all">("upcoming");
 
   // Fetch devices using hook from devices barrel export
-  const { data: devices = [], isLoading } = useDevices(householdId);
+  const { data: devices = [], isLoading } = useDevices();
 
   if (isLoading) {
     return (

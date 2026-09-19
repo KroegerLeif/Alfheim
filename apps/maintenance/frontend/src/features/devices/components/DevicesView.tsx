@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useLayout } from "@/shared/layout/LayoutContext";
 import { CATEGORY_ICONS } from "@/shared/data";
 import { Device } from "@/shared/types";
 import { DeviceDetailPanel } from "./DeviceDetailPanel";
@@ -17,13 +16,12 @@ interface DevicesViewProps {
 
 export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const t = useTranslations("maintenance");
-  const { householdId } = useLayout();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showWizard, setShowWizard] = useState(false);
 
   // Fetch households and devices using custom FDD hooks
   const { data: households = [], isError: householdsError } = useHouseholds();
-  const { data: devices = [], isLoading, isError: devicesError } = useDevices(householdId);
+  const { data: devices = [], isLoading, isError: devicesError } = useDevices();
 
   const isError = householdsError || devicesError;
 
@@ -52,7 +50,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   );
   if (orphans.length > 0) {
     groupedDevices.push({
-      household: { id: -1, name: t("deviceInventory.otherLocations") },
+      household: { id: "other", name: t("deviceInventory.otherLocations") },
       devices: orphans,
     });
   }

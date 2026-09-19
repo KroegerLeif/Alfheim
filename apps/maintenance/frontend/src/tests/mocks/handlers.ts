@@ -1,12 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
 export const handlers = [
-  http.get('*/households', () => {
-    return HttpResponse.json([
-      { id: 1, name: 'Main Home' },
-    ])
-  }),
-
   http.get('*/devices', () => {
     return HttpResponse.json([
       {
@@ -18,7 +12,7 @@ export const handlers = [
         location: 'Laundry Room',
         status: 'active',
         service_interval_months: 6,
-        household_id: 1,
+        household_id: '33333333-3333-4333-a333-333333333333',
         steps: [],
         history_events: [],
       },
@@ -31,7 +25,7 @@ export const handlers = [
         location: 'Kitchen',
         status: 'active',
         service_interval_months: 3,
-        household_id: 1,
+        household_id: '33333333-3333-4333-a333-333333333333',
         steps: [],
         history_events: [],
       },
@@ -48,7 +42,7 @@ export const handlers = [
       location: 'Kitchen',
       status: 'active',
       service_interval_months: 12,
-      household_id: 1,
+      household_id: '33333333-3333-4333-a333-333333333333',
       steps: [],
       history_events: [],
     })

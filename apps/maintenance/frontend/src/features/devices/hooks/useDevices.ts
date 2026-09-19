@@ -1,22 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActiveHousehold } from "@alfheim/shared";
-import { getHouseholds, getDevices, createDevice } from "../api/devicesApi";
-import { CreateDevicePayload } from "@/shared/types";
+import { getDevices, createDevice } from "../api/devicesApi";
+import { CreateDevicePayload, Household } from "@/shared/types";
 
-export function useHouseholds() {
-  const { householdId: activeHouseholdId, status } = useActiveHousehold();
-  return useQuery({
-    queryKey: ["households", { activeHouseholdId }],
-    queryFn: getHouseholds,
-    enabled: status === "ready",
-  });
+/** The caller's households from the shared HouseholdProvider (core/household). */
+export function useHouseholds(): { data: Household[]; isError: boolean } {
+  const { households, status } = useActiveHousehold();
+  return { data: households, isError: status === "error" };
 }
 
-export function useDevices(householdId?: number | null) {
-  const { householdId: activeHouseholdId, status } = useActiveHousehold();
+export function useDevices() {
+  const { householdId, status } = useActiveHousehold();
   return useQuery({
-    queryKey: ["devices", { activeHouseholdId }, householdId],
-    queryFn: () => getDevices(householdId),
+    queryKey: ["devices", { householdId }],
+    queryFn: getDevices,
     enabled: status === "ready",
   });
 }
@@ -24,7 +21,8 @@ export function useDevices(householdId?: number | null) {
 export function useCreateDevice(onSuccessCallback?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateDevicePayload) => createDevice(payload),
+    mutationFn: ({ payload, householdId }: { payload: CreateDevicePayload; householdId?: string | null }) =>
+      createDevice(payload, householdId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       if (onSuccessCallback) {

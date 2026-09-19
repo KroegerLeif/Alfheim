@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useLayout } from "@/shared/layout/LayoutContext";
 import { Device } from "@/shared/types";
 import { daysUntil } from "@/core/utils";
 import { DeviceDetailPanel, useDevices } from "@/features/devices";
@@ -16,12 +15,11 @@ interface MaintenanceViewProps {
 type MetricFilter = "all" | "overdue" | "due_soon" | "ok";
 
 export function MaintenanceView({ onStartMaintenance }: MaintenanceViewProps) {
-  const { householdId } = useLayout();
   const [filter, setFilter] = useState<MetricFilter>("all");
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   // Fetch devices using FDD query hook
-  const { data: devices = [], isLoading } = useDevices(householdId);
+  const { data: devices = [], isLoading } = useDevices();
 
   if (isLoading) {
     return (
