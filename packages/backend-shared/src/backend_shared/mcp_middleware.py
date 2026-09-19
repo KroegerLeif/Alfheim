@@ -9,8 +9,6 @@ from fastapi import Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-# UserHouseholdContext is re-exported only for app tests that still import it from here (deprecated).
-from backend_shared.dependencies import UserHouseholdContext
 from backend_shared.household import (
     HOUSEHOLD_HEADER,
     HouseholdAuthError,
@@ -27,9 +25,9 @@ logger = logging.getLogger(__name__)
 MCP_HOUSEHOLD_SCOPE_KEY = "alfheim.household_context"
 
 #: Context variable holding the :class:`HouseholdContext` of the current MCP request.
-#: Typed ``Any`` only while app tests still store legacy ``UserHouseholdContext`` objects in it;
-#: narrow to ``HouseholdContext | None`` once every app is migrated.
-mcp_user_context: contextvars.ContextVar[Any] = contextvars.ContextVar("mcp_user_context", default=None)
+mcp_household_context_var: contextvars.ContextVar[HouseholdContext | None] = contextvars.ContextVar(
+    "mcp_household_context", default=None
+)
 
 
 class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
@@ -38,7 +36,7 @@ class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
     Rejections use the same status codes and ``{"detail": {"code", "message"}}``
     bodies as :func:`backend_shared.household.require_household`. On success the
     :class:`HouseholdContext` is stored in the ASGI scope and in
-    :data:`mcp_user_context`; tools read it with :func:`get_mcp_user_context`.
+    :data:`mcp_household_context_var`; tools read it with :func:`get_mcp_household_context`.
     """
 
     def __init__(self, app: Any, settings: Any = None, membership_lookup: MembershipLookup | None = None) -> None:
@@ -74,11 +72,11 @@ class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
             )
 
         request.scope[MCP_HOUSEHOLD_SCOPE_KEY] = context
-        token = mcp_user_context.set(context)
+        token = mcp_household_context_var.set(context)
         try:
             return await call_next(request)
         finally:
-            mcp_user_context.reset(token)
+            mcp_household_context_var.reset(token)
 
 
 def _current_mcp_request_context() -> HouseholdContext | None:
@@ -107,20 +105,7 @@ def get_mcp_household_context() -> HouseholdContext:
     Raises:
         RuntimeError: If no context was injected by :class:`MCPAuthenticationMiddleware`.
     """
-    context = _current_mcp_request_context() or mcp_user_context.get()
-    if not isinstance(context, HouseholdContext):
-        raise RuntimeError("Household context not found. Ensure MCPAuthenticationMiddleware wraps the MCP app.")
-    return context
-
-
-def get_mcp_user_context() -> Any:
-    """Deprecated alias kept while apps migrate; returns the same object as :func:`get_mcp_household_context`.
-
-    At runtime the value is a :class:`HouseholdContext` (UUID ``household_id``/``user_id``).
-    It is typed ``Any`` only so not-yet-migrated tool code still type-checks; switch to
-    :func:`get_mcp_household_context` and this alias will be removed.
-    """
-    context = _current_mcp_request_context() or mcp_user_context.get()
+    context = _current_mcp_request_context() or mcp_household_context_var.get()
     if context is None:
         raise RuntimeError("Household context not found. Ensure MCPAuthenticationMiddleware wraps the MCP app.")
     return context
@@ -129,8 +114,6 @@ def get_mcp_user_context() -> Any:
 __all__ = [
     "MCP_HOUSEHOLD_SCOPE_KEY",
     "MCPAuthenticationMiddleware",
-    "UserHouseholdContext",
     "get_mcp_household_context",
-    "get_mcp_user_context",
-    "mcp_user_context",
+    "mcp_household_context_var",
 ]

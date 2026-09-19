@@ -80,8 +80,7 @@ class HouseholdContext:
 def derive_user_id(sub: str) -> uuid.UUID:
     """Map a JWT ``sub`` to the user UUID stored by the apps.
 
-    Identical to the legacy derivation in ``backend_shared.dependencies``: UUID
-    subjects are used as-is, anything else (e.g. Zitadel's numeric ids) is
+    UUID subjects are used as-is, anything else (e.g. Zitadel's numeric ids) is
     hashed with ``uuid5(NAMESPACE_DNS, sub)`` so existing rows keep matching.
     """
     try:
