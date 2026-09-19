@@ -5,6 +5,7 @@ import pathlib
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 
+from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -105,11 +106,16 @@ async def lifespan(app: FastAPI):
             await reset_task
         except asyncio.CancelledError:
             pass
+        # Release the household membership API client's connections
+        await close_membership_client()
         # Gracefully flush and shutdown OpenTelemetry providers
         from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
+
+# Register the OIDC settings used by require_household and fail fast on missing household auth config
+configure_household_auth(settings)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

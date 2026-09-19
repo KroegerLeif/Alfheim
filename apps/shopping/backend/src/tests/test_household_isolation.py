@@ -2,16 +2,22 @@ import uuid
 from unittest.mock import patch
 
 import pytest
+from backend_shared.household import MembershipServiceError
+from backend_shared.household.testing import DEFAULT_TEST_SUB, StaticMembershipLookup
 from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_shopping_household_isolation_and_protected_lists(client: AsyncClient):
-    home_a = str(uuid.uuid4())
-    home_b = str(uuid.uuid4())
+async def test_shopping_household_isolation_and_protected_lists(
+    client: AsyncClient, membership: StaticMembershipLookup, auth_headers
+):
+    home_a = uuid.uuid4()
+    home_b = uuid.uuid4()
+    membership.set(home_a, DEFAULT_TEST_SUB, "MEMBER")
+    membership.set(home_b, DEFAULT_TEST_SUB, "MEMBER")
 
-    headers_a = {"X-Household-ID": home_a}
-    headers_b = {"X-Household-ID": home_b}
+    headers_a = auth_headers(household_id=home_a)
+    headers_b = auth_headers(household_id=home_b)
 
     # 1. Fetch lists for Household A (auto-provisions Default Household List & Personal List)
     res_a = await client.get("/api/v1/shopping-lists", headers=headers_a)
@@ -41,88 +47,55 @@ async def test_shopping_household_isolation_and_protected_lists(client: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_shopping_unauthorized_production(client: AsyncClient):
-    """Verify that unauthenticated requests fail when ENVIRONMENT == 'production'."""
-    with patch("src.core.dependencies.settings.ENVIRONMENT", "production"):
-        response = await client.get("/api/v1/shopping-lists", headers={})
-        assert response.status_code == 401
-        assert "missing authorization header" in response.json()["detail"].lower()
-
-
-@pytest.mark.asyncio
-async def test_shopping_mock_fallback_fails_with_production_database_url(client: AsyncClient):
-    """Verify that mock fallback fails when DATABASE_URL points to non-localhost production database."""
-    with patch(
-        "src.core.dependencies.settings.DATABASE_URL",
-        "postgresql+asyncpg://postgres:pass@db.production.aws.loeger.com:5432/shopping",
-    ):
-        response = await client.get("/api/v1/shopping-lists", headers={})
-        assert response.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_shopping_cross_tenant_idor_header_override_rejected(client: AsyncClient):
-    """Verify that a user attempting to override X-Household-ID to an unauthorized tenant is blocked with 403 Forbidden."""
-    import jwt
-
-    home_authorized = str(uuid.uuid4())
-    home_unauthorized = str(uuid.uuid4())
-    user_id = str(uuid.uuid4())
-
-    token = jwt.encode(
-        {
-            "sub": user_id,
-            "household_id": home_authorized,
-            "households": [home_authorized],
-        },
-        "secret",
-        algorithm="HS256",
-    )
-
-    auth_headers = {
-        "Authorization": f"Bearer {token}",
-        "X-Household-ID": home_unauthorized,
-    }
-
-    response = await client.get("/api/v1/shopping-lists", headers=auth_headers)
+async def test_shopping_non_member_household_rejected(client: AsyncClient, auth_headers):
+    """A caller selecting a household they are not a member of gets 403 household_forbidden."""
+    response = await client.get("/api/v1/shopping-lists", headers=auth_headers(household_id=uuid.uuid4()))
     assert response.status_code == 403
-    assert "forbidden" in response.json()["detail"].lower()
+    assert response.json()["detail"]["code"] == "household_forbidden"
 
 
 @pytest.mark.asyncio
-async def test_shopping_authorized_household_header_override_allowed(client: AsyncClient):
-    """Verify that a user selecting a household present in their authorized JWT claims succeeds."""
-    import jwt
-
-    home_a = str(uuid.uuid4())
-    home_b = str(uuid.uuid4())
-    user_id = str(uuid.uuid4())
-
-    token = jwt.encode(
-        {
-            "sub": user_id,
-            "household_id": home_a,
-            "households": [home_a, home_b],
-        },
-        "secret",
-        algorithm="HS256",
+async def test_shopping_other_user_cannot_push_into_household(client: AsyncClient, auth_headers):
+    """The inter-service push endpoint is authorized like any other route: non-members get 403."""
+    response = await client.post(
+        "/api/v1/shopping/items",
+        json={"name": "Milk", "quantity": 1, "unit": "l"},
+        headers=auth_headers(sub="intruder"),
     )
-
-    auth_headers = {
-        "Authorization": f"Bearer {token}",
-        "X-Household-ID": home_b,
-    }
-
-    response = await client.get("/api/v1/shopping-lists", headers=auth_headers)
-    assert response.status_code == 200
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "household_forbidden"
 
 
 @pytest.mark.asyncio
-async def test_shopping_mock_fallback_fails_with_production_oidc_issuer_url(client: AsyncClient):
-    """Verify that mock fallback fails when OIDC_ISSUER_URL points to a non-localhost production issuer."""
-    with patch(
-        "src.core.dependencies.settings.OIDC_ISSUER_URL",
-        "https://auth.production.loeger-os.com",
-    ):
-        response = await client.get("/api/v1/shopping-lists", headers={})
-        assert response.status_code == 401
+async def test_shopping_missing_household_header_rejected(client: AsyncClient):
+    """Requests without X-Household-ID get 400 household_required."""
+    client.headers.pop("X-Household-ID")
+    response = await client.get("/api/v1/shopping-lists")
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "household_required"
+
+
+@pytest.mark.asyncio
+async def test_shopping_invalid_household_header_rejected(client: AsyncClient):
+    """A non-UUID X-Household-ID gets 400 household_invalid."""
+    response = await client.get("/api/v1/shopping-lists", headers={"X-Household-ID": "42"})
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "household_invalid"
+
+
+@pytest.mark.asyncio
+async def test_shopping_membership_service_unavailable(client: AsyncClient):
+    """When the household membership API is unreachable the request fails closed with 503."""
+    with patch.object(StaticMembershipLookup, "__call__", side_effect=MembershipServiceError("down")):
+        response = await client.get("/api/v1/shopping-lists")
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "household_service_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_shopping_unsigned_token_rejected_in_production(client: AsyncClient):
+    """Unsigned test tokens are never accepted outside test contexts."""
+    with patch("src.core.config.settings.ENVIRONMENT", "production"):
+        response = await client.get("/api/v1/shopping-lists")
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "unauthenticated"

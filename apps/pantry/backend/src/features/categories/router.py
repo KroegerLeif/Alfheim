@@ -1,12 +1,9 @@
 import uuid
 
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import (
-    UserHomeContext,
-    get_current_user_and_home,
-)
 from src.features.categories import (
     CategoryCreate,
     CategoryRead,
@@ -21,14 +18,14 @@ router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
 async def create_category(
     payload: CategoryCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create a new custom product category."""
     return await CategoryService.create_category(
         session=session,
         payload=payload,
         owner_id=context.user_id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -38,12 +35,12 @@ async def list_categories(
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """List all categories (global + personal) for the current home space."""
     return await CategoryService.list_categories(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         name=name,
         limit=limit,
         offset=offset,
@@ -54,13 +51,13 @@ async def list_categories(
 async def get_category(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Get details of a specific category."""
     category = await CategoryService.get_category(
         session=session,
         category_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
     if not category:
         raise HTTPException(
@@ -75,13 +72,13 @@ async def update_category(
     id: uuid.UUID,
     payload: CategoryUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Partially update an existing custom category."""
     category = await CategoryService.update_category(
         session=session,
         category_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         payload=payload,
     )
     if not category:
@@ -96,13 +93,13 @@ async def update_category(
 async def delete_category(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Delete a custom category."""
     deleted = await CategoryService.delete_category(
         session=session,
         category_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
     if not deleted:
         raise HTTPException(

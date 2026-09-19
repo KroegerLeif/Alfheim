@@ -1,5 +1,6 @@
 import uuid
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.plans import service
 from src.features.plans.schemas import PlanCreate
@@ -7,16 +8,12 @@ from src.mcp.server import mcp
 
 
 @mcp.tool()
-async def list_plans(household_id: str, user_id: str, limit: int = 100, offset: int = 0) -> str:
-    """List workout plans visible to the caller: their own plus any shared within their household.
-
-    Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
-    """
+async def list_plans(limit: int = 100, offset: int = 0) -> str:
+    """List workout plans visible to the caller: their own plus any shared within their household."""
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         async with async_session_factory() as session:
             plans = await service.list_plans(session, home_uuid, user_uuid, limit, offset)
             if not plans:
@@ -30,17 +27,16 @@ async def list_plans(household_id: str, user_id: str, limit: int = 100, offset: 
 
 
 @mcp.tool()
-async def get_plan(household_id: str, user_id: str, plan_id: str) -> str:
+async def get_plan(plan_id: str) -> str:
     """Retrieve a plan's full day/exercise/set structure.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - plan_id: UUID string of the plan.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         plan_uuid = uuid.UUID(plan_id)
         async with async_session_factory() as session:
             plan = await service.get_plan(session, plan_uuid, home_uuid, user_uuid)
@@ -60,8 +56,6 @@ async def get_plan(household_id: str, user_id: str, plan_id: str) -> str:
 
 @mcp.tool()
 async def create_plan(
-    household_id: str,
-    user_id: str,
     name: str,
     description: str | None = None,
     is_shared: bool = False,
@@ -69,15 +63,14 @@ async def create_plan(
     """Create a new empty workout plan (days/exercises/sets are added via separate tools/endpoints).
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - name: Plan name.
     - description: Optional description.
     - is_shared: Whether the plan is visible to the whole household.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         payload = PlanCreate(name=name, description=description, is_shared=is_shared)
         async with async_session_factory() as session:
             plan = await service.create_plan(session, payload, home_uuid, user_uuid)
@@ -89,17 +82,16 @@ async def create_plan(
 
 
 @mcp.tool()
-async def delete_plan(household_id: str, user_id: str, plan_id: str) -> str:
+async def delete_plan(plan_id: str) -> str:
     """Delete a plan. Only the owner may delete it.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - plan_id: UUID string of the plan to delete.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         plan_uuid = uuid.UUID(plan_id)
         async with async_session_factory() as session:
             deleted = await service.delete_plan(session, plan_uuid, home_uuid, user_uuid)

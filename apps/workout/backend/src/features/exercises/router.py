@@ -1,9 +1,9 @@
 import uuid
 
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import UserHomeContext, get_current_user_and_home
 from src.features.exercises.models import MuscleGroup
 from src.features.exercises.schemas import (
     ExerciseCreate,
@@ -22,13 +22,13 @@ router = APIRouter(prefix="/api/v1/exercises", tags=["exercises"])
 async def create_exercise(
     payload: ExerciseCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create a new household- or user-scoped exercise entry."""
     return await ExerciseService.create_exercise(
         session=session,
         payload=payload,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
     )
 
@@ -40,12 +40,12 @@ async def list_exercises(
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """List all exercises visible to the caller: system + own household + own user entries."""
     return await ExerciseService.list_exercises(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         primary_muscle=primary_muscle,
         is_active=is_active,
@@ -57,7 +57,7 @@ async def list_exercises(
 @router.get("/favorites", response_model=list[ExerciseRead])
 async def list_favorite_exercises(
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """List the exercises the caller has favorited.
 
@@ -66,7 +66,7 @@ async def list_favorite_exercises(
     """
     return await ExerciseService.list_favorite_exercises(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
     )
 
@@ -75,13 +75,13 @@ async def list_favorite_exercises(
 async def get_exercise(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve details for a specific exercise entry by ID."""
     exercise = await ExerciseService.get_exercise(
         session=session,
         exercise_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
     )
     if not exercise:
@@ -94,13 +94,13 @@ async def update_exercise(
     id: uuid.UUID,
     payload: ExerciseUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Partially update an exercise entry the caller owns. System entries cannot be modified."""
     exercise = await ExerciseService.update_exercise(
         session=session,
         exercise_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         payload=payload,
     )
@@ -113,13 +113,13 @@ async def update_exercise(
 async def delete_exercise(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Delete an exercise entry the caller owns. System entries cannot be deleted."""
     deleted = await ExerciseService.delete_exercise(
         session=session,
         exercise_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
     )
     if not deleted:
@@ -131,12 +131,12 @@ async def upsert_exercise_preference(
     id: uuid.UUID,
     payload: UserExercisePreferenceUpsert,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create or update the caller's preference for an exercise."""
     return await ExerciseService.upsert_preference(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         exercise_id=id,
         payload=payload,
@@ -147,12 +147,12 @@ async def upsert_exercise_preference(
 async def get_exercise_preference(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve the caller's preference for an exercise."""
     preference = await ExerciseService.get_preference(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         exercise_id=id,
     )
@@ -165,12 +165,12 @@ async def get_exercise_preference(
 async def favorite_exercise(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Favorite an exercise for the caller. Idempotent."""
     return await ExerciseService.add_favorite(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         exercise_id=id,
     )
@@ -180,12 +180,12 @@ async def favorite_exercise(
 async def unfavorite_exercise(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Remove a favorite for the caller."""
     deleted = await ExerciseService.remove_favorite(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         exercise_id=id,
     )

@@ -1,15 +1,14 @@
 import logging
-import os
 import uuid
 from collections.abc import Sequence
 
-import httpx
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.exceptions import (
     ShoppingListNotFoundError,
     ShoppingListProtectedError,
 )
+from src.features.shopping_lists.clients.household_client import fetch_my_households
 from src.features.shopping_lists.models import ShoppingList
 from src.features.shopping_lists.schemas import (
     ShoppingListCreate,
@@ -172,23 +171,20 @@ class ListManagementService:
         """
         effective_owner = owner_id
 
-        # 1. Fetch user's enrolled households from dashboard backend
-        households = []
-        if token:
-            dashboard_url = os.getenv("DASHBOARD_BACKEND_URL", "http://dashboard-backend:8080")
-            async with httpx.AsyncClient() as client:
-                try:
-                    response = await client.get(
-                        f"{dashboard_url}/api/v1/households/me", headers={"Authorization": token}, timeout=5.0
-                    )
-                    if response.status_code == 200:
-                        households = response.json()
-                except Exception as e:
-                    logger.error(f"Failed to fetch user households in get_lists: {e}")
-
-        # If we couldn't fetch households or it's empty, fall back to the active home_id
-        if not households:
-            households = [{"id": str(home_id), "name": "Haushalt"}]
+        # 1. The caller's households come from the household app (forwarding the caller's token).
+        #    The active household was already confirmed by require_household; on any failure only
+        #    that household is used, never anything the household app did not vouch for.
+        households: list[dict] = [{"id": str(home_id), "name": "Haushalt"}]
+        seen = {home_id}
+        for hh in await fetch_my_households(token) or []:
+            try:
+                hh_uuid = uuid.UUID(str(hh.get("id")))
+            except ValueError:
+                logger.warning("Ignoring household with an invalid id from the household app: %r", hh.get("id"))
+                continue
+            if hh_uuid not in seen:
+                seen.add(hh_uuid)
+                households.append(hh)
 
         # 2. Ensure default lists exist for all enrolled households
         household_lists = []

@@ -1,15 +1,14 @@
 import uuid
 
-import jwt
 from httpx import AsyncClient
 
 
-async def test_workout_equipment_household_tenant_isolation(client: AsyncClient):
+async def test_workout_equipment_household_tenant_isolation(client: AsyncClient, member_headers):
     home_a = str(uuid.uuid4())
     home_b = str(uuid.uuid4())
 
-    headers_a = {"X-Household-ID": home_a}
-    headers_b = {"X-Household-ID": home_b}
+    headers_a = member_headers(home_a)
+    headers_b = member_headers(home_b)
 
     res_a = await client.post(
         "/api/v1/equipment",
@@ -28,55 +27,34 @@ async def test_workout_equipment_household_tenant_isolation(client: AsyncClient)
     assert get_res.status_code == 404
 
 
-async def test_workout_equipment_cross_tenant_idor_header_override_rejected(client: AsyncClient):
-    home_authorized = str(uuid.uuid4())
-    home_unauthorized = str(uuid.uuid4())
-    user_id = str(uuid.uuid4())
+async def test_workout_equipment_cross_tenant_idor_header_override_rejected(client: AsyncClient, member_headers):
+    home_authorized = uuid.uuid4()
+    headers = member_headers(home_authorized)
+    headers["X-Household-ID"] = str(uuid.uuid4())  # a household the caller is not a member of
 
-    token = jwt.encode(
-        {"sub": user_id, "household_id": home_authorized, "households": [home_authorized]},
-        "secret",
-        algorithm="HS256",
-    )
-    auth_headers = {
-        "Authorization": f"Bearer {token}",
-        "X-Household-ID": home_unauthorized,
-    }
-
-    response = await client.get("/api/v1/equipment", headers=auth_headers)
+    response = await client.get("/api/v1/equipment", headers=headers)
     assert response.status_code == 403
-    assert "forbidden" in response.json()["detail"].lower()
+    assert response.json()["detail"]["code"] == "household_forbidden"
 
 
-async def test_workout_equipment_authorized_household_header_override_allowed(client: AsyncClient):
-    home_a = str(uuid.uuid4())
-    home_b = str(uuid.uuid4())
-    user_id = str(uuid.uuid4())
+async def test_workout_equipment_authorized_household_header_override_allowed(client: AsyncClient, member_headers):
+    home_a = uuid.uuid4()
+    home_b = uuid.uuid4()
+    member_headers(home_a)
 
-    token = jwt.encode(
-        {"sub": user_id, "household_id": home_a, "households": [home_a, home_b]},
-        "secret",
-        algorithm="HS256",
-    )
-    auth_headers = {
-        "Authorization": f"Bearer {token}",
-        "X-Household-ID": home_b,
-    }
-
-    response = await client.get("/api/v1/equipment", headers=auth_headers)
+    response = await client.get("/api/v1/equipment", headers=member_headers(home_b))
     assert response.status_code == 200
 
 
-async def test_workout_equipment_user_scope_not_visible_to_other_user_same_household(client: AsyncClient):
+async def test_workout_equipment_user_scope_not_visible_to_other_user_same_household(
+    client: AsyncClient, member_headers
+):
     home_id = str(uuid.uuid4())
     user_a = str(uuid.uuid4())
     user_b = str(uuid.uuid4())
 
-    token_a = jwt.encode({"sub": user_a, "household_id": home_id, "households": [home_id]}, "secret", algorithm="HS256")
-    token_b = jwt.encode({"sub": user_b, "household_id": home_id, "households": [home_id]}, "secret", algorithm="HS256")
-
-    headers_a = {"Authorization": f"Bearer {token_a}", "X-Household-ID": home_id}
-    headers_b = {"Authorization": f"Bearer {token_b}", "X-Household-ID": home_id}
+    headers_a = member_headers(home_id, sub=user_a)
+    headers_b = member_headers(home_id, sub=user_b)
 
     res_a = await client.post(
         "/api/v1/equipment", json={"name": "User A's Own Band", "scope": "user"}, headers=headers_a

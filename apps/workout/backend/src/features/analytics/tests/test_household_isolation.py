@@ -5,7 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.session.models import SessionExercise, SessionSet, SessionStatus, WorkoutSession
 
 
-async def test_leaderboard_household_isolation(client: AsyncClient, db_session: AsyncSession):
+async def test_leaderboard_household_isolation(client: AsyncClient, db_session: AsyncSession, member_headers):
     home_a = uuid.uuid4()
     home_b = uuid.uuid4()
     user_a = uuid.uuid4()
@@ -38,7 +38,7 @@ async def test_leaderboard_household_isolation(client: AsyncClient, db_session: 
         )
         await db_session.commit()
 
-    res = await client.get("/api/v1/analytics/leaderboard", headers={"X-Household-ID": str(home_a)})
+    res = await client.get("/api/v1/analytics/leaderboard", headers=member_headers(str(home_a)))
     assert res.status_code == 200
     entries = res.json()["entries"]
 

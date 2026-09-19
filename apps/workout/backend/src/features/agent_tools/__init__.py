@@ -16,9 +16,11 @@ to service.py, never duplicate business logic" rule — it just delegates to
 *multiple* features' service.py modules (plans.service, session.service)
 instead of one, rather than reimplementing any business logic itself.
 
-Every tool takes explicit household_id/user_id parameters and passes them
-straight into the underlying services, so household-scoped filtering is
-enforced identically to the REST routes and to each feature's own
-mcp_tools.py (see plans/mcp_tools.py, session/mcp_tools.py, etc.) — this is
-the deliberate fix versus pantry/chores' MOCK_HOME_ID-hardcoded MCP tools.
+No tool takes a household_id/user_id argument: every tool reads the caller's
+household and user id from the authenticated MCP request
+(backend_shared.mcp_middleware.get_mcp_household_context(), resolved by
+MCPAuthenticationMiddleware from the JWT, X-Household-ID and the household
+app's membership API) and passes them straight into the underlying services,
+so household-scoped filtering is enforced identically to the REST routes and
+to each feature's own mcp_tools.py. The LLM can never pick the household.
 """
