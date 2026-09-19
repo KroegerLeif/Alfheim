@@ -117,3 +117,5 @@ class HouseholdRead(BaseModel):
     id: uuid.UUID
     name: str
     slug: str
+    role: str | None = None
+    is_default: bool = False

@@ -1,13 +1,12 @@
 import logging
-import os
 import uuid
 from collections.abc import Sequence
 
-import httpx
 from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, Request, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.features.shopping_lists.clients.household_client import fetch_my_households
 from src.features.shopping_lists.schemas import (
     HouseholdRead,
     PushItemPayload,
@@ -36,25 +35,8 @@ households_router = APIRouter(prefix="/api/v1/households", tags=["households"])
 async def get_my_households(
     request: Request,
 ):
-    """Proxy request to central dashboard backend to retrieve user households."""
-    token = request.headers.get("Authorization")
-    headers = {}
-    if token:
-        headers["Authorization"] = token
-
-    dashboard_url = os.getenv("DASHBOARD_BACKEND_URL", "http://dashboard-backend:8080")
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{dashboard_url}/api/v1/households/me", headers=headers, timeout=5.0)
-            if response.status_code == 200:
-                return response.json()
-            logger.warning(
-                "Dashboard endpoint returned status code %s when retrieving households.", response.status_code
-            )
-            return []
-        except (httpx.RequestError, ValueError) as exc:
-            logger.warning("Failed to proxy households retrieval request to dashboard backend: %s", exc)
-            return []
+    """Return the caller's households (with role and default flag) from the household app."""
+    return await fetch_my_households(request.headers.get("Authorization")) or []
 
 
 @router.post(

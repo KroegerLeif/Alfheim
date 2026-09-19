@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator, Callable, Generator
 
+import httpx
 import pytest
 import pytest_asyncio
 from backend_shared.household import get_membership_lookup
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.features.shopping_lists.clients import household_client
 
 # Import FastAPI application entrypoint
 from src.main import app
@@ -70,14 +72,37 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await transaction.rollback()
 
 
-@pytest.fixture(autouse=True)
-def unreachable_dashboard(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Point the legacy dashboard households lookup at a closed local port.
+class HouseholdApiStub:
+    """In-memory stand-in for the household app's ``GET /api/v1/households/me``."""
 
-    Every test request now carries a bearer token, which makes ``get_lists`` try the
-    dashboard; failing fast locally keeps tests hermetic (no DNS lookups).
-    """
-    monkeypatch.setenv("DASHBOARD_BACKEND_URL", "http://127.0.0.1:9")
+    def __init__(self) -> None:
+        self.status_code = 200
+        self.households: list[dict] = [
+            {
+                "id": str(TEST_HOUSEHOLD_ID),
+                "name": "Test Home",
+                "slug": "test-home",
+                "role": "OWNER",
+                "is_default": True,
+            }
+        ]
+        self.requests: list[httpx.Request] = []
+
+    def handle(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        if request.url.path != "/api/v1/households/me":
+            return httpx.Response(404)
+        if not request.headers.get("Authorization", "").startswith("Bearer "):
+            return httpx.Response(401, json={"error": "unauthorized"})
+        return httpx.Response(self.status_code, json=self.households)
+
+
+@pytest.fixture(autouse=True)
+def household_api(monkeypatch: pytest.MonkeyPatch) -> HouseholdApiStub:
+    """Serve the household app's public API from memory (no network) for every test."""
+    stub = HouseholdApiStub()
+    monkeypatch.setattr(household_client, "transport", httpx.MockTransport(stub.handle))
+    return stub
 
 
 @pytest.fixture

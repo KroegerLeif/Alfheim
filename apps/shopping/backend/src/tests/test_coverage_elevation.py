@@ -1,7 +1,6 @@
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
-import httpx
 import pytest
 from backend_shared import oidc_discovery
 from backend_shared.household import derive_user_id
@@ -134,37 +133,6 @@ async def test_list_management_service_edge_cases(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_get_lists_dashboard_token_and_fallback(db_session: AsyncSession):
-    """Verify get_lists with token integration and error fallback."""
-    home_id = uuid.uuid4()
-    owner_id = uuid.uuid4()
-
-    # Success fetching households from dashboard
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = [{"id": str(home_id), "name": "Main Household"}]
-
-    with patch("httpx.AsyncClient.get", AsyncMock(return_value=mock_resp)):
-        lists = await ListManagementService.get_lists(
-            db_session,
-            home_id=home_id,
-            owner_id=owner_id,
-            token="Bearer valid-token",
-        )
-        assert len(lists) >= 2
-
-    # Dashboard endpoint exception fallback
-    with patch("httpx.AsyncClient.get", AsyncMock(side_effect=httpx.RequestError("Network down"))):
-        lists_fallback = await ListManagementService.get_lists(
-            db_session,
-            home_id=home_id,
-            owner_id=owner_id,
-            token="Bearer valid-token",
-        )
-        assert len(lists_fallback) >= 2
-
-
-@pytest.mark.asyncio
 async def test_shopping_item_service_operations_and_errors(db_session: AsyncSession):
     """Verify ShoppingItemService CRUD operations, push fallbacks, and 404s."""
     home_id = uuid.uuid4()
@@ -224,32 +192,7 @@ async def test_shopping_item_service_operations_and_errors(db_session: AsyncSess
 @pytest.mark.asyncio
 async def test_router_households_and_delete_item_endpoint(client: AsyncClient, db_session: AsyncSession):
     """Verify /api/v1/shopping-lists/households proxy and router delete item."""
-    # 1. Households endpoint proxying with mock response
-    from backend_shared.household.testing import make_test_token
-
-    token = make_test_token(str(TEST_USER_ID))
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = [{"id": str(DEFAULT_TEST_HOUSEHOLD_ID), "name": "Mock Home", "slug": "mock-home"}]
-
-    mock_instance = AsyncMock()
-    mock_instance.get = AsyncMock(return_value=mock_resp)
-    with patch("src.features.shopping_lists.router.httpx.AsyncClient") as mock_cls:
-        mock_cls.return_value.__aenter__.return_value = mock_instance
-        res = await client.get("/api/v1/households/me", headers={"Authorization": f"Bearer {token}"})
-        assert res.status_code == 200
-        assert len(res.json()) == 1
-
-    # Households endpoint error fallback
-    mock_err_instance = AsyncMock()
-    mock_err_instance.get = AsyncMock(side_effect=httpx.RequestError("Failed"))
-    with patch("src.features.shopping_lists.router.httpx.AsyncClient") as mock_cls:
-        mock_cls.return_value.__aenter__.return_value = mock_err_instance
-        res2 = await client.get("/api/v1/households/me")
-        assert res2.status_code == 200
-        assert res2.json() == []
-
+    # 1. Households endpoint is served by the household app (covered in test_households_from_household_app.py)
     # 2. Router delete item endpoint
     h_list = await ListManagementService.ensure_household_list(db_session, DEFAULT_TEST_HOUSEHOLD_ID, TEST_USER_ID)
     item = await ShoppingItemService.add_item(
