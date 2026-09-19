@@ -5,8 +5,9 @@ from unittest.mock import patch
 
 import pytest
 from app.features.devices.exceptions import DeviceError
-from app.features.devices.models import Device, Household
+from app.features.devices.models import Device
 from app.features.tasks.models import MaintenanceStep
+from app.tests.conftest import TEST_HOUSEHOLD_ID, auth_headers
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -14,18 +15,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 @pytest.mark.asyncio
 async def test_device_router_edge_cases(client: AsyncClient, db_session: AsyncSession):
     """Verify device router endpoints for listing, 404 not found, and creation validation errors."""
-    household = Household(name="Test Home", address="123 Street")
-    db_session.add(household)
-    await db_session.commit()
-    await db_session.refresh(household)
-    assert household.id is not None
-
-    headers = {"X-Household-ID": str(household.id)}
+    headers = auth_headers()
 
     # 1. GET /api/v1/households
     res_hh = await client.get("/api/v1/households", headers=headers)
     assert res_hh.status_code == 200
-    assert any(h["name"] == "Test Home" for h in res_hh.json())
+    assert [h["id"] for h in res_hh.json()] == [str(TEST_HOUSEHOLD_ID)]
 
     # 2. GET /api/v1/devices/{device_id} not found
     res_dev_missing = await client.get("/api/v1/devices/99999", headers=headers)
@@ -49,7 +44,7 @@ async def test_device_router_edge_cases(client: AsyncClient, db_session: AsyncSe
         headers=headers,
     )
     assert res_create_with_override.status_code == 201
-    assert res_create_with_override.json()["household_id"] == household.id
+    assert res_create_with_override.json()["household_id"] == str(TEST_HOUSEHOLD_ID)
 
     # 4. POST /api/v1/devices with DeviceError simulated
     with patch("app.features.devices.service.DeviceService.create_device", side_effect=DeviceError("Creation failed")):
@@ -63,7 +58,6 @@ async def test_device_router_edge_cases(client: AsyncClient, db_session: AsyncSe
                 "location": "Kitchen",
                 "status": "active",
                 "service_interval_months": 6,
-                "household_id": household.id,
                 "steps": [],
             },
             headers=headers,
@@ -74,12 +68,6 @@ async def test_device_router_edge_cases(client: AsyncClient, db_session: AsyncSe
 @pytest.mark.asyncio
 async def test_maintenance_wizard_router_edge_cases(client: AsyncClient, db_session: AsyncSession):
     """Verify wizard session router error handling for missing device, invalid steps, and summary query."""
-    household = Household(name="Wizard Home", address="456 Avenue")
-    db_session.add(household)
-    await db_session.commit()
-    await db_session.refresh(household)
-    assert household.id is not None
-
     device = Device(
         name="Boiler",
         model="Bosch",
@@ -88,14 +76,14 @@ async def test_maintenance_wizard_router_edge_cases(client: AsyncClient, db_sess
         location="Basement",
         status="active",
         service_interval_months=12,
-        household_id=household.id,
+        household_id=TEST_HOUSEHOLD_ID,
     )
     db_session.add(device)
     await db_session.commit()
     await db_session.refresh(device)
     assert device.id is not None
 
-    headers = {"X-Household-ID": str(household.id)}
+    headers = auth_headers()
 
     # 1. Wizard submit with nonexistent device -> 404
     res_wiz_no_dev = await client.post(
@@ -121,8 +109,8 @@ async def test_maintenance_wizard_router_edge_cases(client: AsyncClient, db_sess
     )
     assert res_wiz_invalid_step.status_code == 400
 
-    # 3. Summary filtered by household_id
-    res_summary = await client.get(f"/api/v1/maintenance/summary?household_id={household.id}", headers=headers)
+    # 3. Summary of the current household
+    res_summary = await client.get("/api/v1/maintenance/summary", headers=headers)
     assert res_summary.status_code == 200
     assert len(res_summary.json()) == 1
 
@@ -130,12 +118,6 @@ async def test_maintenance_wizard_router_edge_cases(client: AsyncClient, db_sess
 @pytest.mark.asyncio
 async def test_tasks_router_edge_cases(client: AsyncClient, db_session: AsyncSession):
     """Verify tasks router for submit maintenance, history filter, and step state updates."""
-    household = Household(name="Tasks Home", address="789 Blvd")
-    db_session.add(household)
-    await db_session.commit()
-    await db_session.refresh(household)
-    assert household.id is not None
-
     device = Device(
         name="Heat Pump",
         model="Viessmann",
@@ -144,7 +126,7 @@ async def test_tasks_router_edge_cases(client: AsyncClient, db_session: AsyncSes
         location="Garage",
         status="active",
         service_interval_months=6,
-        household_id=household.id,
+        household_id=TEST_HOUSEHOLD_ID,
     )
     db_session.add(device)
     await db_session.commit()
@@ -163,7 +145,7 @@ async def test_tasks_router_edge_cases(client: AsyncClient, db_session: AsyncSes
     await db_session.refresh(step)
     assert step.id is not None
 
-    headers = {"X-Household-ID": str(household.id)}
+    headers = auth_headers()
 
     # 1. Submit maintenance with nonexistent device -> 404
     res_submit_no_dev = await client.post(
@@ -181,8 +163,8 @@ async def test_tasks_router_edge_cases(client: AsyncClient, db_session: AsyncSes
     )
     assert res_submit_bad_step.status_code == 400
 
-    # 3. History filtered by household_id
-    res_history = await client.get(f"/api/v1/history?household_id={household.id}", headers=headers)
+    # 3. History of the current household
+    res_history = await client.get("/api/v1/history", headers=headers)
     assert res_history.status_code == 200
 
     # 4. Update task state nonexistent step -> 404

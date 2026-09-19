@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from backend_shared import setup_telemetry, shutdown_telemetry
+from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,10 @@ from src.mcp.server import discover_and_import_mcp_tools, mcp
 discover_and_import_mcp_tools()
 
 
+# Household membership is authorized by the household app; register OIDC settings and validate env.
+configure_household_auth(settings)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for database initialization, FastMCP server, and telemetry cleanup."""
@@ -27,6 +32,7 @@ async def lifespan(app: FastAPI):
         async with mcp.lifespan():
             yield
     finally:
+        await close_membership_client()
         shutdown_telemetry()
 
 

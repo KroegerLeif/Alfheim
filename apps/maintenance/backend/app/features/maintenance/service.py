@@ -4,6 +4,7 @@ Maintenance feature service layer providing orchestration logic for wizard sessi
 
 import datetime
 import logging
+import uuid
 from typing import Any, cast
 
 from sqlalchemy.orm import selectinload
@@ -11,7 +12,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.features.devices.exceptions import DeviceNotFoundError
-from app.features.devices.models import Device, Household
+from app.features.devices.models import Device
 from app.features.maintenance.exceptions import WizardValidationError
 from app.features.maintenance.schemas import (
     HouseholdMaintenanceSummary,
@@ -43,10 +44,15 @@ class MaintenanceService:
     async def submit_wizard_session(
         session: AsyncSession,
         payload: WizardSessionPayload,
+        household_id: uuid.UUID,
+        authorization: str | None = None,
     ) -> WizardSessionResult:
-        """Process and persist a completed maintenance wizard session."""
+        """Process and persist a completed maintenance wizard session for a device of ``household_id``.
+
+        Devices of other households are reported as not found (tenant isolation).
+        """
         device = await session.get(Device, payload.device_id)
-        if not device:
+        if not device or device.household_id != household_id:
             raise DeviceNotFoundError(f"Device {payload.device_id} not found")
 
         today = datetime.date.today()
@@ -109,7 +115,9 @@ class MaintenanceService:
         forwarded_count = 0
         if payload.supply_items_to_order:
             try:
-                await TaskService.forward_supplies_to_shopping(payload.supply_items_to_order)
+                await TaskService.forward_supplies_to_shopping(
+                    payload.supply_items_to_order, household_id, authorization
+                )
                 forwarded_count = len(payload.supply_items_to_order)
             except Exception as exc:
                 logger.error("Unexpected error in shopping bridge during wizard submit: %s", exc)
@@ -128,82 +136,67 @@ class MaintenanceService:
     @staticmethod
     async def get_maintenance_summary(
         session: AsyncSession,
-        household_id: int | None = None,
+        household_id: uuid.UUID,
     ) -> list[HouseholdMaintenanceSummary]:
-        """Aggregate device maintenance health states into a household-level dashboard summary."""
-        household_stmt = select(Household)
-        if household_id is not None:
-            household_stmt = household_stmt.where(Household.id == household_id)
-        household_result = await session.exec(household_stmt)
-        households = list(household_result.all())
+        """Aggregate device maintenance health states into a dashboard summary for one household.
 
-        device_stmt = select(Device).options(selectinload(cast(Any, Device.steps)))
-        if household_id is not None:
-            device_stmt = device_stmt.where(Device.household_id == household_id)
+        Returns a single-element list (kept as a list for API compatibility).
+        """
+        device_stmt = (
+            select(Device).options(selectinload(cast(Any, Device.steps))).where(Device.household_id == household_id)
+        )
         device_result = await session.exec(device_stmt)
-        all_devices = list(device_result.all())
+        household_devices = list(device_result.all())
 
-        devices_by_household: dict[int, list[Device]] = {}
-        for device in all_devices:
-            devices_by_household.setdefault(device.household_id, []).append(device)
+        device_summaries: list[MaintenanceSummary] = []
+        total_overdue = 0
+        total_due_soon = 0
+        total_ok = 0
 
-        summaries: list[HouseholdMaintenanceSummary] = []
+        for device in household_devices:
+            assert device.id is not None
+            overdue = 0
+            due_soon = 0
+            ok = 0
+            earliest_date: str | None = None
 
-        for household in households:
-            assert household.id is not None
-            household_devices = devices_by_household.get(household.id, [])
-            device_summaries: list[MaintenanceSummary] = []
-            total_overdue = 0
-            total_due_soon = 0
-            total_ok = 0
+            for step in device.steps:
+                days = days_until(step.supply_needed_date)
+                if days < 0:
+                    overdue += 1
+                elif days <= 14:
+                    due_soon += 1
+                else:
+                    ok += 1
 
-            for device in household_devices:
-                assert device.id is not None
-                overdue = 0
-                due_soon = 0
-                ok = 0
-                earliest_date: str | None = None
+                if step.supply_needed_date:
+                    if earliest_date is None or step.supply_needed_date < earliest_date:
+                        earliest_date = step.supply_needed_date
 
-                for step in device.steps:
-                    days = days_until(step.supply_needed_date)
-                    if days < 0:
-                        overdue += 1
-                    elif days <= 14:
-                        due_soon += 1
-                    else:
-                        ok += 1
+            total_overdue += overdue
+            total_due_soon += due_soon
+            total_ok += ok
 
-                    if step.supply_needed_date:
-                        if earliest_date is None or step.supply_needed_date < earliest_date:
-                            earliest_date = step.supply_needed_date
-
-                total_overdue += overdue
-                total_due_soon += due_soon
-                total_ok += ok
-
-                device_summaries.append(
-                    MaintenanceSummary(
-                        device_id=device.id,
-                        device_name=device.name,
-                        device_location=device.location,
-                        total_steps=len(device.steps),
-                        overdue_steps=overdue,
-                        due_soon_steps=due_soon,
-                        ok_steps=ok,
-                        next_service_date=earliest_date,
-                    )
-                )
-
-            summaries.append(
-                HouseholdMaintenanceSummary(
-                    household_id=household.id,
-                    household_name=household.name,
-                    total_devices=len(household_devices),
-                    total_overdue=total_overdue,
-                    total_due_soon=total_due_soon,
-                    total_ok=total_ok,
-                    devices=device_summaries,
+            device_summaries.append(
+                MaintenanceSummary(
+                    device_id=device.id,
+                    device_name=device.name,
+                    device_location=device.location,
+                    total_steps=len(device.steps),
+                    overdue_steps=overdue,
+                    due_soon_steps=due_soon,
+                    ok_steps=ok,
+                    next_service_date=earliest_date,
                 )
             )
 
-        return summaries
+        return [
+            HouseholdMaintenanceSummary(
+                household_id=household_id,
+                total_devices=len(household_devices),
+                total_overdue=total_overdue,
+                total_due_soon=total_due_soon,
+                total_ok=total_ok,
+                devices=device_summaries,
+            )
+        ]

@@ -7,7 +7,7 @@ exclusively from MaintenanceService.
 
 from typing import Any
 
-from backend_shared.mcp_middleware import get_mcp_user_context
+from backend_shared.mcp_middleware import get_mcp_household_context
 
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
@@ -18,9 +18,7 @@ from app.features.maintenance.service import MaintenanceService
 async def get_maintenance_summary_tool() -> dict[str, Any]:
     """Retrieve an aggregate maintenance health summary for devices in the authenticated household."""
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return {"error": "No household context available"}
+        user_context = get_mcp_household_context()
 
         async with async_session_factory() as session:
             summaries = await MaintenanceService.get_maintenance_summary(
@@ -29,7 +27,7 @@ async def get_maintenance_summary_tool() -> dict[str, Any]:
 
         return {
             "total_households": len(summaries),
-            "summaries": [s.model_dump() for s in summaries],
+            "summaries": [s.model_dump(mode="json") for s in summaries],
         }
     except RuntimeError as e:
         return {"error": str(e)}
