@@ -590,7 +590,6 @@ fi
 echo ""
 echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Zitadel IAM        →  ${BOLD}${ISSUER_URL}/${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chat API           →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1/chat${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
 echo ""
 echo -e "  ${DIM}Useful commands:${RESET}"

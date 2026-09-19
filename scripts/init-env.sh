@@ -233,10 +233,6 @@ migrate_existing_env() {
     migrated=true
     log_warn "Migrated legacy KC_DB_USERNAME 'alfheim_admin' -> 'iam_user' in $(basename "$env_file")"
   fi
-  if grep -qE '^IAM_POSTGRES_USER=alfheim_admin' "$env_file"; then
-    sed -i.bak -e 's|^IAM_POSTGRES_USER=alfheim_admin|IAM_POSTGRES_USER=iam_user|g' "$env_file" && rm -f "${env_file}.bak"
-    migrated=true
-  fi
   if grep -qE '^POSTGRES_DB=keycloak_db' "$env_file"; then
     sed -i.bak -e 's|^POSTGRES_DB=keycloak_db|POSTGRES_DB=postgres|g' "$env_file" && rm -f "${env_file}.bak"
     migrated=true
@@ -286,17 +282,7 @@ migrate_existing_env() {
     fi
   done
 
-  # 5. Inject missing IAM_POSTGRES_* variables if not present
-  if ! grep -q "^IAM_POSTGRES_USER=" "$env_file"; then
-    echo "IAM_POSTGRES_USER=iam_user" >> "$env_file"
-    migrated=true
-  fi
-  if ! grep -q "^IAM_POSTGRES_DB=" "$env_file"; then
-    echo "IAM_POSTGRES_DB=alfheim_iam" >> "$env_file"
-    migrated=true
-  fi
-
-  # 5b. Inject Zitadel provisioning keys compose.prod.yaml now requires
+  # 5. Inject Zitadel provisioning keys compose.prod.yaml now requires
   #     (issue #452), if this .env predates them. Only appended when absent,
   #     so an already-provisioned value (a real client id/secret) is never
   #     touched.
@@ -624,7 +610,6 @@ GRAFANA_PW="$(generate_secret 24)"
 # Build .env from template with variable replacement
 sed \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
-  -e "s|^IAM_POSTGRES_PASSWORD=.*|IAM_POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^ZITADEL_MASTERKEY=.*|ZITADEL_MASTERKEY=${ZITADEL_MASTERKEY}|" \
   -e "s|^ZITADEL_ADMIN_EMAIL=.*|ZITADEL_ADMIN_EMAIL=${ZITADEL_ADMIN_EMAIL}|" \
   -e "s|^ZITADEL_ADMIN_USER=.*|ZITADEL_ADMIN_USER=${ZITADEL_ADMIN_EMAIL}|" \
