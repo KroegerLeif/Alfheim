@@ -103,14 +103,14 @@ def make_test_token(sub: str = DEFAULT_TEST_SUB, **claims: Any) -> str:
 @contextmanager
 def mcp_household_context(context: HouseholdContext | None = None, **kwargs: Any) -> Iterator[HouseholdContext]:
     """Set the MCP household context for calling tool functions directly in unit tests."""
-    from backend_shared.mcp_middleware import mcp_user_context
+    from backend_shared.mcp_middleware import mcp_household_context_var
 
     ctx = context if context is not None else make_household_context(**kwargs)
-    token = mcp_user_context.set(ctx)
+    token = mcp_household_context_var.set(ctx)
     try:
         yield ctx
     finally:
-        mcp_user_context.reset(token)
+        mcp_household_context_var.reset(token)
 
 
 __all__ = [

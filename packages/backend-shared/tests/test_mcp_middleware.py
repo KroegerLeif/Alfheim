@@ -17,8 +17,7 @@ from backend_shared.mcp_middleware import (
     MCP_HOUSEHOLD_SCOPE_KEY,
     MCPAuthenticationMiddleware,
     get_mcp_household_context,
-    get_mcp_user_context,
-    mcp_user_context,
+    mcp_household_context_var,
 )
 from fastapi.testclient import TestClient
 from starlette.applications import Starlette
@@ -32,7 +31,6 @@ SUB = "301234567890123456"
 
 async def tool_endpoint(request: Request) -> JSONResponse:
     ctx = get_mcp_household_context()
-    assert get_mcp_user_context() is ctx
     assert request.scope[MCP_HOUSEHOLD_SCOPE_KEY] is ctx
     return JSONResponse({"household_id": str(ctx.household_id), "user_id": str(ctx.user_id), "role": ctx.role})
 
@@ -58,7 +56,7 @@ def test_member_context_is_injected():
         "user_id": str(uuid.uuid5(uuid.NAMESPACE_DNS, SUB)),
         "role": "ADMIN",
     }
-    assert mcp_user_context.get() is None  # reset after the request
+    assert mcp_household_context_var.get() is None  # reset after the request
 
 
 class FailingLookup:
@@ -100,15 +98,13 @@ def test_defaults_to_shared_client_and_configured_settings(monkeypatch):
 def test_get_context_without_middleware_raises():
     with pytest.raises(RuntimeError):
         get_mcp_household_context()
-    with pytest.raises(RuntimeError):
-        get_mcp_user_context()
 
 
 def test_mcp_household_context_helper():
     with mcp_household_context(role="GUEST") as ctx:
         assert get_mcp_household_context() is ctx
         assert ctx.role == "GUEST"
-    assert mcp_user_context.get() is None
+    assert mcp_household_context_var.get() is None
 
 
 def test_request_scope_wins_over_stale_contextvar(monkeypatch):
@@ -122,7 +118,6 @@ def test_request_scope_wins_over_stale_contextvar(monkeypatch):
     try:
         with mcp_household_context(stale):
             assert get_mcp_household_context() is current
-            assert get_mcp_user_context() is current
         fake_request.scope = {}
         with mcp_household_context(stale):
             assert get_mcp_household_context() is stale

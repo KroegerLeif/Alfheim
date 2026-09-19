@@ -1,6 +1,6 @@
 # backend-shared
 
-Shared Python backend library for Alfheim microservices providing unified S3 object storage utilities, OpenTelemetry instrumentation and logging, and OIDC JWT authentication dependencies.
+Shared Python backend library for Alfheim microservices providing unified S3 object storage utilities, OpenTelemetry instrumentation and logging, OIDC JWT validation (`backend_shared.dependencies.decode_oidc_token`) and household authorization.
 
 OIDC discovery and JWKS calls trust the system roots plus any extra root CA named by `ALFHEIM_EXTRA_CA_FILE` (`backend_shared.tls`), which lets backends verify an issuer signed by the installer's local root CA. See the [environment variables reference](../../docs/en/reference/environment-variables.md).
 
@@ -34,7 +34,7 @@ async def delete_item(item_id: int, ctx: HouseholdContext = Depends(require_role
 `HouseholdContext` is a frozen dataclass with these fields:
 
 - `user_sub`: the JWT `sub`.
-- `user_id`: a UUID. Non-UUID subjects map to `uuid5(NAMESPACE_DNS, sub)`, the same derivation as the legacy dependencies, so existing rows keep matching.
+- `user_id`: a UUID. Non-UUID subjects map to `uuid5(NAMESPACE_DNS, sub)` (`derive_user_id`), so existing rows keep matching.
 - `household_id`: a UUID.
 - `role`: `OWNER`, `ADMIN`, `MEMBER` or `GUEST`.
 - `email` and `username`: from the JWT, if present.
@@ -43,7 +43,7 @@ Results are cached per process, keyed by `(household_id, sub)`: members for 30 s
 
 ### MCP
 
-Wrap the MCP app with `MCPAuthenticationMiddleware(mcp_app, settings=settings)`. It runs the same resolution and error contract. Tools read the context with `backend_shared.mcp_middleware.get_mcp_household_context()`. The `get_mcp_user_context()` alias returns the same object but stays typed `Any` until all apps are migrated.
+Wrap the MCP app with `MCPAuthenticationMiddleware(mcp_app, settings=settings)`. It runs the same resolution and error contract. Tools read the context with `backend_shared.mcp_middleware.get_mcp_household_context()`, which returns a `HouseholdContext` and raises `RuntimeError` when the middleware did not run.
 
 ### Error contract
 
@@ -89,6 +89,3 @@ with mcp_household_context(role="OWNER") as ctx:
 
 Unsigned test tokens only decode when `is_mock_auth_allowed()` is true, which means pytest or `TESTING=true` and never production or staging. Undo overrides with `app.dependency_overrides.clear()`.
 
-### Deprecated
-
-`get_current_user_and_home`, `get_current_user_and_household`, `UserHomeContext` and `UserHouseholdContext` in `backend_shared.dependencies` trust household claims Zitadel never issues. They remain only until every app is migrated.

@@ -129,7 +129,7 @@ def test_member_gets_context_and_calls_membership_api():
     assert request.headers["Authorization"] == f"Bearer {TOKEN}"
 
 
-def test_user_id_derivation_matches_legacy():
+def test_user_id_derivation():
     uuid_sub = "8f14e45f-ceea-467a-9575-9b3a6f5a1f00"
     assert derive_user_id(uuid_sub) == uuid.UUID(uuid_sub)
     assert derive_user_id("alice") == uuid.uuid5(uuid.NAMESPACE_DNS, "alice")
