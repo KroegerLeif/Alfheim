@@ -2,6 +2,7 @@ import importlib
 import pathlib
 from contextlib import asynccontextmanager
 
+from backend_shared.household import close_membership_client, configure_household_auth
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 from src.core.config import settings
@@ -40,11 +41,17 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        # Release the household membership API client's connections
+        await close_membership_client()
+
         # Gracefully flush and shutdown OpenTelemetry providers
         from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
+
+# Register the OIDC settings used by require_household and fail fast on missing household auth config
+configure_household_auth(settings)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

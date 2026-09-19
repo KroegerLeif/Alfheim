@@ -4,17 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from backend_shared import oidc_discovery
+from backend_shared.household import derive_user_id
+from backend_shared.household.testing import DEFAULT_TEST_HOUSEHOLD_ID, DEFAULT_TEST_SUB
 from fastapi import Request
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.config import Settings
-from src.core.dependencies import (
-    MOCK_HOME_ID,
-    MOCK_USER_ID,
-    decode_oidc_token,
-    get_jwks_client,
-    is_mock_auth_allowed,
-)
 from src.core.exceptions import (
     ShoppingError,
     ShoppingItemNotFoundError,
@@ -30,6 +25,8 @@ from src.features.shopping_lists.schemas import (
 from src.features.shopping_lists.services.list_management_service import ListManagementService
 from src.features.shopping_lists.services.shopping_item_service import ShoppingItemService
 from src.main import shopping_error_handler, value_error_exception_handler
+
+TEST_USER_ID = derive_user_id(DEFAULT_TEST_SUB)
 
 
 def test_settings_jwks_url_explicit_override_wins():
@@ -58,19 +55,6 @@ def test_settings_jwks_url_resolved_via_oidc_discovery():
 
     assert s2.expected_issuer == "http://public.auth"
     oidc_discovery._discovered_jwks_uris.clear()
-
-
-def test_core_dependency_wrappers():
-    """Verify backend_shared dependency helper pass-throughs."""
-    assert isinstance(is_mock_auth_allowed(), bool)
-    with patch("backend_shared.dependencies.get_jwks_client") as mock_get_client:
-        get_jwks_client("http://mock/jwks")
-        mock_get_client.assert_called_once_with("http://mock/jwks")
-
-    with patch("backend_shared.dependencies.decode_oidc_token") as mock_decode:
-        mock_decode.return_value = {"sub": "user-123"}
-        payload = decode_oidc_token("mock-token")
-        assert payload["sub"] == "user-123"
 
 
 @pytest.mark.asyncio
@@ -241,13 +225,13 @@ async def test_shopping_item_service_operations_and_errors(db_session: AsyncSess
 async def test_router_households_and_delete_item_endpoint(client: AsyncClient, db_session: AsyncSession):
     """Verify /api/v1/shopping-lists/households proxy and router delete item."""
     # 1. Households endpoint proxying with mock response
-    import jwt
+    from backend_shared.household.testing import make_test_token
 
-    token = jwt.encode({"sub": str(MOCK_USER_ID)}, "secret", algorithm="HS256")
+    token = make_test_token(str(TEST_USER_ID))
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = [{"id": str(MOCK_HOME_ID), "name": "Mock Home", "slug": "mock-home"}]
+    mock_resp.json.return_value = [{"id": str(DEFAULT_TEST_HOUSEHOLD_ID), "name": "Mock Home", "slug": "mock-home"}]
 
     mock_instance = AsyncMock()
     mock_instance.get = AsyncMock(return_value=mock_resp)
@@ -267,12 +251,12 @@ async def test_router_households_and_delete_item_endpoint(client: AsyncClient, d
         assert res2.json() == []
 
     # 2. Router delete item endpoint
-    h_list = await ListManagementService.ensure_household_list(db_session, MOCK_HOME_ID, MOCK_USER_ID)
+    h_list = await ListManagementService.ensure_household_list(db_session, DEFAULT_TEST_HOUSEHOLD_ID, TEST_USER_ID)
     item = await ShoppingItemService.add_item(
         db_session,
         h_list.id,
         ShoppingItemCreate(name="Juice", quantity=1.0, unit="l"),
-        MOCK_HOME_ID,
+        DEFAULT_TEST_HOUSEHOLD_ID,
     )
 
     del_res = await client.delete(f"/api/v1/shopping-lists/{h_list.id}/items/{item.id}")
