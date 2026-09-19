@@ -43,7 +43,7 @@ apps/<app-name>/
 
 ### Key Folder Conventions:
 * **Isolated Data Persistence**: All backends connect to `postgres-core` hosting isolated databases (`alfheim_<app>`) owned by dedicated users (`<app>_user`), enforcing least-privilege tenant data isolation.
-* **Tenant Isolation**: Backend APIs validate the `X-Household-ID` request header against JWT token claims (`household_id`, `active_household_id`, or `households`).
+* **Tenant Isolation**: Backend APIs confirm the `X-Household-ID` request header with the household app's membership API (`core/household`) through `backend_shared.household.require_household` (Python) or `middleware.RequireHousehold` (chat, Go). They never read household or role claims from the JWT. See [ADR 0006](../docs/en/explanation/decisions/0006-household-authorization-via-membership-api.md).
 * **Frontend Verification & Testing**: Frontends utilize Vitest with MSW v2 for mock API handler testing, and type checking via `pnpm check-types`.
 
 ---
@@ -51,6 +51,6 @@ apps/<app-name>/
 ## 3. Interactions with Other Layers
 
 * **`packages/shared` (`@alfheim/shared`)**: Frontends import UI primitives (`Button`, `Dialog`, `Progress`), dynamic theme engines, localized i18n dictionaries (`common`, `pantry`, etc.), and typed `ApiClient` wrappers.
-* **`packages/backend-shared` (`backend_shared`)**: Python backends consume workspace utilities for OpenTelemetry instrumentation, OIDC JWT verification, and RustFS S3 storage integration.
+* **`packages/backend-shared` (`backend_shared`)**: Python backends consume workspace utilities for OpenTelemetry instrumentation, OIDC JWT verification, household membership checks, and RustFS S3 storage integration.
 * **Central Caddy Gateway (`infrastructure/caddy`)**: Caddy proxies incoming traffic to frontend containers (`alfheim.loegien.localhost/<app>`) and backend API routes (`api.alfheim.loegien.localhost/<app>/api/v1`).
 * **Identity Provider (Zitadel)**: Backends validate bearer tokens issued by Zitadel on the dedicated `auth.*` host, while frontends execute PKCE OIDC authorization flows.

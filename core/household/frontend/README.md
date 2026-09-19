@@ -46,9 +46,12 @@ or copy the literal paths.
 
 ## Conventions
 
-- **Active household:** written to `localStorage.alfheim_active_household_id`,
-  followed by a `storage-household-changed` event. This matches the shared
-  header switcher (`src/lib/activeHousehold.ts`).
+- **Active household:** `src/lib/activeHousehold.ts` delegates to the shared
+  store in `@alfheim/shared` (`localStorage.alfheim_active_household_id` plus a
+  `storage-household-changed` event), the same one every app's
+  `HouseholdProvider` and the header switcher use. Create, join, leave, delete
+  and set-default call `notifyHouseholdsChanged()` so other apps reload their
+  household list.
 - **Roles:** the app never sends `X-Household-Role`. UI actions are gated by
   the `role` field in the household detail response
   (`src/features/household/permissions.ts`), and the backend enforces the
