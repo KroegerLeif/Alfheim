@@ -128,6 +128,39 @@ func (o *Orchestrator) EnsureDatabases(ctx context.Context) error {
 	return nil
 }
 
+// UpdateAndRestart pulls every image compose.prod.yaml now names and
+// restarts the whole stack, removing any container for a service the new
+// compose file no longer declares (a service renamed or dropped between
+// releases would otherwise be left running as an orphan). It then waits for
+// every container both staged boot phases wait on, since either Zitadel or
+// the core application services may have received a new image.
+//
+// It is the `alfheim-setup update` subcommand's restart step; a plain
+// no-flag re-run instead uses RunPhase(PhaseCoreStack), which never passes
+// --remove-orphans because it starts from a compose file that has not
+// changed on disk.
+func (o *Orchestrator) UpdateAndRestart(ctx context.Context) error {
+	o.logf("Pulling images")
+	if err := o.compose(ctx, []string{"pull"}); err != nil {
+		return fmt.Errorf("bootstrap: pull images: %w", err)
+	}
+	o.logf("Restarting the stack")
+	if err := o.compose(ctx, []string{"up", "-d", "--remove-orphans"}); err != nil {
+		return fmt.Errorf("bootstrap: restart the stack: %w", err)
+	}
+
+	targets := append(append([]HealthTarget{}, PhaseEdgeAuth.WaitFor...), PhaseCoreStack.WaitFor...)
+	for _, target := range targets {
+		if err := o.waitHealthy(ctx, target); err != nil {
+			if target.Container == zitadelContainer {
+				err = o.explainZitadelFailure(ctx, err)
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 // explainZitadelFailure looks at Zitadel's own logs after a startup failure
 // and, when they show the machinekey permission problem (a bind-mount
 // directory Docker created root-owned before the non-root container user

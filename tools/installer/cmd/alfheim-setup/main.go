@@ -39,6 +39,14 @@ func run(args []string, stdout, stderr *os.File) int {
 		return app.RunProvision(args[1:], stdout, stderr)
 	}
 
+	// `update` is the Day-2 one-command entry point: fetch a target
+	// release's stack assets, back up and replace the previous ones, and
+	// restart. Unlike a plain no-flag re-run it never falls back to the
+	// wizard, so it is dispatched here rather than through app.Run.
+	if len(args) > 0 && args[0] == "update" {
+		return app.RunUpdate(args[1:], stdout, stderr, app.BuildInfo{Version: version, Commit: commit, Date: date})
+	}
+
 	// Restore the terminal even when we unwind through a signal. An interrupt
 	// during a container wait would otherwise leave the operator's shell in
 	// raw mode with a hidden cursor.

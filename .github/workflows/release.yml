@@ -372,11 +372,15 @@ jobs:
           cp ../infrastructure/telemetry/collector/config.yaml otelcol-config.yaml
           cp ../infrastructure/postgres/init-multiple-dbs.sh init-multiple-dbs.sh
           cp ../infrastructure/telemetry/vector/vector.toml vector.toml
+          # `alfheim-setup update` fetches and verifies its own copy of this
+          # script on every release too (see internal/shared/assets), so it
+          # ships here the same way the other standalone stack files do.
+          cp ../scripts/verify-stack.sh verify-stack.sh
 
       - name: Generate Checksums
         working-directory: dist
         run: |
-          sha256sum alfheim-setup_linux_* compose.prod.yaml otelcol-config.yaml init-multiple-dbs.sh vector.toml > SHA256SUMS
+          sha256sum alfheim-setup_linux_* compose.prod.yaml otelcol-config.yaml init-multiple-dbs.sh vector.toml verify-stack.sh > SHA256SUMS
           cat SHA256SUMS
 
       - name: Create GitHub Release & Attach Production Artifacts
@@ -395,6 +399,7 @@ jobs:
             dist/otelcol-config.yaml
             dist/init-multiple-dbs.sh
             dist/vector.toml
+            dist/verify-stack.sh
             install.sh
             .env.example
             infrastructure/caddy/Caddyfile

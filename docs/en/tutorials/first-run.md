@@ -142,6 +142,7 @@ report `healthy`. Open the dashboard URL and sign in with your Zitadel account.
 * [Trust the local root CA](../how-to/trust-local-root-ca.md) — for the local CA strategy
 * [Installer CLI reference](../reference/installer-cli.md) — every flag
 * [Backup and restore](../how-to/backup-restore.md) — protect your data
+* [Update an installation](../how-to/update-installation.md) — every later release, one command
 
 ## Updating later
 
@@ -154,3 +155,9 @@ cd ~/alfheim && curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim
 ```
 
 To change the configuration itself, add `--reconfigure`.
+
+To update to a specific release rather than whatever is already configured,
+use `alfheim-setup update` instead (it fetches and verifies that release's
+own stack files first): see
+[Update an installation](../how-to/update-installation.md) for the one-liner,
+what is preserved, and how to roll back.
