@@ -3,7 +3,7 @@ import pathlib
 from contextlib import asynccontextmanager
 
 from backend_shared.household import close_membership_client, configure_household_auth
-from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
+from backend_shared.mcp_middleware import mount_mcp
 from fastapi import APIRouter, FastAPI
 from src.core.config import settings
 from src.mcp.server import mcp
@@ -40,8 +40,8 @@ async def lifespan(app: FastAPI):
     await init_db()
 
     try:
-        # Initialize FastMCP lifespan
-        async with mcp.lifespan():
+        # Run the MCP app's own lifespan: it starts the Streamable HTTP session manager.
+        async with mcp_app.router.lifespan_context(mcp_app):
             yield
     finally:
         # Release the household membership API client's connections
@@ -98,10 +98,8 @@ from src.mcp.server import discover_and_import_mcp_tools
 
 discover_and_import_mcp_tools()
 
-# Mount the FastMCP server with authentication middleware
-mcp_app = mcp.http_app()
-mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
-app.mount("/mcp", mcp_app_with_auth)
+# Serve the FastMCP Streamable HTTP endpoint at exactly /mcp, guarded by the household auth middleware
+mcp_app = mount_mcp(app, mcp, settings=settings)
 
 
 @app.get("/api/v1/health")

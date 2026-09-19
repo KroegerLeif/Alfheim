@@ -284,13 +284,12 @@ async def list_items(ctx: HouseholdContext = Depends(require_household)):
 
 
 @router.delete("/items/{item_id}")
-async def delete_item(item_id: uuid.UUID, ctx: HouseholdContext = Depends(require_role("OWNER", "ADMIN"))):
-    ...
+async def delete_item(item_id: uuid.UUID, ctx: HouseholdContext = Depends(require_role("OWNER", "ADMIN"))): ...
 ```
 
 `require_household` validates the JWT, requires a UUID `X-Household-ID`, and asks `GET {HOUSEHOLD_INTERNAL_URL}/internal/v1/memberships/{householdId}/{userSub}` (cached 30 s for members, 5 s for non-members, fails closed). Errors: `401 unauthenticated`, `400 household_required` / `household_invalid`, `403 household_forbidden` / `household_role_forbidden`, `503 household_service_unavailable`, always as `{"detail": {"code", "message"}}`. Roles come from the membership response.
 
-**MCP tools** are wrapped by `MCPAuthenticationMiddleware(mcp_app, settings=settings)` and read the household with `get_mcp_household_context()`. A tool **must not** declare `household_id`, `home_id` or `user_id` parameters: the LLM must never choose the tenant.
+**MCP tools** are served with `mcp_app = mount_mcp(app, mcp, settings=settings)` (endpoint exactly `/mcp`, wrapped by `MCPAuthenticationMiddleware`; run `mcp_app.router.lifespan_context(mcp_app)` inside the app lifespan) and read the household with `get_mcp_household_context()`. A tool **must not** declare `household_id`, `home_id` or `user_id` parameters: the LLM must never choose the tenant.
 
 **Outbound calls** to another Alfheim app forward the caller's `Authorization` and `X-Household-ID` headers; the target app authorizes the caller itself.
 

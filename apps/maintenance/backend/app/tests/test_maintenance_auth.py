@@ -140,6 +140,6 @@ async def test_membership_service_outage_fails_closed(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_mcp_endpoint_requires_household_header(anon_client: AsyncClient):
     headers = {"Authorization": f"Bearer {make_test_token(TEST_USER_SUB)}"}
-    response = await anon_client.post("/mcp/", headers=headers)
+    response = await anon_client.post("/mcp", headers=headers)
     assert response.status_code == 400
     assert response.json()["detail"]["code"] == "household_required"
