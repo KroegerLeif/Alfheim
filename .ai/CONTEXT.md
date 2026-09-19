@@ -245,9 +245,18 @@ This index maps the active applications and services running inside the monorepo
 ## 🔑 OIDC JWT Invariants (Zitadel)
 All backends validate bearer tokens issued by Zitadel using OIDC discovery. The issuer URL is resolved from `OIDC_ISSUER_URL` (environment-specific: production `https://auth.loegien.de`, local `http://zitadel:8080`). The JWKS URI is dynamically discovered from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
 * **`sub`**: User identifier (UUID or derived from JWT subject claim).
-* **`household_id` / `active_household_id`**: Active household identifier (Zitadel custom claim, falls back to `X-Household-ID` header, then mock UUID).
+* **No household or role claims**: Zitadel issues none, and backends must never read `household_id`, `active_household_id`, `households` or `realm_access.roles`. The active household comes from the `X-Household-ID` header (UUID) and is confirmed with `core/household`'s internal membership API (`GET /internal/v1/memberships/{householdId}/{userSub}`, `Authorization: Bearer $ALFHEIM_INTERNAL_TOKEN`). Roles (`OWNER`, `ADMIN`, `MEMBER`, `GUEST`) come from that response. See ADR 0006 (`docs/en/explanation/decisions/0006-household-authorization-via-membership-api.md`).
 * **`aud` (Audience)**: Expected audience is `alfheim`. Go backends (dashboard) enforce strict audience validation; Python backends (`backend-shared`) verify issuer only.
 * **Issuer Validation**: All backends verify that the `iss` claim exactly matches `OIDC_ISSUER_URL`.
+
+### Household authorization invariants
+* **Python backends**: every household-scoped route depends on `backend_shared.household.require_household` (returns `HouseholdContext` with `household_id`, `user_id`, `user_sub`, `role`); role-gated routes use `require_role(...)`. `main.py` calls `configure_household_auth(settings)` and closes the client with `close_membership_client()` on shutdown. The claim-based `get_current_user_and_home` / `get_current_user_and_household` dependencies were removed; do not reintroduce them.
+* **Go backends (chat pattern)**: `middleware.RequireHousehold` (`apps/chat/backend/internal/shared/middleware/household.go`) after JWT validation, backed by `internal/shared/householdclient`.
+* **Cache & failure**: members cached 30 s, non-members 5 s, errors never cached; the backend fails closed with `503 household_service_unavailable`.
+* **Error contract**: `{"detail": {"code", "message"}}` with `401 unauthenticated`, `400 household_required` / `household_invalid`, `403 household_forbidden` / `household_role_forbidden`, `503 household_service_unavailable`.
+* **MCP**: tools never accept `household_id` / `user_id` arguments; they read `get_mcp_household_context()`. Chat forwards the caller's bearer token and `X-Household-ID` to MCP servers.
+* **Service-to-service calls** forward the caller's bearer token and `X-Household-ID`; the target app authorizes the caller itself.
+* **Frontends** use `HouseholdProvider` / `useActiveHousehold` / `HouseholdGate` from `@alfheim/shared`, send only `X-Household-ID` (never `X-Household-Role`), and gate household-scoped queries on `status === 'ready'`.
 
 ---
 
@@ -306,7 +315,7 @@ All backends validate bearer tokens issued by Zitadel using OIDC discovery. The 
 * **`name`** / **`model`** / **`serial`** / **`category`** / **`location`** (VARCHAR, NOT NULL)
 * **`status`** (VARCHAR, NOT NULL) — active, maintenance, inactive
 * **`service_interval_months`** (INTEGER, NULLABLE)
-* **`household_id`** (INTEGER, FK → `household.id`)
+* **`household_id`** (UUID, NOT NULL, INDEX) — household owned by `core/household`; there is no local `household` table
 
 ### Table: `maintenancestep`
 * **`id`** (Integer, PK)
@@ -403,8 +412,8 @@ All backends validate bearer tokens issued by Zitadel using OIDC discovery. The 
 
 ## 🗄️ Database Schema Invariants (Workout Service)
 
-Backend + MCP server only (frontend deferred). No `households` table exists — `home_id` is an
-opaque UUID carried by the JWT/`X-Household-ID` header, matching Pantry/Chores.
+No `households` table exists — `home_id` is the UUID from the `X-Household-ID` header, confirmed
+with `core/household` by `require_household`, matching Pantry/Chores.
 
 ### Tables: `equipment`, `exercises`
 * Scoped via a `scope` enum (`system` | `household` | `user`); `home_id`/`owner_user_id` are
@@ -429,11 +438,11 @@ opaque UUID carried by the JWT/`X-Household-ID` header, matching Pantry/Chores.
   (`POST /sessions/{id}/sets/sync`).
 
 #### Invariant Rules:
-1. **MCP tenancy**: every MCP tool (per-feature and the composite `agent_tools` slice) takes
-   explicit `household_id`/`user_id` parameters and enforces the same service-layer filtering as
-   REST routes — unlike Pantry/Chores' MCP tools, which hardcode `MOCK_HOME_ID`.
-2. **403 vs 404**: cross-tenant `X-Household-ID` header mismatch is rejected at the auth-dependency
-   layer with 403 (see `backend_shared.dependencies`); a resource that exists but isn't visible to
+1. **MCP tenancy**: MCP tools (per-feature and the composite `agent_tools` slice) take no
+   `household_id`/`user_id` parameters. They read both from `get_mcp_household_context()` and
+   enforce the same service-layer filtering as REST routes.
+2. **403 vs 404**: an `X-Household-ID` the caller is not a member of is rejected at the auth-dependency
+   layer with `403 household_forbidden` (see `backend_shared.household`); a resource that exists but isn't visible to
    the caller's household/user returns 404 at the resource layer.
 3. **No Alembic**: schema is managed via `SQLModel.metadata.create_all()`, matching every other
    app in this monorepo.
