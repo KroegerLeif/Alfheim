@@ -1,23 +1,29 @@
 """Tests for the MCP middleware: same authorization path as require_household, context via contextvar/scope."""
 
 import uuid
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
+import httpx
 import pytest
 from backend_shared import household as hh
 from backend_shared import mcp_middleware
-from backend_shared.household import HouseholdContext, MembershipServiceError
+from backend_shared.household import HouseholdContext, MembershipServiceError, testing
 from backend_shared.household.testing import (
     StaticMembershipLookup,
     make_household_context,
     make_test_token,
     mcp_household_context,
+    mcp_list_tools,
+    mcp_membership,
 )
 from backend_shared.mcp_middleware import (
+    MCP_ENDPOINT_PATH,
     MCP_HOUSEHOLD_SCOPE_KEY,
     MCPAuthenticationMiddleware,
     get_mcp_household_context,
     mcp_household_context_var,
+    mount_mcp,
 )
 from fastapi.testclient import TestClient
 from starlette.applications import Starlette
@@ -124,3 +130,63 @@ def test_request_scope_wins_over_stale_contextvar(monkeypatch):
     finally:
         request_ctx.reset(ctx_token)
     assert mcp_middleware._current_mcp_request_context() is None
+
+
+def _fastmcp_app():
+    """A FastAPI app serving a one-tool FastMCP server through :func:`mount_mcp`, lifespans combined."""
+    from fastapi import FastAPI
+    from fastmcp import FastMCP
+
+    server = FastMCP("test")
+
+    @server.tool
+    def whoami() -> str:
+        """Return the caller's household."""
+        return str(get_mcp_household_context().household_id)
+
+    @asynccontextmanager
+    async def lifespan(_app):
+        async with mcp_app.router.lifespan_context(mcp_app):
+            yield
+
+    app = FastAPI(lifespan=lifespan)
+    mcp_app = mount_mcp(app, server)
+    return app
+
+
+@pytest.mark.asyncio
+async def test_mount_mcp_serves_exact_path_with_session_manager_running():
+    app = _fastmcp_app()
+    with mcp_membership({(HOUSEHOLD, SUB): "MEMBER"}) as lookup:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://svc:8000") as client:
+                assert await mcp_list_tools(client, headers()) == ["whoami"]
+                unauthenticated = await client.post("/mcp", json={})
+                doubled = await client.post("/mcp/mcp", headers=headers(), json={})
+    assert lookup.calls
+    assert set(lookup.calls) == {(HOUSEHOLD, SUB)}
+    assert unauthenticated.status_code == 401
+    assert doubled.status_code == 404
+    assert [r.path for r in app.routes if getattr(r, "path", "").startswith("/mcp")] == [MCP_ENDPOINT_PATH]
+
+
+@pytest.mark.asyncio
+async def test_mcp_list_tools_accepts_json_responses_and_reports_failures():
+    async def endpoint(request: Request) -> JSONResponse:
+        body = await request.json()
+        if body.get("method") == "notifications/initialized":
+            return JSONResponse(None, status_code=202)
+        result = {"tools": [{"name": "t1"}]} if body["method"] == "tools/list" else {"protocolVersion": "x"}
+        return JSONResponse({"jsonrpc": "2.0", "id": body["id"], "result": result})
+
+    ok = Starlette(routes=[Route("/mcp", endpoint, methods=["POST"])])
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=ok), base_url="http://t") as client:
+        assert await mcp_list_tools(client, {}) == ["t1"]
+        with pytest.raises(AssertionError, match="initialize -> 404"):
+            await mcp_list_tools(client, {}, path="/nope")
+
+
+def test_mcp_message_rejects_sse_without_data():
+    response = httpx.Response(200, headers={"content-type": "text/event-stream"}, text="event: ping\n\n")
+    with pytest.raises(AssertionError, match="no data event"):
+        testing._mcp_message(response)

@@ -12,11 +12,14 @@ Replace the old env-based mock-auth bypass with explicit overrides::
 or skip authentication entirely with :func:`override_household`.
 """
 
+import json
 import uuid
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
+from unittest.mock import patch
 
+import httpx
 import jwt
 from fastapi import FastAPI
 
@@ -113,13 +116,80 @@ def mcp_household_context(context: HouseholdContext | None = None, **kwargs: Any
         mcp_household_context_var.reset(token)
 
 
+@contextmanager
+def mcp_membership(
+    memberships: Mapping[tuple[uuid.UUID | str, str], HouseholdRole] | None = None,
+) -> Iterator[StaticMembershipLookup]:
+    """Make :class:`~backend_shared.mcp_middleware.MCPAuthenticationMiddleware` use ``memberships``.
+
+    The MCP middleware sits outside FastAPI's dependency system, so
+    :func:`override_membership` does not reach it; this swaps the shared client instead.
+    """
+    from backend_shared import mcp_middleware
+
+    lookup = StaticMembershipLookup(memberships)
+    with patch.object(mcp_middleware, "get_membership_client", return_value=lookup):
+        yield lookup
+
+
+MCP_TEST_PROTOCOL_VERSION = "2025-06-18"
+
+
+def _mcp_message(response: httpx.Response) -> dict[str, Any]:
+    """Decode a JSON-RPC message from a JSON or single-event SSE Streamable HTTP response."""
+    if response.headers.get("content-type", "").startswith("text/event-stream"):
+        for line in response.text.splitlines():
+            if line.startswith("data:"):
+                return json.loads(line[len("data:") :])
+        raise AssertionError(f"no data event in MCP SSE response: {response.text!r}")
+    return response.json()
+
+
+async def mcp_list_tools(client: httpx.AsyncClient, headers: Mapping[str, str], path: str = "/mcp") -> list[str]:
+    """Run a real MCP ``initialize`` + ``notifications/initialized`` + ``tools/list`` handshake; return tool names.
+
+    Raises:
+        AssertionError: If any step does not answer with the expected status.
+    """
+    base = {**headers, "Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
+    init = await client.post(
+        path,
+        headers=base,
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": MCP_TEST_PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "backend-shared-tests", "version": "0"},
+            },
+        },
+    )
+    assert init.status_code == 200, f"initialize -> {init.status_code}: {init.text}"
+    assert "result" in _mcp_message(init), init.text
+
+    session = {**base, "MCP-Protocol-Version": MCP_TEST_PROTOCOL_VERSION}
+    if session_id := init.headers.get("mcp-session-id"):
+        session["Mcp-Session-Id"] = session_id
+    notified = await client.post(path, headers=session, json={"jsonrpc": "2.0", "method": "notifications/initialized"})
+    assert notified.status_code == 202, f"notifications/initialized -> {notified.status_code}: {notified.text}"
+
+    listed = await client.post(path, headers=session, json={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+    assert listed.status_code == 200, f"tools/list -> {listed.status_code}: {listed.text}"
+    return [tool["name"] for tool in _mcp_message(listed)["result"]["tools"]]
+
+
 __all__ = [
     "DEFAULT_TEST_HOUSEHOLD_ID",
     "DEFAULT_TEST_SUB",
+    "MCP_TEST_PROTOCOL_VERSION",
     "StaticMembershipLookup",
     "make_household_context",
     "make_test_token",
     "mcp_household_context",
+    "mcp_list_tools",
+    "mcp_membership",
     "override_household",
     "override_membership",
 ]

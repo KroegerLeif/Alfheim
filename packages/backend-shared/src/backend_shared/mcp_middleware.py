@@ -3,11 +3,13 @@
 import contextvars
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, Protocol
 
-from fastapi import Request, status
+from fastapi import FastAPI, Request, status
+from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 from backend_shared.household import (
     HOUSEHOLD_HEADER,
@@ -23,6 +25,9 @@ logger = logging.getLogger(__name__)
 
 #: Key under which the middleware stores the :class:`HouseholdContext` in the ASGI scope.
 MCP_HOUSEHOLD_SCOPE_KEY = "alfheim.household_context"
+
+#: Canonical MCP endpoint path; the chat backend's ``CHAT_MCP_SERVERS`` points at ``http://<app>-backend:8000/mcp``.
+MCP_ENDPOINT_PATH = "/mcp"
 
 #: Context variable holding the :class:`HouseholdContext` of the current MCP request.
 mcp_household_context_var: contextvars.ContextVar[HouseholdContext | None] = contextvars.ContextVar(
@@ -111,9 +116,56 @@ def get_mcp_household_context() -> HouseholdContext:
     return context
 
 
+class MCPHTTPServer(Protocol):
+    """What :func:`mount_mcp` needs from a ``fastmcp.FastMCP`` server."""
+
+    def http_app(self, path: str | None = None) -> Starlette: ...
+
+
+def mount_mcp(
+    app: FastAPI,
+    server: MCPHTTPServer,
+    *,
+    path: str = MCP_ENDPOINT_PATH,
+    settings: Any = None,
+    membership_lookup: MembershipLookup | None = None,
+) -> Starlette:
+    """Serve ``server``'s Streamable HTTP endpoint at exactly ``path`` behind :class:`MCPAuthenticationMiddleware`.
+
+    The MCP app is registered as a plain route (not a ``Mount``), so ``POST /mcp`` is
+    handled directly: no 307 to ``/mcp/`` and no doubled ``/mcp/mcp`` path. The caller
+    **must** run the returned app's lifespan inside its own, otherwise the MCP session
+    manager's task group never starts and every request fails::
+
+        mcp_app = mount_mcp(app, mcp, settings=settings)
+
+        @asynccontextmanager
+        async def lifespan(app):
+            async with mcp_app.router.lifespan_context(mcp_app):
+                yield
+
+    Args:
+        app: The FastAPI application.
+        server: The FastMCP server.
+        path: Endpoint path (defaults to :data:`MCP_ENDPOINT_PATH`).
+        settings: OIDC settings forwarded to :class:`MCPAuthenticationMiddleware`.
+        membership_lookup: Membership lookup override forwarded to the middleware (tests).
+
+    Returns:
+        The MCP Starlette app, whose lifespan the caller runs.
+    """
+    mcp_app = server.http_app(path=path)
+    guarded = MCPAuthenticationMiddleware(mcp_app, settings=settings, membership_lookup=membership_lookup)
+    app.router.routes.append(Route(path, endpoint=guarded, include_in_schema=False))
+    return mcp_app
+
+
 __all__ = [
+    "MCP_ENDPOINT_PATH",
     "MCP_HOUSEHOLD_SCOPE_KEY",
     "MCPAuthenticationMiddleware",
+    "MCPHTTPServer",
     "get_mcp_household_context",
     "mcp_household_context_var",
+    "mount_mcp",
 ]

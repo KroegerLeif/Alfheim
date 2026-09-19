@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -267,6 +268,20 @@ func TestClient_Ping_ClassifiesReachability(t *testing.T) {
 		diag := NewClient(s.URL).Ping(ctx)
 		if diag.Reachable || diag.AuthRequired {
 			t.Fatalf("expected offline on timeout, got %+v", diag)
+		}
+	})
+
+	t.Run("404 is offline with a configuration hint", func(t *testing.T) {
+		diag := NewClient(statusServer(http.StatusNotFound).URL).Ping(context.Background())
+		if diag.Reachable || diag.AuthRequired {
+			t.Fatalf("expected offline on 404, got %+v", diag)
+		}
+		if !strings.Contains(diag.Error, "CHAT_MCP_SERVERS") {
+			t.Errorf("expected a configuration hint in the error, got %q", diag.Error)
+		}
+		_, err := NewClient(statusServer(http.StatusNotFound).URL).ListTools(context.Background())
+		if !errors.Is(err, ErrEndpointNotFound) {
+			t.Fatalf("expected ErrEndpointNotFound, got %v", err)
 		}
 	})
 

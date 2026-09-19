@@ -43,7 +43,7 @@ Results are cached per process, keyed by `(household_id, sub)`: members for 30 s
 
 ### MCP
 
-Wrap the MCP app with `MCPAuthenticationMiddleware(mcp_app, settings=settings)`. It runs the same resolution and error contract. Tools read the context with `backend_shared.mcp_middleware.get_mcp_household_context()`, which returns a `HouseholdContext` and raises `RuntimeError` when the middleware did not run.
+Serve the FastMCP server with `mcp_app = mount_mcp(app, mcp, settings=settings)`: the Streamable HTTP endpoint is exactly `/mcp` (no `/mcp/mcp`, no 307 to `/mcp/`), wrapped by `MCPAuthenticationMiddleware`. Run the returned app's lifespan inside the FastAPI lifespan (`async with mcp_app.router.lifespan_context(mcp_app): yield`), otherwise the session manager never starts and requests fail with "Task group is not initialized". The middleware runs the same resolution and error contract. Tools read the context with `backend_shared.mcp_middleware.get_mcp_household_context()`, which returns a `HouseholdContext` and raises `RuntimeError` when the middleware did not run.
 
 ### Error contract
 
@@ -71,6 +71,8 @@ The body is `{"detail": {"code": ..., "message": ...}}`.
 from backend_shared.household.testing import (
     make_test_token,
     mcp_household_context,
+    mcp_list_tools,
+    mcp_membership,
     override_household,
     override_membership,
 )
@@ -85,6 +87,11 @@ ctx = override_household(app, role="MEMBER")
 # MCP tool unit tests:
 with mcp_household_context(role="OWNER") as ctx:
     await my_tool(...)
+
+# MCP transport tests (run the app lifespan in the test body, not in an async fixture):
+with mcp_membership({(household_id, "user-1"): "OWNER"}):
+    async with app.router.lifespan_context(app):
+        tools = await mcp_list_tools(client, headers)  # initialize + tools/list against /mcp
 ```
 
 Unsigned test tokens only decode when `is_mock_auth_allowed()` is true, which means pytest or `TESTING=true` and never production or staging. Undo overrides with `app.dependency_overrides.clear()`.

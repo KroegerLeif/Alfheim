@@ -191,6 +191,6 @@ async def test_mcp_endpoint_requires_household_header():
     """The mounted MCP app is guarded by the shared household middleware."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-        res = await client.post("/mcp/", headers={"Authorization": f"Bearer {make_test_token('mcp-user')}"})
+        res = await client.post("/mcp", headers={"Authorization": f"Bearer {make_test_token('mcp-user')}"})
     assert res.status_code == 400
     assert res.json()["detail"]["code"] == "household_required"

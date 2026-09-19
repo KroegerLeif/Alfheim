@@ -21,9 +21,11 @@ async def test_lifespan_tracks_and_cleans_up_background_task():
             task = next(iter(BACKGROUND_TASKS))
             assert not task.done()
 
-        # After lifespan exits, task should be cancelled and discarded
+        # After lifespan exits, the task has been cancelled and discarded. The MCP session
+        # manager's startup yields to the loop, so the scheduler is already sleeping when the
+        # lifespan cancels it; it handles CancelledError itself and finishes without re-raising.
         assert task.done()
-        assert task.cancelled()
+        assert task.exception() is None
         assert len(BACKGROUND_TASKS) == 0
 
 
