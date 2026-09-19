@@ -123,15 +123,18 @@ Tier-1 core service that owns households and member roles. `compose.prod.yaml` r
 | `NEXT_PUBLIC_OIDC_ISSUER` | `https://auth.loegien.de` | Browser-facing OIDC issuer for the PKCE authorization code flow |
 | `NEXT_PUBLIC_OIDC_CLIENT_ID` | `dashboard-frontend` | Zitadel OIDC client ID for the dashboard frontend (other frontends may use different IDs) |
 | `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `https://alfheim.loegien.de/` | OAuth2 redirect URI for the dashboard frontend |
-| `NEXT_PUBLIC_PANTRY_API_URL` | `https://alfheim.loegien.de/api/pantry/api/v1` | Pantry backend API endpoint |
-| `NEXT_PUBLIC_SHOPPING_API_URL` | `https://alfheim.loegien.de/api/shopping/api/v1` | Shopping list backend API endpoint |
-| `NEXT_PUBLIC_CHORES_API_URL` | `https://alfheim.loegien.de/api/api/v1/chores` | Chores backend API endpoint |
-| `NEXT_PUBLIC_MAINTENANCE_API_URL` | `https://alfheim.loegien.de/api/maintenance/api/v1` | Maintenance backend API endpoint |
-| `NEXT_PUBLIC_CHAT_API_URL` | `https://alfheim.loegien.de/api/api/v1/chat` | Chat backend API endpoint |
-| `NEXT_PUBLIC_DASHBOARD_API_URL` | `https://alfheim.loegien.de/api/api/v1` | Dashboard backend API endpoint |
-| `NEXT_PUBLIC_WORKOUT_API_URL` | `https://alfheim.loegien.de/api/workout/api/v1` | Workout backend API endpoint |
-| `NEXT_PUBLIC_LIBRARY_API_URL` | `https://alfheim.loegien.de/api/api/v1/library` | Library backend API endpoint |
-| `NEXT_PUBLIC_BUDGET_API_URL` | `https://alfheim.loegien.de/api/budget/api/v1` | Budget backend API endpoint |
+| `NEXT_PUBLIC_API_URL` | _(derived)_ | Browser API base URL of each frontend. Not set in `.env`: compose derives it from `ALFHEIM_BASE_URL` as build argument and runtime env, using the same-origin Caddy route the app's client expects (see below). `scripts/init-env.sh` drops the old per-app `NEXT_PUBLIC_*_API_URL` and `NEXT_PUBLIC_API_GATEWAY_URL` entries from an existing `.env` |
+
+Derived `NEXT_PUBLIC_API_URL` per frontend:
+
+| Frontend | Value |
+| :--- | :--- |
+| `dashboard-frontend`, `household-frontend` | `${ALFHEIM_BASE_URL}/api/v1` |
+| `pantry-frontend` | `${ALFHEIM_BASE_URL}/pantry/api/v1` |
+| `shopping-frontend` | `${ALFHEIM_BASE_URL}/shopping/api/v1` |
+| `chores-frontend`, `budget-frontend`, `chat-frontend`, `maintenance-frontend`, `workout-frontend`, `library-frontend` | `${ALFHEIM_BASE_URL}/api/v1/<app>` |
+
+In the development stack, `household-frontend` reads `NEXT_PUBLIC_HOUSEHOLD_API_URL` instead (default `http://api.alfheim.loegien.localhost/api/v1`).
 
 ---
 

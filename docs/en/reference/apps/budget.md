@@ -43,7 +43,9 @@ Source: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 | `DATABASE_URL` | `postgresql+asyncpg://budget_user:postgres@postgres-core:5432/alfheim_budget` | Async PostgreSQL connection string |
 | `S3_ENDPOINT_URL` | `http://rustfs:9000` | S3-compatible object storage endpoint |
 | `S3_BUCKET_NAME` | `budget-receipts` | S3 bucket for receipt images |
-| `NEXT_PUBLIC_BUDGET_API_URL` | `http://api.alfheim.loegien.localhost/budget/api/v1` | Browser API gateway endpoint |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/budget` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
 
 ---
 

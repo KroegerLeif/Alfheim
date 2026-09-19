@@ -50,8 +50,10 @@ src/
 ```typescript
 // src/shared/api.ts or src/core/api/client.ts
 import ky from 'ky';
+import { applyHouseholdHeaders, reportHouseholdErrorResponse } from '@alfheim/shared';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.alfheim.loegien.localhost/api/v1';
+// Compose derives NEXT_PUBLIC_API_URL from ALFHEIM_BASE_URL (same-origin Caddy route).
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1/<app-name>';
 
 export const api = ky.create({
   prefixUrl: BASE_URL,
@@ -67,20 +69,44 @@ export const api = ky.create({
           if (token) {
             request.headers.set('Authorization', `Bearer ${token}`);
           }
-          const activeHhId = localStorage.getItem('alfheim_active_household_id');
-          if (activeHhId) {
-            request.headers.set('X-Household-ID', activeHhId);
-          }
+          // Sets X-Household-ID from the shared store; never sends X-Household-Role.
+          applyHouseholdHeaders(request.headers);
         }
+      },
+    ],
+    afterResponse: [
+      // Lets HouseholdGate react to household_required/_invalid/_forbidden and 503.
+      async (_request, _options, response) => {
+        await reportHouseholdErrorResponse(response);
       },
     ],
   },
 });
 ```
 
+* Never read `localStorage.alfheim_active_household_id` directly and never parse household or role claims from the token. The active household comes from `HouseholdProvider` / `useActiveHousehold()` in `@alfheim/shared`.
+
 ### 2. TanStack Query Hooks
 * Wrap all API calls inside custom hooks using `@tanstack/react-query` inside `src/features/<domain>/hooks/`.
 * Component files should consume data via hooks, keeping UI rendering separate from query configuration.
+* Household-scoped queries MUST wait for a ready household and include its id in the query key:
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { useActiveHousehold } from '@alfheim/shared';
+
+export function useItems() {
+  const { householdId, status } = useActiveHousehold();
+  return useQuery({
+    queryKey: ['items', householdId],
+    queryFn: () => api.get('items').json<Item[]>(),
+    enabled: status === 'ready',
+  });
+}
+```
+
+### 3. Household Gate
+* Mount `HouseholdProvider` at the root (the shared `AppShell` does this) and wrap household-scoped pages in `HouseholdGate`. The gate shows onboarding (link to `/household/onboarding`), switch and retry states, so pages never render without a household.
 
 ---
 

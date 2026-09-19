@@ -44,7 +44,18 @@ Quelle: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | `DATABASE_URL` | `postgres://chat_user:postgres@postgres-core:5432/alfheim_chat?sslmode=disable` | PostgreSQL-Verbindungszeichenkette |
 | `CHAT_ENCRYPTION_KEY` | *(Generierter 32-Byte-Base64-Schlüssel)* | AES-256-GCM-Schlüssel zum Verschlüsseln von LLM-API-Schlüsseln |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Kommagetrennte FastMCP-Endpunkte |
-| `NEXT_PUBLIC_CHAT_API_URL` | `http://api.alfheim.loegien.localhost/api/v1/chat` | Browser-API-Gateway-Endpunkt |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chat` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |
+
+### Haushalts-Autorisierung
+
+Jede Chat-API-Route führt nach der JWT-Prüfung `middleware.RequireHousehold` aus: `X-Household-ID` ist Pflicht und wird bei `core/household` bestätigt ([ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md)). Fehler folgen dem gemeinsamen Vertrag (`400 household_required` / `household_invalid`, `403 household_forbidden`, `503 household_service_unavailable`).
+
+- Eine Unterhaltung gehört einem Eigentümer in einem Haushalt. Die Liste zeigt nur die Unterhaltungen des Aufrufers im aktiven Haushalt; andere Unterhaltungen liefern `403`.
+- Geteilte Model-Blocks sind an den bestätigten Haushalt gebunden.
+- MCP-Aufrufe tragen das Bearer-Token des Aufrufers und `X-Household-ID`, pro Anfrage gesetzt.
+- `PATCH /api/v1/chat/mcp-servers/{id}` (Umschalten eines Servers in der installationsweiten Registry) verlangt die Rolle `OWNER` oder `ADMIN`; sonst `403 household_role_forbidden`.
 
 ---
 

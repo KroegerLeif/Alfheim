@@ -60,7 +60,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 | `STACK_APPS_PATH` | `deploy/stack-apps.yaml` | Path to Tier 2 stack integrations manifest |
 | `OIDC_ISSUER_URL` | `https://auth.loegien.de` | Canonical OIDC issuer; JWKS URI is discovered from its `/.well-known/openid-configuration` |
 | `OIDC_AUDIENCE` | `alfheim` | Required value in the token `aud` claim |
-| `NEXT_PUBLIC_API_URL` | `http://api.alfheim.loegien.localhost` | Browser API gateway endpoint |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
 
 ---
 

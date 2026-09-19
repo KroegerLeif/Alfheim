@@ -45,7 +45,9 @@ Quelle: [`apps/library/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 | `OIDC_AUDIENCE` | `alfheim` | Erwarteter OIDC-JWT-Audience-Claim |
 | `NEXT_PUBLIC_OIDC_ISSUER` | `http://auth.alfheim.loegien.localhost` | Browser-OIDC-Auth-Aussteller-URL |
 | `NEXT_PUBLIC_OIDC_CLIENT_ID` | `library-frontend` | Browser-OIDC-Client-Kennung |
-| `NEXT_PUBLIC_LIBRARY_API_URL` | `http://api.alfheim.loegien.localhost/library/api/v1` | Browser-API-Gateway-Endpunkt |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/library` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |
 
 ---
 

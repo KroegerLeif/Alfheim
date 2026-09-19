@@ -11,7 +11,10 @@ Core services establish the entry point and foundational management plane of the
 The core modules located here include:
 * **`dashboard/`**:
   * **`dashboard-backend`**: Go microservice providing centralized application registry endpoints (`/api/v1/apps`), platform status checks, and Tier 1 core service definitions (`tier1_core_registry.go`).
-  * **`dashboard-frontend`**: Next.js control plane interface serving as the platform home page (`http://alfheim.loegien.localhost/`), presenting registered micro-applications, system status overview, household selection, and administrative controls.
+  * **`dashboard-frontend`**: Next.js control plane interface serving as the platform home page (`http://alfheim.loegien.localhost/`), presenting registered micro-applications, user links and preferences, and the shared household switcher.
+* **`household/`**:
+  * **`household-backend`**: Go microservice that owns households, members and roles, invites, contacts and user profiles (`/api/v1/households*`, `/api/v1/profile*`). Its internal membership API (`GET /internal/v1/memberships/{householdId}/{userSub}`, protected by `ALFHEIM_INTERNAL_TOKEN`, never routed by Caddy) authorizes `X-Household-ID` for every other backend ([ADR 0006](../docs/en/explanation/decisions/0006-household-authorization-via-membership-api.md)).
+  * **`household-frontend`**: Next.js app under `/household` for household management, invites and onboarding, and the user profile.
 
 ---
 
@@ -19,6 +22,9 @@ The core modules located here include:
 
 ```
 core/
+├── household/
+│   ├── frontend/           # Next.js household app (basePath /household)
+│   └── backend/            # Go household & membership service
 └── dashboard/
     ├── frontend/           # Next.js platform control plane frontend
     │   ├── src/
@@ -42,7 +48,7 @@ core/
 
 ## 3. Interactions with Other Layers
 
-* **Central Gateway Ingress (`infrastructure/caddy`)**: Caddy routes the platform root domain (`/`) directly to `dashboard-frontend:3000` and API requests (`/api/v1/apps`) to `dashboard-backend:8080`.
+* **Central Gateway Ingress (`infrastructure/caddy`)**: Caddy routes the platform root domain (`/`) directly to `dashboard-frontend:3000` and API requests (`/api/v1/apps`) to `dashboard-backend:8080`. `/household*` goes to `household-frontend:3000`, `/api/v1/households*` and `/api/v1/profile*` to `household-backend:8080`, and `/internal/*` answers `404`.
 * **Shared UI & Client Libraries (`packages/shared`)**: `dashboard-frontend` consumes theme management, navigation shells (`AppHeader`, `AppShell`), and shared API utilities from `@alfheim/shared`.
-* **Identity & Access Management (Zitadel)**: Authenticates users via OIDC and passes active household contexts (`X-Household-ID`) to control plane services.
+* **Identity & Access Management (Zitadel)**: Authenticates users via OIDC only. Household membership and roles come from `household-backend`, never from token claims. The dashboard backend is not household-scoped and ignores `X-Household-ID`.
 * **Stack Application Manifest (`deploy/stack-apps.yaml`)**: Core services interface with stack manifests to surface registered microservice state and launcher shortcuts across the platform.

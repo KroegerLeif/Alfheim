@@ -50,7 +50,16 @@ internal/
 
 ---
 
-## 5. Quality Gate & Compilation Commands
+## 5. Household Authorization
+
+* Zitadel issues no household or role claims. Never read `household_id`, `active_household_id` or `realm_access.roles` from the JWT.
+* Household-scoped routes follow the chat backend: `middleware.RequireHousehold` (`apps/chat/backend/internal/shared/middleware/household.go`) runs after JWT validation and asks `core/household` through `internal/shared/householdclient` (`GET {HOUSEHOLD_INTERNAL_URL}/internal/v1/memberships/{householdId}/{userSub}` with `Authorization: Bearer $ALFHEIM_INTERNAL_TOKEN`).
+* Cache members 30 s and non-members 5 s, never cache errors, and fail closed with `503 household_service_unavailable`. Use the shared error body `{"detail": {"code", "message"}}`.
+* Roles come from the membership response. Outbound calls to MCP servers or other apps forward the caller's bearer token and `X-Household-ID`, set per request.
+
+---
+
+## 6. Quality Gate & Compilation Commands
 
 Verify compilation and linting before completing any Go task:
 

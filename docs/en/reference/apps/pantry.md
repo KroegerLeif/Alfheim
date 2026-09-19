@@ -50,7 +50,9 @@ Source: [`apps/pantry/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/p
 | `DATABASE_URL` | `postgresql+asyncpg://pantry_user:postgres@postgres-core:5432/alfheim_pantry` | Async PostgreSQL connection string |
 | `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | OIDC provider issuer URL |
 | `OIDC_AUDIENCE` | `alfheim` | Target OIDC audience claim |
-| `NEXT_PUBLIC_PANTRY_API_URL` | `http://api.alfheim.loegien.localhost/pantry/api/v1` | Browser API gateway endpoint |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/pantry/api/v1` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
 
 ---
 

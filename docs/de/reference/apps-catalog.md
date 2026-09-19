@@ -20,7 +20,7 @@ Tier-1-Anwendungen sind native Monorepo-Microservices, registriert in Go (`core/
 
 | App ID | Titel | Tech Stack | Ingress-Route (Frontend) | Interner Port | Status | Dokumentation |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `dashboard` | Zentrales Kontrollzentrum | Go / Next.js | `alfheim.loegien.localhost/` | `3000` / `8080` | Aktiv | [dashboard](./apps/dashboard.md) |
+| `dashboard` | Launcher & App-Katalog | Go / Next.js | `alfheim.loegien.localhost/` | `3000` / `8080` | Aktiv | [dashboard](./apps/dashboard.md) |
 | `pantry` | Digitale Speisekammer | FastAPI / Next.js | `/pantry` | `3000` / `8000` | Aktiv | [pantry](./apps/pantry.md) |
 | `budget` | Haushaltskasse & Budget | FastAPI / Next.js | `/budget` | `3000` / `8000` | Aktiv | [budget](./apps/budget.md) |
 | `chores` | Haushaltsaufgaben | FastAPI / Next.js | `/chores` | `3000` / `8000` | Aktiv | [chores](./apps/chores.md) |
@@ -29,9 +29,9 @@ Tier-1-Anwendungen sind native Monorepo-Microservices, registriert in Go (`core/
 | `library` | Medien & Bibliotheks-Hub | FastAPI / Next.js | `/library` | `3000` / `8000` | Aktiv | [library](./apps/library.md) |
 | `maintenance`| Wartungs-Tracker| FastAPI / Next.js | `/maintenance` | `3000` / `8000` | Aktiv | [maintenance](./apps/maintenance.md) |
 | `shopping` | Einkaufslisten | FastAPI / Next.js | `/shopping` | `3010` / `8000` | Aktiv | [shopping](./apps/shopping.md) |
-| `household` | Haushalt | `core/household` | `/household` | — | Aktiv | — |
+| `household` | Haushalt & Rollen | Go / Next.js | `/household` | `3000` / `8080` | Aktiv | [household](./apps/household.md) |
 
-> **Hinweis:** Haushalte, Mitglieder und Rollen, Einladungen, Kontakte und das Benutzerprofil sind aus dem Dashboard in `core/household` umgezogen. Das Dashboard zeigt nur die Launcher-Kachel (Symbol `home`, für alle angemeldeten Benutzer sichtbar) und verlinkt auf `/household` und `/household/profile`.
+> **Hinweis:** `core/household` gehören Haushalte, Mitglieder und Rollen, Einladungen, Kontakte und das Benutzerprofil, und es beantwortet die Mitgliedschaftsprüfungen aller anderen Backends ([ADR 0006](../explanation/decisions/0006-household-authorization-via-membership-api.md)). Das Dashboard ist nur noch der Launcher: App-Katalog, Benutzer-Links und -Einstellungen (sowie Telemetrie). Es zeigt die Launcher-Kachel der Haushalts-App (Symbol `home`, für alle angemeldeten Benutzer sichtbar) und verlinkt auf `/household` und `/household/profile`.
 
 ---
 

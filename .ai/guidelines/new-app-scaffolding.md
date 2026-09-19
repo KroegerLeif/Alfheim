@@ -21,7 +21,7 @@ apps/<app-name>/backend/
 │   ├── core/                      # Global infrastructure
 │   │   ├── config.py              # Pydantic Settings & environment loader
 │   │   ├── database.py            # Async SQLAlchemy/SQLModel engine & session generator
-│   │   ├── dependencies.py        # Auth context & OIDC JWT / X-Household-ID resolver
+│   │   ├── dependencies.py        # Optional re-exports of backend_shared.household
 │   │   └── storage.py             # RustFS S3 async client (if storage is needed)
 │   ├── features/                  # Feature Modules (Mandatory 6-file pattern)
 │   │   └── <feature_name>/
@@ -160,9 +160,18 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # Disable telemetry and enforce test mode
 os.environ["TESTING"] = "true"
 os.environ["OTEL_ENABLED"] = "false"
+# configure_household_auth() in main.py requires the internal token at import time
+os.environ.setdefault("ALFHEIM_INTERNAL_TOKEN", "test-internal-token")
+
+import uuid
+
+from backend_shared.household.testing import make_test_token, override_membership
 
 from src.main import app  # adjust import to your service entrypoint
 from src.core.database import get_session
+
+TEST_USER_SUB = "user-1"
+TEST_HOUSEHOLD_ID = uuid.uuid4()
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -198,10 +207,20 @@ async def client_fixture(session: AsyncSession) -> AsyncGenerator[AsyncClient, N
         yield session
 
     app.dependency_overrides[get_session] = get_session_override
+    # Stub the core/household membership API; JWT decoding stays real.
+    override_membership(app, {(TEST_HOUSEHOLD_ID, TEST_USER_SUB): "OWNER"})
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="auth_headers")
+def auth_headers_fixture() -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {make_test_token(TEST_USER_SUB)}",
+        "X-Household-ID": str(TEST_HOUSEHOLD_ID),
+    }
 ```
 
 > [!WARNING]
@@ -218,92 +237,126 @@ import pytest
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_outbound_service_call(client: AsyncClient):
+async def test_outbound_service_call(client: AsyncClient, auth_headers: dict[str, str]):
     # Mock external shopping service response
     respx.post("http://shopping-backend:8000/api/v1/items").mock(
         return_value=httpx.Response(201, json={"id": "mock-item-id", "name": "Milk"})
     )
 
-    response = await client.post("/api/v1/trigger-sync", headers={"X-Household-ID": "test-home"})
+    # auth_headers: Authorization (make_test_token) + X-Household-ID (a UUID the
+    # test user is a member of via override_membership). Forward both downstream.
+    response = await client.post("/api/v1/trigger-sync", headers=auth_headers)
     assert response.status_code == 200
+    assert respx.calls.last.request.headers["X-Household-ID"] == auth_headers["X-Household-ID"]
 ```
 
 ---
 
 ## 5. Zero-Trust Multi-Tenancy & Auth Invariants
 
-Alfheim enforces strict tenant isolation based on Zitadel OIDC JWT claims and the `X-Household-ID` header.
+Alfheim enforces strict tenant isolation from the `X-Household-ID` header, confirmed on every request with the household app (`core/household`). Zitadel only authenticates and issues **no** household or role claims: never read `household_id`, `active_household_id`, `households` or `realm_access.roles` from the JWT. See ADR 0006 (`docs/en/explanation/decisions/0006-household-authorization-via-membership-api.md`).
 
-### A. Auth Context Dependency (`src/core/dependencies.py`)
+### A. Auth Context Dependency (`backend_shared.household`)
+Never write your own header or claim parser. Use the shared dependency:
+
 ```python
-import uuid
-from fastapi import Header, HTTPException, status
+# src/main.py
+from backend_shared.household import close_membership_client, configure_household_auth
+
+configure_household_auth(settings)  # validates ALFHEIM_INTERNAL_TOKEN, registers OIDC settings
 
 
-async def get_current_household_id(
-    x_household_id: str | None = Header(None, alias="X-Household-ID"),
-) -> uuid.UUID:
-    if not x_household_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing X-Household-ID header",
-        )
-    try:
-        return uuid.UUID(x_household_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid X-Household-ID UUID format",
-        )
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await close_membership_client()
 ```
 
+```python
+# src/features/<domain>/router.py
+from fastapi import Depends
+from backend_shared.household import HouseholdContext, require_household, require_role
+
+
+@router.get("/items")
+async def list_items(ctx: HouseholdContext = Depends(require_household)):
+    return await service.list_items(household_id=ctx.household_id, user_id=ctx.user_id)
+
+
+@router.delete("/items/{item_id}")
+async def delete_item(item_id: uuid.UUID, ctx: HouseholdContext = Depends(require_role("OWNER", "ADMIN"))):
+    ...
+```
+
+`require_household` validates the JWT, requires a UUID `X-Household-ID`, and asks `GET {HOUSEHOLD_INTERNAL_URL}/internal/v1/memberships/{householdId}/{userSub}` (cached 30 s for members, 5 s for non-members, fails closed). Errors: `401 unauthenticated`, `400 household_required` / `household_invalid`, `403 household_forbidden` / `household_role_forbidden`, `503 household_service_unavailable`, always as `{"detail": {"code", "message"}}`. Roles come from the membership response.
+
+**MCP tools** are wrapped by `MCPAuthenticationMiddleware(mcp_app, settings=settings)` and read the household with `get_mcp_household_context()`. A tool **must not** declare `household_id`, `home_id` or `user_id` parameters: the LLM must never choose the tenant.
+
+**Outbound calls** to another Alfheim app forward the caller's `Authorization` and `X-Household-ID` headers; the target app authorizes the caller itself.
+
+**Go backends** follow the chat backend: `middleware.RequireHousehold` (`apps/chat/backend/internal/shared/middleware/household.go`) with `internal/shared/householdclient`, same error contract.
+
+**Frontends** take the household from `useActiveHousehold()` (`@alfheim/shared`), render behind `HouseholdGate`, and send only `X-Household-ID` via `applyHouseholdHeaders`.
+
 ### B. Mandatory Household Isolation Test Template
-Every service that stores household data **MUST** include integration tests verifying that Tenant A cannot read, mutate, or delete Tenant B's records:
+Every service that stores household data **MUST** include integration tests verifying that Tenant A cannot read, mutate, or delete Tenant B's records. Stub the membership API with `override_membership` from `backend_shared.household.testing` (the `client` fixture above already grants one membership; tests override it as needed) and send `Authorization: Bearer {make_test_token(sub)}`. Also cover `403 household_forbidden` for a non-member, `400 household_required` without the header, and `503 household_service_unavailable` when the membership API is down:
 
 ```python
 """Multi-tenant Household Isolation Test Suite."""
 
 import uuid
+
 import pytest
+from backend_shared.household.testing import make_test_token, override_membership
 from httpx import AsyncClient
+
+from src.main import app
+
+SUB = "user-1"
+
+
+def headers(household_id: uuid.UUID, sub: str = SUB) -> dict[str, str]:
+    return {"Authorization": f"Bearer {make_test_token(sub)}", "X-Household-ID": str(household_id)}
 
 
 @pytest.mark.asyncio
 async def test_household_isolation_cannot_access_other_tenant_data(client: AsyncClient):
-    tenant_a = str(uuid.uuid4())
-    tenant_b = str(uuid.uuid4())
+    tenant_a, tenant_b = uuid.uuid4(), uuid.uuid4()
+    # The same user is a member of both households; data must still not leak across them.
+    override_membership(app, {(tenant_a, SUB): "OWNER", (tenant_b, SUB): "OWNER"})
 
     # 1. Tenant A creates a resource
     create_res = await client.post(
-        "/api/v1/items",
-        json={"name": "Secret Recipe", "quantity": 1},
-        headers={"X-Household-ID": tenant_a},
+        "/api/v1/items", json={"name": "Secret Recipe", "quantity": 1}, headers=headers(tenant_a)
     )
     assert create_res.status_code == 201
     item_id = create_res.json()["id"]
 
     # 2. Tenant B attempts to fetch Tenant A's resource -> MUST RETURN 404
-    get_res = await client.get(
-        f"/api/v1/items/{item_id}",
-        headers={"X-Household-ID": tenant_b},
-    )
-    assert get_res.status_code == 404
+    assert (await client.get(f"/api/v1/items/{item_id}", headers=headers(tenant_b))).status_code == 404
 
     # 3. Tenant B lists resources -> MUST NOT contain Tenant A's item
-    list_res = await client.get(
-        "/api/v1/items",
-        headers={"X-Household-ID": tenant_b},
-    )
+    list_res = await client.get("/api/v1/items", headers=headers(tenant_b))
     assert list_res.status_code == 200
-    items = list_res.json()
-    assert all(i["id"] != item_id for i in items)
+    assert all(i["id"] != item_id for i in list_res.json())
 
     # 4. Tenant B attempts to delete Tenant A's resource -> MUST RETURN 404
-    del_res = await client.delete(
-        f"/api/v1/items/{item_id}",
-        headers={"X-Household-ID": tenant_b},
-    )
-    assert del_res.status_code == 404
+    assert (await client.delete(f"/api/v1/items/{item_id}", headers=headers(tenant_b))).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_non_member_is_forbidden(client: AsyncClient):
+    override_membership(app, {})  # the user belongs to no household
+    res = await client.get("/api/v1/items", headers=headers(uuid.uuid4()))
+    assert res.status_code == 403
+    assert res.json()["detail"]["code"] == "household_forbidden"
+
+
+@pytest.mark.asyncio
+async def test_missing_household_header(client: AsyncClient):
+    res = await client.get("/api/v1/items", headers={"Authorization": f"Bearer {make_test_token(SUB)}"})
+    assert res.status_code == 400
+    assert res.json()["detail"]["code"] == "household_required"
 ```
 
 ---
@@ -407,6 +460,9 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 - [ ] Service `pyproject.toml` created with dev dependencies (`pytest`, `pytest-asyncio`, `pytest-cov`, `respx`).
 - [ ] `conftest.py` implemented with in-memory `aiosqlite` and `asyncio_mode = "auto"`.
 - [ ] Household isolation integration test implemented.
+- [ ] Every household-scoped route depends on `require_household` (or `require_role`); no JWT household or role claims are parsed.
+- [ ] MCP tools declare no `household_id` / `home_id` / `user_id` parameters and read `get_mcp_household_context()`.
+- [ ] `HOUSEHOLD_INTERNAL_URL` and `ALFHEIM_INTERNAL_TOKEN` are wired into the backend service, which depends on a healthy `household-backend`.
 - [ ] `uv run ruff check .` and `uv run ruff format --check .` pass cleanly.
 - [ ] `uv run ty check apps/<app-name>/backend` passes.
 - [ ] `uv run pytest --cov` achieves >= 80% coverage.
