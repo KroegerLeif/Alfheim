@@ -1,5 +1,11 @@
 import ky from 'ky';
-import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from '@alfheim/shared';
+import {
+  resolveApiUrl,
+  resolveFrontendUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  applyHouseholdHeaders,
+  reportHouseholdErrorResponse,
+} from '@alfheim/shared';
 
 // Sanitize and resolve base host URLs to bypass client-side path mutations
 const sanitizeBaseUrl = (url: string | undefined) => {
@@ -55,10 +61,7 @@ export const api = ky.create({
         // app deliberately never sends X-Household-Role: a client-supplied role
         // is meaningless, the backend resolves roles from membership.
         if (typeof window !== "undefined") {
-          const activeHhId = localStorage.getItem("alfheim_active_household_id");
-          if (activeHhId) {
-            request.headers.set("X-Household-ID", activeHhId);
-          }
+          applyHouseholdHeaders(request.headers);
         }
       },
     ],
@@ -86,6 +89,7 @@ export const api = ky.create({
             }
           }
         }
+        await reportHouseholdErrorResponse(response);
       }
     ],
   },

@@ -1,47 +1,43 @@
 /**
- * Active-household persistence, written exactly like the shared header
- * switcher (packages/shared/src/features/ui/hooks/useHouseholdSwitcher.ts):
- * the id goes to localStorage and a `storage-household-changed` event is
- * dispatched so every mounted switcher / app picks it up. Other tabs receive
- * the native `storage` event.
+ * Active-household persistence for the household app, delegating to the
+ * shared store in @alfheim/shared (the same one the header switcher and every
+ * app's HouseholdProvider use): the id goes to localStorage under
+ * `alfheim_active_household_id` and a `storage-household-changed` event is
+ * dispatched; other tabs receive the native `storage` event.
  */
-export const ACTIVE_HOUSEHOLD_STORAGE_KEY = 'alfheim_active_household_id';
-export const HOUSEHOLD_CHANGED_EVENT = 'storage-household-changed';
+import {
+  ACTIVE_HOUSEHOLD_STORAGE_KEY,
+  HOUSEHOLD_CHANGED_EVENT,
+  getActiveHouseholdId,
+  setActiveHouseholdId,
+} from '@alfheim/shared';
 
-export function getActiveHouseholdId(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return localStorage.getItem(ACTIVE_HOUSEHOLD_STORAGE_KEY);
-  } catch {
-    return null;
-  }
+export { ACTIVE_HOUSEHOLD_STORAGE_KEY, HOUSEHOLD_CHANGED_EVENT, getActiveHouseholdId };
+
+/**
+ * Tells mounted HouseholdProviders that the membership list changed (create,
+ * join, leave, delete, new default) so they reload `/api/v1/households/me`.
+ */
+export function notifyHouseholdsChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(HOUSEHOLD_CHANGED_EVENT));
 }
 
+/** Makes `householdId` the active household for every Alfheim app. */
 export function setActiveHousehold(householdId: string): void {
   if (typeof window === 'undefined' || !householdId) return;
-  try {
-    localStorage.setItem(ACTIVE_HOUSEHOLD_STORAGE_KEY, householdId);
-  } catch {
-    // Storage unavailable (private mode / quota): nothing else to do.
-  }
-  window.dispatchEvent(new Event(HOUSEHOLD_CHANGED_EVENT));
+  if (getActiveHouseholdId() === householdId) return;
+  setActiveHouseholdId(householdId);
 }
 
 /**
- * Clears the active household if it points at `householdId` (after leaving
- * or deleting it) and falls back to `fallbackId` when one is given.
+ * After leaving or deleting `householdId`: clears it as the active household
+ * (falling back to `fallbackId` when given) and refreshes the membership list.
  */
 export function replaceActiveHousehold(householdId: string, fallbackId?: string | null): void {
   if (typeof window === 'undefined') return;
-  if (getActiveHouseholdId() !== householdId) return;
-  if (fallbackId) {
-    setActiveHousehold(fallbackId);
-    return;
+  if (getActiveHouseholdId() === householdId) {
+    setActiveHouseholdId(fallbackId || null);
   }
-  try {
-    localStorage.removeItem(ACTIVE_HOUSEHOLD_STORAGE_KEY);
-  } catch {
-    // ignore
-  }
-  window.dispatchEvent(new Event(HOUSEHOLD_CHANGED_EVENT));
+  notifyHouseholdsChanged();
 }

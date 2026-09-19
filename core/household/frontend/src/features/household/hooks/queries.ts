@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notifyHouseholdsChanged } from '@/lib/activeHousehold';
 import {
   fetchHouseholds,
   fetchHousehold,
@@ -196,6 +197,7 @@ export function useSetDefaultHousehold() {
         prev?.map((h) => ({ ...h, is_default: h.id === householdId })),
       );
       queryClient.invalidateQueries({ queryKey: HOUSEHOLDS_QUERY_KEY });
+      notifyHouseholdsChanged();
     },
   });
 }
