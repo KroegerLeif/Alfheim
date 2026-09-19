@@ -11,11 +11,6 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.config import settings
 from src.core.database import get_db_session, init_db
-from src.core.dependencies import (
-    decode_oidc_token,
-    get_jwks_client,
-    is_mock_auth_allowed,
-)
 from src.main import app, handle_task_exception
 
 _test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
@@ -49,23 +44,6 @@ def test_settings_jwks_url_resolved_via_oidc_discovery():
         assert settings.jwks_url == f"{settings.expected_issuer}/oauth/v2/keys"
 
     oidc_discovery._discovered_jwks_uris.clear()
-
-
-def test_core_dependencies_wrappers():
-    """Verify delegation in core dependencies wrappers."""
-    with patch("src.core.dependencies._deps.is_mock_auth_allowed", return_value=True) as mock_auth:
-        assert is_mock_auth_allowed() is True
-        mock_auth.assert_called_once()
-
-    with patch("src.core.dependencies._deps.get_jwks_client", return_value=MagicMock()) as mock_jwks:
-        res = get_jwks_client("http://test-jwks")
-        assert res is not None
-        mock_jwks.assert_called_once_with("http://test-jwks")
-
-    with patch("src.core.dependencies._deps.jwt.decode", return_value={"sub": "123"}) as mock_decode:
-        decoded = decode_oidc_token("mock-token")
-        assert decoded["sub"] == "123"
-        mock_decode.assert_called_once()
 
 
 @pytest.mark.asyncio

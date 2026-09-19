@@ -1,7 +1,8 @@
 import uuid
 from datetime import date
 
-from backend_shared.mcp_middleware import get_mcp_user_context
+from backend_shared.household import derive_user_id
+from backend_shared.mcp_middleware import get_mcp_household_context
 from sqlmodel import select
 from src.core.database import async_session_factory
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
@@ -14,11 +15,7 @@ from src.mcp.server import mcp
 async def get_daily_chores_overview() -> str:
     """Retrieve an overview of today's chores status (completed, pending, streaks) for the authenticated household."""
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return "Error: No household context available"
-
-        home_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_context.household_id))
+        home_uuid = get_mcp_household_context().household_id
         async with async_session_factory() as session:
             summary = await ChoreService.get_integrations_summary(
                 session=session,
@@ -61,17 +58,14 @@ async def complete_chore_by_name(chore_name: str) -> str:
 
     Parameters:
     - chore_name: The name of the chore template (e.g. 'Wash Dishes').
+
+    The chore is looked up in the caller's authenticated household and recorded as completed by the caller.
     """
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id or not user_context.user_id:
-            return "Error: No household or user context available"
-
-        home_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_context.household_id))
-        try:
-            user_uuid = uuid.UUID(user_context.user_id)
-        except (ValueError, AttributeError):
-            user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, user_context.user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        # The authenticated caller completes the chore; never a derived or supplied id.
+        user_uuid = context.user_id
         async with async_session_factory() as session:
             # 1. Find template first
             t_stmt = select(ChoreTemplate).where(
@@ -122,19 +116,15 @@ async def assign_chore(chore_instance_id: str, assignee_user_id: str) -> str:
 
     Parameters:
     - chore_instance_id: UUID string of the chore instance.
-    - assignee_user_id: UUID string of the user to assign the chore to.
+    - assignee_user_id: User id (UUID) or Zitadel user id (sub) of the household member to assign the chore to.
+
+    The household is always the caller's authenticated household.
     """
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return "Error: No household context available"
-
-        home_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_context.household_id))
+        home_uuid = get_mcp_household_context().household_id
         inst_uuid = uuid.UUID(chore_instance_id)
-        try:
-            user_uuid = uuid.UUID(assignee_user_id)
-        except (ValueError, AttributeError):
-            user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, assignee_user_id)
+        # Same sub -> UUID mapping as the authenticated routes (UUID as-is, otherwise uuid5 of the sub).
+        user_uuid = derive_user_id(assignee_user_id)
 
         async with async_session_factory() as session:
             payload = ChoreAssignRequest(assigned_to=user_uuid)

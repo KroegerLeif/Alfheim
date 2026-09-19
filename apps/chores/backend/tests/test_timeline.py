@@ -1,12 +1,10 @@
-import uuid
-
 import pytest
 from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_chore_completion_timeline(client: AsyncClient):
-    headers = {"X-Household-ID": str(uuid.uuid4())}
+async def test_chore_completion_timeline(client: AsyncClient, auth_headers):
+    headers = auth_headers()
 
     # 1. Create a chore template
     template_resp = await client.post(
