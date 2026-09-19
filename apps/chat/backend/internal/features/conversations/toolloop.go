@@ -25,7 +25,12 @@ import (
 // Only the very last round's Done/Err chunk is forwarded verbatim to the client;
 // intermediate rounds' per-round completion is not forwarded, since it does not mean
 // the overall assistant turn (and the SSE response) is finished yet.
+//
+// ctx is the HTTP request context: it carries the caller's MCP credentials
+// (mcp.WithCallerCredentials) and cancels LLM rounds and MCP calls when the client
+// disconnects. Only DB writes are detached from its cancellation.
 func (s *service) runToolLoop(
+	ctx context.Context,
 	conversationID string,
 	provider llm.Provider,
 	tools []llm.ToolDefinition,
@@ -69,21 +74,27 @@ func (s *service) runToolLoop(
 			return
 		}
 
-		s.persistToolRound(conversationID, text.String(), toolCalls)
+		s.persistToolRound(ctx, conversationID, text.String(), toolCalls)
 
 		assistantMsg := llm.Message{Role: llm.RoleAssistant, Content: text.String(), ToolCalls: toolCalls}
 		messages = append(messages, assistantMsg)
 
 		for _, call := range toolCalls {
-			resultText := s.executeToolCall(conversationID, call, toolServers)
+			resultText := s.executeToolCall(ctx, conversationID, call, toolServers)
 			messages = append(messages, llm.Message{Role: llm.RoleTool, Content: resultText, ToolCallID: call.ID})
 		}
 
 		if round == roundLimit {
 			break
 		}
+		if err := ctx.Err(); err != nil {
+			// The client went away (or the request deadline passed): stop instead of
+			// spending another LLM round and further MCP calls on nobody's behalf.
+			out <- llm.StreamChunk{Done: true, Err: fmt.Errorf("request ended before the tool-calling loop finished: %w", err)}
+			return
+		}
 
-		nextChunks, err := provider.ChatStream(context.Background(), llm.ChatRequest{Messages: messages, Tools: tools, Stream: true})
+		nextChunks, err := provider.ChatStream(ctx, llm.ChatRequest{Messages: messages, Tools: tools, Stream: true})
 		if err != nil {
 			out <- llm.StreamChunk{Done: true, Err: fmt.Errorf("failed to continue tool-calling round: %w", err)}
 			return
@@ -98,14 +109,14 @@ func (s *service) runToolLoop(
 // result text fed back to the model. Any failure (unknown tool, transport error, or
 // the tool itself reporting isError) becomes readable error text rather than
 // aborting the loop, so the model can react to it instead of the whole turn crashing.
-func (s *service) executeToolCall(conversationID string, call llm.ToolCallRequest, toolServers map[string]mcp.ServerRef) string {
+func (s *service) executeToolCall(ctx context.Context, conversationID string, call llm.ToolCallRequest, toolServers map[string]mcp.ServerRef) string {
 	server, ok := toolServers[call.ToolName]
 	if !ok {
 		return fmt.Sprintf("tool error: unknown tool %q", call.ToolName)
 	}
 
 	client := s.mcpPool.Get(server.EndpointURL)
-	resultText, isError, err := client.CallTool(context.Background(), call.ToolName, call.Arguments)
+	resultText, isError, err := client.CallTool(ctx, call.ToolName, call.Arguments)
 	if err != nil {
 		s.log.Warn("mcp tool call failed", slog.String("tool_name", call.ToolName), slog.String("app_slug", server.Slug), slog.String("error", err.Error()))
 		return fmt.Sprintf("tool error: %v", err)
@@ -122,7 +133,7 @@ func (s *service) executeToolCall(conversationID string, call llm.ToolCallReques
 		Content:        resultText,
 		MCPServerID:    &serverID,
 	}
-	if err := s.repo.CreateMessage(context.Background(), msg); err != nil {
+	if err := s.repo.CreateMessage(context.WithoutCancel(ctx), msg); err != nil {
 		s.log.Error("failed to persist tool result message", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
 	}
 
@@ -131,7 +142,7 @@ func (s *service) executeToolCall(conversationID string, call llm.ToolCallReques
 
 // persistToolRound stores the assistant's tool-call request turn (the text, if any,
 // plus the structured tool calls for audit/replay) as its own message.
-func (s *service) persistToolRound(conversationID, content string, toolCalls []llm.ToolCallRequest) {
+func (s *service) persistToolRound(ctx context.Context, conversationID, content string, toolCalls []llm.ToolCallRequest) {
 	toolCallsJSON, err := json.Marshal(toolCalls)
 	if err != nil {
 		s.log.Error("failed to marshal tool calls for persistence", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
@@ -145,7 +156,7 @@ func (s *service) persistToolRound(conversationID, content string, toolCalls []l
 		Content:        content,
 		ToolCallsJSON:  toolCallsJSON,
 	}
-	if err := s.repo.CreateMessage(context.Background(), msg); err != nil {
+	if err := s.repo.CreateMessage(context.WithoutCancel(ctx), msg); err != nil {
 		s.log.Error("failed to persist assistant tool-call message", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
 	}
 }

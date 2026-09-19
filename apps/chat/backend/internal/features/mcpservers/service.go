@@ -128,6 +128,7 @@ func (s *service) DiagnoseServers(ctx context.Context, pool MCPClientPool) ([]Se
 		client := pool.Get(srv.InternalURL)
 		pingResult := client.Ping(ctx)
 		diag.Reachable = pingResult.Reachable
+		diag.AuthRequired = pingResult.AuthRequired
 		diag.LatencyMs = pingResult.LatencyMs
 		diag.ToolsCount = pingResult.ToolsCount
 		diag.Tools = pingResult.Tools

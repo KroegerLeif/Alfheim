@@ -17,7 +17,7 @@ import (
 type Repository interface {
 	CreateConversation(ctx context.Context, c *Conversation) error
 	GetConversationByID(ctx context.Context, id string) (*Conversation, error)
-	ListConversationsByOwner(ctx context.Context, ownerUserID string) ([]*Conversation, error)
+	ListConversationsByOwner(ctx context.Context, ownerUserID, householdID string) ([]*Conversation, error)
 	DeleteConversation(ctx context.Context, id string) error
 
 	CreateMessage(ctx context.Context, m *Message, attachmentIDs ...string) error
@@ -104,10 +104,10 @@ func (r *repository) GetConversationByID(ctx context.Context, id string) (*Conve
 	return c, nil
 }
 
-func (r *repository) ListConversationsByOwner(ctx context.Context, ownerUserID string) ([]*Conversation, error) {
-	query := `SELECT` + conversationColumns + `FROM conversations WHERE owner_user_id = $1 ORDER BY updated_at DESC`
+func (r *repository) ListConversationsByOwner(ctx context.Context, ownerUserID, householdID string) ([]*Conversation, error) {
+	query := `SELECT` + conversationColumns + `FROM conversations WHERE owner_user_id = $1 AND household_id = $2 ORDER BY updated_at DESC`
 
-	rows, err := r.db.Query(ctx, query, ownerUserID)
+	rows, err := r.db.Query(ctx, query, ownerUserID, householdID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list conversations for user %s: %w", ownerUserID, err)
 	}

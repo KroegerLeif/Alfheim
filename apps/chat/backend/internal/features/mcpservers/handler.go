@@ -6,6 +6,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
+	"alfheim/chat/internal/shared/householdclient"
+	"alfheim/chat/internal/shared/mcp"
+	"alfheim/chat/internal/shared/middleware"
 )
 
 // Handler manages MCP server registry HTTP endpoints (admin/debug visibility).
@@ -39,7 +43,15 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Diagnostics(w http.ResponseWriter, r *http.Request) {
-	diags, err := h.service.DiagnoseServers(r.Context(), h.pool)
+	// Probe the MCP servers as the calling user, since they authorize every request.
+	ctx := r.Context()
+	claims, cErr := middleware.GetUserClaims(ctx)
+	hc, hErr := middleware.GetHousehold(ctx)
+	if cErr == nil && hErr == nil {
+		ctx = mcp.WithCallerCredentials(ctx, mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hc.HouseholdID.String()})
+	}
+
+	diags, err := h.service.DiagnoseServers(ctx, h.pool)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_server_error", "failed to run mcp server diagnostics")
 		return
@@ -48,6 +60,14 @@ func (h *Handler) Diagnostics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SetEnabled(w http.ResponseWriter, r *http.Request) {
+	// The registry is global to the installation, so toggling it is reserved for
+	// household owners/admins rather than every authenticated user.
+	hc, err := middleware.GetHousehold(r.Context())
+	if err != nil || (hc.Role != householdclient.RoleOwner && hc.Role != householdclient.RoleAdmin) {
+		writeError(w, http.StatusForbidden, "forbidden", "only household owners or admins may change the mcp server registry")
+		return
+	}
+
 	id := chi.URLParam(r, "id")
 
 	var req SetEnabledRequest

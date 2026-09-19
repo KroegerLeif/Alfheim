@@ -104,7 +104,7 @@ func (r *repository) ListVisibleTo(ctx context.Context, userID, householdID stri
 	query := `
 		SELECT` + modelBlockColumns + `FROM model_blocks
 		WHERE owner_user_id = $1
-		   OR (visibility = 'shared' AND household_id = $2 AND $2 != '')
+		   OR (visibility = 'shared' AND $2 <> '' AND household_id::text = $2)
 		   OR is_bootstrap = TRUE
 		ORDER BY created_at ASC
 	`

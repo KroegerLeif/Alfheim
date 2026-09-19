@@ -23,6 +23,7 @@ import (
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/db"
+	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/logger"
 	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
@@ -87,7 +88,10 @@ func run(parentCtx context.Context) error {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
-	authMw := auth.AuthenticateMiddleware
+	// Every chat API route is household-scoped: JWT validation first, then the
+	// X-Household-ID membership check against core/household (fail closed).
+	membership := householdclient.New(cfg.Household.InternalURL, cfg.Household.InternalToken)
+	authMw := middleware.Chain(auth.AuthenticateMiddleware, middleware.RequireHousehold(membership, log))
 
 	// Model Blocks Feature (LLM provider configs, encryption, health checks)
 	modelBlocksRepo := modelblocks.NewRepository(dbClient.Pool)
@@ -132,6 +136,7 @@ func run(parentCtx context.Context) error {
 					slog.String("endpoint", d.EndpointURL),
 					slog.Int64("latency_ms", d.LatencyMs),
 					slog.Int("tools_count", d.ToolsCount),
+					slog.Bool("auth_required", d.AuthRequired),
 				)
 			} else {
 				log.Warn("mcp server offline or degraded (chat fallback active)",

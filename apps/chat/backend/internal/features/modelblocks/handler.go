@@ -41,7 +41,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, err := h.service.List(r.Context(), claims.Subject, claims.HouseholdID)
+	blocks, err := h.service.List(r.Context(), claims.Subject, householdOf(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_server_error", "failed to list model blocks")
 		return
@@ -59,7 +59,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	block, err := h.service.Get(r.Context(), claims.Subject, claims.HouseholdID, id)
+	block, err := h.service.Get(r.Context(), claims.Subject, householdOf(r), id)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -81,7 +81,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.service.Create(r.Context(), claims.Subject, claims.HouseholdID, req)
+	created, err := h.service.Create(r.Context(), claims.Subject, householdOf(r), req)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -105,7 +105,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := h.service.Update(r.Context(), claims.Subject, claims.HouseholdID, id, req)
+	updated, err := h.service.Update(r.Context(), claims.Subject, householdOf(r), id, req)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -140,7 +140,7 @@ func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	result, err := h.service.TriggerHealthCheck(r.Context(), claims.Subject, claims.HouseholdID, id)
+	result, err := h.service.TriggerHealthCheck(r.Context(), claims.Subject, householdOf(r), id)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -198,4 +198,15 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, map[string]string{"error": code, "message": message})
+}
+
+// householdOf returns the verified household id set by middleware.RequireHousehold,
+// or "" when the request carries no household scope (the service then refuses any
+// household-shared operation).
+func householdOf(r *http.Request) string {
+	hc, err := middleware.GetHousehold(r.Context())
+	if err != nil {
+		return ""
+	}
+	return hc.HouseholdID.String()
 }

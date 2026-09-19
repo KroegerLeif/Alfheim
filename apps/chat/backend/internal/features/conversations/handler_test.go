@@ -11,18 +11,26 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"alfheim/chat/internal/features/conversations"
+	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/llm"
 	"alfheim/chat/internal/shared/middleware"
 )
 
 var errStreamFailed = errors.New("stream failed")
 
+// testHouseholdID is the verified household injected by the fake auth middleware.
+const testHouseholdID = "11111111-1111-1111-1111-111111111111"
+
 func withClaims(claims *middleware.UserClaims) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			if claims != nil {
+				ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: uuid.MustParse(testHouseholdID), Role: householdclient.RoleOwner, Subject: claims.Subject})
+			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -38,7 +46,7 @@ func newTestRouter(svc conversations.Service, claims *middleware.UserClaims) htt
 func TestHandler_CreateListDeleteConversation(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
-	claims := &middleware.UserClaims{Subject: "user-1", HouseholdID: "hh-1"}
+	claims := &middleware.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
@@ -100,7 +108,7 @@ func TestHandler_PostAndListMessages(t *testing.T) {
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
-	created, err := svc.CreateConversation(context.Background(), "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	created, err := svc.CreateConversation(context.Background(), "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -138,11 +146,11 @@ func TestHandler_StreamEmitsSSEDeltasAndDoneEvent(t *testing.T) {
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
-	created, err := svc.CreateConversation(context.Background(), "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	created, err := svc.CreateConversation(context.Background(), "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := svc.PostMessage(context.Background(), "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
+	if _, err := svc.PostMessage(context.Background(), "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -179,11 +187,11 @@ func TestHandler_StreamReportsErrorEventOnMidStreamFailure(t *testing.T) {
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
-	created, err := svc.CreateConversation(context.Background(), "user-1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	created, err := svc.CreateConversation(context.Background(), "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := svc.PostMessage(context.Background(), "user-1", created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
+	if _, err := svc.PostMessage(context.Background(), "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -261,19 +269,19 @@ type errorService struct {
 	err error
 }
 
-func (e *errorService) ListConversations(ctx context.Context, userID string) ([]conversations.ConversationResponseDTO, error) {
+func (e *errorService) ListConversations(ctx context.Context, userID, householdID string) ([]conversations.ConversationResponseDTO, error) {
 	return nil, e.err
 }
 func (e *errorService) CreateConversation(ctx context.Context, userID, householdID string, req conversations.CreateConversationRequest) (conversations.ConversationResponseDTO, error) {
 	return conversations.ConversationResponseDTO{}, e.err
 }
-func (e *errorService) DeleteConversation(ctx context.Context, userID, id string) error {
+func (e *errorService) DeleteConversation(ctx context.Context, userID, householdID, id string) error {
 	return e.err
 }
-func (e *errorService) ListMessages(ctx context.Context, userID, conversationID string) ([]conversations.MessageResponseDTO, error) {
+func (e *errorService) ListMessages(ctx context.Context, userID, householdID, conversationID string) ([]conversations.MessageResponseDTO, error) {
 	return nil, e.err
 }
-func (e *errorService) PostMessage(ctx context.Context, userID, conversationID string, req conversations.CreateMessageRequest) (conversations.MessageResponseDTO, error) {
+func (e *errorService) PostMessage(ctx context.Context, userID, householdID, conversationID string, req conversations.CreateMessageRequest) (conversations.MessageResponseDTO, error) {
 	return conversations.MessageResponseDTO{}, e.err
 }
 func (e *errorService) StreamAssistantReply(ctx context.Context, userID, householdID, conversationID string) (<-chan llm.StreamChunk, error) {
@@ -370,8 +378,8 @@ func TestHandler_StreamToolCallSSEEvent(t *testing.T) {
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
-	created, _ := svc.CreateConversation(context.Background(), "u1", "", conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
-	svc.PostMessage(context.Background(), "u1", created.ID, conversations.CreateMessageRequest{Content: "hi"})
+	created, _ := svc.CreateConversation(context.Background(), "u1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	svc.PostMessage(context.Background(), "u1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/"+created.ID+"/stream", nil)
 	rec := httptest.NewRecorder()
@@ -418,7 +426,7 @@ func TestHandler_PostMessageServiceError(t *testing.T) {
 
 func TestHandler_StreamServiceError(t *testing.T) {
 	svc := &errorService{err: conversations.ErrModelBlockUnavailable}
-	claims := &middleware.UserClaims{Subject: "u1", HouseholdID: "hh-1"}
+	claims := &middleware.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/c1/stream", nil)

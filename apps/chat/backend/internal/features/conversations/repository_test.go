@@ -211,7 +211,7 @@ func TestRepository_Conversations(t *testing.T) {
 			},
 		}
 		repoErr := newRepositoryWithDB(dbtxErr, nil)
-		if _, err := repoErr.ListConversationsByOwner(ctx, "u1"); err == nil {
+		if _, err := repoErr.ListConversationsByOwner(ctx, "u1", "hh-1"); err == nil {
 			t.Fatal("expected error, got nil")
 		}
 
@@ -226,7 +226,7 @@ func TestRepository_Conversations(t *testing.T) {
 			},
 		}
 		repoOK := newRepositoryWithDB(dbtxOK, nil)
-		list, err := repoOK.ListConversationsByOwner(ctx, "u1")
+		list, err := repoOK.ListConversationsByOwner(ctx, "u1", "hh-1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -388,7 +388,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 			},
 		}
 		repo := newRepositoryWithDB(dbtx, nil)
-		_, err := repo.ListConversationsByOwner(ctx, "u1")
+		_, err := repo.ListConversationsByOwner(ctx, "u1", "hh-1")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
