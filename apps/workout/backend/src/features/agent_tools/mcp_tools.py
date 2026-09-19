@@ -6,6 +6,7 @@ exception to the 6-file module standard.
 
 import uuid
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.plans import service as plans_service
 from src.features.session import service as session_service
@@ -14,7 +15,7 @@ from src.mcp.server import mcp
 
 
 @mcp.tool()
-async def get_todays_plan(household_id: str, user_id: str, plan_id: str, plan_day_id: str) -> str:
+async def get_todays_plan(plan_id: str, plan_day_id: str) -> str:
     """Get a plan day's exercises and sets with weight-engine targets resolved for the caller.
 
     The schema has no day-of-week field yet, so the caller (agent or client)
@@ -23,14 +24,13 @@ async def get_todays_plan(household_id: str, user_id: str, plan_id: str, plan_da
     (plans.service), the same function session-start uses to clone weights.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - plan_id: UUID string of the plan.
     - plan_day_id: UUID string of the day within that plan.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         plan_uuid = uuid.UUID(plan_id)
         day_uuid = uuid.UUID(plan_day_id)
         async with async_session_factory() as session:
@@ -56,22 +56,19 @@ async def get_todays_plan(household_id: str, user_id: str, plan_id: str, plan_da
 
 @mcp.tool()
 async def start_workout_session(
-    household_id: str,
-    user_id: str,
     plan_id: str | None = None,
     plan_day_id: str | None = None,
 ) -> str:
     """Start a new workout session, cloning the given plan day's state if provided.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - plan_id: Optional UUID string of the plan to start from.
     - plan_day_id: Optional UUID string of the plan day to clone (required together with plan_id).
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         plan_uuid = uuid.UUID(plan_id) if plan_id else None
         day_uuid = uuid.UUID(plan_day_id) if plan_day_id else None
         async with async_session_factory() as session:
@@ -87,8 +84,6 @@ async def start_workout_session(
 
 @mcp.tool()
 async def log_completed_set(
-    household_id: str,
-    user_id: str,
     session_id: str,
     session_exercise_id: str,
     set_order: int,
@@ -99,8 +94,6 @@ async def log_completed_set(
     """Log a single completed set on an active session (safe to retry with the same idempotency_key).
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - session_id: UUID string of the session.
     - session_exercise_id: UUID string of the exercise slot within the session.
     - set_order: Position of this set within the exercise.
@@ -109,8 +102,9 @@ async def log_completed_set(
     - actual_weight_kg: Weight actually used, in kg.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         session_uuid = uuid.UUID(session_id)
         exercise_uuid = uuid.UUID(session_exercise_id)
         item = SessionSetSyncItem(
@@ -132,17 +126,16 @@ async def log_completed_set(
 
 
 @mcp.tool()
-async def finish_workout_session(household_id: str, user_id: str, session_id: str) -> str:
+async def finish_workout_session(session_id: str) -> str:
     """Mark an active workout session as completed.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - session_id: UUID string of the session to complete.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         session_uuid = uuid.UUID(session_id)
         async with async_session_factory() as session:
             workout_session = await session_service.complete_session(session, session_uuid, home_uuid, user_uuid)

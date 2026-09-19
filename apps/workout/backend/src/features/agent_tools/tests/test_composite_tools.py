@@ -2,6 +2,7 @@ import uuid
 from unittest.mock import patch
 
 import pytest
+from backend_shared.household.testing import mcp_household_context
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.agent_tools.mcp_tools import (
     finish_workout_session,
@@ -67,40 +68,40 @@ async def test_composite_start_session_log_set_finish_flow(db_session: AsyncSess
     )
     day_id = plan.days[0].id
 
-    plan_summary = await get_todays_plan(str(home_id), str(user_id), str(plan.id), str(day_id))
-    assert "40.0 kg" in plan_summary
+    with mcp_household_context(household_id=home_id, sub=str(user_id)):
+        plan_summary = await get_todays_plan(str(plan.id), str(day_id))
+        assert "40.0 kg" in plan_summary
 
-    start_result = await start_workout_session(str(home_id), str(user_id), str(plan.id), str(day_id))
-    assert "Success: Started session" in start_result
-    session_id = start_result.split("Started session ")[1].split(" ")[0]
+        start_result = await start_workout_session(str(plan.id), str(day_id))
+        assert "Success: Started session" in start_result
+        session_id = start_result.split("Started session ")[1].split(" ")[0]
 
-    from sqlmodel import select
-    from src.features.session.models import SessionExercise
+        from sqlmodel import select
+        from src.features.session.models import SessionExercise
 
-    se_result = await db_session.exec(
-        select(SessionExercise).where(SessionExercise.session_id == uuid.UUID(session_id))
-    )
-    session_exercise = se_result.first()
-    assert session_exercise is not None
+        se_result = await db_session.exec(
+            select(SessionExercise).where(SessionExercise.session_id == uuid.UUID(session_id))
+        )
+        session_exercise = se_result.first()
+        assert session_exercise is not None
 
-    log_result = await log_completed_set(
-        str(home_id),
-        str(user_id),
-        session_id,
-        str(session_exercise.id),
-        0,
-        "composite-key-1",
-        actual_reps=8,
-        actual_weight_kg=40.0,
-    )
-    assert "Success: Logged set" in log_result
+        log_result = await log_completed_set(
+            session_id,
+            str(session_exercise.id),
+            0,
+            "composite-key-1",
+            actual_reps=8,
+            actual_weight_kg=40.0,
+        )
+        assert "Success: Logged set" in log_result
 
-    finish_result = await finish_workout_session(str(home_id), str(user_id), session_id)
-    assert "Success: Completed session" in finish_result
+        finish_result = await finish_workout_session(session_id)
+        assert "Success: Completed session" in finish_result
 
 
 async def test_composite_get_todays_plan_not_found(db_session: AsyncSession):
-    result = await get_todays_plan(str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4()))
+    with mcp_household_context(household_id=uuid.uuid4()):
+        result = await get_todays_plan(str(uuid.uuid4()), str(uuid.uuid4()))
     assert "not found" in result.lower()
 
 
@@ -113,5 +114,21 @@ async def test_composite_start_session_cross_household_rejected(db_session: Asyn
     day = await PlanCrudService.add_day(db_session, plan.id, home_a, user_id, PlanDayCreate(label="Day 1"))
     assert day is not None
 
-    result = await start_workout_session(str(home_b), str(user_id), str(plan.id), str(day.id))
+    # The household comes from the authenticated MCP context: a caller in household B cannot reach A's plan
+    with mcp_household_context(household_id=home_b, sub=str(user_id)):
+        result = await start_workout_session(str(plan.id), str(day.id))
     assert "Error" in result
+
+
+async def test_composite_tools_take_no_household_argument():
+    import inspect
+
+    from src.features.agent_tools import mcp_tools
+
+    for name, fn in inspect.getmembers(mcp_tools, inspect.iscoroutinefunction):
+        if fn.__module__ == mcp_tools.__name__:
+            assert not {"household_id", "home_id", "user_id"} & set(inspect.signature(fn).parameters), name
+
+
+async def test_composite_tools_require_household_context():
+    assert "Household context not found" in await start_workout_session()

@@ -1,9 +1,9 @@
 import uuid
 
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import UserHomeContext, get_current_user_and_home
 from src.features.plans import service
 from src.features.plans.schemas import (
     PlanCreate,
@@ -28,10 +28,10 @@ router = APIRouter(prefix="/api/v1/plans", tags=["plans"])
 async def create_plan(
     payload: PlanCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create a new multi-day workout plan, optionally with its full nested structure."""
-    return await service.create_plan(session, payload, context.home_id, context.user_id)
+    return await service.create_plan(session, payload, context.household_id, context.user_id)
 
 
 @router.get("", response_model=list[PlanRead])
@@ -39,20 +39,20 @@ async def list_plans(
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """List plans visible to the caller: their own plans plus any shared within their household."""
-    return await service.list_plans(session, context.home_id, context.user_id, limit, offset)
+    return await service.list_plans(session, context.household_id, context.user_id, limit, offset)
 
 
 @router.get("/{plan_id}", response_model=PlanRead)
 async def get_plan(
     plan_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve a single plan by ID."""
-    plan = await service.get_plan(session, plan_id, context.home_id, context.user_id)
+    plan = await service.get_plan(session, plan_id, context.household_id, context.user_id)
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found.")
     return plan
@@ -63,10 +63,10 @@ async def update_plan(
     plan_id: uuid.UUID,
     payload: PlanUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Update a plan's metadata (name/description/is_shared/is_active). Only the owner may edit."""
-    plan = await service.update_plan(session, plan_id, context.home_id, context.user_id, payload)
+    plan = await service.update_plan(session, plan_id, context.household_id, context.user_id, payload)
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found.")
     return plan
@@ -76,10 +76,10 @@ async def update_plan(
 async def delete_plan(
     plan_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Delete a plan. Only the owner may delete. Session logs cloned from this plan are unaffected."""
-    deleted = await service.delete_plan(session, plan_id, context.home_id, context.user_id)
+    deleted = await service.delete_plan(session, plan_id, context.household_id, context.user_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found.")
 
@@ -89,10 +89,10 @@ async def add_day(
     plan_id: uuid.UUID,
     payload: PlanDayCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Append a new day (with optional nested exercises/sets) to the end of a plan's split."""
-    day = await service.add_day(session, plan_id, context.home_id, context.user_id, payload)
+    day = await service.add_day(session, plan_id, context.household_id, context.user_id, payload)
     if not day:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found.")
     return day
@@ -103,10 +103,10 @@ async def delete_day(
     plan_id: uuid.UUID,
     day_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Remove a day from a plan."""
-    deleted = await service.delete_day(session, plan_id, day_id, context.home_id, context.user_id)
+    deleted = await service.delete_day(session, plan_id, day_id, context.household_id, context.user_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan day not found.")
 
@@ -121,10 +121,10 @@ async def add_exercise(
     day_id: uuid.UUID,
     payload: PlanExerciseCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Append a new exercise slot (with optional nested sets) to a plan day."""
-    exercise = await service.add_exercise(session, plan_id, day_id, context.home_id, context.user_id, payload)
+    exercise = await service.add_exercise(session, plan_id, day_id, context.household_id, context.user_id, payload)
     if not exercise:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan day not found.")
     return exercise
@@ -139,11 +139,11 @@ async def delete_exercise(
     day_id: uuid.UUID,
     plan_exercise_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Remove an exercise slot from a plan day."""
     deleted = await service.delete_exercise(
-        session, plan_id, day_id, plan_exercise_id, context.home_id, context.user_id
+        session, plan_id, day_id, plan_exercise_id, context.household_id, context.user_id
     )
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan exercise not found.")
@@ -160,11 +160,11 @@ async def add_set(
     plan_exercise_id: uuid.UUID,
     payload: PlanSetCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Append a new set to a plan exercise."""
     plan_set = await service.add_set(
-        session, plan_id, day_id, plan_exercise_id, context.home_id, context.user_id, payload
+        session, plan_id, day_id, plan_exercise_id, context.household_id, context.user_id, payload
     )
     if not plan_set:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan exercise not found.")
@@ -182,11 +182,11 @@ async def update_set(
     set_id: uuid.UUID,
     payload: PlanSetUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Update a plan set's target reps/weight-engine fields/warmup flag."""
     plan_set = await service.update_set(
-        session, plan_id, day_id, plan_exercise_id, set_id, context.home_id, context.user_id, payload
+        session, plan_id, day_id, plan_exercise_id, set_id, context.household_id, context.user_id, payload
     )
     if not plan_set:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan set not found.")
@@ -203,11 +203,11 @@ async def delete_set(
     plan_exercise_id: uuid.UUID,
     set_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Remove a set from a plan exercise."""
     deleted = await service.delete_set(
-        session, plan_id, day_id, plan_exercise_id, set_id, context.home_id, context.user_id
+        session, plan_id, day_id, plan_exercise_id, set_id, context.household_id, context.user_id
     )
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan set not found.")
@@ -218,10 +218,10 @@ async def get_resolved_day(
     plan_id: uuid.UUID,
     day_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve a plan day with every set's weight-engine target resolved to a concrete kg value."""
-    result = await service.resolve_day(session, plan_id, day_id, context.home_id, context.user_id)
+    result = await service.resolve_day(session, plan_id, day_id, context.household_id, context.user_id)
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan day not found.")
     day, resolved_weights = result

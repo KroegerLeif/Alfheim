@@ -1,5 +1,6 @@
 import uuid
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.session import service
 from src.mcp.server import mcp
@@ -7,22 +8,19 @@ from src.mcp.server import mcp
 
 @mcp.tool()
 async def start_session(
-    household_id: str,
-    user_id: str,
     plan_id: str | None = None,
     plan_day_id: str | None = None,
 ) -> str:
     """Start a new workout session, optionally cloned from a plan day's current state.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - plan_id: Optional UUID string of the plan to start from.
     - plan_day_id: Optional UUID string of the plan day to clone (required together with plan_id).
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         plan_uuid = uuid.UUID(plan_id) if plan_id else None
         day_uuid = uuid.UUID(plan_day_id) if plan_day_id else None
         async with async_session_factory() as session:
@@ -37,17 +35,16 @@ async def start_session(
 
 
 @mcp.tool()
-async def finish_session(household_id: str, user_id: str, session_id: str) -> str:
+async def finish_session(session_id: str) -> str:
     """Mark an active workout session as completed.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - session_id: UUID string of the session to complete.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         session_uuid = uuid.UUID(session_id)
         async with async_session_factory() as session:
             workout_session = await service.complete_session(session, session_uuid, home_uuid, user_uuid)
@@ -62,8 +59,6 @@ async def finish_session(household_id: str, user_id: str, session_id: str) -> st
 
 @mcp.tool()
 async def log_completed_set(
-    household_id: str,
-    user_id: str,
     session_id: str,
     session_exercise_id: str,
     set_order: int,
@@ -74,8 +69,6 @@ async def log_completed_set(
     """Log a single completed set on an active session (safe to retry with the same idempotency_key).
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - session_id: UUID string of the session.
     - session_exercise_id: UUID string of the exercise slot within the session.
     - set_order: Position of this set within the exercise.
@@ -84,8 +77,9 @@ async def log_completed_set(
     - actual_weight_kg: Weight actually used, in kg.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         session_uuid = uuid.UUID(session_id)
         exercise_uuid = uuid.UUID(session_exercise_id)
         from src.features.session.schemas import SessionSetSyncItem

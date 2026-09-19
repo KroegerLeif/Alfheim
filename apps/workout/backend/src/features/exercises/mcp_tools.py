@@ -1,5 +1,6 @@
 import uuid
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.exercises.models import ExerciseScope, MuscleGroup
 from src.features.exercises.schemas import ExerciseCreate, ExerciseUpdate, UserExercisePreferenceUpsert
@@ -9,8 +10,6 @@ from src.mcp.server import mcp
 
 @mcp.tool()
 async def list_exercises(
-    household_id: str,
-    user_id: str,
     primary_muscle: str | None = None,
     is_active: bool | None = None,
     limit: int = 100,
@@ -19,16 +18,15 @@ async def list_exercises(
     """List exercises visible to the caller: system + their household's + their own entries.
 
     Parameters:
-    - household_id: UUID string of the caller's household. Required for tenant isolation.
-    - user_id: UUID string of the caller.
     - primary_muscle: Optional muscle group filter (e.g. 'chest', 'back').
     - is_active: Optional filter for active/inactive exercises.
     - limit: Maximum number of entries to return (default 100).
     - offset: Number of records to skip (default 0).
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         muscle = MuscleGroup(primary_muscle) if primary_muscle else None
         async with async_session_factory() as session:
             items = await ExerciseService.list_exercises(
@@ -55,8 +53,6 @@ async def list_exercises(
 
 @mcp.tool()
 async def create_exercise(
-    household_id: str,
-    user_id: str,
     name: str,
     primary_muscle: str,
     secondary_muscles: list[str] | None = None,
@@ -68,8 +64,6 @@ async def create_exercise(
     """Create a new exercise entry scoped to the caller's household or the caller alone.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - name: Name of the exercise.
     - primary_muscle: Primary muscle group (e.g. 'chest', 'back').
     - secondary_muscles: Optional list of secondary muscle groups.
@@ -79,8 +73,9 @@ async def create_exercise(
     - scope: 'household' (default) or 'user'. System-scoped entries cannot be created via this tool.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         payload = ExerciseCreate(
             name=name,
             primary_muscle=MuscleGroup(primary_muscle),
@@ -106,8 +101,6 @@ async def create_exercise(
 
 @mcp.tool()
 async def update_exercise(
-    household_id: str,
-    user_id: str,
     exercise_id: str,
     name: str | None = None,
     primary_muscle: str | None = None,
@@ -120,8 +113,6 @@ async def update_exercise(
     """Update an exercise entry the caller owns. System entries cannot be modified.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - exercise_id: UUID string of the exercise entry to update.
     - name: Optional new name.
     - primary_muscle: Optional new primary muscle group.
@@ -132,8 +123,9 @@ async def update_exercise(
     - is_active: Optional new active status.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         ex_uuid = uuid.UUID(exercise_id)
         payload = ExerciseUpdate(
             name=name,
@@ -162,17 +154,16 @@ async def update_exercise(
 
 
 @mcp.tool()
-async def delete_exercise(household_id: str, user_id: str, exercise_id: str) -> str:
+async def delete_exercise(exercise_id: str) -> str:
     """Delete an exercise entry the caller owns. System entries cannot be deleted.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - exercise_id: UUID string of the exercise entry to delete.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         ex_uuid = uuid.UUID(exercise_id)
         async with async_session_factory() as session:
             deleted = await ExerciseService.delete_exercise(
@@ -192,8 +183,6 @@ async def delete_exercise(household_id: str, user_id: str, exercise_id: str) -> 
 
 @mcp.tool()
 async def set_exercise_preference(
-    household_id: str,
-    user_id: str,
     exercise_id: str,
     default_target_weight_kg: float | None = None,
     preferred_unit: str | None = None,
@@ -202,16 +191,15 @@ async def set_exercise_preference(
     """Create or update the caller's preference (target weight, unit, notes) for an exercise.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - exercise_id: UUID string of the exercise.
     - default_target_weight_kg: Optional default target weight in kg.
     - preferred_unit: Optional preferred weight unit.
     - notes: Optional free-text notes.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         ex_uuid = uuid.UUID(exercise_id)
         payload = UserExercisePreferenceUpsert(
             default_target_weight_kg=default_target_weight_kg,
@@ -234,17 +222,16 @@ async def set_exercise_preference(
 
 
 @mcp.tool()
-async def favorite_exercise(household_id: str, user_id: str, exercise_id: str) -> str:
+async def favorite_exercise(exercise_id: str) -> str:
     """Favorite an exercise for the caller. Idempotent: favoriting twice is safe.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - exercise_id: UUID string of the exercise to favorite.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         ex_uuid = uuid.UUID(exercise_id)
         async with async_session_factory() as session:
             favorite = await ExerciseService.add_favorite(
@@ -261,17 +248,16 @@ async def favorite_exercise(household_id: str, user_id: str, exercise_id: str) -
 
 
 @mcp.tool()
-async def unfavorite_exercise(household_id: str, user_id: str, exercise_id: str) -> str:
+async def unfavorite_exercise(exercise_id: str) -> str:
     """Remove a favorite for the caller.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - exercise_id: UUID string of the exercise to unfavorite.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         ex_uuid = uuid.UUID(exercise_id)
         async with async_session_factory() as session:
             deleted = await ExerciseService.remove_favorite(

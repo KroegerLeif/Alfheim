@@ -1,21 +1,16 @@
-import uuid
-
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.analytics import service
 from src.mcp.server import mcp
 
 
 @mcp.tool()
-async def get_muscle_volume(household_id: str, user_id: str) -> str:
-    """Get total training volume (reps x weight) per muscle group for the caller.
-
-    Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
-    """
+async def get_muscle_volume() -> str:
+    """Get total training volume (reps x weight) per muscle group for the caller."""
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         async with async_session_factory() as session:
             entries = await service.get_muscle_volume(session, home_uuid, user_uuid)
             if not entries:
@@ -28,16 +23,12 @@ async def get_muscle_volume(household_id: str, user_id: str) -> str:
 
 
 @mcp.tool()
-async def get_streaks(household_id: str, user_id: str) -> str:
-    """Get the caller's current and longest consecutive-day workout streaks.
-
-    Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
-    """
+async def get_streaks() -> str:
+    """Get the caller's current and longest consecutive-day workout streaks."""
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         async with async_session_factory() as session:
             current, longest = await service.get_streaks(session, home_uuid, user_uuid)
             return f"Current streak: {current} day(s). Longest streak: {longest} day(s)."
@@ -48,14 +39,10 @@ async def get_streaks(household_id: str, user_id: str) -> str:
 
 
 @mcp.tool()
-async def get_leaderboard(household_id: str) -> str:
-    """Get the household leaderboard ranked by total training volume.
-
-    Parameters:
-    - household_id: UUID string of the household.
-    """
+async def get_leaderboard() -> str:
+    """Get the household leaderboard ranked by total training volume."""
     try:
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         async with async_session_factory() as session:
             entries = await service.get_leaderboard(session, home_uuid)
             if not entries:

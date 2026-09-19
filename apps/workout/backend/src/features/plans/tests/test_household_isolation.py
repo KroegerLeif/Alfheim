@@ -1,15 +1,14 @@
 import uuid
 
-import jwt
 from httpx import AsyncClient
 
 
-async def test_workout_plans_household_tenant_isolation(client: AsyncClient):
+async def test_workout_plans_household_tenant_isolation(client: AsyncClient, member_headers):
     home_a = str(uuid.uuid4())
     home_b = str(uuid.uuid4())
 
-    headers_a = {"X-Household-ID": home_a}
-    headers_b = {"X-Household-ID": home_b}
+    headers_a = member_headers(home_a)
+    headers_b = member_headers(home_b)
 
     res_a = await client.post("/api/v1/plans", json={"name": "Household A Plan"}, headers=headers_a)
     assert res_a.status_code == 201
@@ -24,13 +23,13 @@ async def test_workout_plans_household_tenant_isolation(client: AsyncClient):
     assert get_res.status_code == 404
 
 
-async def test_workout_plans_nested_set_idor_via_guessed_child_id(client: AsyncClient):
+async def test_workout_plans_nested_set_idor_via_guessed_child_id(client: AsyncClient, member_headers):
     """Household B must not reach household A's nested PlanSet even with a guessed/known child ID."""
     home_a = str(uuid.uuid4())
     home_b = str(uuid.uuid4())
     exercise_id = str(uuid.uuid4())
-    headers_a = {"X-Household-ID": home_a}
-    headers_b = {"X-Household-ID": home_b}
+    headers_a = member_headers(home_a)
+    headers_b = member_headers(home_b)
 
     plan_res = await client.post("/api/v1/plans", json={"name": "Secret Plan"}, headers=headers_a)
     plan_id = plan_res.json()["id"]
@@ -66,31 +65,23 @@ async def test_workout_plans_nested_set_idor_via_guessed_child_id(client: AsyncC
     assert delete_res.status_code == 404
 
 
-async def test_workout_plans_cross_tenant_idor_header_override_rejected(client: AsyncClient):
-    home_authorized = str(uuid.uuid4())
-    home_unauthorized = str(uuid.uuid4())
-    user_id = str(uuid.uuid4())
+async def test_workout_plans_cross_tenant_idor_header_override_rejected(client: AsyncClient, member_headers):
+    home_authorized = uuid.uuid4()
+    headers = member_headers(home_authorized)
+    headers["X-Household-ID"] = str(uuid.uuid4())  # a household the caller is not a member of
 
-    token = jwt.encode(
-        {"sub": user_id, "household_id": home_authorized, "households": [home_authorized]},
-        "secret",
-        algorithm="HS256",
-    )
-    auth_headers = {"Authorization": f"Bearer {token}", "X-Household-ID": home_unauthorized}
-
-    response = await client.get("/api/v1/plans", headers=auth_headers)
+    response = await client.get("/api/v1/plans", headers=headers)
     assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "household_forbidden"
 
 
-async def test_workout_plans_private_plan_not_visible_to_other_user_same_household(client: AsyncClient):
+async def test_workout_plans_private_plan_not_visible_to_other_user_same_household(client: AsyncClient, member_headers):
     home_id = str(uuid.uuid4())
     user_a = str(uuid.uuid4())
     user_b = str(uuid.uuid4())
 
-    token_a = jwt.encode({"sub": user_a, "household_id": home_id, "households": [home_id]}, "secret", algorithm="HS256")
-    token_b = jwt.encode({"sub": user_b, "household_id": home_id, "households": [home_id]}, "secret", algorithm="HS256")
-    headers_a = {"Authorization": f"Bearer {token_a}", "X-Household-ID": home_id}
-    headers_b = {"Authorization": f"Bearer {token_b}", "X-Household-ID": home_id}
+    headers_a = member_headers(home_id, sub=user_a)
+    headers_b = member_headers(home_id, sub=user_b)
 
     res_a = await client.post("/api/v1/plans", json={"name": "Private", "is_shared": False}, headers=headers_a)
     plan_a = res_a.json()
@@ -99,15 +90,13 @@ async def test_workout_plans_private_plan_not_visible_to_other_user_same_househo
     assert get_res.status_code == 404
 
 
-async def test_workout_plans_shared_plan_visible_but_not_writable_by_other_user(client: AsyncClient):
+async def test_workout_plans_shared_plan_visible_but_not_writable_by_other_user(client: AsyncClient, member_headers):
     home_id = str(uuid.uuid4())
     user_a = str(uuid.uuid4())
     user_b = str(uuid.uuid4())
 
-    token_a = jwt.encode({"sub": user_a, "household_id": home_id, "households": [home_id]}, "secret", algorithm="HS256")
-    token_b = jwt.encode({"sub": user_b, "household_id": home_id, "households": [home_id]}, "secret", algorithm="HS256")
-    headers_a = {"Authorization": f"Bearer {token_a}", "X-Household-ID": home_id}
-    headers_b = {"Authorization": f"Bearer {token_b}", "X-Household-ID": home_id}
+    headers_a = member_headers(home_id, sub=user_a)
+    headers_b = member_headers(home_id, sub=user_b)
 
     res_a = await client.post("/api/v1/plans", json={"name": "Shared", "is_shared": True}, headers=headers_a)
     plan_a = res_a.json()
