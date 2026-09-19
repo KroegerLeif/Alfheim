@@ -385,6 +385,17 @@ migrate_existing_env() {
     log_warn "Dropped obsolete 'KEYCLOAK_REALM' (Zitadel has no realms) in $(basename "$env_file")"
   fi
 
+  # 8. Drop the old per-app NEXT_PUBLIC_*_API_URL / NEXT_PUBLIC_API_GATEWAY_URL
+  #    values. They pointed at ${ALFHEIM_BASE_URL}/api/..., which Caddy does
+  #    not route (e.g. /api/api/v1 -> 404); compose now derives every
+  #    frontend's API URL from ALFHEIM_BASE_URL instead.
+  local api_url_re='^NEXT_PUBLIC_((PANTRY|SHOPPING|CHORES|MAINTENANCE|CHAT|DASHBOARD|WORKOUT|LIBRARY|BUDGET)_API_URL|API_GATEWAY_URL)='
+  if grep -qE "$api_url_re" "$env_file"; then
+    sed -E -i.bak -e "/${api_url_re}/d" "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+    log_warn "Dropped obsolete NEXT_PUBLIC_*_API_URL entries (now derived from ALFHEIM_BASE_URL) in $(basename "$env_file")"
+  fi
+
   if [[ "$migrated" == true ]]; then
     log_success "Successfully migrated legacy database configuration in $(basename "$env_file")"
   fi
@@ -649,22 +660,12 @@ sed \
   -e "s|^IMAGE_REPO=.*|IMAGE_REPO=${IMAGE_REPO}|" \
   -e "s|^IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" \
   -e "s|^NEXT_PUBLIC_FRONTEND_URL=.*|NEXT_PUBLIC_FRONTEND_URL=\${ALFHEIM_BASE_URL}|" \
-  -e "s|^NEXT_PUBLIC_API_GATEWAY_URL=.*|NEXT_PUBLIC_API_GATEWAY_URL=\${ALFHEIM_BASE_URL}/api|" \
   -e "s|^OIDC_ISSUER_URL=.*|OIDC_ISSUER_URL=${OIDC_ISSUER_URL}|" \
   -e "s|^ZITADEL_PROJECT_ID=.*|ZITADEL_PROJECT_ID=${ZITADEL_PROJECT_ID}|" \
   -e "s|^OIDC_AUDIENCE=.*|OIDC_AUDIENCE=${OIDC_AUDIENCE}|" \
   -e "s|^ALFHEIM_WEB_CLIENT_ID=.*|ALFHEIM_WEB_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID}|" \
   -e "s|^NEXT_PUBLIC_OIDC_ISSUER=.*|NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL}|" \
   -e "s|^S3_PUBLIC_URL=.*|S3_PUBLIC_URL=${BASE_URL}/storage|" \
-  -e "s|^NEXT_PUBLIC_PANTRY_API_URL=.*|NEXT_PUBLIC_PANTRY_API_URL=\${ALFHEIM_BASE_URL}/api/pantry/api/v1|" \
-  -e "s|^NEXT_PUBLIC_SHOPPING_API_URL=.*|NEXT_PUBLIC_SHOPPING_API_URL=\${ALFHEIM_BASE_URL}/api/shopping/api/v1|" \
-  -e "s|^NEXT_PUBLIC_CHORES_API_URL=.*|NEXT_PUBLIC_CHORES_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/chores|" \
-  -e "s|^NEXT_PUBLIC_MAINTENANCE_API_URL=.*|NEXT_PUBLIC_MAINTENANCE_API_URL=\${ALFHEIM_BASE_URL}/api/maintenance/api/v1|" \
-  -e "s|^NEXT_PUBLIC_CHAT_API_URL=.*|NEXT_PUBLIC_CHAT_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/chat|" \
-  -e "s|^NEXT_PUBLIC_DASHBOARD_API_URL=.*|NEXT_PUBLIC_DASHBOARD_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1|" \
-  -e "s|^NEXT_PUBLIC_WORKOUT_API_URL=.*|NEXT_PUBLIC_WORKOUT_API_URL=\${ALFHEIM_BASE_URL}/api/workout/api/v1|" \
-  -e "s|^NEXT_PUBLIC_LIBRARY_API_URL=.*|NEXT_PUBLIC_LIBRARY_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/library|" \
-  -e "s|^NEXT_PUBLIC_BUDGET_API_URL=.*|NEXT_PUBLIC_BUDGET_API_URL=\${ALFHEIM_BASE_URL}/api/budget/api/v1|" \
   "$TEMPLATE_FILE" > "$OUTPUT_FILE"
 
 # Fallback injection if template was missing base URL keys
@@ -719,9 +720,9 @@ echo -e "  Domain:                    ${CYAN}${DOMAIN}${RESET}"
 echo -e "  OIDC Issuer URL (Zitadel): ${CYAN}${OIDC_ISSUER_URL}${RESET}"
 echo -e "  OIDC Audience:             ${CYAN}${OIDC_AUDIENCE}${RESET}"
 echo -e "  Zitadel Admin E-mail:      ${CYAN}${ZITADEL_ADMIN_EMAIL}${RESET}"
-echo -e "  Zitadel Admin Password:    ${YELLOW}${ZITADEL_ADMIN_PW}${RESET}"
+echo -e "  Zitadel Admin Password:    ${DIM}stored in ${OUTPUT_FILE} as ZITADEL_ADMIN_PASSWORD${RESET}"
 echo -e "  Zitadel Masterkey:         ${DIM}${ZITADEL_MASTERKEY:0:8}...${RESET}"
 echo -e "  Grafana Admin User:        ${CYAN}admin${RESET}"
-echo -e "  Grafana Admin Password:    ${YELLOW}${GRAFANA_PW}${RESET}"
+echo -e "  Grafana Admin Password:    ${DIM}stored in ${OUTPUT_FILE} as GRAFANA_ADMIN_PASSWORD${RESET}"
 echo -e "  Chat AES-256 Key:          ${DIM}${CHAT_ENC_KEY:0:8}...${RESET}"
 echo ""

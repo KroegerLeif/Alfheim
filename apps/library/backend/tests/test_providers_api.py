@@ -5,12 +5,12 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.api.dependencies import get_current_household_id
 from src.api.v1 import router as api_v1_router
 from src.db.database import get_db_session
 
@@ -61,7 +61,7 @@ async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 @pytest.mark.asyncio
 async def test_create_and_get_provider(client: AsyncClient, test_app: FastAPI):
     """Test creating a provider subscription and fetching details."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     res = await client.post(
         "/api/v1/library/providers",
@@ -88,7 +88,7 @@ async def test_create_and_get_provider(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_list_providers(client: AsyncClient, test_app: FastAPI):
     """Test listing provider subscriptions with active status filter."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Seed providers
     await client.post(
@@ -123,7 +123,7 @@ async def test_list_providers(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_update_and_delete_provider(client: AsyncClient, test_app: FastAPI):
     """Test updating and deleting a provider subscription."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     res = await client.post(
         "/api/v1/library/providers",
@@ -152,7 +152,7 @@ async def test_update_and_delete_provider(client: AsyncClient, test_app: FastAPI
 async def test_provider_household_isolation(client: AsyncClient, test_app: FastAPI):
     """Verify tenant isolation for streaming provider subscriptions."""
     # Household 1 creates provider
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
     res = await client.post(
         "/api/v1/library/providers",
         json={"provider_name": "Household 1 Prime"},
@@ -160,7 +160,7 @@ async def test_provider_household_isolation(client: AsyncClient, test_app: FastA
     provider_id = res.json()["id"]
 
     # Household 2 attempts access
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
 
     assert (await client.get(f"/api/v1/library/providers/{provider_id}")).status_code == 404
     assert (
@@ -177,7 +177,7 @@ async def test_provider_household_isolation(client: AsyncClient, test_app: FastA
 async def test_item_provider_association_and_cross_household_prevention(client: AsyncClient, test_app: FastAPI):
     """Verify linking items to providers and preventing cross-household provider links."""
     # Household 1 creates provider and item associated with provider
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
     res_prov = await client.post(
         "/api/v1/library/providers",
         json={"provider_name": "Xbox Game Pass", "provider_type": "GAMING_PASS"},
@@ -196,7 +196,7 @@ async def test_item_provider_association_and_cross_household_prevention(client: 
     assert res_item.json()["provider_id"] == h1_provider_id
 
     # Household 2 attempts to create an item linked to Household 1's provider
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
     res_h2_item = await client.post(
         "/api/v1/library/items",
         json={

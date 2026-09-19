@@ -1,15 +1,6 @@
+import uuid
+
 from sqlmodel import Field, Relationship, SQLModel
-
-
-class Household(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    name: str
-    address: str | None = None
-
-    # Relationship back to devices
-    devices: list["Device"] = Relationship(
-        back_populates="household", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
-    )
 
 
 class Device(SQLModel, table=True):
@@ -22,10 +13,11 @@ class Device(SQLModel, table=True):
     status: str  # active, maintenance, inactive
     service_interval_months: int | None = None
     notes: str | None = None
-    household_id: int = Field(foreign_key="household.id")
+    # Household owned by the household app (core/household); membership is checked per request,
+    # so this is a plain indexed UUID column without a local foreign key.
+    household_id: uuid.UUID = Field(index=True)
 
     # Relationships
-    household: Household = Relationship(back_populates="devices")
     steps: list["MaintenanceStep"] = Relationship(
         back_populates="device", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )

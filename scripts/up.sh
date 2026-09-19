@@ -10,19 +10,19 @@
 #   1. IAM Core      — postgres-core  →  zitadel  →  rustfs  →  caddy
 #   2. Core apps     — dashboard-backend  →  dashboard-frontend
 #                      →  household-backend  →  household-frontend
-#                      [live at http://alfheim/ and /household after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/ and /household after this stage]
 #   3. Shopping      — shopping-backend  →  shopping-frontend
-#                      [live at http://alfheim/shopping after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/shopping after this stage]
 #   4. Pantry        — pantry-backend  →  pantry-frontend
-#                      [live at http://alfheim/pantry after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/pantry after this stage]
 #   5. Maintenance   — maintenance-backend  →  maintenance-frontend
-#                      [live at http://alfheim/maintenance after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/maintenance after this stage]
 #   6. Chores        — chores-backend  →  chores-frontend
-#                      [live at http://alfheim/chores after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/chores after this stage]
 #   7. Budget        — budget-backend  →  budget-frontend
-#                      [live at http://alfheim/budget after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/budget after this stage]
 #   8. Chat          — chat-backend  →  chat-frontend
-#                      [live at http://alfheim/chat after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/chat after this stage]
 #   9. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
 #   10. Summary      — print accessible URLs with green checkmarks
 #
@@ -367,6 +367,13 @@ if [[ ! -f ".env" ]]; then
   fail "No .env in ${REPO_ROOT}. Generate one first: ./scripts/init-env.sh --auto"
 fi
 
+# Browser-facing base URL for the "live at" banners and the summary; follows
+# ALFHEIM_BASE_URL in .env so a custom host is printed correctly.
+BASE_URL="$(grep -E '^ALFHEIM_BASE_URL=' .env | tail -n 1 | sed -e 's|^[^=]*=||' -e 's|^"||' -e 's|"$||' -e 's|/*$||')"
+BASE_URL="${BASE_URL:-http://alfheim.loegien.localhost}"
+ISSUER_URL="$(grep -E '^OIDC_ISSUER_URL=' .env | tail -n 1 | sed -e 's|^[^=]*=||' -e 's|^"||' -e 's|"$||' -e 's|/*$||')"
+ISSUER_URL="${ISSUER_URL:-http://auth.alfheim.loegien.localhost}"
+
 info "Starting postgres-core …"
 dc up ${BUILD_FLAG} -d postgres-core
 wait_healthy "alfheim_postgres_core" "postgres-core" 60
@@ -427,7 +434,7 @@ info "Starting dashboard-frontend …"
 dc up ${BUILD_FLAG} -d dashboard-frontend
 wait_healthy "dashboard-frontend" "dashboard-frontend" 240
 
-notice "🟢 Dashboard is live at http://alfheim/"
+notice "🟢 Dashboard is live at ${BASE_URL}/"
 
 # Household (core/household): households, memberships and the user profile.
 # Skipped with a warning until both service sources exist on this checkout.
@@ -441,7 +448,7 @@ if [[ -f core/household/backend/Dockerfile && -f core/household/frontend/Dockerf
   wait_healthy "household-frontend" "household-frontend" 240
 
   HOUSEHOLD_STARTED=true
-  notice "🟢 Household is live at http://alfheim.loegien.localhost/household/"
+  notice "🟢 Household is live at ${BASE_URL}/household/"
 else
   warn "Skipping household: core/household/{backend,frontend}/Dockerfile not found on this checkout."
 fi
@@ -459,7 +466,7 @@ info "Starting shopping-frontend …"
 dc up ${BUILD_FLAG} -d shopping-frontend
 wait_healthy "shopping-frontend" "shopping-frontend" 240
 
-notice "🟢 Shopping App is live at http://alfheim/shopping"
+notice "🟢 Shopping App is live at ${BASE_URL}/shopping"
 
 # =============================================================================
 # STAGE 4 — Pantry App Slice  (pantry-backend → pantry-frontend)
@@ -474,7 +481,7 @@ info "Starting pantry-frontend …"
 dc up ${BUILD_FLAG} -d pantry-frontend
 wait_healthy "pantry-frontend" "pantry-frontend" 240
 
-notice "🟢 Pantry App is live at http://alfheim/pantry"
+notice "🟢 Pantry App is live at ${BASE_URL}/pantry"
 
 # =============================================================================
 # STAGE 5 — Maintenance App Slice  (maintenance-backend → maintenance-frontend)
@@ -489,7 +496,7 @@ info "Starting maintenance-frontend …"
 dc up ${BUILD_FLAG} -d maintenance-frontend
 wait_healthy "maintenance-frontend" "maintenance-frontend" 240
 
-notice "🟢 Maintenance App is live at http://alfheim/maintenance"
+notice "🟢 Maintenance App is live at ${BASE_URL}/maintenance"
 
 # =============================================================================
 # STAGE 6 — Chores App Slice  (chores-backend → chores-frontend)
@@ -504,7 +511,7 @@ info "Starting chores-frontend …"
 dc up ${BUILD_FLAG} -d chores-frontend
 wait_healthy "chores-frontend" "chores-frontend" 240
 
-notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
+notice "🟢 Chores App is live at ${BASE_URL}/chores"
 
 # =============================================================================
 # STAGE 7 — Budget App Slice  (budget-backend → budget-frontend)
@@ -519,7 +526,7 @@ info "Starting budget-frontend …"
 dc up ${BUILD_FLAG} -d budget-frontend
 wait_healthy "budget-frontend" "budget-frontend" 240
 
-notice "🟢 Budget App is live at http://alfheim.loegien.localhost/budget"
+notice "🟢 Budget App is live at ${BASE_URL}/budget"
 
 # =============================================================================
 # STAGE 8 — Chat App Slice  (chat-backend → chat-frontend)
@@ -534,7 +541,7 @@ info "Starting chat-frontend …"
 dc up ${BUILD_FLAG} -d chat-frontend
 wait_healthy "chat-frontend" "chat-frontend" 240
 
-notice "🟢 Chat App is live at http://alfheim.loegien.localhost/chat"
+notice "🟢 Chat App is live at ${BASE_URL}/chat"
 
 # =============================================================================
 # STAGE 9 — Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
@@ -567,22 +574,22 @@ echo ""
 echo -e "  ${BOLD}${GREEN}✔  Alfheim is running!${RESET}"
 echo ""
 echo -e "  ${DIM}Applications (Frontend Domain):${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://alfheim.loegien.localhost/${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}${BASE_URL}/${RESET}"
 if [[ "${HOUSEHOLD_STARTED}" == "true" ]]; then
-  echo -e "  ${GREEN}✔${RESET}  Household    →  ${BOLD}http://alfheim.loegien.localhost/household/${RESET}"
+  echo -e "  ${GREEN}✔${RESET}  Household    →  ${BOLD}${BASE_URL}/household/${RESET}"
 fi
-echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim.loegien.localhost/shopping${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim.loegien.localhost/pantry${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim.loegien.localhost/maintenance${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim.loegien.localhost/chores${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Budget       →  ${BOLD}http://alfheim.loegien.localhost/budget${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chat         →  ${BOLD}http://alfheim.loegien.localhost/chat${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}${BASE_URL}/shopping${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}${BASE_URL}/pantry${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}${BASE_URL}/maintenance${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}${BASE_URL}/chores${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Budget       →  ${BOLD}${BASE_URL}/budget${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chat         →  ${BOLD}${BASE_URL}/chat${RESET}"
 if [[ "${SKIP_OBS}" != "true" ]]; then
-  echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}http://alfheim.loegien.localhost/grafana${RESET}"
+  echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}${BASE_URL}/grafana${RESET}"
 fi
 echo ""
 echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Zitadel IAM        →  ${BOLD}http://auth.alfheim.loegien.localhost/${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Zitadel IAM        →  ${BOLD}${ISSUER_URL}/${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Chat API           →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1/chat${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
 echo ""

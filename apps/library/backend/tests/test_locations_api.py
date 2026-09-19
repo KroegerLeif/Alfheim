@@ -5,12 +5,12 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.api.dependencies import get_current_household_id
 from src.api.v1 import router as api_v1_router
 from src.db.database import get_db_session
 
@@ -61,7 +61,7 @@ async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 @pytest.mark.asyncio
 async def test_create_and_get_location(client: AsyncClient, test_app: FastAPI):
     """Test creating a location and fetching details."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Create parent location
     res = await client.post(
@@ -92,7 +92,7 @@ async def test_create_and_get_location(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_list_locations_flat_and_tree(client: AsyncClient, test_app: FastAPI):
     """Test listing locations as flat array and hierarchical tree."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Create hierarchy: Room -> Shelf
     res_room = await client.post(
@@ -125,7 +125,7 @@ async def test_list_locations_flat_and_tree(client: AsyncClient, test_app: FastA
 @pytest.mark.asyncio
 async def test_update_location_and_cycle_prevention(client: AsyncClient, test_app: FastAPI):
     """Test updating location fields and verifying cycle dependency rejection."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     res_1 = await client.post("/api/v1/library/locations", json={"name": "Level 1"})
     id_1 = res_1.json()["id"]
@@ -145,7 +145,7 @@ async def test_update_location_and_cycle_prevention(client: AsyncClient, test_ap
 @pytest.mark.asyncio
 async def test_delete_location(client: AsyncClient, test_app: FastAPI):
     """Test deleting a location."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     res = await client.post("/api/v1/library/locations", json={"name": "Temp Box"})
     loc_id = res.json()["id"]
@@ -161,12 +161,12 @@ async def test_delete_location(client: AsyncClient, test_app: FastAPI):
 async def test_location_household_isolation(client: AsyncClient, test_app: FastAPI):
     """Verify strictly isolated tenant access for locations."""
     # Household 1 creates location
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
     res = await client.post("/api/v1/library/locations", json={"name": "Secret Vault"})
     loc_id = res.json()["id"]
 
     # Household 2 attempts to fetch, update, delete Household 1 location
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
 
     assert (await client.get(f"/api/v1/library/locations/{loc_id}")).status_code == 404
     assert (await client.put(f"/api/v1/library/locations/{loc_id}", json={"name": "Hacked"})).status_code == 404

@@ -1,11 +1,12 @@
 """Unit tests covering service layer edge cases, seed logic, and domain re-exports in maintenance."""
 
+import uuid
 from datetime import date, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from app.features.devices.exceptions import DeviceNotFoundError
-from app.features.devices.models import Device, Household
+from app.features.devices.models import Device
 
 # Import models to execute domain re-export coverage
 from app.features.maintenance.models import (  # noqa: F401
@@ -42,14 +43,11 @@ async def test_maintenance_service_submit_wizard_edge_cases(db_session: AsyncSes
         await MaintenanceService.submit_wizard_session(
             db_session,
             WizardSessionPayload(device_id=99999, performer="Tester", completed_steps=[]),
+            household_id=uuid.uuid4(),
         )
 
     # Setup device & step
-    household = Household(name="Wiz Home", address="Addr 1")
-    db_session.add(household)
-    await db_session.commit()
-    await db_session.refresh(household)
-    assert household.id is not None
+    household_id = uuid.uuid4()
 
     device = Device(
         name="Filter",
@@ -59,7 +57,7 @@ async def test_maintenance_service_submit_wizard_edge_cases(db_session: AsyncSes
         location="Hall",
         status="active",
         service_interval_months=6,
-        household_id=household.id,
+        household_id=household_id,
     )
     db_session.add(device)
     await db_session.commit()
@@ -96,6 +94,8 @@ async def test_maintenance_service_submit_wizard_edge_cases(db_session: AsyncSes
                 ],
                 supply_items_to_order=["HEPA 100"],
             ),
+            household_id=household_id,
+            authorization="Bearer caller-token",
         )
         assert result.completed_step_count == 1
         assert result.shopping_items_forwarded == 0
@@ -104,15 +104,19 @@ async def test_maintenance_service_submit_wizard_edge_cases(db_session: AsyncSes
     assert step.supply_item == "HEPA 100"
     assert step.description == "Cleaned thoroughly"
 
+    # 3. A device of another household is reported as not found (tenant isolation)
+    with pytest.raises(DeviceNotFoundError):
+        await MaintenanceService.submit_wizard_session(
+            db_session,
+            WizardSessionPayload(device_id=device.id, performer="Intruder", completed_steps=[]),
+            household_id=uuid.uuid4(),
+        )
+
 
 @pytest.mark.asyncio
 async def test_maintenance_service_summary_step_categories(db_session: AsyncSession):
     """Verify summary categorizes overdue, due soon, and ok steps correctly."""
-    household = Household(name="Summary Home", address="Addr 2")
-    db_session.add(household)
-    await db_session.commit()
-    await db_session.refresh(household)
-    assert household.id is not None
+    household_id = uuid.uuid4()
 
     device = Device(
         name="HVAC",
@@ -122,7 +126,7 @@ async def test_maintenance_service_summary_step_categories(db_session: AsyncSess
         location="Attic",
         status="active",
         service_interval_months=6,
-        household_id=household.id,
+        household_id=household_id,
     )
     db_session.add(device)
     await db_session.commit()
@@ -154,7 +158,7 @@ async def test_maintenance_service_summary_step_categories(db_session: AsyncSess
     db_session.add_all([s_overdue, s_due_soon, s_ok])
     await db_session.commit()
 
-    summaries = await MaintenanceService.get_maintenance_summary(db_session, household_id=household.id)
+    summaries = await MaintenanceService.get_maintenance_summary(db_session, household_id=household_id)
     assert len(summaries) == 1
     summary = summaries[0]
     assert summary.total_overdue == 1
@@ -164,15 +168,24 @@ async def test_maintenance_service_summary_step_categories(db_session: AsyncSess
 
 @pytest.mark.asyncio
 async def test_task_service_forward_supplies_to_shopping():
-    """Verify forward_supplies_to_shopping handles error status codes and network exceptions."""
-    # 1. 400 Bad request response
+    """Verify forward_supplies_to_shopping forwards the caller's token and UUID household and tolerates errors."""
+    household_id = uuid.uuid4()
+
+    # 1. 400 Bad request response; request carries the caller's bearer token and UUID household header
     mock_resp = Response(status_code=400)
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
-        await TaskService.forward_supplies_to_shopping(["Part A"])
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp) as mock_post:
+        await TaskService.forward_supplies_to_shopping(["Part A"], household_id, "Bearer caller-token")
+    headers = mock_post.call_args.kwargs["headers"]
+    assert headers == {"Authorization": "Bearer caller-token", "X-Household-ID": str(household_id)}
 
     # 2. Network exception
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=RuntimeError("Connection dropped")):
-        await TaskService.forward_supplies_to_shopping(["Part B"])
+        await TaskService.forward_supplies_to_shopping(["Part B"], household_id, "Bearer caller-token")
+
+    # 3. Without the caller's authorization nothing is sent (shopping would reject it anyway)
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        await TaskService.forward_supplies_to_shopping(["Part C"], household_id, None)
+    mock_post.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -183,14 +196,10 @@ async def test_task_service_submit_wizard_exceptions(db_session: AsyncSession):
         await TaskService.submit_maintenance_wizard(
             db_session,
             MaintenanceSubmission(device_id=99999, performer="Tester", completed_step_ids=[]),
-            household_id=1,
+            household_id=uuid.uuid4(),
         )
 
-    household = Household(name="H3", address="Addr 3")
-    db_session.add(household)
-    await db_session.commit()
-    await db_session.refresh(household)
-    assert household.id is not None
+    household_id = uuid.uuid4()
 
     device = Device(
         name="Fan",
@@ -200,7 +209,7 @@ async def test_task_service_submit_wizard_exceptions(db_session: AsyncSession):
         location="Room",
         status="active",
         service_interval_months=3,
-        household_id=household.id,
+        household_id=household_id,
     )
     db_session.add(device)
     await db_session.commit()
@@ -212,7 +221,7 @@ async def test_task_service_submit_wizard_exceptions(db_session: AsyncSession):
         await TaskService.submit_maintenance_wizard(
             db_session,
             MaintenanceSubmission(device_id=device.id, performer="Tester", completed_step_ids=[99999]),
-            household_id=household.id,
+            household_id=household_id,
         )
 
     # Supply forwarding exception
@@ -222,7 +231,7 @@ async def test_task_service_submit_wizard_exceptions(db_session: AsyncSession):
         event = await TaskService.submit_maintenance_wizard(
             db_session,
             MaintenanceSubmission(device_id=device.id, performer="Tester", completed_step_ids=[], supply_items=["Oil"]),
-            household_id=household.id,
+            household_id=household_id,
         )
         assert event.device_id == device.id
 
@@ -232,13 +241,11 @@ async def test_task_service_update_task_state_and_overdue(db_session: AsyncSessi
     """Verify update_task_state and get_overdue_tasks edge cases."""
     # Missing step
     with pytest.raises(StepNotFoundError):
-        await TaskService.update_task_state(db_session, 99999, TaskStateUpdate(comment="test"), household_id=1)
+        await TaskService.update_task_state(
+            db_session, 99999, TaskStateUpdate(comment="test"), household_id=uuid.uuid4()
+        )
 
-    household = Household(name="H4", address="Addr 4")
-    db_session.add(household)
-    await db_session.commit()
-    await db_session.refresh(household)
-    assert household.id is not None
+    household_id = uuid.uuid4()
 
     device = Device(
         name="Pump",
@@ -248,7 +255,7 @@ async def test_task_service_update_task_state_and_overdue(db_session: AsyncSessi
         location="Utility",
         status="active",
         service_interval_months=3,
-        household_id=household.id,
+        household_id=household_id,
     )
     db_session.add(device)
     await db_session.commit()
@@ -283,19 +290,21 @@ async def test_task_service_update_task_state_and_overdue(db_session: AsyncSessi
 
     # Household mismatch
     with pytest.raises(StepNotFoundError):
-        await TaskService.update_task_state(db_session, step.id, TaskStateUpdate(comment="test"), household_id=99999)
+        await TaskService.update_task_state(
+            db_session, step.id, TaskStateUpdate(comment="test"), household_id=uuid.uuid4()
+        )
 
     # Update supply item
     updated = await TaskService.update_task_state(
-        db_session, step.id, TaskStateUpdate(supply_item="O-Ring"), household_id=household.id
+        db_session, step.id, TaskStateUpdate(supply_item="O-Ring"), household_id=household_id
     )
     assert updated.supply_item == "O-Ring"
 
     # Get overdue tasks (should include step with 2026-05-01, skip step_no_date and step_bad_date)
-    overdue = await TaskService.get_overdue_tasks(db_session, household_id=household.id)
+    overdue = await TaskService.get_overdue_tasks(db_session, household_id=household_id)
     assert len(overdue) >= 1
     assert any(t["title"] == "Check seal" for t in overdue)
 
     # Filter with non-matching household_id
-    overdue_other = await TaskService.get_overdue_tasks(db_session, household_id=99999)
+    overdue_other = await TaskService.get_overdue_tasks(db_session, household_id=uuid.uuid4())
     assert len(overdue_other) == 0

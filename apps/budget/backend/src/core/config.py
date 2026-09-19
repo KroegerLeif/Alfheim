@@ -1,3 +1,4 @@
+from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +30,19 @@ class Settings(BaseSettings):
     # Generic OIDC authentication settings
     OIDC_ISSUER_URL: str = "http://api.alfheim.loegien.localhost/auth"
     OIDC_AUDIENCE: str = "alfheim"
+    # Optional explicit JWKS endpoint override. When empty the endpoint is
+    # resolved via OIDC discovery from the issuer.
+    OIDC_JWKS_URL: str = ""
+
+    @property
+    def jwks_url(self) -> str:
+        """Return the OIDC JWKS endpoint URL (explicit override or OIDC discovery, cached per issuer)."""
+        return resolve_jwks_url(self.OIDC_ISSUER_URL, self.OIDC_JWKS_URL or None)
+
+    @property
+    def expected_issuer(self) -> str:
+        """Return expected JWT issuer URI."""
+        return self.OIDC_ISSUER_URL.rstrip("/")
 
 
 settings = Settings()

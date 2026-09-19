@@ -8,6 +8,8 @@ complement — not duplicate — the schemas in the tasks and devices features.
 
 from __future__ import annotations
 
+import uuid
+
 from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
@@ -110,10 +112,9 @@ class MaintenanceSummary(BaseModel):
 
 
 class HouseholdMaintenanceSummary(BaseModel):
-    """Aggregate maintenance health for a complete household."""
+    """Aggregate maintenance health for a complete household (names live in core/household)."""
 
-    household_id: int
-    household_name: str
+    household_id: uuid.UUID
     total_devices: int
     total_overdue: int
     total_due_soon: int

@@ -486,6 +486,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -562,6 +563,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1
     healthcheck:
       # Next.js basePath is /household, so / itself is a 404.
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/household', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
@@ -594,6 +596,10 @@ services:
       - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -615,6 +621,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -644,6 +652,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chat
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -672,6 +681,10 @@ services:
       - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -692,6 +705,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -721,6 +736,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/pantry/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/pantry/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -750,6 +766,10 @@ services:
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -770,6 +790,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -799,6 +821,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/shopping/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -827,6 +850,10 @@ services:
       - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -847,6 +874,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -876,6 +905,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/maintenance
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -904,6 +934,10 @@ services:
       - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -924,6 +958,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -953,6 +989,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chores
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chores/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -981,6 +1018,10 @@ services:
       - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -1005,6 +1046,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -1034,6 +1077,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/budget
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/budget/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -1063,6 +1107,10 @@ services:
       - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -1083,6 +1131,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -1112,6 +1162,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/workout
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/workout/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -1140,6 +1191,10 @@ services:
       - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -1160,6 +1215,8 @@ services:
       zitadel:
         condition: service_healthy
       postgres-core:
+        condition: service_healthy
+      household-backend:
         condition: service_healthy
     networks:
       - gateway-net
@@ -1189,6 +1246,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/library
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/library/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s

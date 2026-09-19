@@ -1,29 +1,10 @@
 from datetime import date, timedelta
 from decimal import Decimal
-from uuid import uuid4
 
-import jwt
 import pytest
 from httpx import AsyncClient
 from src.features.pots.models import OverflowTarget
-
-
-def create_auth_headers(
-    user_id: str | None = None,
-    household_id: str | None = None,
-) -> dict[str, str]:
-    """Helper to generate JWT bearer authorization and X-Household-ID headers."""
-    uid = user_id or str(uuid4())
-    hid = household_id or str(uuid4())
-    payload = {
-        "sub": uid,
-        "household_id": hid,
-    }
-    token = jwt.encode(payload, "secret", algorithm="HS256")
-    return {
-        "Authorization": f"Bearer {token}",
-        "X-Household-ID": hid,
-    }
+from tests.helpers import create_auth_headers
 
 
 @pytest.mark.asyncio
