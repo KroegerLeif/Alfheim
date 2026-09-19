@@ -1,24 +1,15 @@
+import uuid
+from datetime import date, timedelta
 from unittest.mock import patch
 
 import pytest
 from app.features.devices.mcp_tools import get_device_detail, get_device_status, list_devices
-from app.features.devices.models import Device, Household
-from backend_shared.mcp_middleware import UserHouseholdContext, mcp_user_context
+from app.features.devices.models import Device
+from app.features.maintenance.mcp_tools import get_maintenance_summary_tool
+from app.features.tasks.mcp_tools import list_overdue_tasks, update_task_state_tool
+from app.features.tasks.models import MaintenanceStep
+from backend_shared.household.testing import mcp_household_context
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-
-@pytest.fixture
-def set_mcp_context():
-    """Fixture to set MCP user context for tests."""
-
-    def _set_context(user_id: str, household_id: int):
-        context = UserHouseholdContext(
-            user_id=user_id,
-            household_id=household_id,
-        )
-        mcp_user_context.set(context)
-
-    return _set_context
 
 
 @pytest.fixture(autouse=True)
@@ -35,24 +26,15 @@ def override_mcp_session(db_session: AsyncSession):
     with (
         patch("app.features.devices.mcp_tools.async_session_factory", side_effect=TestSessionContext),
         patch("app.features.tasks.mcp_tools.async_session_factory", side_effect=TestSessionContext),
+        patch("app.features.maintenance.mcp_tools.async_session_factory", side_effect=TestSessionContext),
     ):
         yield
 
 
-async def test_maintenance_mcp_household_isolation(db_session: AsyncSession, set_mcp_context):
-    """Verify maintenance MCP tools enforce household_id isolation."""
-    hh1 = Household(name="Household One")
-    hh2 = Household(name="Household Two")
-    db_session.add(hh1)
-    db_session.add(hh2)
-    await db_session.commit()
-    await db_session.refresh(hh1)
-    await db_session.refresh(hh2)
-
-    assert hh1.id is not None
-    assert hh2.id is not None
-    hh1_id: int = hh1.id
-    hh2_id: int = hh2.id
+async def test_maintenance_mcp_household_isolation(db_session: AsyncSession):
+    """Verify maintenance MCP tools only see the household from the MCP context (UUID, never LLM-supplied)."""
+    hh1_id = uuid.uuid4()
+    hh2_id = uuid.uuid4()
 
     dev1 = Device(
         name="Fridge A",
@@ -77,32 +59,58 @@ async def test_maintenance_mcp_household_isolation(db_session: AsyncSession, set
     await db_session.commit()
     await db_session.refresh(dev1)
     await db_session.refresh(dev2)
-
     assert dev1.id is not None
-    assert dev2.id is not None
     dev1_id: int = dev1.id
 
-    # Test with household 1 context
-    set_mcp_context("test-user-1", hh1_id)
+    overdue_step = MaintenanceStep(
+        title="Defrost",
+        recurrence=6,
+        device_id=dev1_id,
+        supply_needed_date=(date.today() - timedelta(days=3)).isoformat(),
+    )
+    db_session.add(overdue_step)
+    await db_session.commit()
+    await db_session.refresh(overdue_step)
+    assert overdue_step.id is not None
 
-    # list_devices
-    res1 = await list_devices()
+    with mcp_household_context(household_id=hh1_id, sub="test-user-1"):
+        res1 = await list_devices()
+        status1 = await get_device_status(device_name="Fridge")
+        detail_ok = await get_device_detail(device_id=dev1_id)
+        summary1 = await get_maintenance_summary_tool()
+        overdue1 = await list_overdue_tasks()
+
     assert res1["total"] == 1
     assert res1["devices"][0]["name"] == "Fridge A"
+    assert res1["devices"][0]["household_id"] == str(hh1_id)
 
-    # get_device_status
-    status1 = await get_device_status(device_name="Fridge")
     assert status1["found"] is True
-    assert len(status1["devices"]) == 1
-    assert status1["devices"][0]["name"] == "Fridge A"
+    assert [d["name"] for d in status1["devices"]] == ["Fridge A"]
 
-    # get_device_detail - should succeed with correct household
-    detail_ok = await get_device_detail(device_id=dev1_id)
     assert "error" not in detail_ok
     assert detail_ok["name"] == "Fridge A"
 
-    # get_device_detail cross-tenant rejection - switch to household 2 context
-    set_mcp_context("test-user-2", hh2_id)
-    detail_cross = await get_device_detail(device_id=dev1_id)
+    assert summary1["summaries"][0]["household_id"] == str(hh1_id)
+    assert summary1["summaries"][0]["total_devices"] == 1
+
+    assert [t["step_id"] for t in overdue1["tasks"]] == [overdue_step.id]
+
+    # Cross-tenant: household 2 cannot read or modify household 1's device/steps
+    with mcp_household_context(household_id=hh2_id, sub="test-user-2"):
+        detail_cross = await get_device_detail(device_id=dev1_id)
+        overdue_cross = await list_overdue_tasks()
+        update_cross = await update_task_state_tool(step_id=overdue_step.id, comment="hijack")
+
     assert "error" in detail_cross
     assert "not authorized" in detail_cross["error"]
+    assert overdue_cross["total_overdue"] == 0
+    assert update_cross["success"] is False
+
+    await db_session.refresh(overdue_step)
+    assert overdue_step.description != "hijack"
+
+
+async def test_mcp_tools_without_household_context_refuse():
+    """Without MCPAuthenticationMiddleware there is no context, and tools return an error instead of guessing."""
+    result = await list_devices()
+    assert "Household context not found" in result["error"]

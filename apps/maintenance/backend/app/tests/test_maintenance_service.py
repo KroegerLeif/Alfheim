@@ -1,7 +1,8 @@
+import uuid
 from datetime import date, timedelta
 
 import pytest
-from app.features.devices.models import Device, Household
+from app.features.devices.models import Device
 from app.features.maintenance.exceptions import WizardValidationError
 from app.features.maintenance.schemas import WizardSessionPayload, WizardStepEntry
 from app.features.maintenance.service import MaintenanceService
@@ -41,14 +42,9 @@ async def db_session_isolated():
 
 @pytest.mark.asyncio
 async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession):
-    # 1. Create Household and Device
+    # 1. Create a Device in a household owned by core/household
     db_session = db_session_isolated
-    h1 = Household(name="Lake House")
-    db_session.add(h1)
-    await db_session.commit()
-    await db_session.refresh(h1)
-
-    assert h1.id is not None
+    h1_id = uuid.uuid4()
     d1 = Device(
         name="HVAC",
         model="AC-100",
@@ -56,7 +52,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
         category="climate",
         location="basement",
         status="active",
-        household_id=h1.id,
+        household_id=h1_id,
     )
     db_session.add(d1)
     await db_session.commit()
@@ -78,7 +74,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
     assert s2.id is not None
 
     # 3. Check Summary
-    summaries = await MaintenanceService.get_maintenance_summary(db_session, household_id=h1.id)
+    summaries = await MaintenanceService.get_maintenance_summary(db_session, household_id=h1_id)
     assert len(summaries) == 1
     assert summaries[0].total_overdue == 1  # s1 is overdue
     assert summaries[0].total_ok == 1  # s2 is ok (20 days > 14 days)
@@ -91,7 +87,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
         completed_steps=[WizardStepEntry(step_id=s1.id, comment="Used generic brand")],
         supply_items_to_order=[],
     )
-    result = await MaintenanceService.submit_wizard_session(db_session, payload)
+    result = await MaintenanceService.submit_wizard_session(db_session, payload, household_id=h1_id)
     assert result.completed_step_count == 1
 
     # Verify DB update
@@ -111,11 +107,7 @@ async def test_maintenance_summary_and_wizard(db_session_isolated: AsyncSession)
 @pytest.mark.asyncio
 async def test_wizard_validation_error(db_session_isolated: AsyncSession):
     db_session = db_session_isolated
-    h1 = Household(name="House")
-    db_session.add(h1)
-    await db_session.commit()
-    await db_session.refresh(h1)
-    assert h1.id is not None
+    h1_id = uuid.uuid4()
 
     d1 = Device(
         name="Pump",
@@ -124,7 +116,7 @@ async def test_wizard_validation_error(db_session_isolated: AsyncSession):
         category="water",
         location="yard",
         status="active",
-        household_id=h1.id,
+        household_id=h1_id,
     )
     db_session.add(d1)
     await db_session.commit()
@@ -138,4 +130,4 @@ async def test_wizard_validation_error(db_session_isolated: AsyncSession):
     )
 
     with pytest.raises(WizardValidationError):
-        await MaintenanceService.submit_wizard_session(db_session, payload)
+        await MaintenanceService.submit_wizard_session(db_session, payload, household_id=h1_id)

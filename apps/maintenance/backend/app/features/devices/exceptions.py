@@ -13,9 +13,3 @@ class DeviceNotFoundError(DeviceError):
     """Raised when a requested device is not found in the database."""
 
     pass
-
-
-class HouseholdNotFoundError(DeviceError):
-    """Raised when a referenced household does not exist."""
-
-    pass

@@ -6,6 +6,7 @@ import importlib
 import pathlib
 from contextlib import asynccontextmanager
 
+from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -46,11 +47,15 @@ async def lifespan(app: FastAPI):
         async with mcp_server.lifespan():
             yield
     finally:
+        await close_membership_client()
         # Gracefully flush and shutdown OpenTelemetry providers on shutdown
         from backend_shared.telemetry import shutdown_telemetry
 
         shutdown_telemetry()
 
+
+# Household membership is authorized by the household app; register OIDC settings and validate env.
+configure_household_auth(settings)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

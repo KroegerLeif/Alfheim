@@ -1,28 +1,18 @@
-"""Authentication and tenant isolation dependencies for maintenance service."""
+"""Household-scoped request dependencies for the maintenance service.
 
-from typing import Any
+Households, memberships and roles are owned by the household app (``core/household``).
+:func:`backend_shared.household.require_household` validates the JWT, reads the UUID
+``X-Household-ID`` header and confirms membership through the household app's internal
+membership API.
+"""
 
-import backend_shared.dependencies as _deps
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import Request
 
-from app.core.config import settings
 
-SAFE_TEST_HOSTS = _deps.SAFE_TEST_HOSTS
-SAFE_TEST_SUFFIXES = _deps.SAFE_TEST_SUFFIXES
-UserHouseholdContext = _deps.UserHouseholdContext
-
-
-def is_mock_auth_allowed() -> bool:
-    return _deps.is_mock_auth_allowed(settings=settings)
+def get_authorization(request: Request) -> str | None:
+    """Return the caller's ``Authorization`` header so downstream service calls act on their behalf."""
+    return request.headers.get("Authorization")
 
 
-def get_jwks_client(jwks_url: str):
-    return _deps.get_jwks_client(jwks_url)
-
-
-def decode_oidc_token(token: str) -> dict[str, Any]:
-    return _deps.decode_oidc_token(token, settings=settings)
-
-
-async def get_current_user_and_household(request: Request) -> UserHouseholdContext:
-    return await _deps.get_current_user_and_household(request, settings=settings)
+__all__ = ["HouseholdContext", "get_authorization", "require_household"]

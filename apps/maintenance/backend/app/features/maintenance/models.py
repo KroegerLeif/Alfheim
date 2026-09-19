@@ -9,7 +9,7 @@ keeps the FDD boundary explicit.
 """
 
 # Re-export the full device entity for use in maintenance orchestration logic.
-from app.features.devices.models import Device, Household  # noqa: F401
+from app.features.devices.models import Device  # noqa: F401
 
 # Re-export task-related entities used across the maintenance wizard flow.
 from app.features.tasks.models import MaintenanceStep, ServiceHistoryEvent  # noqa: F401
