@@ -19,3 +19,4 @@ sidebar:
 | [`0003`](./0003-migrate-from-keycloak-to-zitadel.md) | Migration von Keycloak zu Zitadel | Akzeptiert | 2026-03-01 | Übernehme Zitadel für Identität & AuthN; behalte Haushalt AuthZ in Alfheim Core. |
 | [`0004`](./0004-standalone-go-tui-installer.md) | Standalone-Installer als typiertes Go-TUI | Akzeptiert | 2026-09-12 | Übernehme einen Go + Charm `huh`-Installer unter `tools/installer`; entkopple Zitadel-Bootstrapping in zwei Phasen. |
 | [`0005`](./0005-starlight-docs-portal.md) | Astro-Starlight-Dokumentations-Portal mit i18n | Akzeptiert | 2026-09-12 | Rendere den Diátaxis-Korpus als durchsuchbaren Portal; Englisch-Standard, Deutsch-Fallback. |
+| [`0006`](./0006-household-authorization-via-membership-api.md) | Haushalts-Autorisierung über die Mitgliedschafts-API | Akzeptiert | 2026-09-19 | Backends prüfen `X-Household-ID` über die Mitgliedschafts-API von `core/household`; keine Haushalts-Claims im Token. |
