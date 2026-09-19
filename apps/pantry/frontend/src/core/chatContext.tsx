@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { ChatWidgetContext } from "@alfheim/shared";
+import React, { createContext, useContext, useState } from "react";
+import { ChatWidgetContext, useOptionalActiveHousehold } from "@alfheim/shared";
 
 export interface PantryChatContextType {
   isChatOpen: boolean;
@@ -28,22 +28,7 @@ export const PantryChatContext = createContext<PantryChatContextType>({
 export function PantryChatProvider({ children }: { children: React.ReactNode }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatContext, setChatContext] = useState<ChatWidgetContext>(DEFAULT_PANTRY_CONTEXT);
-  const [householdId, setHouseholdId] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const readHouseholdId = () => {
-      const active = localStorage.getItem("alfheim_active_household_id");
-      setHouseholdId(active || undefined);
-    };
-
-    readHouseholdId();
-    window.addEventListener("storage-household-changed", readHouseholdId);
-    return () => {
-      window.removeEventListener("storage-household-changed", readHouseholdId);
-    };
-  }, []);
+  const householdId = useOptionalActiveHousehold()?.householdId ?? undefined;
 
   const openChat = (customContext?: Partial<ChatWidgetContext>) => {
     setChatContext({

@@ -5,6 +5,8 @@ import { getMessages } from "next-intl/server";
 import {
   AppShell,
   AuthGuard,
+  HouseholdGate,
+  HouseholdProvider,
   LanguageProvider,
   ThemeProvider,
 } from "@alfheim/shared";
@@ -61,11 +63,15 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           <NextIntlClientProvider locale={locale} messages={messages}>
             <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
-                <Providers>
-                  <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
-                    <div className="p-6">{children}</div>
-                  </AppShell>
-                </Providers>
+                <HouseholdProvider>
+                  <Providers>
+                    <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
+                      <HouseholdGate>
+                        <div className="p-6">{children}</div>
+                      </HouseholdGate>
+                    </AppShell>
+                  </Providers>
+                </HouseholdProvider>
               </ThemeProvider>
             </LanguageProvider>
           </NextIntlClientProvider>

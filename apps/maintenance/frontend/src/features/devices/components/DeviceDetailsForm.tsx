@@ -24,8 +24,8 @@ interface DeviceDetailsFormProps {
   setDeviceStatus: (v: string) => void;
   intervalMonths: number;
   setIntervalMonths: (v: number) => void;
-  selectedHouseholdId: number;
-  setSelectedHouseholdId: (v: number) => void;
+  selectedHouseholdId: string;
+  setSelectedHouseholdId: (v: string) => void;
   notes: string;
   setNotes: (v: string) => void;
   households: Household[];
@@ -131,7 +131,7 @@ export function DeviceDetailsForm({
         <div className="relative">
           <select
             value={selectedHouseholdId}
-            onChange={(e) => setSelectedHouseholdId(Number(e.target.value))}
+            onChange={(e) => setSelectedHouseholdId(e.target.value)}
             className="w-full appearance-none p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all pr-8"
           >
             {householdList.map((h) => (

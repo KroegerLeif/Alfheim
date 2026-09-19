@@ -12,10 +12,12 @@ interface ShoppingErrorBannerProps {
 export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingErrorBannerProps) {
   const errT = useTranslations("Error");
 
+  const status = (listsErrObj as ApiError | null)?.status;
+  // Only 401 means the session is gone. Household 400/403/503 codes are
+  // handled by the shared HouseholdGate; any other 403 is a permission issue.
   const isAuthError =
-    (listsErrObj as ApiError | null)?.status === 401 ||
-    (listsErrObj as ApiError | null)?.status === 403 ||
-    (listsErrObj instanceof Error && listsErrObj.message.includes("401"));
+    status === 401 || (listsErrObj instanceof Error && listsErrObj.message.includes("401"));
+  const isForbidden = !isAuthError && status === 403;
 
   const handleLogin = () => {
     if (typeof window !== "undefined") {
@@ -35,11 +37,13 @@ export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingError
           <ShoppingCart className="h-6 w-6" />
         </div>
         <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
-          {isAuthError ? errT("sessionExpired") : errT("fetchFailed")}
+          {isAuthError ? errT("sessionExpired") : isForbidden ? errT("forbidden") : errT("fetchFailed")}
         </h2>
         <p className="text-xs text-muted-foreground">
           {isAuthError
             ? errT("sessionExpiredDesc")
+            : isForbidden
+            ? errT("forbiddenDesc")
             : listsErrObj instanceof Error
             ? listsErrObj.message
             : errT("fetchFailedDesc")}

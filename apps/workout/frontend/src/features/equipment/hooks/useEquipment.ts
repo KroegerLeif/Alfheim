@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useActiveHouseholdId } from "@/core/hooks/useActiveHouseholdId";
+import { useActiveHousehold } from "@alfheim/shared";
 import { equipmentApi } from "../api/equipmentApi";
 import type {
   EquipmentCreate,
@@ -23,27 +23,28 @@ export const equipmentKeys = {
 };
 
 export function useEquipmentList(params: EquipmentListParams = {}) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<EquipmentRead[]>({
     queryKey: equipmentKeys.list(householdId, params),
     queryFn: () => equipmentApi.list(params),
+    enabled: status === "ready",
   });
 }
 
 export function useEquipmentDetail(id: string) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<EquipmentRead>({
     queryKey: equipmentKeys.detail(householdId, id),
     queryFn: () => equipmentApi.get(id),
-    enabled: Boolean(id),
+    enabled: status === "ready" && Boolean(id),
   });
 }
 
 export function useCreateEquipment() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<EquipmentRead, Error, EquipmentCreate>({
     mutationFn: (payload) => equipmentApi.create(payload),
@@ -55,7 +56,7 @@ export function useCreateEquipment() {
 
 export function useUpdateEquipment() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<EquipmentRead, Error, { id: string; payload: EquipmentUpdate }>({
     mutationFn: ({ id, payload }) => equipmentApi.update(id, payload),
@@ -67,7 +68,7 @@ export function useUpdateEquipment() {
 
 export function useDeleteEquipment() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<void, Error, string>({
     mutationFn: (id) => equipmentApi.remove(id),

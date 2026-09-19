@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { AuthGuard } from '@alfheim/shared';
+import { AuthGuard, HouseholdProvider } from '@alfheim/shared';
 import { LanguageProvider, ThemeProvider, QueryProvider } from '@/core/providers';
 import { Sidebar } from '@/shared/components/Sidebar';
 import { Header } from '@/shared/components/Header';
@@ -64,16 +64,19 @@ export default function RootLayout({
             <LanguageProvider defaultLanguage="de">
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
                 <QueryProvider>
-                  <div className="flex h-screen w-full overflow-hidden">
-                    <Sidebar />
-                    <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative">
-                      <Header />
-                      <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-8 stitch-grid">
-                        {children}
-                      </main>
-                      <BottomNavBar />
+                  {/* Launcher: not household-scoped, only the header switcher uses this. */}
+                  <HouseholdProvider>
+                    <div className="flex h-screen w-full overflow-hidden">
+                      <Sidebar />
+                      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative">
+                        <Header />
+                        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-8 stitch-grid">
+                          {children}
+                        </main>
+                        <BottomNavBar />
+                      </div>
                     </div>
-                  </div>
+                  </HouseholdProvider>
                 </QueryProvider>
               </ThemeProvider>
             </LanguageProvider>

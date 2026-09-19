@@ -1,8 +1,17 @@
 import ky from "ky";
-import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
+import {
+  resolveApiUrl,
+  resolveFrontendUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  applyHouseholdHeaders,
+  reportHouseholdErrorResponse,
+  parseApiErrorBody,
+} from "@alfheim/shared";
 
 export interface ApiError {
   status?: number;
+  /** Backend error code, e.g. `household_role_forbidden`. */
+  code?: string;
   message: string;
 }
 
@@ -39,11 +48,14 @@ const PANTRY_API_URL =
  * Normalizes HTTP error payloads from FastAPI and throws custom ApiError objects.
  */
 const handleResponseError = async (response: Response) => {
+  let code: string | undefined;
   let message = "shopping.error.unrecognized_error";
   try {
     const data = await response.json();
-    // Support FastAPI standard details or direct translatable strings
-    message = data?.detail || data?.message || message;
+    // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
+    const parsed = parseApiErrorBody(data);
+    code = parsed.code ?? undefined;
+    message = parsed.message || message;
   } catch {
     // Fallback if response body is not JSON
     message = response.statusText || message;
@@ -51,6 +63,7 @@ const handleResponseError = async (response: Response) => {
 
   throw {
     status: response.status,
+    code,
     message,
   } as ApiError;
 };
@@ -61,10 +74,7 @@ const beforeRequestHook = (request: Request) => {
     if (token) {
       request.headers.set("Authorization", `Bearer ${token}`);
     }
-    const activeHhId = localStorage.getItem("alfheim_active_household_id");
-    if (activeHhId) {
-      request.headers.set("X-Household-ID", activeHhId);
-    }
+    applyHouseholdHeaders(request.headers);
   }
 };
 
@@ -91,6 +101,7 @@ const afterResponseHook = async (
       }
     }
   }
+  await reportHouseholdErrorResponse(response);
   if (!response.ok) {
     await handleResponseError(response);
   }

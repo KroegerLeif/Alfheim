@@ -6,7 +6,7 @@ import { ClientHeader } from '@/components/shared/ClientHeader';
 import { PantryChatOverlay } from '@/components/shared/PantryChatOverlay';
 import { ProductList } from '@/features/products/components/ProductList';
 import { InventoryTableRow } from '@/features/inventory/components/InventoryTableRow';
-import { LanguageProvider, ThemeProvider } from '@alfheim/shared';
+import { LanguageProvider, StaticHouseholdProvider, ThemeProvider } from '@alfheim/shared';
 
 describe('Pantry ALFI Chat Integration', () => {
   beforeEach(() => {
@@ -44,15 +44,19 @@ describe('Pantry ALFI Chat Integration', () => {
     expect(within(sidePanel).getByText('pantry')).toBeInTheDocument();
   });
 
-  it('provides householdId from localStorage to ChatContext', () => {
-    localStorage.setItem('alfheim_active_household_id', 'hh-test-456');
-
+  it('provides the active household id from the shared household context', () => {
     function TestConsumer() {
       const { householdId } = usePantryChat();
       return <div data-testid="hh-val">{householdId}</div>;
     }
 
-    renderWithProviders(<TestConsumer />);
+    renderWithProviders(
+      <StaticHouseholdProvider householdId="hh-test-456">
+        <PantryChatProvider>
+          <TestConsumer />
+        </PantryChatProvider>
+      </StaticHouseholdProvider>
+    );
     expect(screen.getByTestId('hh-val').textContent).toBe('hh-test-456');
   });
 

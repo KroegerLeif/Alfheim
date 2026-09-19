@@ -1,19 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useActiveHousehold } from "@alfheim/shared";
 import { pantryClient } from "@/core/api";
 import { ProductRead, ProductCreate } from "@/features/products/types";
 
 export const productKeys = {
+  /** Prefix for invalidation across every household. */
   all: ["products"] as const,
-  search: (name?: string) => [...productKeys.all, "search", { name }] as const,
-  barcode: (barcode: string) => [...productKeys.all, "barcode", barcode] as const,
+  list: (householdId: string | null) => [...productKeys.all, { householdId }] as const,
+  search: (householdId: string | null, name?: string) =>
+    [...productKeys.list(householdId), "search", { name }] as const,
+  barcode: (householdId: string | null, barcode: string) =>
+    [...productKeys.list(householdId), "barcode", barcode] as const,
 };
 
 /**
  * Hook to search products by name.
  */
 export function useSearchProducts(name?: string) {
+  const { householdId, status } = useActiveHousehold();
   return useQuery<ProductRead[]>({
-    queryKey: productKeys.search(name),
+    queryKey: productKeys.search(householdId, name),
     queryFn: () =>
       pantryClient
         .get("api/v1/products", {
@@ -23,7 +29,7 @@ export function useSearchProducts(name?: string) {
           },
         })
         .json<ProductRead[]>(),
-    enabled: name !== undefined && name.trim().length > 0,
+    enabled: status === "ready" && name !== undefined && name.trim().length > 0,
   });
 }
 
@@ -31,13 +37,14 @@ export function useSearchProducts(name?: string) {
  * Hook to resolve a product by its barcode.
  */
 export function useProductByBarcode(barcode: string, enabled = true) {
+  const { householdId, status } = useActiveHousehold();
   return useQuery<ProductRead>({
-    queryKey: productKeys.barcode(barcode),
+    queryKey: productKeys.barcode(householdId, barcode),
     queryFn: () =>
       pantryClient
         .get(`api/v1/products/barcode/${barcode}`)
         .json<ProductRead>(),
-    enabled: enabled && barcode.trim().length > 0,
+    enabled: status === "ready" && enabled && barcode.trim().length > 0,
     retry: false, // Don't retry since barcode lookup can fail on non-existent items
   });
 }
@@ -46,12 +53,14 @@ export function useProductByBarcode(barcode: string, enabled = true) {
  * Hook to retrieve all products visible to the home space.
  */
 export function useProducts() {
+  const { householdId, status } = useActiveHousehold();
   return useQuery<ProductRead[]>({
-    queryKey: productKeys.all,
+    queryKey: productKeys.list(householdId),
     queryFn: () =>
       pantryClient
         .get("api/v1/products")
         .json<ProductRead[]>(),
+    enabled: status === "ready",
   });
 }
 

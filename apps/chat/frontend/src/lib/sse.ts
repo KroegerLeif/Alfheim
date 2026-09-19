@@ -1,4 +1,5 @@
 import type { ApiErrorPayload } from "@/features/conversations/types";
+import { reportHouseholdErrorResponse } from "@alfheim/shared";
 
 export interface StreamHandlers {
   onDelta: (text: string) => void;
@@ -33,6 +34,7 @@ export async function streamAssistantReply(
   }
 
   if (!res.ok || !res.body) {
+    await reportHouseholdErrorResponse(res);
     let message = `Failed to open stream (status ${res.status})`;
     try {
       const payload: ApiErrorPayload = await res.json();

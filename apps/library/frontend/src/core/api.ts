@@ -1,5 +1,11 @@
 import ky from "ky";
-import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
+import {
+  resolveApiUrl,
+  resolveFrontendUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  applyHouseholdHeaders,
+  reportHouseholdErrorResponse,
+} from "@alfheim/shared";
 
 const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
   let resolved = resolveApiUrl(defaultFallback, url);
@@ -38,12 +44,7 @@ export const libraryClient = ky.create({
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
-          const activeHhId = localStorage.getItem(
-            "alfheim_active_household_id"
-          );
-          if (activeHhId) {
-            request.headers.set("X-Household-ID", activeHhId);
-          }
+          applyHouseholdHeaders(request.headers);
         }
       },
     ],
@@ -63,6 +64,7 @@ export const libraryClient = ky.create({
             }
           }
         }
+        await reportHouseholdErrorResponse(response);
       },
     ],
   },

@@ -99,6 +99,8 @@
     "sessionExpired": "Sitzung abgelaufen",
     "sessionExpiredDesc": "Ihr Sicherheitstoken ist abgelaufen oder ungültig. Bitte melden Sie sich erneut über Zitadel an.",
     "logIn": "Anmelden",
-    "retry": "Wiederholen"
+    "retry": "Wiederholen",
+    "forbidden": "Kein Zugriff",
+    "forbiddenDesc": "Du hast keine Berechtigung, die Einkaufslisten im ausgewählten Haushalt anzuzeigen."
   }
 }

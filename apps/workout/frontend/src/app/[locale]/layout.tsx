@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AppShell, AuthGuard, LanguageProvider, ThemeProvider } from "@alfheim/shared";
+import { AppShell, AuthGuard, LanguageProvider, ThemeProvider, HouseholdProvider, HouseholdGate } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ClientHeader } from "@/components/shared/ClientHeader";
@@ -52,14 +52,18 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           <NextIntlClientProvider locale={locale} messages={messages}>
             <LanguageProvider defaultLanguage={locale === "en" || locale === "pl" ? locale : "de"}>
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
-                <Providers>
-                  {/* Sidebar is desktop-only; the bottom nav takes over below md.
-                      pb-20 reserves room for the fixed bar so it never covers content. */}
-                  <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
-                    <div className="p-4 pb-20 md:p-6 md:pb-6">{children}</div>
-                  </AppShell>
-                  <WorkoutBottomNav />
-                </Providers>
+                <HouseholdProvider>
+                  <Providers>
+                    {/* Sidebar is desktop-only; the bottom nav takes over below md.
+                        pb-20 reserves room for the fixed bar so it never covers content. */}
+                    <AppShell header={<ClientHeader />} sidebar={<Sidebar />}>
+                      <HouseholdGate>
+                        <div className="p-4 pb-20 md:p-6 md:pb-6">{children}</div>
+                      </HouseholdGate>
+                    </AppShell>
+                    <WorkoutBottomNav />
+                  </Providers>
+                </HouseholdProvider>
               </ThemeProvider>
             </LanguageProvider>
           </NextIntlClientProvider>

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import React, { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StaticHouseholdProvider } from "@alfheim/shared";
 import { useProviders } from "../hooks/useProviders";
 import * as providersApi from "../api/providersApi";
 import { ProviderSubscription } from "../types";
@@ -29,7 +30,12 @@ function createWrapper() {
     },
   });
   const Wrapper = ({ children }: { children: ReactNode }) => {
-    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    const Household = StaticHouseholdProvider as React.FC<{ householdId: string; children?: ReactNode }>;
+    return React.createElement(
+      Household,
+      { householdId: "hh-1" },
+      React.createElement(QueryClientProvider, { client: queryClient }, children),
+    );
   };
   return Wrapper;
 }

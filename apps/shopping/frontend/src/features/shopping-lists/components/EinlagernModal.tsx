@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { useActiveHousehold } from "@alfheim/shared";
 import type { UnrecognizedShoppingItem } from "../types";
 import {
   useCreatePantryProduct,
@@ -21,6 +22,7 @@ interface EinlagernModalProps {
 export function EinlagernModal({ listId, initialItems = [], onClose }: EinlagernModalProps) {
   const t = useTranslations("Modal");
 
+  const { householdId: activeHouseholdId } = useActiveHousehold();
   const { data: householdsData } = useHouseholds();
   const households = useMemo(() => householdsData ?? [], [householdsData]);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>("");
@@ -28,10 +30,9 @@ export function EinlagernModal({ listId, initialItems = [], onClose }: Einlagern
   const resolvedHouseholdId = useMemo(() => {
     if (selectedHouseholdId) return selectedHouseholdId;
     if (households.length === 0) return "";
-    const activeHhId = typeof window !== "undefined" ? localStorage.getItem("alfheim_active_household_id") : null;
-    const matched = households.find((h) => h.id === activeHhId);
+    const matched = households.find((h) => h.id === activeHouseholdId);
     return matched ? matched.id : households[0].id;
-  }, [selectedHouseholdId, households]);
+  }, [selectedHouseholdId, households, activeHouseholdId]);
 
   const [items, setItems] = useState<LocalStateItem[]>(() =>
     (initialItems ?? []).map((i) => ({

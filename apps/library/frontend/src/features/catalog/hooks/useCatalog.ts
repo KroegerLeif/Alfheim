@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useActiveHousehold } from "@alfheim/shared";
 import { useMemo, useState } from "react";
 import { fetchCatalogItems, fetchLocations } from "../api/catalogApi";
 import { CategoryTab, LocationItem } from "../types";
 
 export function useCatalog() {
+  const { householdId, status } = useActiveHousehold();
   const [category, setCategory] = useState<CategoryTab>("ALL");
   const [query, setQuery] = useState<string>("");
   const [isCookbook, setIsCookbook] = useState<boolean>(false);
@@ -20,13 +22,15 @@ export function useCatalog() {
   );
 
   const itemsQuery = useQuery({
-    queryKey: ["catalog-items", filters],
+    queryKey: ["catalog-items", { householdId }, filters],
     queryFn: () => fetchCatalogItems(filters),
+    enabled: status === "ready",
   });
 
   const locationsQuery = useQuery({
-    queryKey: ["locations"],
+    queryKey: ["locations", { householdId }],
     queryFn: fetchLocations,
+    enabled: status === "ready",
   });
 
   const locationsMap = useMemo(() => {

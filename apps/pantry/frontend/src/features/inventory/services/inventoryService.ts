@@ -1,45 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { resolveApiUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
+import {
+  resolveApiUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  householdHeaders,
+  useActiveHousehold,
+} from "@alfheim/shared";
 import { pantryClient } from "@/core/api";
 import {
   InventoryStateReadWithRelations,
   LowStockItem,
   ExpirationSummary,
 } from "../types";
-import { useState, useEffect } from "react";
 
 export {
   useCreateTransaction,
   useLedgerHistory,
 } from "./inventoryLedgerService";
-
-export function useActiveHouseholdId() {
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setActiveId(localStorage.getItem("alfheim_active_household_id"));
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "alfheim_active_household_id") {
-        setActiveId(e.newValue);
-      }
-    };
-
-    const handleLocalChange = () => {
-      setActiveId(localStorage.getItem("alfheim_active_household_id"));
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("storage-household-changed", handleLocalChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("storage-household-changed", handleLocalChange);
-    };
-  }, []);
-
-  return activeId;
-}
 
 export const inventoryKeys = {
   all: (householdId: string | null) => ["inventory", { householdId }] as const,
@@ -58,7 +34,7 @@ export const inventoryKeys = {
  * Retrieves the real-time cached inventory levels, optionally filtered by product and location.
  */
 export function useInventoryState(productId?: string, locationId?: string) {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<InventoryStateReadWithRelations[]>({
     queryKey: inventoryKeys.stateFiltered(activeHouseholdId, productId, locationId),
@@ -71,6 +47,7 @@ export function useInventoryState(productId?: string, locationId?: string) {
           },
         })
         .json<InventoryStateReadWithRelations[]>(),
+    enabled: status === "ready",
   });
 }
 
@@ -79,7 +56,7 @@ export function useInventoryState(productId?: string, locationId?: string) {
  * Retrieves inventory products that have fallen below their minimum stock thresholds.
  */
 export function useLowStockItems() {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<LowStockItem[]>({
     queryKey: inventoryKeys.lowStock(activeHouseholdId),
@@ -87,6 +64,7 @@ export function useLowStockItems() {
       pantryClient
         .get("api/v1/inventory/low-stock")
         .json<LowStockItem[]>(),
+    enabled: status === "ready",
   });
 }
 
@@ -95,7 +73,7 @@ export function useLowStockItems() {
  * Retrieves summary of inventory items categorized by their expiration status.
  */
 export function useExpirationSummary() {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<ExpirationSummary>({
     queryKey: inventoryKeys.expirationSummary(activeHouseholdId),
@@ -103,6 +81,7 @@ export function useExpirationSummary() {
       pantryClient
         .get("api/v1/inventory/expiration-summary")
         .json<ExpirationSummary>(),
+    enabled: status === "ready",
   });
 }
 
@@ -126,6 +105,7 @@ export async function pushLowStockToShoppingApp(): Promise<{ success: boolean; p
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...householdHeaders(),
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;

@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
-import { useActiveHouseholdId } from "./choresService";
+import {
+  resolveFrontendUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  householdHeaders,
+  useActiveHousehold,
+} from "@alfheim/shared";
 
 const getApiUrl = (path: string) => {
   if (typeof window !== "undefined") {
@@ -20,7 +24,7 @@ export interface MaintenanceIntegrationData {
 }
 
 export function useShoppingIntegration() {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<ShoppingIntegrationData>({
     queryKey: ["integrations", "shopping", activeHouseholdId],
@@ -30,7 +34,7 @@ export function useShoppingIntegration() {
         "Content-Type": "application/json",
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      if (activeHouseholdId) headers["X-Household-ID"] = activeHouseholdId;
+      Object.assign(headers, householdHeaders(activeHouseholdId));
 
       const url = getApiUrl("/api/v1/shopping-lists");
       const res = await fetch(url, { headers });
@@ -52,11 +56,12 @@ export function useShoppingIntegration() {
       return { pendingCount, totalLists };
     },
     staleTime: 30000,
+    enabled: status === "ready",
   });
 }
 
 export function useMaintenanceIntegration() {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<MaintenanceIntegrationData>({
     queryKey: ["integrations", "maintenance", activeHouseholdId],
@@ -66,7 +71,7 @@ export function useMaintenanceIntegration() {
         "Content-Type": "application/json",
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      if (activeHouseholdId) headers["X-Household-ID"] = activeHouseholdId;
+      Object.assign(headers, householdHeaders(activeHouseholdId));
 
       const url = getApiUrl("/api/v1/maintenance/summary");
       const res = await fetch(url, { headers });
@@ -86,5 +91,6 @@ export function useMaintenanceIntegration() {
       return { dueCount, totalDevices };
     },
     staleTime: 30000,
+    enabled: status === "ready",
   });
 }
