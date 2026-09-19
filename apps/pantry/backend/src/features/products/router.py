@@ -1,12 +1,9 @@
 import uuid
 
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import (
-    UserHomeContext,
-    get_current_user_and_home,
-)
 from src.features.products import (
     ProductCreate,
     ProductNutritionRead,
@@ -25,13 +22,13 @@ off_client = OpenFoodFactsClient()
 async def create_product(
     payload: ProductCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create a new product blueprint."""
     return await ProductService.create_product(
         session=session,
         payload=payload,
-        home_id=context.home_id,
+        home_id=context.household_id,
         is_global=False,
     )
 
@@ -44,7 +41,7 @@ async def list_products(
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """List and search all products (global + personal) visible to the home space.
 
@@ -52,7 +49,7 @@ async def list_products(
     """
     return await ProductService.list_products(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         name=name,
         barcode=barcode,
         category_id=category_id,
@@ -65,7 +62,7 @@ async def list_products(
 async def get_product_by_barcode(
     barcode: str,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve or auto-ingest a product blueprint using its barcode.
 
@@ -74,7 +71,7 @@ async def get_product_by_barcode(
     product = await ProductService.get_or_create_by_barcode(
         session=session,
         barcode=barcode,
-        home_id=context.home_id,
+        home_id=context.household_id,
         off_client=off_client,
     )
     if not product:
@@ -89,13 +86,13 @@ async def get_product_by_barcode(
 async def get_product(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve details of a specific product by ID."""
     product = await ProductService.get_product(
         session=session,
         product_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
     if not product:
         raise HTTPException(
@@ -110,7 +107,7 @@ async def update_product(
     id: uuid.UUID,
     payload: ProductUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Partially update an existing product blueprint.
 
@@ -119,7 +116,7 @@ async def update_product(
     product = await ProductService.update_product(
         session=session,
         product_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         payload=payload,
     )
     if not product:
@@ -134,7 +131,7 @@ async def update_product(
 async def delete_product(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Delete a custom product blueprint.
 
@@ -143,7 +140,7 @@ async def delete_product(
     deleted = await ProductService.delete_product(
         session=session,
         product_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
     if not deleted:
         raise HTTPException(
@@ -156,13 +153,13 @@ async def delete_product(
 async def get_product_nutrition(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Fetch nutritional details of a product on-demand."""
     nutrition = await ProductService.get_product_nutrition(
         session=session,
         product_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
     if not nutrition:
         raise HTTPException(
@@ -177,7 +174,7 @@ async def update_product_nutrition(
     id: uuid.UUID,
     payload: ProductNutritionUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Update or add nutritional details of a custom product blueprint.
 
@@ -186,7 +183,7 @@ async def update_product_nutrition(
     nutrition = await ProductService.update_product_nutrition(
         session=session,
         product_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         payload=payload,
     )
     if not nutrition:

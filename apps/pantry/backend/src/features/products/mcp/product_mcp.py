@@ -1,5 +1,6 @@
 import uuid
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 from src.features.products.service import ProductService
 from src.mcp.server import mcp
@@ -9,18 +10,17 @@ off_client = OpenFoodFactsClient()
 
 @mcp.tool()
 async def list_products(
-    household_id: str,
     name: str | None = None,
     barcode: str | None = None,
     category_id: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> str:
-    """Search and list product blueprints visible to the household space."""
+    """Search and list product blueprints visible to the caller's household (resolved from the authenticated session)."""
     try:
         from src.features.products.mcp_tools import async_session_factory
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         cat_uuid = uuid.UUID(category_id) if category_id else None
         async with async_session_factory() as session:
             products = await ProductService.list_products(
@@ -55,12 +55,12 @@ async def list_products(
 
 
 @mcp.tool()
-async def get_product(household_id: str, product_id: str) -> str:
+async def get_product(product_id: str) -> str:
     """Retrieve detailed metadata for a specific product by ID."""
     try:
         from src.features.products.mcp_tools import async_session_factory
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         prod_uuid = uuid.UUID(product_id)
         async with async_session_factory() as session:
             prod = await ProductService.get_product(
@@ -92,12 +92,12 @@ async def get_product(household_id: str, product_id: str) -> str:
 
 
 @mcp.tool()
-async def get_product_by_barcode(household_id: str, barcode: str) -> str:
+async def get_product_by_barcode(barcode: str) -> str:
     """Retrieve a product by barcode (auto-ingests from Open Food Facts on local miss)."""
     try:
         from src.features.products.mcp_tools import async_session_factory, off_client
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         async with async_session_factory() as session:
             prod = await ProductService.get_or_create_by_barcode(
                 session=session,
@@ -126,7 +126,6 @@ async def get_product_by_barcode(household_id: str, barcode: str) -> str:
 
 @mcp.tool()
 async def create_product(
-    household_id: str,
     name: str,
     base_unit: str,
     brand: str | None = None,
@@ -146,7 +145,7 @@ async def create_product(
     try:
         from src.features.products.mcp_tools import async_session_factory
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         cat_uuid = uuid.UUID(category_id) if category_id else None
         async with async_session_factory() as session:
             prod = await ProductService.create_product(
@@ -178,7 +177,6 @@ async def create_product(
 
 @mcp.tool()
 async def update_product(
-    household_id: str,
     product_id: str,
     name: str | None = None,
     brand: str | None = None,
@@ -192,7 +190,7 @@ async def update_product(
     try:
         from src.features.products.mcp_tools import async_session_factory
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         prod_uuid = uuid.UUID(product_id)
         cat_uuid = uuid.UUID(category_id) if category_id else None
         async with async_session_factory() as session:
@@ -222,12 +220,12 @@ async def update_product(
 
 
 @mcp.tool()
-async def delete_product(household_id: str, product_id: str) -> str:
+async def delete_product(product_id: str) -> str:
     """Delete a custom product blueprint."""
     try:
         from src.features.products.mcp_tools import async_session_factory
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         prod_uuid = uuid.UUID(product_id)
         async with async_session_factory() as session:
             success = await ProductService.delete_product(
@@ -248,12 +246,12 @@ async def delete_product(household_id: str, product_id: str) -> str:
 
 
 @mcp.tool()
-async def get_product_nutrition(household_id: str, product_id: str) -> str:
+async def get_product_nutrition(product_id: str) -> str:
     """Fetch nutritional details for a product by ID on-demand."""
     try:
         from src.features.products.mcp_tools import async_session_factory
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         prod_uuid = uuid.UUID(product_id)
         async with async_session_factory() as session:
             nutrition = await ProductService.get_product_nutrition(
@@ -282,7 +280,6 @@ async def get_product_nutrition(household_id: str, product_id: str) -> str:
 
 @mcp.tool()
 async def update_product_nutrition(
-    household_id: str,
     product_id: str,
     calories: float | None = None,
     fat: float | None = None,
@@ -296,7 +293,7 @@ async def update_product_nutrition(
     try:
         from src.features.products.mcp_tools import async_session_factory
 
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         prod_uuid = uuid.UUID(product_id)
         async with async_session_factory() as session:
             nutrition = await ProductService.update_product_nutrition(

@@ -1,5 +1,6 @@
 import uuid
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.categories.models import CategoryCreate, CategoryUpdate
 from src.features.categories.service import CategoryService
@@ -8,21 +9,19 @@ from src.mcp.server import mcp
 
 @mcp.tool()
 async def list_categories(
-    household_id: str,
     name: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> str:
-    """Retrieve all categories (global and custom) visible to the household.
+    """Retrieve all categories (global and custom) visible to the caller's household (resolved from the authenticated session).
 
     Parameters:
-    - household_id: UUID string of the household space.
     - name: Optional exact name to filter categories.
     - limit: Maximum number of categories to return (default 100).
     - offset: Number of records to skip (default 0).
     """
     try:
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         async with async_session_factory() as session:
             categories = await CategoryService.list_categories(
                 session=session,
@@ -47,15 +46,14 @@ async def list_categories(
 
 
 @mcp.tool()
-async def get_category(household_id: str, category_id: str) -> str:
+async def get_category(category_id: str) -> str:
     """Retrieve details of a specific category by ID.
 
     Parameters:
-    - household_id: UUID string of the household space.
     - category_id: UUID string of the product category.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         cat_uuid = uuid.UUID(category_id)
         async with async_session_factory() as session:
             cat = await CategoryService.get_category(
@@ -83,22 +81,18 @@ async def get_category(household_id: str, category_id: str) -> str:
 
 @mcp.tool()
 async def create_category(
-    household_id: str,
-    user_id: str,
     name: str,
     description: str | None = None,
 ) -> str:
-    """Create a new custom category inside the household space.
+    """Create a new custom category inside the caller's household (resolved from the authenticated session).
 
     Parameters:
-    - household_id: UUID string of the household space.
-    - user_id: UUID string of the creating user.
     - name: Unique name of the custom category.
     - description: Optional text details describing the category.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        home_uuid = get_mcp_household_context().household_id
+        user_uuid = get_mcp_household_context().user_id
         payload = CategoryCreate(name=name, description=description)
         async with async_session_factory() as session:
             cat = await CategoryService.create_category(
@@ -117,7 +111,6 @@ async def create_category(
 
 @mcp.tool()
 async def update_category(
-    household_id: str,
     category_id: str,
     name: str | None = None,
     description: str | None = None,
@@ -125,13 +118,12 @@ async def update_category(
     """Update details of an existing custom category (Global categories cannot be updated).
 
     Parameters:
-    - household_id: UUID string of the household space.
     - category_id: UUID string of the custom category to update.
     - name: Optional new name of the category.
     - description: Optional new description details.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         cat_uuid = uuid.UUID(category_id)
         payload = CategoryUpdate(name=name, description=description)
 
@@ -155,15 +147,14 @@ async def update_category(
 
 
 @mcp.tool()
-async def delete_category(household_id: str, category_id: str) -> str:
-    """Delete a custom category from the household space.
+async def delete_category(category_id: str) -> str:
+    """Delete a custom category from the caller's household (resolved from the authenticated session).
 
     Parameters:
-    - household_id: UUID string of the household space.
     - category_id: UUID string of the custom category to delete.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
+        home_uuid = get_mcp_household_context().household_id
         cat_uuid = uuid.UUID(category_id)
         async with async_session_factory() as session:
             success = await CategoryService.delete_category(
