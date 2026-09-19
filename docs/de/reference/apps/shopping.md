@@ -42,7 +42,9 @@ Quelle: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgresql+asyncpg://shopping_user:postgres@postgres-core:5432/alfheim_shopping` | Async PostgreSQL-Verbindungszeichenkette |
 | `PANTRY_API_URL` | `http://pantry-backend:8000/api/v1` | Interner Speisekammer-Service-Endpunkt |
-| `NEXT_PUBLIC_SHOPPING_API_URL` | `http://api.alfheim.loegien.localhost/shopping/api/v1` | Browser-API-Gateway-Endpunkt |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/shopping/api/v1` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |
 
 ---
 

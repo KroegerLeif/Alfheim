@@ -43,7 +43,17 @@ Quelle: [`apps/maintenance/`](https://github.com/KroegerLeif/Alfheim/tree/main/a
 | `DATABASE_URL` | `postgresql+asyncpg://maintenance_user:postgres@postgres-core:5432/alfheim_maintenance` | Async PostgreSQL-Verbindungszeichenkette |
 | `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | Generischer OIDC-Backend-Auth-Aussteller-URL |
 | `OIDC_AUDIENCE` | `alfheim` | Erwarteter OIDC-JWT-Audience-Claim |
-| `NEXT_PUBLIC_MAINTENANCE_API_URL` | `http://api.alfheim.loegien.localhost/maintenance/api/v1` | Browser-API-Gateway-Endpunkt |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/maintenance` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |
+
+### Haushalts-Autorisierung
+
+Alle Routen und MCP-Tools nutzen `require_household` aus `backend_shared`; Haushalte sind UUIDs, die `core/household` gehören. Eine lokale Tabelle `household` gibt es nicht mehr.
+
+- `GET /api/v1/households` ist veraltet und liefert nur den aktuellen Haushalt.
+- Mit einer Datenbank mit ganzzahligen Haushalts-IDs verweigert das Backend den Start (`LegacyHouseholdSchemaError`). Den einmaligen Reset beschreibt die [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-maintenance-backend-scheitert-mit-legacyhouseholdschemaerror).
+- Aufrufe an Budget und Shopping leiten das Bearer-Token des Aufrufers und `X-Household-ID` weiter.
 
 ---
 
