@@ -47,6 +47,11 @@ func NewClient(endpointURL string) *Client {
 // the request's (missing or insufficient) user credentials.
 var ErrAuthRequired = errors.New("mcp server requires authentication")
 
+// ErrEndpointNotFound means the server answered 404 for the configured endpoint URL:
+// the backend is up but does not serve MCP at that path, which is a configuration
+// error (e.g. a wrong CHAT_MCP_SERVERS path) rather than an outage.
+var ErrEndpointNotFound = errors.New("mcp endpoint not found: check the endpoint URL path in CHAT_MCP_SERVERS (expected http://<app>-backend:8000/mcp)")
+
 // DiagnosticResult captures reachability, latency, and registered tools for an MCP endpoint.
 type DiagnosticResult struct {
 	Reachable bool `json:"reachable"`
@@ -283,6 +288,10 @@ func (c *Client) send(ctx context.Context, id *int64, method string, params any)
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 2048))
 		return nil, fmt.Errorf("%w: mcp server responded with status %d for %q", ErrAuthRequired, resp.StatusCode, method)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 2048))
+		return nil, fmt.Errorf("%w: status 404 for %q at %s", ErrEndpointNotFound, method, c.endpointURL)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
