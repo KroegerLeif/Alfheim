@@ -1,8 +1,9 @@
 import { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AuthGuard, LanguageProvider, ThemeProvider, AppShell } from "@alfheim/shared";
+import { AuthGuard, LanguageProvider, ThemeProvider, AppShell, HouseholdProvider, HouseholdGate } from "@alfheim/shared";
 import Providers from "./providers";
+import { ClientHeader } from "@/components/shared/ClientHeader";
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,13 +19,17 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       <NextIntlClientProvider locale={locale} messages={messages}>
         <LanguageProvider defaultLanguage={(locale === "de" || locale === "pl") ? locale : "en"}>
           <ThemeProvider defaultMode="dark" defaultVariant="nordic">
-            <Providers>
-              <AppShell>
-                <div className="min-h-screen bg-[var(--surface-canvas)] text-[var(--text-main)]">
-                  {children}
-                </div>
-              </AppShell>
-            </Providers>
+            <HouseholdProvider>
+              <Providers>
+                <AppShell header={<ClientHeader />}>
+                  <HouseholdGate>
+                    <div className="min-h-screen bg-[var(--surface-canvas)] text-[var(--text-main)]">
+                      {children}
+                    </div>
+                  </HouseholdGate>
+                </AppShell>
+              </Providers>
+            </HouseholdProvider>
           </ThemeProvider>
         </LanguageProvider>
       </NextIntlClientProvider>

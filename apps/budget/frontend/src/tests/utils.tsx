@@ -1,6 +1,6 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { LanguageProvider } from "@alfheim/shared";
+import { LanguageProvider, StaticHouseholdProvider } from "@alfheim/shared";
 import { render as rtlRender, RenderOptions } from "@testing-library/react";
 
 export function createQueryWrapper() {
@@ -11,7 +11,7 @@ export function createQueryWrapper() {
     },
   });
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <StaticHouseholdProvider householdId="hh-1"><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></StaticHouseholdProvider>
   );
 }
 
@@ -25,11 +25,13 @@ export function createTestWrapper() {
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <LanguageProvider defaultLanguage="en">
-          {children}
-        </LanguageProvider>
-      </QueryClientProvider>
+      <StaticHouseholdProvider householdId="hh-1">
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider defaultLanguage="en">
+            {children}
+          </LanguageProvider>
+        </QueryClientProvider>
+      </StaticHouseholdProvider>
     );
   };
 }
