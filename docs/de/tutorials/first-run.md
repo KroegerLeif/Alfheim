@@ -140,6 +140,7 @@ Jeder Dienst sollte `running` melden, Dienste mit Healthcheck zusätzlich `healt
 * [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md) — für die Strategie mit lokaler CA
 * [Installer-CLI-Referenz](../reference/installer-cli.md) — jedes Flag
 * [Backup & Wiederherstellung](../how-to/backup-restore.md) — Daten sichern
+* [Eine Installation aktualisieren](../how-to/update-installation.md) — jedes spätere Release, ein Befehl
 
 ## Später aktualisieren
 
@@ -152,3 +153,10 @@ cd ~/alfheim && curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim
 ```
 
 Um die Konfiguration selbst zu ändern, ergänze `--reconfigure`.
+
+Um gezielt auf ein bestimmtes Release zu aktualisieren, statt auf das, was
+bereits konfiguriert ist, verwende stattdessen `alfheim-setup update` (es
+lädt zuerst die eigenen Stack-Dateien dieses Releases herunter und
+verifiziert sie): siehe
+[Eine Installation aktualisieren](../how-to/update-installation.md) für den
+Einzeiler, was erhalten bleibt, und wie man zurückrollt.

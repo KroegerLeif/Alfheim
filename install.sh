@@ -100,6 +100,30 @@ if [[ ! -t 0 && -z "${_ALFHEIM_INSTALL_REEXEC:-}" ]]; then
 fi
 
 # ------------------------------------------------------------------------------
+# 1c. Detect update mode
+# ------------------------------------------------------------------------------
+# An owner's one-liner for every later release is:
+#
+#   curl -fsSL .../install.sh | ALFHEIM_VERSION=vX.Y.Z bash -s -- update
+#
+# which this script recognises by the leading "update" argument alone (it is
+# simply forwarded to alfheim-setup like every other argument). ALFHEIM_UPDATE=1
+# is the same switch for a caller that would rather not depend on argument
+# order, and an existing installation with no arguments at all is treated the
+# same way, so re-running this exact one-liner from cron or a shell alias
+# keeps working without editing it first.
+UPDATE_MODE=0
+if [[ "${ALFHEIM_UPDATE:-0}" == "1" ]]; then
+  UPDATE_MODE=1
+fi
+if [[ $# -gt 0 && "$1" == "update" ]]; then
+  UPDATE_MODE=1
+fi
+if [[ ${UPDATE_MODE} -eq 0 && $# -eq 0 && -f .alfheim.installed ]]; then
+  UPDATE_MODE=1
+fi
+
+# ------------------------------------------------------------------------------
 # 2. Detect platform
 # ------------------------------------------------------------------------------
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -226,6 +250,11 @@ if [[ ! -f compose.prod.yaml ]]; then
   fetch_stack_asset init-multiple-dbs.sh infrastructure/postgres/init-multiple-dbs.sh
   chmod +x infrastructure/postgres/init-multiple-dbs.sh
   fetch_stack_asset vector.toml infrastructure/telemetry/vector/vector.toml
+  # alfheim-setup update itself re-fetches and verifies this on every later
+  # release; shipping it on a fresh install too means it works right away
+  # without waiting for the first update.
+  fetch_stack_asset verify-stack.sh scripts/verify-stack.sh
+  chmod +x scripts/verify-stack.sh
   # Bind-mount sources for the private root CA (--tls internal). They ship no
   # files; creating them here keeps Docker from creating them root-owned.
   mkdir -p infrastructure/ca infrastructure/caddy/pki
@@ -235,6 +264,19 @@ fi
 # ------------------------------------------------------------------------------
 # 5. Hand over
 # ------------------------------------------------------------------------------
+if [[ ${UPDATE_MODE} -eq 1 ]]; then
+  # alfheim-setup update fetches and verifies its own copy of the stack
+  # assets for ${VERSION} (backing up whatever is on disk first), so it must
+  # not be told to update to whatever this script's binary download happened
+  # to resolve to via "latest" or via a stray leading "update" argument.
+  forward_args=("$@")
+  if [[ ${#forward_args[@]} -gt 0 && "${forward_args[0]}" == "update" ]]; then
+    forward_args=("${forward_args[@]:1}")
+  fi
+  printf "\n${BOLD}Updating Alfheim to ${VERSION}...${RESET}\n\n"
+  exec "${WORKDIR}/${BINARY}" update --version "${VERSION}" "${forward_args[@]}"
+fi
+
 printf "\n${BOLD}Starting the Alfheim setup wizard...${RESET}\n\n"
 
 # When this script is piped into bash, stdin is the pipe rather than the

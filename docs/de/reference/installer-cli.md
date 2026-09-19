@@ -114,6 +114,24 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 
 ---
 
+## Das `update`-Subkommando
+
+```
+alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+```
+
+Der Day-2-Befehl für jedes Release nach der Erstinstallation: Er lädt die
+Standalone-Stack-Dateien eines Ziel-Releases (`compose.prod.yaml` u. a.)
+herunter, sichert die vorherigen, setzt `IMAGE_TAG` in der `.env` und führt
+anschließend dieselben Schritte aus wie ein einfacher erneuter Lauf (Secrets
+auffüllen, Zitadel abgleichen, neu starten). Er benötigt eine bestehende
+Installation (eine vorhandene `.env`) und startet nie den Assistenten,
+rotiert nie ein Secret und rührt weder die Root-CA noch den Zitadel-Machinekey/PAT
+noch ein Docker-Volume an. Vollständige Anleitung, Einzeiler und Rollback:
+[Eine Installation aktualisieren](../how-to/update-installation.md).
+
+---
+
 ## Mehrstufiger Bootstrap
 
 | Phase | Services | Wartet auf |
@@ -198,6 +216,7 @@ ALFHEIM_CHANNEL=prerelease bash -c "$(curl -fsSL https://raw.githubusercontent.c
 ## Siehe auch
 
 * [Tutorial: Ihre erste Installation](../tutorials/first-run.md)
+* [Anleitung: Eine Installation aktualisieren](../how-to/update-installation.md)
 * [Umgebungsvariablen](./environment-variables.md)
 * [CLI-Skripte](./cli-scripts.md)
 * [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)

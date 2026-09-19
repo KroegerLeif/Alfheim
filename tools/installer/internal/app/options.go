@@ -44,6 +44,12 @@ const usage = `alfheim-setup - interactive installer for Alfheim Sovereign OS
 
 Usage:
   alfheim-setup [flags]
+  alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+
+Run without arguments for a first install, or a plain re-run (Day-2: pulls
+images and restarts with the configuration already on disk). Run
+"alfheim-setup update" to fetch a specific release's stack files onto an
+existing installation and restart on it — see "alfheim-setup update -h".
 
 Flags:
   --dry-run            Validate, generate secrets and render configuration into a

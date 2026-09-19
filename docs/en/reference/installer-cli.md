@@ -133,6 +133,23 @@ The mode is detected from the installation directory, not chosen by a flag.
 
 ---
 
+## The `update` subcommand
+
+```
+alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+```
+
+The Day-2 command for every release after the first install: it fetches a
+target release's `compose.prod.yaml` and the other standalone stack files,
+backs up the previous ones, sets `IMAGE_TAG` in `.env`, then runs the same
+secret-backfill, Zitadel-reconciliation and restart steps as a plain re-run.
+It requires an existing installation (an `.env` present) and never runs the
+wizard, rotates a secret, or touches the root CA, the Zitadel machinekey/PAT,
+or a Docker volume. Full walkthrough, one-liner and rollback:
+[Update an installation](../how-to/update-installation.md).
+
+---
+
 ## Two-phase bootstrap
 
 | Phase | Services | Waits for |
@@ -219,6 +236,7 @@ ALFHEIM_CHANNEL=prerelease bash -c "$(curl -fsSL https://raw.githubusercontent.c
 ## See also
 
 * [Tutorial: your first installation](../tutorials/first-run.md)
+* [How-to: update an installation](../how-to/update-installation.md)
 * [Environment variables](./environment-variables.md)
 * [CLI scripts](./cli-scripts.md)
 * [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)
