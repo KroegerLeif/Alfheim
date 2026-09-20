@@ -84,3 +84,17 @@ Python backends call it through `backend_shared.household.require_household`, an
 | `/household/onboarding` | Create or join; linked from every app's `HouseholdGate` when the user has no household |
 | `/household/join?token=<token>` | Redeems an invite after login (QR code target) |
 | `/household/profile` | User profile |
+
+---
+
+## ⚠️ Known Issues & Open Follow-Ups
+
+- **Membership cache staleness**: a member removed from a household keeps access for up to 30 s;
+  a user who just joined can get `403 household_forbidden` for up to 5 s, since every consumer
+  caches membership answers per process. See
+  [Known Issues](../../explanation/known-issues.md).
+- **Availability**: every household-scoped request in every app fails with
+  `503 household_service_unavailable` while `household-backend` is down or
+  `ALFHEIM_INTERNAL_TOKEN` differs between services — membership is checked online with no offline
+  fallback. See [Troubleshooting](../../how-to/troubleshooting.md#symptom-4-503-household_service_unavailable).
+- No other known open issues.

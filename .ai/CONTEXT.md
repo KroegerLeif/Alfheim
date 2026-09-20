@@ -223,15 +223,18 @@ This index maps the active applications and services running inside the monorepo
 | Application / Folder | Tech Stack | Ingress Route (Caddy Gateway) | Database / Storage |
 | :--- | :--- | :--- | :--- |
 | **`websites/landing`** | React 19, Vite, Tailwind v4 | GitHub Pages (site root) | N/A (Static SPA) |
-| **`core/dashboard`** | Go, Next.js, OIDC | `alfheim.loegien.de/` (Catch-all) | `dashboard-db` (`dashboard_postgres_data`) |
+| **`core/dashboard`** | Go, Next.js, OIDC | `alfheim.loegien.de/` (Catch-all) — app launcher: catalog, user links, preferences, telemetry view | `dashboard-db` (`dashboard_postgres_data`) |
+| **`core/household`** | Go, Next.js, OIDC | `alfheim.loegien.de/household` / `api.alfheim.loegien.de/api/v1/households*`, `/api/v1/profile*` | `household-db` on `postgres-core` (db `alfheim_household`) |
 | **`apps/pantry`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/pantry` / `api.alfheim.loegien.de/pantry` | `pantry-db` (`pantry_postgres_data`, Port `5432`) |
 | **`apps/shopping`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/shopping` / `api.alfheim.loegien.de/shopping` | `shopping-db` (`postgres_data_shopping`, Port `5433`) |
 | **`apps/maintenance`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/maintenance` / `api.alfheim.loegien.de/maintenance` | `maintenance-db` (`maintenance_postgres_data`) |
 | **`apps/chores`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/chores` / `api.alfheim.loegien.de/api/v1/chores` | `chores-db` (`postgres_data_chores`, Port `5435`) |
-| **`apps/workout`** | FastAPI, FastMCP (backend only — frontend deferred) | `api.alfheim.loegien.de/workout` | `workout-db` (`postgres_data_workout`, Port `5434`) |
+| **`apps/workout`** | FastAPI, FastMCP, Next.js, OIDC | `alfheim.loegien.de/workout` / `api.alfheim.loegien.de/workout` | `workout-db` (`postgres_data_workout`, Port `5434`) |
+| **`apps/budget`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/budget` / `api.alfheim.loegien.de/budget` | `postgres-core` (db `alfheim_budget`) |
+| **`apps/library`** | FastAPI, Next.js, OIDC | `alfheim.loegien.de/library` / `api.alfheim.loegien.de/library` | `postgres-core` (db `alfheim_library`) |
 | **`infrastructure/telemetry`** | VictoriaMetrics, VictoriaLogs, OTel, Vector, Grafana | `api.alfheim.loegien.de/grafana` | `victoriametrics_data` & `victorialogs_data` & `grafana_data` |
 | **`infrastructure`** | Zitadel, Caddy, RustFS | `api.alfheim.loegien.de/auth` (OIDC) / `/storage/` (S3) | `zitadel` (db: `postgres-core`) & `rustfs_data` |
-| **`apps/chat`** | Go, Next.js 16, OIDC | `alfheim.loegien.de/chat` / `api.alfheim.loegien.de/api/v1/chat` | `chat-db` (`chat_postgres_data`, Port `5436`) |
+| **`apps/chat`** | Go, Next.js 16, OIDC | `alfheim.loegien.de/chat` / `api.alfheim.loegien.de/api/v1/chat`, `/mcp` | `chat-db` (`chat_postgres_data`, Port `5436`) |
 
 ### Docker Network Map:
 * **`gateway-net`** (Bridge, pre-created in `up.sh`): Ingress proxy (Caddy) ↔ Frontends, Zitadel, RustFS S3, Grafana, and API Backends.

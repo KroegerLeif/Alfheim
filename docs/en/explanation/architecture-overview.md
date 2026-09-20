@@ -34,7 +34,7 @@ The codebase is organized into high-level layer directories:
 
 ```
 alfheim/
-├── core/                   # Platform control plane (Dashboard backend/frontend)
+├── core/                   # Platform control plane: Dashboard (launcher) and Household (membership, roles)
 ├── apps/                   # Domain microservices (Pantry, Budget, Chores, Chat, Workout, etc.)
 ├── infrastructure/         # Core infrastructure (Caddy Gateway, RustFS, VictoriaStack)
 ├── packages/               # Shared monorepo packages (@alfheim/shared, backend_shared)
@@ -47,7 +47,8 @@ alfheim/
 
 ## Control Plane vs. Microservice Applications
 
-* **Core Control Plane (`core/dashboard`)**: Written in Go (backend) and Next.js (frontend). Acts as the central platform launcher, rendering registered micro-applications, system status, and household switcher.
+* **Core Control Plane (`core/dashboard`)**: Written in Go (backend) and Next.js (frontend). A pure launcher — app catalog, user links and preferences, plus a telemetry view. It owns no household, member, role, invite, contact or profile data.
+* **Core Household & Roles (`core/household`)**: Written in Go (backend) and Next.js (frontend). Owns households, members and roles, invites, the household contact book and the user profile, and answers the membership checks every other backend depends on ([ADR 0006](./decisions/0006-household-authorization-via-membership-api.md)).
 * **Domain Microservices (`apps/*`)**: Independent functional modules providing domain services (e.g. pantry stock tracking, envelope budgeting, workout execution).
 
 ---
@@ -58,7 +59,7 @@ The platform enforces multi-zone network isolation across dedicated Docker bridg
 
 * **`gateway-net`**: Connects Caddy ingress gateway to frontends, Zitadel, RustFS S3, and backend API endpoints.
 * **`infra-net`**: Isolated infrastructure bridge connecting Zitadel, `postgres-core`, and RustFS S3 backend ports.
-* **`core-net`**: Dedicated control plane network for `dashboard-backend` and `postgres-core`.
+* **`core-net`**: Dedicated control plane network for `dashboard-backend`, `household-backend` and `postgres-core`.
 * **`app-<name>-net`**: App-isolated networks connecting microservice backends to `postgres-core` (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`).
 * **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.
 

@@ -65,3 +65,24 @@ Alle Routen und MCP-Tools nutzen `require_household` aus `backend_shared`; Haush
 - `history`: Permanente Service-Logs, Auftragnehmer-Notizen und Teile-Kosten-Ledger.
 
 ---
+
+## 🔌 MCP-Tools
+
+Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`, `@mcp_server.tool()`), authentifiziert genauso wie die REST-API. Tools nehmen keine `household_id`/`user_id`-Parameter entgegen – sie lesen `get_mcp_household_context()`.
+
+| Feature | Tools |
+| :--- | :--- |
+| `devices` | `get_device_status`, `list_devices`, `get_device_detail` |
+| `tasks` | `list_overdue_tasks`, `update_task_state_tool` |
+| `maintenance` | `get_maintenance_summary_tool` |
+
+`/maintenance/wizard` und `/maintenance/summary` verlangen jetzt ein Haushaltsmitglied und sind auf `X-Household-ID` beschränkt; beide waren früher unauthentifiziert, und die Summary lieferte früher alle Haushalte zurück.
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+- **`LegacyHouseholdSchemaError` beim Upgrade**: Eine Datenbank, die vor der Umstellung auf UUID-Haushalte angelegt wurde, verweigert `maintenance-backend` den Start. Das ist ein einmaliger, erwarteter Daten-Reset – siehe [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-maintenance-backend-scheitert-mit-legacyhouseholdschemaerror) und [Bekannte Probleme](../../explanation/known-issues.md).
+- Keine weiteren bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
+
+---

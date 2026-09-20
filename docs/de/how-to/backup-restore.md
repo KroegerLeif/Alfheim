@@ -27,16 +27,28 @@ description: "Persistente Docker-Volumes, PostgreSQL-Dumps und RustFS-S3-Objekte
 
 ## Relationale Datenbanken sichern (PostgreSQL)
 
-Alfheim nutzt eine „Database per Service"-Architektur. Du kannst einzelne Dienst-Datenbanken dumpen oder alle auf einmal exportieren.
+Jede Dienst-Datenbank liegt im einzelnen konsolidierten Container `alfheim_postgres_core`
+(Compose-Service `postgres-core`), jeweils in einer eigenen Datenbank `alfheim_<app>` mit einer
+eigenen Rolle `<app>_user` — siehe [PostgreSQL Core Service](../../../infrastructure/postgres/README.md).
+Es gibt keinen separaten Datenbank-Container pro App.
 
 ### 1. Einzelne Dienst-Datenbank dumpen (Beispiel Pantry)
 ```bash
-docker exec -t alfheim_pantry_db pg_dump -U postgres pantry > pantry_backup_$(date +%Y%m%d).sql
+docker exec -t alfheim_postgres_core pg_dump -U postgres alfheim_pantry > pantry_backup_$(date +%Y%m%d).sql
 ```
 
 ### 2. IAM-Datenbank dumpen (Zitadel)
 ```bash
 docker exec -t alfheim_postgres_core pg_dump -U postgres zitadel > zitadel_backup_$(date +%Y%m%d).sql
+```
+
+### 3. Alle Alfheim-Datenbanken in einem Durchgang dumpen
+```bash
+for db in zitadel alfheim_dashboard alfheim_household alfheim_pantry alfheim_shopping \
+          alfheim_maintenance alfheim_chores alfheim_budget alfheim_chat alfheim_workout \
+          alfheim_library; do
+  docker exec -t alfheim_postgres_core pg_dump -U postgres "$db" > "${db}_backup_$(date +%Y%m%d).sql"
+done
 ```
 
 ---
@@ -47,7 +59,7 @@ RustFS legt hochgeladene Anhänge (z. B. Budget-Belege, Bibliotheks-PDFs) in per
 
 ```bash
 docker run --rm \
-  -v alfheim_rustfs_data:/data:ro \
+  -v alfheim-prod_rustfs_data:/data:ro \
   -v $(pwd):/backup \
   alpine tar czf /backup/rustfs_backup_$(date +%Y%m%d).tar.gz /data
 ```
@@ -78,7 +90,7 @@ docker compose -f compose.prod.yaml start
 
 ### 1. PostgreSQL-Datenbank wiederherstellen
 ```bash
-cat pantry_backup.sql | docker exec -i alfheim_pantry_db psql -U postgres -d pantry
+cat pantry_backup.sql | docker exec -i alfheim_postgres_core psql -U postgres -d alfheim_pantry
 ```
 
 ### 2. Volume-Archiv wiederherstellen
@@ -86,10 +98,14 @@ cat pantry_backup.sql | docker exec -i alfheim_pantry_db psql -U postgres -d pan
 # Container stoppen
 docker compose -f compose.prod.yaml down
 
-# Volume-Backup entpacken
+# Der Volume-Name trägt den Compose-Projektnamen als Präfix (compose.prod.yaml setzt ihn auf
+# "alfheim-prod"), das PostgreSQL-Datenvolume heißt also alfheim-prod_postgres_core_data. Prüfen mit:
+docker volume ls --format '{{.Name}}' | grep postgres_core_data
+
+# Volume-Backup entpacken (postgres_core_data enthält jede Dienst-Datenbank)
 docker run --rm \
   -v $(pwd):/backup \
-  -v alfheim_pantry_db_data:/target \
+  -v alfheim-prod_postgres_core_data:/target \
   alpine tar xzf /backup/alfheim_full_volumes_20260301.tar.gz -C /target --strip-components=2
 
 # Stack wieder starten
@@ -103,5 +119,5 @@ docker compose -f compose.prod.yaml up -d
 Folgenden Crontab-Eintrag ergänzen (`crontab -e`), um täglich um 03:00 Uhr zu sichern:
 
 ```cron
-0 3 * * * /bin/bash -c "cd ~/alfheim && docker exec -t alfheim_pantry_db pg_dump -U postgres pantry > ~/backups/pantry_\$(date +\%Y\%m\%d).sql"
+0 3 * * * /bin/bash -c "cd ~/alfheim && docker exec -t alfheim_postgres_core pg_dump -U postgres alfheim_pantry > ~/backups/pantry_\$(date +\%Y\%m\%d).sql"
 ```

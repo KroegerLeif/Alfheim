@@ -72,3 +72,9 @@ Das Go-Kontrollzentrum initialisiert drei Kern-Tabellen via SQL-Migrationen:
 * `user_links`: Persönliche benutzerdefinierte Lesezeichen (`title`, `url`, `icon`, `category`, `display_order`).
 
 ---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+Das Dashboard ist inzwischen ein reiner Launcher (App-Katalog, Benutzer-Links und -Einstellungen sowie die Telemetrie-Ansicht), nachdem Haushalte, Mitglieder und Rollen, Einladungen, Kontakte und das Benutzerprofil zu `core/household` gewandert sind. Eine weitere "Abspeckung" ist nicht geplant; das Dashboard wird später zu einem eigenen App-Sprint, in dem dann sein Go-Backend, die 3-Tier-Registry und die Telemetrie-Ansicht überprüft werden. Keine bekannten offenen Bugs über die allgemeinen Punkte in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
+
+---

@@ -4,6 +4,10 @@ The Next.js app for households, members, roles, invites, contacts and the
 user profile. Caddy serves it under `/household` (Next.js `basePath`), and the
 container listens on port 3000 (compose service `household-frontend`).
 
+📖 **Full specification** — routes, the internal membership API, roles and
+household scoping for every other app — lives in the documentation portal:
+[Reference → Household](../../../docs/en/reference/apps/household.md)
+
 ## Quickstart
 
 ```sh

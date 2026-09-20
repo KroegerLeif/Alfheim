@@ -72,3 +72,14 @@ The Go control plane initializes three core tables via SQL migrations:
 * `user_links`: Personal custom bookmarks (`title`, `url`, `icon`, `category`, `display_order`).
 
 ---
+
+## ⚠️ Known Issues & Open Follow-Ups
+
+The dashboard is now a pure launcher (app catalog, user links and preferences, plus the
+telemetry view) after households, members, roles, invites, contacts and the user profile moved
+to `core/household`. There is no further "slimming" planned; the dashboard becomes its own app
+sprint later, at which point its Go backend, the 3-tier registry, and the telemetry view are
+candidates for review. No known open bugs beyond the general items in
+[Known Issues](../../explanation/known-issues.md).
+
+---

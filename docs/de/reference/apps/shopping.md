@@ -55,3 +55,23 @@ Quelle: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 - **Backend-gesteuerte Sortierung**: Artikel-Positionierung wird via `position`-Spalte verfolgt. Drag-and-Drop-Neuanordnung sendet Bulk-`PATCH /api/v1/shopping-lists/reorder`-Aktualisierungen.
 
 ---
+
+## 🔌 MCP-Tools
+
+Shopping hat keinen FastMCP-Server und stellt keine MCP-Tools bereit. Der Chat-Assistent kann Einkaufslisten nicht direkt lesen oder ändern.
+
+---
+
+## 🏠 Haushalts-Scoping
+
+Jede Route hängt von `backend_shared.household.require_household` ab, das `X-Household-ID` gegen `core/household` bestätigt (jede Mitgliedsrolle darf lesen und schreiben; es gibt kein `require_role`-Gate in dieser App). Die Haushalte für den Haushalts-Umschalter kommen von `GET /api/v1/households/me` auf `core/household`, nicht aus einer lokalen Tabelle. Siehe [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+- **`GET /api/v1/shopping-lists` hat einen Nebeneffekt**: Der erste Aufruf für einen gegebenen Haushalt/Benutzer legt die Standardliste des Haushalts und die persönliche Liste des Aufrufers an, falls sie noch nicht existieren (`ensure_household_list` / `ensure_personal_list` in `ListManagementService`). Das ist beabsichtigt (die Oberfläche hat immer eine Liste zum Hinzufügen von Artikeln), bedeutet aber, dass ein einfaches `GET` nicht ohne Weiteres als reiner Lesezugriff aus Skripten aufgerufen werden sollte. Siehe [Bekannte Probleme](../../explanation/known-issues.md).
+- **502 auf Proxmox**: `shopping-frontend` liefert hinter Caddy auf Proxmox-VE-Installationen gelegentlich `502`. Vermutete, aber unbestätigte Ursache: ein OOM-Kill unter Last — `compose.prod.yaml` begrenzt jedes Frontend (nicht nur Shopping) auf `memory: 128m`, was für Next.js unter dem virtualisierten Overhead von Proxmox knapp sein kann. Offene Folgearbeit für den Shopping-App-Sprint.
+- Keine bekannten offenen Probleme im Pantry-Sync-Pfad über die allgemeine, in [Bekannte Probleme](../../explanation/known-issues.md) dokumentierte Cache-Verzögerung hinaus.
+
+---

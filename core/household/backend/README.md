@@ -5,6 +5,10 @@ household contact book and user profiles. Zitadel only authenticates users
 (ADR 0003). This service decides who belongs to which household and with which
 role.
 
+📖 **Full specification** — routes, the internal membership API, roles and
+household scoping for every other app — lives in the documentation portal:
+[Reference → Household](../../../docs/en/reference/apps/household.md)
+
 Authorization comes only from `household_members`, keyed by the household id
 in the URL path. The service ignores the `X-Household-ID` and
 `X-Household-Role` headers.
