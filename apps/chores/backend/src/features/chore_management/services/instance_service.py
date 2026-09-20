@@ -1,9 +1,9 @@
 import logging
 import uuid
 from collections.abc import Sequence
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 
-from sqlmodel import col, select
+from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.chore_management.exceptions import (
     ChoreAlreadyCompletedError,
@@ -44,24 +44,39 @@ class InstanceService:
     async def ensure_household_reset(session: AsyncSession, home_id: uuid.UUID, target_date: date) -> None:
         """Retroactively verify and generate chore instances up to the target date.
 
-        The first time this runs for ``target_date`` it evaluates yesterday's
-        instances (archiving non-cumulative ones as missed, rolling cumulative
-        ones forward so they keep stacking, and recalculating the streak), then
-        generates a ``target_date`` instance for every template that doesn't
-        already have one. That per-template diff (rather than a single
-        household-wide existence check) also makes the function idempotent and
-        safe to call again later in the day: a template created after the first
-        call still gets its instance, and re-running never creates duplicates.
+        The first time this runs for ``target_date`` it evaluates the most
+        recent day that actually has instances (archiving non-cumulative ones
+        as missed, rolling cumulative ones forward so they keep stacking, and
+        recalculating the streak), then generates a ``target_date`` instance
+        for every template that doesn't already have one. That per-template
+        diff (rather than a single household-wide existence check) also makes
+        the function idempotent and safe to call again later in the day: a
+        template created after the first call still gets its instance, and
+        re-running never creates duplicates.
+
+        Multi-day gaps: instances are only ever created lazily (on the first
+        visit/nightly run for a given day), so a household that isn't visited
+        for several days -- or a nightly scheduler that is itself down for
+        several days -- has zero instance rows for the skipped days. Rather
+        than only looking at ``target_date - 1`` (which is empty in that case
+        and would leave the streak untouched), this walks back to whatever day
+        *does* have instances and treats every day strictly between it and
+        ``target_date`` as fully missed. It does not backfill instance rows
+        for those empty days (that would rewrite history and risk double
+        counting); it only uses their existence to decide the streak.
 
         Reset semantics for ``ChoreTemplate.is_non_cumulative``:
         - ``True`` (default, "non-cumulative"): an unfinished instance expires
           at midnight -- it is marked ``"missed"`` and a fresh ``"pending"``
-          instance is generated for ``target_date``. Missing one of these
-          resets the household streak to 0.
+          instance is generated for ``target_date``. Missing one of these, or
+          a gap of more than one day since the last known day, resets the
+          household streak to 0.
         - ``False`` ("cumulative"): an unfinished instance is *not* marked
           missed. It is rolled forward (its ``due_date`` becomes
           ``target_date``) so the same outstanding chore keeps stacking up
-          until someone completes it, and it never resets the streak.
+          until someone completes it. A cumulative instance alone never resets
+          the streak, but a multi-day gap still does (the household missed
+          those days entirely, regardless of what's cumulative).
         """
         templates = (await session.exec(select(ChoreTemplate).where(ChoreTemplate.home_id == home_id))).all()
         template_by_id = {t.id: t for t in templates}
@@ -77,14 +92,25 @@ class InstanceService:
         if not already_processed_today:
             streak = await StreakService.ensure_household_streak(session, home_id)
 
-            # Yesterday's chores evaluation
-            yesterday = target_date - timedelta(days=1)
-            y_stmt = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == yesterday)
-            y_res = await session.exec(y_stmt)
-            yesterday_instances = y_res.all()
+            # Find the most recent day before target_date that actually has instances.
+            # This may be more than one day back if the household (or the nightly
+            # scheduler) missed several days in a row -- those in-between days never
+            # got instance rows at all.
+            latest_stmt = select(func.max(ChoreInstance.due_date)).where(
+                ChoreInstance.home_id == home_id, ChoreInstance.due_date < target_date
+            )
+            latest_date = (await session.exec(latest_stmt)).one_or_none()
 
-            if yesterday_instances:
-                uncompleted = [inst for inst in yesterday_instances if inst.status != "completed"]
+            if latest_date is not None:
+                gap_days = (target_date - latest_date).days
+                fully_skipped_days = gap_days > 1  # at least one day in between has zero instances
+
+                l_stmt = select(ChoreInstance).where(
+                    ChoreInstance.home_id == home_id, ChoreInstance.due_date == latest_date
+                )
+                latest_instances = (await session.exec(l_stmt)).all()
+
+                uncompleted = [inst for inst in latest_instances if inst.status != "completed"]
                 non_cumulative_missed = []
                 for inst in uncompleted:
                     template = template_by_id.get(inst.template_id)
@@ -100,12 +126,12 @@ class InstanceService:
                         session.add(inst)
                         covered_template_ids.add(inst.template_id)
 
-                if non_cumulative_missed:
+                if non_cumulative_missed or fully_skipped_days:
                     streak.current_streak = 0
-                elif streak.last_completed_date != yesterday:
+                elif streak.last_completed_date != latest_date:
                     streak.current_streak += 1
                     streak.longest_streak = max(streak.longest_streak, streak.current_streak)
-                    streak.last_completed_date = yesterday
+                    streak.last_completed_date = latest_date
                 session.add(streak)
 
         # Generate instances for every template that doesn't have one for target_date yet

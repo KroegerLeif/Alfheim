@@ -149,6 +149,137 @@ async def test_ensure_household_reset_cumulative_vs_non_cumulative_multi_day_gap
 
 
 @pytest.mark.asyncio
+async def test_ensure_household_reset_real_multi_day_gap_resets_streak_non_cumulative(db_session: AsyncSession):
+    """A household unvisited for several real days (#507) must have its streak reset, not preserved.
+
+    Unlike the day-by-day walk in the test above, this jumps straight from
+    day1 to day1+3 in a single ``ensure_household_reset`` call -- exactly what
+    happens when nobody opens the app (or the nightly scheduler itself was
+    down) for multiple days in a row. Days 2 and 3 never get instance rows.
+    """
+    home_id = uuid.uuid4()
+    day1 = date.today()
+    gap_target = day1 + timedelta(days=3)
+
+    template = ChoreTemplate(name="Take Out Trash", points=10, home_id=home_id, is_non_cumulative=True)
+    db_session.add(template)
+    await db_session.commit()
+    await db_session.refresh(template)
+
+    await InstanceService.ensure_household_reset(db_session, home_id, day1)
+
+    stmt_day1 = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == day1)
+    day1_instance = (await db_session.exec(stmt_day1)).one()
+    assert day1_instance.status == "pending"
+
+    # Nobody visits for 3 days; the reset only runs again once someone (or the
+    # scheduler) finally comes back, straight to day1 + 3.
+    await InstanceService.ensure_household_reset(db_session, home_id, gap_target)
+
+    await db_session.refresh(day1_instance)
+    assert day1_instance.status == "missed"
+
+    streak = await StreakService.ensure_household_streak(db_session, home_id)
+    assert streak.current_streak == 0
+
+    stmt_target = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == gap_target)
+    target_instances = (await db_session.exec(stmt_target)).all()
+    assert len(target_instances) == 1
+    assert target_instances[0].status == "pending"
+
+
+@pytest.mark.asyncio
+async def test_ensure_household_reset_real_multi_day_gap_resets_streak_cumulative(db_session: AsyncSession):
+    """A cumulative chore alone never resets the streak, but a multi-day gap around it still does."""
+    home_id = uuid.uuid4()
+    day1 = date.today()
+    gap_target = day1 + timedelta(days=3)
+
+    template = ChoreTemplate(name="Deep Clean Garage", points=20, home_id=home_id, is_non_cumulative=False)
+    db_session.add(template)
+    await db_session.commit()
+    await db_session.refresh(template)
+
+    await InstanceService.ensure_household_reset(db_session, home_id, day1)
+    stmt_day1 = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == day1)
+    day1_instance = (await db_session.exec(stmt_day1)).one()
+
+    await InstanceService.ensure_household_reset(db_session, home_id, gap_target)
+
+    # The cumulative instance rolled forward (same row) rather than being archived...
+    stmt_target = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == gap_target)
+    target_instances = (await db_session.exec(stmt_target)).all()
+    assert len(target_instances) == 1
+    assert target_instances[0].id == day1_instance.id
+    assert target_instances[0].status == "pending"
+
+    # ...but the household still missed several full days, so the streak resets anyway.
+    streak = await StreakService.ensure_household_streak(db_session, home_id)
+    assert streak.current_streak == 0
+
+
+@pytest.mark.asyncio
+async def test_ensure_household_reset_multi_day_gap_after_fully_completed_day(db_session: AsyncSession):
+    """Even a perfectly completed last-visited day doesn't save the streak across a real multi-day gap."""
+    home_id = uuid.uuid4()
+    day1 = date.today()
+    gap_target = day1 + timedelta(days=3)
+
+    template = ChoreTemplate(name="Water Plants", points=5, home_id=home_id, is_non_cumulative=True)
+    db_session.add(template)
+    await db_session.commit()
+    await db_session.refresh(template)
+
+    await InstanceService.ensure_household_reset(db_session, home_id, day1)
+    stmt_day1 = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == day1)
+    day1_instance = (await db_session.exec(stmt_day1)).one()
+    day1_instance.status = "completed"
+    db_session.add(day1_instance)
+    await db_session.commit()
+
+    # Everything was completed on day1, but then the household vanishes for days.
+    await InstanceService.ensure_household_reset(db_session, home_id, gap_target)
+
+    streak = await StreakService.ensure_household_streak(db_session, home_id)
+    assert streak.current_streak == 0
+
+
+@pytest.mark.asyncio
+async def test_run_nightly_reset_for_all_handles_scheduler_downtime_gap(db_session: AsyncSession):
+    """A nightly scheduler that itself was down for days must not orphan the earlier instances or streak (#507)."""
+    from src.features.chore_management.services.instance_service import InstanceService as IS
+
+    home_id = uuid.uuid4()
+    day1 = date.today()
+    resumed_date = day1 + timedelta(days=4)
+
+    template = ChoreTemplate(name="Sweep Porch", points=10, home_id=home_id, is_non_cumulative=True)
+    db_session.add(template)
+    await db_session.commit()
+    await db_session.refresh(template)
+
+    # The scheduler ran once, on day1, then the process was down for days.
+    await IS.run_nightly_reset_for_all(db_session, day1)
+    stmt_day1 = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == day1)
+    day1_instance = (await db_session.exec(stmt_day1)).one()
+    assert day1_instance.status == "pending"
+
+    # It comes back up and runs directly for "today", several days later.
+    await IS.run_nightly_reset_for_all(db_session, resumed_date)
+
+    await db_session.refresh(day1_instance)
+    assert day1_instance.status == "missed"
+
+    streak = await StreakService.ensure_household_streak(db_session, home_id)
+    assert streak.current_streak == 0
+
+    stmt_resumed = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == resumed_date)
+    resumed_instances = (await db_session.exec(stmt_resumed)).all()
+    assert len(resumed_instances) == 1
+    assert resumed_instances[0].status == "pending"
+
+
+@pytest.mark.asyncio
 async def test_ensure_household_reset_generates_missing_instance_for_new_template_same_day(
     db_session: AsyncSession,
 ):
