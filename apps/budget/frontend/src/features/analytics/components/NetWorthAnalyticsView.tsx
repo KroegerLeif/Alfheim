@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MoneyDisplay } from "@alfheim/shared";
+import { MoneyDisplay, useTranslation } from "@alfheim/shared";
 import { NetWorthResponse, Account } from "@/features/budget/types";
 import { TrendingUp, ShieldCheck, Landmark } from "lucide-react";
 
@@ -14,6 +14,7 @@ export function NetWorthAnalyticsView({
   netWorth,
   accounts = [],
 }: NetWorthAnalyticsViewProps) {
+  const { t } = useTranslation();
   const liquid = netWorth?.liquid_assets ?? 0;
   const investments = netWorth?.investments ?? 0;
   const total = netWorth?.total_net_worth ?? 0;
@@ -27,11 +28,9 @@ export function NetWorthAnalyticsView({
         <div>
           <h3 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-[var(--primary-main)]" />
-            <span>Net-Worth Analytics & Asset Allocation</span>
+            <span>{t("budget.analytics.netWorthAnalyticsTitle")}</span>
           </h3>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Distribution across liquid capital and investment vehicles.
-          </p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">{t("budget.analytics.netWorthAnalyticsDesc")}</p>
         </div>
       </div>
 
@@ -40,33 +39,31 @@ export function NetWorthAnalyticsView({
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[var(--text-main)] flex items-center gap-2">
               <Landmark className="w-4 h-4 text-emerald-500" />
-              <span>Liquid Assets</span>
+              <span>{t("budget.analytics.liquidAssets")}</span>
             </span>
             <span className="text-xs font-mono font-bold text-emerald-500">{liquidRatio}%</span>
           </div>
           <MoneyDisplay amount={liquid} size="lg" className="font-bold text-[var(--text-main)]" />
-          <p className="text-[11px] text-[var(--text-muted)]">
-            Includes checking accounts, instant savings, and liquid emergency cash.
-          </p>
+          <p className="text-[11px] text-[var(--text-muted)]">{t("budget.analytics.liquidAssetsDesc")}</p>
         </div>
 
         <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[var(--text-main)] flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-indigo-500" />
-              <span>Investment Portfolio</span>
+              <span>{t("budget.analytics.investmentPortfolio")}</span>
             </span>
             <span className="text-xs font-mono font-bold text-indigo-500">{investRatio}%</span>
           </div>
           <MoneyDisplay amount={investments} size="lg" className="font-bold text-[var(--text-main)]" />
-          <p className="text-[11px] text-[var(--text-muted)]">
-            Securities, ETFs, and long-term building savings contracts.
-          </p>
+          <p className="text-[11px] text-[var(--text-muted)]">{t("budget.analytics.investmentPortfolioDesc")}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Asset Breakdown</h4>
+        <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+          {t("budget.analytics.assetBreakdown")}
+        </h4>
         <div className="space-y-1.5">
           {accounts.map((acc) => (
             <div

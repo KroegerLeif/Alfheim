@@ -39,7 +39,9 @@ describe("SankeyCashflowView", () => {
       />
     );
 
-    expect(screen.getByText(/no cashflow data yet/i)).toBeInTheDocument();
+    // Default app language in tests without an explicit LanguageProvider is German (matching
+    // production's default), so the empty state renders the German copy.
+    expect(screen.getByText(/noch keine cashflow-daten/i)).toBeInTheDocument();
     expect(screen.queryByText(/4\.500,00/)).not.toBeInTheDocument();
     expect(screen.queryByText(/2\.800,00/)).not.toBeInTheDocument();
     expect(screen.queryByText(/1\.200,00/)).not.toBeInTheDocument();
