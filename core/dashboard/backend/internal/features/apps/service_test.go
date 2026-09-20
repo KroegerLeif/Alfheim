@@ -173,6 +173,34 @@ func Test3TierAppService_GetDashboardApps(t *testing.T) {
 	}
 }
 
+func Test3TierAppService_GetUserLinks(t *testing.T) {
+	repo := newMockRepository()
+	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := apps.NewService(repo, stackLoader, logger)
+	ctx := context.Background()
+
+	links, err := svc.GetUserLinks(ctx, "user-1")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(links) != 1 || links[0].Title != "Google Drive" {
+		t.Errorf("expected 1 user link (Google Drive), got %v", links)
+	}
+	if links[0].Tier != apps.TierUser || !links[0].IsCustom {
+		t.Errorf("expected user link tagged as custom Tier 3 item, got %+v", links[0])
+	}
+
+	// A user with no links gets an empty slice, not an error.
+	empty, err := svc.GetUserLinks(ctx, "user-with-no-links")
+	if err != nil {
+		t.Fatalf("expected no error for user with no links, got: %v", err)
+	}
+	if len(empty) != 0 {
+		t.Errorf("expected no links, got %v", empty)
+	}
+}
+
 func Test3TierAppService_UserLinkCRUD(t *testing.T) {
 	repo := newMockRepository()
 	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}

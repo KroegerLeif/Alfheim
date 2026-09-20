@@ -18,6 +18,9 @@ import (
 
 type mockAppService struct {
 	getDashboardAppsFn      func(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error)
+	getUserLinksFn          func(ctx context.Context, userID string) ([]apps.AppItem, error)
+	getUserLinksCalled      bool
+	getDashboardAppsCalled  bool
 	getUserPreferencesFn    func(ctx context.Context, userID string) (*apps.UserPreferences, error)
 	updateUserPreferencesFn func(ctx context.Context, userID string, hiddenAppIDs []string) (*apps.UserPreferences, error)
 	createUserLinkFn        func(ctx context.Context, userID string, req apps.CreateUserLinkRequest) (*apps.AppItem, error)
@@ -26,10 +29,19 @@ type mockAppService struct {
 }
 
 func (m *mockAppService) GetDashboardApps(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error) {
+	m.getDashboardAppsCalled = true
 	if m.getDashboardAppsFn != nil {
 		return m.getDashboardAppsFn(ctx, userID, userRoles)
 	}
 	return &apps.DashboardAppsResponse{}, nil
+}
+
+func (m *mockAppService) GetUserLinks(ctx context.Context, userID string) ([]apps.AppItem, error) {
+	m.getUserLinksCalled = true
+	if m.getUserLinksFn != nil {
+		return m.getUserLinksFn(ctx, userID)
+	}
+	return []apps.AppItem{}, nil
 }
 
 func (m *mockAppService) GetUserPreferences(ctx context.Context, userID string) (*apps.UserPreferences, error) {
@@ -312,9 +324,9 @@ func TestAppsHandler_GetUserLinks(t *testing.T) {
 		}
 	})
 
-	t.Run("internal error when GetDashboardApps fails", func(t *testing.T) {
+	t.Run("internal error when GetUserLinks fails", func(t *testing.T) {
 		service := &mockAppService{
-			getDashboardAppsFn: func(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error) {
+			getUserLinksFn: func(ctx context.Context, userID string) ([]apps.AppItem, error) {
 				return nil, errors.New("links err")
 			},
 		}
@@ -332,12 +344,10 @@ func TestAppsHandler_GetUserLinks(t *testing.T) {
 		}
 	})
 
-	t.Run("success returns user links", func(t *testing.T) {
+	t.Run("success returns user links without building the full dashboard response", func(t *testing.T) {
 		service := &mockAppService{
-			getDashboardAppsFn: func(ctx context.Context, userID string, userRoles []string) (*apps.DashboardAppsResponse, error) {
-				return &apps.DashboardAppsResponse{
-					User: []apps.AppItem{{ID: "user-link-1", Title: "My Link"}},
-				}, nil
+			getUserLinksFn: func(ctx context.Context, userID string) ([]apps.AppItem, error) {
+				return []apps.AppItem{{ID: "user-link-1", Title: "My Link"}}, nil
 			},
 		}
 		handler := apps.NewHandler(service)
@@ -351,6 +361,21 @@ func TestAppsHandler_GetUserLinks(t *testing.T) {
 
 		if rec.Code != http.StatusOK {
 			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		var links []apps.AppItem
+		if err := json.NewDecoder(rec.Body).Decode(&links); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if len(links) != 1 || links[0].ID != "user-link-1" {
+			t.Errorf("unexpected links payload: %+v", links)
+		}
+
+		if !service.getUserLinksCalled {
+			t.Error("expected GetUserLinks to be called")
+		}
+		if service.getDashboardAppsCalled {
+			t.Error("GET /api/v1/user/links must not build the full dashboard response (GetDashboardApps was called)")
 		}
 	})
 }

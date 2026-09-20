@@ -10,6 +10,7 @@ import (
 // Service defines domain logic contract for the 3-tier app & dashboard management architecture.
 type Service interface {
 	GetDashboardApps(ctx context.Context, userID string, userRoles []string) (*DashboardAppsResponse, error)
+	GetUserLinks(ctx context.Context, userID string) ([]AppItem, error)
 	GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error)
 	UpdateUserPreferences(ctx context.Context, userID string, hiddenAppIDs []string) (*UserPreferences, error)
 	CreateUserLink(ctx context.Context, userID string, req CreateUserLinkRequest) (*AppItem, error)
@@ -94,15 +95,36 @@ func (s *service) GetDashboardApps(ctx context.Context, userID string, userRoles
 	}
 
 	// 4. Resolve Tier 3 User Links from database
-	dbUserLinks, err := s.repo.GetUserLinks(ctx, userID)
+	userItems, err := s.GetUserLinks(ctx, userID)
 	if err != nil {
 		s.log.Error("failed to load user links from database", slog.String("user_id", userID), slog.String("error", err.Error()))
-		dbUserLinks = []*UserLink{}
+		userItems = []AppItem{}
 	}
 
-	userItems := make([]AppItem, 0, len(dbUserLinks))
+	total := len(visibleCore) + len(permittedStack) + len(userItems)
+
+	return &DashboardAppsResponse{
+		Core:        visibleCore,
+		Stack:       permittedStack,
+		User:        userItems,
+		AllCore:     allCore,
+		Preferences: *prefs,
+		Total:       total,
+	}, nil
+}
+
+// GetUserLinks fetches only the user's Tier 3 bookmarks, doing a single
+// indexed repository query -- it does not touch preferences or the Tier 1/2
+// registries, since callers of this narrow endpoint only need bookmark data.
+func (s *service) GetUserLinks(ctx context.Context, userID string) ([]AppItem, error) {
+	dbUserLinks, err := s.repo.GetUserLinks(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load user links for user %s: %w", userID, err)
+	}
+
+	items := make([]AppItem, 0, len(dbUserLinks))
 	for _, ul := range dbUserLinks {
-		item := AppItem{
+		items = append(items, AppItem{
 			ID:           ul.ID,
 			Slug:         ul.ID,
 			Title:        ul.Title,
@@ -119,20 +141,10 @@ func (s *service) GetDashboardApps(ctx context.Context, userID string, userRoles
 			DisplayOrder: ul.DisplayOrder,
 			CreatedAt:    ul.CreatedAt,
 			UpdatedAt:    ul.UpdatedAt,
-		}
-		userItems = append(userItems, item)
+		})
 	}
 
-	total := len(visibleCore) + len(permittedStack) + len(userItems)
-
-	return &DashboardAppsResponse{
-		Core:        visibleCore,
-		Stack:       permittedStack,
-		User:        userItems,
-		AllCore:     allCore,
-		Preferences: *prefs,
-		Total:       total,
-	}, nil
+	return items, nil
 }
 
 func (s *service) GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error) {
