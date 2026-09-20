@@ -121,6 +121,60 @@ async def test_analyze_spending_gap(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
+async def test_analyze_spending_gap_excludes_income_and_transfers(db_session: AsyncSession):
+    """INCOME/TRANSFER transactions must never be counted as "spent" alongside EXPENSE ones."""
+    household_id = uuid.uuid4()
+    plan = Plan(
+        household_id=household_id,
+        name="Monthly Core Budget",
+        plan_type=PlanType.MONTHLY,
+        total_budget=Decimal("500.00"),
+    )
+    db_session.add(plan)
+    await db_session.commit()
+
+    db_session.add_all(
+        [
+            # A large INCOME transaction that must NOT be treated as spending.
+            Transaction(
+                household_id=household_id,
+                description="Salary",
+                amount=Decimal("1000.00"),
+                transaction_type=TransactionType.INCOME,
+                transaction_date=date(2025, 3, 1),
+            ),
+            # A TRANSFER that must also not be treated as spending.
+            Transaction(
+                household_id=household_id,
+                description="Move to savings",
+                amount=Decimal("300.00"),
+                transaction_type=TransactionType.TRANSFER,
+                transaction_date=date(2025, 3, 2),
+            ),
+            # The only real expense in the month.
+            Transaction(
+                household_id=household_id,
+                description="Supermarket",
+                amount=Decimal("150.00"),
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=date(2025, 3, 15),
+            ),
+        ]
+    )
+    await db_session.commit()
+
+    with mcp_household_context(household_id=household_id):
+        result = await analyze_spending_gap(month="2025-03")
+
+    assert "Total Actual Expenses: 150.00" in result
+    assert "UNDER BUDGET" in result
+    assert "1000.00" not in result
+    assert "1150.00" not in result
+    assert "1300.00" not in result
+    assert "1450.00" not in result
+
+
+@pytest.mark.asyncio
 async def test_calculate_sinking_gap(db_session: AsyncSession):
     """Test calculate_sinking_gap MCP tool calculation."""
     household_id = uuid.uuid4()

@@ -4,6 +4,10 @@ from uuid import UUID
 
 from sqlmodel import desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.features.transactions.balances import (
+    apply_transaction_effect,
+    reverse_transaction_effect,
+)
 from src.features.transactions.models import (
     QuickAddTransactionCreate,
     Transaction,
@@ -38,6 +42,8 @@ class TransactionRepository:
             **data,
         )
         self.session.add(transaction)
+        await self.session.flush()
+        await apply_transaction_effect(self.session, transaction)
         await self.session.commit()
         await self.session.refresh(transaction)
         return transaction
@@ -77,18 +83,25 @@ class TransactionRepository:
         return result.all()
 
     async def update(self, transaction: Transaction, transaction_update: TransactionUpdate) -> Transaction:
-        """Update an existing Transaction entity."""
+        """Update an existing Transaction entity, rebalancing linked account/pot balances."""
+        # Undo the balance effect of the transaction as it currently stands before mutating it.
+        await reverse_transaction_effect(self.session, transaction)
+
         update_data = transaction_update.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(transaction, field, value)
         transaction.updated_at = datetime.now(UTC)
 
         self.session.add(transaction)
+        await self.session.flush()
+        # Apply the balance effect of the transaction as it now stands.
+        await apply_transaction_effect(self.session, transaction)
         await self.session.commit()
         await self.session.refresh(transaction)
         return transaction
 
     async def delete(self, transaction: Transaction) -> None:
-        """Delete a transaction record from database."""
+        """Delete a transaction record from database, reversing its balance effect."""
+        await reverse_transaction_effect(self.session, transaction)
         await self.session.delete(transaction)
         await self.session.commit()
