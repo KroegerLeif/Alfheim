@@ -4,15 +4,27 @@ package telemetry
 import "time"
 
 // MetricsResponse represents server health telemetry metrics.
+//
+// Every numeric field is a pointer and is only populated when VictoriaMetrics
+// actually returned data for it. This endpoint never fabricates a value to
+// fill a gap: when Available is false, or when an individual field is nil,
+// the caller must render an explicit "unavailable" state rather than assume
+// a real reading of zero.
 type MetricsResponse struct {
-	CPUPercent       float64 `json:"cpu_percent"`
-	MemoryPercent    float64 `json:"memory_percent"`
-	MemoryUsedGB     float64 `json:"memory_used_gb"`
-	MemoryTotalGB    float64 `json:"memory_total_gb"`
-	NetworkRxMbps    float64 `json:"network_rx_mbps"`
-	NetworkTxMbps    float64 `json:"network_tx_mbps"`
-	UptimeSeconds    int64   `json:"uptime_seconds"`
-	ActiveContainers int     `json:"active_containers"`
+	// Available reports whether VictoriaMetrics was reachable at all. It says
+	// nothing about whether every individual metric below has data -- a
+	// reachable VictoriaMetrics with no host-level exporters configured will
+	// still leave the numeric fields nil.
+	Available        bool     `json:"available"`
+	Message          string   `json:"message,omitempty"`
+	CPUPercent       *float64 `json:"cpu_percent,omitempty"`
+	MemoryPercent    *float64 `json:"memory_percent,omitempty"`
+	MemoryUsedGB     *float64 `json:"memory_used_gb,omitempty"`
+	MemoryTotalGB    *float64 `json:"memory_total_gb,omitempty"`
+	NetworkRxMbps    *float64 `json:"network_rx_mbps,omitempty"`
+	NetworkTxMbps    *float64 `json:"network_tx_mbps,omitempty"`
+	UptimeSeconds    int64    `json:"uptime_seconds"`
+	ActiveContainers *int     `json:"active_containers,omitempty"`
 }
 
 // LogEntry represents a single system log entry.

@@ -3,41 +3,18 @@ package telemetry
 import (
 	"fmt"
 	"math"
-	"math/rand"
-	"os"
-	"runtime"
-	"strconv"
-	"strings"
 	"time"
 )
 
-func (s *service) getLocalSystemMetrics() *MetricsResponse {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	uptimeSec := int64(time.Since(s.startTime).Seconds())
-
-	// Memory reading from /proc/meminfo or runtime fallback
-	memPercent, memUsed, memTotal := getSystemMemoryUsage()
-
-	// CPU reading from Go runtime / proc stat simulation
-	cpuPercent := getSystemCPUUsage()
-
-	// Network I/O jitter simulation for live telemetry feel
-	rxJitter := (rand.Float64() - 0.48) * 0.8
-	txJitter := (rand.Float64() - 0.48) * 0.5
-	s.lastRx = math.Max(0.5, math.Min(35.0, s.lastRx+rxJitter))
-	s.lastTx = math.Max(0.2, math.Min(20.0, s.lastTx+txJitter))
-
+// unavailableMetrics returns the explicit "metrics unavailable" state used
+// whenever VictoriaMetrics cannot be reached at all. It never fabricates
+// numeric readings -- uptime is the only real value here, computed from this
+// process's actual start time.
+func (s *service) unavailableMetrics(reason string) *MetricsResponse {
 	return &MetricsResponse{
-		CPUPercent:       roundFloat(cpuPercent, 1),
-		MemoryPercent:    roundFloat(memPercent, 1),
-		MemoryUsedGB:     roundFloat(memUsed, 1),
-		MemoryTotalGB:    roundFloat(memTotal, 1),
-		NetworkRxMbps:    roundFloat(s.lastRx, 1),
-		NetworkTxMbps:    roundFloat(s.lastTx, 1),
-		UptimeSeconds:    uptimeSec,
-		ActiveContainers: 6,
+		Available:     false,
+		Message:       reason,
+		UptimeSeconds: int64(time.Since(s.startTime).Seconds()),
 	}
 }
 
@@ -78,60 +55,6 @@ func (s *service) getLocalSystemLogs() *LogsResponse {
 		Logs:  logs,
 		Total: len(logs),
 	}
-}
-
-var procMeminfoPath = "/proc/meminfo"
-
-func getSystemMemoryUsage() (float64, float64, float64) {
-	// Attempt reading /proc/meminfo
-	data, err := os.ReadFile(procMeminfoPath)
-	if err == nil {
-		var memTotal, memAvailable float64
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			fields := strings.Fields(line)
-			if len(fields) >= 2 {
-				if fields[0] == "MemTotal:" {
-					val, _ := strconv.ParseFloat(fields[1], 64)
-					memTotal = val / 1024 / 1024 // GB
-				} else if fields[0] == "MemAvailable:" {
-					val, _ := strconv.ParseFloat(fields[1], 64)
-					memAvailable = val / 1024 / 1024 // GB
-				}
-			}
-		}
-		if memTotal > 0 {
-			memUsed := memTotal - memAvailable
-			percent := (memUsed / memTotal) * 100.0
-			return percent, memUsed, memTotal
-		}
-	}
-
-	// Fallback using runtime statistics
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	totalGB := 16.0
-	usedGB := float64(m.Sys) / 1024 / 1024 / 1024
-	if usedGB < 4.2 {
-		usedGB = 4.2 + (float64(m.Alloc) / 1024 / 1024 / 1024)
-	}
-	percent := (usedGB / totalGB) * 100.0
-	return percent, usedGB, totalGB
-}
-
-func getSystemCPUUsage() float64 {
-	// Simple non-blocking CPU usage calculation
-	numCPU := runtime.NumCPU()
-	base := 8.5 + float64(numCPU)*0.75
-	jitter := (rand.Float64() - 0.4) * 4.0
-	val := base + jitter
-	if val < 4.0 {
-		return 4.0
-	}
-	if val > 95.0 {
-		return 95.0
-	}
-	return val
 }
 
 func roundFloat(val float64, precision int) float64 {
