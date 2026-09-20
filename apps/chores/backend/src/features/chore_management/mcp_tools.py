@@ -8,6 +8,7 @@ from src.core.database import async_session_factory
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
 from src.features.chore_management.schemas import ChoreAssignRequest
 from src.features.chore_management.service import ChoreService
+from src.features.chore_management.services.instance_service import InstanceService
 from src.mcp.server import mcp
 
 
@@ -118,13 +119,18 @@ async def assign_chore(chore_instance_id: str, assignee_user_id: str) -> str:
     - chore_instance_id: UUID string of the chore instance.
     - assignee_user_id: User id (UUID) or Zitadel user id (sub) of the household member to assign the chore to.
 
-    The household is always the caller's authenticated household.
+    The household is always the caller's authenticated household. Assigning the
+    chore to someone other than the caller requires an OWNER/ADMIN household role.
     """
     try:
-        home_uuid = get_mcp_household_context().household_id
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
         inst_uuid = uuid.UUID(chore_instance_id)
         # Same sub -> UUID mapping as the authenticated routes (UUID as-is, otherwise uuid5 of the sub).
         user_uuid = derive_user_id(assignee_user_id)
+
+        if not InstanceService.can_assign(user_uuid, context.user_id, context.role):
+            return "Error: Only household owners or admins may assign a chore to someone else."
 
         async with async_session_factory() as session:
             payload = ChoreAssignRequest(assigned_to=user_uuid)

@@ -24,50 +24,95 @@ from src.features.chore_management.services.template_service import TemplateServ
 logger = logging.getLogger(__name__)
 
 
+ELEVATED_ASSIGN_ROLES = frozenset({"OWNER", "ADMIN"})
+
+
 class InstanceService:
     """Service class encapsulating chore instances, reset, completion, and timeline history."""
+
+    @staticmethod
+    def can_assign(target: uuid.UUID | None, caller_user_id: uuid.UUID, caller_role: str) -> bool:
+        """Whether ``caller`` may set a chore instance's ``assigned_to`` to ``target``.
+
+        Anyone may claim a chore for themself or release it (``target`` is
+        ``None`` or their own id). Assigning it to a *different* household
+        member is an elevated, explicit action restricted to OWNER/ADMIN.
+        """
+        return target is None or target == caller_user_id or caller_role in ELEVATED_ASSIGN_ROLES
 
     @staticmethod
     async def ensure_household_reset(session: AsyncSession, home_id: uuid.UUID, target_date: date) -> None:
         """Retroactively verify and generate chore instances up to the target date.
 
-        If target_date instances don't exist yet, it archives yesterday's
-        uncompleted chores as missed, recalculates the streak, and generates today's tasks.
+        The first time this runs for ``target_date`` it evaluates yesterday's
+        instances (archiving non-cumulative ones as missed, rolling cumulative
+        ones forward so they keep stacking, and recalculating the streak), then
+        generates a ``target_date`` instance for every template that doesn't
+        already have one. That per-template diff (rather than a single
+        household-wide existence check) also makes the function idempotent and
+        safe to call again later in the day: a template created after the first
+        call still gets its instance, and re-running never creates duplicates.
+
+        Reset semantics for ``ChoreTemplate.is_non_cumulative``:
+        - ``True`` (default, "non-cumulative"): an unfinished instance expires
+          at midnight -- it is marked ``"missed"`` and a fresh ``"pending"``
+          instance is generated for ``target_date``. Missing one of these
+          resets the household streak to 0.
+        - ``False`` ("cumulative"): an unfinished instance is *not* marked
+          missed. It is rolled forward (its ``due_date`` becomes
+          ``target_date``) so the same outstanding chore keeps stacking up
+          until someone completes it, and it never resets the streak.
         """
-        # Check if we already generated instances for today
-        stmt = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == target_date)
-        res = await session.exec(stmt)
-        if res.first():
-            return
+        templates = (await session.exec(select(ChoreTemplate).where(ChoreTemplate.home_id == home_id))).all()
+        template_by_id = {t.id: t for t in templates}
 
-        streak = await StreakService.ensure_household_streak(session, home_id)
+        # Instances that already exist for target_date (from a prior call today, or rolled forward below).
+        existing_stmt = select(ChoreInstance).where(
+            ChoreInstance.home_id == home_id, ChoreInstance.due_date == target_date
+        )
+        existing_instances = (await session.exec(existing_stmt)).all()
+        covered_template_ids = {inst.template_id for inst in existing_instances}
+        already_processed_today = bool(existing_instances)
 
-        # Yesterday's chores evaluation
-        yesterday = target_date - timedelta(days=1)
-        y_stmt = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == yesterday)
-        y_res = await session.exec(y_stmt)
-        yesterday_instances = y_res.all()
+        if not already_processed_today:
+            streak = await StreakService.ensure_household_streak(session, home_id)
 
-        if yesterday_instances:
-            uncompleted = [inst for inst in yesterday_instances if inst.status != "completed"]
-            if uncompleted:
+            # Yesterday's chores evaluation
+            yesterday = target_date - timedelta(days=1)
+            y_stmt = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == yesterday)
+            y_res = await session.exec(y_stmt)
+            yesterday_instances = y_res.all()
+
+            if yesterday_instances:
+                uncompleted = [inst for inst in yesterday_instances if inst.status != "completed"]
+                non_cumulative_missed = []
                 for inst in uncompleted:
-                    inst.status = "missed"
-                    session.add(inst)
-                streak.current_streak = 0
-            else:
-                if streak.last_completed_date != yesterday:
+                    template = template_by_id.get(inst.template_id)
+                    # Orphaned instances (template deleted) default to non-cumulative (expire).
+                    is_non_cumulative = template.is_non_cumulative if template else True
+                    if is_non_cumulative:
+                        inst.status = "missed"
+                        session.add(inst)
+                        non_cumulative_missed.append(inst)
+                    else:
+                        # Cumulative: keep it pending and roll it forward so it stacks up.
+                        inst.due_date = target_date
+                        session.add(inst)
+                        covered_template_ids.add(inst.template_id)
+
+                if non_cumulative_missed:
+                    streak.current_streak = 0
+                elif streak.last_completed_date != yesterday:
                     streak.current_streak += 1
                     streak.longest_streak = max(streak.longest_streak, streak.current_streak)
                     streak.last_completed_date = yesterday
-            session.add(streak)
+                session.add(streak)
 
-        # Generate new chore instances for target_date
-        t_stmt = select(ChoreTemplate).where(ChoreTemplate.home_id == home_id)
-        t_res = await session.exec(t_stmt)
-        templates = t_res.all()
-
-        for t in templates:
+        # Generate instances for every template that doesn't have one for target_date yet
+        # (new templates created after today's reset already ran, in addition to the normal
+        # daily set).
+        missing_templates = [t for t in templates if t.id not in covered_template_ids]
+        for t in missing_templates:
             inst = ChoreInstance(
                 template_id=t.id,
                 home_id=home_id,
@@ -79,7 +124,7 @@ class InstanceService:
 
         try:
             await session.commit()
-            logger.info(f"Generated {len(templates)} chore instances for household {home_id} on {target_date}")
+            logger.info(f"Generated {len(missing_templates)} chore instances for household {home_id} on {target_date}")
         except Exception as e:
             await session.rollback()
             logger.error(f"Failed to generate chores for household {home_id} on {target_date}: {e}")
@@ -132,6 +177,38 @@ class InstanceService:
         await session.commit()
         await session.refresh(instance)
         return instance
+
+    @staticmethod
+    async def claim_chore_instance(
+        session: AsyncSession,
+        instance_id: uuid.UUID,
+        home_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> ChoreInstance:
+        """Claim an unassigned chore instance for ``user_id``, or release it if they already hold it.
+
+        This backs the dashboard's self-service "Claim" button: the assignee is
+        always the authenticated caller, taken from ``user_id`` and never from
+        client-supplied input. Claiming a chore already held by a different
+        member is rejected -- reassigning it to someone else is a distinct,
+        role-checked action (see :meth:`assign_chore_instance`).
+        """
+        stmt = select(ChoreInstance).where(
+            ChoreInstance.id == instance_id,
+            ChoreInstance.home_id == home_id,
+        )
+        res = await session.exec(stmt)
+        instance = res.first()
+        if not instance:
+            raise ChoreInstanceNotFoundError(f"Chore instance with ID {instance_id} not found.")
+
+        if instance.assigned_to is not None and instance.assigned_to != user_id:
+            raise ChoreNotAssignableError("This chore is already claimed by another household member.")
+
+        target = None if instance.assigned_to == user_id else user_id
+        return await InstanceService.assign_chore_instance(
+            session, instance_id, ChoreAssignRequest(assigned_to=target), home_id
+        )
 
     @staticmethod
     async def complete_chore_instance(
