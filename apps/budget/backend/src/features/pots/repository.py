@@ -2,9 +2,10 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlmodel import col, select
+from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.pots.models import Pot, PotCreate, PotUpdate
+from src.features.transactions.models import Transaction
 
 
 class PotRepository:
@@ -80,3 +81,9 @@ class PotRepository:
         """Delete a pot record from the database."""
         await self.session.delete(pot)
         await self.session.commit()
+
+    async def count_referencing_transactions(self, pot_id: UUID) -> int:
+        """Count transactions that still reference this pot (used to guard deletion)."""
+        statement = select(func.count()).select_from(Transaction).where(Transaction.pot_id == pot_id)
+        result = await self.session.exec(statement)
+        return int(result.one())
