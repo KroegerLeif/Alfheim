@@ -6,6 +6,7 @@ from src.core.database import async_session_factory
 from src.features.plans.service import PlanService
 from src.features.pots.repository import PotRepository
 from src.features.pots.service import PotService
+from src.features.transactions.models import TransactionType
 from src.features.transactions.repository import TransactionRepository
 from src.features.transactions.service import TransactionService
 from src.mcp.server import mcp
@@ -102,7 +103,13 @@ async def analyze_spending_gap(month: str) -> str:
             ]
 
             total_planned = sum((plan.total_budget for plan in plans), Decimal("0.00"))
-            total_spent = sum((tx.amount for tx in monthly_txs if tx.amount > Decimal("0.00")), Decimal("0.00"))
+            # Only EXPENSE transactions count as "spent" -- amount is stored as an unsigned
+            # magnitude regardless of transaction_type, so filtering by sign (as before) would
+            # silently count INCOME/TRANSFER transactions as spending. Filter by type instead.
+            total_spent = sum(
+                (tx.amount for tx in monthly_txs if tx.transaction_type == TransactionType.EXPENSE),
+                Decimal("0.00"),
+            )
 
             gap = total_spent - total_planned
             has_overspend = gap > Decimal("0.00")
