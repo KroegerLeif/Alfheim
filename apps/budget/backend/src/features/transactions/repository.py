@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from uuid import UUID
 
-from sqlmodel import desc, select
+from sqlmodel import desc, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.transactions.balances import (
     apply_transaction_effect,
@@ -12,6 +13,7 @@ from src.features.transactions.models import (
     QuickAddTransactionCreate,
     Transaction,
     TransactionCreate,
+    TransactionType,
     TransactionUpdate,
 )
 
@@ -81,6 +83,46 @@ class TransactionRepository:
         statement = statement.order_by(desc(Transaction.transaction_date)).offset(offset).limit(limit)
         result = await self.session.exec(statement)
         return result.all()
+
+    async def sum_expenses_in_range(
+        self,
+        household_id: UUID,
+        date_from: date,
+        date_to: date,
+    ) -> Decimal:
+        """Sum EXPENSE transaction amounts for a household within a date range, aggregated in the database.
+
+        This avoids paging through the most recent N transactions in Python (which silently misses
+        older months once a household has more than N transactions total).
+        """
+        statement = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+            Transaction.household_id == household_id,
+            Transaction.transaction_type == TransactionType.EXPENSE,
+            Transaction.transaction_date >= date_from,
+            Transaction.transaction_date <= date_to,
+        )
+        result = await self.session.exec(statement)
+        total = result.one()
+        return Decimal(total)
+
+    async def count_in_range(
+        self,
+        household_id: UUID,
+        date_from: date,
+        date_to: date,
+    ) -> int:
+        """Count transactions for a household within a date range, aggregated in the database."""
+        statement = (
+            select(func.count())
+            .select_from(Transaction)
+            .where(
+                Transaction.household_id == household_id,
+                Transaction.transaction_date >= date_from,
+                Transaction.transaction_date <= date_to,
+            )
+        )
+        result = await self.session.exec(statement)
+        return int(result.one())
 
     async def update(self, transaction: Transaction, transaction_update: TransactionUpdate) -> Transaction:
         """Update an existing Transaction entity, rebalancing linked account/pot balances."""

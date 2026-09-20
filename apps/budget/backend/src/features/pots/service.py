@@ -48,8 +48,21 @@ class PotService:
         return await self.repository.update(pot=pot, pot_update=pot_update)
 
     async def delete_pot(self, pot_id: UUID, household_id: UUID) -> None:
-        """Delete a pot for the specified household."""
+        """Delete a pot for the specified household.
+
+        Blocks deletion with a 409 when transactions still reference the pot, rather than
+        letting the request fail with an unhandled foreign-key violation.
+        """
         pot = await self.get_pot(pot_id=pot_id, household_id=household_id)
+        referencing_count = await self.repository.count_referencing_transactions(pot_id=pot_id)
+        if referencing_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Cannot delete pot: {referencing_count} transaction(s) still reference it. "
+                    "Reassign or delete those transactions first."
+                ),
+            )
         await self.repository.delete(pot=pot)
 
     async def allocate_cascade(self, household_id: UUID, amount: Decimal) -> CascadeAllocationResponse:

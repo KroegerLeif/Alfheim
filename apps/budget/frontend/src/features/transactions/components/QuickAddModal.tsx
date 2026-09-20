@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogTitle, useTranslation, useLanguage } from "@alfheim/shared";
 import { QuickAddTransactionCreate, TransactionType, Account, Pot, Plan } from "@/features/budget/types";
-import { Zap } from "lucide-react";
+import { transactionsApi } from "../api/transactionsApi";
+import { Zap, Paperclip } from "lucide-react";
 
 export interface QuickAddModalProps {
   open: boolean;
@@ -41,6 +42,8 @@ export function QuickAddModal({
   const [accountId, setAccountId] = useState("");
   const [potId, setPotId] = useState("");
   const [planId, setPlanId] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!open) return null;
@@ -51,7 +54,25 @@ export function QuickAddModal({
     if (!parsedAmount || parsedAmount <= 0) return;
 
     setSubmitting(true);
+    setReceiptError(null);
     try {
+      // Upload the receipt (if any) to RustFS/S3 first, and store its object key on the
+      // transaction. OCR extraction is intentionally not wired up here -- see issue #529.
+      let receiptUrl: string | null = null;
+      if (receiptFile) {
+        try {
+          const { upload_url, object_key } = await transactionsApi.getReceiptUploadUrl(
+            receiptFile.name,
+            receiptFile.type || "image/jpeg"
+          );
+          await transactionsApi.uploadReceiptFile(upload_url, receiptFile);
+          receiptUrl = object_key;
+        } catch (err) {
+          setReceiptError(err instanceof Error ? err.message : String(err));
+          return;
+        }
+      }
+
       await onSubmit({
         description,
         amount: parsedAmount,
@@ -59,12 +80,14 @@ export function QuickAddModal({
         account_id: accountId || null,
         pot_id: potId || null,
         plan_id: planId || null,
+        receipt_url: receiptUrl,
       });
       setDescription("");
       setAmount("");
       setAccountId("");
       setPotId("");
       setPlanId("");
+      setReceiptFile(null);
       onClose();
     } finally {
       setSubmitting(false);
@@ -174,6 +197,31 @@ export function QuickAddModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="transaction-receipt" className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+              {t("budget.transactions.receiptUpload")}
+            </label>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="transaction-receipt"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-main)]"
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+                <span className="truncate max-w-[180px]">
+                  {receiptFile ? receiptFile.name : t("budget.transactions.receiptAttachPrompt")}
+                </span>
+              </label>
+              <input
+                id="transaction-receipt"
+                type="file"
+                accept="image/*,application/pdf"
+                className="sr-only"
+                onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            {receiptError && <p className="text-[11px] text-rose-500 mt-1">{receiptError}</p>}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

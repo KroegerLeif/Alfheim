@@ -2,9 +2,10 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlmodel import select
+from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.accounts.models import Account, AccountCreate, AccountUpdate
+from src.features.transactions.models import Transaction
 
 
 class AccountRepository:
@@ -57,3 +58,9 @@ class AccountRepository:
         """Delete an account record from database."""
         await self.session.delete(account)
         await self.session.commit()
+
+    async def count_referencing_transactions(self, account_id: UUID) -> int:
+        """Count transactions that still reference this account (used to guard deletion)."""
+        statement = select(func.count()).select_from(Transaction).where(Transaction.account_id == account_id)
+        result = await self.session.exec(statement)
+        return int(result.one())

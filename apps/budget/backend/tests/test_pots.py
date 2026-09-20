@@ -217,3 +217,36 @@ async def test_update_and_delete_pot(client: AsyncClient):
     # Verify 404
     get_resp = await client.get(f"/api/v1/pots/{pot_id}", headers=headers)
     assert get_resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_pot_blocked_while_transactions_reference_it(client: AsyncClient):
+    """Deleting a pot with existing transactions must fail with a clear 409, not a raw FK crash."""
+    headers = create_auth_headers()
+
+    create_resp = await client.post(
+        "/api/v1/pots/",
+        headers=headers,
+        json={"name": "Referenced Pot", "priority": 1},
+    )
+    pot_id = create_resp.json()["id"]
+
+    resp_tx = await client.post(
+        "/api/v1/transactions/",
+        headers=headers,
+        json={
+            "description": "Savings deposit",
+            "amount": "40.00",
+            "transaction_type": "INCOME",
+            "pot_id": pot_id,
+        },
+    )
+    assert resp_tx.status_code == 201
+
+    resp_del = await client.delete(f"/api/v1/pots/{pot_id}", headers=headers)
+    assert resp_del.status_code == 409
+    assert "transaction" in resp_del.json()["detail"].lower()
+
+    get_resp = await client.get(f"/api/v1/pots/{pot_id}", headers=headers)
+    assert get_resp.status_code == 200
+    assert Decimal(get_resp.json()["current_amount"]) == Decimal("40.00")

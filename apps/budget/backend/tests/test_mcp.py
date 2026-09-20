@@ -175,6 +175,128 @@ async def test_analyze_spending_gap_excludes_income_and_transfers(db_session: As
 
 
 @pytest.mark.asyncio
+async def test_analyze_spending_gap_rejects_invalid_month_format(db_session: AsyncSession):
+    """An invalid month string returns a clear error instead of raising."""
+    household_id = uuid.uuid4()
+    with mcp_household_context(household_id=household_id):
+        result = await analyze_spending_gap(month="not-a-month")
+    assert "invalid month" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_analyze_spending_gap_rejects_out_of_range_month(db_session: AsyncSession):
+    """A month number outside 1-12 is also rejected as invalid rather than crashing."""
+    household_id = uuid.uuid4()
+    with mcp_household_context(household_id=household_id):
+        result = await analyze_spending_gap(month="2025-13")
+    assert "invalid month" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_analyze_spending_gap_finds_transactions_beyond_the_old_500_row_window(db_session: AsyncSession):
+    """Regression test for the 500-row window bug: an old month's expenses must still be found
+    even when 500+ newer transactions exist in the household, because the aggregation now runs
+    in the database over the requested date range instead of paging through recent rows.
+    """
+    household_id = uuid.uuid4()
+    plan = Plan(
+        household_id=household_id,
+        name="Monthly Core Budget",
+        plan_type=PlanType.MONTHLY,
+        total_budget=Decimal("100.00"),
+    )
+    db_session.add(plan)
+    await db_session.commit()
+
+    # The transaction we actually care about: a real expense from an old month.
+    old_tx = Transaction(
+        household_id=household_id,
+        description="Old rent payment",
+        amount=Decimal("300.00"),
+        transaction_type=TransactionType.EXPENSE,
+        transaction_date=date(2020, 1, 15),
+    )
+    db_session.add(old_tx)
+
+    # 550 more recent transactions -- more than the old 500-row window -- so that the old
+    # transaction above would have fallen off a "most recent 500" query entirely.
+    recent_txs = [
+        Transaction(
+            household_id=household_id,
+            description=f"Recent expense {i}",
+            amount=Decimal("1.00"),
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 6, 1),
+        )
+        for i in range(550)
+    ]
+    db_session.add_all(recent_txs)
+    await db_session.commit()
+
+    with mcp_household_context(household_id=household_id):
+        result = await analyze_spending_gap(month="2020-01")
+
+    assert "Total Actual Expenses: 300.00" in result
+    assert "Transactions Analyzed: 1" in result
+
+
+@pytest.mark.asyncio
+async def test_suggest_budget_allocation_with_no_pots(db_session: AsyncSession):
+    """When the household has no pots at all, the tool reports that instead of erroring."""
+    household_id = uuid.uuid4()
+    with mcp_household_context(household_id=household_id):
+        result = await suggest_budget_allocation(income=100.0)
+    assert "No active pots available for budget allocation" in result
+
+
+@pytest.mark.asyncio
+async def test_get_pot_balances_reports_errors_instead_of_raising(db_session: AsyncSession):
+    """Unexpected failures inside get_pot_balances are caught and returned as an error string."""
+    household_id = uuid.uuid4()
+    with (
+        patch("src.mcp.tools.PotService.list_pots", side_effect=RuntimeError("db exploded")),
+        mcp_household_context(household_id=household_id),
+    ):
+        result = await get_pot_balances()
+    assert "Error fetching pot balances" in result
+    assert "db exploded" in result
+
+
+def test_get_budget_status_reports_running():
+    """The scaffolding health tool on the MCP server instance returns a static status string."""
+    from src.mcp.server import get_budget_status
+
+    assert get_budget_status() == "Budget & Treasury backend is running."
+
+
+def test_discover_and_import_mcp_tools_handles_broken_modules_and_missing_dir(monkeypatch):
+    """Exercise the failure branches and the feature-module discovery loop."""
+    from src.mcp import server as mcp_server
+
+    calls: list[str] = []
+
+    def fake_import_module(name):
+        calls.append(name)
+        raise ImportError("boom")
+
+    # A stand-in path under the backend root so relative_to()/with_suffix()/parts behave like a
+    # real discovered mcp_tools.py file would.
+    fake_tools_path = mcp_server.pathlib.Path(__file__).parent / "fake_feature" / "mcp_tools.py"
+
+    monkeypatch.setattr(mcp_server.importlib, "import_module", fake_import_module)
+    monkeypatch.setattr(mcp_server.pathlib.Path, "rglob", lambda self, pattern: iter([fake_tools_path]))
+
+    mcp_server.discover_and_import_mcp_tools()
+
+    assert "src.mcp.tools" in calls
+    assert any(call.endswith("fake_feature.mcp_tools") for call in calls)
+
+    # The early-return branch when the features directory doesn't exist.
+    monkeypatch.setattr(mcp_server.pathlib.Path, "exists", lambda self: False)
+    mcp_server.discover_and_import_mcp_tools()
+
+
+@pytest.mark.asyncio
 async def test_calculate_sinking_gap(db_session: AsyncSession):
     """Test calculate_sinking_gap MCP tool calculation."""
     household_id = uuid.uuid4()

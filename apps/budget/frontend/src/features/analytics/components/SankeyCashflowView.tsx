@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MoneyDisplay } from "@alfheim/shared";
+import { MoneyDisplay, useTranslation } from "@alfheim/shared";
 import { GitMerge, ArrowRight, Wallet, PiggyBank, PieChart, Info } from "lucide-react";
 
 export interface SankeyCashflowViewProps {
@@ -23,6 +23,8 @@ export function SankeyCashflowView({
   unassignedSurplus,
   hasData,
 }: SankeyCashflowViewProps) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] space-y-4 shadow-xs">
@@ -36,11 +38,8 @@ export function SankeyCashflowView({
     return (
       <div className="p-8 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-center space-y-2 shadow-xs">
         <Info className="w-6 h-6 mx-auto text-[var(--text-muted)]" />
-        <h3 className="text-base font-semibold text-[var(--text-main)]">No cashflow data yet</h3>
-        <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-          Once this household has income transactions, budget plans, or pot contributions, the cashflow
-          breakdown will appear here. There is no data to show yet.
-        </p>
+        <h3 className="text-base font-semibold text-[var(--text-main)]">{t("budget.analytics.sankeyEmptyTitle")}</h3>
+        <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">{t("budget.analytics.sankeyEmptyDesc")}</p>
       </div>
     );
   }
@@ -51,11 +50,9 @@ export function SankeyCashflowView({
         <div>
           <h3 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
             <GitMerge className="w-5 h-5 text-[var(--primary-main)]" />
-            <span>Sankey Cashflow Flow</span>
+            <span>{t("budget.analytics.sankeyTitle")}</span>
           </h3>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Visual breakdown of incoming revenues distributed into budget plans and virtual sinking funds.
-          </p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">{t("budget.analytics.sankeyDesc")}</p>
         </div>
       </div>
 
@@ -65,14 +62,14 @@ export function SankeyCashflowView({
           <div className="flex justify-center text-emerald-500">
             <Wallet className="w-6 h-6" />
           </div>
-          <p className="text-xs text-[var(--text-muted)] font-medium">Monthly Household Inflow</p>
+          <p className="text-xs text-[var(--text-muted)] font-medium">{t("budget.analytics.monthlyInflow")}</p>
           <MoneyDisplay amount={totalIncome} size="lg" className="font-bold text-emerald-500" />
         </div>
 
         {/* Step 2: Distribution node */}
         <div className="flex flex-col items-center justify-center gap-1 text-[var(--text-muted)]">
           <ArrowRight className="w-6 h-6 hidden md:block text-[var(--primary-main)]" />
-          <span className="text-[11px] font-mono font-bold">Priority Allocation</span>
+          <span className="text-[11px] font-mono font-bold">{t("budget.analytics.priorityAllocation")}</span>
         </div>
 
         {/* Step 3: Outflow Targets */}
@@ -80,7 +77,7 @@ export function SankeyCashflowView({
           <div className="p-3 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <PieChart className="w-4 h-4 text-indigo-500" />
-              <span className="font-medium text-[var(--text-main)]">Budget Plans</span>
+              <span className="font-medium text-[var(--text-main)]">{t("budget.analytics.budgetPlansLabel")}</span>
             </div>
             <MoneyDisplay amount={totalAllocatedPlans} size="sm" className="font-bold" />
           </div>
@@ -88,7 +85,7 @@ export function SankeyCashflowView({
           <div className="p-3 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <PiggyBank className="w-4 h-4 text-amber-500" />
-              <span className="font-medium text-[var(--text-main)]">Virtual Pots</span>
+              <span className="font-medium text-[var(--text-main)]">{t("budget.analytics.virtualPotsLabel")}</span>
             </div>
             <MoneyDisplay amount={totalPotsContribution} size="sm" className="font-bold" />
           </div>
@@ -96,7 +93,7 @@ export function SankeyCashflowView({
           <div className="p-3 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4 text-emerald-500" />
-              <span className="font-medium text-[var(--text-main)]">Unassigned Surplus</span>
+              <span className="font-medium text-[var(--text-main)]">{t("budget.analytics.unassignedSurplus")}</span>
             </div>
             <MoneyDisplay amount={unassignedSurplus} size="sm" className="font-bold text-emerald-500" />
           </div>

@@ -2,15 +2,28 @@
   "budget": {
     "title": "Budget & Treasury",
     "subtitle": "alfheim household budget & asset management",
+    "pageSubtitle": "Financial overview, virtual pots, recurring plans, and cashflow tracking.",
+    "refreshData": "Refresh Budget Data",
+    "actions": {
+      "retry": "Retry",
+      "dismiss": "Dismiss"
+    },
+    "errors": {
+      "requestFailed": "Something went wrong. Please try again."
+    },
     "navigation": {
       "dashboard": "Dashboard",
-      "planning": "Budget Planning",
-      "pots": "Virtual Pots",
+      "planning": "Planning",
+      "pots": "Pots",
       "sankey": "Sankey Cashflow",
       "analytics": "Net-Worth Analytics",
       "quickAdd": "Quick-Add",
       "monthly": "Monthly",
-      "event": "Event"
+      "event": "Event",
+      "brand": "Alfheim Core",
+      "sidebarLabel": "Desktop Sidebar",
+      "navLabel": "Sidebar Navigation",
+      "planningModeLabel": "Planning Mode Selector"
     },
     "accounts": {
       "title": "Accounts & Portfolios",
@@ -42,7 +55,15 @@
       "gapDetected": "Warning: Savings gap detected",
       "maintenanceReserve": "Maintenance Reserve",
       "unassignedBuffer": "Unassigned Buffer",
-      "createPot": "Create New Pot"
+      "createPot": "Create New Pot",
+      "cascadeModalTitle": "Priority Cascade Allocation",
+      "cascadeModalDesc": "Distribute surplus funds down virtual pots ranked by priority (P1 through P10). Excess overflows into investment or unassigned buffers based on target rules.",
+      "totalSurplusAmount": "Total Surplus Amount",
+      "cascadeProcessing": "Processing...",
+      "cascadeExecute": "Execute Cascade",
+      "cascadeCompleted": "Cascade Completed",
+      "cascadeAllocatedPrefix": "Allocated",
+      "cascadeAllocatedSuffix": "across pots."
     },
     "plans": {
       "title": "Budget Plans & Categories",
@@ -53,7 +74,11 @@
       "spent": "Spent",
       "remaining": "Remaining",
       "subcategories": "Subcategories",
-      "createPlan": "Create New Plan"
+      "createPlan": "Create New Plan",
+      "categoriesEmptyState": "No budget categories added yet. Click \"Add Category\" above to allocate your budget.",
+      "addSubcategory": "Add Subcategory",
+      "deleteCategoryLabel": "Delete category {name}",
+      "deleteSubcategoryLabel": "Delete subcategory {name}"
     },
     "transactions": {
       "title": "Transactions & Receipts",
@@ -79,13 +104,33 @@
       "targetPotOptional": "Target Pot (Optional)",
       "planOptional": "Plan (Optional)",
       "none": "-- None --",
-      "logging": "Logging..."
+      "logging": "Logging...",
+      "ledgerTitle": "Transaction Ledger",
+      "emptyState": "No transactions recorded yet. Click \"Quick-Add\" to log your first transaction.",
+      "quickBadge": "Quick",
+      "deleteLabel": "Delete transaction {description}",
+      "receiptAttachPrompt": "Attach a receipt (optional)"
     },
     "analytics": {
       "title": "Financial Analytics & Cashflow",
       "subtitle": "Sankey diagram and net-worth tracking",
       "sankeyTitle": "Sankey Cashflow Visualization",
+      "sankeyDesc": "Visual breakdown of incoming revenues distributed into budget plans and virtual sinking funds.",
+      "sankeyEmptyTitle": "No cashflow data yet",
+      "sankeyEmptyDesc": "Once this household has income transactions, budget plans, or pot contributions, the cashflow breakdown will appear here. There is no data to show yet.",
+      "monthlyInflow": "Monthly Household Inflow",
+      "priorityAllocation": "Priority Allocation",
+      "budgetPlansLabel": "Budget Plans",
+      "virtualPotsLabel": "Virtual Pots",
+      "unassignedSurplus": "Unassigned Surplus",
       "netWorthTitle": "Net Worth Growth",
+      "netWorthAnalyticsTitle": "Net-Worth Analytics & Asset Allocation",
+      "netWorthAnalyticsDesc": "Distribution across liquid capital and investment vehicles.",
+      "liquidAssets": "Liquid Assets",
+      "liquidAssetsDesc": "Includes checking accounts, instant savings, and liquid emergency cash.",
+      "investmentPortfolio": "Investment Portfolio",
+      "investmentPortfolioDesc": "Securities, ETFs, and long-term building savings contracts.",
+      "assetBreakdown": "Asset Breakdown",
       "spendingGap": "Spending Gap Analysis"
     }
   }

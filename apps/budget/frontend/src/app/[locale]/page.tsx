@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "@alfheim/shared";
 import { DesktopSidebar, MobileTabBar } from "@/features/navigation";
 import { useBudgetData } from "@/features/dashboard/useBudgetData";
 import { DashboardOverview } from "@/features/dashboard/DashboardOverview";
@@ -14,11 +15,27 @@ import { Account, Pot, Plan } from "@/features/budget/types";
 import { Plus, RefreshCw, AlertCircle } from "lucide-react";
 
 export default function BudgetHomePage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("/");
   const [planningMode, setPlanningMode] = useState<"monthly" | "event">("monthly");
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { accounts, netWorth, pots, plans, activePlan, planSummary, transactions, loading, error, reload } =
     useBudgetData(planningMode);
+
+  // Every destructive action (delete) is wrapped through this so a failed request (e.g. a 409
+  // "still referenced by transactions" conflict) surfaces via the error banner instead of the
+  // button silently doing nothing. See issue #544.
+  const runAction = async (action: () => Promise<void>) => {
+    setActionError(null);
+    try {
+      await action();
+      reload();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setActionError(message || t("budget.errors.requestFailed"));
+    }
+  };
 
   // Dialog State
   const [accOpen, setAccOpen] = useState(false);
@@ -67,15 +84,13 @@ export default function BudgetHomePage() {
       <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6 max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--text-main)]">Budget & Treasury</h1>
-            <p className="text-sm text-[var(--text-muted)] mt-0.5">
-              Financial overview, virtual pots, recurring plans, and cashflow tracking.
-            </p>
+            <h1 className="text-2xl font-bold text-[var(--text-main)]">{t("budget.title")}</h1>
+            <p className="text-sm text-[var(--text-muted)] mt-0.5">{t("budget.pageSubtitle")}</p>
           </div>
           <button
             type="button"
             onClick={reload}
-            aria-label="Refresh Budget Data"
+            aria-label={t("budget.refreshData")}
             className="p-2 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -85,7 +100,16 @@ export default function BudgetHomePage() {
         {error && (
           <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs flex items-center justify-between">
             <span className="flex items-center gap-2"><AlertCircle className="w-4 h-4" /><span>{error}</span></span>
-            <button type="button" onClick={reload} className="font-bold underline">Retry</button>
+            <button type="button" onClick={reload} className="font-bold underline">{t("budget.actions.retry")}</button>
+          </div>
+        )}
+
+        {actionError && (
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs flex items-center justify-between">
+            <span className="flex items-center gap-2"><AlertCircle className="w-4 h-4" /><span>{actionError}</span></span>
+            <button type="button" onClick={() => setActionError(null)} className="font-bold underline">
+              {t("budget.actions.dismiss")}
+            </button>
           </div>
         )}
 
@@ -98,12 +122,12 @@ export default function BudgetHomePage() {
             loading={loading}
             onAddAccount={() => { setEditAcc(null); setAccOpen(true); }}
             onEditAccount={(acc) => { setEditAcc(acc); setAccOpen(true); }}
-            onDeleteAccount={async (id) => { await accountsApi.deleteAccount(id); reload(); }}
+            onDeleteAccount={(id) => runAction(() => accountsApi.deleteAccount(id))}
             onEditPot={(p) => { setEditPot(p); setPotOpen(true); }}
-            onDeletePot={async (id) => { await potsApi.deletePot(id); reload(); }}
+            onDeletePot={(id) => runAction(() => potsApi.deletePot(id))}
             onOpenCascadeModal={() => setCascadeOpen(true)}
             onQuickAdd={() => setQuickAddOpen(true)}
-            onDeleteTransaction={async (id) => { await transactionsApi.deleteTransaction(id); reload(); }}
+            onDeleteTransaction={(id) => runAction(() => transactionsApi.deleteTransaction(id))}
           />
         )}
 
@@ -113,7 +137,7 @@ export default function BudgetHomePage() {
             loading={loading}
             onAddAccount={() => { setEditAcc(null); setAccOpen(true); }}
             onEditAccount={(acc) => { setEditAcc(acc); setAccOpen(true); }}
-            onDeleteAccount={async (id) => { await accountsApi.deleteAccount(id); reload(); }}
+            onDeleteAccount={(id) => runAction(() => accountsApi.deleteAccount(id))}
           />
         )}
 
@@ -125,13 +149,13 @@ export default function BudgetHomePage() {
               loading={loading}
               onAddPlan={() => { setEditPlan(null); setPlanOpen(true); }}
               onEditPlan={(pl) => { setEditPlan(pl); setPlanOpen(true); }}
-              onDeletePlan={async (id) => { await plansApi.deletePlan(id); reload(); }}
+              onDeletePlan={(id) => runAction(() => plansApi.deletePlan(id))}
               onAddCategory={() => { setCatParentId(null); setCatOpen(true); }}
             />
             <CategoryTree
               categories={planSummary?.categories || []}
               onAddSubcategory={(pId) => { setCatParentId(pId); setCatOpen(true); }}
-              onDeleteCategory={async (cId) => { await plansApi.deleteCategory(cId); reload(); }}
+              onDeleteCategory={(cId) => runAction(() => plansApi.deleteCategory(cId))}
             />
           </div>
         )}
@@ -139,13 +163,13 @@ export default function BudgetHomePage() {
         {activeTab === "/pots" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-main)]">Virtual Pots</h3>
+              <h3 className="text-base font-semibold text-[var(--text-main)]">{t("budget.navigation.pots")}</h3>
               <button
                 type="button"
                 onClick={() => { setEditPot(null); setPotOpen(true); }}
                 className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium flex items-center gap-1.5"
               >
-                <Plus className="w-4 h-4" /><span>New Pot</span>
+                <Plus className="w-4 h-4" /><span>{t("budget.pots.createPot")}</span>
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -154,7 +178,7 @@ export default function BudgetHomePage() {
                   key={pot.id}
                   pot={pot}
                   onEdit={(p) => { setEditPot(p); setPotOpen(true); }}
-                  onDelete={async (id) => { await potsApi.deletePot(id); reload(); }}
+                  onDelete={(id) => runAction(() => potsApi.deletePot(id))}
                 />
               ))}
             </div>
@@ -166,7 +190,7 @@ export default function BudgetHomePage() {
             transactions={transactions}
             loading={loading}
             onNewTransaction={() => setQuickAddOpen(true)}
-            onDeleteTransaction={async (id) => { await transactionsApi.deleteTransaction(id); reload(); }}
+            onDeleteTransaction={(id) => runAction(() => transactionsApi.deleteTransaction(id))}
           />
         )}
 

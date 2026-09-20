@@ -1,3 +1,5 @@
+import calendar
+from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -6,7 +8,6 @@ from src.core.database import async_session_factory
 from src.features.plans.service import PlanService
 from src.features.pots.repository import PotRepository
 from src.features.pots.service import PotService
-from src.features.transactions.models import TransactionType
 from src.features.transactions.repository import TransactionRepository
 from src.features.transactions.service import TransactionService
 from src.mcp.server import mcp
@@ -15,6 +16,19 @@ from src.mcp.server import mcp
 def _household_id() -> UUID:
     """Household of the current MCP request, as confirmed by MCPAuthenticationMiddleware (never LLM-supplied)."""
     return get_mcp_household_context().household_id
+
+
+def _month_bounds(month: str) -> tuple[date, date]:
+    """Parse a 'YYYY-MM' string into its first and last calendar date (inclusive).
+
+    Raises ValueError if `month` is not in the expected format.
+    """
+    year_str, month_str = month.split("-")
+    year, month_num = int(year_str), int(month_str)
+    if not 1 <= month_num <= 12:
+        raise ValueError(f"month out of range: {month_num}")
+    last_day = calendar.monthrange(year, month_num)[1]
+    return date(year, month_num, 1), date(year, month_num, last_day)
 
 
 @mcp.tool()
@@ -89,27 +103,26 @@ async def analyze_spending_gap(month: str) -> str:
     """
     household_id = _household_id()
     try:
+        date_from, date_to = _month_bounds(month)
+    except ValueError:
+        return f"Error analyzing spending gap: invalid month '{month}', expected 'YYYY-MM' format."
+
+    try:
         async with async_session_factory() as session:
             plan_service = PlanService(session)
             plans = await plan_service.list_plans(household_id=household_id, include_inactive=False)
 
             tx_repo = TransactionRepository(session)
             tx_service = TransactionService(tx_repo)
-            transactions = await tx_service.list_transactions(household_id=household_id, limit=500)
-
-            # Filter transactions for requested month
-            monthly_txs = [
-                tx for tx in transactions if tx.transaction_date and tx.transaction_date.strftime("%Y-%m") == month
-            ]
+            # Aggregate directly in the database over the requested month, rather than paging
+            # through the most recent N transactions in Python -- that silently missed older
+            # months once a household passed N total transactions.
+            total_spent = await tx_service.sum_expenses_in_range(
+                household_id=household_id, date_from=date_from, date_to=date_to
+            )
+            tx_count = await tx_service.count_in_range(household_id=household_id, date_from=date_from, date_to=date_to)
 
             total_planned = sum((plan.total_budget for plan in plans), Decimal("0.00"))
-            # Only EXPENSE transactions count as "spent" -- amount is stored as an unsigned
-            # magnitude regardless of transaction_type, so filtering by sign (as before) would
-            # silently count INCOME/TRANSFER transactions as spending. Filter by type instead.
-            total_spent = sum(
-                (tx.amount for tx in monthly_txs if tx.transaction_type == TransactionType.EXPENSE),
-                Decimal("0.00"),
-            )
 
             gap = total_spent - total_planned
             has_overspend = gap > Decimal("0.00")
@@ -120,7 +133,7 @@ async def analyze_spending_gap(month: str) -> str:
                 f"- Total Budgeted Plans: {total_planned}",
                 f"- Total Actual Expenses: {total_spent}",
                 f"- Spending Gap: {gap:+} ({gap_status})",
-                f"- Transactions Analyzed: {len(monthly_txs)}",
+                f"- Transactions Analyzed: {tx_count}",
             ]
             return "\n".join(lines)
     except Exception as e:
