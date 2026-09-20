@@ -6,7 +6,6 @@ import { useDashboardApps, useUpdateUserPreferences } from '@/features/apps';
 import { ThemePickerWidget } from '@/features/dashboard/components/ThemePickerWidget';
 import { CustomThemeBuilder } from '@/features/dashboard/components/CustomThemeBuilder';
 import { AppVisibilityPreferences } from '@/features/dashboard/components/AppVisibilityPreferences';
-import { InfraStatusWidget } from '@/features/dashboard/components/InfraStatusWidget';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -40,11 +39,6 @@ export default function SettingsPage() {
     });
   };
 
-  const handleSaveSettings = () => {
-    setStatusMessage(t('common.save_changes'));
-    setTimeout(() => setStatusMessage(null), 3000);
-  };
-
   return (
     <>
       {/* Settings Header */}
@@ -61,13 +55,6 @@ export default function SettingsPage() {
             {t('settings.subtitle')}
           </p>
         </div>
-
-        <button
-          onClick={handleSaveSettings}
-          className="px-4 py-2.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] transition-all duration-200 shadow-[0_0_15px_var(--accent-glow)] cursor-pointer"
-        >
-          {t('common.save_changes')}
-        </button>
       </div>
 
       {statusMessage && (
@@ -94,9 +81,6 @@ export default function SettingsPage() {
           resolvedMode={resolvedMode}
         />
       )}
-
-      {/* Infrastructure Status Panel & System Info */}
-      <InfraStatusWidget />
     </>
   );
 }

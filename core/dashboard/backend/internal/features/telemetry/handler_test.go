@@ -67,9 +67,10 @@ func TestTelemetryHandler_GetMetrics(t *testing.T) {
 	})
 
 	t.Run("returns 200 OK with metrics response", func(t *testing.T) {
+		cpu := 12.5
 		svc := &mockTelemetryService{
 			getMetricsFn: func(ctx context.Context) (*telemetry.MetricsResponse, error) {
-				return &telemetry.MetricsResponse{CPUPercent: 12.5}, nil
+				return &telemetry.MetricsResponse{Available: true, CPUPercent: &cpu}, nil
 			},
 		}
 		h := telemetry.NewHandler(svc)
@@ -87,8 +88,37 @@ func TestTelemetryHandler_GetMetrics(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 			t.Fatalf("failed to decode body: %v", err)
 		}
-		if resp.CPUPercent != 12.5 {
-			t.Errorf("expected CPUPercent 12.5, got %f", resp.CPUPercent)
+		if resp.CPUPercent == nil || *resp.CPUPercent != 12.5 {
+			t.Errorf("expected CPUPercent 12.5, got %v", resp.CPUPercent)
+		}
+	})
+
+	t.Run("returns 200 OK with explicit unavailable state", func(t *testing.T) {
+		svc := &mockTelemetryService{
+			getMetricsFn: func(ctx context.Context) (*telemetry.MetricsResponse, error) {
+				return &telemetry.MetricsResponse{Available: false, Message: "victoriametrics is unreachable"}, nil
+			},
+		}
+		h := telemetry.NewHandler(svc)
+		r := chi.NewRouter()
+		h.RegisterRoutes(r, mockAuthMW(true))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/telemetry/metrics", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		var resp telemetry.MetricsResponse
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode body: %v", err)
+		}
+		if resp.Available {
+			t.Error("expected Available=false to survive the JSON round trip")
+		}
+		if resp.CPUPercent != nil {
+			t.Errorf("expected CPUPercent to be nil, got %v", *resp.CPUPercent)
 		}
 	})
 }

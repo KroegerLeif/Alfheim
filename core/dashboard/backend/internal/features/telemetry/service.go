@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -22,9 +21,6 @@ type service struct {
 	httpClient *http.Client
 	log        *slog.Logger
 	startTime  time.Time
-	mu         sync.Mutex
-	lastRx     float64
-	lastTx     float64
 }
 
 // NewService creates a new telemetry service configured for VictoriaMetrics and VictoriaLogs.
@@ -49,25 +45,26 @@ func NewService(endpoint string, log *slog.Logger) Service {
 			Timeout: 3 * time.Second,
 		},
 		log:       log,
-		startTime: time.Now().Add(-72 * time.Hour), // 3 days base uptime
-		lastRx:    12.4,
-		lastTx:    8.2,
+		startTime: time.Now(),
 	}
 }
 
 func (s *service) GetMetrics(ctx context.Context) (*MetricsResponse, error) {
-	// Attempt query to VictoriaMetrics Prometheus-compatible endpoint
+	// Attempt query to VictoriaMetrics Prometheus-compatible endpoint. This
+	// never falls back to fabricated data -- when VictoriaMetrics cannot be
+	// reached, the response explicitly reports metrics as unavailable.
 	metrics, err := s.queryVictoriaMetrics(ctx)
 	if err == nil && metrics != nil {
 		return metrics, nil
 	}
 
-	// Fallback to local system/proc metrics calculation
-	s.log.Debug("victoriastack metrics endpoint unavailable, generating local system metrics fallback",
-		slog.String("vm_url", s.vmURL),
-	)
+	logAttrs := []any{slog.String("vm_url", s.vmURL)}
+	if err != nil {
+		logAttrs = append(logAttrs, slog.String("error", err.Error()))
+	}
+	s.log.Debug("victoriametrics unreachable, returning explicit unavailable metrics state", logAttrs...)
 
-	return s.getLocalSystemMetrics(), nil
+	return s.unavailableMetrics("victoriametrics is unreachable"), nil
 }
 
 func (s *service) GetLogs(ctx context.Context) (*LogsResponse, error) {

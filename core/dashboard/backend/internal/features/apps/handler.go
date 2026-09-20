@@ -109,14 +109,14 @@ func (h *Handler) GetUserLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dashboard, err := h.service.GetDashboardApps(r.Context(), claims.Subject, claims.Roles)
+	links, err := h.service.GetUserLinks(r.Context(), claims.Subject)
 	if err != nil {
 		http.Error(w, `{"error":"internal_server_error","message":"failed to retrieve user links"}`, http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(dashboard.User)
+	_ = json.NewEncoder(w).Encode(links)
 }
 
 // CreateUserLink creates a new custom Tier 3 user link.

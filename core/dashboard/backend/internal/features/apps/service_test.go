@@ -132,14 +132,16 @@ func Test3TierAppService_GetDashboardApps(t *testing.T) {
 	svc := apps.NewService(repo, stackLoader, logger)
 	ctx := context.Background()
 
-	// 1. Query for standard user (roles: []) -> should get non-hidden Core apps (9), Stack apps (1: Home Assistant), User links (1)
+	// 1. Query for standard user (roles: []) -> should get all Core apps (9; the
+	// hidden "todo" preference no longer matches any registry entry), Stack apps
+	// (1: Home Assistant), User links (1)
 	resUser, err := svc.GetDashboardApps(ctx, "user-1", []string{})
 	if err != nil {
 		t.Fatalf("expected no error querying dashboard apps, got: %v", err)
 	}
 
 	if len(resUser.Core) != 9 {
-		t.Errorf("expected 9 visible Core apps (todo is hidden), got %d", len(resUser.Core))
+		t.Errorf("expected 9 visible Core apps, got %d", len(resUser.Core))
 	}
 	householdVisible := false
 	for _, app := range resUser.Core {
@@ -168,6 +170,34 @@ func Test3TierAppService_GetDashboardApps(t *testing.T) {
 
 	if len(resAdmin.Stack) != 2 {
 		t.Errorf("expected 2 permitted stack apps for admin, got %d", len(resAdmin.Stack))
+	}
+}
+
+func Test3TierAppService_GetUserLinks(t *testing.T) {
+	repo := newMockRepository()
+	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := apps.NewService(repo, stackLoader, logger)
+	ctx := context.Background()
+
+	links, err := svc.GetUserLinks(ctx, "user-1")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(links) != 1 || links[0].Title != "Google Drive" {
+		t.Errorf("expected 1 user link (Google Drive), got %v", links)
+	}
+	if links[0].Tier != apps.TierUser || !links[0].IsCustom {
+		t.Errorf("expected user link tagged as custom Tier 3 item, got %+v", links[0])
+	}
+
+	// A user with no links gets an empty slice, not an error.
+	empty, err := svc.GetUserLinks(ctx, "user-with-no-links")
+	if err != nil {
+		t.Fatalf("expected no error for user with no links, got: %v", err)
+	}
+	if len(empty) != 0 {
+		t.Errorf("expected no links, got %v", empty)
 	}
 }
 

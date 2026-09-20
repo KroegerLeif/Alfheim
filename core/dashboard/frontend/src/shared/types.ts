@@ -59,15 +59,23 @@ export interface AppCatalogResponse {
   total: number;
 }
 
+/**
+ * Every numeric field is optional: the backend only populates a field when
+ * VictoriaMetrics actually returned data for it. When `available` is false,
+ * or a field is missing, the UI must render an explicit "unavailable" state
+ * rather than assume a real reading of zero.
+ */
 export interface TelemetryMetrics {
-  cpu_percent: number;
-  memory_percent: number;
-  memory_used_gb: number;
-  memory_total_gb: number;
-  network_rx_mbps: number;
-  network_tx_mbps: number;
+  available: boolean;
+  message?: string;
+  cpu_percent?: number;
+  memory_percent?: number;
+  memory_used_gb?: number;
+  memory_total_gb?: number;
+  network_rx_mbps?: number;
+  network_tx_mbps?: number;
   uptime_seconds: number;
-  active_containers: number;
+  active_containers?: number;
 }
 
 export interface TelemetryLogEntry {
