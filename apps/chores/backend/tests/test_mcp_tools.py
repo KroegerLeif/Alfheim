@@ -90,3 +90,22 @@ async def test_assign_chore_uses_context_household(db_session: AsyncSession):
         assert f"Success: Assigned chore instance {instance.id} to user {assignee}." == res
         res_sub = await assign_chore(str(instance.id), USER_A_SUB)
         assert str(uuid.uuid5(uuid.NAMESPACE_DNS, USER_A_SUB)) in res_sub
+
+
+async def test_assign_chore_requires_elevated_role_for_someone_else(db_session: AsyncSession):
+    """A caller without an elevated household role cannot assign a chore to a different member."""
+    template = ChoreTemplate(name="Sweep Porch", home_id=HOUSEHOLD_A, points=5)
+    db_session.add(template)
+    await db_session.commit()
+
+    with mcp_household_context(household_id=HOUSEHOLD_A):
+        await get_daily_chores_overview()  # generates today's instance
+    instance = (await db_session.exec(select(ChoreInstance).where(ChoreInstance.template_id == template.id))).one()
+
+    other_user = uuid.uuid4()
+    with mcp_household_context(household_id=HOUSEHOLD_A, role="MEMBER"):
+        res = await assign_chore(str(instance.id), str(other_user))
+        assert "Error: Only household owners or admins may assign a chore to someone else." == res
+
+    refreshed = (await db_session.exec(select(ChoreInstance).where(ChoreInstance.id == instance.id))).one()
+    assert refreshed.assigned_to is None

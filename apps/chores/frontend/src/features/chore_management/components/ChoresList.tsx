@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslation } from "@alfheim/shared";
 import { ChoreInstanceRead, ChoreTemplateRead } from "../types";
-import { useCompleteChoreInstance, useAssignChoreInstance } from "../services/choresService";
+import { useCompleteChoreInstance, useClaimChoreInstance } from "../services/choresService";
 import { CheckCircle2, Circle, User2, Award, RefreshCw, History } from "lucide-react";
 import { TaskTimelineModal } from "./TaskTimelineModal";
 
@@ -16,7 +16,7 @@ interface ChoresListProps {
 export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListProps) {
   const { t } = useTranslation();
   const completeMutation = useCompleteChoreInstance();
-  const assignMutation = useAssignChoreInstance();
+  const claimMutation = useClaimChoreInstance();
   const [selectedTemplate, setSelectedTemplate] = useState<ChoreTemplateRead | null>(null);
 
   const getTemplate = (templateId: string) => {
@@ -28,10 +28,10 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
     completeMutation.mutate({ id, dueDate });
   };
 
-  const handleSelfAssign = (id: string, currentAssignee: string | null) => {
-    const mockUserId = "00000000-0000-0000-0000-000000000001";
-    const nextAssignee = currentAssignee ? null : mockUserId;
-    assignMutation.mutate({ id, assignedTo: nextAssignee, dueDate });
+  const handleClaimToggle = (id: string, currentAssignee: string | null) => {
+    // The backend always derives the assignee from the authenticated caller;
+    // the client never supplies (or hardcodes) a user id here.
+    claimMutation.mutate({ id, isClaimed: !!currentAssignee, dueDate });
   };
 
   if (chores.length === 0) {
@@ -109,7 +109,7 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
 
                 {/* Assignment Avatar Trigger */}
                 <button
-                  onClick={() => handleSelfAssign(chore.id, chore.assigned_to)}
+                  onClick={() => handleClaimToggle(chore.id, chore.assigned_to)}
                   disabled={isCompleted}
                   className={`flex items-center gap-1 px-2.5 py-1 text-xs border rounded transition-colors ${
                     chore.assigned_to

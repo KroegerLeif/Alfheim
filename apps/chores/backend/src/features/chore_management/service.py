@@ -96,6 +96,15 @@ class ChoreService:
         return await InstanceService.assign_chore_instance(session, instance_id, payload, home_id)
 
     @staticmethod
+    async def claim_chore_instance(
+        session: AsyncSession,
+        instance_id: uuid.UUID,
+        home_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> ChoreInstance:
+        return await InstanceService.claim_chore_instance(session, instance_id, home_id, user_id)
+
+    @staticmethod
     async def complete_chore_instance(
         session: AsyncSession,
         instance_id: uuid.UUID,

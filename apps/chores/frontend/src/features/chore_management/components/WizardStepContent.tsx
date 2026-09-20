@@ -13,8 +13,6 @@ interface WizardStepContentProps {
   setPoints: (val: number) => void;
   isNonCumulative: boolean;
   setIsNonCumulative: (val: boolean) => void;
-  assignmentType: string;
-  setAssignmentType: (val: string) => void;
   errors: Record<string, string>;
 }
 
@@ -28,8 +26,6 @@ export function WizardStepContent({
   setPoints,
   isNonCumulative,
   setIsNonCumulative,
-  assignmentType,
-  setAssignmentType,
   errors,
 }: WizardStepContentProps) {
   const { t } = useTranslation();
@@ -112,8 +108,6 @@ export function WizardStepContent({
         currentStep={currentStep}
         isNonCumulative={isNonCumulative}
         setIsNonCumulative={setIsNonCumulative}
-        assignmentType={assignmentType}
-        setAssignmentType={setAssignmentType}
       />
     </div>
   );

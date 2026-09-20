@@ -77,6 +77,122 @@ async def test_ensure_household_reset_yesterday_uncompleted_and_completed_streak
 
 
 @pytest.mark.asyncio
+async def test_ensure_household_reset_cumulative_vs_non_cumulative_multi_day_gap(db_session: AsyncSession):
+    """Non-cumulative chores expire nightly and reset the streak; cumulative ones stack and don't.
+
+    Simulates a multi-day gap where nobody completes either chore: the
+    non-cumulative instance is archived as "missed" and replaced by a fresh
+    "pending" instance each day, while the cumulative instance is rolled
+    forward (same row, new due_date) and keeps stacking as still "pending".
+    """
+    home_id = uuid.uuid4()
+    day1 = date.today()
+    day2 = day1 + timedelta(days=1)
+    day3 = day2 + timedelta(days=1)
+
+    non_cumulative_tpl = ChoreTemplate(name="Wash Dishes", points=10, home_id=home_id, is_non_cumulative=True)
+    cumulative_tpl = ChoreTemplate(name="Deep Clean Garage", points=20, home_id=home_id, is_non_cumulative=False)
+    db_session.add(non_cumulative_tpl)
+    db_session.add(cumulative_tpl)
+    await db_session.commit()
+    await db_session.refresh(non_cumulative_tpl)
+    await db_session.refresh(cumulative_tpl)
+
+    # Day 1: generate instances for both templates.
+    await InstanceService.ensure_household_reset(db_session, home_id, day1)
+
+    async def instances_for(due_date: date) -> list[ChoreInstance]:
+        stmt = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == due_date)
+        res = await db_session.exec(stmt)
+        return list(res.all())
+
+    day1_instances = await instances_for(day1)
+    assert len(day1_instances) == 2
+    cumulative_instance_id = next(i.id for i in day1_instances if i.template_id == cumulative_tpl.id)
+
+    # Nobody completes anything. Day 2's reset evaluates day1.
+    await InstanceService.ensure_household_reset(db_session, home_id, day2)
+
+    day1_instances = await instances_for(day1)
+    non_cumulative_day1 = next(i for i in day1_instances if i.template_id == non_cumulative_tpl.id)
+    assert non_cumulative_day1.status == "missed"
+    # The cumulative instance rolled forward off day1 rather than being archived.
+    assert all(i.template_id != cumulative_tpl.id for i in day1_instances)
+
+    day2_instances = await instances_for(day2)
+    assert len(day2_instances) == 2
+    non_cumulative_day2 = next(i for i in day2_instances if i.template_id == non_cumulative_tpl.id)
+    cumulative_day2 = next(i for i in day2_instances if i.template_id == cumulative_tpl.id)
+    assert non_cumulative_day2.status == "pending"
+    assert non_cumulative_day2.id != non_cumulative_day1.id  # a fresh instance, not the missed one
+    assert cumulative_day2.status == "pending"
+    assert cumulative_day2.id == cumulative_instance_id  # same row, rolled forward, still stacking
+
+    streak = await StreakService.ensure_household_streak(db_session, home_id)
+    assert streak.current_streak == 0  # broken by the non-cumulative miss
+
+    # Gap continues: day 3's reset evaluates day2, same outcome pattern.
+    await InstanceService.ensure_household_reset(db_session, home_id, day3)
+
+    day2_instances = await instances_for(day2)
+    non_cumulative_day2 = next(i for i in day2_instances if i.template_id == non_cumulative_tpl.id)
+    assert non_cumulative_day2.status == "missed"
+
+    day3_instances = await instances_for(day3)
+    assert len(day3_instances) == 2
+    cumulative_day3 = next(i for i in day3_instances if i.template_id == cumulative_tpl.id)
+    assert cumulative_day3.status == "pending"
+    assert cumulative_day3.id == cumulative_instance_id  # still the same stacked instance
+
+    streak = await StreakService.ensure_household_streak(db_session, home_id)
+    assert streak.current_streak == 0
+
+
+@pytest.mark.asyncio
+async def test_ensure_household_reset_generates_missing_instance_for_new_template_same_day(
+    db_session: AsyncSession,
+):
+    """A template created after today's reset already ran still gets today's instance (#506).
+
+    Re-running the reset afterwards must not create a duplicate.
+    """
+    home_id = uuid.uuid4()
+    today = date.today()
+
+    first_tpl = ChoreTemplate(name="Vacuum", points=10, home_id=home_id)
+    db_session.add(first_tpl)
+    await db_session.commit()
+    await db_session.refresh(first_tpl)
+
+    # First visit of the day: generates today's instance for the only template.
+    await InstanceService.ensure_household_reset(db_session, home_id, today)
+
+    stmt = select(ChoreInstance).where(ChoreInstance.home_id == home_id, ChoreInstance.due_date == today)
+    instances = (await db_session.exec(stmt)).all()
+    assert len(instances) == 1
+
+    # A new template is created mid-day, after the reset already ran.
+    new_tpl = ChoreTemplate(name="Water Plants", points=5, home_id=home_id)
+    db_session.add(new_tpl)
+    await db_session.commit()
+    await db_session.refresh(new_tpl)
+
+    # Returning to the dashboard triggers ensure_household_reset again.
+    await InstanceService.ensure_household_reset(db_session, home_id, today)
+
+    instances = (await db_session.exec(stmt)).all()
+    assert len(instances) == 2
+    assert {i.template_id for i in instances} == {first_tpl.id, new_tpl.id}
+    new_instance = next(i for i in instances if i.template_id == new_tpl.id)
+    assert new_instance.status == "pending"
+
+    # Re-running the reset again (e.g. another page load) must not create duplicates.
+    await InstanceService.ensure_household_reset(db_session, home_id, today)
+    instances = (await db_session.exec(stmt)).all()
+    assert len(instances) == 2
+
+
+@pytest.mark.asyncio
 async def test_ensure_household_reset_commit_exception_handling(db_session: AsyncSession):
     """Verify database rollback when an exception occurs during reset instance commit."""
     home_id = uuid.uuid4()
