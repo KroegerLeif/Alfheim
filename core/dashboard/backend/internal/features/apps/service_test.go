@@ -132,14 +132,16 @@ func Test3TierAppService_GetDashboardApps(t *testing.T) {
 	svc := apps.NewService(repo, stackLoader, logger)
 	ctx := context.Background()
 
-	// 1. Query for standard user (roles: []) -> should get non-hidden Core apps (9), Stack apps (1: Home Assistant), User links (1)
+	// 1. Query for standard user (roles: []) -> should get all Core apps (9; the
+	// hidden "todo" preference no longer matches any registry entry), Stack apps
+	// (1: Home Assistant), User links (1)
 	resUser, err := svc.GetDashboardApps(ctx, "user-1", []string{})
 	if err != nil {
 		t.Fatalf("expected no error querying dashboard apps, got: %v", err)
 	}
 
 	if len(resUser.Core) != 9 {
-		t.Errorf("expected 9 visible Core apps (todo is hidden), got %d", len(resUser.Core))
+		t.Errorf("expected 9 visible Core apps, got %d", len(resUser.Core))
 	}
 	householdVisible := false
 	for _, app := range resUser.Core {
