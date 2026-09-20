@@ -1,6 +1,7 @@
 import uuid
 from datetime import date
 
+from backend_shared import mcp_middleware
 from backend_shared.household import derive_user_id
 from backend_shared.mcp_middleware import get_mcp_household_context
 from sqlmodel import select
@@ -131,6 +132,11 @@ async def assign_chore(chore_instance_id: str, assignee_user_id: str) -> str:
 
         if not InstanceService.can_assign(user_uuid, context.user_id, context.role):
             return "Error: Only household owners or admins may assign a chore to someone else."
+
+        if user_uuid != context.user_id:
+            role = await mcp_middleware.get_membership_client()(home_uuid, assignee_user_id)
+            if role is None:
+                return "Error: The assignee is not a member of this household."
 
         async with async_session_factory() as session:
             payload = ChoreAssignRequest(assigned_to=user_uuid)
