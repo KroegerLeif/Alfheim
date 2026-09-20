@@ -46,7 +46,7 @@ docker logs --tail 100 -f alfheim_caddy
 ### Symptom 1: HTTP 502 Bad Gateway on Microfrontend Path
 * **Cause:** The destination frontend container (e.g. `pantry-frontend`) is either starting up or failing its Next.js health check.
 * **Resolution:**
-  1. Inspect container logs: `docker logs --tail 50 alfheim_pantry_frontend`
+  1. Inspect container logs: `docker logs --tail 50 pantry-frontend`
   2. Verify network connectivity: `docker exec -it alfheim_caddy curl -I http://pantry-frontend:3000`
   3. Restart frontend: `docker compose restart pantry-frontend`
 
@@ -132,7 +132,7 @@ Household-scoped backends confirm every `X-Household-ID` with the household app 
 * **Resolution:**
   ```bash
   # Terminate idle PostgreSQL connections
-  docker exec -it alfheim_pantry_db psql -U postgres -d pantry -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle';"
+  docker exec -it alfheim_postgres_core psql -U postgres -d alfheim_pantry -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle';"
   ```
 
 ---

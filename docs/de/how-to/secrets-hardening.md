@@ -33,7 +33,7 @@ Beide schreiben eine `.env` mit Modus `0600`, die Folgendes enthält:
 
 | Variable | Zweck |
 | :--- | :--- |
-| `POSTGRES_PASSWORD`, `<app>_DB_PASSWORD` | Datenbank-Eigentümer je Dienst auf `postgres-core` |
+| `POSTGRES_PASSWORD`, `<APP>_POSTGRES_PASSWORD` (z. B. `PANTRY_POSTGRES_PASSWORD`, `HOUSEHOLD_POSTGRES_PASSWORD`) | Postgres-Superuser und Datenbank-Eigentümer je Dienst auf `postgres-core` |
 | `ZITADEL_MASTERKEY` | Verschlüsselt Zitadels Daten im Ruhezustand. Exakt 32 Zeichen. |
 | `ZITADEL_ADMIN_PASSWORD` | Initialer IAM-Administrator |
 | `CHAT_ENCRYPTION_KEY` | 32-Byte-Base64-Schlüssel, sichert LLM-API-Schlüssel im Ruhezustand mit AES-256-GCM |

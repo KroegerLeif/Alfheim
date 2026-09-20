@@ -50,8 +50,21 @@ herunterlädt und verifiziert.
 curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash -s -- update
 ```
 
-`-- update --yes` anhängen (oder `-e` in einem Skript setzen), um die
-Bestätigungsabfrage in einem nicht-interaktiven Kontext wie Cron oder CI zu überspringen.
+`--yes` nach `update` anhängen, um die Bestätigungsabfrage in einem
+nicht-interaktiven Kontext wie Cron oder CI zu überspringen:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh \
+  | ALFHEIM_VERSION=v1.4.0 bash -s -- update --yes
+```
+
+Eine bestehende Installation (ein Marker `.alfheim.installed` im aktuellen
+Verzeichnis) führt `update` sogar **ganz ohne** Argumente automatisch erneut
+aus, und `ALFHEIM_UPDATE=1` erzwingt den Update-Modus unabhängig von der
+Argumentreihenfolge — damit funktioniert der exakte Einzeiler aus
+[Tutorial: Deine erste Installation](../tutorials/first-run.md) unverändert
+aus einem Cronjob oder Shell-Alias weiter, sobald die Installation
+abgeschlossen ist.
 
 ---
 

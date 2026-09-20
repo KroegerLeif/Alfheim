@@ -49,8 +49,20 @@ Omit `ALFHEIM_VERSION` to update to the newest stable release:
 curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | bash -s -- update
 ```
 
-Add `-- update --yes` (or set `-e` in a script) to skip the confirmation
-prompt in a non-interactive context such as cron or CI.
+Add `--yes` after `update` to skip the confirmation prompt in a non-interactive
+context such as cron or CI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh \
+  | ALFHEIM_VERSION=v1.4.0 bash -s -- update --yes
+```
+
+An existing installation (an `.alfheim.installed` marker at the current
+directory) re-runs `update` automatically even with **no** arguments at all,
+and `ALFHEIM_UPDATE=1` forces update mode regardless of argument order — so
+the exact one-liner from [Tutorial: your first installation](../tutorials/first-run.md)
+keeps working unedited from a cron job or shell alias once the install
+completes.
 
 ---
 
