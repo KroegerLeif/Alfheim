@@ -19,7 +19,14 @@ scripts/
 ├── up.sh                   # Staged multi-zone platform boot orchestrator
 ├── down.sh                 # Platform shutdown & volume cleanup script
 ├── seed.sh                 # Database test data seeding utility
-└── verify.sh               # Monorepo verification suite (Python, Go, Frontend, Security)
+├── verify.sh               # Monorepo verification suite (Python, Go, Frontend, Security)
+├── verify-stack.sh         # End-to-end verification of a running stack (dev or production)
+├── diagnose-mcp.sh         # FastMCP endpoint connectivity & tool discovery diagnostic
+├── check-frontend-runtime-config.sh  # Fails a build that leaked OIDC config into static output
+├── check-markdown-links.py # Fails CI on a broken relative link in any Markdown file
+├── test-prod-startup.sh    # Preflight/smoke-test harness for `compose.prod.yaml`
+├── install-hooks.sh        # Installs the repo's git hooks
+└── hooks/                  # Git hook scripts installed by install-hooks.sh
 ```
 
 > Production installs do not use these scripts. They are bootstrapped by the
@@ -73,6 +80,30 @@ Executes comprehensive linting, type-checking, formatting, and test suites acros
   * `--go`: Runs `go vet`, `golangci-lint`, and `go test -race -cover ./...` across Go backends.
   * `--frontend`: Runs `pnpm check-types` (`tsc --noEmit`) and Vitest test suites across frontend applications.
   * `--security`: Executes security scanners (e.g., bandit, trivy).
+
+#### 7. `verify-stack.sh` — Running-Stack Verification
+Checks a *running* stack end to end instead of the source tree: every Compose service is
+healthy, Caddy's `/livez`, that OIDC discovery names the configured issuer, every app route
+resolves through the gateway without a 5xx, `/internal/*` is blocked at the edge, and the
+household API rejects a request with no bearer token. Auto-detects `compose.yaml` (local dev)
+or `compose.prod.yaml` (a production install); `alfheim-setup update` runs it automatically
+after a Day-2 upgrade.
+* **Usage**: `./scripts/verify-stack.sh [--dir DIR] [--compose-file NAME]`
+* **Flags**:
+  * `--dir DIR`: Directory holding the compose file and `.env` (default: repository root).
+  * `--compose-file NAME`: Force `compose.yaml` or `compose.prod.yaml` instead of auto-detecting.
+
+#### 8. `diagnose-mcp.sh` — FastMCP Diagnostics
+Pings every registered FastMCP endpoint and verifies the Streamable HTTP `initialize` handshake
+and tool discovery (`tools/list`).
+* **Usage**: `./scripts/diagnose-mcp.sh [--api-url <url>]`
+
+#### 9. `check-frontend-runtime-config.sh` — Runtime Config Leak Guard
+Fails when a Next.js frontend build leaked OIDC issuer/client-id configuration into its
+prerendered HTML or JS — that config must only ever be delivered at request time via the
+`<basePath>/runtime-config.js` route, never baked into a static `next build` output.
+* **Usage**: `./scripts/check-frontend-runtime-config.sh <frontend-dir>` (run after `next build`
+  with no `OIDC_*` build-time env vars set)
 
 ---
 

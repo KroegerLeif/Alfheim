@@ -32,6 +32,7 @@ graph TD
   - `/budget*` -> `budget-frontend:3000`
   - `/workout*` -> `workout-frontend:3000`
   - `/chat*` -> `chat-frontend:3000`
+  - `/household*` -> `household-frontend:3000` (no locale redirect)
   - `/` (Catch-all) -> `dashboard-frontend:3000`
 
 ### 2. Central API Gateway (`api.alfheim.loegien.localhost` & `api.alfheim.loegien.de`)
@@ -40,7 +41,11 @@ graph TD
 - Service endpoints:
   - `auth.*` host -> `zitadel:8080` (Dedicated host; Zitadel does not support sub-path hosting)
   - `/storage*` -> `rustfs:9000` (S3 object storage endpoint & presigned URLs)
+  - `/api/v1/households*`, `/api/v1/profile*` -> `household-backend:8080`, path preserved; wins over the dashboard's `/api/v1/*` catch-all
   - Backend API proxies (FastAPI / Go microservices).
+  - `/internal/*` -> `404` on both hosts. The service-to-service membership API
+    (`/internal/v1/memberships/{householdId}/{userSub}`) is never routed at the edge;
+    it is reachable only over `core-net`/`gateway-net` by other backends.
 
 ---
 

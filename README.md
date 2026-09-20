@@ -113,6 +113,8 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `http://shopping-frontend:3010` | Served on `/shopping` basePath, 302 redirects bare path to `/shopping/en` |
 | `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `http://maintenance-frontend:3000`| Served on `/maintenance` basePath, 302 redirects bare path to `/maintenance/en` |
 | `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `http://chores-frontend:3000` | Served on `/chores` basePath, 302 redirects bare path to `/chores/de` |
+| `http://alfheim.loegien.localhost/budget` | `budget-frontend` | `http://budget-frontend:3000` | Served on `/budget` basePath, 302 redirects bare path to `/budget/en` |
+| `http://alfheim.loegien.localhost/library` | `library-frontend` | `http://library-frontend:3000` | Served on `/library` basePath, 302 redirects bare path to `/library/en` |
 | `http://alfheim.loegien.localhost/workout` | `workout-frontend` | `http://workout-frontend:3000` | Served on `/workout` basePath, 302 redirects bare path to `/workout/de` |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `http://chat-frontend:3000` | Served on `/chat` basePath, 302 redirects bare path to `/chat/de` |
 | `http://alfheim.loegien.localhost/household` | `household-frontend` | `http://household-frontend:3000` | Served on `/household` basePath, no locale redirect |
@@ -139,6 +141,8 @@ The bare origin of that host is the canonical OIDC issuer.
 | `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `http://chores-backend:8000/api/v1/chores` | Native API route (no stripping). |
+| `http://api.alfheim.loegien.localhost/api/v1/budget`, `/budget/api/v1/` | `budget-backend` | `http://budget-backend:8000/api/v1/budget` | Native API route and `/budget` prefix-stripped alias, both accepted. |
+| `http://api.alfheim.loegien.localhost/api/v1/library`, `/library/api/v1/` | `library-backend` | `http://library-backend:8000/api/v1/library` | Native API route and `/library` prefix-stripped alias, both accepted. |
 | `http://api.alfheim.loegien.localhost/workout/api/v1/` | `workout-backend` | `http://workout-backend:8000/api/v1/` | Strips `/workout` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/api/v1/chat` | `chat-backend` | `http://chat-backend:8080/api/v1/chat` | Native Go API route (no stripping). |
 | `http://api.alfheim.loegien.localhost/api/v1/households*`, `/api/v1/profile*` | `household-backend` | `http://household-backend:8080/api/v1/...` | Native Go API route (no stripping). |
@@ -193,6 +197,18 @@ Verify HTTP routing and responses using browser or `curl`:
 
 4. **Zitadel IAM Console**:
    Access `http://auth.alfheim.loegien.localhost/` in your browser.
+
+### C. Automated Stack Verification
+`scripts/verify-stack.sh` checks a running stack end to end: every Compose service is
+healthy, Caddy's `/livez`, that OIDC discovery names the configured issuer, every app
+route resolves through the gateway without a 5xx, `/internal/*` is blocked at the edge,
+and the household API rejects a request with no bearer token. It auto-detects
+`compose.yaml` (local dev) or `compose.prod.yaml` (a production install):
+```bash
+./scripts/verify-stack.sh
+```
+`alfheim-setup update` also runs it automatically after a Day-2 upgrade. See the
+[CLI Scripts Reference](./docs/en/reference/cli-scripts.md).
 
 ---
 
