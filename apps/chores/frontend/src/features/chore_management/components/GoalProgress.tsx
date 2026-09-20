@@ -1,16 +1,27 @@
 "use client";
 
-import { ChoreIntegrationSummary } from "../types";
+import { ChoreIntegrationSummary, ChoreTemplateRead } from "../types";
 import { Flame, CheckCircle } from "lucide-react";
 import { useTranslation } from "@alfheim/shared";
 
 interface GoalProgressProps {
   summary: ChoreIntegrationSummary | undefined;
+  templates: ChoreTemplateRead[];
 }
 
-export function GoalProgress({ summary }: GoalProgressProps) {
+export function GoalProgress({ summary, templates }: GoalProgressProps) {
   const { t } = useTranslation();
   if (!summary) return null;
+
+  // Each template carries its own configurable point value (10/15/30) -- a flat
+  // "pending * 10" assumption undercounts or overcounts any household with
+  // non-default-point chores pending (#515).
+  const potentialPoints = summary.today_chores
+    .filter((inst) => inst.status === "pending")
+    .reduce((total, inst) => {
+      const template = templates.find((tpl) => tpl.id === inst.template_id);
+      return total + (template?.points ?? 0);
+    }, 0);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -63,7 +74,7 @@ export function GoalProgress({ summary }: GoalProgressProps) {
             {summary.today_pending_count} {t("chores.left")}
           </span>
           <span className="text-xs text-[var(--text-muted)] block mt-1 font-mono">
-            {summary.today_pending_count * 10} {t("chores.potentialPts")}
+            {potentialPoints} {t("chores.potentialPts")}
           </span>
         </div>
         <div className="h-12 w-12 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center rounded-lg">
