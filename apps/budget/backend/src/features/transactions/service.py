@@ -137,7 +137,25 @@ class TransactionService:
         object_key: str,
         raw_text: str | None = None,
     ) -> ReceiptOCRResponse:
-        """Extract vendor, total, and line items split from receipt OCR payload."""
+        """Extract vendor, total, and line items split from receipt OCR payload.
+
+        There is no image OCR/vision provider integrated in this backend, so we cannot derive
+        real extraction results from `object_key` (the uploaded receipt image) alone. Rather
+        than fabricate a plausible-looking result, this raises HTTP 501 in that case. When the
+        caller supplies `raw_text` (e.g. text already recognized by a client-side or upstream
+        OCR step), we parse that real text into structured fields -- that is genuine parsing of
+        caller-supplied data, not invented data.
+        """
+        if not raw_text:
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail=(
+                    "Receipt OCR is not implemented: no OCR/vision provider is integrated. "
+                    "Pass 'raw_text' with already-recognized receipt text to get a structured "
+                    "parse, or attach the receipt image without an automatic amount suggestion."
+                ),
+            )
+
         ocr_data = self._parse_ocr_payload(raw_text=raw_text, object_key=object_key)
         suggested_tx: TransactionCreate | None = None
 
@@ -155,20 +173,8 @@ class TransactionService:
             suggested_transaction=suggested_tx,
         )
 
-    def _parse_ocr_payload(self, raw_text: str | None, object_key: str) -> ReceiptOCRData:
-        """Private helper function parsing OCR raw text or object metadata into structured ReceiptOCRData."""
-        if not raw_text:
-            # Fallback default simulated OCR response when raw_text is omitted
-            return ReceiptOCRData(
-                vendor_name="Supermarket Express",
-                total_amount=Decimal("42.50"),
-                transaction_date=date.today(),
-                line_items=[
-                    ReceiptLineItem(description="Groceries item 1", amount=Decimal("25.00"), category="Food"),
-                    ReceiptLineItem(description="Groceries item 2", amount=Decimal("17.50"), category="Food"),
-                ],
-            )
-
+    def _parse_ocr_payload(self, raw_text: str, object_key: str) -> ReceiptOCRData:
+        """Private helper function parsing caller-supplied OCR raw text into structured ReceiptOCRData."""
         lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
         vendor = lines[0] if lines else "Unknown Vendor"
         total_val: Decimal | None = None

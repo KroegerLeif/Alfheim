@@ -168,13 +168,15 @@ async def test_receipt_presigned_url_and_ocr(client: AsyncClient):
     assert ocr_payload["suggested_transaction"]["description"] == "Supermarket Bio Markt"
     assert Decimal(str(ocr_payload["suggested_transaction"]["amount"])) == Decimal("5.99")
 
-    # 3. Extract OCR fallback without raw text
+    # 3. Without raw_text there is no OCR/vision provider to derive real data from the image,
+    # so the endpoint must not fabricate a result -- it returns 501 instead.
     resp_ocr_fallback = await client.post(
         "/api/v1/transactions/receipt/ocr",
         headers=headers,
         json={"object_key": url_data["object_key"]},
     )
-    assert resp_ocr_fallback.status_code == 200
-    fallback_payload = resp_ocr_fallback.json()
-    assert fallback_payload["ocr_data"]["vendor_name"] == "Supermarket Express"
-    assert Decimal(str(fallback_payload["ocr_data"]["total_amount"])) == Decimal("42.50")
+    assert resp_ocr_fallback.status_code == 501
+    detail = resp_ocr_fallback.json()["detail"]
+    assert "not implemented" in detail.lower()
+    assert "42.50" not in detail
+    assert "Supermarket Express" not in detail
