@@ -2,21 +2,49 @@
 
 import React from "react";
 import { MoneyDisplay } from "@alfheim/shared";
-import { GitMerge, ArrowRight, Wallet, PiggyBank, PieChart } from "lucide-react";
+import { GitMerge, ArrowRight, Wallet, PiggyBank, PieChart, Info } from "lucide-react";
 
 export interface SankeyCashflowViewProps {
-  totalIncome?: number;
-  totalAllocatedPlans?: number;
-  totalPotsContribution?: number;
-  unassignedSurplus?: number;
+  /** Whether the household's base data (accounts/plans/pots/transactions) has finished loading. */
+  loading?: boolean;
+  totalIncome: number;
+  totalAllocatedPlans: number;
+  totalPotsContribution: number;
+  unassignedSurplus: number;
+  /** True once at least one real data point (income, plan or pot) exists for this household. */
+  hasData: boolean;
 }
 
 export function SankeyCashflowView({
-  totalIncome = 4500,
-  totalAllocatedPlans = 2800,
-  totalPotsContribution = 1200,
-  unassignedSurplus = 500,
+  loading = false,
+  totalIncome,
+  totalAllocatedPlans,
+  totalPotsContribution,
+  unassignedSurplus,
+  hasData,
 }: SankeyCashflowViewProps) {
+  if (loading) {
+    return (
+      <div className="p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] space-y-4 shadow-xs">
+        <div className="h-6 w-48 rounded bg-[var(--surface-canvas)] animate-pulse" />
+        <div className="h-32 rounded-xl bg-[var(--surface-canvas)] animate-pulse" />
+      </div>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <div className="p-8 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-center space-y-2 shadow-xs">
+        <Info className="w-6 h-6 mx-auto text-[var(--text-muted)]" />
+        <h3 className="text-base font-semibold text-[var(--text-main)]">No cashflow data yet</h3>
+        <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+          Once this household has income transactions, budget plans, or pot contributions, the cashflow
+          breakdown will appear here. There is no data to show yet.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] space-y-6 shadow-xs">
       <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { DesktopSidebar, MobileTabBar } from "@/features/navigation";
 import { useBudgetData } from "@/features/dashboard/useBudgetData";
 import { DashboardOverview } from "@/features/dashboard/DashboardOverview";
@@ -31,6 +31,22 @@ export default function BudgetHomePage() {
   const [catOpen, setCatOpen] = useState(false);
   const [catParentId, setCatParentId] = useState<string | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  // Real cashflow aggregates for the Sankey view: sum of income transactions, sum of active
+  // plan budgets, sum of pot monthly contributions, and the true unassigned surplus left over.
+  // No hardcoded/demo numbers -- see issue #537.
+  const cashflow = useMemo(() => {
+    const totalIncome = transactions
+      .filter((tx) => tx.transaction_type === "INCOME")
+      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+    const totalAllocatedPlans = plans
+      .filter((p) => p.is_active)
+      .reduce((sum, p) => sum + (p.total_budget || 0), 0);
+    const totalPotsContribution = pots.reduce((sum, p) => sum + (p.monthly_contribution || 0), 0);
+    const unassignedSurplus = Math.max(0, totalIncome - totalAllocatedPlans - totalPotsContribution);
+    const hasData = transactions.length > 0 || plans.length > 0 || pots.length > 0;
+    return { totalIncome, totalAllocatedPlans, totalPotsContribution, unassignedSurplus, hasData };
+  }, [transactions, plans, pots]);
 
   const getMobileActiveTab = () => {
     if (activeTab === "/planning") return "planning";
@@ -154,7 +170,16 @@ export default function BudgetHomePage() {
           />
         )}
 
-        {activeTab === "/sankey" && <SankeyCashflowView />}
+        {activeTab === "/sankey" && (
+          <SankeyCashflowView
+            loading={loading}
+            totalIncome={cashflow.totalIncome}
+            totalAllocatedPlans={cashflow.totalAllocatedPlans}
+            totalPotsContribution={cashflow.totalPotsContribution}
+            unassignedSurplus={cashflow.unassignedSurplus}
+            hasData={cashflow.hasData}
+          />
+        )}
         {activeTab === "/analytics" && <NetWorthAnalyticsView netWorth={netWorth} accounts={accounts} />}
       </main>
 
