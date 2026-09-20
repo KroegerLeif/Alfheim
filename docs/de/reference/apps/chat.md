@@ -44,7 +44,18 @@ Quelle: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | `DATABASE_URL` | `postgres://chat_user:postgres@postgres-core:5432/alfheim_chat?sslmode=disable` | PostgreSQL-Verbindungszeichenkette |
 | `CHAT_ENCRYPTION_KEY` | *(Generierter 32-Byte-Base64-Schlüssel)* | AES-256-GCM-Schlüssel zum Verschlüsseln von LLM-API-Schlüsseln |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Kommagetrennte FastMCP-Endpunkte |
-| `NEXT_PUBLIC_CHAT_API_URL` | `http://api.alfheim.loegien.localhost/api/v1/chat` | Browser-API-Gateway-Endpunkt |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chat` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |
+
+### Haushalts-Autorisierung
+
+Jede Chat-API-Route führt nach der JWT-Prüfung `middleware.RequireHousehold` aus: `X-Household-ID` ist Pflicht und wird bei `core/household` bestätigt ([ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md)). Fehler folgen dem gemeinsamen Vertrag (`400 household_required` / `household_invalid`, `403 household_forbidden`, `503 household_service_unavailable`).
+
+- Eine Unterhaltung gehört einem Eigentümer in einem Haushalt. Die Liste zeigt nur die Unterhaltungen des Aufrufers im aktiven Haushalt; andere Unterhaltungen liefern `403`.
+- Geteilte Model-Blocks sind an den bestätigten Haushalt gebunden.
+- MCP-Aufrufe tragen das Bearer-Token des Aufrufers und `X-Household-ID`, pro Anfrage gesetzt.
+- `PATCH /api/v1/chat/mcp-servers/{id}` (Umschalten eines Servers in der installationsweiten Registry) verlangt die Rolle `OWNER` oder `ADMIN`; sonst `403 household_role_forbidden`.
 
 ---
 
@@ -54,5 +65,18 @@ Quelle: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 - `modelblocks`: Provider-Konfigurationsblöcke (Ollama, OpenAI) mit AES-256-Schlüssel-Verschlüsselung.
 - `attachments`: Datei-Anhang-Uploads mit RustFS S3-Objektspeicher. Jeder Upload speichert den Hochladenden (`image_refs.owner_user_id`); allen anderen liefert das Lesen eines Anhangs per ID `404`, und eine Nachricht kann nur noch nicht verknüpfte Anhänge des Gesprächsinhabers verknüpfen (sonst `400`). Anhänge aus der Zeit vor dieser Spalte haben keinen Inhaber und lassen sich weder per ID lesen noch verknüpfen.
 - `mcpservers`: FastMCP-Server-Verbindungsdefinitionen und dynamische Tool-Ermittlung.
+
+---
+
+## 🔌 MCP-Tools
+
+Chat stellt selbst keine MCP-Tools bereit – es ist der MCP-**Client** für den FastMCP-Server jeder anderen App (`internal/shared/mcp`, ein von Grund auf neu geschriebener Streamable-HTTP-Client). `CHAT_MCP_SERVERS` befüllt die Registry (`app_slug` → `internal_url`, z. B. `http://pantry-backend:8000/mcp`); erneutes Seeding beim Start aktualisiert die URL, setzt aber nie den Enabled/Disabled-Schalter eines Admins zurück. Jeder Aufruf leitet das Bearer-Token des Aufrufers und `X-Household-ID` weiter, sodass die Ziel-App genauso autorisiert wie bei einer REST-Anfrage. Ein 404 von einem MCP-Endpunkt wird dem Aufrufer als Konfigurationsfehler gemeldet (nicht passender `CHAT_MCP_SERVERS`-Pfad), statt als erreichbar zu gelten.
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+- **Alte Gespräche nach der UUID-Migration**: Migration `000004_household_ids_uuid` wandelt `conversations.household_id` und `model_blocks.household_id` in UUID um; Nicht-UUID-Werte werden zu `NULL`. Gespräche von vor der Haushaltsprüfung sind nicht mehr erreichbar, und geteilte Model-Blocks ohne Haushalt wurden privat. Siehe [Bekannte Probleme](../../explanation/known-issues.md).
+- Keine weiteren bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
 
 ---

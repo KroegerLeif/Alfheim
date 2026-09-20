@@ -8,20 +8,21 @@
 # Pipeline stages:
 #   0. Pre-flight    — validate Docker network prerequisites
 #   1. IAM Core      — postgres-core  →  zitadel  →  rustfs  →  caddy
-#   2. Dashboard     — dashboard-backend  →  dashboard-frontend
-#                      [live at http://alfheim/ after this stage]
+#   2. Core apps     — dashboard-backend  →  dashboard-frontend
+#                      →  household-backend  →  household-frontend
+#                      [live at ${ALFHEIM_BASE_URL}/ and /household after this stage]
 #   3. Shopping      — shopping-backend  →  shopping-frontend
-#                      [live at http://alfheim/shopping after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/shopping after this stage]
 #   4. Pantry        — pantry-backend  →  pantry-frontend
-#                      [live at http://alfheim/pantry after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/pantry after this stage]
 #   5. Maintenance   — maintenance-backend  →  maintenance-frontend
-#                      [live at http://alfheim/maintenance after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/maintenance after this stage]
 #   6. Chores        — chores-backend  →  chores-frontend
-#                      [live at http://alfheim/chores after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/chores after this stage]
 #   7. Budget        — budget-backend  →  budget-frontend
-#                      [live at http://alfheim/budget after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/budget after this stage]
 #   8. Chat          — chat-backend  →  chat-frontend
-#                      [live at http://alfheim/chat after this stage]
+#                      [live at ${ALFHEIM_BASE_URL}/chat after this stage]
 #   9. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
 #   10. Summary      — print accessible URLs with green checkmarks
 #
@@ -57,6 +58,7 @@ notice() { echo -e "\n  ${BOLD}${GREEN}$*${RESET}\n"; }
 # Argument parsing
 # ---------------------------------------------------------------------------
 BUILD=false       # by default, do NOT rebuild images
+HOUSEHOLD_STARTED=false
 SKIP_OBS=false    # by default, start the observability stack
 
 for arg in "$@"; do
@@ -119,6 +121,7 @@ spin_stop() {
 cleanup() {
   local exit_code=$?
   spin_stop
+  if [[ -n "${PAT_DIR:-}" ]]; then rm -rf "${PAT_DIR}"; fi
   if [[ ${exit_code} -ne 0 ]]; then
     echo -e "\n${RED}✖  Boot process encountered an error and aborted (exit code: ${exit_code}).${RESET}" >&2
   fi
@@ -169,31 +172,60 @@ wait_healthy() {
   fail "Timed out after ${timeout}s waiting for ${label} to become healthy."
 }
 
-# prepare_zitadel_machinekey ensures the host directory compose bind-mounts
-# to Zitadel's /machinekey is writable by the container's own user before
-# Zitadel ever starts.
+# Zitadel's bootstrap PAT lives in the zitadel_machinekey named volume
+# (infrastructure/compose.yml), which the one-shot zitadel-machinekey-init
+# service chowns to the image's uid 1000 before Zitadel starts. No host
+# directory is involved, so neither sudo nor a world-writable directory is
+# needed — on macOS (Docker Desktop) and Linux alike.
 #
-# The ghcr.io/zitadel/zitadel:v2.66.1 image runs as uid:gid 1000:1000 (the
-# "zitadel" user baked into its /etc/passwd). A bind-mount directory that
-# does not exist yet is created by the Docker daemon itself, root-owned —
-# not by the container — which denies that user the write it needs to save
-# its first-instance bootstrap PAT. The result is a crash loop: the first
-# start fails the 03_default_instance migration with
-# "open /machinekey/pat.txt: permission denied", and every restart after
-# that fails again with Errors.Instance.Domain.AlreadyExists because the
-# migration is half-applied.
-prepare_zitadel_machinekey() {
-  local dir="${REPO_ROOT}/infrastructure/zitadel/machinekey"
-  mkdir -p "${dir}"
+# fetch_zitadel_pat writes the PAT to ${PAT_FILE}, a private temp file that
+# `alfheim-setup provision` (which only takes a file) reads and the exit trap
+# removes. Sources, in order:
+#   1. /machinekey/pat.txt in the volume (written on Zitadel's first init;
+#      it may land a moment after the healthcheck turns green, hence the retry)
+#   2. ZITADEL_BOOTSTRAP_PAT in .env (the volume was removed by `down -v`
+#      while Postgres kept Zitadel's data, so the PAT is never written again)
+#   3. infrastructure/zitadel/machinekey/pat.txt, the bind-mount location
+#      used before the named volume, so an existing dev database keeps working
+# Whatever was found is stored back into .env for the next run.
+PAT_DIR=""
+PAT_FILE=""
+fetch_zitadel_pat() {
+  PAT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/alfheim-pat.XXXXXX")"
+  chmod 700 "${PAT_DIR}"
+  PAT_FILE="${PAT_DIR}/pat.txt"
+  local pat="" i tries=20
 
-  if [[ "$(id -u)" == "0" ]]; then
-    chown 1000:1000 "${dir}"
-  elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-    sudo chown 1000:1000 "${dir}"
-  else
-    # Not root and no passwordless sudo (a typical dev machine): widen the
-    # mode instead of guessing at a chown we cannot actually perform.
-    chmod 0777 "${dir}"
+  # Only a cold first init needs to wait for the file to appear.
+  grep -qE '^ZITADEL_BOOTSTRAP_PAT=.+' .env && tries=1
+  for i in $(seq 1 "${tries}"); do
+    if dc cp zitadel:/machinekey/pat.txt "${PAT_FILE}" >/dev/null 2>&1 && [[ -s "${PAT_FILE}" ]]; then
+      pat="$(tr -d '[:space:]' < "${PAT_FILE}")"
+      break
+    fi
+    sleep 1
+  done
+
+  if [[ -z "${pat}" ]]; then
+    pat="$(grep -E '^ZITADEL_BOOTSTRAP_PAT=' .env | tail -n 1 | sed -e 's|^[^=]*=||' | tr -d '[:space:]"' || true)"
+  fi
+  local legacy="${REPO_ROOT}/infrastructure/zitadel/machinekey/pat.txt"
+  if [[ -z "${pat}" && -r "${legacy}" ]]; then
+    pat="$(tr -d '[:space:]' < "${legacy}")"
+  fi
+  [[ -n "${pat}" ]] || return 1
+
+  printf '%s\n' "${pat}" > "${PAT_FILE}"
+  chmod 600 "${PAT_FILE}"
+
+  # Persist into .env (kept 0600) so a lost volume does not strand the next run.
+  if ! grep -qxF "ZITADEL_BOOTSTRAP_PAT=${pat}" .env; then
+    local tmp_env
+    tmp_env="$(mktemp "${REPO_ROOT}/.env.XXXXXX")"
+    grep -v '^ZITADEL_BOOTSTRAP_PAT=' .env > "${tmp_env}" || true
+    printf 'ZITADEL_BOOTSTRAP_PAT=%s\n' "${pat}" >> "${tmp_env}"
+    chmod 600 "${tmp_env}"
+    mv "${tmp_env}" .env
   fi
 }
 
@@ -335,13 +367,20 @@ if [[ ! -f ".env" ]]; then
   fail "No .env in ${REPO_ROOT}. Generate one first: ./scripts/init-env.sh --auto"
 fi
 
+# Browser-facing base URL for the "live at" banners and the summary; follows
+# ALFHEIM_BASE_URL in .env so a custom host is printed correctly.
+BASE_URL="$(grep -E '^ALFHEIM_BASE_URL=' .env | tail -n 1 | sed -e 's|^[^=]*=||' -e 's|^"||' -e 's|"$||' -e 's|/*$||')"
+BASE_URL="${BASE_URL:-http://alfheim.loegien.localhost}"
+ISSUER_URL="$(grep -E '^OIDC_ISSUER_URL=' .env | tail -n 1 | sed -e 's|^[^=]*=||' -e 's|^"||' -e 's|"$||' -e 's|/*$||')"
+ISSUER_URL="${ISSUER_URL:-http://auth.alfheim.loegien.localhost}"
+
 info "Starting postgres-core …"
 dc up ${BUILD_FLAG} -d postgres-core
 wait_healthy "alfheim_postgres_core" "postgres-core" 60
 
 # A cold Zitadel runs its first-instance migration here, which is the slowest
 # step of the whole boot; the installer allows 300 s for the same wait.
-prepare_zitadel_machinekey
+# `up zitadel` first runs the zitadel-machinekey-init one-shot (depends_on).
 info "Starting zitadel (first-instance setup may take up to 5 min on a cold database) …"
 dc up ${BUILD_FLAG} -d zitadel
 wait_healthy "alfheim_zitadel" "zitadel" 300
@@ -362,11 +401,12 @@ wait_healthy "alfheim_caddy" "caddy" 60
 # install, via the installer's hidden `provision` subcommand — see
 # tools/installer/internal/app/provision_cmd.go.
 info "Provisioning Zitadel OIDC clients (dashboard, every app frontend, Grafana) …"
+fetch_zitadel_pat || fail "No Zitadel bootstrap PAT: none in the zitadel_machinekey volume and ZITADEL_BOOTSTRAP_PAT in .env is empty. See the clean reset in docs/en/tutorials/local-getting-started.md."
 (
   cd "${REPO_ROOT}/tools/installer" && \
   go run ./cmd/alfheim-setup provision \
     --env-file "${REPO_ROOT}/.env" \
-    --pat-file "${REPO_ROOT}/infrastructure/zitadel/machinekey/pat.txt" \
+    --pat-file "${PAT_FILE}" \
     --zitadel-url "http://127.0.0.1:80"
 ) || fail "Zitadel OIDC provisioning failed."
 
@@ -384,7 +424,7 @@ notice "🟢 IAM Core, RustFS Storage & Caddy Ingress Gateway Ready"
 # =============================================================================
 # STAGE 2 — Dashboard App Slice  (dashboard-backend → dashboard-frontend)
 # =============================================================================
-step "STAGE 2 · Dashboard App Slice  (backend · frontend)"
+step "STAGE 2 · Dashboard & Household Core Slice  (backend · frontend)"
 
 info "Starting dashboard-backend …"
 dc up ${BUILD_FLAG} -d dashboard-backend
@@ -394,7 +434,24 @@ info "Starting dashboard-frontend …"
 dc up ${BUILD_FLAG} -d dashboard-frontend
 wait_healthy "dashboard-frontend" "dashboard-frontend" 240
 
-notice "🟢 Dashboard is live at http://alfheim/"
+notice "🟢 Dashboard is live at ${BASE_URL}/"
+
+# Household (core/household): households, memberships and the user profile.
+# Skipped with a warning until both service sources exist on this checkout.
+if [[ -f core/household/backend/Dockerfile && -f core/household/frontend/Dockerfile ]]; then
+  info "Starting household-backend (household-db-init creates alfheim_household first) …"
+  dc up ${BUILD_FLAG} -d household-backend
+  wait_healthy "household-backend" "household-backend" 180
+
+  info "Starting household-frontend …"
+  dc up ${BUILD_FLAG} -d household-frontend
+  wait_healthy "household-frontend" "household-frontend" 240
+
+  HOUSEHOLD_STARTED=true
+  notice "🟢 Household is live at ${BASE_URL}/household/"
+else
+  warn "Skipping household: core/household/{backend,frontend}/Dockerfile not found on this checkout."
+fi
 
 # =============================================================================
 # STAGE 3 — Shopping App Slice  (shopping-backend → shopping-frontend)
@@ -409,7 +466,7 @@ info "Starting shopping-frontend …"
 dc up ${BUILD_FLAG} -d shopping-frontend
 wait_healthy "shopping-frontend" "shopping-frontend" 240
 
-notice "🟢 Shopping App is live at http://alfheim/shopping"
+notice "🟢 Shopping App is live at ${BASE_URL}/shopping"
 
 # =============================================================================
 # STAGE 4 — Pantry App Slice  (pantry-backend → pantry-frontend)
@@ -424,7 +481,7 @@ info "Starting pantry-frontend …"
 dc up ${BUILD_FLAG} -d pantry-frontend
 wait_healthy "pantry-frontend" "pantry-frontend" 240
 
-notice "🟢 Pantry App is live at http://alfheim/pantry"
+notice "🟢 Pantry App is live at ${BASE_URL}/pantry"
 
 # =============================================================================
 # STAGE 5 — Maintenance App Slice  (maintenance-backend → maintenance-frontend)
@@ -439,7 +496,7 @@ info "Starting maintenance-frontend …"
 dc up ${BUILD_FLAG} -d maintenance-frontend
 wait_healthy "maintenance-frontend" "maintenance-frontend" 240
 
-notice "🟢 Maintenance App is live at http://alfheim/maintenance"
+notice "🟢 Maintenance App is live at ${BASE_URL}/maintenance"
 
 # =============================================================================
 # STAGE 6 — Chores App Slice  (chores-backend → chores-frontend)
@@ -454,7 +511,7 @@ info "Starting chores-frontend …"
 dc up ${BUILD_FLAG} -d chores-frontend
 wait_healthy "chores-frontend" "chores-frontend" 240
 
-notice "🟢 Chores App is live at http://alfheim.loegien.localhost/chores"
+notice "🟢 Chores App is live at ${BASE_URL}/chores"
 
 # =============================================================================
 # STAGE 7 — Budget App Slice  (budget-backend → budget-frontend)
@@ -469,7 +526,7 @@ info "Starting budget-frontend …"
 dc up ${BUILD_FLAG} -d budget-frontend
 wait_healthy "budget-frontend" "budget-frontend" 240
 
-notice "🟢 Budget App is live at http://alfheim.loegien.localhost/budget"
+notice "🟢 Budget App is live at ${BASE_URL}/budget"
 
 # =============================================================================
 # STAGE 8 — Chat App Slice  (chat-backend → chat-frontend)
@@ -484,7 +541,7 @@ info "Starting chat-frontend …"
 dc up ${BUILD_FLAG} -d chat-frontend
 wait_healthy "chat-frontend" "chat-frontend" 240
 
-notice "🟢 Chat App is live at http://alfheim.loegien.localhost/chat"
+notice "🟢 Chat App is live at ${BASE_URL}/chat"
 
 # =============================================================================
 # STAGE 9 — Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
@@ -517,20 +574,22 @@ echo ""
 echo -e "  ${BOLD}${GREEN}✔  Alfheim is running!${RESET}"
 echo ""
 echo -e "  ${DIM}Applications (Frontend Domain):${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}http://alfheim.loegien.localhost/${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}http://alfheim.loegien.localhost/shopping${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}http://alfheim.loegien.localhost/pantry${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}http://alfheim.loegien.localhost/maintenance${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}http://alfheim.loegien.localhost/chores${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Budget       →  ${BOLD}http://alfheim.loegien.localhost/budget${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chat         →  ${BOLD}http://alfheim.loegien.localhost/chat${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}${BASE_URL}/${RESET}"
+if [[ "${HOUSEHOLD_STARTED}" == "true" ]]; then
+  echo -e "  ${GREEN}✔${RESET}  Household    →  ${BOLD}${BASE_URL}/household/${RESET}"
+fi
+echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}${BASE_URL}/shopping${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}${BASE_URL}/pantry${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}${BASE_URL}/maintenance${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}${BASE_URL}/chores${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Budget       →  ${BOLD}${BASE_URL}/budget${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Chat         →  ${BOLD}${BASE_URL}/chat${RESET}"
 if [[ "${SKIP_OBS}" != "true" ]]; then
-  echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}http://alfheim.loegien.localhost/grafana${RESET}"
+  echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}${BASE_URL}/grafana${RESET}"
 fi
 echo ""
 echo -e "  ${DIM}Infrastructure (API Gateway Domain):${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Zitadel IAM        →  ${BOLD}http://auth.alfheim.loegien.localhost/${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chat API           →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1/chat${RESET}"
+echo -e "  ${GREEN}✔${RESET}  Zitadel IAM        →  ${BOLD}${ISSUER_URL}/${RESET}"
 echo -e "  ${GREEN}✔${RESET}  Central API        →  ${BOLD}http://api.alfheim.loegien.localhost/api/v1${RESET}"
 echo ""
 echo -e "  ${DIM}Useful commands:${RESET}"

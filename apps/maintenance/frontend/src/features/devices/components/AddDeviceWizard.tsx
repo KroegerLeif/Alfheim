@@ -38,8 +38,8 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
   const [deviceStatus, setDeviceStatus] = useState<string>("active");
   const [intervalMonths, setIntervalMonths] = useState<number>(12);
   const [notes, setNotes] = useState("");
-  const [selectedHouseholdId, setSelectedHouseholdId] = useState<number>(
-    householdId ?? households[0]?.id ?? 1
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>(
+    householdId ?? households[0]?.id ?? ""
   );
 
   // Synchronize selection dynamically once households load or layout changes
@@ -92,11 +92,10 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
       status: deviceStatus,
       service_interval_months: intervalMonths,
       notes: notes || null,
-      household_id: selectedHouseholdId,
       // Filter out steps with no title
       steps: steps.filter((s) => s.title.trim().length > 0),
     };
-    mutation.mutate(payload);
+    mutation.mutate({ payload, householdId: selectedHouseholdId || null });
   };
 
   return (

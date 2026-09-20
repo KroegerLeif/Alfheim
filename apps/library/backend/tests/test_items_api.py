@@ -5,12 +5,12 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.api.dependencies import get_current_household_id
 from src.api.v1 import router as api_v1_router
 from src.db.database import get_db_session
 
@@ -61,7 +61,7 @@ async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 @pytest.mark.asyncio
 async def test_create_and_get_item(client: AsyncClient, test_app: FastAPI):
     """Test creating a media item and fetching item details."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     res = await client.post(
         "/api/v1/library/items",
@@ -88,7 +88,7 @@ async def test_create_and_get_item(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_list_items_with_filters_and_pagination(client: AsyncClient, test_app: FastAPI):
     """Test item list filtering (media_type, is_cookbook) and pagination."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Seed items
     await client.post(
@@ -128,7 +128,7 @@ async def test_list_items_with_filters_and_pagination(client: AsyncClient, test_
 @pytest.mark.asyncio
 async def test_update_and_delete_item(client: AsyncClient, test_app: FastAPI):
     """Test updating and deleting an item."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     res = await client.post(
         "/api/v1/library/items",
@@ -157,7 +157,7 @@ async def test_update_and_delete_item(client: AsyncClient, test_app: FastAPI):
 async def test_item_household_isolation(client: AsyncClient, test_app: FastAPI):
     """Verify tenant isolation for library items."""
     # Household 1 creates item
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
     res = await client.post(
         "/api/v1/library/items",
         json={"title": "Private Diary", "media_type": "BOOK"},
@@ -165,7 +165,7 @@ async def test_item_household_isolation(client: AsyncClient, test_app: FastAPI):
     item_id = res.json()["id"]
 
     # Household 2 attempts access
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
 
     assert (await client.get(f"/api/v1/library/items/{item_id}")).status_code == 404
     assert (await client.put(f"/api/v1/library/items/{item_id}", json={"title": "Hacked"})).status_code == 404

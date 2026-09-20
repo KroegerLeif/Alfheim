@@ -50,7 +50,9 @@ Quelle: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 | `DATABASE_URL` | `postgresql+asyncpg://chores_user:postgres@postgres-core:5432/alfheim_chores` | Async PostgreSQL-Verbindungszeichenkette |
 | `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | Generischer OIDC-Authentifizierungs-Aussteller-URL |
 | `OIDC_AUDIENCE` | `alfheim` | Erwartete OIDC-Audience |
-| `NEXT_PUBLIC_CHORES_API_URL` | `http://api.alfheim.loegien.localhost/api/v1/chores` | Browser-API-Gateway-Endpunkt |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chores` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |
 
 ---
 
@@ -60,5 +62,29 @@ Quelle: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 - **Aufgaben-Instanz** (`chore_instances`): Geplante Kopie einer Aufgabe, die einem bestimmten Tag zugewiesen ist.
 - **Completion-Historie** (`chore_completion_history`): Unveränderliche Audit-Zeitleiste, die jedes Aufgaben-Fertigstellungs-Event aufzeichnet.
 - **Haushalt-Streak** (`household_streaks`): Kumulativer Tages-Zähler, erhöht bei Ausführung geplanter Aufgaben bis Mitternacht.
+
+---
+
+## 🔌 MCP-Tools
+
+Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), authentifiziert genauso wie die REST-API. Tools nehmen keine `household_id`/`user_id`-Parameter entgegen – sie lesen `get_mcp_household_context()`.
+
+| Feature | Tools |
+| :--- | :--- |
+| `chore_management` | `get_daily_chores_overview`, `complete_chore_by_name`, `assign_chore` |
+
+Das clientseitig übergebene Feld `completed_by` wurde beim Abschließen von Aufgaben entfernt; erfasst wird immer der authentifizierte Aufrufer.
+
+---
+
+## 🏠 Haushalts-Scoping
+
+Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitgliedsrolle darf lesen und schreiben). Der tägliche Reset (Streak-Erhöhung oder Rücksetzung auf 0) läuft rückwirkend und heilt sich beim ersten Zugriff auf die Aufgabenliste eines Haushalts an dem Tag selbst, falls das System offline war. Siehe [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
 
 ---

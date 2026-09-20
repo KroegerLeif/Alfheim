@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useActiveHouseholdId } from "@/core/hooks/useActiveHouseholdId";
+import { useActiveHousehold } from "@alfheim/shared";
 import { analyticsApi } from "../api/analyticsApi";
 import type {
   LeaderboardResponse,
@@ -25,28 +25,31 @@ export const analyticsKeys = {
 };
 
 export function useMuscleVolume(params: MuscleVolumeParams = {}) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<MuscleVolumeResponse>({
     queryKey: analyticsKeys.muscleVolume(householdId, params),
     queryFn: () => analyticsApi.getMuscleVolume(params),
+    enabled: status === "ready",
   });
 }
 
 export function useStreaks() {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<StreakResponse>({
     queryKey: analyticsKeys.streaks(householdId),
     queryFn: () => analyticsApi.getStreaks(),
+    enabled: status === "ready",
   });
 }
 
 export function useLeaderboard() {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<LeaderboardResponse>({
     queryKey: analyticsKeys.leaderboard(householdId),
     queryFn: () => analyticsApi.getLeaderboard(),
+    enabled: status === "ready",
   });
 }

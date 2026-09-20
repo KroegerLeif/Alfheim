@@ -1,12 +1,23 @@
 import ky from "ky";
-import { createTraceparentHook, resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
+import {
+  createTraceparentHook,
+  resolveApiUrl,
+  resolveFrontendUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  applyHouseholdHeaders,
+  reportHouseholdErrorResponse,
+  parseApiErrorBody,
+} from "@alfheim/shared";
 
 export class ApiError extends Error {
   status?: number;
-  constructor(status: number | undefined, message: string) {
+  /** Backend error code, e.g. `household_role_forbidden`. */
+  code?: string;
+  constructor(status: number | undefined, message: string, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -34,14 +45,18 @@ const BASE_URL = sanitizeUrl(
 );
 
 const handleResponseError = async (response: Response) => {
+  let code: string | undefined;
   let message = "budget.requestFailed";
   try {
     const data = await response.json();
-    message = data?.detail || data?.message || message;
+    // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
+    const parsed = parseApiErrorBody(data);
+    code = parsed.code ?? undefined;
+    message = parsed.message || message;
   } catch {
     message = response.statusText || message;
   }
-  throw new ApiError(response.status, message);
+  throw new ApiError(response.status, message, code);
 };
 
 export const budgetClient = ky.create({
@@ -60,10 +75,7 @@ export const budgetClient = ky.create({
           if (token) {
             request.headers.set("Authorization", `Bearer ${token}`);
           }
-          const activeHouseholdId = localStorage.getItem("alfheim_active_household_id");
-          if (activeHouseholdId) {
-            request.headers.set("X-Household-ID", activeHouseholdId);
-          }
+          applyHouseholdHeaders(request.headers);
         }
       },
     ],
@@ -83,6 +95,7 @@ export const budgetClient = ky.create({
             }
           }
         }
+        await reportHouseholdErrorResponse(response);
         if (!response.ok) {
           await handleResponseError(response);
         }

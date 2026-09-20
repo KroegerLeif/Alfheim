@@ -2,16 +2,19 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from backend_shared.household import derive_user_id
+from backend_shared.household.testing import DEFAULT_TEST_HOUSEHOLD_ID, DEFAULT_TEST_SUB
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.shopping_lists.models import ShoppingItem, ShoppingList
 from src.features.shopping_lists.services.pantry_sync_service import PantrySyncService
+
+TEST_USER_ID = derive_user_id(DEFAULT_TEST_SUB)
 
 
 @pytest.mark.asyncio
 async def test_pantry_sync_service_auto_import_empty(db_session: AsyncSession):
-    l1 = ShoppingList(name="Test List", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
+    l1 = ShoppingList(name="Test List", home_id=DEFAULT_TEST_HOUSEHOLD_ID, owner_id=TEST_USER_ID)
     db_session.add(l1)
     await db_session.commit()
     await db_session.refresh(l1)
@@ -22,7 +25,7 @@ async def test_pantry_sync_service_auto_import_empty(db_session: AsyncSession):
     imported = await PantrySyncService.auto_import_low_stock(
         session=db_session,
         list_id=l1.id,
-        home_id=MOCK_HOME_ID,
+        home_id=DEFAULT_TEST_HOUSEHOLD_ID,
         pantry_client=mock_client,
     )
     assert len(imported) == 0
@@ -30,7 +33,7 @@ async def test_pantry_sync_service_auto_import_empty(db_session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_pantry_sync_service_sync_to_pantry_no_completed(db_session: AsyncSession):
-    l1 = ShoppingList(name="Test List 2", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
+    l1 = ShoppingList(name="Test List 2", home_id=DEFAULT_TEST_HOUSEHOLD_ID, owner_id=TEST_USER_ID)
     db_session.add(l1)
     await db_session.commit()
     await db_session.refresh(l1)
@@ -48,7 +51,7 @@ async def test_pantry_sync_service_sync_to_pantry_no_completed(db_session: Async
     res = await PantrySyncService.sync_to_pantry(
         session=db_session,
         list_id=l1.id,
-        home_id=MOCK_HOME_ID,
+        home_id=DEFAULT_TEST_HOUSEHOLD_ID,
     )
     assert res.status == "success"
     assert res.synced_count == 0
@@ -57,7 +60,7 @@ async def test_pantry_sync_service_sync_to_pantry_no_completed(db_session: Async
 
 @pytest.mark.asyncio
 async def test_pantry_sync_service_auto_import_low_stock_merges_and_quantities(db_session: AsyncSession):
-    l1 = ShoppingList(name="Test List 3", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
+    l1 = ShoppingList(name="Test List 3", home_id=DEFAULT_TEST_HOUSEHOLD_ID, owner_id=TEST_USER_ID)
     db_session.add(l1)
     await db_session.commit()
     await db_session.refresh(l1)
@@ -102,7 +105,7 @@ async def test_pantry_sync_service_auto_import_low_stock_merges_and_quantities(d
     imported = await PantrySyncService.auto_import_low_stock(
         session=db_session,
         list_id=l1.id,
-        home_id=MOCK_HOME_ID,
+        home_id=DEFAULT_TEST_HOUSEHOLD_ID,
         pantry_client=mock_client,
     )
 
@@ -122,7 +125,7 @@ async def test_pantry_sync_service_auto_import_low_stock_merges_and_quantities(d
 
 @pytest.mark.asyncio
 async def test_pantry_sync_service_sync_to_pantry_updates_success_and_unrecognized(db_session: AsyncSession):
-    l1 = ShoppingList(name="Test List 4", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
+    l1 = ShoppingList(name="Test List 4", home_id=DEFAULT_TEST_HOUSEHOLD_ID, owner_id=TEST_USER_ID)
     db_session.add(l1)
     await db_session.commit()
     await db_session.refresh(l1)
@@ -164,7 +167,7 @@ async def test_pantry_sync_service_sync_to_pantry_updates_success_and_unrecogniz
         res = await PantrySyncService.sync_to_pantry(
             session=db_session,
             list_id=l1.id,
-            home_id=MOCK_HOME_ID,
+            home_id=DEFAULT_TEST_HOUSEHOLD_ID,
             pantry_client=mock_client,
         )
 

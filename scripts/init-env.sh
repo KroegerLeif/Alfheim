@@ -233,10 +233,6 @@ migrate_existing_env() {
     migrated=true
     log_warn "Migrated legacy KC_DB_USERNAME 'alfheim_admin' -> 'iam_user' in $(basename "$env_file")"
   fi
-  if grep -qE '^IAM_POSTGRES_USER=alfheim_admin' "$env_file"; then
-    sed -i.bak -e 's|^IAM_POSTGRES_USER=alfheim_admin|IAM_POSTGRES_USER=iam_user|g' "$env_file" && rm -f "${env_file}.bak"
-    migrated=true
-  fi
   if grep -qE '^POSTGRES_DB=keycloak_db' "$env_file"; then
     sed -i.bak -e 's|^POSTGRES_DB=keycloak_db|POSTGRES_DB=postgres|g' "$env_file" && rm -f "${env_file}.bak"
     migrated=true
@@ -286,17 +282,7 @@ migrate_existing_env() {
     fi
   done
 
-  # 5. Inject missing IAM_POSTGRES_* variables if not present
-  if ! grep -q "^IAM_POSTGRES_USER=" "$env_file"; then
-    echo "IAM_POSTGRES_USER=iam_user" >> "$env_file"
-    migrated=true
-  fi
-  if ! grep -q "^IAM_POSTGRES_DB=" "$env_file"; then
-    echo "IAM_POSTGRES_DB=alfheim_iam" >> "$env_file"
-    migrated=true
-  fi
-
-  # 5b. Inject Zitadel provisioning keys compose.prod.yaml now requires
+  # 5. Inject Zitadel provisioning keys compose.prod.yaml now requires
   #     (issue #452), if this .env predates them. Only appended when absent,
   #     so an already-provisioned value (a real client id/secret) is never
   #     touched.
@@ -320,6 +306,36 @@ migrate_existing_env() {
   if ! grep -q "^GRAFANA_SIGNOUT_REDIRECT_URL=" "$env_file"; then
     echo "GRAFANA_SIGNOUT_REDIRECT_URL=__PROVISIONED__" >> "$env_file"
     migrated=true
+  fi
+
+  # 5c. Household app (core/household). Appended only when absent, and the
+  #     internal token only filled when empty, so existing values survive a
+  #     re-run. A fresh password here is fine: household-db-init applies it
+  #     to household_user on every start.
+  if ! grep -q "^HOUSEHOLD_POSTGRES_USER=" "$env_file"; then
+    echo "HOUSEHOLD_POSTGRES_USER=household_user" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^HOUSEHOLD_POSTGRES_DB=" "$env_file"; then
+    echo "HOUSEHOLD_POSTGRES_DB=alfheim_household" >> "$env_file"
+    migrated=true
+  fi
+  if ! grep -q "^HOUSEHOLD_POSTGRES_PASSWORD=" "$env_file"; then
+    echo "HOUSEHOLD_POSTGRES_PASSWORD=$(generate_secret 24)" >> "$env_file"
+    migrated=true
+  fi
+  # An empty value or the .env.example placeholder counts as missing.
+  if ! grep -qE "^ALFHEIM_INTERNAL_TOKEN=.+" "$env_file" \
+    || grep -qxF "ALFHEIM_INTERNAL_TOKEN=change-me-internal-token" "$env_file"; then
+    local internal_token
+    internal_token="$(generate_secret 64)"
+    if grep -q "^ALFHEIM_INTERNAL_TOKEN=" "$env_file"; then
+      sed -i.bak -e "s|^ALFHEIM_INTERNAL_TOKEN=.*|ALFHEIM_INTERNAL_TOKEN=${internal_token}|" "$env_file" && rm -f "${env_file}.bak"
+    else
+      echo "ALFHEIM_INTERNAL_TOKEN=${internal_token}" >> "$env_file"
+    fi
+    migrated=true
+    log_warn "Generated missing ALFHEIM_INTERNAL_TOKEN in $(basename "$env_file")"
   fi
 
   # 6. Rename legacy identity-provider variables (issue #358).
@@ -353,6 +369,17 @@ migrate_existing_env() {
     sed -i.bak -e "/^KEYCLOAK_REALM=/d" "$env_file" && rm -f "${env_file}.bak"
     migrated=true
     log_warn "Dropped obsolete 'KEYCLOAK_REALM' (Zitadel has no realms) in $(basename "$env_file")"
+  fi
+
+  # 8. Drop the old per-app NEXT_PUBLIC_*_API_URL / NEXT_PUBLIC_API_GATEWAY_URL
+  #    values. They pointed at ${ALFHEIM_BASE_URL}/api/..., which Caddy does
+  #    not route (e.g. /api/api/v1 -> 404); compose now derives every
+  #    frontend's API URL from ALFHEIM_BASE_URL instead.
+  local api_url_re='^NEXT_PUBLIC_((PANTRY|SHOPPING|CHORES|MAINTENANCE|CHAT|DASHBOARD|WORKOUT|LIBRARY|BUDGET)_API_URL|API_GATEWAY_URL)='
+  if grep -qE "$api_url_re" "$env_file"; then
+    sed -E -i.bak -e "/${api_url_re}/d" "$env_file" && rm -f "${env_file}.bak"
+    migrated=true
+    log_warn "Dropped obsolete NEXT_PUBLIC_*_API_URL entries (now derived from ALFHEIM_BASE_URL) in $(basename "$env_file")"
   fi
 
   if [[ "$migrated" == true ]]; then
@@ -567,6 +594,8 @@ ZITADEL_ADMIN_PW="$(generate_zitadel_password)"
 POSTGRES_IAM_PW="$(generate_secret 24)"
 S3_PW="$(generate_secret 24)"
 DASHBOARD_PW="$(generate_secret 24)"
+HOUSEHOLD_PW="$(generate_secret 24)"
+INTERNAL_TOKEN="$(generate_secret 64)"
 PANTRY_PW="$(generate_secret 24)"
 SHOPPING_PW="$(generate_secret 24)"
 MAINTENANCE_PW="$(generate_secret 24)"
@@ -581,7 +610,6 @@ GRAFANA_PW="$(generate_secret 24)"
 # Build .env from template with variable replacement
 sed \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
-  -e "s|^IAM_POSTGRES_PASSWORD=.*|IAM_POSTGRES_PASSWORD=${POSTGRES_IAM_PW}|" \
   -e "s|^ZITADEL_MASTERKEY=.*|ZITADEL_MASTERKEY=${ZITADEL_MASTERKEY}|" \
   -e "s|^ZITADEL_ADMIN_EMAIL=.*|ZITADEL_ADMIN_EMAIL=${ZITADEL_ADMIN_EMAIL}|" \
   -e "s|^ZITADEL_ADMIN_USER=.*|ZITADEL_ADMIN_USER=${ZITADEL_ADMIN_EMAIL}|" \
@@ -595,6 +623,8 @@ sed \
   -e "s|^S3_ROOT_PASSWORD=.*|S3_ROOT_PASSWORD=${S3_PW}|" \
   -e "s|^S3_SECRET_KEY=.*|S3_SECRET_KEY=${S3_PW}|" \
   -e "s|^DASHBOARD_POSTGRES_PASSWORD=.*|DASHBOARD_POSTGRES_PASSWORD=${DASHBOARD_PW}|" \
+  -e "s|^HOUSEHOLD_POSTGRES_PASSWORD=.*|HOUSEHOLD_POSTGRES_PASSWORD=${HOUSEHOLD_PW}|" \
+  -e "s|^ALFHEIM_INTERNAL_TOKEN=.*|ALFHEIM_INTERNAL_TOKEN=${INTERNAL_TOKEN}|" \
   -e "s|^PANTRY_POSTGRES_PASSWORD=.*|PANTRY_POSTGRES_PASSWORD=${PANTRY_PW}|" \
   -e "s|^SHOPPING_POSTGRES_PASSWORD=.*|SHOPPING_POSTGRES_PASSWORD=${SHOPPING_PW}|" \
   -e "s|^MAINTENANCE_POSTGRES_PASSWORD=.*|MAINTENANCE_POSTGRES_PASSWORD=${MAINTENANCE_PW}|" \
@@ -615,22 +645,12 @@ sed \
   -e "s|^IMAGE_REPO=.*|IMAGE_REPO=${IMAGE_REPO}|" \
   -e "s|^IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" \
   -e "s|^NEXT_PUBLIC_FRONTEND_URL=.*|NEXT_PUBLIC_FRONTEND_URL=\${ALFHEIM_BASE_URL}|" \
-  -e "s|^NEXT_PUBLIC_API_GATEWAY_URL=.*|NEXT_PUBLIC_API_GATEWAY_URL=\${ALFHEIM_BASE_URL}/api|" \
   -e "s|^OIDC_ISSUER_URL=.*|OIDC_ISSUER_URL=${OIDC_ISSUER_URL}|" \
   -e "s|^ZITADEL_PROJECT_ID=.*|ZITADEL_PROJECT_ID=${ZITADEL_PROJECT_ID}|" \
   -e "s|^OIDC_AUDIENCE=.*|OIDC_AUDIENCE=${OIDC_AUDIENCE}|" \
   -e "s|^ALFHEIM_WEB_CLIENT_ID=.*|ALFHEIM_WEB_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID}|" \
   -e "s|^NEXT_PUBLIC_OIDC_ISSUER=.*|NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL}|" \
   -e "s|^S3_PUBLIC_URL=.*|S3_PUBLIC_URL=${BASE_URL}/storage|" \
-  -e "s|^NEXT_PUBLIC_PANTRY_API_URL=.*|NEXT_PUBLIC_PANTRY_API_URL=\${ALFHEIM_BASE_URL}/api/pantry/api/v1|" \
-  -e "s|^NEXT_PUBLIC_SHOPPING_API_URL=.*|NEXT_PUBLIC_SHOPPING_API_URL=\${ALFHEIM_BASE_URL}/api/shopping/api/v1|" \
-  -e "s|^NEXT_PUBLIC_CHORES_API_URL=.*|NEXT_PUBLIC_CHORES_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/chores|" \
-  -e "s|^NEXT_PUBLIC_MAINTENANCE_API_URL=.*|NEXT_PUBLIC_MAINTENANCE_API_URL=\${ALFHEIM_BASE_URL}/api/maintenance/api/v1|" \
-  -e "s|^NEXT_PUBLIC_CHAT_API_URL=.*|NEXT_PUBLIC_CHAT_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/chat|" \
-  -e "s|^NEXT_PUBLIC_DASHBOARD_API_URL=.*|NEXT_PUBLIC_DASHBOARD_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1|" \
-  -e "s|^NEXT_PUBLIC_WORKOUT_API_URL=.*|NEXT_PUBLIC_WORKOUT_API_URL=\${ALFHEIM_BASE_URL}/api/workout/api/v1|" \
-  -e "s|^NEXT_PUBLIC_LIBRARY_API_URL=.*|NEXT_PUBLIC_LIBRARY_API_URL=\${ALFHEIM_BASE_URL}/api/api/v1/library|" \
-  -e "s|^NEXT_PUBLIC_BUDGET_API_URL=.*|NEXT_PUBLIC_BUDGET_API_URL=\${ALFHEIM_BASE_URL}/api/budget/api/v1|" \
   "$TEMPLATE_FILE" > "$OUTPUT_FILE"
 
 # Fallback injection if template was missing base URL keys
@@ -665,6 +685,13 @@ if ! grep -q '^GRAFANA_SIGNOUT_REDIRECT_URL=' "$OUTPUT_FILE"; then
   printf "GRAFANA_SIGNOUT_REDIRECT_URL=%s\n" "${GRAFANA_SIGNOUT_REDIRECT_URL}" >> "$OUTPUT_FILE"
 fi
 
+if ! grep -q '^HOUSEHOLD_POSTGRES_PASSWORD=' "$OUTPUT_FILE"; then
+  printf "HOUSEHOLD_POSTGRES_USER=household_user\nHOUSEHOLD_POSTGRES_PASSWORD=%s\nHOUSEHOLD_POSTGRES_DB=alfheim_household\n" "${HOUSEHOLD_PW}" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^ALFHEIM_INTERNAL_TOKEN=' "$OUTPUT_FILE"; then
+  printf "ALFHEIM_INTERNAL_TOKEN=%s\n" "${INTERNAL_TOKEN}" >> "$OUTPUT_FILE"
+fi
+
 # Restrict file permissions to current user only (0600)
 chmod 600 "$OUTPUT_FILE"
 
@@ -678,9 +705,9 @@ echo -e "  Domain:                    ${CYAN}${DOMAIN}${RESET}"
 echo -e "  OIDC Issuer URL (Zitadel): ${CYAN}${OIDC_ISSUER_URL}${RESET}"
 echo -e "  OIDC Audience:             ${CYAN}${OIDC_AUDIENCE}${RESET}"
 echo -e "  Zitadel Admin E-mail:      ${CYAN}${ZITADEL_ADMIN_EMAIL}${RESET}"
-echo -e "  Zitadel Admin Password:    ${YELLOW}${ZITADEL_ADMIN_PW}${RESET}"
+echo -e "  Zitadel Admin Password:    ${DIM}stored in ${OUTPUT_FILE} as ZITADEL_ADMIN_PASSWORD${RESET}"
 echo -e "  Zitadel Masterkey:         ${DIM}${ZITADEL_MASTERKEY:0:8}...${RESET}"
 echo -e "  Grafana Admin User:        ${CYAN}admin${RESET}"
-echo -e "  Grafana Admin Password:    ${YELLOW}${GRAFANA_PW}${RESET}"
+echo -e "  Grafana Admin Password:    ${DIM}stored in ${OUTPUT_FILE} as GRAFANA_ADMIN_PASSWORD${RESET}"
 echo -e "  Chat AES-256 Key:          ${DIM}${CHAT_ENC_KEY:0:8}...${RESET}"
 echo ""

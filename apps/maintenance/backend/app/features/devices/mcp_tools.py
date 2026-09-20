@@ -8,7 +8,7 @@ exclusively from DeviceService.
 import datetime
 from typing import Any
 
-from backend_shared.mcp_middleware import get_mcp_user_context
+from backend_shared.mcp_middleware import get_mcp_household_context
 
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
@@ -26,9 +26,7 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
         Structured dictionary containing status, location, notes, and step summaries.
     """
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return {"found": False, "error": "No household context available"}
+        user_context = get_mcp_household_context()
 
         async with async_session_factory() as session:
             all_devices = await DeviceService.get_devices(session, household_id=user_context.household_id)
@@ -101,9 +99,7 @@ async def get_device_status(device_name: str) -> dict[str, Any]:
 async def list_devices() -> dict[str, Any]:
     """Retrieve all registered devices for the authenticated household."""
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return {"error": "No household context available"}
+        user_context = get_mcp_household_context()
 
         async with async_session_factory() as session:
             devices = await DeviceService.get_devices(session, household_id=user_context.household_id)
@@ -116,7 +112,7 @@ async def list_devices() -> dict[str, Any]:
                 "category": d.category,
                 "location": d.location,
                 "status": d.status,
-                "household_id": d.household_id,
+                "household_id": str(d.household_id),
                 "step_count": len(d.steps),
             }
             for d in devices
@@ -136,9 +132,7 @@ async def get_device_detail(device_id: int) -> dict[str, Any]:
         device_id: The primary key integer ID of the target device.
     """
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return {"error": "No household context available"}
+        user_context = get_mcp_household_context()
 
         async with async_session_factory() as session:
             device = await DeviceService.get_device_by_id(
@@ -155,7 +149,7 @@ async def get_device_detail(device_id: int) -> dict[str, Any]:
             "status": device.status,
             "service_interval_months": device.service_interval_months,
             "notes": device.notes,
-            "household_id": device.household_id,
+            "household_id": str(device.household_id),
             "steps": [
                 {
                     "id": s.id,

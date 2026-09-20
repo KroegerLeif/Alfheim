@@ -5,7 +5,35 @@ import (
 )
 
 func TestConfigLoad(t *testing.T) {
+	t.Run("fails without ALFHEIM_INTERNAL_TOKEN", func(t *testing.T) {
+		t.Setenv("ALFHEIM_INTERNAL_TOKEN", "")
+		if _, err := Load(); err == nil {
+			t.Fatal("expected error when ALFHEIM_INTERNAL_TOKEN is missing")
+		}
+	})
+
+	t.Run("household internal api settings", func(t *testing.T) {
+		t.Setenv("ALFHEIM_INTERNAL_TOKEN", "secret")
+		t.Setenv("HOUSEHOLD_INTERNAL_URL", "")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if cfg.Household.InternalURL != "http://household-backend:8080" || cfg.Household.InternalToken != "secret" {
+			t.Errorf("unexpected household config %+v", cfg.Household)
+		}
+		t.Setenv("HOUSEHOLD_INTERNAL_URL", "http://hh.internal:9000/")
+		cfg, err = Load()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if cfg.Household.InternalURL != "http://hh.internal:9000" {
+			t.Errorf("expected trimmed custom url, got %q", cfg.Household.InternalURL)
+		}
+	})
+
 	t.Run("default configuration", func(t *testing.T) {
+		t.Setenv("ALFHEIM_INTERNAL_TOKEN", "secret")
 		t.Setenv("OIDC_ISSUER_URL", "")
 		t.Setenv("OIDC_AUDIENCE", "")
 
@@ -25,6 +53,7 @@ func TestConfigLoad(t *testing.T) {
 	})
 
 	t.Run("custom OIDC environment variables", func(t *testing.T) {
+		t.Setenv("ALFHEIM_INTERNAL_TOKEN", "secret")
 		t.Setenv("OIDC_ISSUER_URL", "https://auth.example.com/")
 		t.Setenv("OIDC_AUDIENCE", "custom-audience")
 

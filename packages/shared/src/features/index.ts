@@ -2,6 +2,7 @@ export * from './api';
 export * from './auth';
 export * from './i18n';
 export * from './theme';
+export * from './household';
 export * from './layout';
 export * from './ui';
 export * from './finance';

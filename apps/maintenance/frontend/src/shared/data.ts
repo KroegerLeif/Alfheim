@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Household } from "./types";
 
-// Fallback static household list (overridden by the live API in SidebarHouseholdPicker)
+// Fallback static household list (overridden by the live API)
 export const households: Household[] = [];
 
 export const currentUser = {

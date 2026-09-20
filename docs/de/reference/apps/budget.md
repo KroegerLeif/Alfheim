@@ -43,7 +43,9 @@ Quelle: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 | `DATABASE_URL` | `postgresql+asyncpg://budget_user:postgres@postgres-core:5432/alfheim_budget` | Async PostgreSQL-Verbindungszeichenkette |
 | `S3_ENDPOINT_URL` | `http://rustfs:9000` | S3-kompatibler Objektspeicher-Endpunkt |
 | `S3_BUCKET_NAME` | `budget-receipts` | S3-Bucket für Quittungs-Uploads |
-| `NEXT_PUBLIC_BUDGET_API_URL` | `http://api.alfheim.loegien.localhost/budget/api/v1` | Browser-API-Gateway-Endpunkt |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/budget` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |
 
 ---
 
@@ -53,5 +55,23 @@ Quelle: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 - `pots`: Virtuelle Notgroschen und Ziel-Zuordnungs-Töpfe mit Fortschritts-Tracking.
 - `plans`: Envelope-basierte monatliche und event-gesteuerte Budget-Planung.
 - `transactions`: Unveränderliches Ledger für Einkommens- und Ausgabentransaktionen mit Quittungs-Anhängen.
+
+---
+
+## 🔌 MCP-Tools
+
+Budget hat keinen FastMCP-Server und stellt keine MCP-Tools bereit. Der Chat-Assistent kann Budget-Daten nicht direkt lesen oder ändern.
+
+---
+
+## 🏠 Haushalts-Scoping
+
+Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitgliedsrolle darf lesen und schreiben). Budgets eigene, geforkte claim-basierte Auth (`src/core/auth.py`) wurde zugunsten dieser gemeinsamen Abhängigkeit entfernt; Maintenance und Shopping leiten beim Aufruf der Budget-API das Bearer-Token des Aufrufers und `X-Household-ID` weiter. Siehe [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
 
 ---

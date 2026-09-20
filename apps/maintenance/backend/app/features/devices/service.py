@@ -2,14 +2,15 @@
 Device feature service layer handling database queries and business logic.
 """
 
+import uuid
 from typing import Any, cast
 
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.features.devices.exceptions import DeviceNotFoundError, HouseholdNotFoundError
-from app.features.devices.models import Device, Household
+from app.features.devices.exceptions import DeviceNotFoundError
+from app.features.devices.models import Device
 from app.features.devices.schemas import DeviceCreate
 from app.features.tasks.models import MaintenanceStep
 
@@ -18,40 +19,22 @@ class DeviceService:
     """Service class containing logic for household and device operations."""
 
     @staticmethod
-    async def get_households(session: AsyncSession, household_id: int) -> list[Household]:
-        """Fetch households accessible by the authenticated user.
-
-        Args:
-            session: Database session
-            household_id: The user's authenticated household_id from context
-
-        Returns:
-            List of households the user can access (currently limited to their own)
-        """
-        result = await session.exec(select(Household).where(Household.id == household_id))
-        return list(result.all())
-
-    @staticmethod
     async def get_devices(
         session: AsyncSession,
-        household_id: int | None = None,
+        household_id: uuid.UUID,
     ) -> list[Device]:
-        """Fetch all devices with eager selectinload for steps and history.
-
-        Supports optional filtering by household_id.
-        """
+        """Fetch all devices of a household with eager selectinload for steps and history."""
         statement = select(Device).options(
             selectinload(cast(Any, Device.steps)),
             selectinload(cast(Any, Device.history_events)),
         )
-        if household_id is not None:
-            statement = statement.where(Device.household_id == household_id)
+        statement = statement.where(Device.household_id == household_id)
 
         result = await session.exec(statement)
         return list(result.all())
 
     @staticmethod
-    async def get_device_by_id(session: AsyncSession, device_id: int, household_id: int) -> Device:
+    async def get_device_by_id(session: AsyncSession, device_id: int, household_id: uuid.UUID) -> Device:
         """Fetch a single device by ID with steps and history loaded.
 
         Args:
@@ -83,12 +66,12 @@ class DeviceService:
     async def create_device(
         session: AsyncSession,
         payload: DeviceCreate,
-        household_id: int,
+        household_id: uuid.UUID,
     ) -> Device:
         """Create a new Device record and insert all initial MaintenanceStep children.
 
-        The authenticated user's household_id (from context) is used, enforcing that
-        the caller cannot create devices in other households.
+        The household confirmed by the household app (request context) is used, so the
+        caller cannot create devices in other households.
 
         Args:
             session: Database session
@@ -96,13 +79,7 @@ class DeviceService:
             household_id: The user's authenticated household_id from context
 
         Executes in an atomic session transaction.
-
-        Raises:
-            HouseholdNotFoundError: If the authenticated household_id does not exist.
         """
-        household = await session.get(Household, household_id)
-        if not household:
-            raise HouseholdNotFoundError(f"Household {household_id} not found")
 
         device = Device(
             name=payload.name,

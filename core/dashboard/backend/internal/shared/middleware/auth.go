@@ -13,7 +13,6 @@ import (
 
 	"github.com/MicahParks/keyfunc/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5"
 )
 
 type contextKey string
@@ -37,8 +36,6 @@ type UserClaims struct {
 	GivenName         string   `json:"given_name"`
 	FamilyName        string   `json:"family_name"`
 	Roles             []string `json:"roles"`
-	HouseholdID       string   `json:"household_id"`
-	HouseholdRole     string   `json:"household_role"`
 }
 
 // Authenticator handles generic OIDC JWT validation using a discovered JWKS endpoint.
@@ -170,16 +167,7 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		userClaims := extractUserClaims(claimsMap, r)
-
-		// Reject if X-Household-ID header is supplied but JWT has no household claim.
-		if headerHH := r.Header.Get("X-Household-ID"); headerHH != "" && userClaims.HouseholdID == "" {
-			a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID supplied but no household claims present in token",
-				slog.String("header_household_id", headerHH),
-				slog.String("user_id", userClaims.Subject))
-			writeForbidden(w, "user is not a member of the requested household")
-			return
-		}
+		userClaims := extractUserClaims(claimsMap)
 
 		ctx := context.WithValue(r.Context(), UserContextKey, userClaims)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -192,12 +180,6 @@ func writeUnauthorized(w http.ResponseWriter, message string) {
 	_, _ = fmt.Fprintf(w, `{"error":"unauthorized","message":%q}`, message)
 }
 
-func writeForbidden(w http.ResponseWriter, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusForbidden)
-	_, _ = fmt.Fprintf(w, `{"error":"forbidden","message":%q}`, message)
-}
-
 // GetUserClaims retrieves UserClaims from the HTTP request context.
 func GetUserClaims(ctx context.Context) (*UserClaims, error) {
 	claims, ok := ctx.Value(UserContextKey).(*UserClaims)
@@ -207,7 +189,7 @@ func GetUserClaims(ctx context.Context) (*UserClaims, error) {
 	return claims, nil
 }
 
-func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
+func extractUserClaims(claims jwt.MapClaims) *UserClaims {
 	uc := &UserClaims{}
 
 	if sub, ok := claims["sub"].(string); ok {
@@ -226,13 +208,6 @@ func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 		uc.FamilyName = familyName
 	}
 
-	// Only extract household from JWT claims; never accept client-supplied header as fallback.
-	if householdID, ok := claims["household_id"].(string); ok && householdID != "" {
-		uc.HouseholdID = householdID
-	} else if activeHouseholdID, ok := claims["active_household_id"].(string); ok && activeHouseholdID != "" {
-		uc.HouseholdID = activeHouseholdID
-	}
-
 	if realmAccess, ok := claims["realm_access"].(map[string]interface{}); ok {
 		if rolesInterface, ok := realmAccess["roles"].([]interface{}); ok {
 			for _, roleValue := range rolesInterface {
@@ -244,62 +219,4 @@ func extractUserClaims(claims jwt.MapClaims, r *http.Request) *UserClaims {
 	}
 
 	return uc
-}
-
-// HouseholdRoleDB represents the minimal database interface needed to query household roles.
-type HouseholdRoleDB interface {
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-}
-
-// HouseholdRoleMiddleware queries the database to find the user's role for the active household
-// and injects it into both the request context claims and request headers.
-// It validates any client-supplied X-Household-ID header against the JWT-derived household identity
-// and unconditionally clears any client-supplied X-Household-Role header.
-func HouseholdRoleMiddleware(db HouseholdRoleDB, log *slog.Logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, err := GetUserClaims(r.Context())
-			if err != nil {
-				// No claims present, likely unauthenticated route
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			// Unconditionally clear any client-supplied X-Household-Role to prevent privilege escalation.
-			r.Header.Del("X-Household-Role")
-
-			householdID := claims.HouseholdID
-			// Only accept header if it matches a JWT-derived household claim.
-			if householdID == "" {
-				headerHH := r.Header.Get("X-Household-ID")
-				if headerHH != "" {
-					log.Warn("household lookup attempted with only client-supplied header (no JWT claim)",
-						slog.String("header_household_id", headerHH),
-						slog.String("user_id", claims.Subject))
-				}
-				// Do not proceed with lookup if no JWT household claim exists.
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			if db != nil && claims.Subject != "" {
-				var role string
-				query := `SELECT role FROM household_members WHERE household_id = $1 AND user_id = $2`
-				err := db.QueryRow(r.Context(), query, householdID, claims.Subject).Scan(&role)
-				if err == nil {
-					// Add household role to claims
-					claims.HouseholdRole = role
-					// Propagate role header for downstream microservices
-					r.Header.Set("X-Household-Role", role)
-				} else {
-					log.Warn("household role lookup failed",
-						slog.String("household_id", householdID),
-						slog.String("user_id", claims.Subject),
-						slog.String("error", err.Error()))
-				}
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
 }

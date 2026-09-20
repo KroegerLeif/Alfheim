@@ -46,7 +46,7 @@ create_db_if_not_exists() {
     psql_exec "CREATE DATABASE \"$db\" OWNER \"$owner\";"
   else
     echo "Database $db already exists. Ensuring ownership..."
-    psql_exec "ALTER DATABASE \"$db\" OWNER \"$owner\";"
+    psql_exec "ALTER DATABASE \"$db\" OWNER TO \"$owner\";"
   fi
 
   # Grant all privileges on database schema public to owner
@@ -63,6 +63,7 @@ EOSQL
 SERVICES=(
   "zitadel:${ZITADEL_DB_USER:-zitadel_user}:${ZITADEL_DB_PASSWORD:-postgres}"
   "alfheim_dashboard:${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}"
+  "alfheim_household:${HOUSEHOLD_POSTGRES_USER:-household_user}:${HOUSEHOLD_POSTGRES_PASSWORD:-postgres}"
   "alfheim_pantry:${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}"
   "alfheim_shopping:${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:-postgres}"
   "alfheim_maintenance:${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}"

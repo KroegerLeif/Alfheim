@@ -1,13 +1,12 @@
 import logging
-import os
 import uuid
 from collections.abc import Sequence
 
-import httpx
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, Request, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import UserHomeContext, get_current_user_and_home
+from src.features.shopping_lists.clients.household_client import fetch_my_households
 from src.features.shopping_lists.schemas import (
     HouseholdRead,
     PushItemPayload,
@@ -36,25 +35,8 @@ households_router = APIRouter(prefix="/api/v1/households", tags=["households"])
 async def get_my_households(
     request: Request,
 ):
-    """Proxy request to central dashboard backend to retrieve user households."""
-    token = request.headers.get("Authorization")
-    headers = {}
-    if token:
-        headers["Authorization"] = token
-
-    dashboard_url = os.getenv("DASHBOARD_BACKEND_URL", "http://dashboard-backend:8080")
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{dashboard_url}/api/v1/households/me", headers=headers, timeout=5.0)
-            if response.status_code == 200:
-                return response.json()
-            logger.warning(
-                "Dashboard endpoint returned status code %s when retrieving households.", response.status_code
-            )
-            return []
-        except (httpx.RequestError, ValueError) as exc:
-            logger.warning("Failed to proxy households retrieval request to dashboard backend: %s", exc)
-            return []
+    """Return the caller's households (with role and default flag) from the household app."""
+    return await fetch_my_households(request.headers.get("Authorization")) or []
 
 
 @router.post(
@@ -66,13 +48,13 @@ async def get_my_households(
 async def create_list(
     payload: ShoppingListCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create a new shopping list scoped to the current user's household context."""
     return await ShoppingListService.create_list(
         session=session,
         payload=payload,
-        home_id=context.home_id,
+        home_id=context.household_id,
         owner_id=context.user_id,
     )
 
@@ -85,7 +67,7 @@ async def create_list(
 async def get_lists(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve all shopping lists visible to the caller.
 
@@ -95,7 +77,7 @@ async def get_lists(
     token = request.headers.get("Authorization")
     return await ShoppingListService.get_lists(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         owner_id=context.user_id,
         username=context.username,
         token=token,
@@ -110,13 +92,13 @@ async def get_lists(
 async def reorder_lists(
     payload: ReorderListsPayload,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Update display position indices for multiple user-defined shopping lists in bulk."""
     await ShoppingListService.reorder_lists(
         session=session,
         list_ids=payload.list_ids,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -128,13 +110,13 @@ async def reorder_lists(
 async def get_list(
     list_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve details and items of a specific shopping list with authorization checks."""
     return await ShoppingListService.get_list(
         session=session,
         list_id=list_id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -146,13 +128,13 @@ async def get_list(
 async def delete_list(
     list_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Delete a shopping list along with all its nested checklist items."""
     await ShoppingListService.delete_list(
         session=session,
         list_id=list_id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -166,14 +148,14 @@ async def add_item(
     list_id: uuid.UUID,
     payload: ShoppingItemCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Add a new custom/manual item to the specified shopping list."""
     return await ShoppingListService.add_item(
         session=session,
         list_id=list_id,
         payload=payload,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -187,7 +169,7 @@ async def update_item(
     item_id: uuid.UUID,
     payload: ShoppingItemUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Update properties (quantity, unit, completion check-off state) of a shopping item."""
     return await ShoppingListService.update_item(
@@ -195,7 +177,7 @@ async def update_item(
         list_id=list_id,
         item_id=item_id,
         payload=payload,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -208,14 +190,14 @@ async def delete_item(
     list_id: uuid.UUID,
     item_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Remove a specific item from the shopping list."""
     await ShoppingListService.delete_item(
         session=session,
         list_id=list_id,
         item_id=item_id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -228,14 +210,14 @@ async def auto_import_low_stock(
     list_id: uuid.UUID,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Fetch low-stock catalog alerts from Pantry and merge them as auto-generated items."""
     token = request.headers.get("Authorization")
     return await ShoppingListService.auto_import_low_stock(
         session=session,
         list_id=list_id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         token=token,
     )
 
@@ -249,14 +231,14 @@ async def sync_to_pantry(
     list_id: uuid.UUID,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Sync completed items on the list in bulk to Pantry stock and record purchase frequencies."""
     token = request.headers.get("Authorization")
     return await ShoppingListService.sync_to_pantry(
         session=session,
         list_id=list_id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         token=token,
     )
 
@@ -270,12 +252,12 @@ async def sync_to_pantry(
 async def push_shopping_item(
     payload: PushItemPayload,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Internal inter-service API allowing Pantry or external callers to push out-of-stock items directly to the household shopping list."""
     return await ShoppingListService.push_item(
         session=session,
         payload=payload,
-        home_id=context.home_id,
+        home_id=context.household_id,
         owner_id=context.user_id,
     )

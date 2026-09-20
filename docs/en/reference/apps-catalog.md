@@ -20,7 +20,7 @@ Tier-1 applications are native monorepo microservices registered in Go (`core/da
 
 | App ID | Title | Tech Stack | Ingress Route (Frontend) | Internal Port | Status | Documentation |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `dashboard` | Central Control Plane | Go / Next.js | `alfheim.loegien.localhost/` | `3000` / `8080` | Active | [dashboard](./apps/dashboard.md) |
+| `dashboard` | Launcher & App Catalog | Go / Next.js | `alfheim.loegien.localhost/` | `3000` / `8080` | Active | [dashboard](./apps/dashboard.md) |
 | `pantry` | Digital Pantry | FastAPI / Next.js | `/pantry` | `3000` / `8000` | Active | [pantry](./apps/pantry.md) |
 | `budget` | Treasury & Budget | FastAPI / Next.js | `/budget` | `3000` / `8000` | Active | [budget](./apps/budget.md) |
 | `chores` | Household Chores | FastAPI / Next.js | `/chores` | `3000` / `8000` | Active | [chores](./apps/chores.md) |
@@ -29,6 +29,9 @@ Tier-1 applications are native monorepo microservices registered in Go (`core/da
 | `library` | Media & Library Hub | FastAPI / Next.js | `/library` | `3000` / `8000` | Active | [library](./apps/library.md) |
 | `maintenance`| Home Maintenance Tracker| FastAPI / Next.js | `/maintenance` | `3000` / `8000` | Active | [maintenance](./apps/maintenance.md) |
 | `shopping` | Shopping Lists | FastAPI / Next.js | `/shopping` | `3010` / `8000` | Active | [shopping](./apps/shopping.md) |
+| `household` | Household & Roles | Go / Next.js | `/household` | `3000` / `8080` | Active | [household](./apps/household.md) |
+
+> **Note:** `core/household` owns households, members and roles, invites, contacts and the user profile, and answers the membership checks of every other backend ([ADR 0006](../explanation/decisions/0006-household-authorization-via-membership-api.md)). The dashboard is only the launcher: app catalog, user links and preferences (plus telemetry). It shows the household app's launcher tile (icon `home`, visible to every authenticated user) and links to `/household` and `/household/profile`.
 
 ---
 

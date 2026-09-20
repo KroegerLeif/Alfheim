@@ -54,7 +54,8 @@ alfheim/
 │   ├── rustfs/                 # RustFS S3-compatible central object storage
 │   └── telemetry/              # VictoriaStack, OTel Collector, Vector & Grafana
 ├── core/
-│   └── dashboard/              # Central dashboard module (Go control plane & Next.js frontend)
+│   ├── dashboard/              # Launcher & app catalog (Go backend & Next.js frontend)
+│   └── household/              # Households, members & roles, invites, contacts, profile (Go & Next.js)
 ├── apps/                       # Domain microservices (paired frontend + backend)
 │   ├── budget/                 # Budget & Virtual Pots module
 │   ├── chat/                   # ALFI assistant & chat module
@@ -66,9 +67,10 @@ alfheim/
 │   └── workout/                # Workout tracker module
 ├── packages/                   # Shared workspace libraries
 │   ├── shared/                 # @alfheim/shared — UI, theme engine, i18n, API client
-│   └── backend-shared/         # backend_shared — Python OTel, JWT & S3 utilities
+│   └── backend-shared/         # backend_shared — Python OTel, JWT, household membership & S3 utilities
 ├── websites/
-│   └── docs/                   # Public landing page (React + Vite, GitHub Pages)
+│   ├── landing/                # Public landing page (React + Vite, GitHub Pages)
+│   └── portal/                 # Documentation portal (Astro Starlight, served at /docs)
 ├── tools/
 │   └── installer/              # alfheim-setup — standalone Go TUI installer
 ├── deploy/                     # Tier-2 stack application manifests
@@ -96,7 +98,7 @@ To resolve these local domains on your development machine, add the following li
 The platform enforces strict multi-zone network isolation across Docker bridge networks:
 * **`gateway-net`**: Connects Caddy ingress gateway to frontends, Zitadel, RustFS S3, and backend API endpoints.
 * **`infra-net`**: Isolated infrastructure bridge connecting Zitadel, `postgres-core`, and RustFS S3 backend ports.
-* **`core-net`**: Dedicated control plane network connecting `dashboard-backend` and `postgres-core`.
+* **`core-net`**: Dedicated control plane network connecting `dashboard-backend`, `household-backend` and `postgres-core`.
 * **`app-<name>-net`**: App-isolated networks connecting microservice backends to `postgres-core` (e.g. `app-pantry-net`, `app-shopping-net`, `app-chat-net`, `app-workout-net`).
 * **`observability-internal`**: Dedicated telemetry bridge connecting app backends and Vector to OpenTelemetry Collector and VictoriaStack.
 
@@ -111,8 +113,13 @@ The platform enforces strict multi-zone network isolation across Docker bridge n
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `http://shopping-frontend:3010` | Served on `/shopping` basePath, 302 redirects bare path to `/shopping/en` |
 | `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `http://maintenance-frontend:3000`| Served on `/maintenance` basePath, 302 redirects bare path to `/maintenance/en` |
 | `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `http://chores-frontend:3000` | Served on `/chores` basePath, 302 redirects bare path to `/chores/de` |
+| `http://alfheim.loegien.localhost/budget` | `budget-frontend` | `http://budget-frontend:3000` | Served on `/budget` basePath, 302 redirects bare path to `/budget/en` |
+| `http://alfheim.loegien.localhost/library` | `library-frontend` | `http://library-frontend:3000` | Served on `/library` basePath, 302 redirects bare path to `/library/en` |
 | `http://alfheim.loegien.localhost/workout` | `workout-frontend` | `http://workout-frontend:3000` | Served on `/workout` basePath, 302 redirects bare path to `/workout/de` |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `http://chat-frontend:3000` | Served on `/chat` basePath, 302 redirects bare path to `/chat/de` |
+| `http://alfheim.loegien.localhost/household` | `household-frontend` | `http://household-frontend:3000` | Served on `/household` basePath, no locale redirect |
+| `http://alfheim.loegien.localhost/api/v1/households*`, `/api/v1/profile*` | `household-backend` | `http://household-backend:8080` | Path preserved; wins over the dashboard `/api/v1/*` catch-all |
+| `http://alfheim.loegien.localhost/internal/*` | — | — | `404`: the service-to-service membership API is never routed |
 | `http://alfheim.loegien.localhost/grafana` | `grafana` | `http://grafana:3000/grafana` | Observability & Telemetry UI (Zitadel SSO) |
 
 #### 2. Identity Provider Domain (`auth.alfheim.loegien.localhost` / `auth.loegien.de`)
@@ -134,8 +141,11 @@ The bare origin of that host is the canonical OIDC issuer.
 | `http://api.alfheim.loegien.localhost/shopping/api/v1/`| `shopping-backend`| `http://shopping-backend:8000/api/v1/` | Strips `/shopping` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/maintenance/api/v1/`| `maintenance-backend`| `http://maintenance-backend:8000/api/v1/`| Strips `/maintenance` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `http://chores-backend:8000/api/v1/chores` | Native API route (no stripping). |
+| `http://api.alfheim.loegien.localhost/api/v1/budget`, `/budget/api/v1/` | `budget-backend` | `http://budget-backend:8000/api/v1/budget` | Native API route and `/budget` prefix-stripped alias, both accepted. |
+| `http://api.alfheim.loegien.localhost/api/v1/library`, `/library/api/v1/` | `library-backend` | `http://library-backend:8000/api/v1/library` | Native API route and `/library` prefix-stripped alias, both accepted. |
 | `http://api.alfheim.loegien.localhost/workout/api/v1/` | `workout-backend` | `http://workout-backend:8000/api/v1/` | Strips `/workout` prefix via Caddy `handle_path`. |
 | `http://api.alfheim.loegien.localhost/api/v1/chat` | `chat-backend` | `http://chat-backend:8080/api/v1/chat` | Native Go API route (no stripping). |
+| `http://api.alfheim.loegien.localhost/api/v1/households*`, `/api/v1/profile*` | `household-backend` | `http://household-backend:8080/api/v1/...` | Native Go API route (no stripping). |
 | `http://api.alfheim.loegien.localhost/api/v1/apps` | `dashboard-backend` | `http://dashboard-backend:8080/api/v1/apps` | Native Go API route (no stripping). |
 
 ---
@@ -144,14 +154,15 @@ The bare origin of that host is the canonical OIDC issuer.
 
 Prior to starting the platform, configure the required environment variables:
 
-1. **Root Configuration**: Copy the template from `.env.example` at the root and fill in the values:
+1. **Root Configuration**: Generate `.env` for the plain-HTTP `*.localhost` development hosts (random dev secrets; a re-run keeps existing values):
    ```bash
-   cp .env.example .env
+   ./scripts/init-env.sh --auto --base-url http://alfheim.loegien.localhost
    ```
-2. **Staged Boot**: Run the automated staged boot script to start all infrastructure and microservices:
+2. **Staged Boot**: Run the automated staged boot script to start all infrastructure and microservices. On macOS this needs only Docker Desktop — no `sudo`:
    ```bash
    ./scripts/up.sh -b
    ```
+3. **Stop / Clean Up**: `./scripts/down.sh` stops the stack and keeps data. For a clean slate see [Stop & Clean Up](docs/en/tutorials/local-getting-started.md#stop--clean-up).
 
 ---
 
@@ -186,6 +197,18 @@ Verify HTTP routing and responses using browser or `curl`:
 
 4. **Zitadel IAM Console**:
    Access `http://auth.alfheim.loegien.localhost/` in your browser.
+
+### C. Automated Stack Verification
+`scripts/verify-stack.sh` checks a running stack end to end: every Compose service is
+healthy, Caddy's `/livez`, that OIDC discovery names the configured issuer, every app
+route resolves through the gateway without a 5xx, `/internal/*` is blocked at the edge,
+and the household API rejects a request with no bearer token. It auto-detects
+`compose.yaml` (local dev) or `compose.prod.yaml` (a production install):
+```bash
+./scripts/verify-stack.sh
+```
+`alfheim-setup update` also runs it automatically after a Day-2 upgrade. See the
+[CLI Scripts Reference](./docs/en/reference/cli-scripts.md).
 
 ---
 

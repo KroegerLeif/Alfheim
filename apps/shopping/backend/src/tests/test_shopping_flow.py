@@ -2,12 +2,15 @@ import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from backend_shared.household import derive_user_id
+from backend_shared.household.testing import DEFAULT_TEST_HOUSEHOLD_ID, DEFAULT_TEST_SUB
 from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.core.dependencies import MOCK_HOME_ID, MOCK_USER_ID
 from src.features.history.models import ShoppingHistory
 from src.features.shopping_lists.models import ShoppingItem, ShoppingList
+
+TEST_USER_ID = derive_user_id(DEFAULT_TEST_SUB)
 
 
 @pytest.mark.asyncio
@@ -45,7 +48,7 @@ async def test_create_retrieve_delete_shopping_list(client: AsyncClient, db_sess
 @pytest.mark.asyncio
 async def test_add_and_update_shopping_items(client: AsyncClient, db_session: AsyncSession):
     # Setup list with matching mocked user home space
-    l1 = ShoppingList(name="Party List", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
+    l1 = ShoppingList(name="Party List", home_id=DEFAULT_TEST_HOUSEHOLD_ID, owner_id=TEST_USER_ID)
     db_session.add(l1)
     await db_session.commit()
     await db_session.refresh(l1)
@@ -79,7 +82,7 @@ async def test_add_and_update_shopping_items(client: AsyncClient, db_session: As
 @patch("src.features.shopping_lists.clients.PantryClient.fetch_low_stock_items", new_callable=AsyncMock)
 async def test_auto_import_low_stock(mock_fetch: AsyncMock, client: AsyncClient, db_session: AsyncSession):
     # Setup list
-    l1 = ShoppingList(name="Pantry Restock", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
+    l1 = ShoppingList(name="Pantry Restock", home_id=DEFAULT_TEST_HOUSEHOLD_ID, owner_id=TEST_USER_ID)
     db_session.add(l1)
     await db_session.commit()
     await db_session.refresh(l1)
@@ -144,7 +147,7 @@ async def test_sync_to_pantry_flow_and_history_logging(
     mock_bulk_add: AsyncMock, client: AsyncClient, db_session: AsyncSession
 ):
     # Setup list and items
-    l1 = ShoppingList(name="Sync Test List", home_id=MOCK_HOME_ID, owner_id=MOCK_USER_ID)
+    l1 = ShoppingList(name="Sync Test List", home_id=DEFAULT_TEST_HOUSEHOLD_ID, owner_id=TEST_USER_ID)
     db_session.add(l1)
     await db_session.commit()
     await db_session.refresh(l1)
@@ -287,10 +290,10 @@ async def test_push_shopping_item(client: AsyncClient, db_session: AsyncSession)
 
 @pytest.mark.asyncio
 async def test_unauthorized_access(client: AsyncClient):
-    with patch("src.core.dependencies.settings.ENVIRONMENT", "production"):
-        response = await client.get("/api/v1/shopping-lists", headers={})
-        assert response.status_code == 401
-        assert "unauthorized" in response.text.lower() or "missing authorization header" in response.text.lower()
+    client.headers.pop("Authorization")
+    response = await client.get("/api/v1/shopping-lists")
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "unauthenticated"
 
 
 @pytest.mark.asyncio

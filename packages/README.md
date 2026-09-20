@@ -12,11 +12,12 @@ The packages in this directory include:
 * **`shared/` (`@alfheim/shared`)**:
   * Shared TypeScript/React package for all frontend microservices.
   * Provides design system UI primitives (`Button`, `Badge`, `Dialog`, `Progress`, `Table`, `cn`), financial/domain UI components, layout shell wrappers (`AppShell`, `AppHeader`), dynamic multi-theme engine (defaulting to `nordic` dark mode), centralized API client wrappers (`ApiClient`, `fetchWithTrace`), and W3C traceparent header generators.
+  * `features/household/`: `HouseholdProvider`, `useActiveHousehold()`, `HouseholdGate` (onboarding, switch and retry states), and `householdHeaders`/`applyHouseholdHeaders`. `HouseholdSwitcher` (`features/ui`) reads from the provider. See ADR 0006.
   * Houses shared i18n translation dictionaries (`src/features/i18n/locales/{en,de,pl}/`).
 * **`backend-shared/` (`backend_shared`)**:
   * Shared Python workspace package for all FastAPI backend microservices.
   * Provides unified telemetry initialization (`setup_telemetry`, `shutdown_telemetry`) via OpenTelemetry and Vector log aggregation.
-  * Enforces tenant isolation middleware and OIDC JWT token verification routines (`X-Household-ID` validation).
+  * `household/`: `require_household`, `require_role`, `HouseholdContext` and a cached membership client. It validates `X-Household-ID` against `core/household`'s internal membership API — never JWT claims — and fails closed with `503 household_service_unavailable`. `mcp_middleware.mount_mcp` serves a FastMCP app at exactly `/mcp` behind the same checks. See ADR 0006 (`docs/en/explanation/decisions/0006-household-authorization-via-membership-api.md`).
   * Manages S3 object storage settings and client wrappers (`StorageSettings`, RustFS S3 integration).
 
 ---
@@ -29,19 +30,26 @@ packages/
 │   ├── src/
 │   │   ├── features/
 │   │   │   ├── api/       # ApiClient, traceparent header injection
+│   │   │   ├── auth/      # OIDC helpers (resolveOidcIssuer, token storage)
+│   │   │   ├── household/ # HouseholdProvider, useActiveHousehold, HouseholdGate
 │   │   │   ├── i18n/      # Locales (de, en, pl)
+│   │   │   ├── layout/    # AppShell, AppHeader, ChatWidget
+│   │   │   ├── mascot/    # Alfi mascot renderer & states
 │   │   │   ├── theme/     # ThemeProvider & theme switcher utilities
-│   │   │   └── ui/        # Shared UI primitives & components
+│   │   │   └── ui/        # Shared UI primitives & components (incl. HouseholdSwitcher)
 │   │   └── index.ts       # Package entry exports
 │   ├── package.json
 │   └── tsup.config.ts
 └── backend-shared/         # Python workspace library (backend_shared)
     ├── src/
     │   └── backend_shared/
-    │       ├── auth/      # Zitadel OIDC verification & tenancy checks
-    │       ├── config/    # Base environment & S3 configuration
-    │       ├── storage/   # RustFS S3 client wrapper
-    │       └── telemetry/ # OpenTelemetry & Vector instrumentation
+    │       ├── household/         # require_household, require_role, membership client
+    │       ├── mcp_middleware.py  # mount_mcp: FastMCP at exactly /mcp, household-authenticated
+    │       ├── oidc_discovery.py  # OIDC discovery & JWKS resolution
+    │       ├── storage.py         # RustFS S3 client wrapper
+    │       ├── telemetry.py       # OpenTelemetry & Vector instrumentation
+    │       ├── tls.py             # ALFHEIM_EXTRA_CA_FILE trust for outbound OIDC/HTTP calls
+    │       └── dependencies.py    # Package-root re-exports
     └── pyproject.toml
 ```
 

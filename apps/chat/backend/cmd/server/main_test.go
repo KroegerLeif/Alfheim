@@ -22,6 +22,15 @@ import (
 	"alfheim/chat/internal/shared/storage"
 )
 
+// TestMain supplies the required ALFHEIM_INTERNAL_TOKEN so tests exercising the
+// real config.Load path get past the startup check.
+func TestMain(m *testing.M) {
+	if os.Getenv("ALFHEIM_INTERNAL_TOKEN") == "" {
+		_ = os.Setenv("ALFHEIM_INTERNAL_TOKEN", "test-internal-token")
+	}
+	os.Exit(m.Run())
+}
+
 func TestSetupAuthenticator_FailClosed(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 

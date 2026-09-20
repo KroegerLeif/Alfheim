@@ -8,7 +8,7 @@ exclusively from TaskService.
 import datetime
 from typing import Any
 
-from backend_shared.mcp_middleware import get_mcp_user_context
+from backend_shared.mcp_middleware import get_mcp_household_context
 
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
@@ -25,9 +25,7 @@ async def list_overdue_tasks() -> dict[str, Any]:
         Structured dictionary with total overdue count and detailed list of tasks.
     """
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return {"error": "No household context available"}
+        user_context = get_mcp_household_context()
 
         async with async_session_factory() as session:
             tasks = await TaskService.get_overdue_tasks(session, household_id=user_context.household_id)
@@ -59,9 +57,7 @@ async def update_task_state_tool(
         supply_item: Optional replacement supply item description.
     """
     try:
-        user_context = get_mcp_user_context()
-        if not user_context.household_id:
-            return {"success": False, "error": "No household context available"}
+        user_context = get_mcp_household_context()
 
         payload = TaskStateUpdate(
             comment=comment,

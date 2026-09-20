@@ -55,7 +55,7 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
 - **Target Coverage**: **>= 80% line coverage**
 - **Standards**:
   - Test suites run with in-memory `aiosqlite` (`sqlite+aiosqlite:///:memory:`) using isolated transactions per test.
-  - Multi-tenant boundary tests must assert household isolation (`home_id` / `household_id`) and zero-trust auth token verification.
+  - Multi-tenant boundary tests must assert household isolation (`home_id` / `household_id`), zero-trust auth token verification, and the household error codes (`403 household_forbidden`, `400 household_required`, `503 household_service_unavailable`), using `override_membership` from `backend_shared.household.testing`.
 - **Mandatory Commands**:
   ```bash
   # Standalone service execution snippet with PYTHONPATH set for module resolution
@@ -139,7 +139,8 @@ Alfheim microservices expose FastMCP tools for AI agent orchestration:
 2. **Pre-Commit Guardrails**:
    - `detect-private-key` and `check-case-conflict` are enforced automatically via `.pre-commit-config.yaml`.
 3. **Multi-Tenant Zero Trust**:
-   - Every API query must filter against `home_id` / `household_id` extracted from validated OIDC bearer JWTs.
+   - Every API query must filter against the `household_id` returned by `require_household` (Python) or `RequireHousehold` (Go), i.e. an `X-Household-ID` confirmed with the `core/household` membership API. Never trust household or role claims from the JWT.
+   - MCP tools never accept `household_id` / `user_id` arguments; they read the request context.
 
 ---
 

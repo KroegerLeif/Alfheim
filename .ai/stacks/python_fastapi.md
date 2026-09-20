@@ -46,10 +46,12 @@ app/
 4. **`router.py`**:
    * Defines FastAPI `APIRouter` endpoints.
    * Responsible *only* for HTTP routing, dependency injection (`Depends`), and delegating immediately to `service.py`.
+   * Household-scoped routes depend on `backend_shared.household.require_household` (or `require_role(...)`) and pass `ctx.household_id` / `ctx.user_id` to the service. Never parse `X-Household-ID` or JWT household/role claims yourself.
 
 5. **`mcp_tools.py`**:
    * Exposes AI tools using FastMCP decorator declarations (`@mcp.tool()`).
    * Responsible *only* for parsing AI input parameters, calling functions in `service.py`, and returning structured responses.
+   * Tools MUST NOT declare `household_id`, `home_id` or `user_id` parameters. They read the verified tenant with `backend_shared.mcp_middleware.get_mcp_household_context()`; the MCP app is wrapped in `MCPAuthenticationMiddleware`.
 
 6. **`exceptions.py`**:
    * Defines custom domain exceptions (e.g., `ItemNotFoundError`, `InsufficientStockError`).

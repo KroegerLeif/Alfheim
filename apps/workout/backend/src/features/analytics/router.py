@@ -1,9 +1,9 @@
 from datetime import date
 
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import UserHomeContext, get_current_user_and_home
 from src.features.analytics import service
 from src.features.analytics.schemas import (
     LeaderboardEntry,
@@ -21,10 +21,10 @@ async def get_muscle_volume(
     from_date: date | None = None,
     to_date: date | None = None,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Total training volume (reps x weight) per muscle group for the caller."""
-    entries = await service.get_muscle_volume(session, context.home_id, context.user_id, from_date, to_date)
+    entries = await service.get_muscle_volume(session, context.household_id, context.user_id, from_date, to_date)
     return MuscleVolumeResponse(
         from_date=from_date,
         to_date=to_date,
@@ -35,20 +35,20 @@ async def get_muscle_volume(
 @router.get("/streaks", response_model=StreakResponse)
 async def get_streaks(
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Current and longest consecutive-day completed-session streaks for the caller."""
-    current, longest = await service.get_streaks(session, context.home_id, context.user_id)
+    current, longest = await service.get_streaks(session, context.household_id, context.user_id)
     return StreakResponse(current_streak_days=current, longest_streak_days=longest)
 
 
 @router.get("/leaderboard", response_model=LeaderboardResponse)
 async def get_leaderboard(
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Household leaderboard ranked by total training volume. Never crosses households."""
-    entries = await service.get_leaderboard(session, context.home_id)
+    entries = await service.get_leaderboard(session, context.household_id)
     return LeaderboardResponse(
         entries=[
             LeaderboardEntry(user_id=str(uid), total_volume_kg=vol, completed_session_count=count)

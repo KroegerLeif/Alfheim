@@ -74,7 +74,7 @@ source with a translation notice, so untranslated paths never 404.
 ### 💡 Explanation (understanding-oriented)
 * [Platform Architecture Overview](./en/explanation/architecture-overview.md) — Multi-zone networks, control plane, container topology.
 * [Feature-Driven Design (FDD) Paradigm](./en/explanation/feature-driven-design.md) — Bounded contexts, the 6-file feature structure, 200 LOC limits.
-* [Authentication & Multi-Tenancy](./en/explanation/authentication-security.md) — Zitadel OIDC, JWT claim validation, `X-Household-ID` isolation.
+* [Authentication & Multi-Tenancy](./en/explanation/authentication-security.md) — Zitadel OIDC, JWT validation, `X-Household-ID` membership checks against `core/household`.
 * [VictoriaStack Telemetry Pipeline](./en/explanation/telemetry-pipeline.md) — Vector log aggregation, OTel Collector, W3C traceparent headers.
 * [Known Issues & System Trade-Offs](./en/explanation/known-issues.md) — Accepted costs and their mitigations.
 
@@ -85,6 +85,7 @@ Recorded in [MADR format](https://adr.github.io/madr/) under [`en/explanation/de
 * [ADR 0003: Migration from Keycloak to Zitadel](./en/explanation/decisions/0003-migrate-from-keycloak-to-zitadel.md)
 * [ADR 0004: Standalone Interactive Installer as a Typed Go TUI](./en/explanation/decisions/0004-standalone-go-tui-installer.md)
 * [ADR 0005: Astro Starlight Documentation Portal with i18n](./en/explanation/decisions/0005-starlight-docs-portal.md)
+* [ADR 0006: Household Authorization via the Membership API](./en/explanation/decisions/0006-household-authorization-via-membership-api.md)
 
 ---
 

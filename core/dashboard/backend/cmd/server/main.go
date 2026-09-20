@@ -18,9 +18,6 @@ import (
 
 	"alfheim/dashboard/config"
 	"alfheim/dashboard/internal/features/apps"
-	"alfheim/dashboard/internal/features/contact"
-	"alfheim/dashboard/internal/features/household"
-	"alfheim/dashboard/internal/features/profile"
 	"alfheim/dashboard/internal/features/telemetry"
 	"alfheim/dashboard/internal/shared/db"
 	"alfheim/dashboard/internal/shared/logger"
@@ -139,26 +136,17 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, stackAppsPath string, allowedOrigins []string) http.Handler {
 	// Initialize Repositories
 	var pool = dbClient.Pool
-	profileRepo := profile.NewRepository(pool)
-	householdRepo := household.NewRepository(pool)
 	appsRepo := apps.NewRepository(pool)
-	contactRepo := contact.NewRepository(pool)
 
 	// Initialize Stack Apps Loader for Tier 2 integrations
 	stackLoader := apps.NewStackAppsLoader(stackAppsPath, log)
 
 	// Initialize Services
-	profileService := profile.NewService(profileRepo, log)
-	householdService := household.NewService(householdRepo, log)
 	appsService := apps.NewService(appsRepo, stackLoader, log)
-	contactService := contact.NewService(contactRepo, householdRepo, log)
 	telemetryService := telemetry.NewService("", log)
 
 	// Initialize Handlers
-	profileHandler := profile.NewHandler(profileService)
-	householdHandler := household.NewHandler(householdService)
 	appsHandler := apps.NewHandler(appsService)
-	contactHandler := contact.NewHandler(contactService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
 
 	// Router Setup
@@ -187,20 +175,23 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 		_, _ = w.Write([]byte(`{"status":"ready","database":"connected"}`))
 	})
 
-	// Auth Middleware enforcing OIDC JWT validation and household role resolution
-	roleMw := middleware.HouseholdRoleMiddleware(pool, log)
+	// Auth middleware: OIDC JWT validation, then JIT provisioning of the local
+	// user_profiles row that user_preferences and user_links reference.
+	// Households, roles, profiles and contacts live in core/household; the
+	// dashboard ignores X-Household-ID / X-Household-Role entirely.
+	profileMw := func(next http.Handler) http.Handler { return next }
+	if pool != nil {
+		profileMw = middleware.EnsureUserProfile(pool, log)
+	}
 	authMw := func(next http.Handler) http.Handler {
 		if auth == nil {
-			return roleMw(next)
+			return profileMw(next)
 		}
-		return auth.AuthenticateMiddleware(roleMw(next))
+		return auth.AuthenticateMiddleware(profileMw(next))
 	}
 
 	// Register Feature Domain Routes
-	profileHandler.RegisterRoutes(r, authMw)
-	householdHandler.RegisterRoutes(r, authMw)
 	appsHandler.RegisterRoutes(r, authMw)
-	contactHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
 
 	return r

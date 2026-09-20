@@ -15,6 +15,7 @@ sidebar:
 - [Objektspeicher (RustFS S3)](#objektspeicher-rustfs-s3)
 - [Beobachtungs-Stack (VictoriaStack & Telemetrie)](#beobachtungs-stack-victoriastack--telemetrie)
 - [Microservice-Backend-Variablen](#microservice-backend-variablen)
+- [Haushalts- & Rollendienst (`core/household`)](#haushalts---rollendienst-corehousehold)
 - [Microfrontend-Umgebungsvariablen](#microfrontend-umgebungsvariablen)
 
 ---
@@ -99,6 +100,21 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 
 ---
 
+## Haushalts- & Rollendienst (`core/household`)
+
+Tier-1-Kerndienst, dem Haushalte und Mitgliederrollen gehören. `compose.prod.yaml` betreibt ihn als `household-backend` (Go, Port `8080`, Health-Check `GET /healthz`) und `household-frontend` (Next.js, Port `3000`, basePath `/household`). Das Frontend erhält dieselben Variablen wie `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` aus `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
+
+| Variable | Standardwert | Beschreibung |
+| :--- | :--- | :--- |
+| `HOUSEHOLD_POSTGRES_USER` | `household_user` | Datenbankrolle des Household-Backends |
+| `HOUSEHOLD_POSTGRES_PASSWORD` | `postgres` | Passwort von `household_user`. `alfheim-setup` erzeugt einen zufälligen Wert mit 32 Zeichen; ein einfaches Day-2-Update ergänzt ihn in einer älteren `.env`, ohne bestehende Secrets anzufassen |
+| `HOUSEHOLD_POSTGRES_DB` | `alfheim_household` | Datenbank des Household-Backends, angelegt von `infrastructure/postgres/init-multiple-dbs.sh` |
+| `HOUSEHOLD_DATABASE_URL` | _(konstruiert)_ | Optionale vollständige Verbindungszeichenkette; wenn leer, baut `compose.prod.yaml` `postgres://household_user:…@postgres-core:5432/alfheim_household?sslmode=disable` |
+| `ALFHEIM_INTERNAL_TOKEN` | `change-me-internal-token` | Gemeinsames Secret für Service-zu-Service-Aufrufe an die `/internal/*`-API des Household-Backends. `alfheim-setup` erzeugt 32 Zufallsbytes (64 Hex-Zeichen) und erzeugt einen vorhandenen Wert nie neu. Caddy routet `/internal/*` nie (Antwort `404` auf beiden Hosts). `household-backend` prüft den Wert; alle sieben Python-App-Backends (pantry, shopping, chores, maintenance, budget, workout, library) und `chat-backend` erhalten ihn und senden ihn bei Mitgliedschaftsprüfungen als `Authorization: Bearer …`. `compose.prod.yaml` verlangt ihn; die Dev-Compose-Dateien fallen auf `dev-internal-token-change-me` zurück (`scripts/init-env.sh` erzeugt einen Zufallswert) |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL, die die App-Backends und `chat-backend` für `GET /internal/v1/memberships/{householdId}/{userSub}` verwenden. Aufgelöst über `gateway-net`, dem `household-backend` und jeder Konsument beitreten. Jeder Konsument wartet, bis `household-backend` healthy ist, bevor er startet |
+
+---
+
 ## Frontend-Umgebungsvariablen
 
 | Variable | Standardwert | Beschreibung |
@@ -107,15 +123,18 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `NEXT_PUBLIC_OIDC_ISSUER` | `https://auth.loegien.de` | Browser-seitige OIDC-Aussteller für den PKCE-Autorisierungs-Code-Flow |
 | `NEXT_PUBLIC_OIDC_CLIENT_ID` | `dashboard-frontend` | Zitadel-OIDC-Client-ID für das Dashboard-Frontend (andere Frontends können unterschiedliche IDs verwenden) |
 | `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `https://alfheim.loegien.de/` | OAuth2-Redirect-URI für das Dashboard-Frontend |
-| `NEXT_PUBLIC_PANTRY_API_URL` | `https://alfheim.loegien.de/api/pantry/api/v1` | Speisekammer-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_SHOPPING_API_URL` | `https://alfheim.loegien.de/api/shopping/api/v1` | Einkaufslisten-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_CHORES_API_URL` | `https://alfheim.loegien.de/api/api/v1/chores` | Aufgaben-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_MAINTENANCE_API_URL` | `https://alfheim.loegien.de/api/maintenance/api/v1` | Wartungs-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_CHAT_API_URL` | `https://alfheim.loegien.de/api/api/v1/chat` | Chat-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_DASHBOARD_API_URL` | `https://alfheim.loegien.de/api/api/v1` | Dashboard-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_WORKOUT_API_URL` | `https://alfheim.loegien.de/api/workout/api/v1` | Trainings-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_LIBRARY_API_URL` | `https://alfheim.loegien.de/api/api/v1/library` | Bibliotheks-Backend-API-Endpunkt |
-| `NEXT_PUBLIC_BUDGET_API_URL` | `https://alfheim.loegien.de/api/budget/api/v1` | Budget-Backend-API-Endpunkt |
+| `NEXT_PUBLIC_API_URL` | _(abgeleitet)_ | Browser-API-Basis-URL jedes Frontends. Nicht in der `.env` gesetzt: Compose leitet sie aus `ALFHEIM_BASE_URL` als Build-Argument und Laufzeit-Umgebung ab, mit der Same-Origin-Caddy-Route, die der Client der App erwartet (siehe unten). `scripts/init-env.sh` entfernt die alten Einträge `NEXT_PUBLIC_*_API_URL` pro App und `NEXT_PUBLIC_API_GATEWAY_URL` aus einer bestehenden `.env` |
+
+Abgeleitete `NEXT_PUBLIC_API_URL` pro Frontend:
+
+| Frontend | Wert |
+| :--- | :--- |
+| `dashboard-frontend`, `household-frontend` | `${ALFHEIM_BASE_URL}/api/v1` |
+| `pantry-frontend` | `${ALFHEIM_BASE_URL}/pantry/api/v1` |
+| `shopping-frontend` | `${ALFHEIM_BASE_URL}/shopping/api/v1` |
+| `chores-frontend`, `budget-frontend`, `chat-frontend`, `maintenance-frontend`, `workout-frontend`, `library-frontend` | `${ALFHEIM_BASE_URL}/api/v1/<app>` |
+
+Im Entwicklungs-Stack liest `household-frontend` stattdessen `NEXT_PUBLIC_HOUSEHOLD_API_URL` (Standard `http://api.alfheim.loegien.localhost/api/v1`).
 
 ---
 

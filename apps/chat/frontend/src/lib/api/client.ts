@@ -1,5 +1,13 @@
 import type { ApiErrorPayload } from "@/features/conversations/types";
-import { resolveApiUrl, resolveFrontendUrl, LEGACY_ACCESS_TOKEN_KEY } from "@alfheim/shared";
+import {
+  resolveApiUrl,
+  resolveFrontendUrl,
+  LEGACY_ACCESS_TOKEN_KEY,
+  getActiveHouseholdId,
+  householdHeaders,
+  parseApiErrorBody,
+  reportHouseholdErrorResponse,
+} from "@alfheim/shared";
 
 export function sanitizeUrl(url: string | undefined, defaultFallback: string): string {
   let resolved = resolveApiUrl(defaultFallback, url);
@@ -46,22 +54,18 @@ export function getAuthToken(): string | null {
   return sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
 }
 
-export function getActiveHouseholdId(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("alfheim_active_household_id");
-}
+export { getActiveHouseholdId };
 
+/**
+ * Auth + household headers for every chat API call (REST, SSE, uploads). The
+ * chat backend requires X-Household-ID on all routes (400 household_required).
+ */
 export function authHeaders(): HeadersInit {
   const token = getAuthToken();
-  const activeHouseholdId = getActiveHouseholdId();
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  if (activeHouseholdId) {
-    headers["X-Household-ID"] = activeHouseholdId;
-  }
-  return headers;
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...householdHeaders(),
+  };
 }
 
 export class ApiError extends Error {
@@ -69,19 +73,21 @@ export class ApiError extends Error {
   code: string;
 
   constructor(status: number, payload: ApiErrorPayload) {
-    super(payload.message || payload.error || `Request failed with status ${status}`);
+    // Also accepts the structured {"detail":{"code","message"}} contract.
+    const parsed = parseApiErrorBody(payload);
+    super(payload.message || parsed.message || payload.error || `Request failed with status ${status}`);
     this.status = status;
-    this.code = payload.error || "unknown_error";
+    this.code = payload.error || parsed.code || "unknown_error";
   }
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await getFreshAuthToken();
-  const activeHouseholdId = getActiveHouseholdId();
+  const household = householdHeaders();
   const buildHeaders = (authToken: string | null) => ({
     "Content-Type": "application/json",
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    ...(activeHouseholdId ? { "X-Household-ID": activeHouseholdId } : {}),
+    ...household,
     ...(init?.headers as Record<string, string>),
   });
 
@@ -101,6 +107,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
+    await reportHouseholdErrorResponse(res);
     let payload: ApiErrorPayload = { error: "unknown_error", message: `Request failed with status ${res.status}` };
     try {
       payload = await res.json();

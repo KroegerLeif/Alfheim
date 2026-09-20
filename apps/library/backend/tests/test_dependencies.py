@@ -1,164 +1,128 @@
-"""Tests for OIDC authentication and multi-tenancy dependency in Library backend."""
+"""Household authorization of Library routes via backend_shared.household (membership owned by core/household)."""
 
 import uuid
-from unittest.mock import patch
+from collections.abc import AsyncGenerator
 
-import jwt
 import pytest
-from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.testclient import TestClient
-from src.api.dependencies import (
-    UserHomeContext,
-    get_current_household_id,
-    get_current_user_and_home,
-)
+import pytest_asyncio
+from backend_shared.household import MembershipServiceError, get_membership_lookup
+from backend_shared.household.testing import make_test_token, override_membership
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from sqlmodel.ext.asyncio.session import AsyncSession
+from src.api.dependencies import get_current_household_id
+from src.db.database import get_db_session
+from src.main import app
 
-# Sample test UUIDs
-USER_UUID = uuid.UUID("11111111-1111-1111-1111-111111111111")
+USER_SUB = "library-user"
 HOUSEHOLD_1 = uuid.UUID("22222222-2222-2222-2222-222222222222")
 HOUSEHOLD_2 = uuid.UUID("33333333-3333-3333-3333-333333333333")
-UNAUTHORIZED_HOUSEHOLD = uuid.UUID("99999999-9999-9999-9999-999999999999")
-SECRET_KEY = "super_secret_test_key_that_is_at_least_32_bytes_long"
+PROVIDERS_URL = "/api/v1/library/providers"
 
 
-@pytest.fixture
-def test_app():
-    """Create a temporary FastAPI test application with endpoints using dependencies."""
-    app = FastAPI()
-
-    @app.get("/test-tenant")
-    async def test_tenant_endpoint(
-        context: UserHomeContext = Depends(get_current_user_and_home),
-        household_id: uuid.UUID = Depends(get_current_household_id),
-    ):
-        return {
-            "user_id": str(context.user_id),
-            "household_id": str(household_id),
-        }
-
-    return app
-
-
-def create_mock_jwt(
-    sub: str = str(USER_UUID),
-    household_id: str | None = str(HOUSEHOLD_1),
-    households: list[str] | None = None,
-) -> str:
-    """Utility to generate an unverified test JWT token."""
-    payload = {"sub": sub}
+def _headers(household_id: uuid.UUID | str | None, sub: str = USER_SUB) -> dict[str, str]:
+    headers = {"Authorization": f"Bearer {make_test_token(sub)}"}
     if household_id is not None:
-        payload["household_id"] = household_id
-    if households is not None:
-        payload["households"] = households
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+        headers["X-Household-ID"] = str(household_id)
+    return headers
+
+
+@pytest_asyncio.fixture
+async def auth_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI, None]:
+    """Main app with only the database overridden: authorization runs for real against a stubbed membership API."""
+
+    async def _get_test_db() -> AsyncGenerator[AsyncSession, None]:
+        yield db_session
+
+    app.dependency_overrides[get_db_session] = _get_test_db
+    yield app
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def auth_client(auth_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+    async with AsyncClient(transport=ASGITransport(app=auth_app), base_url="http://testserver") as ac:
+        yield ac
 
 
 @pytest.mark.asyncio
-async def test_valid_household_header_matches_jwt():
-    """Test that a request with valid JWT and matching X-Household-ID succeeds."""
-    token = create_mock_jwt(household_id=str(HOUSEHOLD_1), households=[str(HOUSEHOLD_1), str(HOUSEHOLD_2)])
+async def test_member_can_access_household_data(auth_app: FastAPI, auth_client: AsyncClient):
+    lookup = override_membership(auth_app, {(HOUSEHOLD_1, USER_SUB): "MEMBER"})
 
-    request = Request(
-        {
-            "type": "http",
-            "headers": [
-                (b"authorization", f"Bearer {token}".encode()),
-                (b"x-household-id", str(HOUSEHOLD_1).encode()),
-            ],
-        }
-    )
+    created = await auth_client.post(PROVIDERS_URL, json={"provider_name": "Netflix"}, headers=_headers(HOUSEHOLD_1))
+    assert created.status_code == 201
+    assert created.json()["household_id"] == str(HOUSEHOLD_1)
 
-    with patch("backend_shared.dependencies.is_mock_auth_allowed", return_value=True):
-        context = await get_current_user_and_home(request)
-        assert context.user_id == USER_UUID
-        assert context.home_id == HOUSEHOLD_1
+    listed = await auth_client.get(PROVIDERS_URL, headers=_headers(HOUSEHOLD_1))
+    assert listed.status_code == 200
+    assert [p["provider_name"] for p in listed.json()] == ["Netflix"]
+    assert (HOUSEHOLD_1, USER_SUB) in lookup.calls
 
 
 @pytest.mark.asyncio
-async def test_unauthorized_household_header_returns_403():
-    """Test that requesting a household ID not present in user's claims raises 403 Forbidden."""
-    token = create_mock_jwt(household_id=str(HOUSEHOLD_1), households=[str(HOUSEHOLD_1)])
+async def test_cross_tenant_request_is_forbidden(auth_app: FastAPI, auth_client: AsyncClient):
+    override_membership(auth_app, {(HOUSEHOLD_1, USER_SUB): "OWNER"})
 
-    request = Request(
-        {
-            "type": "http",
-            "headers": [
-                (b"authorization", f"Bearer {token}".encode()),
-                (b"x-household-id", str(UNAUTHORIZED_HOUSEHOLD).encode()),
-            ],
-        }
-    )
+    response = await auth_client.get(PROVIDERS_URL, headers=_headers(HOUSEHOLD_2))
 
-    mock_payload = {
-        "sub": str(USER_UUID),
-        "household_id": str(HOUSEHOLD_1),
-        "households": [str(HOUSEHOLD_1)],
-    }
-
-    with (
-        patch("backend_shared.dependencies.is_mock_auth_allowed", return_value=False),
-        patch("backend_shared.dependencies.decode_oidc_token", return_value=mock_payload),
-    ):
-        with pytest.raises(HTTPException) as exc_info:
-            await get_current_user_and_home(request)
-
-        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
-        assert "Forbidden" in exc_info.value.detail
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "household_forbidden"
 
 
 @pytest.mark.asyncio
-async def test_missing_auth_header_non_mock_returns_401():
-    """Test that missing authorization header in non-mock environment raises 401 Unauthorized."""
-    request = Request({"type": "http", "headers": []})
+async def test_missing_household_header_is_rejected(auth_app: FastAPI, auth_client: AsyncClient):
+    override_membership(auth_app, {(HOUSEHOLD_1, USER_SUB): "OWNER"})
 
-    with patch("backend_shared.dependencies.is_mock_auth_allowed", return_value=False):
-        with pytest.raises(HTTPException) as exc_info:
-            await get_current_user_and_home(request)
+    response = await auth_client.get(PROVIDERS_URL, headers=_headers(None))
 
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "household_required"
 
 
 @pytest.mark.asyncio
-async def test_missing_household_header_falls_back_to_primary_jwt_claim():
-    """Test that omitting X-Household-ID header uses the primary household_id claim from JWT."""
-    token = create_mock_jwt(household_id=str(HOUSEHOLD_2))
+async def test_non_uuid_household_header_is_rejected(auth_app: FastAPI, auth_client: AsyncClient):
+    override_membership(auth_app, {(HOUSEHOLD_1, USER_SUB): "OWNER"})
 
-    request = Request(
-        {
-            "type": "http",
-            "headers": [
-                (b"authorization", f"Bearer {token}".encode()),
-            ],
-        }
-    )
+    response = await auth_client.get(PROVIDERS_URL, headers=_headers("42"))
 
-    with patch("backend_shared.dependencies.is_mock_auth_allowed", return_value=True):
-        context = await get_current_user_and_home(request)
-        assert context.home_id == HOUSEHOLD_2
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "household_invalid"
 
 
 @pytest.mark.asyncio
-async def test_get_current_household_id_dependency():
-    """Test that get_current_household_id helper returns context.home_id."""
-    context = UserHomeContext(user_id=USER_UUID, home_id=HOUSEHOLD_1)
-    hh_id = await get_current_household_id(context)
-    assert hh_id == HOUSEHOLD_1
+async def test_missing_token_is_unauthenticated(auth_app: FastAPI, auth_client: AsyncClient):
+    override_membership(auth_app, {(HOUSEHOLD_1, USER_SUB): "OWNER"})
+
+    response = await auth_client.get(PROVIDERS_URL, headers={"X-Household-ID": str(HOUSEHOLD_1)})
+
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "unauthenticated"
 
 
-def test_tenant_endpoint_with_test_client(test_app):
-    """Integration test checking FastAPI route behavior with dependency overrides."""
-    client = TestClient(test_app)
-    token = create_mock_jwt(household_id=str(HOUSEHOLD_1))
+@pytest.mark.asyncio
+async def test_membership_service_outage_fails_closed(auth_app: FastAPI, auth_client: AsyncClient):
+    async def _unavailable(household_id: uuid.UUID, user_sub: str):
+        raise MembershipServiceError("household app down")
 
-    response = client.get(
-        "/test-tenant",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "X-Household-ID": str(HOUSEHOLD_1),
-        },
-    )
+    auth_app.dependency_overrides[get_membership_lookup] = lambda: _unavailable
 
-    assert response.status_code == 200
-    data = response.json()
-    assert data["user_id"] == str(USER_UUID)
-    assert data["household_id"] == str(HOUSEHOLD_1)
+    response = await auth_client.get(PROVIDERS_URL, headers=_headers(HOUSEHOLD_1))
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "household_service_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_mcp_endpoint_requires_household_header(auth_client: AsyncClient):
+    response = await auth_client.post("/mcp", headers={"Authorization": f"Bearer {make_test_token(USER_SUB)}"})
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "household_required"
+
+
+@pytest.mark.asyncio
+async def test_get_current_household_id_returns_context_household():
+    from backend_shared.household.testing import make_household_context
+
+    context = make_household_context(household_id=HOUSEHOLD_2)
+    assert await get_current_household_id(context) == HOUSEHOLD_2

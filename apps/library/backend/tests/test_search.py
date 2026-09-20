@@ -6,12 +6,12 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.api.dependencies import get_current_household_id
 from src.api.v1 import router as api_v1_router
 from src.db.database import get_db_session
 from src.db.models import Item, MediaType
@@ -63,7 +63,7 @@ async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 @pytest.mark.asyncio
 async def test_text_search(client: AsyncClient, test_app: FastAPI):
     """Test text search matching title, description, and author."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Create test items
     await client.post(
@@ -103,7 +103,7 @@ async def test_text_search(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_multi_facet_filtering(client: AsyncClient, test_app: FastAPI):
     """Test multi-facet filtering (funny movie under 90 min, 4-player game in max 45 min)."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Seed items
     # Item 1: Funny movie under 90 min
@@ -169,7 +169,7 @@ async def test_multi_facet_filtering(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_active_provider_filtering(client: AsyncClient, test_app: FastAPI):
     """Test filtering search results by active household streaming provider."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Create active and inactive provider subscriptions
     res_p1 = await client.post(
@@ -210,14 +210,14 @@ async def test_active_provider_filtering(client: AsyncClient, test_app: FastAPI)
 async def test_search_household_isolation(client: AsyncClient, test_app: FastAPI):
     """Verify search results enforce tenant isolation across households."""
     # Household 1 creates item
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
     await client.post(
         "/api/v1/library/items",
         json={"title": "Secret Household 1 Book", "media_type": "BOOK"},
     )
 
     # Household 2 searches
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
     res = await client.get("/api/v1/library/search?q=Secret")
     assert res.status_code == 200
     assert res.json()["total"] == 0
@@ -226,7 +226,7 @@ async def test_search_household_isolation(client: AsyncClient, test_app: FastAPI
 @pytest.mark.asyncio
 async def test_search_performance(client: AsyncClient, test_app: FastAPI, test_engine: AsyncEngine):
     """Benchmark test verifying query response time under 250ms in in-memory test environment."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     session_factory = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
     async with session_factory() as session:

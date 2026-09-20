@@ -6,11 +6,11 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../../../tests/mocks/server'
 import { createTestQueryClient } from '../../../../tests/test-utils'
 import { useShoppingIntegration, useMaintenanceIntegration } from '../integrationService'
-import { LEGACY_ACCESS_TOKEN_KEY } from '@alfheim/shared'
+import { LEGACY_ACCESS_TOKEN_KEY, StaticHouseholdProvider } from '@alfheim/shared'
 
 function createWrapper(queryClient: QueryClient) {
   return function QueryWrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    return <StaticHouseholdProvider householdId="hh-test-123"><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></StaticHouseholdProvider>
   }
 }
 

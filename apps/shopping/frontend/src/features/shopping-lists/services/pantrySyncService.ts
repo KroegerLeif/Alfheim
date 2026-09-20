@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { householdHeaders } from "@alfheim/shared";
 import { shoppingClient, pantryClient } from "@/lib/api";
 import { z } from "zod";
 import {
@@ -43,10 +44,8 @@ export function useSyncToPantry(listId: string) {
   const queryClient = useQueryClient();
   return useMutation<SyncToPantryResponse, Error, { householdId?: string } | undefined>({
     mutationFn: (variables) => {
-      const headers: Record<string, string> = {};
-      if (variables?.householdId) {
-        headers["X-Household-ID"] = variables.householdId;
-      }
+      // Explicit target household when given; otherwise the client sends the active one.
+      const headers = householdHeaders(variables?.householdId ?? null);
       return shoppingClient
         .post(`api/v1/shopping-lists/${listId}/sync-to-pantry`, { headers })
         .json()
@@ -65,10 +64,7 @@ export function useSyncToPantry(listId: string) {
 export function useCreatePantryProduct() {
   return useMutation<any, Error, PantryProductCreatePayload>({
     mutationFn: ({ householdId, ...payload }) => {
-      const headers: Record<string, string> = {};
-      if (householdId) {
-        headers["X-Household-ID"] = householdId;
-      }
+      const headers = householdHeaders(householdId ?? null);
       return pantryClient
         .post("api/v1/products", { json: payload, headers })
         .json()

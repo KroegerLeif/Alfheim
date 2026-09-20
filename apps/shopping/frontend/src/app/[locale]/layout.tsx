@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AppShell, AuthGuard, LanguageProvider, ThemeProvider } from "@alfheim/shared";
+import { AppShell, AuthGuard, LanguageProvider, ThemeProvider, HouseholdProvider, HouseholdGate } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { Header } from "@/components/shared/Header";
@@ -57,11 +57,15 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           <NextIntlClientProvider locale={locale} messages={messages}>
             <LanguageProvider defaultLanguage={locale as "de" | "en" | "pl"}>
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
-                <Providers>
-                  <AppShell header={<Header />} sidebar={<Sidebar />}>
-                    <div className="p-4 md:p-6">{children}</div>
-                  </AppShell>
-                </Providers>
+                <HouseholdProvider>
+                  <Providers>
+                    <AppShell header={<Header />} sidebar={<Sidebar />}>
+                      <HouseholdGate>
+                        <div className="p-4 md:p-6">{children}</div>
+                      </HouseholdGate>
+                    </AppShell>
+                  </Providers>
+                </HouseholdProvider>
               </ThemeProvider>
             </LanguageProvider>
           </NextIntlClientProvider>

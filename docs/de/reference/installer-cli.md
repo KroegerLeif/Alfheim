@@ -107,10 +107,28 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 | Erkannter Zustand | Modus | Verhalten |
 | :--- | :--- | :--- |
 | Keine `.env`, keine `.alfheim.installed` | **install** | Volständiger Assistent, Secret-Generierung, mehrstufiger Boot. |
-| Eines der beiden Files vorhanden | **update** | Pull-Images und Neustart. Kein Assistent, keine Secret-Änderungen. |
+| Eines der beiden Files vorhanden | **update** | Pull-Images und Neustart. Kein Assistent. Bestehende Secrets werden nie geändert; ein Secret, das ein neueres Release braucht und in der `.env` fehlt, wird erzeugt und angehängt. Fehlende Dienst-Datenbanken legt ein erneuter Lauf von `init-multiple-dbs.sh` an. |
 | Eines der Dateien vorhanden, plus `--reconfigure` | **reconfigure** | Assistent läuft erneut; bestehende Secrets werden beibehalten. |
 
 > **Warum Secrets niemals rotiert werden.** Die Neugenerierung von `ZITADEL_MASTERKEY` auf einer konfigurierten Instanz macht ihre Datenbank permanent unlesbar. Jeder bereits in `.env` vorhandene Wert wird weitergeleitet; nur genuinely fehlende werden generiert.
+
+---
+
+## Das `update`-Subkommando
+
+```
+alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+```
+
+Der Day-2-Befehl für jedes Release nach der Erstinstallation: Er lädt die
+Standalone-Stack-Dateien eines Ziel-Releases (`compose.prod.yaml` u. a.)
+herunter, sichert die vorherigen, setzt `IMAGE_TAG` in der `.env` und führt
+anschließend dieselben Schritte aus wie ein einfacher erneuter Lauf (Secrets
+auffüllen, Zitadel abgleichen, neu starten). Er benötigt eine bestehende
+Installation (eine vorhandene `.env`) und startet nie den Assistenten,
+rotiert nie ein Secret und rührt weder die Root-CA noch den Zitadel-Machinekey/PAT
+noch ein Docker-Volume an. Vollständige Anleitung, Einzeiler und Rollback:
+[Eine Installation aktualisieren](../how-to/update-installation.md).
 
 ---
 
@@ -198,6 +216,7 @@ ALFHEIM_CHANNEL=prerelease bash -c "$(curl -fsSL https://raw.githubusercontent.c
 ## Siehe auch
 
 * [Tutorial: Ihre erste Installation](../tutorials/first-run.md)
+* [Anleitung: Eine Installation aktualisieren](../how-to/update-installation.md)
 * [Umgebungsvariablen](./environment-variables.md)
 * [CLI-Skripte](./cli-scripts.md)
 * [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)

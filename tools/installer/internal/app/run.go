@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"alfheim/installer/internal/features/bootstrap"
@@ -199,6 +201,15 @@ func (a *App) configure(layout paths.Layout) (onboarding.Config, tls.Config, err
 	if err != nil {
 		return on, tlsCfg, err
 	}
+	if on.ImageTag == "" {
+		// Neither --image-tag/ALFHEIM_IMAGE_TAG nor the wizard supplied one:
+		// default to this binary's own release version rather than
+		// onboarding.DefaultImageTag ("latest"), so a fresh install tracks
+		// the exact release the operator downloaded instead of silently
+		// floating to whatever "latest" resolves to later. A dev build (no
+		// injected version) keeps "latest".
+		on.ImageTag = a.defaultImageTag()
+	}
 
 	if err := onboarding.Derive(&on); err != nil {
 		return on, tlsCfg, err
@@ -356,6 +367,11 @@ func (a *App) runBootstrap(
 		if err := orch.RestartIngress(ctx); err != nil {
 			return err
 		}
+		// An existing data volume never re-runs the Postgres init script,
+		// so a database added since the first install must be created here.
+		if err := orch.EnsureDatabases(ctx); err != nil {
+			return err
+		}
 	}
 
 	if err := a.provision(ctx, layout, model.Onboarding); err != nil {
@@ -377,14 +393,24 @@ func (a *App) runBootstrap(
 // the results back into .env, from where docker compose's automatic .env
 // loading feeds them to every consumer started in the next phase.
 func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.Config) error {
-	fmt.Fprintln(a.Stdout, "Provisioning Zitadel OIDC clients …")
+	return provisionZitadel(ctx, a.Stdout, a.provisioner(), layout, on)
+}
+
+// provisionZitadel is the free-function core of App.provision, reused as is
+// by the `update` subcommand (see update.go) so both the fresh-install/plain
+// update path and the standalone update command reconcile Zitadel exactly
+// the same way.
+func provisionZitadel(
+	ctx context.Context, stdout io.Writer, provisioner Provisioner, layout paths.Layout, on onboarding.Config,
+) error {
+	fmt.Fprintln(stdout, "Provisioning Zitadel OIDC clients …")
 
 	existing, err := envfile.ParseFile(layout.EnvFile())
 	if err != nil {
 		return fmt.Errorf("alfheim-setup: read .env before provisioning: %w", err)
 	}
 
-	result, err := a.provisioner().Provision(ctx, layout, on, existing)
+	result, err := provisioner.Provision(ctx, layout, on, existing)
 	if err != nil {
 		return fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
 	}
@@ -398,7 +424,7 @@ func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.
 	}); err != nil {
 		return fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
 	}
-	fmt.Fprintln(a.Stdout, "Zitadel OIDC clients are provisioned.")
+	fmt.Fprintln(stdout, "Zitadel OIDC clients are provisioned.")
 	return nil
 }
 
@@ -441,12 +467,56 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 		return err
 	}
 	warnPlainHTTPInstall(a.Stderr, existing)
+	if err := a.backfillSecrets(layout, existing); err != nil {
+		return err
+	}
 	if err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}
 
 	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	if err := orch.EnsureDatabases(ctx); err != nil {
+		return err
+	}
 	return orch.RunPhase(ctx, bootstrap.PhaseCoreStack)
+}
+
+// backfillSecrets appends a generated value for every manifest secret the
+// existing .env lacks (or holds empty) and leaves every present value
+// untouched. A plain update never re-renders .env, so without this a release
+// that introduces a new required secret (HOUSEHOLD_POSTGRES_PASSWORD,
+// ALFHEIM_INTERNAL_TOKEN) would make docker compose refuse to start the stack
+// until the operator ran --reconfigure.
+func (a *App) backfillSecrets(layout paths.Layout, existing map[string]string) error {
+	return backfillSecrets(a.Stdout, layout, existing)
+}
+
+// backfillSecrets is the free-function core of App.backfillSecrets, reused
+// as is by the `update` subcommand (see update.go).
+func backfillSecrets(stdout io.Writer, layout paths.Layout, existing map[string]string) error {
+	all, err := security.GenerateAll(security.NewGenerator(), existing)
+	if err != nil {
+		return err
+	}
+	missing := map[string]string{}
+	for key, value := range all {
+		if existing[key] == "" {
+			missing[key] = value
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	if err := envfile.Update(layout.EnvFile(), missing); err != nil {
+		return fmt.Errorf("alfheim-setup: add new secrets to .env: %w", err)
+	}
+	keys := make([]string, 0, len(missing))
+	for key := range missing {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	fmt.Fprintf(stdout, "Generated %d new secret(s) in .env: %s\n", len(keys), strings.Join(keys, ", "))
+	return nil
 }
 
 // warnPlainHTTPInstall flags an installation rendered before every strategy
@@ -542,6 +612,27 @@ func markInstalled(l paths.Layout, version string) error {
 		return fmt.Errorf("alfheim-setup: write installation marker: %w", err)
 	}
 	return nil
+}
+
+// defaultImageTag reports the image tag a fresh install renders when neither
+// the wizard nor --image-tag/ALFHEIM_IMAGE_TAG supplied one. A release
+// binary (built with -X main.version=vX.Y.Z) defaults to its own version, so
+// the images an install starts with always match the installer that rendered
+// its configuration, rather than floating to whatever "latest" resolves to
+// on the next `docker compose pull`. A dev build (no injected version, or
+// the literal "dev" BuildInfo.String falls back to) keeps
+// onboarding.DefaultImageTag ("latest").
+func (a *App) defaultImageTag() string {
+	return defaultImageTagFor(a.Build.Version)
+}
+
+// defaultImageTagFor is the pure decision defaultImageTag wraps, shared with
+// the `update` subcommand's own version resolution (see update.go).
+func defaultImageTagFor(buildVersion string) string {
+	if buildVersion == "" || buildVersion == "dev" {
+		return onboarding.DefaultImageTag
+	}
+	return buildVersion
 }
 
 // now returns the generation timestamp.

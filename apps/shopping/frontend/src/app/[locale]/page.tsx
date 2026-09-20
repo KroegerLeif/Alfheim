@@ -16,7 +16,7 @@ import {
   useSyncToPantry, useDeleteShoppingItem, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
-import { useAuth } from "@alfheim/shared";
+import { useActiveHousehold, useAuth } from "@alfheim/shared";
 import { cn } from "@/lib/utils";
 
 export default function ShoppingDashboard() {
@@ -42,11 +42,12 @@ export default function ShoppingDashboard() {
     return lists[0].id;
   }, [lists]);
 
-  const resolvedListId = activeListId ?? defaultListId;
+  const knownActiveListId = activeListId && lists.some((l) => l.id === activeListId) ? activeListId : null;
+  const resolvedListId = knownActiveListId ?? defaultListId;
 
   useEffect(() => {
-    if (!activeListId && defaultListId) setActiveListId(defaultListId);
-  }, [activeListId, defaultListId, setActiveListId]);
+    if (!knownActiveListId && defaultListId) setActiveListId(defaultListId);
+  }, [knownActiveListId, defaultListId, setActiveListId]);
 
   const { data: listDetails } = useShoppingListDetails(resolvedListId || "");
   const addItem = useAddShoppingItem(resolvedListId || "");
@@ -62,19 +63,7 @@ export default function ShoppingDashboard() {
 
   const { data: householdsData } = useHouseholds();
   const households = useMemo(() => householdsData ?? [], [householdsData]);
-  const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(() => {
-    return typeof window !== "undefined" ? localStorage.getItem("alfheim_active_household_id") : null;
-  });
-
-  useEffect(() => {
-    const handleLocalChange = () => setActiveHouseholdId(localStorage.getItem("alfheim_active_household_id"));
-    window.addEventListener("storage", handleLocalChange);
-    window.addEventListener("storage-household-changed", handleLocalChange);
-    return () => {
-      window.removeEventListener("storage", handleLocalChange);
-      window.removeEventListener("storage-household-changed", handleLocalChange);
-    };
-  }, []);
+  const { householdId: activeHouseholdId } = useActiveHousehold();
 
   const items = listDetails?.items ?? [];
   const activeList = lists.find((l) => l.id === resolvedListId);

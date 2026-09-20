@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { axe } from 'vitest-axe'
 import { renderWithProviders, createTestQueryClient } from '../../../../tests/test-utils'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { StaticHouseholdProvider } from '@alfheim/shared'
 import { render } from '@testing-library/react'
 import { DashboardView } from '../DashboardView'
 import { choreKeys } from '../../services/choresService'
@@ -52,9 +53,11 @@ describe('DashboardView Component', () => {
     queryClient.setQueryData(['integrations', 'maintenance', hhId], { dueCount: 2, totalDevices: 5 })
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <DashboardView />
-      </QueryClientProvider>
+      <StaticHouseholdProvider householdId="hh-1">
+        <QueryClientProvider client={queryClient}>
+          <DashboardView />
+        </QueryClientProvider>
+      </StaticHouseholdProvider>
     )
 
     // Verify populated chore items and metrics

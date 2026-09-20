@@ -4,6 +4,7 @@ Task feature service layer handling database operations and inter-service HTTP i
 
 import datetime
 import logging
+import uuid
 from typing import Any, cast
 
 import httpx
@@ -51,8 +52,20 @@ class TaskService:
     """Service class containing domain logic for maintenance tasks and history."""
 
     @staticmethod
-    async def forward_supplies_to_shopping(supply_items: list[str]) -> None:
-        """Send parts list to the shopping-backend microservice via HTTP POST."""
+    async def forward_supplies_to_shopping(
+        supply_items: list[str],
+        household_id: uuid.UUID,
+        authorization: str | None,
+    ) -> None:
+        """Send parts list to the shopping-backend microservice via HTTP POST on behalf of the caller.
+
+        The caller's bearer token and the UUID ``X-Household-ID`` are forwarded so the shopping
+        service authorizes the request against the same household membership.
+        """
+        if not authorization:
+            logger.error("Not forwarding %d supply item(s) to shopping: no caller authorization", len(supply_items))
+            return
+        headers = {"Authorization": authorization, "X-Household-ID": str(household_id)}
         async with httpx.AsyncClient() as client:
             for item in supply_items:
                 try:
@@ -61,6 +74,7 @@ class TaskService:
                     response = await client.post(
                         url,
                         json=payload,
+                        headers=headers,
                         timeout=5.0,
                     )
                     if response.status_code >= 400:
@@ -75,7 +89,7 @@ class TaskService:
     @staticmethod
     async def get_history(
         session: AsyncSession,
-        household_id: int,
+        household_id: uuid.UUID,
     ) -> list[ServiceHistoryEventDetailRead]:
         """Fetch all ServiceHistoryEvent records for the authenticated user's household.
 
@@ -113,7 +127,8 @@ class TaskService:
     async def submit_maintenance_wizard(
         session: AsyncSession,
         payload: MaintenanceSubmission,
-        household_id: int,
+        household_id: uuid.UUID,
+        authorization: str | None = None,
     ) -> ServiceHistoryEvent:
         """Log a new service history event and update completed steps' due dates.
 
@@ -121,6 +136,7 @@ class TaskService:
             session: Database session
             payload: Maintenance submission data
             household_id: The user's authenticated household_id from context
+            authorization: The caller's Authorization header, forwarded to the shopping service
 
         Raises:
             DeviceNotFoundError: If the device does not exist or belongs to a different household.
@@ -162,7 +178,7 @@ class TaskService:
 
         if payload.supply_items:
             try:
-                await TaskService.forward_supplies_to_shopping(payload.supply_items)
+                await TaskService.forward_supplies_to_shopping(payload.supply_items, household_id, authorization)
             except Exception as e:
                 logger.error("Uncaught exception during supply forwarding: %s", e)
 
@@ -173,7 +189,7 @@ class TaskService:
         session: AsyncSession,
         step_id: int,
         payload: TaskStateUpdate,
-        household_id: int,
+        household_id: uuid.UUID,
     ) -> MaintenanceStep:
         """Persist lightweight step updates (comments, supply dates, supply items).
 
@@ -214,7 +230,7 @@ class TaskService:
         return step
 
     @staticmethod
-    async def get_overdue_tasks(session: AsyncSession, household_id: int) -> list[dict[str, Any]]:
+    async def get_overdue_tasks(session: AsyncSession, household_id: uuid.UUID) -> list[dict[str, Any]]:
         """Fetch all maintenance steps currently overdue for the authenticated user's household.
 
         Args:

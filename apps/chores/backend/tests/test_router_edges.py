@@ -4,24 +4,27 @@ import uuid
 from datetime import date, timedelta
 
 import pytest
+from backend_shared.household import derive_user_id
+from backend_shared.household.testing import DEFAULT_TEST_SUB
 from httpx import AsyncClient
+
+TEST_USER_ID = derive_user_id(DEFAULT_TEST_SUB)
 
 
 @pytest.mark.asyncio
-async def test_get_chore_template_not_found(client: AsyncClient):
+async def test_get_chore_template_not_found(client: AsyncClient, auth_headers):
     """Verify that requesting a nonexistent chore template returns 404 Not Found."""
     fake_id = uuid.uuid4()
-    headers = {"X-Household-ID": str(uuid.uuid4())}
+    headers = auth_headers()
     response = await client.get(f"/api/v1/chores/templates/{fake_id}", headers=headers)
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_update_and_delete_chore_template_router(client: AsyncClient):
+async def test_update_and_delete_chore_template_router(client: AsyncClient, auth_headers):
     """Verify partial updates, validation errors, and deletion via template endpoints."""
-    household_id = str(uuid.uuid4())
-    headers = {"X-Household-ID": household_id}
+    headers = auth_headers()
 
     # Create two templates
     res1 = await client.post(
@@ -81,10 +84,9 @@ async def test_update_and_delete_chore_template_router(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient):
+async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, auth_headers):
     """Verify chore instance lifecycle through router endpoints."""
-    household_id = str(uuid.uuid4())
-    headers = {"X-Household-ID": household_id}
+    headers = auth_headers()
 
     # Create a template
     res = await client.post(
@@ -120,16 +122,17 @@ async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient):
     )
     assert res_assign_missing.status_code == 400
 
-    # Complete instance with custom payload
-    completer_id = str(uuid.uuid4())
+    # Complete instance: a client-supplied completed_by is ignored, the authenticated user is recorded
+    spoofed_id = str(uuid.uuid4())
     res_complete = await client.post(
         f"/api/v1/chores/instances/{instance_id}/complete",
-        json={"completed_by": completer_id, "completed_by_name": "Test Completer"},
+        json={"completed_by": spoofed_id, "completed_by_name": "Test Completer"},
         headers=headers,
     )
     assert res_complete.status_code == 200
     assert res_complete.json()["status"] == "completed"
-    assert res_complete.json()["completed_by"] == completer_id
+    assert res_complete.json()["completed_by"] == str(TEST_USER_ID)
+    assert res_complete.json()["completed_by"] != spoofed_id
 
     # Attempt re-completing already completed chore -> 400
     res_recomplete = await client.post(
@@ -149,10 +152,9 @@ async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_complete_chore_without_payload_and_summary_router(client: AsyncClient):
+async def test_complete_chore_without_payload_and_summary_router(client: AsyncClient, auth_headers):
     """Verify chore completion without body and integrations summary dashboard retrieval."""
-    household_id = str(uuid.uuid4())
-    headers = {"X-Household-ID": household_id}
+    headers = auth_headers()
 
     res_tmpl = await client.post(
         "/api/v1/chores/templates",

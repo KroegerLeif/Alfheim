@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useActiveHousehold, type Household as SharedHousehold } from "@alfheim/shared";
 import { shoppingClient } from "@/lib/api";
 import { z } from "zod";
 import { ShoppingListSchema } from "../schemas";
@@ -20,7 +21,9 @@ export {
 // --- Shopping Lists Query Keys ---
 export const shoppingKeys = {
   all: ["shopping-lists"] as const,
+  /** Prefix for invalidation across households. */
   lists: () => [...shoppingKeys.all, "lists"] as const,
+  householdLists: (householdId: string | null) => [...shoppingKeys.lists(), { householdId }] as const,
   list: (id: string) => [...shoppingKeys.all, "list", id] as const,
 };
 
@@ -28,13 +31,15 @@ export const shoppingKeys = {
  * Hook to retrieve all shopping lists scoped by household.
  */
 export function useShoppingLists() {
+  const { householdId, status } = useActiveHousehold();
   return useQuery<ShoppingList[]>({
-    queryKey: shoppingKeys.lists(),
+    queryKey: shoppingKeys.householdLists(householdId),
     queryFn: () =>
       shoppingClient
         .get("api/v1/shopping-lists")
         .json()
         .then((data) => z.array(ShoppingListSchema).parse(data)),
+    enabled: status === "ready",
   });
 }
 
@@ -42,6 +47,7 @@ export function useShoppingLists() {
  * Hook to retrieve details and checklist items for a specific shopping list.
  */
 export function useShoppingListDetails(listId: string) {
+  const { status } = useActiveHousehold();
   return useQuery<ShoppingList>({
     queryKey: shoppingKeys.list(listId),
     queryFn: () =>
@@ -49,7 +55,7 @@ export function useShoppingListDetails(listId: string) {
         .get(`api/v1/shopping-lists/${listId}`)
         .json()
         .then((data) => ShoppingListSchema.parse(data)),
-    enabled: !!listId,
+    enabled: status === "ready" && !!listId,
   });
 }
 
@@ -102,25 +108,13 @@ export function useReorderShoppingLists() {
   });
 }
 
-export interface Household {
-  id: string;
-  name: string;
-  is_default?: boolean;
-}
+export type Household = SharedHousehold;
 
 /**
- * Hook to retrieve user households for target pantry storage.
+ * The caller's households from the shared HouseholdProvider (core/household),
+ * in the shape the list and pantry-target pickers expect.
  */
-export function useHouseholds() {
-  return useQuery<Household[]>({
-    queryKey: ["households", "me"],
-    queryFn: async () => {
-      try {
-        const res = await shoppingClient.get("api/v1/households/me").json<Household[]>();
-        return Array.isArray(res) ? res : [];
-      } catch {
-        return [];
-      }
-    },
-  });
+export function useHouseholds(): { data: Household[]; isLoading: boolean } {
+  const { households, status } = useActiveHousehold();
+  return { data: households, isLoading: status === "loading" };
 }

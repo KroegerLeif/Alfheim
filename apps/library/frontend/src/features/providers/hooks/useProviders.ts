@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useActiveHousehold } from "@alfheim/shared";
 import {
   createProvider,
   deleteProvider,
@@ -9,10 +10,12 @@ import { ProviderCreatePayload, ProviderUpdatePayload } from "../types";
 
 export function useProviders() {
   const queryClient = useQueryClient();
+  const { householdId, status } = useActiveHousehold();
 
   const providersQuery = useQuery({
-    queryKey: ["providers"],
+    queryKey: ["providers", { householdId }],
     queryFn: () => fetchProviders(),
+    enabled: status === "ready",
   });
 
   const createMutation = useMutation({

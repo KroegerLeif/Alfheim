@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 
 from backend_shared import setup_telemetry, shutdown_telemetry
-from backend_shared.mcp_middleware import MCPAuthenticationMiddleware
+from backend_shared.household import close_membership_client, configure_household_auth
+from backend_shared.mcp_middleware import mount_mcp
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.audit import AuditRepository  # noqa: F401 - imported to trigger register_audit_hooks at module load
@@ -17,6 +18,10 @@ from src.mcp.server import discover_and_import_mcp_tools, mcp
 discover_and_import_mcp_tools()
 
 
+# Household membership is authorized by the household app; register OIDC settings and validate env.
+configure_household_auth(settings)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for database initialization, FastMCP server, and telemetry cleanup."""
@@ -24,9 +29,11 @@ async def lifespan(app: FastAPI):
     await init_db()
 
     try:
-        async with mcp.lifespan():
+        # Run the MCP app's own lifespan: it starts the Streamable HTTP session manager.
+        async with mcp_app.router.lifespan_context(mcp_app):
             yield
     finally:
+        await close_membership_client()
         shutdown_telemetry()
 
 
@@ -62,10 +69,8 @@ app.include_router(
     tags=["transactions"],
 )
 
-# Mount the FastMCP SSE/HTTP app with authentication middleware
-mcp_app = mcp.http_app()
-mcp_app_with_auth = MCPAuthenticationMiddleware(mcp_app, settings=settings)
-app.mount("/mcp", mcp_app_with_auth)
+# Serve the FastMCP Streamable HTTP endpoint at exactly /mcp, guarded by the household auth middleware
+mcp_app = mount_mcp(app, mcp, settings=settings)
 
 # Configure CORS middleware
 app.add_middleware(

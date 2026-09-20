@@ -90,6 +90,77 @@ func (o *Orchestrator) RestartIngress(ctx context.Context) error {
 	return o.waitHealthy(ctx, ingressTarget)
 }
 
+// postgresService, postgresTarget and dbInitScript identify the core
+// database in compose.prod.yaml and the idempotent initializer mounted into
+// it (infrastructure/postgres/init-multiple-dbs.sh).
+const (
+	postgresService = "postgres-core"
+	dbInitScript    = "/docker-entrypoint-initdb.d/init-multiple-dbs.sh"
+)
+
+var postgresTarget = HealthTarget{
+	Container: "alfheim_postgres_core", Label: "PostgreSQL core", Timeout: 120 * time.Second,
+}
+
+// EnsureDatabases makes sure every service database and role in
+// init-multiple-dbs.sh exists on an existing installation.
+//
+// Postgres only runs /docker-entrypoint-initdb.d on an empty data volume, so
+// a database added in a later release (alfheim_household, for instance)
+// would never be created on an upgraded install. The script is idempotent,
+// so re-running it against the running server only creates what is missing
+// and re-applies the passwords from .env. It must not be called on a fresh
+// install: there the entrypoint is still running the same script against a
+// socket-only server that pg_isready already reports as ready.
+func (o *Orchestrator) EnsureDatabases(ctx context.Context) error {
+	o.logf("Ensuring every service database exists")
+	// up -d also recreates postgres-core when .env gained a new database
+	// credential, so the script below sees it in its environment.
+	if err := o.compose(ctx, []string{"up", "-d", postgresService}); err != nil {
+		return fmt.Errorf("bootstrap: start %s: %w", postgresService, err)
+	}
+	if err := o.waitHealthy(ctx, postgresTarget); err != nil {
+		return err
+	}
+	if err := o.compose(ctx, []string{"exec", "-T", postgresService, "bash", dbInitScript}); err != nil {
+		return fmt.Errorf("bootstrap: ensure service databases: %w", err)
+	}
+	return nil
+}
+
+// UpdateAndRestart pulls every image compose.prod.yaml now names and
+// restarts the whole stack, removing any container for a service the new
+// compose file no longer declares (a service renamed or dropped between
+// releases would otherwise be left running as an orphan). It then waits for
+// every container both staged boot phases wait on, since either Zitadel or
+// the core application services may have received a new image.
+//
+// It is the `alfheim-setup update` subcommand's restart step; a plain
+// no-flag re-run instead uses RunPhase(PhaseCoreStack), which never passes
+// --remove-orphans because it starts from a compose file that has not
+// changed on disk.
+func (o *Orchestrator) UpdateAndRestart(ctx context.Context) error {
+	o.logf("Pulling images")
+	if err := o.compose(ctx, []string{"pull"}); err != nil {
+		return fmt.Errorf("bootstrap: pull images: %w", err)
+	}
+	o.logf("Restarting the stack")
+	if err := o.compose(ctx, []string{"up", "-d", "--remove-orphans"}); err != nil {
+		return fmt.Errorf("bootstrap: restart the stack: %w", err)
+	}
+
+	targets := append(append([]HealthTarget{}, PhaseEdgeAuth.WaitFor...), PhaseCoreStack.WaitFor...)
+	for _, target := range targets {
+		if err := o.waitHealthy(ctx, target); err != nil {
+			if target.Container == zitadelContainer {
+				err = o.explainZitadelFailure(ctx, err)
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 // explainZitadelFailure looks at Zitadel's own logs after a startup failure
 // and, when they show the machinekey permission problem (a bind-mount
 // directory Docker created root-owned before the non-root container user

@@ -14,6 +14,7 @@ sidebar:
 - [Frontend-Domain-Routing (`alfheim.loegien.localhost`)](#frontend-domain-routing-alfheimloegienlocalhost)
 - [API-Gateway-Domain-Routing (`api.alfheim.loegien.localhost`)](#api-gateway-domain-routing-apialfheimloegienlocalhost)
 - [Caddy-Pfad-Stripping-Regeln (`handle_path`)](#caddy-pfad-stripping-regeln-handle_path)
+- [Vom Installer erzeugter App-Host: Household- & interne Routen](#vom-installer-erzeugter-app-host-household---interne-routen)
 
 ---
 
@@ -48,6 +49,9 @@ Die Tabellen unten beschreiben den Entwicklungs-Stack (`scripts/up.sh`), der die
 | `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `3010` | Leitet nacktes `/shopping` zu `/shopping/en` um |
 | `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `3000` | Leitet nacktes `/chat` zu `/chat/de` um |
 | `http://alfheim.loegien.localhost/grafana` | `grafana` | `3000` | Zitadel-SSO-Beobachtungs-Dashboard |
+| `http://alfheim.loegien.localhost/household` | `household-frontend` | `3000` | basePath `/household`, keine Sprach-Weiterleitung |
+| `http://alfheim.loegien.localhost/api/v1/households`, `/api/v1/profile` | `household-backend` | `8080` | Pfad bleibt erhalten; hat Vorrang vor dem Dashboard-Catch-all `/api/v1/*` |
+| `http://alfheim.loegien.localhost/internal/` | — | — | `404`: Service-zu-Service-Endpunkte werden nie geroutet (ebenso auf `api.*`) |
 
 ---
 
@@ -65,6 +69,7 @@ Die Tabellen unten beschreiben den Entwicklungs-Stack (`scripts/up.sh`), der die
 | `http://api.alfheim.loegien.localhost/library/api/v1/`| `library-backend` | `8000` | Streift `/library`-Präfix via `handle_path` ab |
 | `http://api.alfheim.loegien.localhost/api/v1/chores` | `chores-backend` | `8000` | Native Route (kein Stripping) |
 | `http://api.alfheim.loegien.localhost/api/v1/chat` | `chat-backend` | `8080` | Native Go-API-Route (kein Stripping) |
+| `http://api.alfheim.loegien.localhost/api/v1/households`, `/api/v1/profile` | `household-backend` | `8080` | Native Go-API-Route (kein Stripping); hat Vorrang vor dem Dashboard-Catch-all |
 | `http://api.alfheim.loegien.localhost/api/v1/apps` | `dashboard-backend` | `8080` | Native Go-API-Route (kein Stripping) |
 
 ---
@@ -81,3 +86,19 @@ handle_path /pantry/* {
 ```
 
 Dies streift `/pantry` ab, bevor HTTP-Traffic an `pantry-backend:8000` weitergeleitet wird, damit das Backend `/api/v1/items` erhält.
+
+---
+
+## Vom Installer erzeugter App-Host: Household- & interne Routen
+
+Die Caddyfile, die `alfheim-setup` rendert (`tools/installer/internal/features/templating/embedded/Caddyfile.tmpl`), stellt jede API direkt auf dem App-Host bereit, damit Browser relative `/api/v1/...`-Pfade aufrufen. Der Tier-1-Haushalts- & Rollendienst ergänzt diese Regeln:
+
+| Öffentlicher URL-Pfad | Ziel-Container | Container-Port | Regel |
+| :--- | :--- | :--- | :--- |
+| `https://alfheim.loegien.de/api/v1/households*` | `household-backend` | `8080` | `handle`, Pfad bleibt erhalten (kein Rewrite) |
+| `https://alfheim.loegien.de/api/v1/profile*` | `household-backend` | `8080` | `handle`, Pfad bleibt erhalten (kein Rewrite) |
+| `https://alfheim.loegien.de/household*` | `household-frontend` | `3000` | Next.js-basePath `/household` |
+| `https://alfheim.loegien.de/internal/*` | _(keiner)_ | — | `respond 404`: die Service-zu-Service-API wird nie geroutet |
+| `https://auth.loegien.de/internal/*` | _(keiner)_ | — | `respond 404`, zusätzliche Absicherung auf dem IAM-Host |
+
+Caddy fasst alle `handle`- und `handle_path`-Blöcke einer Site in eine sich gegenseitig ausschließende Gruppe zusammen und sortiert sie nach Pfadlänge, die längste zuerst. `/api/v1/households*` und `/api/v1/profile*` sind länger als die allgemeine Dashboard-Route `/api/v1*` und gewinnen daher immer. Kein App-Slug ist ein Präfix von `households` oder `profile`, also kann auch keine `/api/v1/<slug>*`-Regel sie treffen. Alle Pfade, die keine andere Regel trifft, bedient weiterhin das Dashboard-Frontend.

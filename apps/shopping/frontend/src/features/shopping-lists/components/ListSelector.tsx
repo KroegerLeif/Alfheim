@@ -102,11 +102,8 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
     setNewListName("");
   };
 
+  // Selecting a list never changes the global active household.
   const handleSelect = (list: ShoppingList) => {
-    if (list.is_default || !list.is_personal) {
-      localStorage.setItem("alfheim_active_household_id", list.home_id);
-      window.dispatchEvent(new Event("storage-household-changed"));
-    }
     onSelect(list.id);
   };
 

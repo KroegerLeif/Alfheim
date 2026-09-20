@@ -1,7 +1,12 @@
 import React from 'react'
 import { renderHook, act, waitFor, render } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { useHouseholdSwitcher, OidcWindow } from '../useHouseholdSwitcher'
+import { useHouseholdSwitcher } from '../useHouseholdSwitcher'
+import { HouseholdProvider } from '../../../household/HouseholdProvider'
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <HouseholdProvider tokenRetries={0}>{children}</HouseholdProvider>
+)
 
 describe('useHouseholdSwitcher hook', () => {
   const mockHouseholds = [
@@ -12,89 +17,36 @@ describe('useHouseholdSwitcher hook', () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
-    delete (window as unknown as OidcWindow).__alfheim_oidc_instance__
+    sessionStorage.setItem('alfheim_access_token', 'tkn')
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockHouseholds,
+    } as Response)
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('initializes empty state when local storage cache is invalid JSON or empty', () => {
-    localStorage.setItem('alfheim_cached_households', 'invalid-json')
-    const { result } = renderHook(() => useHouseholdSwitcher())
-    expect(result.current.households).toEqual([])
-    expect(result.current.activeId).toBeNull()
+  it('exposes the provider households and default selection', async () => {
+    const { result } = renderHook(() => useHouseholdSwitcher(), { wrapper })
+    await waitFor(() => expect(result.current.activeId).toBe('hh-2'))
+    expect(result.current.households).toHaveLength(2)
+    expect(result.current.selectedHousehold?.name).toBe('Summer House')
   })
 
-  it('updates activeId on storage and storage-household-changed window events', async () => {
-    localStorage.setItem('alfheim_cached_households', JSON.stringify(mockHouseholds))
-    localStorage.setItem('alfheim_active_household_id', 'hh-1')
+  it('selecting a household persists it, dispatches the event and closes the dropdown', async () => {
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+    const { result } = renderHook(() => useHouseholdSwitcher(), { wrapper })
+    await waitFor(() => expect(result.current.activeId).toBe('hh-2'))
 
-    const { result } = renderHook(() => useHouseholdSwitcher())
+    act(() => result.current.setIsOpen(true))
+    act(() => result.current.handleSelect('hh-1'))
     expect(result.current.activeId).toBe('hh-1')
-
-    act(() => {
-      localStorage.setItem('alfheim_active_household_id', 'hh-2')
-      window.dispatchEvent(
-        new StorageEvent('storage', { key: 'alfheim_active_household_id', newValue: 'hh-2' })
-      )
-    })
-    expect(result.current.activeId).toBe('hh-2')
-
-    act(() => {
-      localStorage.setItem('alfheim_active_household_id', 'hh-1')
-      window.dispatchEvent(new Event('storage-household-changed'))
-    })
-    expect(result.current.activeId).toBe('hh-1')
-  })
-
-  it('fetches households using OIDC instance updateToken and sets default household', async () => {
-    const updateTokenMock = vi.fn().mockResolvedValue(true)
-    ;(window as unknown as OidcWindow).__alfheim_oidc_instance__ = {
-      token: 'oidc-token-123',
-      updateToken: updateTokenMock,
-    }
-
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => mockHouseholds,
-    } as Response)
-
-    const { result } = renderHook(() => useHouseholdSwitcher())
-
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith('/api/v1/households/me', {
-        headers: { Authorization: 'Bearer oidc-token-123' },
-      })
-      expect(result.current.activeId).toBe('hh-2')
-    })
-  })
-
-  it('handles 401 response and retries with refreshed OIDC token', async () => {
-    const updateTokenMock = vi
-      .fn()
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(true)
-    ;(window as unknown as OidcWindow).__alfheim_oidc_instance__ = {
-      token: 'refreshed-token-456',
-      updateToken: updateTokenMock,
-    }
-
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockResolvedValueOnce({ status: 401, ok: false } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockHouseholds,
-      } as Response)
-
-    renderHook(() => useHouseholdSwitcher())
-
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledTimes(2)
-    })
+    expect(result.current.isOpen).toBe(false)
+    expect(localStorage.getItem('alfheim_active_household_id')).toBe('hh-1')
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'storage-household-changed' }))
   })
 
   it('handles click outside to close dropdown when element is mounted', () => {
@@ -115,7 +67,7 @@ describe('useHouseholdSwitcher hook', () => {
       )
     }
 
-    render(<TestComponent />)
+    render(<TestComponent />, { wrapper })
     act(() => {
       document.querySelector('button')?.click()
     })

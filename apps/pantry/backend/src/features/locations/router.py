@@ -1,12 +1,9 @@
 import uuid
 
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import (
-    UserHomeContext,
-    get_current_user_and_home,
-)
 from src.features.locations import (
     LocationCreate,
     LocationRead,
@@ -21,14 +18,14 @@ router = APIRouter(prefix="/api/v1/locations", tags=["locations"])
 async def create_location(
     payload: LocationCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create a new physical storage location in the user's home space."""
     return await LocationService.create_location(
         session=session,
         payload=payload,
         owner_id=context.user_id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
 
 
@@ -38,7 +35,7 @@ async def list_locations(
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve all storage locations in the user's home space.
 
@@ -46,7 +43,7 @@ async def list_locations(
     """
     return await LocationService.list_locations(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         name=name,
         limit=limit,
         offset=offset,
@@ -57,13 +54,13 @@ async def list_locations(
 async def get_location(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve details for a specific storage location by ID."""
     location = await LocationService.get_location(
         session=session,
         location_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
     if not location:
         raise HTTPException(
@@ -78,7 +75,7 @@ async def update_location(
     id: uuid.UUID,
     payload: LocationUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Partially update an existing location's properties.
 
@@ -87,7 +84,7 @@ async def update_location(
     location = await LocationService.update_location(
         session=session,
         location_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         payload=payload,
     )
     if not location:
@@ -102,7 +99,7 @@ async def update_location(
 async def delete_location(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Delete a storage location.
 
@@ -112,7 +109,7 @@ async def delete_location(
     deleted = await LocationService.delete_location(
         session=session,
         location_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
     )
     if not deleted:
         raise HTTPException(

@@ -13,6 +13,10 @@ services:
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}
+      # Service-to-service membership checks against household-backend
+      # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:-dev-internal-token-change-me}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
@@ -26,6 +30,8 @@ services:
     depends_on:
       postgres-core:
         condition: service_healthy
+      household-backend:
+        condition: service_healthy
     networks:
       - gateway-net
       - app-shopping-net
@@ -36,8 +42,8 @@ services:
       context: ../..
       dockerfile: apps/shopping/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_SHOPPING_API_URL:-http://api.alfheim.loegien.localhost/shopping/api/v1}
-        - NEXT_PUBLIC_PANTRY_API_URL=${NEXT_PUBLIC_PANTRY_API_URL:-http://api.alfheim.loegien.localhost/pantry/api/v1}
+        - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}/shopping/api/v1
+        - NEXT_PUBLIC_PANTRY_API_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}/pantry/api/v1
         - NEXT_PUBLIC_OIDC_ISSUER=${NEXT_PUBLIC_OIDC_ISSUER:-http://auth.alfheim.loegien.localhost}
         - NEXT_PUBLIC_OIDC_CLIENT_ID=${NEXT_PUBLIC_OIDC_CLIENT_ID:-shopping-frontend}
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
@@ -52,6 +58,12 @@ services:
     environment:
       - PORT=3010
       - NODE_OPTIONS=--max-http-header-size=65536
+      # Served at request time by <basePath>/runtime-config.js
+      # (packages/shared/src/features/auth/runtimeConfigHandler.ts).
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
+      - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:-}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}/shopping/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 5s

@@ -1,12 +1,18 @@
+import os
 from collections.abc import AsyncGenerator
 
+# Test context for backend_shared.household (configure_household_auth runs when src.main is imported).
+os.environ.setdefault("TESTING", "true")
+
 import pytest_asyncio
+from backend_shared.household import get_membership_lookup
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
 from src.main import app
+from tests.helpers import MEMBERSHIPS
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -50,7 +56,11 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield db_session
 
     app.dependency_overrides[get_db_session] = _get_test_db
+    app.dependency_overrides[get_membership_lookup] = lambda: MEMBERSHIPS
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_db_session, None)
+    app.dependency_overrides.pop(get_membership_lookup, None)
+    MEMBERSHIPS.memberships.clear()
+    MEMBERSHIPS.calls.clear()

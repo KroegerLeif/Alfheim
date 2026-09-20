@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.api.dependencies import get_current_household_id
 from src.api.v1 import router as api_v1_router
 from src.api.v1.manuals import get_manual_storage_service
 from src.db.database import get_db_session
@@ -79,7 +79,7 @@ async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 @pytest.mark.asyncio
 async def test_upload_and_get_manual_url_and_delete(client: AsyncClient, test_app: FastAPI):
     """Test PDF manual upload, presigned URL retrieval, and deletion workflow."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # 1. Create a game item
     item_resp = await client.post(
@@ -124,7 +124,7 @@ async def test_upload_and_get_manual_url_and_delete(client: AsyncClient, test_ap
 @pytest.mark.asyncio
 async def test_upload_manual_invalid_filetype(client: AsyncClient, test_app: FastAPI):
     """Test uploading a non-PDF file is rejected with 400 Bad Request."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     item_resp = await client.post(
         "/api/v1/library/items",
@@ -144,7 +144,7 @@ async def test_upload_manual_invalid_filetype(client: AsyncClient, test_app: Fas
 @pytest.mark.asyncio
 async def test_upload_manual_empty_file(client: AsyncClient, test_app: FastAPI):
     """Test uploading an empty PDF file is rejected with 400 Bad Request."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     item_resp = await client.post(
         "/api/v1/library/items",
@@ -164,7 +164,7 @@ async def test_upload_manual_empty_file(client: AsyncClient, test_app: FastAPI):
 async def test_manual_household_isolation(client: AsyncClient, test_app: FastAPI):
     """Test cross-household isolation for uploading and accessing game manuals."""
     # Create item in Household 1
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
     item_resp = await client.post(
         "/api/v1/library/items",
         json={"title": "Household 1 Game", "media_type": "GAME"},
@@ -174,7 +174,7 @@ async def test_manual_household_isolation(client: AsyncClient, test_app: FastAPI
     pdf_bytes = b"%PDF-1.4 manual content"
 
     # Household 2 attempts to upload manual for Household 1 item -> 404
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
     upload_b_resp = await client.post(
         f"/api/v1/library/items/{item_id}/manual",
         files={"file": ("manual.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
@@ -182,14 +182,14 @@ async def test_manual_household_isolation(client: AsyncClient, test_app: FastAPI
     assert upload_b_resp.status_code == 404
 
     # Household 1 uploads manual
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
     await client.post(
         f"/api/v1/library/items/{item_id}/manual",
         files={"file": ("manual.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
     )
 
     # Household 2 attempts to get presigned URL -> 404
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
     url_b_resp = await client.get(f"/api/v1/library/items/{item_id}/manual/url")
     assert url_b_resp.status_code == 404
 
@@ -197,7 +197,7 @@ async def test_manual_household_isolation(client: AsyncClient, test_app: FastAPI
 @pytest.mark.asyncio
 async def test_get_manual_url_no_manual_uploaded(client: AsyncClient, test_app: FastAPI):
     """Test GET manual URL returns 404 when item has no manual uploaded."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     item_resp = await client.post(
         "/api/v1/library/items",

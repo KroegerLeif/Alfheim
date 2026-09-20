@@ -51,8 +51,9 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	var householdID *string
-	if claims.HouseholdID != "" {
-		householdID = &claims.HouseholdID
+	if hc, err := middleware.GetHousehold(r.Context()); err == nil {
+		hh := hc.HouseholdID.String()
+		householdID = &hh
 	}
 
 	contentType := header.Header.Get("Content-Type")

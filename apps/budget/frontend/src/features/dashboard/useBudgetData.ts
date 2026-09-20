@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useActiveHousehold } from "@alfheim/shared";
 import { accountsApi } from "@/features/accounts";
 import { potsApi } from "@/features/pots";
 import { plansApi } from "@/features/plans";
@@ -17,41 +18,50 @@ import {
 // --- Budget Query Keys ---
 export const budgetKeys = {
   all: ["budget"] as const,
-  accounts: () => [...budgetKeys.all, "accounts"] as const,
-  netWorth: () => [...budgetKeys.all, "netWorth"] as const,
-  pots: () => [...budgetKeys.all, "pots"] as const,
-  plans: () => [...budgetKeys.all, "plans"] as const,
-  planSummary: (planId: string) => [...budgetKeys.all, "planSummary", planId] as const,
-  transactions: () => [...budgetKeys.all, "transactions"] as const,
+  household: (householdId: string | null) => [...budgetKeys.all, { householdId }] as const,
+  accounts: (householdId: string | null) => [...budgetKeys.household(householdId), "accounts"] as const,
+  netWorth: (householdId: string | null) => [...budgetKeys.household(householdId), "netWorth"] as const,
+  pots: (householdId: string | null) => [...budgetKeys.household(householdId), "pots"] as const,
+  plans: (householdId: string | null) => [...budgetKeys.household(householdId), "plans"] as const,
+  planSummary: (householdId: string | null, planId: string | null) =>
+    [...budgetKeys.household(householdId), "planSummary", planId] as const,
+  transactions: (householdId: string | null) => [...budgetKeys.household(householdId), "transactions"] as const,
 };
 
 export function useBudgetData(planningMode: "monthly" | "event") {
   const queryClient = useQueryClient();
+  const { householdId, status } = useActiveHousehold();
+  const ready = status === "ready";
 
   // Fetch all base data in parallel
   const accountsQuery = useQuery<Account[]>({
-    queryKey: budgetKeys.accounts(),
+    queryKey: budgetKeys.accounts(householdId),
     queryFn: () => accountsApi.listAccounts(),
+    enabled: ready,
   });
 
   const netWorthQuery = useQuery<NetWorthResponse | null>({
-    queryKey: budgetKeys.netWorth(),
+    queryKey: budgetKeys.netWorth(householdId),
     queryFn: () => accountsApi.getNetWorth(),
+    enabled: ready,
   });
 
   const potsQuery = useQuery<Pot[]>({
-    queryKey: budgetKeys.pots(),
+    queryKey: budgetKeys.pots(householdId),
     queryFn: () => potsApi.listPots(),
+    enabled: ready,
   });
 
   const plansQuery = useQuery<Plan[]>({
-    queryKey: budgetKeys.plans(),
+    queryKey: budgetKeys.plans(householdId),
     queryFn: () => plansApi.listPlans(),
+    enabled: ready,
   });
 
   const transactionsQuery = useQuery<Transaction[]>({
-    queryKey: budgetKeys.transactions(),
+    queryKey: budgetKeys.transactions(householdId),
     queryFn: () => transactionsApi.listTransactions(),
+    enabled: ready,
   });
 
   // Find the target plan based on mode
@@ -62,9 +72,9 @@ export function useBudgetData(planningMode: "monthly" | "event") {
 
   // Fetch plan summary only when we have a target plan
   const planSummaryQuery = useQuery<PlanSummaryResponse | null>({
-    queryKey: targetPlan ? budgetKeys.planSummary(targetPlan.id) : ["budget", "planSummary", null],
+    queryKey: budgetKeys.planSummary(householdId, targetPlan?.id ?? null),
     queryFn: () => (targetPlan ? plansApi.getPlanSummary(targetPlan.id) : Promise.resolve(null)),
-    enabled: !!targetPlan,
+    enabled: ready && !!targetPlan,
   });
 
   // Check if any query has an error

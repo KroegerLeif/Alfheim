@@ -34,7 +34,7 @@ Die Codebasis ist in Ebenen-Verzeichnisse gegliedert:
 
 ```
 alfheim/
-├── core/                   # Control Plane der Plattform (Dashboard Backend/Frontend)
+├── core/                   # Control Plane der Plattform: Dashboard (Launcher) und Household (Mitgliedschaft, Rollen)
 ├── apps/                   # Fachliche Microservices (Pantry, Budget, Chores, Chat, Workout usw.)
 ├── infrastructure/         # Kerninfrastruktur (Caddy-Gateway, RustFS, VictoriaStack)
 ├── packages/               # Geteilte Monorepo-Pakete (@alfheim/shared, backend_shared)
@@ -47,7 +47,8 @@ alfheim/
 
 ## Control Plane vs. Microservices
 
-* **Core Control Plane (`core/dashboard`)**: Go (Backend) und Next.js (Frontend). Dient als zentraler Plattform-Launcher und zeigt registrierte Micro-Anwendungen, Systemstatus und den Haushalts-Umschalter.
+* **Core Control Plane (`core/dashboard`)**: Go (Backend) und Next.js (Frontend). Ein reiner Launcher – App-Katalog, Benutzer-Links und -Einstellungen sowie eine Telemetrie-Ansicht. Es besitzt keine Haushalts-, Mitglieder-, Rollen-, Einladungs-, Kontakt- oder Profildaten.
+* **Core Household & Roles (`core/household`)**: Go (Backend) und Next.js (Frontend). Besitzt Haushalte, Mitglieder und Rollen, Einladungen, das Haushalts-Kontaktbuch und das Benutzerprofil und beantwortet die Mitgliedschaftsprüfungen, auf die jedes andere Backend angewiesen ist ([ADR 0006](./decisions/0006-household-authorization-via-membership-api.md)).
 * **Fachliche Microservices (`apps/*`)**: Eigenständige Module mit Fachdiensten (z. B. Vorratsverwaltung, Umschlag-Budgetierung, Trainingsdurchführung).
 
 ---
@@ -58,7 +59,7 @@ Die Plattform erzwingt mehrzonige Isolation über dedizierte Docker-Bridge-Netzw
 
 * **`gateway-net`**: Verbindet das Caddy-Ingress-Gateway mit Frontends, Zitadel, RustFS S3 und den Backend-API-Endpunkten.
 * **`infra-net`**: Isolierte Infrastruktur-Bridge zwischen Zitadel, `postgres-core` und den RustFS-S3-Backend-Ports.
-* **`core-net`**: Dediziertes Control-Plane-Netz für `dashboard-backend` und `postgres-core`.
+* **`core-net`**: Dediziertes Control-Plane-Netz für `dashboard-backend`, `household-backend` und `postgres-core`.
 * **`app-<name>-net`**: App-isolierte Netze zwischen Microservice-Backends und `postgres-core` (z. B. `app-pantry-net`, `app-shopping-net`, `app-chat-net`).
 * **`observability-internal`**: Telemetrie-Bridge zwischen App-Backends, Vector, OpenTelemetry Collector und VictoriaStack.
 

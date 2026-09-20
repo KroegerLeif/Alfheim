@@ -1,13 +1,16 @@
 """Shared backend infrastructure package for Alfheim services."""
 
 from backend_shared.dependencies import (
-    UserHomeContext,
-    UserHouseholdContext,
     decode_oidc_token,
-    get_current_user_and_home,
-    get_current_user_and_household,
     get_jwks_client,
     is_mock_auth_allowed,
+)
+from backend_shared.household import (
+    HouseholdContext,
+    HouseholdRole,
+    configure_household_auth,
+    require_household,
+    require_role,
 )
 from backend_shared.storage import (
     S3StorageService,
@@ -31,11 +34,12 @@ __all__ = [
     "configure_logging",
     "setup_telemetry",
     "shutdown_telemetry",
-    "UserHomeContext",
-    "UserHouseholdContext",
     "is_mock_auth_allowed",
     "get_jwks_client",
     "decode_oidc_token",
-    "get_current_user_and_home",
-    "get_current_user_and_household",
+    "HouseholdContext",
+    "HouseholdRole",
+    "configure_household_auth",
+    "require_household",
+    "require_role",
 ]

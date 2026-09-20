@@ -32,7 +32,7 @@ Either writes a `.env` with mode `0600` containing:
 
 | Variable | Purpose |
 | :--- | :--- |
-| `POSTGRES_PASSWORD`, `<app>_DB_PASSWORD` | Per-service database owners on `postgres-core` |
+| `POSTGRES_PASSWORD`, `<APP>_POSTGRES_PASSWORD` (e.g. `PANTRY_POSTGRES_PASSWORD`, `HOUSEHOLD_POSTGRES_PASSWORD`) | Postgres superuser and per-service database owners on `postgres-core` |
 | `ZITADEL_MASTERKEY` | Encrypts Zitadel's data at rest. Exactly 32 characters. |
 | `ZITADEL_ADMIN_PASSWORD` | Initial IAM administrator |
 | `CHAT_ENCRYPTION_KEY` | 32-byte base64 key securing LLM API keys at rest with AES-256-GCM |

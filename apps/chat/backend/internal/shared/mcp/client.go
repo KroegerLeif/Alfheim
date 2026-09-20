@@ -43,14 +43,28 @@ func NewClient(endpointURL string) *Client {
 	}
 }
 
+// ErrAuthRequired means the MCP server answered 401/403: it is up, but rejected
+// the request's (missing or insufficient) user credentials.
+var ErrAuthRequired = errors.New("mcp server requires authentication")
+
+// ErrEndpointNotFound means the server answered 404 for the configured endpoint URL:
+// the backend is up but does not serve MCP at that path, which is a configuration
+// error (e.g. a wrong CHAT_MCP_SERVERS path) rather than an outage.
+var ErrEndpointNotFound = errors.New("mcp endpoint not found: check the endpoint URL path in CHAT_MCP_SERVERS (expected http://<app>-backend:8000/mcp)")
+
 // DiagnosticResult captures reachability, latency, and registered tools for an MCP endpoint.
 type DiagnosticResult struct {
-	Reachable   bool     `json:"reachable"`
-	LatencyMs   int64    `json:"latency_ms"`
-	ToolsCount  int      `json:"tools_count"`
-	Tools       []string `json:"tools,omitempty"`
-	ProtocolVer string   `json:"protocol_version,omitempty"`
-	Error       string   `json:"error,omitempty"`
+	Reachable bool `json:"reachable"`
+	// AuthRequired is set when the server answered 401/403. It counts as reachable:
+	// the app's MCP middleware authorizes every call as the end user, so a probe
+	// without a user token is expected to be rejected. Only network errors,
+	// timeouts and 5xx mean offline.
+	AuthRequired bool     `json:"auth_required,omitempty"`
+	LatencyMs    int64    `json:"latency_ms"`
+	ToolsCount   int      `json:"tools_count"`
+	Tools        []string `json:"tools,omitempty"`
+	ProtocolVer  string   `json:"protocol_version,omitempty"`
+	Error        string   `json:"error,omitempty"`
 }
 
 // Ping performs a lightweight handshake and tool discovery check against the MCP server,
@@ -60,6 +74,13 @@ func (c *Client) Ping(ctx context.Context) DiagnosticResult {
 	tools, err := c.ListTools(ctx)
 	latency := time.Since(start).Milliseconds()
 
+	if errors.Is(err, ErrAuthRequired) {
+		return DiagnosticResult{
+			Reachable:    true,
+			AuthRequired: true,
+			LatencyMs:    latency,
+		}
+	}
 	if err != nil {
 		return DiagnosticResult{
 			Reachable: false,
@@ -238,6 +259,14 @@ func (c *Client) send(ctx context.Context, id *int64, method string, params any)
 	if negotiatedVer != "" {
 		httpReq.Header.Set(headerProtocolVersion, negotiatedVer)
 	}
+	if creds, ok := CallerCredentialsFrom(ctx); ok {
+		if creds.AccessToken != "" {
+			httpReq.Header.Set(headerAuthorization, "Bearer "+creds.AccessToken)
+		}
+		if creds.HouseholdID != "" {
+			httpReq.Header.Set(headerHouseholdID, creds.HouseholdID)
+		}
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -255,6 +284,14 @@ func (c *Client) send(ctx context.Context, id *int64, method string, params any)
 		// Notifications (and some servers, for any message) may be acknowledged with
 		// 202 and no body; there is nothing further to parse.
 		return nil, nil
+	}
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 2048))
+		return nil, fmt.Errorf("%w: mcp server responded with status %d for %q", ErrAuthRequired, resp.StatusCode, method)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 2048))
+		return nil, fmt.Errorf("%w: status 404 for %q at %s", ErrEndpointNotFound, method, c.endpointURL)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))

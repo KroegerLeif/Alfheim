@@ -1,6 +1,7 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { StaticHouseholdProvider } from '@alfheim/shared'
 import { LayoutProvider } from '../shared/layout/LayoutContext'
 
 export function createTestQueryClient() {
@@ -23,9 +24,11 @@ export function renderWithProviders(
 ) {
   const testQueryClient = createTestQueryClient()
   return render(
-    <QueryClientProvider client={testQueryClient}>
-      <LayoutProvider>{ui}</LayoutProvider>
-    </QueryClientProvider>,
+    <StaticHouseholdProvider householdId="hh-1">
+      <QueryClientProvider client={testQueryClient}>
+        <LayoutProvider>{ui}</LayoutProvider>
+      </QueryClientProvider>
+    </StaticHouseholdProvider>,
     options
   )
 }

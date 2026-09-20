@@ -1,8 +1,12 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 
 class HouseholdRead(BaseModel):
-    id: int
+    """The household of the current request. Households (names, members) are owned by core/household."""
+
+    id: uuid.UUID
     name: str
     address: str | None = None
     model_config = ConfigDict(from_attributes=True)
@@ -55,7 +59,7 @@ class DeviceRead(BaseModel):
     status: str
     service_interval_months: int | None = None
     notes: str | None = None
-    household_id: int
+    household_id: uuid.UUID
     steps: list[MaintenanceStepRead] = []
     history_events: list[ServiceHistoryEventRead] = []
     model_config = ConfigDict(from_attributes=True)
@@ -81,5 +85,6 @@ class DeviceCreate(BaseModel):
     status: str = "active"
     service_interval_months: int | None = None
     notes: str | None = None
-    household_id: int
+    # No household_id: devices are always created in the X-Household-ID household
+    # (unknown fields such as a legacy household_id are ignored).
     steps: list[StepCreate] = []

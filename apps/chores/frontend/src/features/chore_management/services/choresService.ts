@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useActiveHousehold } from "@alfheim/shared";
 import { choresClient } from "@/core/api";
 import {
   ChoreTemplateRead,
@@ -7,9 +8,6 @@ import {
   ChoreIntegrationSummary,
   ChoreTimelineRead
 } from "../types";
-import { useActiveHouseholdId } from "../hooks/useActiveHouseholdId";
-
-export { useActiveHouseholdId };
 export * from "./choreInstanceService";
 
 export const choreKeys = {
@@ -20,7 +18,7 @@ export const choreKeys = {
 };
 
 export function useChoreTemplates() {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<ChoreTemplateRead[]>({
     queryKey: choreKeys.templates(activeHouseholdId),
@@ -28,11 +26,12 @@ export function useChoreTemplates() {
       choresClient
         .get("templates")
         .json<ChoreTemplateRead[]>(),
+    enabled: status === "ready",
   });
 }
 
 export function useTodayChores(dueDate?: string) {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<ChoreInstanceRead[]>({
     queryKey: choreKeys.today(activeHouseholdId, dueDate),
@@ -42,11 +41,12 @@ export function useTodayChores(dueDate?: string) {
           searchParams: dueDate ? { due_date: dueDate } : {},
         })
         .json<ChoreInstanceRead[]>(),
+    enabled: status === "ready",
   });
 }
 
 export function useChoreSummary() {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<ChoreIntegrationSummary>({
     queryKey: choreKeys.summary(activeHouseholdId),
@@ -54,12 +54,13 @@ export function useChoreSummary() {
       choresClient
         .get("integrations/summary")
         .json<ChoreIntegrationSummary>(),
+    enabled: status === "ready",
   });
 }
 
 export function useCreateChoreTemplate() {
   const queryClient = useQueryClient();
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId } = useActiveHousehold();
 
   return useMutation<ChoreTemplateRead, Error, ChoreTemplateCreate>({
     mutationFn: (payload) =>
@@ -74,7 +75,7 @@ export function useCreateChoreTemplate() {
 
 export function useDeleteChoreTemplate() {
   const queryClient = useQueryClient();
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId } = useActiveHousehold();
 
   return useMutation<void, Error, string>({
     mutationFn: (id) =>
@@ -89,7 +90,7 @@ export function useDeleteChoreTemplate() {
 }
 
 export function useTaskTimeline(templateId: string) {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<ChoreTimelineRead[]>({
     queryKey: [...choreKeys.templates(activeHouseholdId), templateId, "timeline"],
@@ -97,6 +98,6 @@ export function useTaskTimeline(templateId: string) {
       choresClient
         .get(`templates/${templateId}/timeline`)
         .json<ChoreTimelineRead[]>(),
-    enabled: !!templateId && !!activeHouseholdId,
+    enabled: status === "ready" && !!templateId && !!activeHouseholdId,
   });
 }

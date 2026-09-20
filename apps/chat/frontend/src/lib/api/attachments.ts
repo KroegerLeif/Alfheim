@@ -1,4 +1,5 @@
 import type { ApiErrorPayload, Attachment } from "@/features/conversations/types";
+import { reportHouseholdErrorResponse } from "@alfheim/shared";
 import { BASE_URL, authHeaders, ApiError } from "./client";
 
 export async function uploadAttachment(file: File): Promise<Attachment> {
@@ -14,6 +15,7 @@ export async function uploadAttachment(file: File): Promise<Attachment> {
   });
 
   if (!res.ok) {
+    await reportHouseholdErrorResponse(res);
     let payload: ApiErrorPayload = { error: "upload_failed", message: `Upload failed with status ${res.status}` };
     try {
       payload = await res.json();

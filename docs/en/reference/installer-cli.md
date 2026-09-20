@@ -123,13 +123,30 @@ The mode is detected from the installation directory, not chosen by a flag.
 | Detected state | Mode | Behaviour |
 | :--- | :--- | :--- |
 | No `.env`, no `.alfheim.installed` | **install** | Full wizard, secret generation, two-phase boot. |
-| Either file present | **update** | Pull images and restart. No wizard, no secret changes. |
+| Either file present | **update** | Pull images and restart. No wizard. Existing secrets are never changed; a secret a newer release requires and `.env` lacks is generated and appended. Missing service databases are created by re-running `init-multiple-dbs.sh`. |
 | Either file present, plus `--reconfigure` | **reconfigure** | Wizard re-runs; existing secrets are preserved. |
 
 > **Why secrets are never rotated.** Regenerating `ZITADEL_MASTERKEY` on a
 > configured instance makes its database permanently unreadable. Every value
 > already present in `.env` is carried forward; only genuinely missing ones are
 > generated.
+
+---
+
+## The `update` subcommand
+
+```
+alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+```
+
+The Day-2 command for every release after the first install: it fetches a
+target release's `compose.prod.yaml` and the other standalone stack files,
+backs up the previous ones, sets `IMAGE_TAG` in `.env`, then runs the same
+secret-backfill, Zitadel-reconciliation and restart steps as a plain re-run.
+It requires an existing installation (an `.env` present) and never runs the
+wizard, rotates a secret, or touches the root CA, the Zitadel machinekey/PAT,
+or a Docker volume. Full walkthrough, one-liner and rollback:
+[Update an installation](../how-to/update-installation.md).
 
 ---
 
@@ -219,6 +236,7 @@ ALFHEIM_CHANNEL=prerelease bash -c "$(curl -fsSL https://raw.githubusercontent.c
 ## See also
 
 * [Tutorial: your first installation](../tutorials/first-run.md)
+* [How-to: update an installation](../how-to/update-installation.md)
 * [Environment variables](./environment-variables.md)
 * [CLI scripts](./cli-scripts.md)
 * [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)

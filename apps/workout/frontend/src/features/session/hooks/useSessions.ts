@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useActiveHouseholdId } from "@/core/hooks/useActiveHouseholdId";
+import { useActiveHousehold } from "@alfheim/shared";
 import { sessionsApi } from "../api/sessionsApi";
 import type { SessionListParams, StartSessionRequest, WorkoutSessionRead } from "../types";
 
@@ -14,11 +14,12 @@ export const sessionKeys = {
 };
 
 export function useSessionList(params: SessionListParams = {}) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<WorkoutSessionRead[]>({
     queryKey: sessionKeys.list(householdId, params),
     queryFn: () => sessionsApi.list(params),
+    enabled: status === "ready",
   });
 }
 
@@ -29,18 +30,18 @@ export function useActiveSession() {
 }
 
 export function useSessionDetail(id: string) {
-  const householdId = useActiveHouseholdId();
+  const { householdId, status } = useActiveHousehold();
 
   return useQuery<WorkoutSessionRead>({
     queryKey: sessionKeys.detail(householdId, id),
     queryFn: () => sessionsApi.get(id),
-    enabled: Boolean(id),
+    enabled: status === "ready" && Boolean(id),
   });
 }
 
 export function useStartSession() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<WorkoutSessionRead, Error, StartSessionRequest>({
     mutationFn: (payload) => sessionsApi.start(payload),
@@ -52,7 +53,7 @@ export function useStartSession() {
 
 export function useCompleteSession() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<WorkoutSessionRead, Error, string>({
     mutationFn: (id) => sessionsApi.complete(id),
@@ -64,7 +65,7 @@ export function useCompleteSession() {
 
 export function useAbandonSession() {
   const queryClient = useQueryClient();
-  const householdId = useActiveHouseholdId();
+  const { householdId } = useActiveHousehold();
 
   return useMutation<WorkoutSessionRead, Error, string>({
     mutationFn: (id) => sessionsApi.abandon(id),

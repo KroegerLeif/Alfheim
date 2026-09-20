@@ -1,12 +1,7 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from fastapi import Request
 from src.core.config import Settings
-from src.core.dependencies import (
-    decode_oidc_token,
-    get_jwks_client,
-    is_mock_auth_allowed,
-)
 from src.main import value_error_exception_handler
 
 
@@ -22,19 +17,6 @@ def test_settings_properties():
     assert s2.jwks_url == "http://auth.example.com/keys"
     assert s2.expected_issuer == "http://auth.example.com"
     assert len(s2.jwks_fallback_urls) > 0
-
-
-def test_core_dependency_wrappers():
-    """Verify backend_shared dependency helper pass-throughs."""
-    assert isinstance(is_mock_auth_allowed(), bool)
-    with patch("backend_shared.dependencies.get_jwks_client") as mock_get_client:
-        get_jwks_client("http://mock/jwks")
-        mock_get_client.assert_called_once_with("http://mock/jwks")
-
-    with patch("backend_shared.dependencies.decode_oidc_token") as mock_decode:
-        mock_decode.return_value = {"sub": "user-123"}
-        payload = decode_oidc_token("mock-token")
-        assert payload["sub"] == "user-123"
 
 
 async def test_value_error_handler():

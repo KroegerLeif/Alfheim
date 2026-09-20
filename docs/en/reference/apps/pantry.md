@@ -50,7 +50,9 @@ Source: [`apps/pantry/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/p
 | `DATABASE_URL` | `postgresql+asyncpg://pantry_user:postgres@postgres-core:5432/alfheim_pantry` | Async PostgreSQL connection string |
 | `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | OIDC provider issuer URL |
 | `OIDC_AUDIENCE` | `alfheim` | Target OIDC audience claim |
-| `NEXT_PUBLIC_PANTRY_API_URL` | `http://api.alfheim.loegien.localhost/pantry/api/v1` | Browser API gateway endpoint |
+| `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
+| `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/pantry/api/v1` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
 
 ---
 
@@ -59,5 +61,36 @@ Source: [`apps/pantry/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/p
 - **Product Blueprint** (`products`): Master data definition (name, brand, barcode, base unit, min stock quota).
 - **Inventory State** (`inventory_states`): Live stock cache for a `(product, location, batch_code)` tuple.
 - **Transaction Ledger** (`inventory_transactions`): Immutable audit log recording every IN, OUT, and WASTE stock movement.
+
+---
+
+## 🔌 MCP Tools
+
+Served at `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), authenticated the same way as
+the REST API. Tools take no `household_id`/`user_id` parameters — they read
+`get_mcp_household_context()`.
+
+| Feature | Tools |
+| :--- | :--- |
+| `products` | `list_products`, `get_product`, `get_product_by_barcode`, `create_product`, `update_product`, `delete_product`, `get_product_nutrition`, `update_product_nutrition` |
+| `locations` | `list_locations`, `get_location`, `create_location`, `update_location`, `delete_location` |
+| `inventory` | `record_inventory_movement`, `get_current_inventory`, `get_low_stock_alerts`, `get_inventory_expiration_summary` |
+| `categories` | `list_categories`, `get_category`, `create_category`, `update_category`, `delete_category` |
+
+---
+
+## 🏠 Household Scoping
+
+Every route depends on `backend_shared.household.require_household` (any member role may read and
+write). Global products with a valid EAN/UPC barcode are shared across households
+(`is_global = True`) rather than household-scoped. See
+[ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
+
+---
+
+## ⚠️ Known Issues & Open Follow-Ups
+
+No known open issues beyond the general household-authorization items in
+[Known Issues](../../explanation/known-issues.md).
 
 ---

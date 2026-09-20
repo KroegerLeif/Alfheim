@@ -30,13 +30,16 @@ const (
 
 // UserClaims defines authenticated user claims extracted from OIDC JWT tokens.
 type UserClaims struct {
-	Subject           string   `json:"sub"`
-	Email             string   `json:"email"`
-	PreferredUsername string   `json:"preferred_username"`
-	GivenName         string   `json:"given_name"`
-	FamilyName        string   `json:"family_name"`
-	Roles             []string `json:"roles"`
-	HouseholdID       string   `json:"household_id"`
+	Subject           string `json:"sub"`
+	Email             string `json:"email"`
+	PreferredUsername string `json:"preferred_username"`
+	GivenName         string `json:"given_name"`
+	FamilyName        string `json:"family_name"`
+
+	// AccessToken is the request's raw bearer token, kept only so it can be
+	// forwarded to the Fach-App MCP servers on the user's behalf. It is never
+	// serialized or logged.
+	AccessToken string `json:"-"`
 }
 
 // Authenticator handles generic OIDC JWT validation using a discovered JWKS endpoint.
@@ -169,27 +172,13 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 		}
 
 		userClaims := extractUserClaims(claimsMap)
-
-		// X-Household-ID is only a selector; it can never grant access to a household
-		// the token does not carry. Reject it when the token has no household claim or
-		// names a different household than the one in the token.
-		if headerHH := strings.TrimSpace(r.Header.Get("X-Household-ID")); headerHH != "" {
-			if userClaims.HouseholdID == "" {
-				a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID supplied but no household claims present in token",
-					slog.String("header_household_id", headerHH),
-					slog.String("user_id", userClaims.Subject))
-				writeForbidden(w, "user is not a member of the requested household")
-				return
-			}
-			if !strings.EqualFold(headerHH, userClaims.HouseholdID) {
-				a.log.Warn("cross-tenant IDOR blocked: header X-Household-ID does not match token household claim",
-					slog.String("header_household_id", headerHH),
-					slog.String("token_household_id", userClaims.HouseholdID),
-					slog.String("user_id", userClaims.Subject))
-				writeForbidden(w, "user is not a member of the requested household")
-				return
-			}
+		if userClaims.Subject == "" {
+			writeUnauthorized(w, "token has no subject")
+			return
 		}
+		// Household membership is not a token concern: Zitadel only authenticates.
+		// RequireHousehold checks X-Household-ID against core/household.
+		userClaims.AccessToken = rawToken
 
 		ctx := context.WithValue(r.Context(), UserContextKey, userClaims)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -200,12 +189,6 @@ func writeUnauthorized(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
 	_, _ = fmt.Fprintf(w, `{"error":"unauthorized","message":%q}`, message)
-}
-
-func writeForbidden(w http.ResponseWriter, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusForbidden)
-	_, _ = fmt.Fprintf(w, `{"error":"forbidden","message":%q}`, message)
 }
 
 // GetUserClaims retrieves UserClaims from the HTTP request context.
@@ -234,23 +217,6 @@ func extractUserClaims(claims jwt.MapClaims) *UserClaims {
 	}
 	if familyName, ok := claims["family_name"].(string); ok {
 		uc.FamilyName = familyName
-	}
-
-	// Only extract household from JWT claims; never accept client-supplied header as fallback.
-	if householdID, ok := claims["household_id"].(string); ok && householdID != "" {
-		uc.HouseholdID = householdID
-	} else if activeHouseholdID, ok := claims["active_household_id"].(string); ok && activeHouseholdID != "" {
-		uc.HouseholdID = activeHouseholdID
-	}
-
-	if realmAccess, ok := claims["realm_access"].(map[string]interface{}); ok {
-		if rolesInterface, ok := realmAccess["roles"].([]interface{}); ok {
-			for _, role := range rolesInterface {
-				if roleStr, ok := role.(string); ok {
-					uc.Roles = append(uc.Roles, roleStr)
-				}
-			}
-		}
 	}
 
 	return uc

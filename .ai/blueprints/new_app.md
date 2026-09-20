@@ -25,7 +25,7 @@ apps/<app-name>/
 │       ├── core/                      # Global infrastructure (DB, auth, config, logger, storage)
 │       │   ├── config.py              # Environment settings (Pydantic / Viper)
 │       │   ├── database.py            # Async DB engine & session factory
-│       │   ├── dependencies.py        # Auth context & common dependencies
+│       │   ├── dependencies.py        # Thin re-exports of backend_shared.household (no own auth parsing)
 │       │   └── storage.py             # RustFS S3 async client & presigned URL helper
 │       ├── features/                  # Feature-Driven Modules (FDD)
 │       │   └── <feature_name>/        # Business domain module (e.g., items, categories)
@@ -79,7 +79,7 @@ When initializing a new app, the following files **MUST** be explicitly created 
 * **`backend/src/main.py`**: Expresses HTTP lifespan, middleware, CORS, routers, and healthcheck route at `/api/v1/health`.
 * **`backend/src/core/config.py`**: Environment configuration loader.
 * **`backend/src/core/database.py`**: Async database connection pool & session manager.
-* **`backend/src/core/dependencies.py`**: Parsers for OIDC JWT tokens and the `X-Household-ID` header.
+* **`backend/src/core/dependencies.py`**: Optional. Re-exports `require_household` / `require_role` from `backend_shared.household`. Never parse JWT household or role claims here.
 
 ### Frontend Core
 * **`frontend/Dockerfile`**: Standalone build configuration matching `"standalone"` output mode.
@@ -87,7 +87,8 @@ When initializing a new app, the following files **MUST** be explicitly created 
 * **`frontend/next.config.ts`**: Configured with `basePath: '/<app-name>'`, standalone build output, and `@alfheim/shared` transpiling.
 * **`frontend/src/proxy.ts`**: Next.js 16 proxy file for localized path routing.
 * **`frontend/src/i18n.ts`**: Merges global locales from `@alfheim/shared` via `getSharedMessages(locale)`.
-* **`frontend/src/lib/api.ts`**: Centralized typed API client wrapping native `fetch` configured for API requests.
+* **`frontend/src/lib/api.ts`**: Centralized typed API client. Adds the header with `applyHouseholdHeaders` and reports household errors with `reportHouseholdErrorResponse` (both from `@alfheim/shared`).
+* **`frontend` root layout**: Mounts `HouseholdProvider` (via `AppShell`) and wraps household-scoped pages in `HouseholdGate`.
 
 ---
 
@@ -161,6 +162,22 @@ http://api.alfheim.loegien.de, http://api.alfheim.loegien.localhost {
      OIDC_INTERNAL_URL=http://zitadel:8080
      ```
    * Backends resolve the JWKS URI from `{OIDC_ISSUER_URL}/.well-known/openid-configuration`.
+3. **Household Authorization** (see ADR 0006, `docs/en/explanation/decisions/0006-household-authorization-via-membership-api.md`):
+   * Zitadel only authenticates. It issues **no** household or role claims; never read `household_id`, `active_household_id`, `households` or `realm_access.roles`.
+   * Add to the backend service in `compose.yml` and `compose.prod.yaml`:
+     ```yaml
+     environment:
+       - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
+       - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:-dev-internal-token-change-me}   # prod: ${ALFHEIM_INTERNAL_TOKEN:?...}
+     depends_on:
+       household-backend:
+         condition: service_healthy
+     ```
+   * **Python**: call `configure_household_auth(settings)` in `main.py`, `await close_membership_client()` on lifespan shutdown, and depend on `require_household` (or `require_role("OWNER", "ADMIN")`) in every household-scoped route. Wrap the MCP app in `MCPAuthenticationMiddleware`.
+   * **Go**: follow the chat backend: `middleware.RequireHousehold` after JWT validation, backed by a `householdclient` (30 s / 5 s cache, fail closed with `503`).
+   * **MCP tools** never take `household_id` / `user_id` arguments. They read `get_mcp_household_context()`.
+   * **Cross-app calls** forward the caller's `Authorization` and `X-Household-ID` headers.
+   * **Frontend**: use `useActiveHousehold()` and enable household-scoped queries only when `status === 'ready'`, with the household id in the query key. Send only `X-Household-ID`, never `X-Household-Role`.
 
 ---
 
@@ -229,8 +246,8 @@ echo -e "  ${GREEN}✔${RESET}  <App-Name>  →  ${BOLD}http://alfheim.loegien.l
 ## 8. Agent Execution Checklist
 
 - [ ] **Scaffold folders** according to FDD boundaries under `apps/<app-name>/`.
-- [ ] **Implement Backend**: Dockerfile, pyproject.toml/go.mod, main router, config engine, database module, auth verification contexts, and `/api/v1/health` endpoint.
-- [ ] **Implement Frontend**: tsconfig/package configs, `next.config.ts` (standalone mode, transpile `@alfheim/shared`), proxy setup (`src/proxy.ts`), i18n setup, API client, layout, and first page views.
+- [ ] **Implement Backend**: Dockerfile, pyproject.toml/go.mod, main router, config engine, database module, `require_household` (Python) or `RequireHousehold` (Go) on every household-scoped route, and `/api/v1/health` endpoint.
+- [ ] **Implement Frontend**: tsconfig/package configs, `next.config.ts` (standalone mode, transpile `@alfheim/shared`), proxy setup (`src/proxy.ts`), i18n setup, API client (`applyHouseholdHeaders`), layout with `HouseholdGate`, and first page views.
 - [ ] **Populate i18n**: Add translations in all 3 language JSON files under `@alfheim/shared`.
 - [ ] **Register 3-Tier Dashboard Entry**:
   - For Tier 1 Core Apps: Register entry in [`tier1_core_registry.go`](../../core/dashboard/backend/internal/features/apps/tier1_core_registry.go).

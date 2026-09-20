@@ -7,9 +7,9 @@ from unittest.mock import patch
 import httpx
 import pytest
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from src.api.dependencies import get_current_household_id
 from src.api.v1 import router as api_v1_router
 from src.config import settings
 
@@ -46,7 +46,7 @@ def is_internal_url(url: str | httpx.URL) -> bool:
 @pytest.mark.asyncio
 async def test_lookup_isbn_google_books_success(client: AsyncClient, test_app: FastAPI):
     """Test successful book lookup via Google Books API."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_ID
+    override_household(test_app, household_id=HOUSEHOLD_ID)
 
     google_books_data = {
         "items": [
@@ -85,7 +85,7 @@ async def test_lookup_isbn_google_books_success(client: AsyncClient, test_app: F
 @pytest.mark.asyncio
 async def test_lookup_isbn_open_library_fallback(client: AsyncClient, test_app: FastAPI):
     """Test open library fallback when Google Books yields no items."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_ID
+    override_household(test_app, household_id=HOUSEHOLD_ID)
 
     google_empty = httpx.Response(200, json={"items": []})
 
@@ -121,7 +121,7 @@ async def test_lookup_isbn_open_library_fallback(client: AsyncClient, test_app: 
 @pytest.mark.asyncio
 async def test_lookup_isbn_invalid_and_not_found(client: AsyncClient, test_app: FastAPI):
     """Test error handling for invalid ISBN length and non-existent ISBN."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_ID
+    override_household(test_app, household_id=HOUSEHOLD_ID)
 
     # Invalid ISBN length
     res_inv = await client.get("/api/v1/library/lookup/isbn?isbn=123")
@@ -148,7 +148,7 @@ async def test_lookup_isbn_invalid_and_not_found(client: AsyncClient, test_app: 
 @pytest.mark.asyncio
 async def test_lookup_bgg_success(client: AsyncClient, test_app: FastAPI):
     """Test successful board game lookup via BoardGameGeek XML API2."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_ID
+    override_household(test_app, household_id=HOUSEHOLD_ID)
 
     search_xml = b"""<items total="1">
         <item type="boardgame" id="13">
@@ -199,7 +199,7 @@ async def test_lookup_bgg_success(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_lookup_bgg_empty_query_and_no_results(client: AsyncClient, test_app: FastAPI):
     """Test validation and 404 handling for BGG queries."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_ID
+    override_household(test_app, household_id=HOUSEHOLD_ID)
 
     # Empty query
     res_empty = await client.get("/api/v1/library/lookup/bgg?query=   ")
@@ -227,7 +227,7 @@ async def test_lookup_bgg_empty_query_and_no_results(client: AsyncClient, test_a
 @pytest.mark.asyncio
 async def test_lookup_tmdb_success_and_missing_key(client: AsyncClient, test_app: FastAPI):
     """Test TMDB lookup with and without configured API key."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_ID
+    override_household(test_app, household_id=HOUSEHOLD_ID)
 
     # Test without TMDB_API_KEY
     with patch.object(settings, "TMDB_API_KEY", None):

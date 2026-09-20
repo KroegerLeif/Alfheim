@@ -128,6 +128,26 @@ func TestProvision_PropagatesAppError(t *testing.T) {
 	}
 }
 
+func TestAppSlugsIncludeHousehold(t *testing.T) {
+	// The Tier-1 household frontend (basePath /household) shares the web
+	// client, so both fresh installs and Day-2 re-provisioning must register
+	// its redirect and post-logout URIs.
+	in := BuildInput("Alfheim", "https://alfheim.example.com", false, AppSlugs)
+	const want = "https://alfheim.example.com/household/"
+	for name, uris := range map[string][]string{
+		"redirect":    in.WebApp.RedirectURIs,
+		"post-logout": in.WebApp.PostLogoutRedirectURIs,
+	} {
+		found := false
+		for _, u := range uris {
+			found = found || u == want
+		}
+		if !found {
+			t.Errorf("%s URIs = %v, want %s", name, uris, want)
+		}
+	}
+}
+
 func TestBuildInput_RedirectURIs(t *testing.T) {
 	in := BuildInput("Alfheim", "https://alfheim.example.com", true, []string{"pantry", "chat"})
 	want := []string{

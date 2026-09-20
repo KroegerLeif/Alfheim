@@ -16,6 +16,7 @@ sidebar:
 - [JWT Token Claims & User Identity](#jwt-token-claims--user-identity)
 - [Multi-Tenancy Isolation (`X-Household-ID`)](#multi-tenancy-isolation-x-household-id)
 - [FastMCP AI Agent Tenant Safety](#fastmcp-ai-agent-tenant-safety)
+- [Frontend Household Context](#frontend-household-context)
 
 ---
 
@@ -37,9 +38,10 @@ To ensure clear architectural boundaries and keep external identity infrastructu
    - Zitadel is responsible exclusively for global user identity verification, authentication (passwords, MFA, OIDC tokens), and user profile management (`sub`, `email`, `preferred_username`).
    - Zitadel does not manage microservice application business data or complex household memberships.
 
-2. **Household Authorization & Context (AuthZ - Alfheim Core)**:
-   - Alfheim Core/Dashboard manages household domain entities, household invitations, member roles (`owner`, `member`, `guest`), and tenant boundaries.
-   - Microservices accept authenticated identity tokens from Zitadel and validate household access against active household contexts (`X-Household-ID`) governed by Alfheim Core.
+2. **Household Authorization & Context (AuthZ - `core/household`)**:
+   - The Tier-1 app `core/household` owns households, invitations, member roles (`OWNER`, `ADMIN`, `MEMBER`, `GUEST`), contacts and the user profile. It is the only source of truth for who belongs to which household.
+   - Zitadel issues no household or role claims. Backends never read them; they ask `core/household` instead (see [ADR 0006](./decisions/0006-household-authorization-via-membership-api.md)).
+   - The dashboard is not involved in household authorization. It serves only the launcher, app catalog, user links and preferences (plus telemetry), and ignores `X-Household-ID` / `X-Household-Role`.
 
 ---
 
@@ -47,7 +49,7 @@ To ensure clear architectural boundaries and keep external identity infrastructu
 
 1. **Authorization Grant**: Frontends redirect unauthenticated users to Zitadel using standard generic OIDC Authorization Code Flow with PKCE (`S256`).
 2. **Token Exchange**: Zitadel issues an RSA256/Ed25519-signed JWT access token containing standard identity claims (`sub`, `email`, `preferred_username`).
-3. **Session & Header Injection**: Frontends store the access token securely in session storage and attach both `Authorization: Bearer <token>` and `X-Household-ID: <active_household_id>` to outbound API calls.
+3. **Session & Header Injection**: Frontends store the access token in session storage and attach `Authorization: Bearer <token>` to outbound API calls. Household-scoped calls also carry `X-Household-ID: <active household UUID>`. Frontends never send `X-Household-Role`.
 
 ---
 
@@ -70,14 +72,57 @@ Zitadel issues standardized OIDC identity tokens:
 
 ## Multi-Tenancy Isolation (`X-Household-ID`)
 
-To enforce strict tenant boundaries across all microservices:
+`X-Household-ID` only *selects* a household. It grants nothing on its own: every household-scoped backend confirms the caller's membership with `core/household` before it serves the request.
 
-1. **Request Header Enforcement**: Microservice backends validate that incoming HTTP requests carry a valid `X-Household-ID` header.
-2. **Household Authorization Check**: Backend authentication middleware (`backend_shared.auth` and Go auth handlers) validates user identity (`sub`) and checks household membership authorization via Alfheim Core. The household is taken from the token's `household_id` / `active_household_id` claim; a request whose `X-Household-ID` header disagrees with that claim, or that sends the header with a token carrying no household claim, is rejected with `403`. The header never supplies a household on its own.
-3. **Query Filtering**: Database repository queries filter all reads, writes, updates, and deletes by `household_id == active_household_id`.
+1. **Token validation**: the backend validates the JWT (issuer, signature, audience) and takes the user from `sub`. A missing or invalid token is `401 unauthenticated`.
+2. **Header check**: the request must carry `X-Household-ID` as a UUID. Missing is `400 household_required`; not a UUID is `400 household_invalid`.
+3. **Membership lookup**: the backend calls the household app's internal API:
+
+   ```text
+   GET {HOUSEHOLD_INTERNAL_URL}/internal/v1/memberships/{householdId}/{userSub}
+   Authorization: Bearer {ALFHEIM_INTERNAL_TOKEN}
+   ```
+
+   `200` returns the member's `role`; `404` means not a member (`403 household_forbidden`). Caddy never routes `/internal/*`, and `ALFHEIM_INTERNAL_TOKEN` never reaches a browser.
+4. **Role check**: routes that need a role (for example chat's MCP registry toggle, OWNER or ADMIN) use the role from the membership answer, never a token claim. A member without the role gets `403 household_role_forbidden`.
+5. **Query filtering**: repository queries filter every read, write, update and delete by the verified household id.
+
+Python backends implement steps 1–4 with `backend_shared.household.require_household` / `require_role`. The chat backend (Go) uses `middleware.RequireHousehold` with `internal/shared/householdclient`. Both behave the same:
+
+| Status | `detail.code` | Meaning |
+| :--- | :--- | :--- |
+| `401` | `unauthenticated` | No valid JWT, or no `sub` |
+| `400` | `household_required` | `X-Household-ID` is missing |
+| `400` | `household_invalid` | `X-Household-ID` is not a UUID |
+| `403` | `household_forbidden` | The user is not a member of that household |
+| `403` | `household_role_forbidden` | The user is a member, but the route needs another role |
+| `503` | `household_service_unavailable` | The membership API is unreachable, timed out, returned 5xx, rejected the internal token, or the token is not configured. Requests never fail open |
+
+The body is always `{"detail": {"code": "...", "message": "..."}}`.
+
+**Caching:** answers are cached per process, keyed by household and user: members for 30 s, non-members for 5 s. Errors are never cached. Removing a member therefore takes effect within 30 s, without the user signing in again.
+
+**Service-to-service calls:** when one app calls another (for example shopping → pantry, maintenance → budget), it forwards the caller's bearer token and `X-Household-ID`. The target app authorizes the caller itself; there is no service identity that bypasses the membership check.
+
+The dashboard backend is not household-scoped: its data (preferences, links) is keyed by the user's `sub`, so it neither validates nor rejects `X-Household-ID`, and it never reads or emits `X-Household-Role`. `core/household` authorizes its own public API from the household id in the URL path and also ignores both headers.
 
 ---
 
 ## FastMCP AI Agent Tenant Safety
 
-FastMCP AI agent tools (invoked by LLM clients like ALFI) require an explicit `household_id` parameter on every tool execution. The MCP tool logic enforces household boundaries before performing database modifications, preventing cross-household data leaks.
+MCP tools never take a household (or user) argument from the LLM. The household comes only from the request context:
+
+* The chat backend forwards the caller's `Authorization: Bearer <token>` and `X-Household-ID` on every JSON-RPC request to an MCP server. Credentials are set per request, so one caller's identity is never reused for another.
+* Each Python app wraps its MCP app in `MCPAuthenticationMiddleware`, which runs the same token, header and membership checks as the REST API and the same error contract.
+* Tools read the verified context with `get_mcp_household_context()` and call the same service functions as the REST routes, so MCP reads and writes the same household the user has selected.
+
+---
+
+## Frontend Household Context
+
+Frontends take the active household from `@alfheim/shared`:
+
+* `HouseholdProvider` loads the user's households from `GET /api/v1/households/me` (served by `core/household`) and picks the active one: the saved id if it is still a membership, then the default household, then the first one. The choice is stored in `localStorage` under `alfheim_active_household_id` and synced across apps and tabs.
+* `useActiveHousehold()` exposes `{ status, householdId, role, ... }`. Household-scoped queries wait for `status === 'ready'` and include the household id in their query keys.
+* `HouseholdGate` renders the page only when a household is ready. Otherwise it shows a create-or-join card (linking to `/household/onboarding`), switch buttons after `household_forbidden`, or a retry message after `household_service_unavailable`.
+* API clients add the header with `applyHouseholdHeaders` / `householdHeaders` and report household errors with `reportHouseholdErrorResponse`.

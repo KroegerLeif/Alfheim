@@ -137,7 +137,7 @@ func TestManifestHasNoDuplicateKeys(t *testing.T) {
 }
 
 // secretKeyPattern matches the environment variables that hold credentials.
-var secretKeyPattern = regexp.MustCompile(`^[A-Z0-9_]*(PASSWORD|SECRET|MASTERKEY|ENCRYPTION_KEY)[A-Z0-9_]*$`)
+var secretKeyPattern = regexp.MustCompile(`^[A-Z0-9_]*(PASSWORD|SECRET|MASTERKEY|ENCRYPTION_KEY|TOKEN)[A-Z0-9_]*$`)
 
 // allowedUngenerated lists secret-shaped keys that are deliberately not
 // generated, with the reason they are exempt.
@@ -147,6 +147,9 @@ var allowedUngenerated = map[string]string{
 	// Zitadel assigns this when the installer's provisioning step reconciles
 	// the Grafana OIDC application; it is never generated locally.
 	"GRAFANA_OIDC_CLIENT_SECRET": "provisioned by Zitadel, not generated",
+	// DNS provider credentials the operator supplies for DNS-01 issuance.
+	"HETZNER_API_TOKEN":    "operator-supplied DNS API token",
+	"CLOUDFLARE_API_TOKEN": "operator-supplied DNS API token",
 }
 
 func TestManifestCoversEveryRepositorySecret(t *testing.T) {

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from uuid import UUID
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.plans.service import PlanService
 from src.features.pots.repository import PotRepository
@@ -10,13 +11,15 @@ from src.features.transactions.service import TransactionService
 from src.mcp.server import mcp
 
 
-@mcp.tool()
-async def get_pot_balances(household_id: UUID) -> str:
-    """Retrieve virtual pot balances and targets for the specified household.
+def _household_id() -> UUID:
+    """Household of the current MCP request, as confirmed by MCPAuthenticationMiddleware (never LLM-supplied)."""
+    return get_mcp_household_context().household_id
 
-    Parameters:
-    - household_id: UUID of the household.
-    """
+
+@mcp.tool()
+async def get_pot_balances() -> str:
+    """Retrieve virtual pot balances and targets for the caller's household."""
+    household_id = _household_id()
     try:
         async with async_session_factory() as session:
             repo = PotRepository(session)
@@ -39,13 +42,13 @@ async def get_pot_balances(household_id: UUID) -> str:
 
 
 @mcp.tool()
-async def suggest_budget_allocation(household_id: UUID, income: float) -> str:
+async def suggest_budget_allocation(income: float) -> str:
     """Calculate and suggest budget distribution across pots based on priority cascade.
 
     Parameters:
-    - household_id: UUID of the household.
     - income: Total income or funds available for allocation.
     """
+    household_id = _household_id()
     try:
         async with async_session_factory() as session:
             repo = PotRepository(session)
@@ -77,13 +80,13 @@ async def suggest_budget_allocation(household_id: UUID, income: float) -> str:
 
 
 @mcp.tool()
-async def analyze_spending_gap(household_id: UUID, month: str) -> str:
+async def analyze_spending_gap(month: str) -> str:
     """Analyze the spending gap between planned budget allocations and actual transaction expenses.
 
     Parameters:
-    - household_id: UUID of the household.
     - month: Month string (e.g., 'YYYY-MM' format).
     """
+    household_id = _household_id()
     try:
         async with async_session_factory() as session:
             plan_service = PlanService(session)
@@ -118,13 +121,13 @@ async def analyze_spending_gap(household_id: UUID, month: str) -> str:
 
 
 @mcp.tool()
-async def calculate_sinking_gap(household_id: UUID, pot_id: UUID) -> str:
+async def calculate_sinking_gap(pot_id: UUID) -> str:
     """Calculate the sinking fund gap and required monthly contribution rate for a virtual pot.
 
     Parameters:
-    - household_id: UUID of the household.
     - pot_id: UUID of the virtual pot.
     """
+    household_id = _household_id()
     try:
         async with async_session_factory() as session:
             repo = PotRepository(session)

@@ -5,12 +5,12 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from backend_shared.household.testing import override_household
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.api.dependencies import get_current_household_id
 from src.api.v1 import router as api_v1_router
 from src.db.database import get_db_session
 
@@ -61,7 +61,7 @@ async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 @pytest.mark.asyncio
 async def test_lend_and_return_item(client: AsyncClient, test_app: FastAPI):
     """Test lending an available item and returning it."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Create an item
     create_res = await client.post(
@@ -111,7 +111,7 @@ async def test_lend_and_return_item(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_lend_item_error_cases(client: AsyncClient, test_app: FastAPI):
     """Test error handling when lending/returning items."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Lend non-existent item
     random_id = uuid.uuid4()
@@ -155,7 +155,7 @@ async def test_lend_item_error_cases(client: AsyncClient, test_app: FastAPI):
 @pytest.mark.asyncio
 async def test_lending_history_filtering_and_pagination(client: AsyncClient, test_app: FastAPI):
     """Test retrieving, filtering, and paginating lending record history."""
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     # Create two items
     book_res = await client.post("/api/v1/library/items", json={"title": "Book 1", "media_type": "BOOK"})
@@ -207,7 +207,7 @@ async def test_lending_history_filtering_and_pagination(client: AsyncClient, tes
 async def test_lending_household_isolation(client: AsyncClient, test_app: FastAPI):
     """Test tenant multi-tenancy isolation for lending endpoints."""
     # Household 1 creates item and lends it
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_1
+    override_household(test_app, household_id=HOUSEHOLD_1)
 
     item_res = await client.post(
         "/api/v1/library/items",
@@ -221,7 +221,7 @@ async def test_lending_household_isolation(client: AsyncClient, test_app: FastAP
     )
 
     # Household 2 attempts actions on Household 1's item
-    test_app.dependency_overrides[get_current_household_id] = lambda: HOUSEHOLD_2
+    override_household(test_app, household_id=HOUSEHOLD_2)
 
     # Attempt lending
     lend_h2 = await client.post(

@@ -2,13 +2,14 @@ import logging
 import uuid
 
 import httpx
+from backend_shared.household import HOUSEHOLD_HEADER
 
 logger = logging.getLogger(__name__)
 
 
 async def push_out_of_stock_to_shopping(
     shopping_url: str,
-    token: str | None,
+    token: str,
     household_id: uuid.UUID,
     name: str,
     quantity: float = 1.0,
@@ -16,11 +17,17 @@ async def push_out_of_stock_to_shopping(
     product_id: uuid.UUID | None = None,
     barcode: str | None = None,
 ) -> bool:
-    """Push an out-of-stock item from Pantry directly to Shopping backend via internal HTTP integration."""
+    """Push an out-of-stock item from Pantry directly to Shopping backend via internal HTTP integration.
+
+    ``token`` is the caller's own bearer token and ``household_id`` the household they
+    act in: both are forwarded so Shopping authorizes the caller itself (JWT +
+    household membership). Pantry never vouches for a user.
+    """
     target_url = f"{shopping_url.rstrip('/')}/api/v1/shopping/items"
-    headers = {"X-Household-ID": str(household_id)}
-    if token:
-        headers["Authorization"] = token if token.startswith("Bearer ") else f"Bearer {token}"
+    headers = {
+        HOUSEHOLD_HEADER: str(household_id),
+        "Authorization": token if token.lower().startswith("bearer ") else f"Bearer {token}",
+    }
 
     payload = {
         "name": name,

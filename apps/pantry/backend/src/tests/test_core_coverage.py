@@ -4,11 +4,6 @@ from backend_shared import oidc_discovery
 from fastapi import Request
 from httpx import AsyncClient
 from src.core.config import Settings
-from src.core.dependencies import (
-    decode_oidc_token,
-    get_jwks_client,
-    is_mock_auth_allowed,
-)
 from src.main import value_error_exception_handler
 
 
@@ -39,19 +34,6 @@ def test_settings_jwks_url_resolved_via_oidc_discovery():
 
     assert s2.expected_issuer == "http://api.alfheim.loegien.localhost/auth"
     oidc_discovery._discovered_jwks_uris.clear()
-
-
-def test_core_dependency_wrappers():
-    """Verify backend_shared dependency helper pass-throughs."""
-    assert isinstance(is_mock_auth_allowed(), bool)
-    with patch("src.core.dependencies._deps.get_jwks_client") as mock_get_client:
-        get_jwks_client("http://mock/jwks")
-        mock_get_client.assert_called_once_with("http://mock/jwks")
-
-    with patch("src.core.dependencies._deps.decode_oidc_token") as mock_decode:
-        mock_decode.return_value = {"sub": "user-123"}
-        payload = decode_oidc_token("mock-token")
-        assert payload["sub"] == "user-123"
 
 
 async def test_value_error_handler():

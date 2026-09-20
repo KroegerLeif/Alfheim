@@ -1,35 +1,11 @@
-"""Authentication and tenant isolation dependencies for pantry service."""
+"""Pantry-local identity constants.
 
-import logging
-from typing import Any
+Authentication and household authorization live in ``backend_shared.household``
+(``require_household`` / ``require_role``); membership is confirmed by the
+household app. Only the fixed ids used by the demo seeders remain here.
+"""
 
-import backend_shared.dependencies as _deps
-from fastapi import Request
-from src.core.config import settings
+import uuid
 
-logger = logging.getLogger(__name__)
-
-MOCK_USER_ID = _deps.MOCK_USER_ID
-MOCK_HOME_ID = _deps.MOCK_HOME_ID
-SAFE_TEST_HOSTS = _deps.SAFE_TEST_HOSTS
-SAFE_TEST_SUFFIXES = _deps.SAFE_TEST_SUFFIXES
-UserHomeContext = _deps.UserHomeContext
-
-
-def is_mock_auth_allowed() -> bool:
-    return _deps.is_mock_auth_allowed(settings=settings)
-
-
-def get_jwks_client(jwks_url: str):
-    return _deps.get_jwks_client(jwks_url)
-
-
-def decode_token(token: str) -> dict[str, Any]:
-    return _deps.decode_oidc_token(token, settings=settings)
-
-
-decode_oidc_token = decode_token
-
-
-async def get_current_user_and_home(request: Request) -> UserHomeContext:
-    return await _deps.get_current_user_and_home(request, settings=settings)
+MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+MOCK_HOME_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")

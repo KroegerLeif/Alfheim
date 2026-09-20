@@ -58,7 +58,8 @@ class ChoreAssignRequest(BaseModel):
 
 
 class ChoreCompleteRequest(BaseModel):
-    completed_by: uuid.UUID | None = None
+    """Optional completion details. The completing user is always the authenticated caller."""
+
     completed_by_name: str | None = None
 
 

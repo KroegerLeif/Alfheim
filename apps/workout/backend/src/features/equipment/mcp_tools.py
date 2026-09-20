@@ -1,5 +1,6 @@
 import uuid
 
+from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.equipment.models import EquipmentScope
 from src.features.equipment.schemas import EquipmentCreate, EquipmentUpdate
@@ -9,8 +10,6 @@ from src.mcp.server import mcp
 
 @mcp.tool()
 async def list_equipment(
-    household_id: str,
-    user_id: str,
     is_active: bool | None = None,
     limit: int = 100,
     offset: int = 0,
@@ -18,15 +17,14 @@ async def list_equipment(
     """List equipment visible to the caller: system + their household's + their own entries.
 
     Parameters:
-    - household_id: UUID string of the caller's household. Required for tenant isolation.
-    - user_id: UUID string of the caller.
     - is_active: Optional filter for active/inactive equipment.
     - limit: Maximum number of entries to return (default 100).
     - offset: Number of records to skip (default 0).
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         async with async_session_factory() as session:
             items = await EquipmentService.list_equipment(
                 session=session,
@@ -48,8 +46,6 @@ async def list_equipment(
 
 @mcp.tool()
 async def create_equipment(
-    household_id: str,
-    user_id: str,
     name: str,
     category: str | None = None,
     scope: str = "household",
@@ -57,15 +53,14 @@ async def create_equipment(
     """Create a new equipment entry scoped to the caller's household or the caller alone.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - name: Name of the equipment.
     - category: Optional free-text category tag.
     - scope: 'household' (default) or 'user'. System-scoped entries cannot be created via this tool.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         payload = EquipmentCreate(name=name, category=category, scope=EquipmentScope(scope))
         async with async_session_factory() as session:
             equipment = await EquipmentService.create_equipment(
@@ -83,8 +78,6 @@ async def create_equipment(
 
 @mcp.tool()
 async def update_equipment(
-    household_id: str,
-    user_id: str,
     equipment_id: str,
     name: str | None = None,
     category: str | None = None,
@@ -93,16 +86,15 @@ async def update_equipment(
     """Update an equipment entry the caller owns. System entries cannot be modified.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - equipment_id: UUID string of the equipment entry to update.
     - name: Optional new name.
     - category: Optional new category tag.
     - is_active: Optional new active status.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         eq_uuid = uuid.UUID(equipment_id)
         payload = EquipmentUpdate(name=name, category=category, is_active=is_active)
         async with async_session_factory() as session:
@@ -123,17 +115,16 @@ async def update_equipment(
 
 
 @mcp.tool()
-async def delete_equipment(household_id: str, user_id: str, equipment_id: str) -> str:
+async def delete_equipment(equipment_id: str) -> str:
     """Delete an equipment entry the caller owns. System entries cannot be deleted.
 
     Parameters:
-    - household_id: UUID string of the caller's household.
-    - user_id: UUID string of the caller.
     - equipment_id: UUID string of the equipment entry to delete.
     """
     try:
-        home_uuid = uuid.UUID(household_id)
-        user_uuid = uuid.UUID(user_id)
+        context = get_mcp_household_context()
+        home_uuid = context.household_id
+        user_uuid = context.user_id
         eq_uuid = uuid.UUID(equipment_id)
         async with async_session_factory() as session:
             deleted = await EquipmentService.delete_equipment(

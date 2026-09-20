@@ -1,9 +1,9 @@
 import uuid
 
+from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.dependencies import UserHomeContext, get_current_user_and_home
 from src.features.equipment.schemas import EquipmentCreate, EquipmentRead, EquipmentUpdate
 from src.features.equipment.service import EquipmentService
 
@@ -14,13 +14,13 @@ router = APIRouter(prefix="/api/v1/equipment", tags=["equipment"])
 async def create_equipment(
     payload: EquipmentCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Create a new household- or user-scoped equipment entry."""
     return await EquipmentService.create_equipment(
         session=session,
         payload=payload,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
     )
 
@@ -31,12 +31,12 @@ async def list_equipment(
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """List all equipment visible to the caller: system + own household + own user entries."""
     return await EquipmentService.list_equipment(
         session=session,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         is_active=is_active,
         limit=limit,
@@ -48,13 +48,13 @@ async def list_equipment(
 async def get_equipment(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Retrieve details for a specific equipment entry by ID."""
     equipment = await EquipmentService.get_equipment(
         session=session,
         equipment_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
     )
     if not equipment:
@@ -67,13 +67,13 @@ async def update_equipment(
     id: uuid.UUID,
     payload: EquipmentUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Partially update an equipment entry the caller owns. System entries cannot be modified."""
     equipment = await EquipmentService.update_equipment(
         session=session,
         equipment_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
         payload=payload,
     )
@@ -86,13 +86,13 @@ async def update_equipment(
 async def delete_equipment(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: UserHomeContext = Depends(get_current_user_and_home),
+    context: HouseholdContext = Depends(require_household),
 ):
     """Delete an equipment entry the caller owns. System entries cannot be deleted."""
     deleted = await EquipmentService.delete_equipment(
         session=session,
         equipment_id=id,
-        home_id=context.home_id,
+        home_id=context.household_id,
         user_id=context.user_id,
     )
     if not deleted:

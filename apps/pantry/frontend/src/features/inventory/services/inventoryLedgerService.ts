@@ -4,7 +4,8 @@ import {
   InventoryTransactionCreate,
   InventoryLedgerRead
 } from "../types";
-import { useActiveHouseholdId, inventoryKeys } from "./inventoryService";
+import { useActiveHousehold } from "@alfheim/shared";
+import { inventoryKeys } from "./inventoryService";
 
 /**
  * TanStack Mutation to record an IN, OUT, WASTE, or RECONCILIATION transaction.
@@ -28,7 +29,7 @@ export function useCreateTransaction() {
  * Retrieves transaction audit ledger history logs.
  */
 export function useLedgerHistory(productId?: string, locationId?: string, limit = 100, offset = 0) {
-  const activeHouseholdId = useActiveHouseholdId();
+  const { householdId: activeHouseholdId, status } = useActiveHousehold();
 
   return useQuery<InventoryLedgerRead[]>({
     queryKey: inventoryKeys.ledgerFiltered(activeHouseholdId, productId, locationId, limit, offset),
@@ -43,5 +44,6 @@ export function useLedgerHistory(productId?: string, locationId?: string, limit 
           },
         })
         .json<InventoryLedgerRead[]>(),
+    enabled: status === "ready",
   });
 }

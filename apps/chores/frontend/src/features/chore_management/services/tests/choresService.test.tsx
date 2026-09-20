@@ -1,9 +1,9 @@
 import React from 'react'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { StaticHouseholdProvider } from '@alfheim/shared'
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
-  useActiveHouseholdId,
   useChoreTemplates,
   useTodayChores,
   useChoreSummary,
@@ -19,7 +19,7 @@ import { createTestQueryClient } from '../../../../tests/test-utils'
 
 function createWrapper(queryClient: QueryClient) {
   return function QueryWrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    return <StaticHouseholdProvider householdId="hh-1"><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></StaticHouseholdProvider>
   }
 }
 
@@ -30,18 +30,6 @@ describe('choresService Hooks', () => {
     queryClient = createTestQueryClient()
     localStorage.clear()
     localStorage.setItem('alfheim_active_household_id', 'hh-1')
-  })
-
-  it('useActiveHouseholdId responds to localStorage and custom events', () => {
-    const { result } = renderHook(() => useActiveHouseholdId())
-    expect(result.current).toBe('hh-1')
-
-    act(() => {
-      localStorage.setItem('alfheim_active_household_id', 'hh-2')
-      window.dispatchEvent(new Event('storage-household-changed'))
-    })
-
-    expect(result.current).toBe('hh-2')
   })
 
   it('useChoreTemplates fetches chore templates via MSW', async () => {
