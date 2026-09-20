@@ -64,3 +64,34 @@ Source: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 - **Household Streak** (`household_streaks`): Cumulative day counter incremented upon completing scheduled chores by midnight.
 
 ---
+
+## 🔌 MCP Tools
+
+Served at `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), authenticated the same way as
+the REST API. Tools take no `household_id`/`user_id` parameters — they read
+`get_mcp_household_context()`.
+
+| Feature | Tools |
+| :--- | :--- |
+| `chore_management` | `get_daily_chores_overview`, `complete_chore_by_name`, `assign_chore` |
+
+The client-supplied `completed_by` field was removed from chore completion; the authenticated
+caller is always the one recorded.
+
+---
+
+## 🏠 Household Scoping
+
+Every route depends on `backend_shared.household.require_household` (any member role may read and
+write). The daily reset (streak increment or reset to 0) runs retroactively and self-heals on the
+first access of a household's chores list for that day if the system was offline. See
+[ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
+
+---
+
+## ⚠️ Known Issues & Open Follow-Ups
+
+No known open issues beyond the general household-authorization items in
+[Known Issues](../../explanation/known-issues.md).
+
+---

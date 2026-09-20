@@ -84,3 +84,11 @@ Python-Backends rufen sie über `backend_shared.household.require_household` auf
 | `/household/onboarding` | Anlegen oder Beitreten; vom `HouseholdGate` jeder App verlinkt, wenn der Benutzer keinen Haushalt hat |
 | `/household/join?token=<token>` | Löst eine Einladung nach der Anmeldung ein (Ziel des QR-Codes) |
 | `/household/profile` | Benutzerprofil |
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+- **Veralteter Mitgliedschafts-Cache**: Ein aus einem Haushalt entferntes Mitglied behält bis zu 30 s Zugriff; ein gerade beigetretener Benutzer kann bis zu 5 s `403 household_forbidden` erhalten, da jeder Verbraucher Mitgliedschafts-Antworten pro Prozess cacht. Siehe [Bekannte Probleme](../../explanation/known-issues.md).
+- **Verfügbarkeit**: Jede haushaltsbezogene Anfrage in jeder App schlägt mit `503 household_service_unavailable` fehl, solange `household-backend` nicht läuft oder `ALFHEIM_INTERNAL_TOKEN` sich zwischen Diensten unterscheidet – die Mitgliedschaft wird online geprüft, es gibt keinen Offline-Fallback. Siehe [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-4-503-household_service_unavailable).
+- Keine weiteren bekannten offenen Probleme.

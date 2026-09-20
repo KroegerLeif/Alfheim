@@ -64,3 +64,27 @@ Quelle: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 - **Haushalt-Streak** (`household_streaks`): Kumulativer Tages-Zähler, erhöht bei Ausführung geplanter Aufgaben bis Mitternacht.
 
 ---
+
+## 🔌 MCP-Tools
+
+Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), authentifiziert genauso wie die REST-API. Tools nehmen keine `household_id`/`user_id`-Parameter entgegen – sie lesen `get_mcp_household_context()`.
+
+| Feature | Tools |
+| :--- | :--- |
+| `chore_management` | `get_daily_chores_overview`, `complete_chore_by_name`, `assign_chore` |
+
+Das clientseitig übergebene Feld `completed_by` wurde beim Abschließen von Aufgaben entfernt; erfasst wird immer der authentifizierte Aufrufer.
+
+---
+
+## 🏠 Haushalts-Scoping
+
+Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitgliedsrolle darf lesen und schreiben). Der tägliche Reset (Streak-Erhöhung oder Rücksetzung auf 0) läuft rückwirkend und heilt sich beim ersten Zugriff auf die Aufgabenliste eines Haushalts an dem Tag selbst, falls das System offline war. Siehe [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
+
+---

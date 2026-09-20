@@ -57,3 +57,21 @@ Quelle: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 - `transactions`: Unveränderliches Ledger für Einkommens- und Ausgabentransaktionen mit Quittungs-Anhängen.
 
 ---
+
+## 🔌 MCP-Tools
+
+Budget hat keinen FastMCP-Server und stellt keine MCP-Tools bereit. Der Chat-Assistent kann Budget-Daten nicht direkt lesen oder ändern.
+
+---
+
+## 🏠 Haushalts-Scoping
+
+Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitgliedsrolle darf lesen und schreiben). Budgets eigene, geforkte claim-basierte Auth (`src/core/auth.py`) wurde zugunsten dieser gemeinsamen Abhängigkeit entfernt; Maintenance und Shopping leiten beim Aufruf der Budget-API das Bearer-Token des Aufrufers und `X-Household-ID` weiter. Siehe [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
+
+---
+
+## ⚠️ Bekannte Probleme & offene Folgearbeiten
+
+Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
+
+---

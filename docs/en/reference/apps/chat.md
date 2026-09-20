@@ -67,3 +67,27 @@ Every chat API route runs `middleware.RequireHousehold` after JWT validation: `X
 - `mcpservers`: FastMCP server connection definitions and dynamic tool discovery.
 
 ---
+
+## 🔌 MCP Tools
+
+Chat exposes no MCP tools of its own — it is the MCP **client** for every other app's FastMCP
+server (`internal/shared/mcp`, a from-scratch Streamable HTTP client). `CHAT_MCP_SERVERS` seeds
+the registry (`app_slug` → `internal_url`, e.g. `http://pantry-backend:8000/mcp`); re-seeding on
+startup upserts the URL but never resets an admin's enabled/disabled toggle. Every call forwards
+the caller's bearer token and `X-Household-ID` so the target app authorizes it the same way it
+authorizes a REST request. A 404 from an MCP endpoint is reported to the caller as a configuration
+error (mismatched `CHAT_MCP_SERVERS` path) rather than treated as reachable.
+
+---
+
+## ⚠️ Known Issues & Open Follow-Ups
+
+- **Legacy conversations after the UUID migration**: migration `000004_household_ids_uuid` casts
+  `conversations.household_id` and `model_blocks.household_id` to UUID; non-UUID values become
+  `NULL`. Conversations from before household checks existed are no longer reachable, and shared
+  model blocks without a household became private. See
+  [Known Issues](../../explanation/known-issues.md).
+- No other known open issues beyond the general household-authorization items in
+  [Known Issues](../../explanation/known-issues.md).
+
+---
