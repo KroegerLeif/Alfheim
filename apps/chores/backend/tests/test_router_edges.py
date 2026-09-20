@@ -86,9 +86,15 @@ async def test_update_and_delete_chore_template_router(client: AsyncClient, auth
 
 
 @pytest.mark.asyncio
-async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, auth_headers):
+async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, auth_headers, membership):
     """Verify chore instance lifecycle through router endpoints."""
     headers = auth_headers()
+    # The REST assign endpoint only carries a UUID, so membership is checked by treating it as
+    # a candidate subject; this works cleanly when the assignee's subject is itself a UUID (the
+    # common case in this deployment).
+    member_sub = str(uuid.uuid4())
+    member_user_id = derive_user_id(member_sub)
+    membership.set(DEFAULT_TEST_HOUSEHOLD_ID, member_sub, "MEMBER")
 
     # Create a template
     res = await client.post(
@@ -106,8 +112,8 @@ async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, a
     assert len(instances) >= 1
     instance_id = instances[0]["id"]
 
-    # Assign instance to user
-    assigned_user = str(uuid.uuid4())
+    # Assign instance to an actual household member
+    assigned_user = str(member_user_id)
     res_assign = await client.post(
         f"/api/v1/chores/instances/{instance_id}/assign",
         json={"assigned_to": assigned_user},
@@ -115,6 +121,14 @@ async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, a
     )
     assert res_assign.status_code == 200
     assert res_assign.json()["assigned_to"] == assigned_user
+
+    # Assigning to an id that isn't a member of the household is rejected (#513).
+    res_assign_non_member = await client.post(
+        f"/api/v1/chores/instances/{instance_id}/assign",
+        json={"assigned_to": str(uuid.uuid4())},
+        headers=headers,
+    )
+    assert res_assign_non_member.status_code == 404
 
     # Assign nonexistent instance -> 400
     res_assign_missing = await client.post(

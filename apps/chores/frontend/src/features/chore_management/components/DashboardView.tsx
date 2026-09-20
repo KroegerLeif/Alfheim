@@ -78,7 +78,7 @@ export function DashboardView() {
       </div>
 
       {/* Goal Progress metrics widgets */}
-      <GoalProgress summary={summary} />
+      <GoalProgress summary={summary} templates={templates} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Columns: Today's Chores List */}
@@ -123,15 +123,20 @@ export function DashboardView() {
                 </span>
               ) : (
                 <span className="text-[10px] font-mono bg-emerald-950/20 border border-emerald-800/40 text-emerald-400 px-2 py-0.5 rounded font-bold">
-                  {shoppingData?.pendingCount !== undefined ? `${shoppingData.pendingCount} OFFEN` : t("chores.connected")}
+                  {shoppingData?.pendingCount !== undefined
+                    ? t("chores.shoppingPendingBadge", { count: shoppingData.pendingCount })
+                    : t("chores.connected")}
                 </span>
               )}
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2">
               {shoppingLoading
-                ? "Lade Einkaufsdaten..."
+                ? t("chores.shoppingSyncLoading")
                 : shoppingData
-                ? `${shoppingData.pendingCount} offene Artikel auf ${shoppingData.totalLists} Einkaufslisten.`
+                ? t("chores.shoppingSyncSummary", {
+                    pendingCount: shoppingData.pendingCount,
+                    totalLists: shoppingData.totalLists,
+                  })
                 : t("chores.shoppingSyncDesc")}
             </p>
           </div>
@@ -158,16 +163,19 @@ export function DashboardView() {
                   }`}
                 >
                   {(maintenanceData?.dueCount || 0) > 0
-                    ? `! ${maintenanceData?.dueCount} FÄLLIG`
+                    ? t("chores.maintenanceDueBadge", { count: maintenanceData?.dueCount ?? 0 })
                     : t("chores.secured")}
                 </span>
               )}
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2">
               {maintenanceLoading
-                ? "Lade Wartungsdaten..."
+                ? t("chores.maintenanceLoading")
                 : maintenanceData
-                ? `${maintenanceData.dueCount} fällige Wartungen bei ${maintenanceData.totalDevices} überwachten Geräten.`
+                ? t("chores.maintenanceSummary", {
+                    dueCount: maintenanceData.dueCount,
+                    totalDevices: maintenanceData.totalDevices,
+                  })
                 : t("chores.deviceMaintenanceDesc")}
             </p>
           </div>

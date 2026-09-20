@@ -3,7 +3,7 @@ import uuid
 from unittest.mock import patch
 
 import pytest
-from backend_shared.household.testing import mcp_household_context
+from backend_shared.household.testing import mcp_household_context, mcp_membership
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.chore_management import mcp_tools
@@ -85,11 +85,33 @@ async def test_assign_chore_uses_context_household(db_session: AsyncSession):
     with mcp_household_context(household_id=HOUSEHOLD_B):
         assert "Success" not in await assign_chore(str(instance.id), str(assignee))
 
-    with mcp_household_context(household_id=HOUSEHOLD_A):
+    with (
+        mcp_household_context(household_id=HOUSEHOLD_A),
+        mcp_membership({(HOUSEHOLD_A, str(assignee)): "MEMBER", (HOUSEHOLD_A, USER_A_SUB): "MEMBER"}),
+    ):
         res = await assign_chore(str(instance.id), str(assignee))
         assert f"Success: Assigned chore instance {instance.id} to user {assignee}." == res
         res_sub = await assign_chore(str(instance.id), USER_A_SUB)
         assert str(uuid.uuid5(uuid.NAMESPACE_DNS, USER_A_SUB)) in res_sub
+
+
+async def test_assign_chore_rejects_non_member_assignee(db_session: AsyncSession):
+    """Assigning to an id that isn't a household member is rejected, not silently persisted (#513)."""
+    template = ChoreTemplate(name="Mop Kitchen", home_id=HOUSEHOLD_A, points=5)
+    db_session.add(template)
+    await db_session.commit()
+
+    with mcp_household_context(household_id=HOUSEHOLD_A):
+        await get_daily_chores_overview()  # generates today's instance
+    instance = (await db_session.exec(select(ChoreInstance).where(ChoreInstance.template_id == template.id))).one()
+
+    stranger = uuid.uuid4()
+    with mcp_household_context(household_id=HOUSEHOLD_A), mcp_membership({}):
+        res = await assign_chore(str(instance.id), str(stranger))
+        assert "Error: The assignee is not a member of this household." == res
+
+    refreshed = (await db_session.exec(select(ChoreInstance).where(ChoreInstance.id == instance.id))).one()
+    assert refreshed.assigned_to is None
 
 
 async def test_assign_chore_requires_elevated_role_for_someone_else(db_session: AsyncSession):
