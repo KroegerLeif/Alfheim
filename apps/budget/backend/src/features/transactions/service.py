@@ -88,6 +88,23 @@ class TransactionService:
             offset=offset,
         )
 
+    async def sum_expenses_in_range(
+        self,
+        household_id: UUID,
+        date_from: date,
+        date_to: date,
+    ) -> Decimal:
+        """Sum EXPENSE amounts for a household within a date range, aggregated in the database."""
+        return await self.repository.sum_expenses_in_range(
+            household_id=household_id,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+    async def count_in_range(self, household_id: UUID, date_from: date, date_to: date) -> int:
+        """Count transactions for a household within a date range, aggregated in the database."""
+        return await self.repository.count_in_range(household_id=household_id, date_from=date_from, date_to=date_to)
+
     async def update_transaction(
         self,
         transaction_id: UUID,
