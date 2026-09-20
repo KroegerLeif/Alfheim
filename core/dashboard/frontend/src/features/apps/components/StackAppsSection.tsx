@@ -2,6 +2,7 @@
 
 import { StatusBadge, useTranslation } from '@alfheim/shared';
 import { AppItem } from '@/shared/types';
+import { isDashboardRoute } from '@/shared/routes';
 import Link from 'next/link';
 
 interface StackAppsSectionProps {
@@ -61,7 +62,7 @@ export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionP
               ? `/under-construction?app=${encodeURIComponent(app.title || app.name || app.slug)}`
               : (app.url || app.app_url || '#');
 
-            const isInternalRoute = targetUrl.startsWith('/');
+            const isInternalRoute = isDashboardRoute(targetUrl);
 
             return (
               <div
