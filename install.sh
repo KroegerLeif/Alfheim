@@ -274,6 +274,11 @@ if [[ ${UPDATE_MODE} -eq 1 ]]; then
     forward_args=("${forward_args[@]:1}")
   fi
   printf "\n${BOLD}Updating Alfheim to ${VERSION}...${RESET}\n\n"
+  # Under "curl ... | bash" stdin is the pipe, so the confirmation prompt
+  # would read EOF and abort. Reattach the terminal like the install path.
+  if [[ ! -t 0 && -e /dev/tty ]]; then
+    exec < /dev/tty
+  fi
   exec "${WORKDIR}/${BINARY}" update --version "${VERSION}" "${forward_args[@]}"
 fi
 
