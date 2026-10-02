@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MoneyDisplay } from "@alfheim/shared";
+import { MoneyDisplay, useTranslation } from "@alfheim/shared";
 import { PlanCategory } from "@/features/budget/types";
 import { Folder, CornerDownRight, Plus, Trash2 } from "lucide-react";
 
@@ -16,10 +16,12 @@ export function CategoryTree({
   onAddSubcategory,
   onDeleteCategory,
 }: CategoryTreeProps) {
+  const { t } = useTranslation();
+
   if (categories.length === 0) {
     return (
       <div className="p-6 text-center rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)]">
-        No budget categories added yet. Click &quot;Add Category&quot; above to allocate your budget.
+        {t("budget.plans.categoriesEmptyState")}
       </div>
     );
   }
@@ -41,7 +43,7 @@ export function CategoryTree({
                   <button
                     type="button"
                     onClick={() => onAddSubcategory(cat.id)}
-                    title="Add Subcategory"
+                    title={t("budget.plans.addSubcategory")}
                     className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-canvas)]"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -51,7 +53,7 @@ export function CategoryTree({
                   <button
                     type="button"
                     onClick={() => onDeleteCategory(cat.id)}
-                    aria-label={`Delete category ${cat.name}`}
+                    aria-label={t("budget.plans.deleteCategoryLabel", { name: cat.name })}
                     className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -78,7 +80,7 @@ export function CategoryTree({
                       <button
                         type="button"
                         onClick={() => onDeleteCategory(sub.id)}
-                        aria-label={`Delete subcategory ${sub.name}`}
+                        aria-label={t("budget.plans.deleteSubcategoryLabel", { name: sub.name })}
                         className="p-1 rounded text-rose-500 hover:bg-rose-500/10"
                       >
                         <Trash2 className="w-3 h-3" />

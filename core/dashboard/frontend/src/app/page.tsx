@@ -11,6 +11,7 @@ import {
   UserAppsSection,
 } from '@/features/apps';
 import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
+import { MetricsWidget } from '@/features/dashboard/components/MetricsWidget';
 import { AppItem } from '@/shared/types';
 
 /**
@@ -67,6 +68,9 @@ export default function DashboardPage() {
           </button>
         </div>
       )}
+
+      {/* Live System Health Telemetry (CPU/RAM/Network from VictoriaMetrics) */}
+      <MetricsWidget />
 
       {/* Live System Shell / Terminal Log Feed */}
       <SystemShellLogs />

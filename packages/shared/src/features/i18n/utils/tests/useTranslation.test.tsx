@@ -99,4 +99,34 @@ describe('useTranslation Hook', () => {
     expect(localStorage.getItem('alfheim_language')).toBe('en')
     expect(document.cookie).toContain('NEXT_LOCALE=en')
   })
+
+  it('resolves the chores dashboard integration widget keys in every locale (#510)', () => {
+    // These previously hardcoded German literals directly in DashboardView.tsx;
+    // this exercises the real hook (unlike the component tests' t() mock) to
+    // confirm the new i18n keys actually resolve, in each supported locale,
+    // rather than falling back to the raw key.
+    const languages: Language[] = ['de', 'en', 'pl']
+    for (const language of languages) {
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <LanguageProvider defaultLanguage={language}>{children}</LanguageProvider>
+      )
+      const { result } = renderHook(() => useTranslation(), { wrapper })
+
+      for (const key of [
+        'chores.shoppingSyncLoading',
+        'chores.shoppingSyncSummary',
+        'chores.shoppingPendingBadge',
+        'chores.maintenanceLoading',
+        'chores.maintenanceSummary',
+        'chores.maintenanceDueBadge',
+      ]) {
+        expect(result.current.t(key)).not.toBe(key)
+      }
+
+      expect(result.current.t('chores.shoppingPendingBadge', { count: 3 })).toContain('3')
+      expect(result.current.t('chores.maintenanceDueBadge', { count: 2 })).toContain('2')
+      expect(result.current.t('chores.shoppingSyncSummary', { pendingCount: 4, totalLists: 2 })).toContain('4')
+      expect(result.current.t('chores.maintenanceSummary', { dueCount: 1, totalDevices: 5 })).toContain('5')
+    }
+  })
 })

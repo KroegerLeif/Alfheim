@@ -5,10 +5,12 @@ from datetime import date, timedelta
 
 import pytest
 from backend_shared.household import derive_user_id
-from backend_shared.household.testing import DEFAULT_TEST_SUB
+from backend_shared.household.testing import DEFAULT_TEST_HOUSEHOLD_ID, DEFAULT_TEST_SUB
 from httpx import AsyncClient
 
 TEST_USER_ID = derive_user_id(DEFAULT_TEST_SUB)
+OTHER_SUB = "other-member"
+OTHER_USER_ID = derive_user_id(OTHER_SUB)
 
 
 @pytest.mark.asyncio
@@ -84,9 +86,15 @@ async def test_update_and_delete_chore_template_router(client: AsyncClient, auth
 
 
 @pytest.mark.asyncio
-async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, auth_headers):
+async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, auth_headers, membership):
     """Verify chore instance lifecycle through router endpoints."""
     headers = auth_headers()
+    # The REST assign endpoint only carries a UUID, so membership is checked by treating it as
+    # a candidate subject; this works cleanly when the assignee's subject is itself a UUID (the
+    # common case in this deployment).
+    member_sub = str(uuid.uuid4())
+    member_user_id = derive_user_id(member_sub)
+    membership.set(DEFAULT_TEST_HOUSEHOLD_ID, member_sub, "MEMBER")
 
     # Create a template
     res = await client.post(
@@ -104,8 +112,8 @@ async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, a
     assert len(instances) >= 1
     instance_id = instances[0]["id"]
 
-    # Assign instance to user
-    assigned_user = str(uuid.uuid4())
+    # Assign instance to an actual household member
+    assigned_user = str(member_user_id)
     res_assign = await client.post(
         f"/api/v1/chores/instances/{instance_id}/assign",
         json={"assigned_to": assigned_user},
@@ -113,6 +121,14 @@ async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, a
     )
     assert res_assign.status_code == 200
     assert res_assign.json()["assigned_to"] == assigned_user
+
+    # Assigning to an id that isn't a member of the household is rejected (#513).
+    res_assign_non_member = await client.post(
+        f"/api/v1/chores/instances/{instance_id}/assign",
+        json={"assigned_to": str(uuid.uuid4())},
+        headers=headers,
+    )
+    assert res_assign_non_member.status_code == 404
 
     # Assign nonexistent instance -> 400
     res_assign_missing = await client.post(
@@ -182,3 +198,110 @@ async def test_complete_chore_without_payload_and_summary_router(client: AsyncCl
     assert summary["today_completed_count"] >= 1
     assert summary["today_pending_count"] == 0
     assert summary["completion_rate"] == 100.0
+
+
+@pytest.mark.asyncio
+async def test_claim_chore_instance_is_always_the_caller(client: AsyncClient, auth_headers):
+    """The /claim endpoint self-assigns to the authenticated caller and toggles on repeat calls."""
+    headers = auth_headers()
+
+    res_tmpl = await client.post(
+        "/api/v1/chores/templates",
+        json={"name": "Feed Cat", "points": 5},
+        headers=headers,
+    )
+    assert res_tmpl.status_code == 201
+
+    res_today = await client.get("/api/v1/chores/today", headers=headers)
+    instance_id = res_today.json()[0]["id"]
+    assert res_today.json()[0]["assigned_to"] is None
+
+    # Claim: assignee comes from the authenticated caller, never a request body.
+    res_claim = await client.post(f"/api/v1/chores/instances/{instance_id}/claim", headers=headers)
+    assert res_claim.status_code == 200
+    assert res_claim.json()["assigned_to"] == str(TEST_USER_ID)
+
+    # Claiming again releases the caller's own claim (toggle).
+    res_release = await client.post(f"/api/v1/chores/instances/{instance_id}/claim", headers=headers)
+    assert res_release.status_code == 200
+    assert res_release.json()["assigned_to"] is None
+
+
+@pytest.mark.asyncio
+async def test_claim_chore_instance_rejects_claiming_someone_elses_chore(client: AsyncClient, auth_headers, membership):
+    """A member cannot claim (or release) a chore another member already holds."""
+    membership.set(DEFAULT_TEST_HOUSEHOLD_ID, OTHER_SUB, "MEMBER")
+    headers = auth_headers()
+    other_headers = auth_headers(sub=OTHER_SUB)
+
+    res_tmpl = await client.post(
+        "/api/v1/chores/templates",
+        json={"name": "Walk Dog", "points": 5},
+        headers=headers,
+    )
+    assert res_tmpl.status_code == 201
+
+    res_today = await client.get("/api/v1/chores/today", headers=headers)
+    instance_id = res_today.json()[0]["id"]
+
+    # The default caller claims it first.
+    res_claim = await client.post(f"/api/v1/chores/instances/{instance_id}/claim", headers=headers)
+    assert res_claim.status_code == 200
+    assert res_claim.json()["assigned_to"] == str(TEST_USER_ID)
+
+    # A different household member cannot claim (or release) it via the self-service endpoint.
+    res_other_claim = await client.post(f"/api/v1/chores/instances/{instance_id}/claim", headers=other_headers)
+    assert res_other_claim.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_assign_chore_instance_permission_checks(client: AsyncClient, auth_headers, membership):
+    """A non-elevated member may only assign to themself; OWNER/ADMIN may assign to anyone."""
+    membership.set(DEFAULT_TEST_HOUSEHOLD_ID, OTHER_SUB, "MEMBER")
+    headers = auth_headers()
+    member_headers = auth_headers(sub=OTHER_SUB)
+
+    res_tmpl = await client.post(
+        "/api/v1/chores/templates",
+        json={"name": "Take Out Trash", "points": 5},
+        headers=headers,
+    )
+    assert res_tmpl.status_code == 201
+
+    res_today = await client.get("/api/v1/chores/today", headers=member_headers)
+    instance_id = res_today.json()[0]["id"]
+
+    # A plain MEMBER may self-assign.
+    res_self = await client.post(
+        f"/api/v1/chores/instances/{instance_id}/assign",
+        json={"assigned_to": str(OTHER_USER_ID)},
+        headers=member_headers,
+    )
+    assert res_self.status_code == 200
+    assert res_self.json()["assigned_to"] == str(OTHER_USER_ID)
+
+    # A plain MEMBER may not assign it to someone else.
+    res_forbidden = await client.post(
+        f"/api/v1/chores/instances/{instance_id}/assign",
+        json={"assigned_to": str(TEST_USER_ID)},
+        headers=member_headers,
+    )
+    assert res_forbidden.status_code == 403
+
+    # The household OWNER (default test caller) may assign it to anyone.
+    res_owner_assign = await client.post(
+        f"/api/v1/chores/instances/{instance_id}/assign",
+        json={"assigned_to": str(TEST_USER_ID)},
+        headers=headers,
+    )
+    assert res_owner_assign.status_code == 200
+    assert res_owner_assign.json()["assigned_to"] == str(TEST_USER_ID)
+
+    # Anyone may still release (unclaim) a chore, regardless of who holds it.
+    res_release = await client.post(
+        f"/api/v1/chores/instances/{instance_id}/assign",
+        json={"assigned_to": None},
+        headers=member_headers,
+    )
+    assert res_release.status_code == 200
+    assert res_release.json()["assigned_to"] is None

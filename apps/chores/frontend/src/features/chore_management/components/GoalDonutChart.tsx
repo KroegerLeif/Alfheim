@@ -11,30 +11,24 @@ interface GoalDonutChartProps {
 export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
   const { t } = useTranslation();
 
-  // Calculate distribution by simple naming heuristcs for demo purposes
-  // Since we don't have explicit category fields in template (just mock groupings)
+  // Real breakdown of today's chores by their actual status. ChoreTemplate has no
+  // category concept, so this used to fabricate one from template_id UUID bytes --
+  // that never reflected anything real about the chores (#502). Status is a real,
+  // already-tracked field, so it replaces the fabricated categories here.
   const distribution = chores.reduce(
     (acc: Record<string, number>, inst) => {
-      // Mock groupings
-      const idStr = inst.template_id.substring(0, 2);
-      let cat = "Living Room";
-      if (["00", "01", "02"].includes(idStr)) cat = "Kitchen";
-      else if (["03", "04", "05"].includes(idStr)) cat = "Plants & Garden";
-      else if (["06", "07"].includes(idStr)) cat = "Pets";
-
-      acc[cat] = (acc[cat] || 0) + 1;
+      acc[inst.status] = (acc[inst.status] || 0) + 1;
       return acc;
     },
-    { "Kitchen": 0, "Plants & Garden": 0, "Pets": 0, "Living Room": 0 }
+    { completed: 0, pending: 0, missed: 0 } as Record<string, number>
   );
 
   const total = Object.values(distribution).reduce((a, b) => a + b, 0);
 
   const chartData = [
-    { label: t("chores.kitchen"), count: distribution["Kitchen"], color: "#004ac6" },
-    { label: t("chores.plantsGarden"), count: distribution["Plants & Garden"], color: "#10b981" },
-    { label: t("chores.pets"), count: distribution["Pets"], color: "#f59e0b" },
-    { label: t("chores.livingRoom"), count: distribution["Living Room"], color: "#8b5cf6" },
+    { label: t("chores.completed"), count: distribution["completed"], color: "#10b981" },
+    { label: t("chores.pending"), count: distribution["pending"], color: "#004ac6" },
+    { label: t("chores.missed"), count: distribution["missed"], color: "#ef4444" },
   ].filter((d) => d.count > 0 || total === 0);
 
   // SVG parameters
@@ -51,7 +45,7 @@ export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
       <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-3 mb-4 select-none">
         <PieChart className="h-4 w-4 text-[var(--primary-main)]" />
         <span className="font-mono text-xs uppercase font-bold text-[var(--text-main)]">
-          {t("chores.categoryDistribution")}
+          {t("chores.statusDistribution")}
         </span>
       </div>
 

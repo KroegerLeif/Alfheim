@@ -36,7 +36,3 @@ addopts = "--cov-fail-under=95"
 
 [tool.coverage.run]
 source = ["src"]
-omit = [
-    "**/mcp/*",
-    "**/mcp_tools.py",
-]

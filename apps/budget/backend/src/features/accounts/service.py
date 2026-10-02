@@ -44,8 +44,21 @@ class AccountService:
         return await self.repository.update(account=account, account_update=account_update)
 
     async def delete_account(self, account_id: UUID, household_id: UUID) -> None:
-        """Delete an account for the specified household."""
+        """Delete an account for the specified household.
+
+        Blocks deletion with a 409 when transactions still reference the account, rather than
+        letting the request fail with an unhandled foreign-key violation.
+        """
         account = await self.get_account(account_id=account_id, household_id=household_id)
+        referencing_count = await self.repository.count_referencing_transactions(account_id=account_id)
+        if referencing_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Cannot delete account: {referencing_count} transaction(s) still reference it. "
+                    "Reassign or delete those transactions first."
+                ),
+            )
         await self.repository.delete(account=account)
 
     async def get_balance_summary(self, household_id: UUID) -> BalanceSummaryResponse:

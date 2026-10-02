@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from backend_shared.household import HouseholdContext, require_household
+from backend_shared.household import HouseholdContext, MembershipLookup, get_membership_lookup, require_household
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
@@ -16,6 +16,7 @@ from src.features.chore_management.schemas import (
     ChoreTimelineRead,
 )
 from src.features.chore_management.service import ChoreService
+from src.features.chore_management.services.instance_service import InstanceService
 
 router = APIRouter(prefix="/api/v1/chores", tags=["chores"])
 
@@ -138,13 +139,52 @@ async def assign_chore_instance(
     payload: ChoreAssignRequest,
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
+    membership: MembershipLookup = Depends(get_membership_lookup),
 ):
-    """Assign a chore instance to a household member."""
+    """Assign a chore instance to a household member.
+
+    A caller may only claim a chore for themself or release it (``assigned_to``
+    is their own id or ``null``) -- it is never taken from a client-supplied id
+    blindly. Assigning it to someone else requires an OWNER/ADMIN household role,
+    and the target id must actually belong to a member of the caller's household
+    (verified against the same household membership API ``require_household`` uses).
+    """
+    if not InstanceService.can_assign(payload.assigned_to, context.user_id, context.role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only household owners or admins may assign a chore to someone else.",
+        )
+    if payload.assigned_to is not None and payload.assigned_to != context.user_id:
+        role = await membership(context.household_id, str(payload.assigned_to))
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="The assignee is not a member of this household.",
+            )
     return await ChoreService.assign_chore_instance(
         session=session,
         instance_id=id,
         payload=payload,
         home_id=context.household_id,
+    )
+
+
+@router.post("/instances/{id}/claim", response_model=ChoreInstanceRead)
+async def claim_chore_instance(
+    id: uuid.UUID,
+    session: AsyncSession = Depends(get_db_session),
+    context: HouseholdContext = Depends(require_household),
+):
+    """Claim an unassigned chore instance for the caller, or release the caller's own claim.
+
+    The assignee is always the authenticated caller -- never a client-supplied
+    or hardcoded id. This endpoint powers the dashboard's "Claim" button.
+    """
+    return await ChoreService.claim_chore_instance(
+        session=session,
+        instance_id=id,
+        home_id=context.household_id,
+        user_id=context.user_id,
     )
 
 

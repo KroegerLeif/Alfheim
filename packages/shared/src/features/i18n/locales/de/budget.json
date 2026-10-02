@@ -2,6 +2,15 @@
   "budget": {
     "title": "Budget & Finanzen",
     "subtitle": "alfheim Haushaltsbudget & Vermögensverwaltung",
+    "pageSubtitle": "Finanzübersicht, virtuelle Töpfe, wiederkehrende Pläne und Cashflow-Tracking.",
+    "refreshData": "Budgetdaten aktualisieren",
+    "actions": {
+      "retry": "Erneut versuchen",
+      "dismiss": "Verwerfen"
+    },
+    "errors": {
+      "requestFailed": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+    },
     "navigation": {
       "dashboard": "Dashboard",
       "planning": "Budgetplanung",
@@ -10,7 +19,11 @@
       "analytics": "Vermögensanalyse",
       "quickAdd": "Schnellbuchung",
       "monthly": "Monat",
-      "event": "Event"
+      "event": "Event",
+      "brand": "Alfheim Core",
+      "sidebarLabel": "Desktop-Seitenleiste",
+      "navLabel": "Seitenleisten-Navigation",
+      "planningModeLabel": "Planungsmodus-Auswahl"
     },
     "accounts": {
       "title": "Konten & Depots",
@@ -42,7 +55,15 @@
       "gapDetected": "Warnung: Sparlücke erkannt",
       "maintenanceReserve": "Wartungsrücklage",
       "unassignedBuffer": "Nicht zugewiesener Puffer",
-      "createPot": "Neuen Topf anlegen"
+      "createPot": "Neuen Topf anlegen",
+      "cascadeModalTitle": "Prioritäts-Kaskadenzuweisung",
+      "cascadeModalDesc": "Überschüssige Mittel werden nach Priorität (P1 bis P10) auf virtuelle Töpfe verteilt. Überschuss fließt je nach Zielregel in Investitionen oder den nicht zugewiesenen Puffer.",
+      "totalSurplusAmount": "Gesamter Überschussbetrag",
+      "cascadeProcessing": "Wird verarbeitet...",
+      "cascadeExecute": "Kaskade ausführen",
+      "cascadeCompleted": "Kaskade abgeschlossen",
+      "cascadeAllocatedPrefix": "Zugewiesen:",
+      "cascadeAllocatedSuffix": "auf die Töpfe verteilt."
     },
     "plans": {
       "title": "Budgetpläne & Kategorien",
@@ -53,7 +74,11 @@
       "spent": "Ausgegeben",
       "remaining": "Verbleibend",
       "subcategories": "Unterkategorien",
-      "createPlan": "Neuen Plan erstellen"
+      "createPlan": "Neuen Plan erstellen",
+      "categoriesEmptyState": "Noch keine Budgetkategorien hinzugefügt. Klicken Sie oben auf \"Kategorie hinzufügen\", um Ihr Budget zuzuweisen.",
+      "addSubcategory": "Unterkategorie hinzufügen",
+      "deleteCategoryLabel": "Kategorie {name} löschen",
+      "deleteSubcategoryLabel": "Unterkategorie {name} löschen"
     },
     "transactions": {
       "title": "Transaktionen & Belege",
@@ -79,13 +104,33 @@
       "targetPotOptional": "Ziel-Topf (Optional)",
       "planOptional": "Plan (Optional)",
       "none": "-- Keine --",
-      "logging": "Buchung wird verarbeitet..."
+      "logging": "Buchung wird verarbeitet...",
+      "ledgerTitle": "Transaktionsjournal",
+      "emptyState": "Noch keine Transaktionen erfasst. Klicken Sie auf \"Schnellbuchung\", um Ihre erste Transaktion zu erfassen.",
+      "quickBadge": "Schnell",
+      "deleteLabel": "Transaktion {description} löschen",
+      "receiptAttachPrompt": "Beleg anhängen (optional)"
     },
     "analytics": {
       "title": "Finanzanalytik & Cashflow",
       "subtitle": "Sankey-Diagramm und Net-Worth Verlauf",
       "sankeyTitle": "Sankey Cashflow Visualisierung",
+      "sankeyDesc": "Visuelle Aufschlüsselung eingehender Einnahmen, verteilt auf Budgetpläne und virtuelle Anspartöpfe.",
+      "sankeyEmptyTitle": "Noch keine Cashflow-Daten",
+      "sankeyEmptyDesc": "Sobald dieser Haushalt Einnahmetransaktionen, Budgetpläne oder Topf-Beiträge hat, erscheint hier die Cashflow-Aufschlüsselung. Es liegen noch keine Daten vor.",
+      "monthlyInflow": "Monatlicher Haushaltszufluss",
+      "priorityAllocation": "Prioritäre Zuweisung",
+      "budgetPlansLabel": "Budgetpläne",
+      "virtualPotsLabel": "Virtuelle Töpfe",
+      "unassignedSurplus": "Nicht zugewiesener Überschuss",
       "netWorthTitle": "Entwicklung des Nettovermögens",
+      "netWorthAnalyticsTitle": "Vermögensanalyse & Asset-Allokation",
+      "netWorthAnalyticsDesc": "Verteilung zwischen liquidem Kapital und Anlagevehikeln.",
+      "liquidAssets": "Liquide Mittel",
+      "liquidAssetsDesc": "Umfasst Girokonten, Tagesgeld und liquide Notfallreserven.",
+      "investmentPortfolio": "Anlageportfolio",
+      "investmentPortfolioDesc": "Wertpapiere, ETFs und langfristige Bausparverträge.",
+      "assetBreakdown": "Vermögensaufschlüsselung",
       "spendingGap": "Ausgabenabweichungs-Analyse"
     }
   }

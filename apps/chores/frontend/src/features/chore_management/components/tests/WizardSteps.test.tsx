@@ -68,14 +68,11 @@ describe('WizardSteps Component', () => {
     await user.click(pointsBtn)
     await user.click(screen.getByRole('button', { name: /next/i }))
 
-    // Step 3: Recurrence rules
+    // Step 3: Recurrence rules -- the final step (the dead "Assignment Rules" step was removed)
     expect(screen.getByText('dailyExpiryRules')).toBeInTheDocument()
     const cumulativeOption = screen.getByText('cumulativeTitle')
     await user.click(cumulativeOption)
-    await user.click(screen.getByRole('button', { name: /next/i }))
 
-    // Step 4: Assignment rules
-    expect(screen.getByText('assignmentRules')).toBeInTheDocument()
     const finishBtn = screen.getByRole('button', { name: /finishSave/i })
     await user.click(finishBtn)
 

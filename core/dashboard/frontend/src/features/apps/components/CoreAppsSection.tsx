@@ -2,6 +2,8 @@
 
 import { StatusBadge, useTranslation } from '@alfheim/shared';
 import { AppItem } from '@/shared/types';
+import { isDashboardRoute } from '@/shared/routes';
+import { NavAnchor } from '@/shared/components/NavAnchor';
 import Link from 'next/link';
 
 interface CoreAppsSectionProps {
@@ -113,13 +115,14 @@ export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsS
                   <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
                     {t('dashboard.tier1_tag')}
                   </span>
-                  <Link
+                  <NavAnchor
                     href={targetUrl}
+                    external={!isDashboardRoute(targetUrl)}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
                   >
                     <span>{t('common.launch')}</span>
                     <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </Link>
+                  </NavAnchor>
                 </div>
               </div>
             );

@@ -117,6 +117,19 @@ export const handlers = [
     })
   }),
 
+  http.post(/\/instances\/([^\/]+)\/claim/, ({ params }) => {
+    const id = params[0] as string
+    const current = mockInstances.find((inst) => inst.id === id) ?? mockInstances[0]
+    // Toggle: release if already assigned, otherwise claim for "the caller" -- the server
+    // always derives the assignee from the authenticated request, never a client-sent id.
+    const nextAssignee = current.assigned_to ? null : 'authenticated-caller-id'
+    return HttpResponse.json({
+      ...current,
+      id,
+      assigned_to: nextAssignee,
+    })
+  }),
+
   http.post(/\/instances\/([^\/]+)\/complete/, ({ params }) => {
     const id = params[0] as string
     return HttpResponse.json({

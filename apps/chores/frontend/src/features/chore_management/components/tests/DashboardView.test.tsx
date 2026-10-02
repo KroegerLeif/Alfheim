@@ -63,8 +63,8 @@ describe('DashboardView Component', () => {
     // Verify populated chore items and metrics
     expect(screen.getByText('Vacuum Living Room')).toBeInTheDocument()
     expect(screen.getByText('Clean the carpet and rug')).toBeInTheDocument()
-    expect(screen.getByText('3 OFFEN')).toBeInTheDocument()
-    expect(screen.getByText('! 2 FÄLLIG')).toBeInTheDocument()
+    expect(screen.getByText('shoppingPendingBadge')).toBeInTheDocument()
+    expect(screen.getByText('maintenanceDueBadge')).toBeInTheDocument()
     expect(screen.getByText('householdStreak')).toBeInTheDocument()
   })
 

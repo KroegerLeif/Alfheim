@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCreateChoreTemplate } from "../services/choresService";
 import { useRouter } from "@/navigation";
-import { ClipboardList, Award, RefreshCw, UserCheck, ArrowRight, ArrowLeft } from "lucide-react";
+import { ClipboardList, Award, RefreshCw, ArrowRight, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { WizardStepContent } from "./WizardStepContent";
 import { useTranslation } from "@alfheim/shared";
@@ -26,7 +26,6 @@ export function WizardSteps() {
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(10);
   const [isNonCumulative, setIsNonCumulative] = useState(true);
-  const [assignmentType, setAssignmentType] = useState("open");
 
   // Error feedback states
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,7 +40,7 @@ export function WizardSteps() {
       }
       setErrors({});
     }
-    if (currentStep < 4) {
+    if (currentStep < 3) {
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -106,7 +105,6 @@ export function WizardSteps() {
           { step: 1, label: t("chores.details"), icon: ClipboardList },
           { step: 2, label: t("chores.points"), icon: Award },
           { step: 3, label: t("chores.reset"), icon: RefreshCw },
-          { step: 4, label: t("chores.assign"), icon: UserCheck },
         ].map((s) => {
           const isActive = currentStep >= s.step;
           return (
@@ -139,8 +137,6 @@ export function WizardSteps() {
         setPoints={setPoints}
         isNonCumulative={isNonCumulative}
         setIsNonCumulative={setIsNonCumulative}
-        assignmentType={assignmentType}
-        setAssignmentType={setAssignmentType}
         errors={errors}
       />
 
@@ -159,7 +155,7 @@ export function WizardSteps() {
           {t("chores.back")}
         </button>
 
-        {currentStep < 4 ? (
+        {currentStep < 3 ? (
           <button
             onClick={handleNext}
             className="flex items-center gap-1.5 px-5 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-bold rounded-md cursor-pointer text-xs uppercase"

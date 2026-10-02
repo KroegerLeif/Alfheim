@@ -166,3 +166,37 @@ async def test_update_and_delete_account(client: AsyncClient):
     # Verify 404 after deletion
     resp_get = await client.get(f"/api/v1/accounts/{acc_id}", headers=headers)
     assert resp_get.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_account_blocked_while_transactions_reference_it(client: AsyncClient):
+    """Deleting an account with existing transactions must fail with a clear 409, not a raw FK crash."""
+    headers = create_auth_headers()
+
+    resp = await client.post(
+        "/api/v1/accounts/",
+        headers=headers,
+        json={"name": "Referenced Account", "account_type": AccountType.CHECKING, "balance": "100.00"},
+    )
+    acc_id = resp.json()["id"]
+
+    resp_tx = await client.post(
+        "/api/v1/transactions/",
+        headers=headers,
+        json={
+            "description": "Groceries",
+            "amount": "25.00",
+            "transaction_type": "EXPENSE",
+            "account_id": acc_id,
+        },
+    )
+    assert resp_tx.status_code == 201
+
+    resp_del = await client.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
+    assert resp_del.status_code == 409
+    assert "transaction" in resp_del.json()["detail"].lower()
+
+    # The account must still exist and its balance must be untouched.
+    resp_get = await client.get(f"/api/v1/accounts/{acc_id}", headers=headers)
+    assert resp_get.status_code == 200
+    assert Decimal(resp_get.json()["balance"]) == Decimal("75.00")

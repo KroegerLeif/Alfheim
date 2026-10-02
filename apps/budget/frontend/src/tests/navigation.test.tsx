@@ -1,7 +1,15 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
+import { LanguageProvider } from "@alfheim/shared";
 import { MobileTabBar, DesktopSidebar } from "../features/navigation";
+
+// DesktopSidebar now routes its labels through the shared translation dictionary (issue #543),
+// so these tests render it under an explicit English LanguageProvider to keep asserting on the
+// English copy, matching this file's other (untranslated) MobileTabBar assertions.
+function renderSidebar(ui: React.ReactElement) {
+  return render(<LanguageProvider defaultLanguage="en">{ui}</LanguageProvider>);
+}
 
 describe("MobileTabBar Component", () => {
   it("renders exactly 4 bottom tabs", () => {
@@ -45,7 +53,7 @@ describe("MobileTabBar Component", () => {
 
 describe("DesktopSidebar Component", () => {
   it("renders all expected desktop navigation items and Quick-Add button", () => {
-    render(<DesktopSidebar currentPath="/" />);
+    renderSidebar(<DesktopSidebar currentPath="/" />);
 
     expect(screen.getByText("Budget & Treasury")).toBeInTheDocument();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
@@ -60,7 +68,7 @@ describe("DesktopSidebar Component", () => {
 
   it("triggers Quick-Add callback when clicked", () => {
     const handleQuickAdd = vi.fn();
-    render(<DesktopSidebar onQuickAdd={handleQuickAdd} />);
+    renderSidebar(<DesktopSidebar onQuickAdd={handleQuickAdd} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Quick-Add Transaction" }));
     expect(handleQuickAdd).toHaveBeenCalledTimes(1);
@@ -68,7 +76,7 @@ describe("DesktopSidebar Component", () => {
 
   it("renders segmented control for Planning when active", () => {
     const handleModeChange = vi.fn();
-    render(
+    renderSidebar(
       <DesktopSidebar
         currentPath="/planning"
         planningMode="monthly"

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MoneyDisplay } from "@alfheim/shared";
+import { MoneyDisplay, useTranslation } from "@alfheim/shared";
 import { Transaction } from "@/features/budget/types";
 import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Trash2, Calendar, Plus } from "lucide-react";
 
@@ -41,6 +41,8 @@ export function TransactionLedger({
   onNewTransaction,
   onDeleteTransaction,
 }: TransactionLedgerProps) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -54,20 +56,20 @@ export function TransactionLedger({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-[var(--text-main)]">Transaction Ledger</h3>
+        <h3 className="text-base font-semibold text-[var(--text-main)]">{t("budget.transactions.ledgerTitle")}</h3>
         <button
           type="button"
           onClick={onNewTransaction}
           className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium flex items-center gap-1.5 hover:opacity-90"
         >
           <Plus className="w-4 h-4" />
-          <span>Quick-Add</span>
+          <span>{t("budget.navigation.quickAdd")}</span>
         </button>
       </div>
 
       {transactions.length === 0 ? (
         <div className="p-8 text-center rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-sm text-[var(--text-muted)]">
-          No transactions recorded yet. Click &quot;Quick-Add&quot; to log your first transaction.
+          {t("budget.transactions.emptyState")}
         </div>
       ) : (
         <div className="space-y-2">
@@ -88,7 +90,7 @@ export function TransactionLedger({
                       <h4 className="font-semibold text-sm text-[var(--text-main)]">{tx.description}</h4>
                       {tx.is_quick_add && (
                         <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-amber-500/10 text-amber-500 uppercase">
-                          Quick
+                          {t("budget.transactions.quickBadge")}
                         </span>
                       )}
                     </div>
@@ -97,7 +99,9 @@ export function TransactionLedger({
                         <Calendar className="w-3 h-3" />
                         {tx.transaction_date}
                       </span>
-                      <span className="uppercase font-mono text-[10px]">{tx.transaction_type}</span>
+                      <span className="uppercase font-mono text-[10px]">
+                        {t(`budget.transactions.${tx.transaction_type.toLowerCase()}`)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -114,7 +118,7 @@ export function TransactionLedger({
                   <button
                     type="button"
                     onClick={() => onDeleteTransaction(tx.id)}
-                    aria-label={`Delete transaction ${tx.description}`}
+                    aria-label={t("budget.transactions.deleteLabel", { description: tx.description })}
                     className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10"
                   >
                     <Trash2 className="w-4 h-4" />

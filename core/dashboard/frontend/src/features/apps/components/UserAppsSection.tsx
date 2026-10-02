@@ -2,6 +2,7 @@
 
 import { useTranslation } from '@alfheim/shared';
 import { AppItem } from '@/shared/types';
+import { isDashboardRoute } from '@/shared/routes';
 import Link from 'next/link';
 
 interface UserAppsSectionProps {
@@ -81,7 +82,7 @@ export function UserAppsSection({
         ) : (
           apps.map((app) => {
             const targetUrl = app.url || app.app_url || '#';
-            const isInternalRoute = targetUrl.startsWith('/');
+            const isInternalRoute = isDashboardRoute(targetUrl);
 
             return (
               <div

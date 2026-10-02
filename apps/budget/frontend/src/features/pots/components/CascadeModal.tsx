@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MoneyDisplay, Dialog, DialogContent, DialogTitle } from "@alfheim/shared";
+import { MoneyDisplay, Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { CascadeAllocationResponse } from "@/features/budget/types";
 import { potsApi } from "../api/potsApi";
 import { CheckCircle, GitMerge } from "lucide-react";
@@ -13,6 +13,7 @@ export interface CascadeModalProps {
 }
 
 export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
+  const { t } = useTranslation();
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<CascadeAllocationResponse | null>(null);
@@ -41,17 +42,17 @@ export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
       <DialogContent className="bg-[var(--surface-card)] w-full max-w-lg">
         <DialogTitle className="flex items-center gap-2 font-bold text-lg text-[var(--text-main)]">
           <GitMerge className="w-5 h-5 text-[var(--primary-main)]" />
-          <span>Priority Cascade Allocation</span>
+          <span>{t("budget.pots.cascadeModalTitle")}</span>
         </DialogTitle>
 
         {!result ? (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="text-xs text-[var(--text-muted)]">
-              Distribute surplus funds down virtual pots ranked by priority (P1 through P10). Excess overflows into investment or unassigned buffers based on target rules.
-            </p>
+            <p className="text-xs text-[var(--text-muted)]">{t("budget.pots.cascadeModalDesc")}</p>
 
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Total Surplus Amount</label>
+              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+                {t("budget.pots.totalSurplusAmount")}
+              </label>
               <input
                 type="number"
                 step="0.01"
@@ -69,14 +70,14 @@ export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
                 onClick={onClose}
                 className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-canvas)]"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={submitting}
                 className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {submitting ? "Processing..." : "Execute Cascade"}
+                {submitting ? t("budget.pots.cascadeProcessing") : t("budget.pots.cascadeExecute")}
               </button>
             </div>
           </form>
@@ -85,9 +86,10 @@ export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
               <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
               <div className="text-xs">
-                <p className="font-bold text-[var(--text-main)]">Cascade Completed</p>
+                <p className="font-bold text-[var(--text-main)]">{t("budget.pots.cascadeCompleted")}</p>
                 <p className="text-[var(--text-muted)]">
-                  Allocated <MoneyDisplay amount={result.total_allocated} size="sm" /> across pots.
+                  {t("budget.pots.cascadeAllocatedPrefix")}{" "}
+                  <MoneyDisplay amount={result.total_allocated} size="sm" /> {t("budget.pots.cascadeAllocatedSuffix")}
                 </p>
               </div>
             </div>
@@ -116,7 +118,7 @@ export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
                 }}
                 className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium"
               >
-                Done
+                {t("common.close")}
               </button>
             </div>
           </div>
