@@ -54,7 +54,9 @@ See the [environment variables reference](../environment-variables.md#household-
 
 - The public API authorizes only from `household_members`, keyed by the household id in the URL path. It ignores `X-Household-ID` and `X-Household-Role`.
 - Only transfer-ownership changes the owner. Invites and role changes never grant `OWNER`.
-- The first household a user creates or joins becomes their default.
+- The first household a user creates or joins becomes their default. Leaving, being removed from or deleting the default household promotes the user's oldest remaining membership to the new default.
+- `GET /api/v1/households/me` returns each household with `role` and `is_default` but no member roster; `GET /api/v1/households/{id}` includes `members`.
+- Errors are `application/json` bodies `{"error": "<code>", "message": "<explanation>"}`.
 
 ### Internal membership API
 
@@ -71,7 +73,14 @@ Authorization: Bearer <ALFHEIM_INTERNAL_TOKEN>
 | `404` | The household does not exist, or the user is not a member |
 | `503` | `ALFHEIM_INTERNAL_TOKEN` is not configured |
 
-Python backends call it through `backend_shared.household.require_household`, and the chat backend through `internal/shared/householdclient`. The full route and role tables live in [`core/household/backend/README.md`](../../../../core/household/backend/README.md).
+```text
+GET /internal/v1/households/{householdId}/members
+Authorization: Bearer <ALFHEIM_INTERNAL_TOKEN>
+```
+
+Returns `{"household_id": "<uuid>", "members": [{"user_id": "<sub>", "app_user_id": "<uuid>", "role": "…"}]}`, so an app can check whether another user it only knows by the derived id is a member. `app_user_id` matches `backend_shared.household.derive_user_id` (the subject if it is a UUID, otherwise `uuid5(NAMESPACE_DNS, sub)`). Status codes as above; `404` means the household does not exist.
+
+Python backends call the membership lookup through `backend_shared.household.require_household`, and the chat backend through `internal/shared/householdclient`. No shared helper wraps the member listing yet. The full route and role tables live in [`core/household/backend/README.md`](../../../../core/household/backend/README.md).
 
 ---
 

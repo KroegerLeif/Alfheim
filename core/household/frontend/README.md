@@ -60,6 +60,14 @@ or copy the literal paths.
   the `role` field in the household detail response
   (`src/features/household/permissions.ts`), and the backend enforces the
   same rules.
-- **i18n:** new strings live in `src/i18n/messages/{en,de}.json` under
-  `household_app.*`. The moved dashboard strings still come from the shared
-  `@alfheim/shared` dictionaries.
+- **i18n:** new strings live in `src/i18n/messages/{en,de,pl}.json` under
+  `household_app.*`, one file per language of the shared language switcher.
+  The moved dashboard strings still come from the shared `@alfheim/shared`
+  dictionaries. `src/i18n/tests` fails on any key literal that does not
+  resolve in all three languages, on `t()` keys built at runtime, and on
+  missing keys, placeholder mismatches or untranslated Polish copies.
+- **Errors:** `describeApiError` (`src/lib/apiErrors.ts`) shows the backend's
+  `message` (also `{detail}` / `{detail: {message}}` bodies) inside a
+  translated wrapper; 401, 403 and 404 keep their dedicated texts.
+- **Map popups:** the shared `OSMMapViewer` renders `popupContent` as HTML, so
+  build it with `escapeHtml` (`src/lib/html.ts`).

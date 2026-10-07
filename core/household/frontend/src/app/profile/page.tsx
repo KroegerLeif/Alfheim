@@ -36,7 +36,7 @@ export default function ProfilePage() {
       },
       {
         onSuccess: () => {
-          setStatusMessage(t('common.save_changes'));
+          setStatusMessage(t('household_app.profile.saved'));
           setTimeout(() => setStatusMessage(null), 4000);
         },
         onError: (error) => {
@@ -46,11 +46,10 @@ export default function ProfilePage() {
     );
   };
 
-  const displayName = profile
-    ? `${profile.first_name} ${profile.last_name}`
-    : authUser?.name || t('dashboard.authenticated_user');
+  const profileName = `${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim();
+  const displayName = profileName || authUser?.name || t('dashboard.authenticated_user');
 
-  const username = profile?.username || authUser?.preferred_username || 'user';
+  const username = profile?.username || authUser?.preferred_username || '';
   const email = profile?.email || authUser?.email || '';
   const userId = profile?.id || authUser?.sub || t('profile.not_available');
 
@@ -78,7 +77,8 @@ export default function ProfilePage() {
 
         {statusMessage && (
           <div
-            className={`p-3.5 mb-6 rounded-lg text-xs font-mono ${
+            role={updateMutation.isError ? 'alert' : 'status'}
+            className={`p-3.5 mb-6 rounded-lg text-xs font-mono wrap-anywhere ${
               updateMutation.isError
                 ? 'bg-red-950/40 border border-red-800/40 text-red-300'
                 : 'bg-emerald-950/40 border border-emerald-800/40 text-emerald-300'
@@ -91,10 +91,11 @@ export default function ProfilePage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
+              <label htmlFor="profile-first-name" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
                 {t('profile.first_name')}
               </label>
               <input
+                id="profile-first-name"
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -104,10 +105,11 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
+              <label htmlFor="profile-last-name" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
                 {t('profile.last_name')}
               </label>
               <input
+                id="profile-last-name"
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -118,10 +120,11 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
+            <label htmlFor="profile-avatar-url" className="block text-xs font-mono uppercase text-[var(--text-muted)] mb-2">
               {t('profile.avatar_url')}
             </label>
             <input
+              id="profile-avatar-url"
               type="url"
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}

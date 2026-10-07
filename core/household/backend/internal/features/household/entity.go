@@ -49,6 +49,14 @@ type Household struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// UserHousehold is a household as seen by one of its members: the household
+// itself plus that member's role and whether it is their default household.
+type UserHousehold struct {
+	Household
+	Role      HouseholdRole
+	IsDefault bool
+}
+
 // Member represents a user's membership in a household with optional profile details.
 type Member struct {
 	HouseholdID string        `json:"household_id"`

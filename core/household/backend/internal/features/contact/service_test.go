@@ -115,7 +115,7 @@ func (m *mockHouseholdRepo) CreateHouseholdTx(ctx context.Context, h *household.
 func (m *mockHouseholdRepo) GetHouseholdByID(ctx context.Context, id string) (*household.Household, error) {
 	return nil, nil
 }
-func (m *mockHouseholdRepo) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*household.Household, error) {
+func (m *mockHouseholdRepo) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*household.UserHousehold, error) {
 	return nil, nil
 }
 func (m *mockHouseholdRepo) AddMember(ctx context.Context, mem *household.Member) error { return nil }

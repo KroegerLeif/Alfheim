@@ -1,0 +1,144 @@
+{
+  "household_app": {
+    "brand_subtitle": "Gospodarstwa i role",
+    "nav": {
+      "households": "Gospodarstwa domowe",
+      "profile": "Profil"
+    },
+    "list": {
+      "default_badge": "Domyślne",
+      "set_default": "Ustaw jako domyślne",
+      "open": "Otwórz"
+    },
+    "onboarding": {
+      "badge": "Witaj",
+      "title": "Skonfiguruj swoje gospodarstwo domowe",
+      "description": "Aplikacje Alfheim współdzielą dane w ramach gospodarstwa domowego. Utwórz nowe lub dołącz do istniejącego za pomocą kodu zaproszenia lub kodu QR.",
+      "create_title": "Utwórz gospodarstwo domowe",
+      "create_desc": "Zacznij od nowa, a potem zaproś członków rodziny lub współlokatorów.",
+      "join_title": "Dołącz kodem lub QR",
+      "join_desc": "Wklej otrzymany kod zaproszenia albo zeskanuj kod QR zaproszenia aparatem telefonu, aby od razu otworzyć link do dołączenia."
+    },
+    "join": {
+      "title": "Dołącz do gospodarstwa domowego",
+      "description": "Użyj kodu zaproszenia, aby zostać członkiem.",
+      "token_label": "Kod zaproszenia",
+      "submit": "Dołącz do gospodarstwa",
+      "joining": "Dołączanie do gospodarstwa…",
+      "redeeming": "Realizowanie zaproszenia…",
+      "success": "Dołączono do \"{name}\".",
+      "missing_token": "Ten link nie zawiera kodu zaproszenia. Wpisz kod ręcznie."
+    },
+    "create": {
+      "name_label": "Nazwa gospodarstwa",
+      "submit": "Utwórz gospodarstwo"
+    },
+    "invites": {
+      "title": "Aktywne zaproszenia",
+      "empty": "Brak aktywnych zaproszeń.",
+      "generate": "Utwórz zaproszenie",
+      "role_label": "Rola dla nowego zaproszenia",
+      "revoke": "Unieważnij",
+      "revoke_label": "Unieważnij zaproszenie {token}",
+      "confirm_revoke": "Unieważnić to zaproszenie? Kod i kod QR natychmiast przestaną działać.",
+      "revoked": "Zaproszenie unieważnione.",
+      "uses": "Użycia: {uses}/{max}",
+      "expires": "Wygasa {time}",
+      "expired": "Wygasło",
+      "show_qr": "Pokaż QR",
+      "qr_label": "Kod QR do dołączenia do gospodarstwa",
+      "join_link": "Link do dołączenia",
+      "copy_link": "Kopiuj link"
+    },
+    "settings": {
+      "title": "Ustawienia gospodarstwa",
+      "rename_label": "Nazwa gospodarstwa",
+      "rename_submit": "Zmień nazwę",
+      "renamed": "Zmieniono nazwę gospodarstwa.",
+      "default_title": "Domyślne gospodarstwo",
+      "default_desc": "Po zalogowaniu aplikacje najpierw otwierają to gospodarstwo.",
+      "is_default": "To jest Twoje domyślne gospodarstwo.",
+      "set_default": "Ustaw jako domyślne",
+      "default_set": "Zaktualizowano domyślne gospodarstwo.",
+      "transfer_title": "Przekaż własność",
+      "transfer_desc": "Przekaż rolę właściciela innemu członkowi. Zostaniesz administratorem.",
+      "transfer_select": "Nowy właściciel",
+      "transfer_placeholder": "Wybierz członka…",
+      "transfer_submit": "Przekaż",
+      "confirm_transfer": "Przekazać własność użytkownikowi {name}? Nie będziesz już właścicielem.",
+      "transferred": "Własność przekazana.",
+      "no_transfer_candidates": "Najpierw zaproś innego członka, aby przekazać własność.",
+      "leave_title": "Opuść gospodarstwo",
+      "leave_desc": "Stracisz dostęp do danych tego gospodarstwa we wszystkich aplikacjach.",
+      "leave_owner_hint": "Właściciel musi przekazać własność, zanim opuści gospodarstwo.",
+      "leave_submit": "Opuść gospodarstwo",
+      "confirm_leave": "Opuścić \"{name}\"?",
+      "danger_zone": "Strefa zagrożenia",
+      "delete_title": "Usuń gospodarstwo",
+      "delete_desc": "Trwale usuwa gospodarstwo wraz z członkami, zaproszeniami i kontaktami.",
+      "delete_submit": "Usuń gospodarstwo…"
+    },
+    "delete_modal": {
+      "title": "Usunąć \"{name}\"?",
+      "description": "Tej operacji nie można cofnąć. Wpisz nazwę gospodarstwa, aby potwierdzić.",
+      "input_label": "Wpisz {name}, aby potwierdzić",
+      "confirm": "Usuń trwale",
+      "deleting": "Usuwanie…"
+    },
+    "detail": {
+      "short_id": "ID: {id}…"
+    },
+    "address": {
+      "coordinates": "Szer.: {lat} • Dł.: {lng}"
+    },
+    "members": {
+      "unnamed": "Użytkownik ({id}…)",
+      "confirm_remove": "Usunąć użytkownika {name} z tego gospodarstwa?",
+      "remove_label": "Usuń użytkownika {name}"
+    },
+    "contacts": {
+      "edit_category": "Edytuj kategorię {name}",
+      "delete_category": "Usuń kategorię {name}",
+      "call": "Zadzwoń: {name}",
+      "email": "Napisz e-mail: {name}",
+      "open_link": "Otwórz link: {name}",
+      "edit": "Edytuj: {name}",
+      "delete": "Usuń: {name}"
+    },
+    "profile": {
+      "zitadel_id": "ID Zitadel: {id}",
+      "saved": "Profil zapisany."
+    },
+    "errors": {
+      "unauthorized": "Twoja sesja wygasła. Zaloguj się ponownie.",
+      "forbidden": "Nie masz uprawnień do wykonania tej czynności w tym gospodarstwie.",
+      "household_not_found": "To gospodarstwo nie istnieje lub nie jesteś już jego członkiem.",
+      "invite_not_found": "Ten kod zaproszenia jest nieprawidłowy, wygasł lub został unieważniony.",
+      "conflict": "To koliduje z bieżącym stanem. {detail}",
+      "generic": "Coś poszło nie tak: {detail}",
+      "load_failed": "Nie udało się wczytać gospodarstwa"
+    }
+  },
+  "dashboard": {
+    "authenticated_user": "Uwierzytelniony użytkownik",
+    "household": {
+      "roles": {
+        "admin": "ADMIN",
+        "member": "CZŁONEK",
+        "guest": "GOŚĆ",
+        "owner": "WŁAŚCICIEL"
+      }
+    },
+    "contact": {
+      "categories": {
+        "person": "Osoba",
+        "business": "Firma",
+        "important": "Ważne",
+        "call": "Połączenie / Telefon",
+        "police": "Policja / Bezpieczeństwo",
+        "doctor": "Lekarz / Medycyna",
+        "handyman": "Fachowiec / Serwis"
+      }
+    }
+  }
+}

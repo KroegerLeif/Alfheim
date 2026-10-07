@@ -2,6 +2,7 @@
 
 import { useTranslation } from '@/i18n';
 import { Household, HouseholdMember } from '@/shared/types';
+import { roleLabel } from '../roles';
 import { memberDisplayName, memberInitials } from './memberDisplay';
 
 interface MemberTableProps {
@@ -23,15 +24,8 @@ export function MemberTable({
   const { t } = useTranslation();
   const members = household?.members ?? [];
 
-  const getLocalizedRole = (role: string) => {
-    const roleKey = role.toLowerCase();
-    const key = `dashboard.household.roles.${roleKey}`;
-    const translated = t(key);
-    return translated === key ? role : translated;
-  };
-
-  const getMemberDisplayName = (m: HouseholdMember) => memberDisplayName(m, t('household.member_user'));
-  const getMemberInitials = memberInitials;
+  const getLocalizedRole = (role: string) => roleLabel(role, t);
+  const getMemberDisplayName = (m: HouseholdMember) => memberDisplayName(m, t);
 
   return (
     <div className="lg:col-span-5 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] space-y-4">
@@ -49,9 +43,9 @@ export function MemberTable({
           members.map((member) => (
             <div
               key={member.user_id}
-              className="p-3.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs hover:border-[var(--border-accent)] transition-colors duration-150"
+              className="p-3.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs hover:border-[var(--border-accent)] transition-colors duration-150"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-full bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-bold text-[var(--primary-main)] shrink-0 overflow-hidden">
                   {member.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -61,24 +55,28 @@ export function MemberTable({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    getMemberInitials(member)
+                    memberInitials(member)
                   )}
                 </div>
-                <div>
-                  <div className="font-semibold text-[var(--text-main)]">{getMemberDisplayName(member)}</div>
-                  <div className="text-[var(--text-muted)] text-[10px] font-mono leading-normal">
-                    {member.email ? `${member.email}` : ''}
+                <div className="min-w-0">
+                  <div className="font-semibold text-[var(--text-main)] truncate" title={getMemberDisplayName(member)}>
+                    {getMemberDisplayName(member)}
                   </div>
+                  {member.email && (
+                    <div className="text-[var(--text-muted)] text-[10px] font-mono leading-normal truncate" title={member.email}>
+                      {member.email}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {isOwnerOrAdmin && member.role !== 'OWNER' && member.user_id !== household.owner_id ? (
                   <div className="flex items-center gap-1.5">
                     <select
                       value={member.role}
                       onChange={(e) => onRoleChange(member.user_id, member.role, e.target.value)}
-                      aria-label={t('household.change_role') || 'Change role'}
+                      aria-label={t('household.change_role')}
                       className="bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-main)] rounded px-1.5 py-0.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
                     >
                       <option value="ADMIN">{getLocalizedRole('ADMIN')}</option>
@@ -86,11 +84,12 @@ export function MemberTable({
                       <option value="GUEST">{getLocalizedRole('GUEST')}</option>
                     </select>
                     <button
+                      type="button"
                       onClick={() => onRemoveMember(member.user_id, getMemberDisplayName(member))}
-                      aria-label={t('household.remove_member') || 'Remove member'}
+                      aria-label={t('household_app.members.remove_label', { name: getMemberDisplayName(member) })}
                       className="text-red-400 hover:text-red-300 font-bold cursor-pointer inline-flex items-center p-0.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded hover:border-red-400/40"
                     >
-                      <span className="material-symbols-outlined text-sm">person_remove</span>
+                      <span className="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
                     </button>
                   </div>
                 ) : (

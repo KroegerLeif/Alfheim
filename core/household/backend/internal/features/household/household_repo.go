@@ -74,9 +74,12 @@ func (r *repository) GetHouseholdByID(ctx context.Context, id string) (*Househol
 	return h, nil
 }
 
-func (r *repository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*Household, error) {
+// GetHouseholdsByUserID lists the user's households together with their role
+// and default flag in a single query, newest household first.
+func (r *repository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*UserHousehold, error) {
 	query := `
-		SELECT h.id, h.name, h.slug, h.owner_id, h.street, h.zip, h.city, h.country, h.latitude, h.longitude, h.created_at, h.updated_at
+		SELECT h.id, h.name, h.slug, h.owner_id, h.street, h.zip, h.city, h.country, h.latitude, h.longitude, h.created_at, h.updated_at,
+		       hm.role, hm.is_default
 		FROM households h
 		INNER JOIN household_members hm ON h.id = hm.household_id
 		WHERE hm.user_id = $1
@@ -88,18 +91,25 @@ func (r *repository) GetHouseholdsByUserID(ctx context.Context, userID string) (
 	}
 	defer rows.Close()
 
-	var results []*Household
+	var results []*UserHousehold
 	for rows.Next() {
-		h := &Household{}
+		uh := &UserHousehold{}
+		h := &uh.Household
+		var role string
 		err := rows.Scan(
 			&h.ID, &h.Name, &h.Slug, &h.OwnerID,
 			&h.Street, &h.Zip, &h.City, &h.Country, &h.Latitude, &h.Longitude,
 			&h.CreatedAt, &h.UpdatedAt,
+			&role, &uh.IsDefault,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan household row: %w", err)
 		}
-		results = append(results, h)
+		uh.Role = HouseholdRole(role)
+		results = append(results, uh)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate household rows: %w", err)
 	}
 
 	return results, nil
@@ -134,107 +144,41 @@ func (r *repository) RenameHousehold(ctx context.Context, id string, name string
 }
 
 // DeleteHousehold removes a household. Members, invites, contact categories
-// and contacts are removed by ON DELETE CASCADE foreign keys.
+// and contacts are removed by ON DELETE CASCADE foreign keys. Members for whom
+// it was the default household get their oldest remaining membership as the
+// new default in the same transaction (issue #575).
 func (r *repository) DeleteHousehold(ctx context.Context, id string) error {
-	cmd, err := r.db.Exec(ctx, `DELETE FROM households WHERE id = $1`, id)
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start household deletion transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	rows, err := tx.Query(ctx, `
+		SELECT user_id FROM household_members WHERE household_id = $1 AND is_default
+	`, id)
+	if err != nil {
+		return fmt.Errorf("failed to query members defaulting to household: %w", err)
+	}
+	userIDs, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return fmt.Errorf("failed to scan members defaulting to household: %w", err)
+	}
+
+	cmd, err := tx.Exec(ctx, `DELETE FROM households WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete household: %w", err)
 	}
 	if cmd.RowsAffected() == 0 {
 		return ErrHouseholdNotFound
 	}
-	return nil
-}
 
-// TransferOwnershipTx makes toUserID the OWNER and demotes fromUserID to ADMIN
-// in one transaction. The demotion runs first so the one-owner-per-household
-// unique index is never violated mid-transaction.
-func (r *repository) TransferOwnershipTx(ctx context.Context, householdID, fromUserID, toUserID string) error {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to start ownership transfer transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	cmd, err := tx.Exec(ctx, `
-		UPDATE household_members SET role = $3
-		WHERE household_id = $1 AND user_id = $2 AND role = $4
-	`, householdID, fromUserID, string(RoleAdmin), string(RoleOwner))
-	if err != nil {
-		return fmt.Errorf("failed to demote previous owner: %w", err)
-	}
-	if cmd.RowsAffected() == 0 {
-		return ErrUnauthorizedHouseholdAccess
-	}
-
-	cmd, err = tx.Exec(ctx, `
-		UPDATE household_members SET role = $3
-		WHERE household_id = $1 AND user_id = $2
-	`, householdID, toUserID, string(RoleOwner))
-	if err != nil {
-		return fmt.Errorf("failed to promote new owner: %w", err)
-	}
-	if cmd.RowsAffected() == 0 {
-		return ErrMemberNotFound
-	}
-
-	cmd, err = tx.Exec(ctx, `UPDATE households SET owner_id = $2, updated_at = NOW() WHERE id = $1`, householdID, toUserID)
-	if err != nil {
-		return fmt.Errorf("failed to update household owner: %w", err)
-	}
-	if cmd.RowsAffected() == 0 {
-		return ErrHouseholdNotFound
+	if err := promoteNextDefault(ctx, tx, userIDs); err != nil {
+		return err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit ownership transfer: %w", err)
-	}
-	return nil
-}
-
-// GetDefaultHouseholdID returns the caller's default household id, or "" if none is set.
-func (r *repository) GetDefaultHouseholdID(ctx context.Context, userID string) (string, error) {
-	var id string
-	err := r.db.QueryRow(ctx, `
-		SELECT household_id FROM household_members WHERE user_id = $1 AND is_default
-	`, userID).Scan(&id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", nil
-		}
-		return "", fmt.Errorf("failed to query default household: %w", err)
-	}
-	return id, nil
-}
-
-// SetDefaultHouseholdTx marks householdID as the user's only default household.
-func (r *repository) SetDefaultHouseholdTx(ctx context.Context, userID, householdID string) error {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to start default household transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	if _, err := tx.Exec(ctx, `
-		UPDATE household_members SET is_default = FALSE
-		WHERE user_id = $1 AND is_default AND household_id <> $2
-	`, userID, householdID); err != nil {
-		return fmt.Errorf("failed to clear previous default household: %w", err)
-	}
-
-	cmd, err := tx.Exec(ctx, `
-		UPDATE household_members SET is_default = TRUE
-		WHERE user_id = $1 AND household_id = $2
-	`, userID, householdID)
-	if err != nil {
-		return fmt.Errorf("failed to set default household: %w", err)
-	}
-	if cmd.RowsAffected() == 0 {
-		return ErrUnauthorizedHouseholdAccess
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit default household change: %w", err)
+		return fmt.Errorf("failed to commit household deletion: %w", err)
 	}
 	return nil
 }

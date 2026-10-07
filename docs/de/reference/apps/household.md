@@ -54,7 +54,9 @@ Die Datenbank-Variablen stehen in der [Referenz der Umgebungsvariablen](../envir
 
 - Die öffentliche API autorisiert nur über `household_members`, anhand der Haushalts-ID im URL-Pfad. `X-Household-ID` und `X-Household-Role` werden ignoriert.
 - Nur der Eigentümerwechsel (Transfer Ownership) ändert den Eigentümer. Einladungen und Rollenänderungen vergeben nie `OWNER`.
-- Der erste Haushalt, den ein Benutzer anlegt oder dem er beitritt, wird sein Standard-Haushalt.
+- Der erste Haushalt, den ein Benutzer anlegt oder dem er beitritt, wird sein Standard-Haushalt. Verlässt er seinen Standard-Haushalt, wird er daraus entfernt oder wird dieser gelöscht, wird seine älteste verbleibende Mitgliedschaft zum neuen Standard-Haushalt.
+- `GET /api/v1/households/me` liefert jeden Haushalt mit `role` und `is_default`, aber ohne Mitgliederliste; `GET /api/v1/households/{id}` enthält `members`.
+- Fehler sind `application/json`-Antworten `{"error": "<code>", "message": "<Erklärung>"}`.
 
 ### Interne Mitgliedschafts-API
 
@@ -71,7 +73,14 @@ Authorization: Bearer <ALFHEIM_INTERNAL_TOKEN>
 | `404` | Der Haushalt existiert nicht, oder der Benutzer ist kein Mitglied |
 | `503` | `ALFHEIM_INTERNAL_TOKEN` ist nicht konfiguriert |
 
-Python-Backends rufen sie über `backend_shared.household.require_household` auf, das Chat-Backend über `internal/shared/householdclient`. Die vollständigen Routen- und Rollentabellen stehen in [`core/household/backend/README.md`](../../../../core/household/backend/README.md).
+```text
+GET /internal/v1/households/{householdId}/members
+Authorization: Bearer <ALFHEIM_INTERNAL_TOKEN>
+```
+
+Liefert `{"household_id": "<uuid>", "members": [{"user_id": "<sub>", "app_user_id": "<uuid>", "role": "…"}]}`, damit eine App prüfen kann, ob ein anderer Benutzer, den sie nur über die abgeleitete ID kennt, Mitglied ist. `app_user_id` entspricht `backend_shared.household.derive_user_id` (das Subject, wenn es eine UUID ist, sonst `uuid5(NAMESPACE_DNS, sub)`). Statuscodes wie oben; `404` bedeutet, dass der Haushalt nicht existiert.
+
+Python-Backends rufen die Mitgliedschaftsprüfung über `backend_shared.household.require_household` auf, das Chat-Backend über `internal/shared/householdclient`. Für die Mitgliederliste gibt es noch keinen gemeinsamen Helper. Die vollständigen Routen- und Rollentabellen stehen in [`core/household/backend/README.md`](../../../../core/household/backend/README.md).
 
 ---
 

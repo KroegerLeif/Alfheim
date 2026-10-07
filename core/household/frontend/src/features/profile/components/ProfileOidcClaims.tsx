@@ -32,19 +32,19 @@ export function ProfileOidcClaims({
         </div>
         <div>
           <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.username')}</span>
-          <span className="font-semibold text-[var(--text-main)]">@{username}</span>
+          <span className="font-semibold text-[var(--text-main)] break-all">{username ? `@${username}` : t('profile.not_available')}</span>
         </div>
         <div>
           <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.email')}</span>
-          <span className="font-semibold text-[var(--text-main)]">{email || t('profile.not_available')}</span>
+          <span className="font-semibold text-[var(--text-main)] break-all">{email || t('profile.not_available')}</span>
         </div>
         <div>
           <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.given_name')}</span>
-          <span className="font-mono text-[var(--text-main)]">{authUser?.given_name || firstName || t('profile.not_available')}</span>
+          <span className="font-mono text-[var(--text-main)] wrap-anywhere">{authUser?.given_name || firstName || t('profile.not_available')}</span>
         </div>
         <div>
           <span className="block text-[var(--text-muted)] font-mono text-[10px] uppercase">{t('profile.family_name')}</span>
-          <span className="font-mono text-[var(--text-main)]">{authUser?.family_name || lastName || t('profile.not_available')}</span>
+          <span className="font-mono text-[var(--text-main)] wrap-anywhere">{authUser?.family_name || lastName || t('profile.not_available')}</span>
         </div>
       </div>
     </div>

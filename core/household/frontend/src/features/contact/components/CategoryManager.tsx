@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from '@/i18n';
 import { ContactCategory } from '@/shared/types';
 
 interface CategoryManagerProps {
@@ -18,6 +19,7 @@ export function CategoryManager({
   onEditCategory,
   onDeleteCategory,
 }: CategoryManagerProps) {
+  const { t } = useTranslation();
   const categoryList = categories ?? [];
 
   if (categoryList.length === 0 || isGuest) {
@@ -29,26 +31,30 @@ export function CategoryManager({
       {categoryList.map((cat) => (
         <div
           key={cat.id}
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-medium border cursor-default"
+          className="inline-flex items-center gap-1.5 max-w-full px-2 py-0.5 rounded text-[10px] font-mono font-medium border cursor-default"
           style={{
             borderColor: `${cat.color}40`,
             backgroundColor: `${cat.color}15`,
             color: cat.color,
           }}
         >
-          <span className="material-symbols-outlined text-[10px]">{cat.icon || 'folder'}</span>
-          <span>{cat.name}</span>
+          <span className="material-symbols-outlined text-[10px] shrink-0" aria-hidden="true">{cat.icon || 'folder'}</span>
+          <span className="truncate max-w-[12rem]" title={cat.name}>{cat.name}</span>
           <button
+            type="button"
             onClick={() => onEditCategory(cat)}
-            className="hover:opacity-75 cursor-pointer inline-flex items-center"
+            aria-label={t('household_app.contacts.edit_category', { name: cat.name })}
+            className="hover:opacity-75 cursor-pointer inline-flex items-center shrink-0"
           >
-            <span className="material-symbols-outlined text-[10px]">edit</span>
+            <span className="material-symbols-outlined text-[10px]" aria-hidden="true">edit</span>
           </button>
           <button
+            type="button"
             onClick={() => onDeleteCategory(cat.id)}
-            className="text-red-400 hover:text-red-300 cursor-pointer inline-flex items-center"
+            aria-label={t('household_app.contacts.delete_category', { name: cat.name })}
+            className="text-red-400 hover:text-red-300 cursor-pointer inline-flex items-center shrink-0"
           >
-            <span className="material-symbols-outlined text-[10px]">delete</span>
+            <span className="material-symbols-outlined text-[10px]" aria-hidden="true">delete</span>
           </button>
         </div>
       ))}
