@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import lazyload
 from sqlmodel import col, select
 
 from src.api.dependencies import get_current_household_id
@@ -20,6 +21,13 @@ from src.schemas.lending import (
 )
 
 router = APIRouter(tags=["lending"])
+
+
+def _to_response(record: LendingRecord, item_title: str) -> LendingRecordResponse:
+    """Serialize a lending record together with the title of the item it refers to."""
+    response = LendingRecordResponse.model_validate(record)
+    response.item_title = item_title
+    return response
 
 
 async def _get_item_or_404(
@@ -88,7 +96,7 @@ async def lend_item(
     await session.commit()
     await session.refresh(lending_record)
 
-    return lending_record
+    return _to_response(lending_record, item.title)
 
 
 @router.post(
@@ -159,7 +167,7 @@ async def return_item(
     await session.commit()
     await session.refresh(record_to_return)
 
-    return record_to_return
+    return _to_response(record_to_return, item.title)
 
 
 @router.get(
@@ -183,23 +191,30 @@ async def list_lending_history(
     household_id: uuid.UUID = Depends(get_current_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> Any:
-    """Retrieve paginated lending record history for active household."""
-    query = select(LendingRecord).where(LendingRecord.household_id == household_id)
-
+    """Retrieve paginated lending record history for active household, with item titles."""
+    conditions = [LendingRecord.household_id == household_id]
     if item_id is not None:
-        query = query.where(LendingRecord.item_id == item_id)
+        conditions.append(LendingRecord.item_id == item_id)
     if contact_name is not None:
-        query = query.where(col(LendingRecord.contact_name).ilike(f"%{contact_name}%"))
+        conditions.append(col(LendingRecord.contact_name).ilike(f"%{contact_name}%"))
     if lending_status is not None:
-        query = query.where(LendingRecord.status == lending_status)
+        conditions.append(LendingRecord.status == lending_status)
 
-    count_query = select(func.count()).select_from(query.subquery())
-    total_res = await session.execute(count_query)
+    total_res = await session.execute(select(func.count()).select_from(LendingRecord).where(*conditions))
     total = total_res.scalar_one()
 
-    paginated_query = query.order_by(col(LendingRecord.lent_at).desc()).offset(skip).limit(limit)
+    # Join the item title instead of loading every related Item entity (and its own relations).
+    paginated_query = (
+        select(LendingRecord, Item.title)
+        .join(Item, col(Item.id) == col(LendingRecord.item_id))
+        .options(lazyload("*"))
+        .where(*conditions)
+        .order_by(col(LendingRecord.lent_at).desc())
+        .offset(skip)
+        .limit(limit)
+    )
     result = await session.execute(paginated_query)
-    records = list(result.scalars().all())
+    records = [_to_response(record, title) for record, title in result.all()]
 
     return LendingRecordListResponse(
         records=records,

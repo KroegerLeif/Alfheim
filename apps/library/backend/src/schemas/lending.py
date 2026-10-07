@@ -54,6 +54,10 @@ class LendingRecordResponse(BaseModel):
     id: uuid.UUID
     household_id: uuid.UUID
     item_id: uuid.UUID
+    item_title: str | None = Field(
+        default=None,
+        description="Title of the lent item, resolved by the API so clients need no extra lookup.",
+    )
     contact_name: str
     status: LendingStatus
     lent_at: datetime
