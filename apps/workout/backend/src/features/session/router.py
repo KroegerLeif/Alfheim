@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
 from src.features.session import service
+from src.features.session.exceptions import SessionNotActiveError
 from src.features.session.models import SessionStatus
 from src.features.session.schemas import (
     SessionSetSyncRequest,
@@ -89,9 +90,17 @@ async def sync_sets(
     """Upsert a batch of offline-recorded sets by client idempotency key.
 
     Safe to re-POST the same batch after a flaky retry: already-acked keys are
-    returned again without creating duplicate rows.
+    returned again without creating duplicate rows. Returns 409 `session_not_active`
+    when the session is already completed or abandoned and the batch would add sets.
     """
-    acked, server_ids = await service.sync_sets(
-        session, session_id, context.household_id, context.user_id, payload.items
-    )
+    try:
+        acked, server_ids = await service.sync_sets(
+            session, session_id, context.household_id, context.user_id, payload.items
+        )
+    except SessionNotActiveError as exc:
+        # 409 with a stable code: the offline queue must drop these entries instead of retrying.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": SessionNotActiveError.code, "message": str(exc)},
+        ) from exc
     return SessionSetSyncResponse(acked=acked, server_ids=server_ids)

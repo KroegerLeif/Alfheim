@@ -4,13 +4,37 @@ set logged offline reconciles to a single server row instead of duplicating.
 """
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.features.session.exceptions import SessionValidationError
-from src.features.session.models import SessionExercise, SessionSet, WorkoutSession
+from src.features.session.exceptions import SessionNotActiveError, SessionValidationError
+from src.features.session.models import SessionExercise, SessionSet, SessionStatus, WorkoutSession
 from src.features.session.schemas import SessionSetSyncItem
+
+
+async def _find_open_placeholder(
+    session: AsyncSession, session_exercise_id: uuid.UUID, set_order: int
+) -> SessionSet | None:
+    """Return the cloned, not-yet-performed set row for this slot, if the plan day produced one.
+
+    A session started from a plan clones one SessionSet per planned set (no completion
+    timestamp, no idempotency key). Logging that slot must fill the clone in rather than add
+    a second row, otherwise the planned set keeps showing as open after a reload and gets
+    performed twice.
+    """
+    result = await session.exec(
+        select(SessionSet)
+        .where(
+            SessionSet.session_exercise_id == session_exercise_id,
+            SessionSet.set_order == set_order,
+            col(SessionSet.completed_at).is_(None),
+            col(SessionSet.client_idempotency_key).is_(None),
+        )
+        .order_by(col(SessionSet.created_at).asc())
+    )
+    return result.first()
 
 
 async def sync_sets(
@@ -25,6 +49,10 @@ async def sync_sets(
     Returns (acked_keys, server_ids) where server_ids maps each acked key to
     its server-side SessionSet id, so the client can reconcile local rows and
     safely discard only the keys that were actually acked.
+
+    Raises SessionNotActiveError when a batch would add a new set to a completed or
+    abandoned session, so finalized history stays immutable. Replaying keys that were
+    already stored is still acked, because the outcome the client wants already holds.
     """
     workout_statement = select(WorkoutSession).where(
         WorkoutSession.id == session_id,
@@ -67,15 +95,20 @@ async def sync_sets(
             server_ids[item.client_idempotency_key] = existing.id
             continue
 
-        new_set = SessionSet(
-            session_exercise_id=item.session_exercise_id,
-            set_order=item.set_order,
-            actual_reps=item.actual_reps,
-            actual_weight_kg=item.actual_weight_kg,
-            is_warmup=item.is_warmup,
-            completed_at=item.completed_at,
-            client_idempotency_key=item.client_idempotency_key,
-        )
+        if workout_session.status != SessionStatus.ACTIVE:
+            raise SessionNotActiveError(
+                f"Session is {SessionStatus(workout_session.status).value}; sets can only be logged on an active session."
+            )
+
+        completed_at = item.completed_at or datetime.now(UTC)
+        new_set = await _find_open_placeholder(session, item.session_exercise_id, item.set_order)
+        if new_set is None:
+            new_set = SessionSet(session_exercise_id=item.session_exercise_id, set_order=item.set_order)
+        new_set.actual_reps = item.actual_reps
+        new_set.actual_weight_kg = item.actual_weight_kg
+        new_set.is_warmup = item.is_warmup
+        new_set.completed_at = completed_at
+        new_set.client_idempotency_key = item.client_idempotency_key
         session.add(new_set)
         try:
             await session.commit()
