@@ -1,4 +1,5 @@
 import React from "react";
+import { ChefHat, Tv, X } from "lucide-react";
 import { Button, useTranslation } from "@alfheim/shared";
 import { CategoryTab } from "../types";
 
@@ -42,14 +43,17 @@ export function CatalogFilterBar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("library.catalog.searchPlaceholder")}
-            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            aria-label={t("library.catalog.searchPlaceholder")}
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] py-2.5 pl-4 pr-10 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
           />
           {query && (
             <button
+              type="button"
               onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
+              aria-label={t("library.catalog.clearSearch")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)]"
             >
-              ✕
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -66,7 +70,8 @@ export function CatalogFilterBar({
                 : ""
             }
           >
-            🍳 {t("library.catalog.filterCookbooks")}
+            <ChefHat className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {t("library.catalog.filterCookbooks")}
           </Button>
 
           <Button
@@ -75,7 +80,8 @@ export function CatalogFilterBar({
             size="sm"
             onClick={() => setActiveProvidersOnly(!activeProvidersOnly)}
           >
-            📺 {t("library.catalog.availableOnProviders")}
+            <Tv className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {t("library.catalog.availableOnProviders")}
           </Button>
         </div>
       </div>
@@ -84,6 +90,7 @@ export function CatalogFilterBar({
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            type="button"
             onClick={() => setCategory(tab.key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
               category === tab.key

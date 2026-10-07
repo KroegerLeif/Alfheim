@@ -12,6 +12,7 @@ import {
 } from "@alfheim/shared";
 import { LocationItem, MediaItem } from "@/features/catalog/types";
 import { ManualSection } from "@/features/manuals";
+import type { ProviderSubscription } from "@/features/providers";
 import { createItem, updateItem } from "./api/dialogApi";
 import { ItemFormFields } from "./ItemFormFields";
 import { MetadataLookupSection } from "./MetadataLookupSection";
@@ -22,6 +23,7 @@ interface ItemDialogProps {
   onOpenChange: (open: boolean) => void;
   item?: MediaItem | null;
   locations: LocationItem[];
+  providers: ProviderSubscription[];
   onSuccess: () => void;
 }
 
@@ -46,6 +48,7 @@ export function ItemDialog({
   onOpenChange,
   item,
   locations,
+  providers,
   onSuccess,
 }: ItemDialogProps) {
   const { t } = useTranslation();
@@ -106,7 +109,7 @@ export function ItemDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="break-words">
             {item ? t("library.itemDialog.editTitle") : t("library.itemDialog.createTitle")}
           </DialogTitle>
         </DialogHeader>
@@ -119,6 +122,7 @@ export function ItemDialog({
               formData={formData}
               onChange={handleFormChange}
               locations={locations}
+              providers={providers}
             />
           </form>
 
@@ -131,7 +135,11 @@ export function ItemDialog({
             />
           )}
 
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && (
+            <p role="alert" className="break-words text-xs text-red-400">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter className="flex justify-end gap-2">
@@ -150,7 +158,7 @@ export function ItemDialog({
             size="sm"
             disabled={isSubmitting || !formData.title.trim()}
           >
-            {isSubmitting ? "..." : t("library.itemDialog.save")}
+            {isSubmitting ? t("common.saving") : t("library.itemDialog.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
