@@ -3,18 +3,20 @@
 import { useTranslation as useSharedTranslation } from '@alfheim/shared';
 import en from './messages/en.json';
 import de from './messages/de.json';
+import pl from './messages/pl.json';
 
 type Params = Record<string, string | number>;
 type Messages = Record<string, unknown>;
 
 /**
- * App-local strings (EN + DE) for everything new in the household app.
+ * App-local strings (EN, DE and PL, the languages of the shared language
+ * switcher) for everything new in the household app.
  * Keys live under `household_app.*`. Everything else (moved dashboard
  * strings under `household.*`, `profile.*`, `common.*`) still resolves
  * through the shared `@alfheim/shared` dictionaries, exactly like the
  * dashboard does. Missing languages fall back to German, like the shared hook.
  */
-export const localMessages: Record<string, Messages> = { en, de };
+export const localMessages: Record<string, Messages> = { en, de, pl };
 
 function lookup(messages: Messages | undefined, key: string): string | undefined {
   let current: unknown = messages;
