@@ -21,9 +21,10 @@ import (
 	"alfheim/household/internal/features/household"
 )
 
-// Reader resolves a user's role in a household (satisfied by household.Repository).
+// Reader resolves memberships of a household (satisfied by household.Repository).
 type Reader interface {
 	GetMemberRole(ctx context.Context, householdID string, userID string) (household.HouseholdRole, error)
+	GetMembers(ctx context.Context, householdID string) ([]*household.Member, error)
 }
 
 // Response is the body of a successful membership lookup.
@@ -33,7 +34,10 @@ type Response struct {
 	Role        string `json:"role"`
 }
 
-// Handler serves GET /internal/v1/memberships/{householdId}/{userSub}.
+// Handler serves the internal membership API:
+//
+//	GET /internal/v1/memberships/{householdId}/{userSub}
+//	GET /internal/v1/households/{householdId}/members
 type Handler struct {
 	reader    Reader
 	tokenHash [32]byte
@@ -56,6 +60,7 @@ func NewHandler(reader Reader, internalToken string, log *slog.Logger) *Handler 
 // RegisterRoutes mounts the internal API. It deliberately bypasses the OIDC middleware.
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/internal/v1/memberships/{householdId}/{userSub}", h.GetMembership)
+	r.Get("/internal/v1/households/{householdId}/members", h.ListMembers)
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
@@ -76,25 +81,33 @@ func (h *Handler) authorized(r *http.Request) bool {
 	return subtle.ConstantTimeCompare(presented[:], h.tokenHash[:]) == 1
 }
 
-// GetMembership handles GET /internal/v1/memberships/{householdId}/{userSub}.
-func (h *Handler) GetMembership(w http.ResponseWriter, r *http.Request) {
+// authorizeRequest enforces the internal token and returns the normalized
+// household id from the path. It writes the error response and returns false
+// when the request must not proceed. The token is checked before any input.
+func (h *Handler) authorizeRequest(w http.ResponseWriter, r *http.Request) (string, bool) {
 	if !h.enabled {
 		writeError(w, http.StatusServiceUnavailable, "service_unavailable", "internal membership API is not configured")
-		return
+		return "", false
 	}
 	if !h.authorized(r) {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid or missing internal token")
-		return
+		return "", false
 	}
-
-	householdID := chi.URLParam(r, "householdId")
-	userSub := chi.URLParam(r, "userSub")
-	parsed, err := uuid.Parse(householdID)
+	parsed, err := uuid.Parse(chi.URLParam(r, "householdId"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", "household id must be a UUID")
+		return "", false
+	}
+	return parsed.String(), true
+}
+
+// GetMembership handles GET /internal/v1/memberships/{householdId}/{userSub}.
+func (h *Handler) GetMembership(w http.ResponseWriter, r *http.Request) {
+	householdID, ok := h.authorizeRequest(w, r)
+	if !ok {
 		return
 	}
-	householdID = parsed.String()
+	userSub := chi.URLParam(r, "userSub")
 	if userSub == "" {
 		writeError(w, http.StatusBadRequest, "bad_request", "missing user subject")
 		return
