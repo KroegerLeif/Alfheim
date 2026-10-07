@@ -6,22 +6,34 @@ import {
   ReturnItemPayload,
 } from "../types";
 
+/** What failed last; the UI maps it to a localized message. */
+export type LendingErrorKind = "load" | "lend" | "return";
+
+/** Records requested for the lending overview. */
+export const LENDING_HISTORY_LIMIT = 100;
+
 export function useLending() {
   const [history, setHistory] = useState<LendingRecord[]>([]);
+  const [activeLoans, setActiveLoans] = useState<LendingRecord[]>([]);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<LendingErrorKind | null>(null);
 
   const fetchHistory = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
     try {
-      const data = await lendingApi.getLendingHistory({ limit: 100 });
-      setHistory(data.records);
-      setTotal(data.total);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load lending history";
-      setError(msg);
+      // Active loans are fetched on their own so an old, still open loan is never pushed out of
+      // the capped history page.
+      const [all, active] = await Promise.all([
+        lendingApi.getLendingHistory({ limit: LENDING_HISTORY_LIMIT }),
+        lendingApi.getLendingHistory({ status: "LENT_OUT", limit: LENDING_HISTORY_LIMIT }),
+      ]);
+      setHistory(all.records ?? []);
+      setActiveLoans(active.records ?? []);
+      setTotal(all.total);
+      setError(null);
+    } catch {
+      setError("load");
     } finally {
       setIsLoading(false);
     }
@@ -35,8 +47,7 @@ export function useLending() {
         await fetchHistory();
         return record;
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Failed to lend item";
-        setError(msg);
+        setError("lend");
         throw err;
       }
     },
@@ -51,8 +62,7 @@ export function useLending() {
         await fetchHistory();
         return record;
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Failed to return item";
-        setError(msg);
+        setError("return");
         throw err;
       }
     },
@@ -60,34 +70,9 @@ export function useLending() {
   );
 
   useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await lendingApi.getLendingHistory({ limit: 100 });
-        if (!ignore) {
-          setHistory(data.records);
-          setTotal(data.total);
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          const msg = err instanceof Error ? err.message : "Failed to load lending history";
-          setError(msg);
-        }
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const activeLoans = history.filter((rec) => rec.status === "LENT_OUT");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchHistory();
+  }, [fetchHistory]);
 
   return {
     history,

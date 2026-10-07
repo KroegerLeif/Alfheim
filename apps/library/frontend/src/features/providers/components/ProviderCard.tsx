@@ -1,11 +1,11 @@
 import React from "react";
 import { Badge, Button, useTranslation } from "@alfheim/shared";
-import { ProviderSubscription, ProviderType } from "../types";
+import { ProviderSubscription } from "../types";
 
 interface ProviderCardProps {
   provider: ProviderSubscription;
   onToggleActive: (id: string, currentStatus: boolean) => void;
-  onDelete: (id: string) => void;
+  onDelete: (provider: ProviderSubscription) => void;
 }
 
 export function ProviderCard({
@@ -15,33 +15,33 @@ export function ProviderCard({
 }: ProviderCardProps) {
   const { t } = useTranslation();
 
-  const getTypeLabel = (type: ProviderType) => {
+  const getTypeLabel = (type: string) => {
     switch (type) {
-      case "MOVIE":
-        return t("library.providers.typeMovie");
-      case "GAME":
-        return t("library.providers.typeGame");
-      case "BOTH":
-        return t("library.providers.typeBoth");
+      case "STREAMING":
+        return t("library.providers.typeStreaming");
+      case "GAMING_PASS":
+        return t("library.providers.typeGamePass");
+      case "BOOK_PASS":
+        return t("library.providers.typeBookPass");
       default:
         return type;
     }
   };
 
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4 shadow-sm flex flex-col justify-between gap-4 transition-colors hover:border-primary/50">
+    <div className="min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4 shadow-sm flex flex-col justify-between gap-4 transition-colors hover:border-primary/50">
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-[var(--text-main)] text-base">
-            {provider.name}
+          <h3 className="min-w-0 break-words font-semibold text-[var(--text-main)] text-base">
+            {provider.provider_name}
           </h3>
           <Badge
             variant={provider.is_active ? "default" : "secondary"}
-            className={
+            className={`shrink-0 ${
               provider.is_active
                 ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
                 : "bg-slate-700/50 text-slate-400 border-slate-600/30"
-            }
+            }`}
           >
             {provider.is_active
               ? t("library.providers.statusActive")
@@ -50,16 +50,10 @@ export function ProviderCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="max-w-full truncate text-xs">
             {getTypeLabel(provider.provider_type)}
           </Badge>
         </div>
-
-        {provider.notes && (
-          <p className="text-xs text-[var(--text-muted)] line-clamp-2">
-            {provider.notes}
-          </p>
-        )}
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
@@ -79,7 +73,7 @@ export function ProviderCard({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => onDelete(provider.id)}
+          onClick={() => onDelete(provider)}
           className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
         >
           {t("library.providers.delete")}

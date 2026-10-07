@@ -1,8 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useActiveHousehold } from "@alfheim/shared";
 import { useMemo, useState } from "react";
-import { fetchCatalogItems, fetchLocations } from "../api/catalogApi";
-import { CategoryTab, LocationItem } from "../types";
+import { fetchProviders } from "@/features/providers";
+import {
+  CATALOG_PAGE_SIZE,
+  fetchCatalogItems,
+  fetchLocations,
+} from "../api/catalogApi";
+import { CategoryTab, MediaItem } from "../types";
 
 export function useCatalog() {
   const { householdId, status } = useActiveHousehold();
@@ -21,9 +26,17 @@ export function useCatalog() {
     [category, query, isCookbook, activeProvidersOnly]
   );
 
-  const itemsQuery = useQuery({
+  const itemsQuery = useInfiniteQuery({
     queryKey: ["catalog-items", { householdId }, filters],
-    queryFn: () => fetchCatalogItems(filters),
+    queryFn: ({ pageParam }) =>
+      fetchCatalogItems(filters, pageParam, CATALOG_PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const nextSkip = lastPage.skip + (lastPage.items ?? []).length;
+      return (lastPage.items ?? []).length > 0 && nextSkip < lastPage.total
+        ? nextSkip
+        : undefined;
+    },
     enabled: status === "ready",
   });
 
@@ -33,18 +46,36 @@ export function useCatalog() {
     enabled: status === "ready",
   });
 
+  const providersQuery = useQuery({
+    queryKey: ["providers", { householdId }],
+    queryFn: () => fetchProviders(),
+    enabled: status === "ready",
+  });
+
   const locationsMap = useMemo(() => {
     const map = new Map<string, string>();
-    if (locationsQuery.data) {
-      const traverse = (locs: LocationItem[]) => {
-        for (const loc of locs) {
-          map.set(loc.id, loc.name);
-        }
-      };
-      traverse(locationsQuery.data);
+    for (const loc of locationsQuery.data ?? []) {
+      map.set(loc.id, loc.name);
     }
     return map;
   }, [locationsQuery.data]);
+
+  // Items can shift between pages while the household edits the catalog, so drop repeats by id.
+  const items = useMemo(() => {
+    const seen = new Set<string>();
+    const unique: MediaItem[] = [];
+    for (const page of itemsQuery.data?.pages ?? []) {
+      for (const item of page.items ?? []) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          unique.push(item);
+        }
+      }
+    }
+    return unique;
+  }, [itemsQuery.data]);
+
+  const pages = itemsQuery.data?.pages ?? [];
 
   return {
     category,
@@ -55,13 +86,18 @@ export function useCatalog() {
     setIsCookbook,
     activeProvidersOnly,
     setActiveProvidersOnly,
-    items: itemsQuery.data?.items ?? [],
-    total: itemsQuery.data?.total ?? 0,
+    items,
+    total: pages.length > 0 ? pages[pages.length - 1].total : 0,
+    hasMore: itemsQuery.hasNextPage,
+    loadMore: itemsQuery.fetchNextPage,
+    isLoadingMore: itemsQuery.isFetchingNextPage,
+    isLoadMoreError: itemsQuery.isFetchNextPageError,
     isLoading: itemsQuery.isLoading,
-    isError: itemsQuery.isError,
+    isError: itemsQuery.isError && !itemsQuery.isFetchNextPageError,
     error: itemsQuery.error,
     locations: locationsQuery.data ?? [],
     locationsMap,
+    providers: providersQuery.data ?? [],
     refetch: itemsQuery.refetch,
   };
 }

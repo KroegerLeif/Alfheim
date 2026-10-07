@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Button, useTranslation } from "@alfheim/shared";
+import { readApiError } from "@/core/apiError";
 import { useProviders } from "../hooks/useProviders";
 import { ProviderCard } from "./ProviderCard";
 import { ProviderFormModal } from "./ProviderFormModal";
-import { ProviderCreatePayload } from "../types";
+import { ProviderCreatePayload, ProviderSubscription } from "../types";
 
 export function ProviderList() {
   const { t } = useTranslation();
@@ -18,9 +19,36 @@ export function ProviderList() {
   } = useProviders();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleCreateProvider = async (payload: ProviderCreatePayload) => {
     await createProvider(payload);
+  };
+
+  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    setActionError(null);
+    try {
+      await toggleActive(id, currentStatus);
+    } catch {
+      setActionError(t("library.providers.updateError"));
+    }
+  };
+
+  const handleDelete = async (provider: ProviderSubscription) => {
+    setActionError(null);
+    try {
+      await deleteProvider(provider.id);
+    } catch (err: unknown) {
+      const apiError = await readApiError(err);
+      setActionError(
+        apiError.code === "provider_in_use"
+          ? t("library.providers.deleteInUse", {
+              name: provider.provider_name,
+              count: apiError.itemCount ?? 0,
+            })
+          : t("library.providers.deleteError")
+      );
+    }
   };
 
   if (isLoading) {
@@ -43,7 +71,7 @@ export function ProviderList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[var(--text-main)]">
+          <h2 className="break-words text-xl font-bold text-[var(--text-main)]">
             {t("library.providers.activeProviders")}
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
@@ -59,6 +87,15 @@ export function ProviderList() {
           <span>+</span> {t("library.providers.addProvider")}
         </Button>
       </div>
+
+      {actionError && (
+        <div
+          role="alert"
+          className="break-words rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400"
+        >
+          {actionError}
+        </div>
+      )}
 
       {providers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] p-12 text-center text-[var(--text-muted)] space-y-3">
@@ -78,8 +115,8 @@ export function ProviderList() {
             <ProviderCard
               key={provider.id}
               provider={provider}
-              onToggleActive={toggleActive}
-              onDelete={deleteProvider}
+              onToggleActive={handleToggleActive}
+              onDelete={handleDelete}
             />
           ))}
         </div>

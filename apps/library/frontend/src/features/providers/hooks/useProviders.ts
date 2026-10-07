@@ -42,9 +42,8 @@ export function useProviders() {
     },
   });
 
-  const toggleActive = (id: string, currentStatus: boolean) => {
-    updateMutation.mutate({ id, payload: { is_active: !currentStatus } });
-  };
+  const toggleActive = (id: string, currentStatus: boolean) =>
+    updateMutation.mutateAsync({ id, payload: { is_active: !currentStatus } });
 
   return {
     providers: providersQuery.data ?? [],

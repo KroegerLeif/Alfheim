@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import { Button, useTranslation } from "@alfheim/shared";
+import { readApiError } from "@/core/apiError";
 import { lookupBgg, lookupIsbn, lookupTmdb } from "./api/dialogApi";
+import { getLookupErrorKey } from "./lookupErrors";
 import {
   BoardGameLookupResponse,
   BookLookupResponse,
@@ -45,13 +47,13 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
         });
       } else if (lookupType === "BGG") {
         const res = await lookupBgg(query.trim());
-        setBggResults(res.results);
+        setBggResults(res.results ?? []);
       } else if (lookupType === "TMDB") {
         const res = await lookupTmdb(query.trim());
-        setTmdbResults(res.results);
+        setTmdbResults(res.results ?? []);
       }
-    } catch {
-      setError(t("library.itemDialog.lookupError"));
+    } catch (err: unknown) {
+      setError(t(getLookupErrorKey(await readApiError(err))));
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +90,7 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
     <div className="space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3">
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
         <select
+          aria-label={t("library.itemDialog.lookupSource")}
           value={lookupType}
           onChange={(e) => setLookupType(e.target.value as LookupType)}
           className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
@@ -101,31 +104,37 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("library.itemDialog.lookupPlaceholder")}
-          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label={t("library.itemDialog.lookupPlaceholder")}
+          className="min-w-0 flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <Button type="submit" size="sm" disabled={isLoading || !query.trim()}>
-          {isLoading ? "..." : t("library.itemDialog.lookupBtn")}
+          {isLoading ? t("common.loading") : t("library.itemDialog.lookupBtn")}
         </Button>
       </form>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && (
+        <p role="alert" className="break-words text-xs text-red-400">
+          {error}
+        </p>
+      )}
 
       {bggResults.length > 0 && (
         <div className="max-h-36 overflow-y-auto space-y-1.5 pt-1">
           {bggResults.map((game, idx) => (
-            <div
-              key={idx}
+            <button
+              type="button"
+              key={game.id ?? idx}
               onClick={() => handleSelectBgg(game)}
-              className="flex items-center justify-between rounded-lg p-2 bg-[var(--surface-card)] hover:bg-primary/20 cursor-pointer text-xs"
+              className="flex w-full items-center justify-between gap-2 rounded-lg p-2 bg-[var(--surface-card)] hover:bg-primary/20 cursor-pointer text-left text-xs"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 {game.cover_image_url && (
-                  <img src={game.cover_image_url} alt="" className="h-8 w-8 object-cover rounded" />
+                  <img src={game.cover_image_url} alt="" className="h-8 w-8 shrink-0 object-cover rounded" />
                 )}
-                <span className="font-medium text-[var(--text-main)]">{game.title}</span>
+                <span className="min-w-0 truncate font-medium text-[var(--text-main)]">{game.title}</span>
               </div>
-              <span className="text-primary font-semibold">{t("library.itemDialog.autoFill")}</span>
-            </div>
+              <span className="shrink-0 text-primary font-semibold">{t("library.itemDialog.autoFill")}</span>
+            </button>
           ))}
         </div>
       )}
@@ -133,22 +142,25 @@ export function MetadataLookupSection({ onAutoFill }: MetadataLookupSectionProps
       {tmdbResults.length > 0 && (
         <div className="max-h-36 overflow-y-auto space-y-1.5 pt-1">
           {tmdbResults.map((item, idx) => (
-            <div
-              key={idx}
+            <button
+              type="button"
+              key={item.id ?? idx}
               onClick={() => handleSelectTmdb(item)}
-              className="flex items-center justify-between rounded-lg p-2 bg-[var(--surface-card)] hover:bg-primary/20 cursor-pointer text-xs"
+              className="flex w-full items-center justify-between gap-2 rounded-lg p-2 bg-[var(--surface-card)] hover:bg-primary/20 cursor-pointer text-left text-xs"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 {item.cover_image_url && (
-                  <img src={item.cover_image_url} alt="" className="h-8 w-8 object-cover rounded" />
+                  <img src={item.cover_image_url} alt="" className="h-8 w-8 shrink-0 object-cover rounded" />
                 )}
-                <div>
+                <div className="min-w-0 truncate">
                   <span className="font-medium text-[var(--text-main)]">{item.title}</span>
-                  <span className="ml-2 text-[10px] text-[var(--text-muted)]">({item.media_type})</span>
+                  <span className="ml-2 text-[10px] text-[var(--text-muted)]">
+                    ({item.media_type === "SERIES" ? t("library.catalog.filterSeries") : t("library.catalog.filterMovies")})
+                  </span>
                 </div>
               </div>
-              <span className="text-primary font-semibold">{t("library.itemDialog.autoFill")}</span>
-            </div>
+              <span className="shrink-0 text-primary font-semibold">{t("library.itemDialog.autoFill")}</span>
+            </button>
           ))}
         </div>
       )}

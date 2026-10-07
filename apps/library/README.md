@@ -31,6 +31,19 @@ pnpm dev
 
 ---
 
+## 🧭 Behaviour Notes
+
+- Deleting a location or a streaming provider that items still use returns `409`
+  (`location_in_use` / `provider_in_use`); the UI explains it and asks the user to move or unlink
+  the items first.
+- The catalog loads 48 items per page ("load more"); lending records include `item_title`.
+- Provider subscriptions use `provider_name` and `provider_type` (`STREAMING`, `GAMING_PASS`,
+  `BOOK_PASS`); items link to one through the provider select in the item form.
+- Open limitations (lending from the UI, catalog facets) are listed in the
+  [reference page](../../docs/en/reference/apps/library.md#known-issues--open-follow-ups).
+
+---
+
 ## 🧪 Testing & Quality Gates
 
 ```bash
