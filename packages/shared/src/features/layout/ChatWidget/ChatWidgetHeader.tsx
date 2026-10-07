@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { RefreshCw, X } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { AlfiAvatar } from './AlfiAvatar';
 import { AlfiStatus, ChatWidgetContext } from './types';
@@ -49,20 +50,7 @@ export function ChatWidgetHeader({
           title={t('Chat.newChat')}
           className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-canvas)] transition-colors text-xs cursor-pointer"
         >
-          <svg
-            className="w-4 h-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-            <path d="M21 3v5h-5" />
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-            <path d="M8 16H3v5" />
-          </svg>
+          <RefreshCw aria-hidden="true" className="w-4 h-4" />
         </button>
 
         <button
@@ -72,18 +60,7 @@ export function ChatWidgetHeader({
           title={t('Chat.close')}
           className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-canvas)] transition-colors text-xs cursor-pointer"
         >
-          <svg
-            className="w-4 h-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          <X aria-hidden="true" className="w-4 h-4" />
         </button>
       </div>
     </div>
