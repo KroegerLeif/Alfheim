@@ -23,10 +23,18 @@
       "noItemsFound": "Keine Medienartikel gefunden.",
       "addItem": "Neues Medium hinzufügen",
       "players": "{min}-{max} Spieler",
-      "playersSingle": "{count} Spieler",
+      "playersSingle": "Spieler: {count}",
       "runtime": "{minutes} Min.",
       "fsk": "FSK {age}",
-      "errorLoading": "Beim Laden Ihrer Bibliothekseinträge ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+      "errorLoading": "Beim Laden Ihrer Bibliothekseinträge ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+      "errorLoadingTitle": "Katalog konnte nicht geladen werden",
+      "clearSearch": "Suche zurücksetzen",
+      "showing": "{shown} von {total} angezeigt",
+      "loadMore": "Mehr laden",
+      "loadingMore": "Lädt weitere Einträge...",
+      "loadMoreError": "Weitere Einträge konnten nicht geladen werden. Bitte versuche es erneut.",
+      "cookbook": "Kochbuch",
+      "manualBadge": "Anleitung"
     },
     "locations": {
       "title": "Lagerorte",
@@ -45,7 +53,15 @@
       "deleteError": "Fehler beim Löschen des Lagerorts.",
       "saveError": "Fehler beim Speichern des Lagerorts.",
       "name": "Name des Lagerorts",
-      "parent": "Übergeordneter Ort"
+      "parent": "Übergeordneter Ort",
+      "loadError": "Lagerorte konnten nicht geladen werden.",
+      "collapseNode": "{name} einklappen",
+      "expandNode": "{name} ausklappen",
+      "editAria": "Lagerort {name} bearbeiten",
+      "deleteAria": "Lagerort {name} löschen",
+      "deleteInUse": "Im Lagerort \"{name}\" befinden sich noch {count} Artikel. Verschiebe oder lösche sie zuerst.",
+      "deleteWithChildren": "Die untergeordneten Lagerorte werden ebenfalls gelöscht.",
+      "deleting": "Wird gelöscht..."
     },
     "lending": {
       "title": "Verleih-Tracker",
@@ -62,16 +78,21 @@
       "activeLoans": "Aktive Ausleihen",
       "history": "Verleih-Historie",
       "noActiveLoans": "Derzeit sind keine Artikel ausgeliehen.",
-      "errorLoading": "Beim Laden des Verleihverlaufs ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+      "errorLoading": "Beim Laden des Verleihverlaufs ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+      "statusColumn": "Status",
+      "unknownItem": "Unbekanntes Medium",
+      "noHistory": "Noch keine Ausleihen vorhanden.",
+      "errorLoadingTitle": "Verleihverlauf konnte nicht geladen werden",
+      "returnError": "Das Medium konnte nicht als zurückgegeben markiert werden. Bitte versuche es erneut.",
+      "lendError": "Das Medium konnte nicht verliehen werden. Bitte versuche es erneut.",
+      "historyTruncated": "Die neuesten {shown} von {total} Einträgen werden angezeigt.",
+      "borrowerPlaceholder": "z. B. Max Mustermann"
     },
     "providers": {
       "title": "Streaming & Abonnements",
       "subtitle": "Aktive Haushalts-Dienste für Filme, Serien und Spiele",
       "addProvider": "Anbieter hinzufügen",
       "activeProviders": "Aktive Haushalts-Anbieter",
-      "typeMovie": "Film & Serie",
-      "typeGame": "Gaming-Abo",
-      "typeBoth": "Kombiniert",
       "noProviders": "Keine Anbieter konfiguriert.",
       "statusActive": "Aktiv",
       "statusInactive": "Inaktiv",
@@ -81,10 +102,17 @@
       "providerName": "Name des Anbieters",
       "providerType": "Anbietertyp",
       "nameRequired": "Name ist erforderlich.",
-      "notesPlaceholder": "Optionale Notizen zum Abonnement",
       "saving": "Speichert...",
       "loading": "Anbieter werden geladen...",
-      "loadError": "Fehler beim Laden der Streaming-Anbieter."
+      "loadError": "Fehler beim Laden der Streaming-Anbieter.",
+      "typeStreaming": "Film & Serie",
+      "typeGamePass": "Gaming-Abo",
+      "typeBookPass": "Buch-Abo",
+      "namePlaceholder": "z. B. Netflix, PS Plus, Xbox Game Pass",
+      "deleteInUse": "\"{name}\" ist noch mit {count} Artikel(n) verknüpft. Löse die Verknüpfung zuerst.",
+      "deleteError": "Der Anbieter konnte nicht gelöscht werden.",
+      "updateError": "Der Anbieter konnte nicht aktualisiert werden.",
+      "saveError": "Der Anbieter konnte nicht gespeichert werden."
     },
     "manuals": {
       "title": "Spielanleitung (PDF)",
@@ -100,7 +128,9 @@
       "deleteError": "Fehler beim Löschen der Anleitung.",
       "deleteConfirm": "Möchtest du die Anleitung für \"{title}\" wirklich löschen?",
       "loadUrlError": "Fehler beim Laden des Anleitungs-Links.",
-      "openNewTab": "PDF in neuem Tab öffnen"
+      "openNewTab": "PDF in neuem Tab öffnen",
+      "uploaded": "Hochgeladen",
+      "deleting": "Wird gelöscht..."
     },
     "itemDialog": {
       "createTitle": "Neues Medium hinzufügen",
@@ -127,7 +157,15 @@
       "lookupBggLabel": "BGG (Brettspiel)",
       "lookupTmdbLabel": "TMDB (Film/Serie)",
       "lookupError": "Metadaten konnten nicht geladen werden. Bitte manuelle Eingabe nutzen.",
-      "saveError": "Fehler beim Speichern. Bitte Eingaben prüfen."
+      "saveError": "Fehler beim Speichern. Bitte Eingaben prüfen.",
+      "provider": "Streaming-Anbieter",
+      "noProvider": "-- Kein Anbieter --",
+      "providerInactive": "{name} (inaktiv)",
+      "lookupInvalid": "Der Suchbegriff ist ungültig. Bitte prüfe ihn und versuche es erneut.",
+      "lookupNoResults": "Keine Treffer gefunden. Versuche einen anderen Suchbegriff oder gib die Daten manuell ein.",
+      "lookupUnavailable": "Der Suchdienst ist derzeit nicht erreichbar. Bitte versuche es später erneut oder gib die Daten manuell ein.",
+      "lookupNotConfigured": "Diese Suchquelle ist auf dem Server nicht eingerichtet (API-Schlüssel fehlt). Wende dich an die Administration oder gib die Daten manuell ein.",
+      "lookupSource": "Suchquelle"
     }
   }
 }
