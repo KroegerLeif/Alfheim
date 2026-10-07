@@ -31,12 +31,26 @@ pnpm dev
 
 ---
 
+## 🔁 Session & offline-sync behaviour
+
+- `POST /api/v1/sessions/{id}/sets/sync` fills the set cloned from the plan day for that slot, and
+  answers `409 session_not_active` when the session is already completed or abandoned.
+- The browser queue persists sets in IndexedDB, syncs in the background, warns about sets it had to
+  drop, and refuses to finish a session while sets are still queued.
+
+Details: [Reference → Workout Tracker](../../docs/en/reference/apps/workout.md).
+
+---
+
 ## 🧪 Testing & Quality Gates
 
 ```bash
 # Execute Backend Pytest Suite & Coverage
 cd backend && uv run pytest --cov
 
-# Execute Frontend Typecheck & Vitest Suite
-cd frontend && pnpm check-types && pnpm test
+# Execute Frontend Typecheck & Vitest Suite (add --coverage for the report)
+cd frontend && pnpm exec tsc --noEmit && pnpm test
+
+# Monorepo gates (from the repository root)
+./scripts/verify.sh --python --frontend
 ```
