@@ -26,8 +26,8 @@
 | Target | Worktree | Branch | Status |
 | --- | --- | --- | --- |
 | Orchestrator | (session worktree) | `orchestrator/app-stability-sweep` | created from `origin/dev` @ `9550532d` |
-| Shared packages | `.worktrees/shared-packages` | `feature/fix-shared` | in progress (Opus sub-agent, started 2026-10-07) |
-| Household | `.worktrees/app-household` | `feature/fix-household` | pending |
+| Shared packages | `.worktrees/shared-packages` | `feature/fix-shared` | merged (#608, squash `7f3c3f5d`); worktree removed |
+| Household | `.worktrees/app-household` | `feature/fix-household` | in progress (Opus sub-agent) |
 | Workout | `.worktrees/app-workout` | `feature/fix-workout` | pending |
 | Library | `.worktrees/app-library` | `feature/fix-library` | pending |
 | Maintenance | `.worktrees/app-maintenance` | `feature/fix-maintenance` | pending |
@@ -110,13 +110,21 @@ sweeps only touch their own `<app>.json`.
 
 | Target | Method | Result |
 | --- | --- | --- |
-| (none yet) | | |
+| shared (#608) | `tsc --noEmit`; Vitest + v8 coverage (296 tests); new static key-resolution, locale-parity and German-rendering tests; `verify.sh --frontend` | Pass. Coverage stmts 87.12→90.19, branches 75.54→81.49 (below the 90% threshold that was already missed before; see #609), funcs 89.24→92.24, lines 88.79→91.97 |
 
 ## Backlog added during this sweep
 
 | Issue | App | Summary |
 | --- | --- | --- |
-| (none yet) | | |
+| #609 | shared | Branch coverage below 90% in OIDC flow and theme context |
+
+### Carry-over for later sweeps (from #608)
+
+- budget: 40 keys missing in `pl/budget.json` (allow-listed in `localeParity.test.ts`; remove entries as they are translated). `QuickAddModal.tsx` is 247 lines.
+- maintenance: `Header.tsx` uses next-intl keys `header.notifications`, `header.allCaughtUp`, `header.noNotifications` that do not exist.
+- chores, chat, pantry, maintenance, shopping: test mocks return key fragments instead of the real dictionary.
+- Fresh worktrees need `pnpm --filter @alfheim/docs-portal exec astro sync` before `verify.sh --frontend`.
+- PRs into the orchestrator branch only trigger the docs workflow; frontend/Go/Python CI runs on the final PR to `dev`, so local `verify.sh` is the gate per sweep.
 
 ## Stall / recovery log
 
