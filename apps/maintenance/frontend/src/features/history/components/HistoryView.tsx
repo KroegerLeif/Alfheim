@@ -1,13 +1,14 @@
 "use client";
 
 import React from "react";
-import { formatDate } from "@/core/utils";
+import { useFormatDate } from "@/core/useFormatDate";
 import { CheckCircle2, History, Info, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useServiceHistory } from "../hooks/useHistory";
 
 export function HistoryView() {
   const t = useTranslations("maintenance");
+  const formatDate = useFormatDate();
 
   // Fetch service history using FDD custom hook
   const { data: events = [], isLoading, isError } = useServiceHistory();
@@ -74,17 +75,17 @@ export function HistoryView() {
 
                 {/* Header Row */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-[var(--text-main)] uppercase tracking-wide">
+                  <div className="space-y-1 min-w-0">
+                    <h3 className="text-sm font-bold text-[var(--text-main)] uppercase tracking-wide break-words">
                       {eventTitle}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                       <span>{formatDate(event.date)}</span>
                       <span>•</span>
-                      <span>{t("serviceHistory.byPerformer", { performer: event.performer })}</span>
+                      <span className="break-words min-w-0">{t("serviceHistory.byPerformer", { performer: event.performer })}</span>
                       <span>•</span>
-                      <span className="text-[var(--primary-main)] font-bold">{event.device_name}</span>
-                      <span>({event.device_location})</span>
+                      <span className="text-[var(--primary-main)] font-bold break-words min-w-0">{event.device_name}</span>
+                      <span className="break-words min-w-0">({event.device_location})</span>
                     </div>
                   </div>
                 </div>
@@ -95,10 +96,10 @@ export function HistoryView() {
                     {completedSteps.map((step, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                        className="inline-flex max-w-full items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                       >
-                        <CheckCircle2 className="h-2.5 w-2.5" />
-                        {step}
+                        <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />
+                        <span className="min-w-0 truncate" title={step}>{step}</span>
                       </span>
                     ))}
                   </div>
@@ -106,7 +107,7 @@ export function HistoryView() {
 
                 {/* Notes Block */}
                 {event.notes && (
-                  <p className="text-xs text-[var(--text-main)] leading-relaxed italic bg-[var(--surface-canvas)] p-3 rounded-xl border border-[var(--border-subtle)] max-w-2xl font-mono">
+                  <p className="text-xs text-[var(--text-main)] leading-relaxed italic bg-[var(--surface-canvas)] p-3 rounded-xl border border-[var(--border-subtle)] max-w-2xl font-mono break-words whitespace-pre-line">
                     &quot;{event.notes}&quot;
                   </p>
                 )}

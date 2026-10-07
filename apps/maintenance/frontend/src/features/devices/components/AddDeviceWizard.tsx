@@ -81,19 +81,19 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !model || !serial || !location) return;
+    const trimmed = { name: name.trim(), model: model.trim(), serial: serial.trim(), location: location.trim() };
+    if (!trimmed.name || !trimmed.model || !trimmed.serial || !trimmed.location) return;
 
     const payload: CreateDevicePayload = {
-      name,
-      model,
-      serial,
+      ...trimmed,
       category,
-      location,
       status: deviceStatus,
       service_interval_months: intervalMonths,
-      notes: notes || null,
-      // Filter out steps with no title
-      steps: steps.filter((s) => s.title.trim().length > 0),
+      notes: notes.trim() || null,
+      // Steps without a title are dropped; the rest are trimmed.
+      steps: steps
+        .filter((s) => s.title.trim().length > 0)
+        .map((s) => ({ ...s, title: s.title.trim() })),
     };
     mutation.mutate({ payload, householdId: selectedHouseholdId || null });
   };

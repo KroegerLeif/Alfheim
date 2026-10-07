@@ -52,19 +52,8 @@ export const handlers = [
     return HttpResponse.json({ success: true })
   }),
 
-  http.get('*/maintenance/scheduled', () => {
-    return HttpResponse.json([
-      {
-        id: 'step-1',
-        title: 'Clean Filter',
-        description: 'Remove lint and flush filter',
-        recurrence: 3,
-        supply_item: 'Filter Cleaner',
-        supply_needed_date: '2025-02-01',
-        last_completed: '2024-11-01',
-        device_id: 1,
-      },
-    ])
+  http.post('*/tasks/:stepId/state', () => {
+    return HttpResponse.json({ id: 1 })
   }),
 
   http.get('*/maintenance/history', () => {
@@ -78,5 +67,9 @@ export const handlers = [
         device_id: 1,
       },
     ])
+  }),
+
+  http.post('*/shopping/api/v1/shopping/items', () => {
+    return HttpResponse.json({ id: 'item-1' }, { status: 201 })
   }),
 ]

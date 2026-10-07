@@ -4,8 +4,7 @@ import React, { useState } from "react";
 import { Device, MaintenanceStep } from "@/shared/types";
 import { ScheduledTaskItem } from "./ScheduledTaskItem";
 import { CalendarRange, Info, Loader2 } from "lucide-react";
-import { cn } from "@/core/utils";
-import { daysUntil } from "@/core/utils";
+import { cn, daysUntil, UPCOMING_WINDOW_DAYS } from "@/core/utils";
 import { useTranslations } from "next-intl";
 import { useDevices } from "@/features/devices";
 
@@ -19,7 +18,7 @@ export function ScheduledView() {
   const [filter, setFilter] = useState<"upcoming" | "all">("upcoming");
 
   // Fetch devices using hook from devices barrel export
-  const { data: devices = [], isLoading } = useDevices();
+  const { data: devices, isLoading, isError } = useDevices();
 
   if (isLoading) {
     return (
@@ -47,15 +46,21 @@ export function ScheduledView() {
     return dateA.localeCompare(dateB);
   });
 
-  // Filter tasks based on "Upcoming" (due <= 30 days) or "All Tasks"
+  // Filter tasks based on "Upcoming" (overdue or due within the window) or "All Tasks".
+  // Steps without a due date are not upcoming, they only show under "All Tasks".
   const visibleTasks = allTasks.filter((task) => {
     if (filter === "all") return true;
-    const remainingDays = daysUntil(task.step.supply_needed_date || undefined);
-    return remainingDays <= 30; // Includes overdue and next 30 days
+    const remainingDays = daysUntil(task.step.supply_needed_date);
+    return remainingDays !== null && remainingDays <= UPCOMING_WINDOW_DAYS;
   });
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto font-sans">
+      {isError && (
+        <div role="alert" className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
+          {t("deviceInventory.loadError")}
+        </div>
+      )}
 
       {/* Toggle Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-[var(--border-subtle)]">
@@ -69,6 +74,8 @@ export function ScheduledView() {
         {/* View Filter Toggles */}
         <div className="flex bg-[var(--surface-canvas)] rounded-xl p-1 border border-[var(--border-subtle)] shrink-0">
           <button
+            type="button"
+            aria-pressed={filter === "upcoming"}
             onClick={() => setFilter("upcoming")}
             className={cn(
               "px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer",
@@ -80,6 +87,8 @@ export function ScheduledView() {
             {t("scheduledTasks.upcoming30d")}
           </button>
           <button
+            type="button"
+            aria-pressed={filter === "all"}
             onClick={() => setFilter("all")}
             className={cn(
               "px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer",
@@ -95,15 +104,15 @@ export function ScheduledView() {
 
       {/* Task List Stream */}
       {visibleTasks.length === 0 ? (
-        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
-          <Info className="h-10 w-10 text-[var(--primary-main)] mx-auto" />
-          <h3 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wide">
-            {t("scheduledTasks.noTasksScheduled")}
-          </h3>
-          <p className="text-sm text-[var(--text-muted)]">
-            {t("scheduledTasks.noTasksDesc")}
-          </p>
-        </div>
+        !isError && (
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-12 text-center max-w-md mx-auto space-y-4 shadow-sm">
+            <Info className="h-10 w-10 text-[var(--primary-main)] mx-auto" />
+            <h3 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wide">
+              {t("scheduledTasks.noTasksScheduled")}
+            </h3>
+            <p className="text-sm text-[var(--text-muted)]">{t("scheduledTasks.noTasksDesc")}</p>
+          </div>
+        )
       ) : (
         <div className="space-y-4">
           {visibleTasks.map(({ step, device }) => (
