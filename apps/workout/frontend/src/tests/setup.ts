@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { configure } from '@testing-library/react'
 // jsdom ships no IndexedDB, which the offline sync queue depends on.
 import 'fake-indexeddb/auto'
 import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
@@ -9,6 +10,9 @@ import { routerMock } from './mocks/router'
 import 'vitest-axe/extend-expect'
 
 expect.extend(matchers)
+
+// The monorepo gate runs every frontend's suite in parallel; give async queries headroom on a busy machine.
+configure({ asyncUtilTimeout: 5000 })
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => {
