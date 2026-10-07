@@ -4,12 +4,14 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from src.api.dependencies import get_current_household_id
 from src.db.database import get_db_session
-from src.db.models import ProviderSubscription
+from src.db.models import Item, ProviderSubscription
+from src.errors import CODE_PROVIDER_IN_USE, error_detail
 from src.schemas.providers import (
     ProviderCreate,
     ProviderResponse,
@@ -131,7 +133,24 @@ async def delete_provider(
     household_id: uuid.UUID = Depends(get_current_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
-    """Delete a streaming provider subscription from the household."""
+    """Delete a streaming provider subscription from the household.
+
+    Raises 409 ``provider_in_use`` while any item is still linked to the subscription, so a delete
+    never silently unlinks items or fails on the foreign key.
+    """
     provider = await _get_provider_or_404(provider_id, household_id, session)
+    count = await session.execute(
+        select(func.count()).select_from(Item).where(Item.household_id == household_id, Item.provider_id == provider_id)
+    )
+    item_count = count.scalar_one()
+    if item_count:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=error_detail(
+                CODE_PROVIDER_IN_USE,
+                f"Provider '{provider.provider_name}' is still linked to {item_count} item(s). Unlink them first.",
+                item_count=item_count,
+            ),
+        )
     await session.delete(provider)
     await session.commit()

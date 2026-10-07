@@ -4,12 +4,14 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import col, select
 
 from src.api.dependencies import get_current_household_id
 from src.db.database import get_db_session
-from src.db.models import Location
+from src.db.models import Item, Location
+from src.errors import CODE_LOCATION_IN_USE, error_detail
 from src.schemas.locations import (
     LocationCreate,
     LocationResponse,
@@ -66,6 +68,33 @@ async def _is_ancestor_of(
         current_id = res.scalar_one_or_none()
 
     return False
+
+
+async def _count_items_in_subtree(
+    location_id: uuid.UUID,
+    household_id: uuid.UUID,
+    session: AsyncSession,
+) -> int:
+    """Count items stored at a location or at any of its descendants."""
+    rows = await session.execute(select(Location.id, Location.parent_id).where(Location.household_id == household_id))
+    children_by_parent: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for child_id, parent_id in rows.all():
+        if parent_id is not None:
+            children_by_parent.setdefault(parent_id, []).append(child_id)
+
+    subtree_ids: list[uuid.UUID] = []
+    pending = [location_id]
+    while pending:
+        current = pending.pop()
+        subtree_ids.append(current)
+        pending.extend(children_by_parent.get(current, []))
+
+    count = await session.execute(
+        select(func.count())
+        .select_from(Item)
+        .where(Item.household_id == household_id, col(Item.location_id).in_(subtree_ids))
+    )
+    return count.scalar_one()
 
 
 def _build_location_tree(locations: list[Location]) -> list[LocationTreeNode]:
@@ -215,7 +244,21 @@ async def delete_location(
     household_id: uuid.UUID = Depends(get_current_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
-    """Delete a storage location."""
+    """Delete a storage location together with its (empty) sub-locations.
+
+    Raises 409 ``location_in_use`` while any item is still stored at the location or one of its
+    descendants, so a delete never silently unlinks items or fails on the foreign key.
+    """
     location = await _get_location_or_404(location_id, household_id, session)
+    item_count = await _count_items_in_subtree(location_id, household_id, session)
+    if item_count:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=error_detail(
+                CODE_LOCATION_IN_USE,
+                f"Location '{location.name}' still holds {item_count} item(s). Move or delete them first.",
+                item_count=item_count,
+            ),
+        )
     await session.delete(location)
     await session.commit()
