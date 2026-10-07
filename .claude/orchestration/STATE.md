@@ -26,7 +26,7 @@
 | Target | Worktree | Branch | Status |
 | --- | --- | --- | --- |
 | Orchestrator | (session worktree) | `orchestrator/app-stability-sweep` | created from `origin/dev` @ `9550532d` |
-| Shared packages | `.worktrees/shared-packages` | `feature/fix-shared` | pending |
+| Shared packages | `.worktrees/shared-packages` | `feature/fix-shared` | in progress (Opus sub-agent, started 2026-10-07) |
 | Household | `.worktrees/app-household` | `feature/fix-household` | pending |
 | Workout | `.worktrees/app-workout` | `feature/fix-workout` | pending |
 | Library | `.worktrees/app-library` | `feature/fix-library` | pending |
