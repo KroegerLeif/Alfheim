@@ -2,6 +2,7 @@
 
 import { EmptyState, Skeleton, Spinner, useTranslation } from "@alfheim/shared";
 import { BarChart3 } from "lucide-react";
+import { InlineError } from "@/components/shared/InlineError";
 import { useLeaderboard, useMuscleVolume, useStreaks } from "../hooks/useAnalytics";
 import { LeaderboardPanel } from "./LeaderboardPanel";
 import { MuscleVolumePanel } from "./MuscleVolumePanel";
@@ -37,14 +38,7 @@ export function AnalyticsView() {
         </p>
       </header>
 
-      {isError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-800/40 bg-red-950/20 p-4 text-xs font-bold uppercase text-red-400"
-        >
-          {t("workout.loadFailed")}
-        </div>
-      )}
+      <InlineError message={isError ? t("workout.loadFailed") : null} />
 
       {isLoading ? (
         <div className="space-y-3">

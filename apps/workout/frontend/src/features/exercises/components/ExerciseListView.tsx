@@ -10,6 +10,8 @@ import {
   useTranslation,
 } from "@alfheim/shared";
 import { Dumbbell, Minus, Plus } from "lucide-react";
+import { InlineError } from "@/components/shared/InlineError";
+import { describeError } from "@/core/errors";
 import {
   useAddFavorite,
   useDeleteExercise,
@@ -37,6 +39,7 @@ export function ExerciseListView() {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [togglingFavoriteId, setTogglingFavoriteId] = React.useState<string | null>(null);
   const [baselineExercise, setBaselineExercise] = React.useState<ExerciseRead | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   const params = muscleFilter ? { primary_muscle: muscleFilter as MuscleGroup } : {};
   const { data, isLoading, isError } = useExerciseList(params);
@@ -55,15 +58,19 @@ export function ExerciseListView() {
 
   const handleDelete = (exercise: ExerciseRead) => {
     setDeletingId(exercise.id);
+    setActionError(null);
     deleteMutation.mutate(exercise.id, {
+      onError: (error) => setActionError(describeError(error, t, "workout.deleteFailed")),
       onSettled: () => setDeletingId(null),
     });
   };
 
   const handleToggleFavorite = (exercise: ExerciseRead) => {
     setTogglingFavoriteId(exercise.id);
+    setActionError(null);
     const mutation = favoriteIds.has(exercise.id) ? removeFavoriteMutation : addFavoriteMutation;
     mutation.mutate(exercise.id, {
+      onError: (error) => setActionError(describeError(error, t, "workout.saveFailed")),
       onSettled: () => setTogglingFavoriteId(null),
     });
   };
@@ -100,14 +107,8 @@ export function ExerciseListView() {
         />
       )}
 
-      {isError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-800/40 bg-red-950/20 p-4 text-xs font-bold uppercase text-red-400"
-        >
-          {t("workout.loadFailed")}
-        </div>
-      )}
+      <InlineError message={isError ? t("workout.loadFailed") : null} />
+      <InlineError message={actionError} />
 
       {isLoading ? (
         <div className="space-y-3">

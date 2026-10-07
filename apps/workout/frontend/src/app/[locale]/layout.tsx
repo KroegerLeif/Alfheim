@@ -1,8 +1,18 @@
 import { ReactNode } from "react";
+import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AppShell, AuthGuard, LanguageProvider, ThemeProvider, HouseholdProvider, HouseholdGate } from "@alfheim/shared";
+import {
+  AppShell,
+  AuthGuard,
+  LanguageProvider,
+  ThemeProvider,
+  HouseholdProvider,
+  HouseholdGate,
+  getSharedMessages,
+  type Language,
+} from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ClientHeader } from "@/components/shared/ClientHeader";
@@ -23,6 +33,18 @@ const jetbrainsMono = JetBrains_Mono({
 interface LayoutProps {
   children: ReactNode;
   params: Promise<{ locale: string }>;
+}
+
+function resolveLanguage(locale: string): Language {
+  return locale === "en" || locale === "pl" ? locale : "de";
+}
+
+/** Tab title and description follow the active locale instead of the static root metadata. */
+export async function generateMetadata({ params }: Pick<LayoutProps, "params">): Promise<Metadata> {
+  const { locale } = await params;
+  const workout = getSharedMessages(resolveLanguage(locale)).workout;
+
+  return { title: workout.title, description: workout.metaDescription };
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {
@@ -50,7 +72,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       <body className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
         <AuthGuard basePath="/workout">
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <LanguageProvider defaultLanguage={locale === "en" || locale === "pl" ? locale : "de"}>
+            <LanguageProvider defaultLanguage={resolveLanguage(locale)}>
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
                 <HouseholdProvider>
                   <Providers>
