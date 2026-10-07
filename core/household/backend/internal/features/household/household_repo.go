@@ -134,14 +134,41 @@ func (r *repository) RenameHousehold(ctx context.Context, id string, name string
 }
 
 // DeleteHousehold removes a household. Members, invites, contact categories
-// and contacts are removed by ON DELETE CASCADE foreign keys.
+// and contacts are removed by ON DELETE CASCADE foreign keys. Members for whom
+// it was the default household get their oldest remaining membership as the
+// new default in the same transaction (issue #575).
 func (r *repository) DeleteHousehold(ctx context.Context, id string) error {
-	cmd, err := r.db.Exec(ctx, `DELETE FROM households WHERE id = $1`, id)
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start household deletion transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	rows, err := tx.Query(ctx, `
+		SELECT user_id FROM household_members WHERE household_id = $1 AND is_default
+	`, id)
+	if err != nil {
+		return fmt.Errorf("failed to query members defaulting to household: %w", err)
+	}
+	userIDs, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return fmt.Errorf("failed to scan members defaulting to household: %w", err)
+	}
+
+	cmd, err := tx.Exec(ctx, `DELETE FROM households WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete household: %w", err)
 	}
 	if cmd.RowsAffected() == 0 {
 		return ErrHouseholdNotFound
+	}
+
+	if err := promoteNextDefault(ctx, tx, userIDs); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit household deletion: %w", err)
 	}
 	return nil
 }

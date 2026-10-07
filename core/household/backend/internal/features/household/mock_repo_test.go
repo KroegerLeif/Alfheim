@@ -16,7 +16,8 @@ type mockRepository struct {
 	mu         sync.Mutex
 	households map[string]*household.Household
 	members    map[string]map[string]household.HouseholdRole
-	defaults   map[string]string // userID -> householdID
+	defaults   map[string]string   // userID -> householdID
+	joined     map[string][]string // userID -> household IDs in join order
 	invites    map[string]*household.Invite
 
 	// failNext, when set, is returned by the next call of the named method.
@@ -28,6 +29,7 @@ func newMockRepository() *mockRepository {
 		households: make(map[string]*household.Household),
 		members:    make(map[string]map[string]household.HouseholdRole),
 		defaults:   make(map[string]string),
+		joined:     make(map[string][]string),
 		invites:    make(map[string]*household.Invite),
 		failNext:   make(map[string]error),
 	}
@@ -44,6 +46,9 @@ func (m *mockRepository) fail(method string) error {
 func (m *mockRepository) addMemberLocked(householdID, userID string, role household.HouseholdRole) {
 	if m.members[householdID] == nil {
 		m.members[householdID] = make(map[string]household.HouseholdRole)
+	}
+	if _, exists := m.members[householdID][userID]; !exists {
+		m.joined[userID] = append(m.joined[userID], householdID)
 	}
 	m.members[householdID][userID] = role
 	if _, ok := m.defaults[userID]; !ok {
@@ -118,10 +123,22 @@ func (m *mockRepository) DeleteHousehold(ctx context.Context, id string) error {
 	}
 	for uid, hid := range m.defaults {
 		if hid == id {
-			delete(m.defaults, uid)
+			m.promoteNextDefaultLocked(uid)
 		}
 	}
 	return nil
+}
+
+// promoteNextDefaultLocked mirrors promoteNextDefaultSQL: the user's oldest
+// remaining membership becomes their default, or none if they have none left.
+func (m *mockRepository) promoteNextDefaultLocked(userID string) {
+	delete(m.defaults, userID)
+	for _, hid := range m.joined[userID] {
+		if _, ok := m.members[hid][userID]; ok {
+			m.defaults[userID] = hid
+			return
+		}
+	}
 }
 
 func (m *mockRepository) TransferOwnershipTx(ctx context.Context, householdID, fromUserID, toUserID string) error {
@@ -169,8 +186,9 @@ func (m *mockRepository) RemoveMember(ctx context.Context, householdID string, u
 		return household.ErrMemberNotFound
 	}
 	delete(m.members[householdID], userID)
+	m.joined[userID] = removeString(m.joined[userID], householdID)
 	if m.defaults[userID] == householdID {
-		delete(m.defaults, userID)
+		m.promoteNextDefaultLocked(userID)
 	}
 	return nil
 }
@@ -293,3 +311,13 @@ func (m *mockRepository) UpdateHouseholdAddress(ctx context.Context, id string, 
 }
 
 var errMockDB = errors.New("mock database failure")
+
+func removeString(list []string, value string) []string {
+	out := list[:0]
+	for _, v := range list {
+		if v != value {
+			out = append(out, v)
+		}
+	}
+	return out
+}

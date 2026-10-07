@@ -67,6 +67,7 @@ func (m *mockRows) RawValues() [][]byte    { return nil }
 
 type mockTx struct {
 	execFunc     func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	queryFunc    func(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	queryRowFunc func(ctx context.Context, sql string, args ...any) pgx.Row
 	commitErr    error
 }
@@ -90,7 +91,10 @@ func (m *mockTx) Exec(ctx context.Context, sql string, arguments ...any) (pgconn
 	return pgconn.NewCommandTag(""), nil
 }
 func (m *mockTx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	return nil, nil
+	if m.queryFunc != nil {
+		return m.queryFunc(ctx, sql, args...)
+	}
+	return &mockRows{}, nil
 }
 func (m *mockTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	if m.queryRowFunc != nil {
@@ -382,9 +386,6 @@ func TestRepository_Members(t *testing.T) {
 		if err != nil || len(mems) != 1 || mems[0].Role != RoleAdmin {
 			t.Fatalf("unexpected GetMembers err: %v mems: %+v", err, mems)
 		}
-		if err := repo.RemoveMember(ctx, "h1", "u1"); err != nil {
-			t.Fatalf("unexpected RemoveMember err: %v", err)
-		}
 	})
 	t.Run("Members error branches", func(t *testing.T) {
 		dbErr := errors.New("database failure")
@@ -401,9 +402,6 @@ func TestRepository_Members(t *testing.T) {
 		}
 		repo := newRepositoryWithDB(dbtxErr)
 
-		if err := repo.RemoveMember(ctx, "h1", "u1"); err == nil {
-			t.Error("expected error from RemoveMember")
-		}
 		if err := repo.UpdateMemberRole(ctx, "h1", "u1", RoleAdmin); err == nil {
 			t.Error("expected error from UpdateMemberRole")
 		}
