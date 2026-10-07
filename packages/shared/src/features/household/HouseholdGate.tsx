@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { CloudOff, Lock, HousePlus, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../i18n/utils/useTranslation';
 import { HouseholdProvider, useActiveHousehold } from './HouseholdProvider';
 import { HOUSEHOLD_APP_URLS, isHouseholdAccessError } from './householdStore';
@@ -12,13 +13,13 @@ export interface HouseholdGateProps {
 }
 
 function GateCard({
-  icon,
+  icon: Icon,
   title,
   description,
   children,
   role = 'region',
 }: {
-  icon: string;
+  icon: LucideIcon;
   title: string;
   description: string;
   children?: React.ReactNode;
@@ -32,9 +33,7 @@ function GateCard({
         data-testid="household-gate"
         className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 text-center shadow-lg"
       >
-        <span aria-hidden="true" className="material-symbols-outlined text-4xl text-[var(--primary-main)]">
-          {icon}
-        </span>
+        <Icon aria-hidden="true" className="mx-auto h-9 w-9 text-[var(--primary-main)]" />
         <h2 className="mt-3 text-lg font-bold text-[var(--text-main)]">{title}</h2>
         <p className="mt-2 text-sm text-[var(--text-muted)]">{description}</p>
         {children && <div className="mt-5 flex flex-col items-stretch gap-2">{children}</div>}
@@ -70,7 +69,7 @@ function GateContent({ children, loadingFallback }: HouseholdGateProps) {
     return (
       <GateCard
         role="alert"
-        icon="cloud_off"
+        icon={CloudOff}
         title={t('household.gate.unavailable_title')}
         description={t('household.gate.unavailable_desc')}
       >
@@ -83,7 +82,7 @@ function GateContent({ children, loadingFallback }: HouseholdGateProps) {
 
   if (status === 'none') {
     return (
-      <GateCard icon="home_work" title={t('household.gate.none_title')} description={t('household.gate.none_desc')}>
+      <GateCard icon={HousePlus} title={t('household.gate.none_title')} description={t('household.gate.none_desc')}>
         <a href={HOUSEHOLD_APP_URLS.onboarding} className={primaryAction}>
           {t('household.gate.create_or_join')}
         </a>
@@ -96,7 +95,7 @@ function GateContent({ children, loadingFallback }: HouseholdGateProps) {
     return (
       <GateCard
         role="alert"
-        icon="lock"
+        icon={Lock}
         title={t('household.gate.forbidden_title')}
         description={t('household.gate.forbidden_desc')}
       >

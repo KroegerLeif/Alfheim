@@ -30,7 +30,7 @@ export function CatalogGrid({
           Failed to load catalog
         </h3>
         <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1">
-          {t("library.catalog.errorLoading") || "An error occurred while loading your library items. Please try again."}
+          {t("library.catalog.errorLoading")}
         </p>
       </div>
     );

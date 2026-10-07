@@ -75,6 +75,8 @@
     "placeholderModelIdentifier": "np. llama3.1:8b, gemma2:9b, gpt-4o",
     "placeholderDisplayName": "np. Gemma 2 9B lub Local Llama",
     "placeholderApiKeyKeep": "(Pozostaw bez zmian)",
-    "placeholderApiKeyOptional": "sk-... (opcjonalne dla Ollama)"
+    "placeholderApiKeyOptional": "sk-... (opcjonalne dla Ollama)",
+    "attachmentAlt": "Załącznik",
+    "sendError": "Nie udało się wysłać wiadomości"
   }
 }

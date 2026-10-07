@@ -25,7 +25,8 @@
       "players": "{min}-{max} Spieler",
       "playersSingle": "{count} Spieler",
       "runtime": "{minutes} Min.",
-      "fsk": "FSK {age}"
+      "fsk": "FSK {age}",
+      "errorLoading": "Beim Laden Ihrer Bibliothekseinträge ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
     },
     "locations": {
       "title": "Lagerorte",
@@ -60,7 +61,8 @@
       "notes": "Notizen",
       "activeLoans": "Aktive Ausleihen",
       "history": "Verleih-Historie",
-      "noActiveLoans": "Derzeit sind keine Artikel ausgeliehen."
+      "noActiveLoans": "Derzeit sind keine Artikel ausgeliehen.",
+      "errorLoading": "Beim Laden des Verleihverlaufs ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
     },
     "providers": {
       "title": "Streaming & Abonnements",

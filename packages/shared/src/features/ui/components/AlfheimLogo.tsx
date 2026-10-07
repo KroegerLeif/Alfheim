@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BRAND_ASSETS } from '../../../assets';
+import { AlfheimMark } from '../../../assets/brand/AlfheimMark';
 
 export interface AlfheimLogoProps {
   className?: string;
@@ -29,23 +30,7 @@ export const AlfheimLogo: React.FC<AlfheimLogoProps> = ({
           className="rounded-lg bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] shrink-0 shadow-[0_0_12px_var(--accent-glow)]"
           style={{ width: size, height: size }}
         >
-          <svg
-            viewBox="0 0 24 24"
-            width={size * 0.65}
-            height={size * 0.65}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-[var(--primary-main)]"
-          >
-            <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-            <path d="M12 22V12" />
-            <path d="M12 12L3 7" />
-            <path d="M12 12l9-5" />
-            <circle cx="12" cy="12" r="3" fill="currentColor" fillOpacity="0.2" />
-          </svg>
+          <AlfheimMark size={size * 0.65} className="text-[var(--primary-main)]" />
         </div>
         <div className="flex flex-col leading-tight">
           <span className="font-bold text-sm tracking-wider uppercase text-[var(--text-main)] font-sans">
@@ -65,23 +50,10 @@ export const AlfheimLogo: React.FC<AlfheimLogoProps> = ({
       style={{ width: size, height: size }}
       data-asset={variant === 'white' ? BRAND_ASSETS.logoMarkWhite : BRAND_ASSETS.logoMark}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width={size * 0.65}
-        height={size * 0.65}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <AlfheimMark
+        size={size * 0.65}
         className={variant === 'white' ? 'text-white' : 'text-[var(--primary-main)]'}
-      >
-        <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-        <path d="M12 22V12" />
-        <path d="M12 12L3 7" />
-        <path d="M12 12l9-5" />
-        <circle cx="12" cy="12" r="3" fill="currentColor" fillOpacity="0.2" />
-      </svg>
+      />
     </div>
   );
 };

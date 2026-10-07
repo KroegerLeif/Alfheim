@@ -109,6 +109,8 @@
     "timeline": "Completion History",
     "timelineTitle": "Completion History Audit",
     "noHistory": "No completion history yet",
-    "noHistorySub": "Complete this chore on the dashboard to record your first timeline log."
+    "noHistorySub": "Complete this chore on the dashboard to record your first timeline log.",
+    "choreCompleted": "Chore completed",
+    "completeChore": "Complete chore"
   }
 }

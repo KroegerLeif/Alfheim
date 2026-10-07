@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { LogOut, User } from 'lucide-react';
 import { useTranslation } from '../../i18n/utils';
 
 export interface UserIdentity {
@@ -27,8 +28,9 @@ export function AuthControls({
 }: AuthControlsProps) {
   const { t } = useTranslation();
 
-  const getInitials = () => {
-    if (!user) return 'LK';
+  /** Returns up to two initials for the signed-in user, or null when none can be derived. */
+  const getInitials = (): string | null => {
+    if (!user) return null;
     if (user.given_name && user.family_name) {
       return `${user.given_name[0]}${user.family_name[0]}`.toUpperCase();
     }
@@ -42,8 +44,10 @@ export function AuthControls({
     if (user.preferred_username) {
       return user.preferred_username.substring(0, 2).toUpperCase();
     }
-    return 'LK';
+    return null;
   };
+
+  const initials = getInitials();
 
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
@@ -51,9 +55,9 @@ export function AuthControls({
       {showUserInfo && (
         <div
           className="w-8 h-8 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 flex items-center justify-center text-xs font-mono font-bold text-[var(--primary-main)] shadow-sm select-none transition-colors"
-          title={user?.name || user?.preferred_username || t('common.logged_in_user') || 'Logged In User'}
+          title={user?.name || user?.preferred_username || t('common.logged_in_user')}
         >
-          {getInitials()}
+          {initials ?? <User aria-hidden="true" className="h-4 w-4" />}
         </div>
       )}
 
@@ -63,10 +67,10 @@ export function AuthControls({
           type="button"
           onClick={onLogout}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 hover:bg-red-900/30 hover:border-red-700/60 text-xs font-mono transition-all duration-200 cursor-pointer shadow-sm"
-          title={t('common.logout') || 'Logout'}
+          title={t('common.logout')}
         >
-          <span className="material-symbols-outlined text-sm">logout</span>
-          <span className="hidden sm:inline font-semibold">{t('common.logout') || 'Logout'}</span>
+          <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline font-semibold">{t('common.logout')}</span>
         </button>
       )}
     </div>

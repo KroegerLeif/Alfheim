@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { getAlfiDataUri } from '../../assets';
+import { useTranslation } from '../i18n/utils/useTranslation';
 import type { AlfiAvatarProps, AlfiState } from './types';
 
 const sizeClasses = {
@@ -30,6 +31,7 @@ export function AlfiAvatar({
   className = '',
   showStatusDot = true,
 }: AlfiAvatarProps) {
+  const { t } = useTranslation();
   const isThinking = status === 'thinking';
   const isStreaming = status === 'streaming' || status === 'speaking';
   const isToolCalling = status === 'tool_calling' || status === 'fixing';
@@ -84,7 +86,7 @@ export function AlfiAvatar({
   return (
     <div
       role="img"
-      aria-label={`ALFI Mascot (${status})`}
+      aria-label={t('common.alfi_mascot', { status })}
       data-testid="alfi-avatar"
       data-status={status}
       className={`relative inline-flex items-center justify-center shrink-0 select-none rounded-full ${dimClass} ${className}`}

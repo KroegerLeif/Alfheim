@@ -10,7 +10,9 @@
       "analytics": "Analityka Majątku Netto",
       "quickAdd": "Szybka Transakcja",
       "monthly": "Miesiąc",
-      "event": "Wydarzenie"
+      "event": "Wydarzenie",
+      "mobileNavLabel": "Nawigacja mobilna",
+      "planningModeLabel": "Wybór trybu planowania"
     },
     "accounts": {
       "title": "Konta i Portfele",
@@ -29,7 +31,13 @@
       "name": "Nazwa Konta",
       "type": "Typ Konta",
       "currency": "Waluta",
-      "placeholder": "np. Moje Konto Główne"
+      "placeholder": "np. Moje Konto Główne",
+      "listTitle": "Konta",
+      "newAccount": "Nowe konto",
+      "addNewAccountLabel": "Dodaj nowe konto",
+      "emptyState": "Nie dodano jeszcze żadnych kont. Kliknij „Nowe konto”, aby je dodać.",
+      "editLabel": "Edytuj {name}",
+      "deleteLabel": "Usuń {name}"
     },
     "pots": {
       "title": "Wirtualne Skarpety i Rezerwy",

@@ -3,6 +3,7 @@
 import React from 'react';
 import { getAlfiAssetPath, getAlfiDataUri } from '../../assets';
 import type { AlfiMascotProps } from './types';
+import { useTranslation } from '../i18n/utils/useTranslation';
 
 const sizeMap: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', { className: string; px: number }> = {
   xs: { className: 'w-8 h-8', px: 32 },
@@ -37,6 +38,8 @@ export function AlfiMascot({
   showHalo = true,
   alt,
 }: AlfiMascotProps) {
+  const { t } = useTranslation();
+  const label = alt || t('common.alfi_mascot', { status: state });
   const assetPath = getAlfiAssetPath(state);
   const dataUri = getAlfiDataUri(state);
   const normalizedState = (state in haloColorMap ? state : 'idle') as string;
@@ -64,7 +67,7 @@ export function AlfiMascot({
       data-asset={assetPath}
       onClick={onClick}
       style={style}
-      aria-label={alt || `ALFI (${state})`}
+      aria-label={label}
       className={`relative inline-flex items-center justify-center shrink-0 select-none transition-transform duration-300 ${
         isInteractive ? 'cursor-pointer hover:scale-105 active:scale-95' : ''
       } ${dimensionClass} ${className}`}
@@ -82,7 +85,7 @@ export function AlfiMascot({
       {/* Authentic High-Resolution Dog Mascot Artwork */}
       <img
         src={dataUri}
-        alt={alt || `ALFI (${state})`}
+        alt={label}
         loading="eager"
         className={`w-full h-full object-contain relative z-10 drop-shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-300 ${
           animated && isPulsing ? 'scale-[1.02]' : ''

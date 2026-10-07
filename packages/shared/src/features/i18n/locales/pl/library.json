@@ -25,7 +25,8 @@
       "players": "{min}-{max} Graczy",
       "playersSingle": "{count} Graczy",
       "runtime": "{minutes} min",
-      "fsk": "Od {age} lat"
+      "fsk": "Od {age} lat",
+      "errorLoading": "Podczas ładowania elementów biblioteki wystąpił błąd. Spróbuj ponownie."
     },
     "locations": {
       "title": "Miejsca Przechowywania",
@@ -60,7 +61,8 @@
       "notes": "Notatki",
       "activeLoans": "Aktywne wypożyczenia",
       "history": "Historia wypożyczeń",
-      "noActiveLoans": "Brak obecnie wypożyczonych pozycji."
+      "noActiveLoans": "Brak obecnie wypożyczonych pozycji.",
+      "errorLoading": "Podczas ładowania historii wypożyczeń wystąpił błąd. Spróbuj ponownie."
     },
     "providers": {
       "title": "Streaming i Subskrypcje",

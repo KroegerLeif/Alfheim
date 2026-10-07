@@ -75,13 +75,30 @@ describe('AuthControls Component', () => {
     expect(onLogout).toHaveBeenCalled()
   })
 
-  it('renders fallback when user is null', () => {
+  it('renders a generic user icon instead of fake initials when user is null', () => {
     render(
       <LanguageProvider defaultLanguage="en">
         <AuthControls user={null} />
       </LanguageProvider>
     )
-    expect(screen.getByText('LK')).toBeInTheDocument()
+    const avatar = screen.getByTitle('Logged In User')
+    expect(avatar.textContent).toBe('')
+    expect(avatar.querySelector('svg')).toBeInTheDocument()
+  })
+
+  it.each([
+    [{ given_name: 'ada', family_name: 'lovelace' }, 'AL'],
+    [{ name: 'Grace Brewster Hopper' }, 'GB'],
+    [{ name: 'Linus' }, 'LI'],
+    [{ preferred_username: 'kroeger' }, 'KR'],
+  ])('derives initials from %o', (user, initials) => {
+    render(<AuthControls user={user} />)
+    expect(screen.getByText(initials)).toBeInTheDocument()
+  })
+
+  it('shows the user icon when the identity has no usable name', () => {
+    render(<AuthControls user={{ sub: 'abc' }} />)
+    expect(screen.getByTitle('Angemeldeter Benutzer').querySelector('svg')).toBeInTheDocument()
   })
 })
 

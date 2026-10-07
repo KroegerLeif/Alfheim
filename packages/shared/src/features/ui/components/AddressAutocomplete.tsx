@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '../../i18n/utils/useTranslation';
 
 // Structured address result format returned from geocoding autocomplete.
 export interface AddressResult {
@@ -41,11 +42,12 @@ interface AddressAutocompleteProps {
 }
 
 export function AddressAutocomplete({
-	placeholder = 'Search address...',
+	placeholder,
 	initialValue = '',
 	onSelect,
 	className = ''
 }: AddressAutocompleteProps) {
+	const { t } = useTranslation();
 	const [query, setQuery] = useState(initialValue);
 	const [results, setResults] = useState<AddressResult[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -135,7 +137,7 @@ export function AddressAutocomplete({
 						setQuery(e.target.value);
 						setIsOpen(true);
 					}}
-					placeholder={placeholder}
+					placeholder={placeholder ?? t('common.search_address')}
 					className="w-full px-3.5 py-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] pr-10 font-sans"
 				/>
 				{loading && (

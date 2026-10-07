@@ -123,7 +123,7 @@ export function TransactionForm({ mode, selectedProduct, onSuccess }: Transactio
         <div className="space-y-1">
           <label className="text-xs font-bold uppercase block">{t("pantry.batchLabel")}</label>
           <input type="text" value={batchCode} onChange={(e) => setBatchCode(e.target.value)}
-            placeholder="e.g. LOT-2024-A"
+            placeholder={t("pantry.batchPlaceholder")}
             className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
         </div>
         <div className="space-y-1">

@@ -112,14 +112,14 @@ describe('unreachable OIDC issuer', () => {
       renderGuard();
 
       expect(await screen.findByRole('alert')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Sign-in service not reachable' })).toBeInTheDocument();
-      expect(screen.queryByText(/Identity provider not reachable or misconfigured/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Anmeldedienst nicht erreichbar' })).toBeInTheDocument();
+      expect(screen.queryByText(/Identitätsanbieter nicht erreichbar/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/Failed to fetch/)).not.toBeInTheDocument();
       const link = screen.getByRole('link', { name: /auth\.example/ });
       expect(link).toHaveAttribute('href', DISCOVERY_URL);
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-      expect(screen.getByText(/reload the page/i)).toBeInTheDocument();
+      expect(screen.getByText(/laden Sie die Seite neu/i)).toBeInTheDocument();
       expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
     });
 
@@ -129,7 +129,7 @@ describe('unreachable OIDC issuer', () => {
       renderGuard();
 
       expect(await screen.findByRole('alert')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: /Identity provider not reachable or misconfigured/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Identitätsanbieter nicht erreichbar oder falsch konfiguriert' })).toBeInTheDocument();
       expect(screen.getByText('OIDC discovery failed with status 500')).toBeInTheDocument();
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
@@ -142,7 +142,7 @@ describe('unreachable OIDC issuer', () => {
       );
 
       expect(html).toContain('data-alfheim-auth-guard="pending"');
-      expect(html).not.toContain('Sign-in service not reachable');
+      expect(html).not.toContain('Anmeldedienst nicht erreichbar');
     });
   });
 });

@@ -238,6 +238,14 @@
     "systemBrand": "ALFHEIM // OS",
     "systemVersion": "Vorratsschrank System v1.0",
     "askAlfi": "ALFI Assistent",
-    "askAlfiAboutProduct": "ALFI zu diesem Produkt befragen"
+    "askAlfiAboutProduct": "ALFI zu diesem Produkt befragen",
+    "unknownProduct": "Unbekanntes Produkt",
+    "unknownLocation": "Unbekannter Lagerort",
+    "searchProduct": "Produkt suchen",
+    "scan": "Scannen",
+    "batchLabel": "Charge / Los",
+    "batchPlaceholder": "z. B. LOT-2024-A",
+    "notes": "Notizen",
+    "submitting": "Wird gesendet..."
   }
 }

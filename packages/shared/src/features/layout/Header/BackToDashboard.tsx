@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../../i18n/utils';
 
 export interface BackToDashboardProps {
@@ -22,9 +23,10 @@ export function BackToDashboard({
       href={href}
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-mono text-[var(--text-main)] hover:text-[var(--primary-main)] transition-all duration-200 cursor-pointer shadow-sm group ${className}`}
     >
-      <span className="material-symbols-outlined text-sm text-[var(--primary-main)] group-hover:-translate-x-0.5 transition-transform duration-200">
-        arrow_back
-      </span>
+      <ArrowLeft
+        aria-hidden="true"
+        className="h-3.5 w-3.5 text-[var(--primary-main)] group-hover:-translate-x-0.5 transition-transform duration-200"
+      />
       <span>{displayLabel}</span>
     </a>
   );
