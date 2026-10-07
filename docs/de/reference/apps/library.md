@@ -68,6 +68,22 @@ Library folgt nicht dem `src/features/<domain>/`-FDD-Layout anderer Apps; seine 
 
 ---
 
+## 🧾 API-Verhalten
+
+- **Paging:** `GET /items`, `GET /search` und `GET /lending/history` akzeptieren `skip` und `limit` (Standard 50, maximal 100) und liefern `total`. Die Katalog-Oberfläche lädt Seiten zu 48 Einträgen und zeigt „Mehr laden“ samt Zähler (angezeigt/gesamt).
+- **Leihvorgänge** enthalten `item_title`, sodass Clients den Artikel ohne zweite Abfrage benennen können.
+- **Anbieter:** `provider_name`, `provider_type` (`STREAMING`, `GAMING_PASS` oder `BOOK_PASS`; die Spalte ist ein freier String bis 50 Zeichen), `is_active` und `icon_url`. Artikel verweisen über `provider_id` auf einen Anbieter, den das Artikelformular als Auswahlfeld anbietet; die Suchfilter `provider_id` und `active_providers_only` treffen nur verknüpfte Artikel.
+- **Fehlervertrag:** Fehler, auf die Clients reagieren, nutzen `{"detail": {"code", "message", ...}}` mit stabilen Codes:
+
+| Status | Code | Wann |
+| :--- | :--- | :--- |
+| `409` | `location_in_use` | Löschen eines Lagerorts, solange Artikel dort oder an einem Unter-Lagerort liegen (`item_count` wird mitgeliefert). Ein leerer Lagerort wird samt Unter-Lagerorten gelöscht. |
+| `409` | `provider_in_use` | Löschen eines Anbieter-Abos, solange Artikel damit verknüpft sind (`item_count` wird mitgeliefert). |
+| `409` | `conflict` | Eine Datenbank-Constraint-Verletzung, die an den expliziten Prüfungen vorbeikam. |
+| `502` | `lookup_not_configured` | TMDB-Suche ohne `TMDB_API_KEY`. Andere Suchfehler behalten Klartext-Details: `400` ungültige Anfrage, `404` keine Treffer, `502` Quelle nicht erreichbar. |
+
+---
+
 ## 🔌 MCP-Tools
 
 Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`). Aktuell ein einzelnes Platzhalter-Tool, keine Katalog-Integration:
@@ -90,6 +106,10 @@ Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitg
 
 - **Kein Lese-Fortschritt- oder Wunschlisten-Feature**: Frühere Dokumentation beschrieb beide; keins ist umgesetzt (siehe Hinweis unter Zweck & Kernwert oben). Kandidaten für den Library-App-Sprint, falls weiterhin gewünscht.
 - **MCP-Tools sind ein Platzhalter**: `get_library_status` ist das einzige Tool; Katalog-, Leih- und Lookup-Features haben noch keine MCP-Integration.
+- **Kein Verleihen aus der Oberfläche**: Das Backend (`POST /items/{id}/lend`) und ein `LendItemDialog` existieren, aber keine Seite öffnet den Dialog (#551). Nur das Zurückgeben funktioniert.
+- **Katalog-Facetten nicht erreichbar**: Spielerzahl-, Dauer- und FSK-Filter gibt es in `GET /search`, aber nicht in der Filterleiste (#567).
+- **Anbieter-Notizen werden nicht gespeichert**: Das Backend hat kein Notizfeld für Anbieter-Abos (#618).
+- Die Ausleih-Übersicht zeigt die letzten 100 Verlaufseinträge und weist darauf hin, wenn es mehr gibt; offene Ausleihen sind immer vollständig.
 - Keine weiteren bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
 
 ---

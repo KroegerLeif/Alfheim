@@ -74,6 +74,22 @@ organized by API module instead:
 
 ---
 
+## 🧾 API Behaviour
+
+- **Paging:** `GET /items`, `GET /search` and `GET /lending/history` accept `skip` and `limit` (default 50, maximum 100) and return `total`. The catalog UI requests pages of 48 and shows a "load more" control with a shown/total counter.
+- **Lending records** carry `item_title`, so clients never need a second lookup to name the item.
+- **Providers:** `provider_name`, `provider_type` (`STREAMING`, `GAMING_PASS` or `BOOK_PASS`; the column is a free string up to 50 characters), `is_active` and `icon_url`. Items link to a provider through `provider_id`, which the item form exposes as a select; the `provider_id` and `active_providers_only` search filters match only linked items.
+- **Error contract:** errors that clients react to use `{"detail": {"code", "message", ...}}` with stable codes:
+
+| Status | Code | When |
+| :--- | :--- | :--- |
+| `409` | `location_in_use` | Deleting a location while items are stored at it or at a sub-location (`item_count` is returned). Deleting an empty location also removes its sub-locations. |
+| `409` | `provider_in_use` | Deleting a provider subscription while items are linked to it (`item_count` is returned). |
+| `409` | `conflict` | A database constraint violation that slipped past the explicit checks. |
+| `502` | `lookup_not_configured` | TMDB lookup without `TMDB_API_KEY`. Other lookup errors keep plain-string details: `400` invalid query, `404` no results, `502` source unreachable. |
+
+---
+
 ## 🔌 MCP Tools
 
 Served at `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`). Currently a single placeholder
@@ -103,6 +119,10 @@ write). See
   sprint if still wanted.
 - **MCP tools are a placeholder**: `get_library_status` is the only tool; the catalog, lending and
   lookup features have no MCP integration yet.
+- **No way to lend an item from the UI**: the backend (`POST /items/{id}/lend`) and a `LendItemDialog` exist, but no page opens the dialog (#551). Only returning a loan works.
+- **Catalog facets are not exposed**: player count, duration and FSK filters exist in `GET /search` but not in the filter bar (#567).
+- **Provider notes are not stored**: the backend has no notes field for provider subscriptions (#618).
+- The lending overview shows the latest 100 history records and says so when more exist; open loans are always complete.
 - No other known open issues beyond the general household-authorization items in
   [Known Issues](../../explanation/known-issues.md).
 
