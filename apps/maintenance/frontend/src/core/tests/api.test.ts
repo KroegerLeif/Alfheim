@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { subscribeHouseholdErrors } from '@alfheim/shared'
-import { maintenanceClient } from '../api'
+import { LEGACY_ACCESS_TOKEN_KEY } from '@alfheim/shared'
+import { maintenanceClient, shoppingClient } from '../api'
 import { createDevice, getDevices } from '@/features/devices/api/devicesApi'
 
 function jsonResponse(status: number, body: unknown) {
@@ -32,6 +33,19 @@ describe('maintenanceClient household context', () => {
     await maintenanceClient.get('devices').json()
     const request = fetchSpy.mock.calls[0][0] as Request
     expect(request.headers.get('X-Household-ID')).toBeNull()
+  })
+
+  it('retries once with a refreshed token when the session expired', async () => {
+    const refresh = vi.fn().mockResolvedValue('fresh-token')
+    window.__alfheim_oidc__ = { refresh } as unknown as typeof window.__alfheim_oidc__
+    fetchSpy.mockImplementationOnce(async () => jsonResponse(401, { detail: 'expired' }))
+    fetchSpy.mockImplementationOnce(async () => jsonResponse(200, [{ id: 1 }]))
+
+    await expect(maintenanceClient.get('devices').json()).resolves.toEqual([{ id: 1 }])
+
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect((fetchSpy.mock.calls[1][0] as Request).headers.get('Authorization')).toBe('Bearer fresh-token')
+    delete window.__alfheim_oidc__
   })
 
   it('reports household_forbidden and surfaces the structured error code', async () => {
@@ -74,5 +88,47 @@ describe('maintenanceClient household context', () => {
     expect(request.headers.get('X-Household-ID')).toBe('hh-target')
     expect(body).toMatchObject({ name: 'n' })
     expect(body).not.toHaveProperty('household_id')
+  })
+})
+
+describe('shoppingClient', () => {
+  let fetchSpy: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+    fetchSpy = vi.fn().mockImplementation(async () => jsonResponse(201, { id: 'x' }))
+    vi.stubGlobal('fetch', fetchSpy)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('targets the shopping app on the frontend origin and never the maintenance API', async () => {
+    await shoppingClient.post('shopping/items', { json: { name: 'Filter' } }).json()
+    const request = fetchSpy.mock.calls[0][0] as Request
+    const url = new URL(request.url)
+    expect(url.origin).toBe(window.location.origin)
+    expect(url.pathname).toBe('/shopping/api/v1/shopping/items')
+  })
+
+  it('sends the bearer token and the active household', async () => {
+    sessionStorage.setItem(LEGACY_ACCESS_TOKEN_KEY, 'abc')
+    localStorage.setItem('alfheim_active_household_id', 'hh-9')
+    await shoppingClient.post('shopping/items', { json: { name: 'Filter' } }).json()
+    const request = fetchSpy.mock.calls[0][0] as Request
+    expect(request.headers.get('Authorization')).toBe('Bearer abc')
+    expect(request.headers.get('X-Household-ID')).toBe('hh-9')
+  })
+
+  it('surfaces the structured API error', async () => {
+    fetchSpy.mockImplementation(async () =>
+      jsonResponse(403, { detail: { code: 'household_role_forbidden', message: 'Read only' } }),
+    )
+    await expect(shoppingClient.post('shopping/items', { json: {} }).json()).rejects.toMatchObject({
+      status: 403,
+      code: 'household_role_forbidden',
+    })
   })
 })
