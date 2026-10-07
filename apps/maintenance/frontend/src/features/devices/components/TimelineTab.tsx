@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Device } from "@/shared/types";
-import { formatDate } from "@/core/utils";
+import { useFormatDate } from "@/core/useFormatDate";
 
 interface TimelineTabProps {
   device: Device;
@@ -11,6 +11,7 @@ interface TimelineTabProps {
 
 export function TimelineTab({ device }: TimelineTabProps) {
   const t = useTranslations("maintenance");
+  const formatDate = useFormatDate();
   const historyEvents = device.history_events ?? [];
 
   if (historyEvents.length === 0) {
@@ -35,20 +36,20 @@ export function TimelineTab({ device }: TimelineTabProps) {
             <div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--primary-main)] border border-[var(--surface-card)] ring-4 ring-[var(--primary-main)]/20" />
 
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wide">
+              <div className="space-y-0.5 min-w-0">
+                <h4 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wide break-words">
                   {eventTitle}
                 </h4>
-                <div className="flex items-center gap-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <div className="flex flex-wrap items-center gap-x-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   <span>{formatDate(event.date)}</span>
                   <span>•</span>
-                  <span>{t("serviceHistory.byPerformer", { performer: event.performer })}</span>
+                  <span className="break-words min-w-0">{t("serviceHistory.byPerformer", { performer: event.performer })}</span>
                 </div>
               </div>
             </div>
 
             {event.notes && (
-              <p className="text-xs text-[var(--text-main)] leading-relaxed italic bg-[var(--surface-canvas)] p-2 rounded-lg border border-[var(--border-subtle)] font-mono">
+              <p className="text-xs text-[var(--text-main)] leading-relaxed italic bg-[var(--surface-canvas)] p-2 rounded-lg border border-[var(--border-subtle)] font-mono break-words whitespace-pre-line">
                 &quot;{event.notes}&quot;
               </p>
             )}

@@ -54,6 +54,7 @@ export function MaintenanceStepsForm({
               <button
                 type="button"
                 onClick={() => handleRemoveStep(idx)}
+                aria-label={`${t("wizard.removeStep")}: ${t("wizard.stepNumber", { number: idx + 1 })}`}
                 className="h-6 w-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-all"
               >
                 <Trash2 className="h-3 w-3" />

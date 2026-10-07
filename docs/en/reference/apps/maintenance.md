@@ -66,6 +66,17 @@ All routes and MCP tools use `require_household` from `backend_shared`; househol
 
 ---
 
+## 🖥️ Frontend Behaviour
+
+- **Due dates are calendar days.** Step due dates are date-only values. The frontend compares them with today's date in the browser's timezone (never as UTC midnight), so a step due tomorrow is "due soon" at any time of day. A step is *overdue* when it is before today, *due soon* from today up to 14 days ahead (the same thresholds as `GET /api/v1/maintenance/summary`), otherwise *good*. The "Upcoming (30d)" filter shows overdue steps and steps due within 30 days.
+- **Steps without a due date are "not scheduled".** A step has no due date until it is completed once. It counts as *good* in the dashboard numbers (like the backend summary), is not shown under "Upcoming (30d)" and raises no notification.
+- **Notification bell.** The header lists overdue and due-soon steps of the active household, most overdue first. Choosing one opens the scheduled tasks.
+- **Parts cart.** The maintenance wizard collects the parts of its steps in a cart that is kept in `localStorage`. The wizard sends the cart with the service log (the backend forwards it to shopping). The *Maintenance Shopping* view can also send the cart on its own: it posts each part to the shopping app's public API on the frontend origin (`POST /shopping/api/v1/shopping/items`, with the caller's bearer token and `X-Household-ID`) and keeps the parts the shopping app rejected in the cart. Its CSV export is quoted, escapes spreadsheet formulas and uses translated column headers.
+- **Languages.** All UI text comes from `maintenance.json` (`en`, `de`, `pl`) in `@alfheim/shared`, including dates, device status and category labels, plural forms and the page title. Tests render with the real dictionaries, so a missing key fails a test.
+- **Hidden until a backend exists.** The reference photo picker of a scheduled task and the manuals tab and panel are not shown because there is no upload or manuals endpoint (see Known Issues).
+
+---
+
 ## 🔌 MCP Tools
 
 Served at `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`, `@mcp_server.tool()`),
@@ -89,6 +100,11 @@ they read `get_mcp_household_context()`.
   households refuses to start `maintenance-backend`. This is a one-time, expected data reset — see
   [Troubleshooting](../../how-to/troubleshooting.md#symptom-5-maintenance-backend-fails-with-legacyhouseholdschemaerror)
   and [Known Issues](../../explanation/known-issues.md).
+- **Devices and steps cannot be edited or deleted** (#505): the API only has `GET`/`POST` for devices and no step endpoints.
+- **Reference photos and manuals are not supported** (#503, #509): the UI is hidden, there is no storage.
+- **A saved step comment replaces the step's procedure description and cannot be cleared** (#620).
+- **Steps of a new device have no first due date** until they are completed once (#621).
+- **Two code paths for completing a session** (`POST /api/v1/submit` used by the UI, `/maintenance/wizard` and `/maintenance/summary` unused by the UI, #523), and `BudgetClient.reserve_maintenance_funds` is never called (#519).
 - No other known open issues beyond the general household-authorization items in
   [Known Issues](../../explanation/known-issues.md).
 

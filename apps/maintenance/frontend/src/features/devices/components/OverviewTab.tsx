@@ -4,6 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Device } from "@/shared/types";
 import { Info, Wrench } from "lucide-react";
+import { useDeviceLabels } from "../hooks/useDeviceLabels";
 
 interface OverviewTabProps {
   device: Device;
@@ -13,29 +14,30 @@ interface OverviewTabProps {
 
 export function OverviewTab({ device, onStartMaintenance, onClose }: OverviewTabProps) {
   const t = useTranslations("maintenance");
+  const { statusLabel } = useDeviceLabels();
 
   return (
     <div className="space-y-6">
       {/* Meta Attributes Card */}
       <div className="bg-[var(--surface-canvas)] rounded-2xl border border-[var(--border-subtle)] p-5 space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
               {t("deviceInventory.fields.location")}
             </span>
-            <span className="block text-xs font-bold text-[var(--text-main)] uppercase">{device.location}</span>
+            <span className="block text-xs font-bold text-[var(--text-main)] uppercase break-words">{device.location}</span>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
               {t("deviceInventory.fields.model")}
             </span>
-            <span className="block text-xs font-mono font-bold text-[var(--text-main)]">{device.model}</span>
+            <span className="block text-xs font-mono font-bold text-[var(--text-main)] break-words">{device.model}</span>
           </div>
-          <div className="space-y-1 col-span-2">
+          <div className="space-y-1 col-span-2 min-w-0">
             <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
               {t("deviceInventory.fields.serialKey")}
             </span>
-            <span className="block text-xs font-mono font-bold text-[var(--primary-main)]">{device.serial}</span>
+            <span className="block text-xs font-mono font-bold text-[var(--primary-main)] break-all">{device.serial}</span>
           </div>
         </div>
       </div>
@@ -46,7 +48,7 @@ export function OverviewTab({ device, onStartMaintenance, onClose }: OverviewTab
           <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">
             {t("deviceInventory.fields.serviceNotes")}
           </h4>
-          <p className="text-xs text-[var(--text-main)] leading-relaxed font-semibold italic bg-[var(--surface-canvas)] p-4 rounded-xl border border-[var(--border-subtle)]">
+          <p className="text-xs text-[var(--text-main)] leading-relaxed font-semibold italic bg-[var(--surface-canvas)] p-4 rounded-xl border border-[var(--border-subtle)] break-words whitespace-pre-line">
             &quot;{device.notes}&quot;
           </p>
         </div>
@@ -60,13 +62,14 @@ export function OverviewTab({ device, onStartMaintenance, onClose }: OverviewTab
             {t("deviceInventory.fields.statusMonitor")}
           </h4>
           <p className="text-xs text-[var(--text-muted)] leading-relaxed font-semibold">
-            {t("deviceInventory.fields.statusFlagged", { status: device.status })}
+            {t("deviceInventory.fields.statusFlagged", { status: statusLabel(device.status) })}
           </p>
         </div>
       </div>
 
       {onStartMaintenance && (
         <button
+          type="button"
           onClick={() => {
             onStartMaintenance(device);
             onClose();

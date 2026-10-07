@@ -21,13 +21,13 @@ export function MaintenanceNavBar({
 
   return (
     <>
-      <div className="h-16 border-b border-[var(--border-subtle)] px-6 flex items-center justify-between bg-[var(--surface-card)]">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
+      <div className="h-16 border-b border-[var(--border-subtle)] px-6 flex items-center justify-between gap-4 bg-[var(--surface-card)]">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="flex flex-col min-w-0">
             <span className="text-[9px] font-black uppercase tracking-widest text-[var(--primary-main)] leading-none">
               {t("wizardMode.tagline")}
             </span>
-            <span className="text-base font-black uppercase text-[var(--text-main)] truncate max-w-sm">
+            <span className="text-base font-black uppercase text-[var(--text-main)] truncate max-w-sm" title={deviceName}>
               {deviceName}
             </span>
           </div>
@@ -46,8 +46,9 @@ export function MaintenanceNavBar({
         </div>
 
         <button
+          type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all cursor-pointer"
+          className="p-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all cursor-pointer shrink-0"
           aria-label={t("wizardMode.exitLabel")}
           disabled={isPending}
         >

@@ -44,11 +44,11 @@ export function WizardStepContent({
 
       {activeStep && (
         <div className="space-y-4">
-          <h3 className="text-2xl font-black uppercase text-[var(--text-main)] tracking-wide">
+          <h3 className="text-2xl font-black uppercase text-[var(--text-main)] tracking-wide break-words">
             {activeStep.title}
           </h3>
           {activeStep.description && (
-            <p className="text-[var(--text-muted)] text-sm leading-relaxed">
+            <p className="text-[var(--text-muted)] text-sm leading-relaxed break-words whitespace-pre-line">
               {activeStep.description}
             </p>
           )}
@@ -59,18 +59,19 @@ export function WizardStepContent({
       {activeStep && (
         <div className="pt-4">
           <button
+            type="button"
             onClick={() => handleToggleStepDone(activeStep.id)}
             className={cn(
-              "w-full flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer font-semibold text-sm",
+              "w-full flex items-center justify-between gap-3 p-4 rounded-xl border transition-all cursor-pointer font-semibold text-sm",
               doneSteps.has(activeStep.id)
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
                 : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
             )}
             disabled={isPending}
           >
-            <span>{t("wizardMode.markCompleted")}</span>
+            <span className="min-w-0 break-words text-left">{t("wizardMode.markCompleted")}</span>
             <div className={cn(
-              "h-6 w-6 rounded-lg border flex items-center justify-center transition-all",
+              "h-6 w-6 rounded-lg border flex items-center justify-center transition-all shrink-0",
               doneSteps.has(activeStep.id)
                 ? "bg-emerald-500 border-emerald-500 text-black"
                 : "border-[var(--border-subtle)]"
@@ -84,10 +85,11 @@ export function WizardStepContent({
       {/* Step specific notes */}
       {activeStep && (
         <div className="space-y-2 pt-4">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] block">
+          <label htmlFor="wizard-step-notes" className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] block">
             {t("wizardMode.operationNotes")}
-          </span>
+          </label>
           <textarea
+            id="wizard-step-notes"
             value={stepNotes[activeStep.id] || ""}
             onChange={(e) => handleNoteChange(e.target.value)}
             placeholder={t("wizardMode.notesPlaceholder")}

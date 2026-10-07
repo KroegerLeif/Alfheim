@@ -6,6 +6,7 @@ import { CATEGORIES } from "@/shared/data";
 import { ChevronDown } from "lucide-react";
 import { Household } from "@/shared/types";
 import { DeviceCoreFields } from "./DeviceCoreFields";
+import { useDeviceLabels } from "../hooks/useDeviceLabels";
 
 const STATUSES = ["active", "maintenance", "inactive"] as const;
 
@@ -53,6 +54,7 @@ export function DeviceDetailsForm({
   households = [],
 }: DeviceDetailsFormProps) {
   const t = useTranslations("maintenance");
+  const { statusLabel, categoryLabel } = useDeviceLabels();
   const householdList = households ?? [];
 
   return (
@@ -84,7 +86,7 @@ export function DeviceDetailsForm({
               className="w-full appearance-none p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all pr-8"
             >
               {CATEGORIES.map((c) => (
-                <option key={c} value={c} className="bg-[var(--surface-card)] text-[var(--text-main)]">{c}</option>
+                <option key={c} value={c} className="bg-[var(--surface-card)] text-[var(--text-main)]">{categoryLabel(c)}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
@@ -102,7 +104,7 @@ export function DeviceDetailsForm({
               className="w-full appearance-none p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all pr-8"
             >
               {STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[var(--surface-card)] text-[var(--text-main)] capitalize">{s}</option>
+                <option key={s} value={s} className="bg-[var(--surface-card)] text-[var(--text-main)]">{statusLabel(s)}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
