@@ -133,7 +133,10 @@ func TestIntegration_DeleteHouseholdReassignsEveryMembersDefault(t *testing.T) {
 	}
 
 	list, err := svc.GetUserHouseholds(ctx, "alice")
-	if err != nil || len(list) != 1 || !list[0].IsDefault {
+	if err != nil || len(list) != 1 || !list[0].IsDefault || list[0].Role != "OWNER" {
 		t.Errorf("GET /me for alice must report the promoted default, got %+v, %v", list, err)
+	}
+	if len(list) == 1 && list[0].Members != nil {
+		t.Errorf("GET /me must not include member rosters (#576), got %+v", list[0].Members)
 	}
 }

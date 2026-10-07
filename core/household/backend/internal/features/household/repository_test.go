@@ -57,6 +57,8 @@ func (m *mockRows) Scan(dest ...any) error {
 			*d = val.(int)
 		case *time.Time:
 			*d = val.(time.Time)
+		case *bool:
+			*d = val.(bool)
 		}
 	}
 	return nil
@@ -296,17 +298,26 @@ func TestRepository_Households(t *testing.T) {
 			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 				return &mockRows{
 					items: [][]any{
-						{"h1", "H1", "h1", "u1", "st", "1000", "City", "CH", nil, nil, now, now},
+						{"h1", "H1", "h1", "u1", "st", "1000", "City", "CH", nil, nil, now, now, "ADMIN", true},
 					},
 				}, nil
 			},
 		}
+		iterErr := newRepositoryWithDB(&mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return &mockRows{err: errors.New("iteration")}, nil
+			},
+		})
+		if _, err := iterErr.GetHouseholdsByUserID(ctx, "u1"); err == nil {
+			t.Fatal("expected iteration error, got nil")
+		}
+
 		repoOK := newRepositoryWithDB(dbtxOK)
 		list, err := repoOK.GetHouseholdsByUserID(ctx, "u1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(list) != 1 || list[0].Name != "H1" {
+		if len(list) != 1 || list[0].Name != "H1" || list[0].Role != RoleAdmin || !list[0].IsDefault {
 			t.Errorf("unexpected list: %+v", list)
 		}
 	})

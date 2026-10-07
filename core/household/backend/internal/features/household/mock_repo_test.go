@@ -82,16 +82,20 @@ func (m *mockRepository) GetHouseholdByID(ctx context.Context, id string) (*hous
 	return h, nil
 }
 
-func (m *mockRepository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*household.Household, error) {
+func (m *mockRepository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*household.UserHousehold, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := m.fail("GetHouseholdsByUserID"); err != nil {
 		return nil, err
 	}
-	var res []*household.Household
+	var res []*household.UserHousehold
 	for hid, userRoles := range m.members {
-		if _, ok := userRoles[userID]; ok {
-			res = append(res, m.households[hid])
+		if role, ok := userRoles[userID]; ok {
+			res = append(res, &household.UserHousehold{
+				Household: *m.households[hid],
+				Role:      role,
+				IsDefault: m.defaults[userID] == hid,
+			})
 		}
 	}
 	return res, nil

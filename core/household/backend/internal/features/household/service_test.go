@@ -94,6 +94,16 @@ func TestHouseholdService_GetUserHouseholds(t *testing.T) {
 	if len(list) != 2 {
 		t.Errorf("expected 2 households, got %d", len(list))
 	}
+	for _, h := range list {
+		// Issue #576: the list endpoint never ships member rosters.
+		if h.Members != nil {
+			t.Errorf("household %s: expected no members in the list response, got %+v", h.ID, h.Members)
+		}
+		wantRole := map[string]string{"hh-1": "OWNER", "hh-2": "MEMBER"}[h.ID]
+		if h.Role != wantRole {
+			t.Errorf("household %s: role %q, want %q", h.ID, h.Role, wantRole)
+		}
+	}
 
 	emptyList, err := svc.GetUserHouseholds(ctx, "nonexistent-user")
 	if err != nil {
