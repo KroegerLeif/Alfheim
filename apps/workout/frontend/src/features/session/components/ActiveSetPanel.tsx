@@ -17,6 +17,7 @@ interface ActiveSetPanelProps {
 /**
  * The one set currently being performed. Pre-fills the steppers from the
  * backend-resolved targets so the common case is a single tap to confirm.
+ * Render it with `key={set.id}`.
  */
 export function ActiveSetPanel({
   exercise,
@@ -26,22 +27,17 @@ export function ActiveSetPanel({
   isLogging,
 }: ActiveSetPanelProps) {
   const { t } = useTranslation();
+  // The parent keys this panel by set id, so advancing to the next set remounts it and
+  // never carries the previous set's edits over.
   const [reps, setReps] = React.useState(set.target_reps ?? 0);
   const [weight, setWeight] = React.useState(set.target_weight_kg ?? 0);
-
-  // Re-seed when the active set changes, so advancing does not carry the
-  // previous set's edits over.
-  React.useEffect(() => {
-    setReps(set.target_reps ?? 0);
-    setWeight(set.target_weight_kg ?? 0);
-  }, [set.id, set.target_reps, set.target_weight_kg]);
 
   return (
     <Card className="border-[var(--border-accent)]">
       <CardContent className="space-y-5 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="truncate font-heading text-lg font-black uppercase tracking-wide">
+            <h2 className="line-clamp-2 break-words font-heading text-lg font-black uppercase tracking-wide">
               {exercise.exercise_name_snapshot}
             </h2>
             <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)]">

@@ -64,3 +64,8 @@ export function isSetCompleted(set: SessionSetRead): boolean {
 export function firstOpenSetIndex(sets: SessionSetRead[]): number {
   return (sets ?? []).findIndex((set) => !isSetCompleted(set));
 }
+
+/** Identifies one set slot of a session, independent of the (server-assigned) set row id. */
+export function setSlotKey(sessionExerciseId: string, setOrder: number): string {
+  return `${sessionExerciseId}:${setOrder}`;
+}
