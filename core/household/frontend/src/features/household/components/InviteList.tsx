@@ -5,6 +5,7 @@ import { useTranslation } from '@/i18n';
 import { describeApiError } from '@/lib/apiErrors';
 import { InviteCodeResponse } from '@/shared/types';
 import { useHouseholdInvites, useRevokeInvite, useCreateInvite } from '../hooks/queries';
+import { roleLabel } from '../roles';
 import { StatusBanner } from './StatusBanner';
 
 interface InviteListProps {
@@ -61,7 +62,7 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
         <h2 id="household-invites-title" className="text-sm font-mono uppercase tracking-wide text-[var(--text-muted)]">
           {t('household_app.invites.title')}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <label htmlFor="invite-role" className="sr-only">{t('household_app.invites.role_label')}</label>
           <select
             id="invite-role"
@@ -70,7 +71,7 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
             className="bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-main)] rounded px-1.5 py-1 cursor-pointer"
           >
             {INVITE_ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>{roleLabel(r, t)}</option>
             ))}
           </select>
           <button
@@ -79,7 +80,7 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
             disabled={createMutation.isPending}
             className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-slate-950 font-bold text-xs flex items-center gap-1 hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-sm">qr_code_2</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">qr_code_2</span>
             {t('household_app.invites.generate')}
           </button>
         </div>
@@ -102,7 +103,7 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
                 <div className="min-w-0 space-y-0.5">
                   <div className="font-mono font-bold text-[var(--primary-main)] truncate">{invite.token}</div>
                   <div className="text-[10px] font-mono text-[var(--text-muted)] flex flex-wrap gap-x-3">
-                    <span>{invite.role}</span>
+                    <span>{roleLabel(invite.role, t)}</span>
                     <span>{t('household_app.invites.uses', { uses: invite.uses ?? 0, max: invite.max_uses })}</span>
                     <span>
                       {expired
