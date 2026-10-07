@@ -9,6 +9,8 @@ import {
   useTranslation,
 } from "@alfheim/shared";
 import { Dumbbell, Minus, Plus } from "lucide-react";
+import { InlineError } from "@/components/shared/InlineError";
+import { describeError } from "@/core/errors";
 import { useDeleteEquipment, useEquipmentList } from "../hooks/useEquipment";
 import type { EquipmentRead } from "../types";
 import { EquipmentCard } from "./EquipmentCard";
@@ -22,6 +24,7 @@ export function EquipmentListView() {
   const { t } = useTranslation();
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   const { data, isLoading, isError } = useEquipmentList();
   const deleteMutation = useDeleteEquipment();
@@ -30,7 +33,9 @@ export function EquipmentListView() {
 
   const handleDelete = (entry: EquipmentRead) => {
     setDeletingId(entry.id);
+    setActionError(null);
     deleteMutation.mutate(entry.id, {
+      onError: (error) => setActionError(describeError(error, t, "workout.deleteFailed")),
       onSettled: () => setDeletingId(null),
     });
   };
@@ -60,14 +65,8 @@ export function EquipmentListView() {
         />
       )}
 
-      {isError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-800/40 bg-red-950/20 p-4 text-xs font-bold uppercase text-red-400"
-        >
-          {t("workout.loadFailed")}
-        </div>
-      )}
+      <InlineError message={isError ? t("workout.loadFailed") : null} />
+      <InlineError message={actionError} />
 
       {isLoading ? (
         <div className="space-y-3">

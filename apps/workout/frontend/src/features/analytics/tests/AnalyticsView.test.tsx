@@ -16,8 +16,8 @@ describe("AnalyticsView", () => {
   it("renders the page heading", async () => {
     renderWithProviders(<AnalyticsView />);
 
-    expect(screen.getByText("analyticsTitle")).toBeInTheDocument();
-    expect(screen.getByText("analyticsSubtitle")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Analytics" })).toBeInTheDocument();
+    expect(screen.getByText("Training volume, streaks and household leaderboard")).toBeInTheDocument();
 
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
   });
@@ -27,10 +27,11 @@ describe("AnalyticsView", () => {
 
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
 
-    // StreakPanel: both stat cards render, mocked t() drops the {count} param.
-    expect(screen.getByText("currentStreak")).toBeInTheDocument();
-    expect(screen.getByText("longestStreak")).toBeInTheDocument();
-    expect(screen.getAllByText("streakDays")).toHaveLength(2);
+    // StreakPanel: both stat cards render with the interpolated day counts.
+    expect(screen.getByText("Current Streak")).toBeInTheDocument();
+    expect(screen.getByText("Longest Streak")).toBeInTheDocument();
+    expect(screen.getByText("3 days")).toBeInTheDocument();
+    expect(screen.getByText("7 days")).toBeInTheDocument();
 
     // MuscleVolumePanel: bars are summarized as a single accessible image.
     const chart = screen.getByRole("img", { name: /1200/ });
@@ -49,7 +50,7 @@ describe("AnalyticsView", () => {
     renderWithProviders(<AnalyticsView />);
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument(), { timeout: 5000 });
-    expect(screen.getByRole("alert")).toHaveTextContent("loadFailed");
+    expect(screen.getByRole("alert")).toHaveTextContent("Failed to load data");
   });
 
   it("shows the empty state when there is no volume data and no leaderboard entries", async () => {
@@ -62,8 +63,8 @@ describe("AnalyticsView", () => {
 
     renderWithProviders(<AnalyticsView />);
 
-    await waitFor(() => expect(screen.getByText("noAnalyticsData")).toBeInTheDocument());
-    expect(screen.getByText("noAnalyticsDataSubtitle")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("No completed sessions yet")).toBeInTheDocument());
+    expect(screen.getByText("Complete a session to see your analytics")).toBeInTheDocument();
   });
 
   it("passes accessibility audit once loaded", async () => {
@@ -84,10 +85,10 @@ describe("AnalyticsView", () => {
     renderWithProviders(<AnalyticsView />);
 
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
-    expect(screen.getAllByText("streakDays")).toHaveLength(2);
+    expect(screen.getAllByText("0 days")).toHaveLength(2);
   });
 
-  it("wires useStreaks to the exact fixture values, independent of the mocked translator", async () => {
+  it("wires useStreaks to the exact fixture values, independent of the rendered text", async () => {
     const { result } = renderHook(() => useStreaks(), { wrapper: createQueryWrapper() });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

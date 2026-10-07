@@ -55,7 +55,8 @@ const BASE_URL = sanitizeUrl(
 
 const handleResponseError = async (response: Response) => {
   let code: string | undefined;
-  let message = "workout.loadFailed";
+  // Empty by default: callers pick a localized fallback instead of showing a raw key.
+  let message = "";
   try {
     const data = await response.json();
     // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
@@ -63,7 +64,7 @@ const handleResponseError = async (response: Response) => {
     code = parsed.code ?? undefined;
     message = parsed.message || message;
   } catch {
-    message = response.statusText || message;
+    message = response.statusText;
   }
 
   throw new ApiError(response.status, message, code);

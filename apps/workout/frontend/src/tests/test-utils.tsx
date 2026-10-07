@@ -1,7 +1,7 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { StaticHouseholdProvider } from '@alfheim/shared'
+import { LanguageProvider, StaticHouseholdProvider, type Language } from '@alfheim/shared'
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -20,18 +20,30 @@ export function createTestQueryClient() {
   })
 }
 
-export function renderWithProviders(
+/** Render with the real dictionary of `language` (English by default, like the /en route). */
+export function renderWithI18n(
   ui: ReactElement,
+  language: Language = 'en',
   options?: Omit<RenderOptions, 'wrapper'>
 ) {
+  return render(<LanguageProvider defaultLanguage={language}>{ui}</LanguageProvider>, options)
+}
+
+export function renderWithProviders(
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'> & { language?: Language }
+) {
+  const { language = 'en', ...renderOptions } = options ?? {}
   const testQueryClient = createTestQueryClient()
   return render(
-    <StaticHouseholdProvider householdId="hh-1">
-      <QueryClientProvider client={testQueryClient}>
-        {ui}
-      </QueryClientProvider>
-    </StaticHouseholdProvider>,
-    options
+    <LanguageProvider defaultLanguage={language}>
+      <StaticHouseholdProvider householdId="hh-1">
+        <QueryClientProvider client={testQueryClient}>
+          {ui}
+        </QueryClientProvider>
+      </StaticHouseholdProvider>
+    </LanguageProvider>,
+    renderOptions
   )
 }
 
@@ -49,6 +61,8 @@ export function createQueryWrapper() {
   })
 
   return ({ children }: { children: React.ReactNode }) => (
-    <StaticHouseholdProvider householdId="hh-1"><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></StaticHouseholdProvider>
+    <LanguageProvider defaultLanguage="en">
+      <StaticHouseholdProvider householdId="hh-1"><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></StaticHouseholdProvider>
+    </LanguageProvider>
   )
 }

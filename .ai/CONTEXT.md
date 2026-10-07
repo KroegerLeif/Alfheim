@@ -438,7 +438,10 @@ with `core/household` by `require_household`, matching Pantry/Chores.
   `session_sets.target_weight_kg` stores the RESOLVED weight-engine number, not the type/offset.
 * `session_sets` has a partial-unique index on (`session_exercise_id`, `client_idempotency_key`)
   WHERE the key is NOT NULL, backing the offline-sync ack endpoint
-  (`POST /sessions/{id}/sets/sync`).
+  (`POST /sessions/{id}/sets/sync`). The sync fills the cloned `session_sets` row of the same
+  slot (`set_order`, not yet completed) instead of inserting a duplicate, and answers
+  `409 session_not_active` for a completed or abandoned session (replaying stored keys is still
+  acked).
 
 #### Invariant Rules:
 1. **MCP tenancy**: MCP tools (per-feature and the composite `agent_tools` slice) take no

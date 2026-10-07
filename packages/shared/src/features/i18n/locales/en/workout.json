@@ -146,6 +146,25 @@
     "saveFailed": "Save failed",
     "retry": "Retry",
     "unit_kg": "kg",
-    "unit_reps": "reps"
+    "unit_reps": "reps",
+    "metaDescription": "Workouts, plans and progress in one place",
+    "dayFallbackLabel": "Day {number}",
+    "start": "Start",
+    "startDay": "Start {label}",
+    "planDescriptionPlaceholder": "Optional notes about this plan",
+    "setsDropped": "Sets that could not be saved and were discarded: {count}. Please log them again.",
+    "dismiss": "Dismiss",
+    "errorSessionNotActive": "This session is already finished, so no more sets can be logged.",
+    "finishPendingSets": "Sets still waiting to sync: {count}. Reconnect and finish again so no sets are lost.",
+    "finishFailed": "Could not finish the session",
+    "abandonFailed": "Could not abandon the session",
+    "startFailed": "Could not start the session",
+    "logFailed": "Could not save this set on the device",
+    "planSaveFailed": "Could not save the plan",
+    "planDeleteFailed": "Could not delete the plan",
+    "deleteFailed": "Could not delete the entry",
+    "backToToday": "Back to Today",
+    "errorTitle": "Something went wrong",
+    "errorGeneric": "An unexpected error occurred while loading this page."
   }
 }

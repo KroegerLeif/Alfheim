@@ -57,3 +57,28 @@ Quelle: [`apps/workout/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 - `analytics`: Muskel-Volumen, Streak und Haushalt-Leaderboard nur-Lesbare Aggregationen.
 
 ---
+
+---
+
+## 🔁 Session-Lebenszyklus & Offline-Sync
+
+Eine Session ist `active`, bis sie abgeschlossen (`POST /sessions/{id}/complete`) oder abgebrochen
+(`POST /sessions/{id}/abandon`) wird; beide Übergänge sind endgültig. Eine Session aus einem Plan
+klont einen Tag (`plan_id` + `plan_day_id`); die Plankarten bieten pro Tag einen Start-Button.
+
+`POST /sessions/{id}/sets/sync` schreibt einen Stapel von Sätzen anhand von `client_idempotency_key`:
+
+- Ein Satz für einen aus dem Plantag geklonten Platz (gleiche `session_exercise_id` und
+  `set_order`, noch nicht ausgeführt) füllt diese Zeile; sonst wird eine neue Zeile eingefügt.
+  Wird ein Schlüssel erneut gesendet, kommt die gespeicherte Zeile ohne Duplikat zurück.
+- Einträge, deren `session_exercise_id` nicht zur Session gehört, werden übersprungen.
+- Ein Stapel, der einen Satz zu einer abgeschlossenen oder abgebrochenen Session hinzufügen würde,
+  wird mit `409` und `{"detail": {"code": "session_not_active", "message": "..."}}` abgelehnt.
+  Bereits gespeicherte Schlüssel werden weiterhin bestätigt.
+
+Die Browser-Warteschlange (`features/offline_sync`) speichert jeden Satz zuerst in IndexedDB und
+synchronisiert im Hintergrund, serialisiert und pro Session ein Request. Einträge werden nach fünf
+fehlgeschlagenen Versuchen oder sofort bei `session_not_active` verworfen; verworfene Sätze lösen
+eine schließbare Warnung am Sync-Badge aus und erscheinen im HUD wieder als offen. Das Abschließen
+einer Session wird abgelehnt, solange Sätze in der Warteschlange liegen; beim Abbrechen wird die
+Warteschlange zuerst geleert und nicht zustellbare Sätze werden verworfen.

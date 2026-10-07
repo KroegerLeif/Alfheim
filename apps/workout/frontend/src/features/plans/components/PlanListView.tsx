@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { Button, EmptyState, Skeleton, Spinner, useTranslation } from "@alfheim/shared";
 import { Calendar, Plus } from "lucide-react";
-import { Link, useRouter } from "@/navigation";
-import { useExerciseList } from "@/features/exercises/hooks/useExercises";
-import { useStartSession } from "@/features/session/hooks/useSessions";
+import { InlineError } from "@/components/shared/InlineError";
+import { describeError } from "@/core/errors";
+import { useExerciseList } from "@/features/exercises";
+import { useStartSession } from "@/features/session";
+import { useRouter } from "@/navigation";
 import { useCreatePlan, usePlans } from "../hooks/usePlans";
 import type { PlanCreate } from "../types";
 import { PlanCard } from "./PlanCard";
@@ -16,6 +18,7 @@ export function PlanListView() {
   const router = useRouter();
 
   const [isCreating, setIsCreating] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: plans, isLoading: plansLoading, isError } = usePlans();
   const { data: exercises, isLoading: exercisesLoading } = useExerciseList();
@@ -23,7 +26,10 @@ export function PlanListView() {
   const createPlanMutation = useCreatePlan();
   const startSessionMutation = useStartSession();
 
+  const planList = plans ?? [];
+
   const handleStartSession = async (planId: string, dayId: string) => {
+    setActionError(null);
     try {
       const session = await startSessionMutation.mutateAsync({
         plan_id: planId,
@@ -31,17 +37,23 @@ export function PlanListView() {
       });
       router.push(`/session/${session.id}`);
     } catch (err) {
-      console.error("Failed to start session:", err);
+      setActionError(describeError(err, t, "workout.startFailed"));
     }
   };
 
   const handleCreatePlan = async (payload: PlanCreate) => {
+    setActionError(null);
     try {
       await createPlanMutation.mutateAsync(payload);
       setIsCreating(false);
     } catch (err) {
-      console.error("Failed to create plan:", err);
+      setActionError(describeError(err, t, "workout.planSaveFailed"));
     }
+  };
+
+  const closeEditor = () => {
+    setActionError(null);
+    setIsCreating(false);
   };
 
   if (isCreating) {
@@ -56,8 +68,9 @@ export function PlanListView() {
         <PlanEditor
           availableExercises={exercises ?? []}
           onSave={handleCreatePlan}
-          onCancel={() => setIsCreating(false)}
+          onCancel={closeEditor}
           isSaving={createPlanMutation.isPending}
+          errorMessage={actionError}
         />
       </div>
     );
@@ -66,7 +79,7 @@ export function PlanListView() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <header>
+        <header className="min-w-0">
           <h1 className="font-heading text-2xl font-black uppercase tracking-wide md:text-3xl">
             {t("workout.plansTitle")}
           </h1>
@@ -76,19 +89,13 @@ export function PlanListView() {
         </header>
 
         <Button onClick={() => setIsCreating(true)}>
-          <Plus className="h-4 w-4 mr-1.5" />
+          <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
           {t("workout.createPlan")}
         </Button>
       </div>
 
-      {isError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-800/40 bg-red-950/20 p-4 text-xs font-bold uppercase text-red-400"
-        >
-          {t("workout.loadFailed")}
-        </div>
-      )}
+      <InlineError message={isError ? t("workout.loadFailed") : null} />
+      <InlineError message={actionError} />
 
       {plansLoading || exercisesLoading ? (
         <div className="space-y-4">
@@ -99,21 +106,21 @@ export function PlanListView() {
             ))}
           </div>
         </div>
-      ) : !plans || plans.length === 0 ? (
+      ) : planList.length === 0 ? (
         <EmptyState
           icon={<Calendar className="h-8 w-8" />}
           title={t("workout.noPlans")}
           description={t("workout.noPlansSubtitle")}
           action={
             <Button onClick={() => setIsCreating(true)} size="sm">
-              <Plus className="h-4 w-4 mr-1.5" />
+              <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
               {t("workout.createPlan")}
             </Button>
           }
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan) => (
+          {planList.map((plan) => (
             <PlanCard
               key={plan.id}
               plan={plan}

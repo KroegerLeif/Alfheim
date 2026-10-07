@@ -12,6 +12,7 @@ import {
   useTranslation,
 } from "@alfheim/shared";
 import { Loader2 } from "lucide-react";
+import { describeError } from "@/core/errors";
 import { useExercisePreference, useUpsertExercisePreference } from "../hooks/useExercises";
 import type { ExerciseRead } from "../types";
 
@@ -59,7 +60,7 @@ export function ExerciseBaselineDialog({ exercise, open, onOpenChange }: Exercis
       { id: exercise.id, payload: { default_target_weight_kg: parsed } },
       {
         onSuccess: () => onOpenChange(false),
-        onError: (error) => setErrorMessage(error.message || t("workout.saveFailed")),
+        onError: (error) => setErrorMessage(describeError(error, t, "workout.saveFailed")),
       }
     );
   };
