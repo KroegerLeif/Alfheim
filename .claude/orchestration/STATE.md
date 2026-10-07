@@ -28,8 +28,8 @@
 | Orchestrator | (session worktree) | `orchestrator/app-stability-sweep` | created from `origin/dev` @ `9550532d` |
 | Shared packages | `.worktrees/shared-packages` | `feature/fix-shared` | merged (#608, squash `7f3c3f5d`); worktree removed |
 | Household | `.worktrees/app-household` | `feature/fix-household` | merged (#611, squash `4c53afb8`); worktree removed |
-| Workout | `.worktrees/app-workout` | `feature/fix-workout` | in progress (Sonnet sub-agent) |
-| Library | `.worktrees/app-library` | `feature/fix-library` | pending |
+| Workout | `.worktrees/app-workout` | `feature/fix-workout` | merged (#616, squash `4440336e`); worktree removed |
+| Library | `.worktrees/app-library` | `feature/fix-library` | in progress (Sonnet sub-agent) |
 | Maintenance | `.worktrees/app-maintenance` | `feature/fix-maintenance` | pending |
 | Pantry | `.worktrees/app-pantry` | `feature/fix-pantry` | pending |
 | Shopping | `.worktrees/app-shopping` | `feature/fix-shopping` | pending |
@@ -112,6 +112,7 @@ sweeps only touch their own `<app>.json`.
 | --- | --- | --- |
 | shared (#608) | `tsc --noEmit`; Vitest + v8 coverage (296 tests); new static key-resolution, locale-parity and German-rendering tests; `verify.sh --frontend` | Pass. Coverage stmts 87.12→90.19, branches 75.54→81.49 (below the 90% threshold that was already missed before; see #609), funcs 89.24→92.24, lines 88.79→91.97 |
 | household (#611) | Go `build`/`vet`/`test -race -cover`; PostgreSQL integration tests against a throwaway `postgres:16-alpine`; frontend `tsc`, Vitest (38→73 tests) incl. en/de/pl key-resolution + parity tests and a long-content layout test; `verify.sh --frontend --go` | Pass. Go coverage 81–100% per package (household 98.2, membership 96.8, httpjson 100). Frontend stmts 58.7 / branches 55.9 / funcs 44.1 / lines 60.2 (`src/app/**` excluded) |
+| workout (#616) | ruff, `ty`, pytest + cov; frontend `tsc`, Vitest + v8 coverage (56→218 tests: HUD, offline queue with fake-indexeddb + MSW, sync badge, long-content renders); `next build`; `verify.sh --frontend --python` | Pass. Backend 149 tests, 95.66% (base 95.56%). Frontend stmts 87.5 / branches 80.8 / funcs 82.1 / lines 88.8 (base 58.0 / 49.7 / 46.0 / 59.1) |
 
 ## Backlog added during this sweep
 
@@ -119,6 +120,12 @@ sweeps only touch their own `<app>.json`.
 | --- | --- | --- |
 | #609 | shared | Branch coverage below 90% in OIDC flow and theme context |
 | #610 | shared | Map marker popups render raw HTML (stored XSS within a household); household side escapes now |
+| #612 | workout | Leaderboard shows truncated user ids; backend returns no display names |
+| #613 | workout | Exercises/equipment cannot be edited in the UI although `PATCH` exists |
+| #614 | shared | Shared `Button` has no default `type`; buttons inside forms submit them |
+| #615 | shared | Shared `t()` interpolation garbles values containing `$&` / `$1` |
+| #617 | shared/tooling | ESLint crashes on config load in every frontend (minimatch "expand is not a function") |
+| #568 (kept open) | workout | `preferred_unit` kg/lb wiring is a feature of its own |
 | #583 (kept open) | household | Internal `GET /internal/v1/households/{id}/members` added; `backend_shared` helper + chores consumer still missing |
 
 ### Carry-over for later sweeps (from #608)
@@ -127,6 +134,8 @@ sweeps only touch their own `<app>.json`.
 - maintenance: `Header.tsx` uses next-intl keys `header.notifications`, `header.allCaughtUp`, `header.noNotifications` that do not exist.
 - chores, chat, pantry, maintenance, shopping: test mocks return key fragments instead of the real dictionary.
 - household (#611): `GET /api/v1/households/me` no longer returns `members` (approved; no consumer reads it). Material Symbols icons for contacts/categories are stored by name in the DB and need a mapping before moving to lucide. `layout.tsx` metadata is static English. `eslint` crashes on config load (`minimatch` "expand is not a function"); not part of `verify.sh`.
+- workout (#616): `POST /sessions/{id}/sets/sync` now returns `409 session_not_active` for finalized sessions (approved, additive); MCP `log_completed_set` returns an `Error:` string for that case. Residual race: status is checked once per request; closing it needs a PostgreSQL row lock.
+- shared follow-up candidates for the final re-check sweep: #610, #614, #615 (small, low-risk).
 - Fresh worktrees need `pnpm --filter @alfheim/docs-portal exec astro sync` before `verify.sh --frontend`.
 - PRs into the orchestrator branch only trigger the docs workflow; frontend/Go/Python CI runs on the final PR to `dev`, so local `verify.sh` is the gate per sweep.
 
