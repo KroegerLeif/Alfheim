@@ -4,3 +4,4 @@ export * from "./hooks/useLending";
 export * from "./components/ActiveLoansList";
 export * from "./components/LendItemDialog";
 export * from "./components/LendingHistoryTable";
+export * from "./components/LendingLoadError";
