@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation, Language } from '../utils';
 
 export interface LanguageOption {
@@ -22,7 +23,7 @@ export interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ className = '', variant = 'dropdown' }: LanguageSwitcherProps) {
-  const { language, setLanguage } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -76,8 +77,6 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
     );
   }
 
-  const { t } = useTranslation();
-
   return (
     <div className={`relative inline-block ${className}`} ref={dropdownRef}>
       <button
@@ -88,9 +87,11 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
       >
         <span className="text-sm">{currentLangOption.flag}</span>
         <span className="uppercase font-semibold">{currentLangOption.code}</span>
-        <span className="material-symbols-outlined text-xs text-[var(--text-muted)] transition-transform duration-200">
-          {isOpen ? 'expand_less' : 'expand_more'}
-        </span>
+        {isOpen ? (
+          <ChevronUp aria-hidden="true" className="h-3 w-3 text-[var(--text-muted)]" />
+        ) : (
+          <ChevronDown aria-hidden="true" className="h-3 w-3 text-[var(--text-muted)]" />
+        )}
       </button>
 
       {isOpen && (
@@ -114,9 +115,7 @@ export function LanguageSwitcher({ className = '', variant = 'dropdown' }: Langu
                 <span>{lang.label}</span>
               </div>
               {language === lang.code && (
-                <span className="material-symbols-outlined text-xs text-[var(--primary-main)]">
-                  check
-                </span>
+                <Check aria-hidden="true" className="h-3 w-3 text-[var(--primary-main)]" />
               )}
             </button>
           ))}

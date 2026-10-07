@@ -59,16 +59,16 @@ describe('ChatWidget and AlfiAvatar Components', () => {
 
   it('renders AlfiAvatar with various status modes', () => {
     const { rerender } = render(<AlfiAvatar status="idle" size="md" />);
-    expect(screen.getByRole('img', { name: /ALFI Mascot \(idle\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /ALFI-Maskottchen \(idle\)/i })).toBeInTheDocument();
 
     rerender(<AlfiAvatar status="thinking" size="lg" />);
-    expect(screen.getByRole('img', { name: /ALFI Mascot \(thinking\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /ALFI-Maskottchen \(thinking\)/i })).toBeInTheDocument();
 
     rerender(<AlfiAvatar status="streaming" size="sm" />);
-    expect(screen.getByRole('img', { name: /ALFI Mascot \(streaming\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /ALFI-Maskottchen \(streaming\)/i })).toBeInTheDocument();
 
     rerender(<AlfiAvatar status="tool_calling" size="md" />);
-    expect(screen.getByRole('img', { name: /ALFI Mascot \(tool_calling\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /ALFI-Maskottchen \(tool_calling\)/i })).toBeInTheDocument();
   });
 
   it('sends message with context and processes SSE stream', async () => {

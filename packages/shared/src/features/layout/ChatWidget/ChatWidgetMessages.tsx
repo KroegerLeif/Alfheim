@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { Lock } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { AlfiAvatar } from './AlfiAvatar';
 import { AlfiStatus, ChatWidgetContext, WidgetMessage } from './types';
@@ -37,10 +38,7 @@ export function ChatWidgetMessages({
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
         <div className="w-12 h-12 rounded-full bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)]">
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
+          <Lock aria-hidden="true" className="w-6 h-6" />
         </div>
         <h3 className="text-sm font-bold text-[var(--text-main)]">{t('Chat.authRequired')}</h3>
         <p className="text-xs text-[var(--text-muted)] max-w-xs">{t('Chat.authRequiredDesc')}</p>
@@ -95,7 +93,7 @@ export function ChatWidgetMessages({
                       rel="noopener noreferrer"
                       className="block rounded overflow-hidden border border-black/10 hover:opacity-80"
                     >
-                      <img src={att.url} alt="Attachment" className="max-h-28 object-contain rounded" />
+                      <img src={att.url} alt={t('Chat.attachmentAlt')} className="max-h-28 object-contain rounded" />
                     </a>
                   ))}
                 </div>

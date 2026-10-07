@@ -8,7 +8,7 @@ describe('ReceiptDropzone Extended Tests', () => {
     const onFileSelect = vi.fn()
     render(<ReceiptDropzone onFileSelect={onFileSelect} />)
 
-    const dropzone = screen.getByText(/Click to upload/i).closest('div')!
+    const dropzone = screen.getByText('Zum Hochladen klicken').closest('div')!
 
     fireEvent.dragOver(dropzone)
     fireEvent.dragLeave(dropzone)
@@ -32,7 +32,7 @@ describe('ReceiptDropzone Extended Tests', () => {
     const input = screen.getByTestId('receipt-input')
     fireEvent.change(input, { target: { files: [largeFile] } })
 
-    expect(screen.getByText('File exceeds maximum size of 1MB')).toBeInTheDocument()
+    expect(screen.getByText('Die Datei überschreitet die maximale Größe von 1 MB')).toBeInTheDocument()
   })
 
   it('removes selected file when remove button is clicked', () => {
@@ -41,7 +41,7 @@ describe('ReceiptDropzone Extended Tests', () => {
 
     render(<ReceiptDropzone onFileSelect={onFileSelect} selectedFile={file} />)
 
-    const removeBtn = screen.getByRole('button', { name: /Remove file/i })
+    const removeBtn = screen.getByRole('button', { name: 'Datei entfernen' })
     fireEvent.click(removeBtn)
 
     expect(onFileSelect).toHaveBeenCalledWith(null)

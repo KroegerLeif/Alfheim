@@ -1,9 +1,13 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render as rtlRender, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { ReceiptDropzone } from "../ReceiptDropzone";
+import { LanguageProvider } from "../../i18n/utils/LanguageContext";
+
+// These cases assert on the English copy; the German default is covered in ReceiptDropzoneExtended.
+const render = (ui: React.ReactElement) => rtlRender(<LanguageProvider defaultLanguage="en">{ui}</LanguageProvider>);
 
 describe("ReceiptDropzone Component", () => {
   it("passes accessibility audit when idle", async () => {
@@ -16,6 +20,7 @@ describe("ReceiptDropzone Component", () => {
     render(<ReceiptDropzone onFileSelect={() => {}} />);
     expect(screen.getByText(/Click to upload/i)).toBeInTheDocument();
     expect(screen.getByText(/drag and drop/i)).toBeInTheDocument();
+    expect(screen.getByText("Receipt images or PDFs (up to 10 MB)")).toBeInTheDocument();
   });
 
   it("handles file selection via file input", async () => {
@@ -56,6 +61,6 @@ describe("ReceiptDropzone Component", () => {
     fireEvent.change(input, { target: { files: [largeFile] } });
 
     expect(handleFileSelect).not.toHaveBeenCalled();
-    expect(screen.getByText(/File exceeds maximum size of 1MB/i)).toBeInTheDocument();
+    expect(screen.getByText("File exceeds the maximum size of 1 MB")).toBeInTheDocument();
   });
 });

@@ -40,12 +40,60 @@
     "notifications": "Benachrichtigungen",
     "saving": "Wird gespeichert...",
     "update": "Aktualisieren",
-    "create": "Erstellen"
+    "create": "Erstellen",
+    "no_results": "Keine Ergebnisse gefunden",
+    "search_icon": "Symbol suchen...",
+    "search_address": "Adresse suchen...",
+    "switch_to_light_mode": "Zum hellen Modus wechseln",
+    "switch_to_dark_mode": "Zum dunklen Modus wechseln",
+    "alfi_mascot": "ALFI-Maskottchen ({status})",
+    "error_boundary": {
+      "title": "Etwas ist schiefgelaufen",
+      "description": "Beim Anzeigen dieses Bereichs ist ein unerwarteter Fehler aufgetreten.",
+      "retry": "Erneut versuchen"
+    },
+    "receipt": {
+      "upload_label": "Belegdatei hochladen",
+      "remove_file": "Datei entfernen",
+      "click_to_upload": "Zum Hochladen klicken",
+      "or_drag_and_drop": "oder per Drag & Drop ablegen",
+      "hint": "Belegbilder oder PDFs (bis {size} MB)",
+      "too_large": "Die Datei überschreitet die maximale Größe von {size} MB"
+    },
+    "icon_names": {
+      "apple": "Apfel",
+      "banana": "Banane",
+      "milk": "Milch",
+      "carrot": "Karotte",
+      "coffee": "Kaffee",
+      "egg": "Ei",
+      "beef": "Rindfleisch",
+      "cookie": "Keks",
+      "pizza": "Pizza",
+      "wine": "Wein",
+      "sparkles": "Funkeln",
+      "bag": "Einkaufstasche",
+      "package": "Paket",
+      "box": "Kiste",
+      "tag": "Etikett",
+      "utensils": "Besteck",
+      "soda": "Limonade",
+      "flame": "Flamme",
+      "heart": "Herz",
+      "star": "Stern",
+      "smile": "Lächeln"
+    }
   },
   "auth": {
     "error": "Authentifizierungsfehler",
     "securing_session": "Sitzung mit Zitadel wird gesichert...",
-    "retry_connection": "Verbindung erneut versuchen"
+    "retry_connection": "Verbindung erneut versuchen",
+    "provider_unreachable": "Identitätsanbieter nicht erreichbar oder falsch konfiguriert",
+    "https_required": "Sichere Verbindung (HTTPS) erforderlich",
+    "open_url": "{url} öffnen",
+    "signin_unreachable": "Anmeldedienst nicht erreichbar",
+    "open_host_new_tab": "{host} in einem neuen Tab öffnen",
+    "accept_certificate_hint": "Akzeptieren Sie dort das Zertifikat, kehren Sie dann zu diesem Tab zurück und laden Sie die Seite neu."
   },
   "nav": {
     "dashboard": "Dashboard",

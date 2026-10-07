@@ -34,7 +34,7 @@ describe('AuthGuard server render', () => {
     );
 
     expect(html).toContain('data-alfheim-auth-guard="pending"');
-    expect(html).not.toContain('Identity provider not reachable');
+    expect(html).not.toContain('Identitätsanbieter nicht erreichbar');
     expect(html).not.toContain('protected-content');
     expect(html).not.toContain('secret dashboard data');
   });
@@ -50,7 +50,7 @@ describe('AuthGuard server render', () => {
     // renderToString, which is what makes this comparable to the client's
     // first paint before useEffect has fired.
     expect(serverHtml).toContain('data-alfheim-auth-guard="pending"');
-    expect(serverHtml).not.toContain('Identity provider not reachable');
+    expect(serverHtml).not.toContain('Identitätsanbieter nicht erreichbar');
   });
 
   it('resolves config only from an effect: the error page appears after mount, never during the initial render', async () => {
@@ -63,7 +63,7 @@ describe('AuthGuard server render', () => {
       </AuthGuard>,
     );
     expect(preEffectHtml).toContain('data-alfheim-auth-guard="pending"');
-    expect(preEffectHtml).not.toContain('Identity provider not reachable');
+    expect(preEffectHtml).not.toContain('Identitätsanbieter nicht erreichbar');
 
     // Once mounted in a real DOM, the effect runs, resolves the empty config,
     // and only then does the error page replace the loader.
@@ -73,7 +73,7 @@ describe('AuthGuard server render', () => {
       </AuthGuard>,
     );
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByText(/misconfigured/i)).toBeInTheDocument();
+    expect(screen.getByText(/falsch konfiguriert/i)).toBeInTheDocument();
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
   });
 });

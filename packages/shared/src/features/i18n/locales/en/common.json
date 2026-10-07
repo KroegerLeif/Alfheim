@@ -40,12 +40,60 @@
     "notifications": "Notifications",
     "saving": "Saving...",
     "update": "Update",
-    "create": "Create"
+    "create": "Create",
+    "no_results": "No results found",
+    "search_icon": "Search icon...",
+    "search_address": "Search address...",
+    "switch_to_light_mode": "Switch to light mode",
+    "switch_to_dark_mode": "Switch to dark mode",
+    "alfi_mascot": "ALFI mascot ({status})",
+    "error_boundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred while rendering this section.",
+      "retry": "Try again"
+    },
+    "receipt": {
+      "upload_label": "Upload receipt file",
+      "remove_file": "Remove file",
+      "click_to_upload": "Click to upload",
+      "or_drag_and_drop": "or drag and drop",
+      "hint": "Receipt images or PDFs (up to {size} MB)",
+      "too_large": "File exceeds the maximum size of {size} MB"
+    },
+    "icon_names": {
+      "apple": "Apple",
+      "banana": "Banana",
+      "milk": "Milk",
+      "carrot": "Carrot",
+      "coffee": "Coffee",
+      "egg": "Egg",
+      "beef": "Beef",
+      "cookie": "Cookie",
+      "pizza": "Pizza",
+      "wine": "Wine",
+      "sparkles": "Sparkles",
+      "bag": "Shopping Bag",
+      "package": "Package",
+      "box": "Box",
+      "tag": "Tag",
+      "utensils": "Utensils",
+      "soda": "Soda",
+      "flame": "Flame",
+      "heart": "Heart",
+      "star": "Star",
+      "smile": "Smile"
+    }
   },
   "auth": {
     "error": "Authentication Error",
     "securing_session": "Securing session with Zitadel...",
-    "retry_connection": "Retry Connection"
+    "retry_connection": "Retry Connection",
+    "provider_unreachable": "Identity provider not reachable or misconfigured",
+    "https_required": "Secure connection (HTTPS) required",
+    "open_url": "Open {url}",
+    "signin_unreachable": "Sign-in service not reachable",
+    "open_host_new_tab": "Open {host} in a new tab",
+    "accept_certificate_hint": "After accepting the certificate there, return to this tab and reload the page."
   },
   "nav": {
     "dashboard": "Dashboard",

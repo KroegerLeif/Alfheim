@@ -3,6 +3,7 @@
 import React, { ReactNode } from 'react';
 import { useOidcAuth, type UseOidcAuthOptions } from './useOidcAuth';
 import { AuthContext } from './authContext';
+import { useTranslation } from '../i18n/utils/useTranslation';
 
 export interface AuthGuardProps extends UseOidcAuthOptions {
   children: ReactNode;
@@ -44,13 +45,15 @@ function DefaultLoader() {
 
 function AuthErrorPage({
   detail,
-  title = 'Identity provider not reachable or misconfigured',
+  title,
   action,
 }: {
   detail: string;
   title?: string;
   action?: { href: string; label: string; external?: boolean; hint?: string };
 }) {
+  const { t } = useTranslation();
+
   return (
     <div
       role="alert"
@@ -67,7 +70,7 @@ function AuthErrorPage({
     >
       <div style={{ maxWidth: 420, textAlign: 'center' }}>
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-          {title}
+          {title ?? t('auth.provider_unreachable')}
         </h1>
         <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>{detail}</p>
         {action && (
@@ -96,6 +99,7 @@ function AuthErrorPage({
  */
 export function AuthGuard({ basePath = '', children, loadingFallback }: AuthGuardProps) {
   const auth = useOidcAuth({ basePath });
+  const { t } = useTranslation();
 
   if (auth.configError) {
     return <AuthErrorPage detail={auth.configError.message} />;
@@ -105,9 +109,9 @@ export function AuthGuard({ basePath = '', children, loadingFallback }: AuthGuar
     const { httpsUrl, message } = auth.insecureContextError;
     return (
       <AuthErrorPage
-        title="Secure connection (HTTPS) required"
+        title={t('auth.https_required')}
         detail={message}
-        action={{ href: httpsUrl, label: `Open ${httpsUrl}` }}
+        action={{ href: httpsUrl, label: t('auth.open_url', { url: httpsUrl }) }}
       />
     );
   }
@@ -116,13 +120,13 @@ export function AuthGuard({ basePath = '', children, loadingFallback }: AuthGuar
     const { discoveryUrl, issuerHost, message } = auth.issuerUnreachableError;
     return (
       <AuthErrorPage
-        title="Sign-in service not reachable"
+        title={t('auth.signin_unreachable')}
         detail={message}
         action={{
           href: discoveryUrl,
-          label: `Open ${issuerHost} in a new tab`,
+          label: t('auth.open_host_new_tab', { host: issuerHost }),
           external: true,
-          hint: 'After accepting the certificate there, return to this tab and reload the page.',
+          hint: t('auth.accept_certificate_hint'),
         }}
       />
     );

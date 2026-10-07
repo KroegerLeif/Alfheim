@@ -40,12 +40,60 @@
     "notifications": "Powiadomienia",
     "saving": "Zapisywanie...",
     "update": "Aktualizuj",
-    "create": "Utwórz"
+    "create": "Utwórz",
+    "no_results": "Nie znaleziono wyników",
+    "search_icon": "Szukaj ikony...",
+    "search_address": "Szukaj adresu...",
+    "switch_to_light_mode": "Przełącz na tryb jasny",
+    "switch_to_dark_mode": "Przełącz na tryb ciemny",
+    "alfi_mascot": "Maskotka ALFI ({status})",
+    "error_boundary": {
+      "title": "Coś poszło nie tak",
+      "description": "Podczas wyświetlania tej sekcji wystąpił nieoczekiwany błąd.",
+      "retry": "Spróbuj ponownie"
+    },
+    "receipt": {
+      "upload_label": "Prześlij plik paragonu",
+      "remove_file": "Usuń plik",
+      "click_to_upload": "Kliknij, aby przesłać",
+      "or_drag_and_drop": "lub przeciągnij i upuść",
+      "hint": "Zdjęcia paragonów lub pliki PDF (do {size} MB)",
+      "too_large": "Plik przekracza maksymalny rozmiar {size} MB"
+    },
+    "icon_names": {
+      "apple": "Jabłko",
+      "banana": "Banan",
+      "milk": "Mleko",
+      "carrot": "Marchewka",
+      "coffee": "Kawa",
+      "egg": "Jajko",
+      "beef": "Wołowina",
+      "cookie": "Ciastko",
+      "pizza": "Pizza",
+      "wine": "Wino",
+      "sparkles": "Iskierki",
+      "bag": "Torba na zakupy",
+      "package": "Paczka",
+      "box": "Pudełko",
+      "tag": "Etykieta",
+      "utensils": "Sztućce",
+      "soda": "Napój gazowany",
+      "flame": "Płomień",
+      "heart": "Serce",
+      "star": "Gwiazda",
+      "smile": "Uśmiech"
+    }
   },
   "auth": {
     "error": "Błąd uwierzytelniania",
     "securing_session": "Zabezpieczanie sesji z Zitadel...",
-    "retry_connection": "Ponów połączenie"
+    "retry_connection": "Ponów połączenie",
+    "provider_unreachable": "Dostawca tożsamości jest nieosiągalny lub źle skonfigurowany",
+    "https_required": "Wymagane bezpieczne połączenie (HTTPS)",
+    "open_url": "Otwórz {url}",
+    "signin_unreachable": "Usługa logowania jest nieosiągalna",
+    "open_host_new_tab": "Otwórz {host} w nowej karcie",
+    "accept_certificate_hint": "Po zaakceptowaniu tam certyfikatu wróć do tej karty i odśwież stronę."
   },
   "nav": {
     "dashboard": "Pulpit",

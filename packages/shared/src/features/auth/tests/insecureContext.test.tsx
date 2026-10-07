@@ -144,8 +144,8 @@ describe('insecure context guard', () => {
       );
 
       expect(await screen.findByRole('alert')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: /HTTPS.*required/i })).toBeInTheDocument();
-      expect(screen.queryByText(/Identity provider not reachable/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Sichere Verbindung (HTTPS) erforderlich' })).toBeInTheDocument();
+      expect(screen.queryByText(/Identitätsanbieter nicht erreichbar/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/digest/i)).not.toBeInTheDocument();
       const link = screen.getByRole('link', { name: /https:\/\/alfheim\.example\/pantry/ });
       expect(link).toHaveAttribute('href', 'https://alfheim.example/pantry');
