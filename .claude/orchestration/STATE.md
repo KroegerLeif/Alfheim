@@ -27,8 +27,8 @@
 | --- | --- | --- | --- |
 | Orchestrator | (session worktree) | `orchestrator/app-stability-sweep` | created from `origin/dev` @ `9550532d` |
 | Shared packages | `.worktrees/shared-packages` | `feature/fix-shared` | merged (#608, squash `7f3c3f5d`); worktree removed |
-| Household | `.worktrees/app-household` | `feature/fix-household` | in progress (Opus sub-agent) |
-| Workout | `.worktrees/app-workout` | `feature/fix-workout` | pending |
+| Household | `.worktrees/app-household` | `feature/fix-household` | merged (#611, squash `4c53afb8`); worktree removed |
+| Workout | `.worktrees/app-workout` | `feature/fix-workout` | in progress (Sonnet sub-agent) |
 | Library | `.worktrees/app-library` | `feature/fix-library` | pending |
 | Maintenance | `.worktrees/app-maintenance` | `feature/fix-maintenance` | pending |
 | Pantry | `.worktrees/app-pantry` | `feature/fix-pantry` | pending |
@@ -111,18 +111,22 @@ sweeps only touch their own `<app>.json`.
 | Target | Method | Result |
 | --- | --- | --- |
 | shared (#608) | `tsc --noEmit`; Vitest + v8 coverage (296 tests); new static key-resolution, locale-parity and German-rendering tests; `verify.sh --frontend` | Pass. Coverage stmts 87.12→90.19, branches 75.54→81.49 (below the 90% threshold that was already missed before; see #609), funcs 89.24→92.24, lines 88.79→91.97 |
+| household (#611) | Go `build`/`vet`/`test -race -cover`; PostgreSQL integration tests against a throwaway `postgres:16-alpine`; frontend `tsc`, Vitest (38→73 tests) incl. en/de/pl key-resolution + parity tests and a long-content layout test; `verify.sh --frontend --go` | Pass. Go coverage 81–100% per package (household 98.2, membership 96.8, httpjson 100). Frontend stmts 58.7 / branches 55.9 / funcs 44.1 / lines 60.2 (`src/app/**` excluded) |
 
 ## Backlog added during this sweep
 
 | Issue | App | Summary |
 | --- | --- | --- |
 | #609 | shared | Branch coverage below 90% in OIDC flow and theme context |
+| #610 | shared | Map marker popups render raw HTML (stored XSS within a household); household side escapes now |
+| #583 (kept open) | household | Internal `GET /internal/v1/households/{id}/members` added; `backend_shared` helper + chores consumer still missing |
 
 ### Carry-over for later sweeps (from #608)
 
 - budget: 40 keys missing in `pl/budget.json` (allow-listed in `localeParity.test.ts`; remove entries as they are translated). `QuickAddModal.tsx` is 247 lines.
 - maintenance: `Header.tsx` uses next-intl keys `header.notifications`, `header.allCaughtUp`, `header.noNotifications` that do not exist.
 - chores, chat, pantry, maintenance, shopping: test mocks return key fragments instead of the real dictionary.
+- household (#611): `GET /api/v1/households/me` no longer returns `members` (approved; no consumer reads it). Material Symbols icons for contacts/categories are stored by name in the DB and need a mapping before moving to lucide. `layout.tsx` metadata is static English. `eslint` crashes on config load (`minimatch` "expand is not a function"); not part of `verify.sh`.
 - Fresh worktrees need `pnpm --filter @alfheim/docs-portal exec astro sync` before `verify.sh --frontend`.
 - PRs into the orchestrator branch only trigger the docs workflow; frontend/Go/Python CI runs on the final PR to `dev`, so local `verify.sh` is the gate per sweep.
 
@@ -130,4 +134,4 @@ sweeps only touch their own `<app>.json`.
 
 | Time | Agent | Event | Action |
 | --- | --- | --- | --- |
-| (none yet) | | | |
+| 2026-10-07 | orchestrator | SSH to github.com:22 times out | All pushes/deletes go over HTTPS; briefs updated |
