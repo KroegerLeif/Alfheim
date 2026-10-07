@@ -1,10 +1,12 @@
 "use client";
 
-import { Button, Checkbox, Input, Textarea, useTranslation } from "@alfheim/shared";
+import { Button, Checkbox, Field, Input, Textarea, useTranslation } from "@alfheim/shared";
 import { Plus, Save, X } from "lucide-react";
-import type { ExerciseRead } from "@/features/exercises/types";
+import { InlineError } from "@/components/shared/InlineError";
+import type { ExerciseRead } from "@/features/exercises";
 import type { PlanCreate, PlanRead } from "../types";
 import { usePlanEditorState } from "../hooks/usePlanEditorState";
+import { dayDisplayLabel } from "../utils";
 import { PlanDayBuilder } from "./PlanDayBuilder";
 
 interface PlanEditorProps {
@@ -13,6 +15,8 @@ interface PlanEditorProps {
   onSave: (payload: PlanCreate) => Promise<void>;
   onCancel: () => void;
   isSaving?: boolean;
+  /** Failure of the last save attempt, shown next to the save button. */
+  errorMessage?: string | null;
 }
 
 export function PlanEditor({
@@ -21,9 +25,12 @@ export function PlanEditor({
   onSave,
   onCancel,
   isSaving,
+  errorMessage = null,
 }: PlanEditorProps) {
   const { t } = useTranslation();
-  const state = usePlanEditorState(initialPlan);
+  const state = usePlanEditorState(initialPlan, (position) =>
+    dayDisplayLabel("", position, t)
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,36 +45,32 @@ export function PlanEditor({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] p-6 space-y-4">
-        <div>
-          <label className="block text-xs font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1">
-            {t("workout.planName")} *
-          </label>
+      <div className="space-y-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] p-4 md:p-6">
+        <Field htmlFor="plan-name" label={t("workout.planName")} required error={state.nameError}>
           <Input
+            id="plan-name"
             value={state.name}
             onChange={(e) => {
               state.setName(e.target.value);
               if (state.nameError) state.setNameError(null);
             }}
             placeholder={t("workout.planNamePlaceholder")}
+            aria-describedby={state.nameError ? "plan-name-error" : undefined}
             required
             className="text-base font-bold"
           />
-          {state.nameError && <p className="mt-1 text-xs text-red-400">{state.nameError}</p>}
-        </div>
+        </Field>
 
-        <div>
-          <label className="block text-xs font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1">
-            {t("workout.planDescription")}
-          </label>
+        <Field htmlFor="plan-description" label={t("workout.planDescription")}>
           <Textarea
+            id="plan-description"
             value={state.description}
             onChange={(e) => state.setDescription(e.target.value)}
-            placeholder="..."
+            placeholder={t("workout.planDescriptionPlaceholder")}
             rows={2}
             className="text-xs"
           />
-        </div>
+        </Field>
 
         <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-[var(--text-primary)]">
           <Checkbox
@@ -85,13 +88,14 @@ export function PlanEditor({
               key={day.id || idx}
               type="button"
               onClick={() => state.setActiveDayIndex(idx)}
-              className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+              title={dayDisplayLabel(day.label, idx + 1, t)}
+              className={`min-h-11 max-w-[12rem] truncate rounded-lg px-4 py-2 text-xs font-bold transition-all ${
                 state.activeDayIndex === idx
                   ? "bg-[var(--primary-main)] text-white"
                   : "bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
-              {day.label || `Tag ${idx + 1}`}
+              {dayDisplayLabel(day.label, idx + 1, t)}
             </button>
           ))}
 
@@ -127,6 +131,8 @@ export function PlanEditor({
           />
         )}
       </div>
+
+      <InlineError message={errorMessage} />
 
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-subtle)]">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
