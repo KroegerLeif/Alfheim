@@ -1,9 +1,16 @@
 import React, { useState } from "react";
+import { BookOpen, Check } from "lucide-react";
 import { Button, useTranslation } from "@alfheim/shared";
 import { useManual } from "../hooks/useManual";
 import { ManualSectionProps } from "../types";
 import { ManualUploadButton } from "./ManualUploadButton";
 import { ManualViewerModal } from "./ManualViewerModal";
+
+const MANUAL_ERROR_KEYS = {
+  upload: "library.manuals.uploadError",
+  url: "library.manuals.loadUrlError",
+  delete: "library.manuals.deleteError",
+} as const;
 
 export function ManualSection({
   itemId,
@@ -34,8 +41,11 @@ export function ManualSection({
 
   const handleDelete = async () => {
     const confirmText = t("library.manuals.deleteConfirm", { title: itemTitle });
-    if (window.confirm(confirmText)) {
+    if (!window.confirm(confirmText)) return;
+    try {
       await deleteManual();
+    } catch {
+      // useManual records the failure in `error`, which is rendered below.
     }
   };
 
@@ -46,8 +56,9 @@ export function ManualSection({
           {t("library.manuals.title")}
         </h4>
         {hasManual && (
-          <span className="text-[11px] text-emerald-400 font-medium">
-            ✓ Uploaded
+          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+            <Check className="h-3 w-3" aria-hidden="true" />
+            {t("library.manuals.uploaded")}
           </span>
         )}
       </div>
@@ -60,7 +71,8 @@ export function ManualSection({
             size="sm"
             onClick={handleOpenViewer}
           >
-            📖 {t("library.manuals.viewBtn")}
+            <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {t("library.manuals.viewBtn")}
           </Button>
         )}
 
@@ -78,12 +90,16 @@ export function ManualSection({
             onClick={handleDelete}
             className="text-red-400 hover:text-red-300"
           >
-            {isDeleting ? "..." : t("library.manuals.deleteBtn")}
+            {isDeleting ? t("library.manuals.deleting") : t("library.manuals.deleteBtn")}
           </Button>
         )}
       </div>
 
-      {error && <p className="text-xs text-red-400 pt-1">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-red-400 pt-1">
+          {t(MANUAL_ERROR_KEYS[error])}
+        </p>
+      )}
 
       <ManualViewerModal
         open={isViewerOpen}

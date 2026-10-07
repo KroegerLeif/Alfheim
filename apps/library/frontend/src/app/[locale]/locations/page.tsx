@@ -14,7 +14,7 @@ export default function LocationsPage() {
   const {
     locations,
     isLoading,
-    error,
+    loadFailed,
     formModalState,
     deleteModalState,
     openCreateModal,
@@ -38,9 +38,12 @@ export default function LocationsPage() {
         </p>
       </div>
 
-      {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400">
-          {error}
+      {loadFailed && (
+        <div
+          role="alert"
+          className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400"
+        >
+          {t("library.locations.loadError")}
         </div>
       )}
 

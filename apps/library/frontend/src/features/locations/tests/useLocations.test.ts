@@ -47,7 +47,7 @@ describe("useLocations hook", () => {
     });
 
     expect(result.current.locations).toEqual(mockLocationsTree);
-    expect(result.current.error).toBeNull();
+    expect(result.current.loadFailed).toBe(false);
   });
 
   it("handles location creation", async () => {

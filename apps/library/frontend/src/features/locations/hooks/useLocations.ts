@@ -14,7 +14,7 @@ import type {
 export function useLocations() {
   const [locations, setLocations] = useState<LocationNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const [formModalState, setFormModalState] = useState<{
     isOpen: boolean;
@@ -29,16 +29,12 @@ export function useLocations() {
 
   const loadLocations = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
+    setLoadFailed(false);
     try {
       const treeData = await fetchLocationsTree();
-      setLocations(treeData);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load locations."
-      );
+      setLocations(treeData ?? []);
+    } catch {
+      setLoadFailed(true);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +95,7 @@ export function useLocations() {
   return {
     locations,
     isLoading,
-    error,
+    loadFailed,
     loadLocations,
     formModalState,
     deleteModalState,

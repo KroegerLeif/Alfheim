@@ -58,7 +58,7 @@ describe("useManual hook", () => {
       );
     });
 
-    expect(result.current.error).toBe("Network error");
+    expect(result.current.error).toBe("upload");
   });
 
   it("fetches presigned download URL", async () => {
