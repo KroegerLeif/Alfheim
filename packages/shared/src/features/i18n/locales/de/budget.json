@@ -23,7 +23,8 @@
       "brand": "Alfheim Core",
       "sidebarLabel": "Desktop-Seitenleiste",
       "navLabel": "Seitenleisten-Navigation",
-      "planningModeLabel": "Planungsmodus-Auswahl"
+      "planningModeLabel": "Planungsmodus-Auswahl",
+      "mobileNavLabel": "Mobile Navigation"
     },
     "accounts": {
       "title": "Konten & Depots",
@@ -42,7 +43,13 @@
       "name": "Kontoname",
       "type": "Kontotyp",
       "currency": "Währung",
-      "placeholder": "z.B. Hauptgiro"
+      "placeholder": "z.B. Hauptgiro",
+      "listTitle": "Konten",
+      "newAccount": "Neues Konto",
+      "addNewAccountLabel": "Neues Konto hinzufügen",
+      "emptyState": "Noch keine Konten angelegt. Klicken Sie auf „Neues Konto“, um eines hinzuzufügen.",
+      "editLabel": "{name} bearbeiten",
+      "deleteLabel": "{name} löschen"
     },
     "pots": {
       "title": "Virtuelle Töpfe & Rücklagen",

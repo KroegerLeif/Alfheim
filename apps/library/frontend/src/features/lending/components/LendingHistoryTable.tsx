@@ -25,7 +25,7 @@ export function LendingHistoryTable({
           Failed to load lending history
         </div>
         <p className="text-xs text-[var(--text-muted)]">
-          {t("library.lending.errorLoading") || "An error occurred while loading the lending history. Please try again."}
+          {t("library.lending.errorLoading")}
         </p>
       </div>
     );

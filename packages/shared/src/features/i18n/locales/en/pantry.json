@@ -238,6 +238,14 @@
     "systemBrand": "ALFHEIM // OS",
     "systemVersion": "Pantry System v1.0",
     "askAlfi": "ALFI Assistant",
-    "askAlfiAboutProduct": "Ask ALFI about this product"
+    "askAlfiAboutProduct": "Ask ALFI about this product",
+    "unknownProduct": "Unknown product",
+    "unknownLocation": "Unknown location",
+    "searchProduct": "Search product",
+    "scan": "Scan",
+    "batchLabel": "Batch / Lot",
+    "batchPlaceholder": "e.g. LOT-2024-A",
+    "notes": "Notes",
+    "submitting": "Submitting..."
   }
 }

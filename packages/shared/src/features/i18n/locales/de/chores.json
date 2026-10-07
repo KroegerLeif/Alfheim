@@ -109,6 +109,8 @@
     "timeline": "Verlauf",
     "timelineTitle": "Aufgaben-Verlauf Audit",
     "noHistory": "Noch kein Erledigungsverlauf vorhanden",
-    "noHistorySub": "Erledigen Sie diese Aufgabe im Dashboard, um den ersten Verlaufseintrag zu erstellen."
+    "noHistorySub": "Erledigen Sie diese Aufgabe im Dashboard, um den ersten Verlaufseintrag zu erstellen.",
+    "choreCompleted": "Aufgabe erledigt",
+    "completeChore": "Aufgabe abschließen"
   }
 }

@@ -25,7 +25,8 @@
       "players": "{min}-{max} Players",
       "playersSingle": "{count} Player",
       "runtime": "{minutes} mins",
-      "fsk": "Age {age}+"
+      "fsk": "Age {age}+",
+      "errorLoading": "An error occurred while loading your library items. Please try again."
     },
     "locations": {
       "title": "Storage Locations",
@@ -60,7 +61,8 @@
       "notes": "Notes",
       "activeLoans": "Active Loans",
       "history": "Lending History",
-      "noActiveLoans": "No items currently lent out."
+      "noActiveLoans": "No items currently lent out.",
+      "errorLoading": "An error occurred while loading the lending history. Please try again."
     },
     "providers": {
       "title": "Streaming & Subscriptions",

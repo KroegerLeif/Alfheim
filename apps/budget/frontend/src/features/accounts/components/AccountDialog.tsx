@@ -55,41 +55,41 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
         <DialogTitle className="text-lg font-bold text-[var(--text-main)]">
-          {account ? t("accounts.edit") : t("accounts.create")}
+          {account ? t("budget.accounts.edit") : t("budget.accounts.create")}
         </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="account-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.name")}</label>
+            <label htmlFor="account-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.accounts.name")}</label>
             <input
               id="account-name"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={t("accounts.placeholder")}
+              placeholder={t("budget.accounts.placeholder")}
               className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div>
-            <label htmlFor="account-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.type")}</label>
+            <label htmlFor="account-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.accounts.type")}</label>
             <select
               id="account-type"
               value={accountType}
               onChange={(e) => setAccountType(e.target.value as AccountType)}
               className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             >
-              <option value="CHECKING">{t("accounts.checking")}</option>
-              <option value="SAVINGS">{t("accounts.savings")}</option>
-              <option value="BUILDING_SAVINGS">{t("accounts.buildingSavings")}</option>
-              <option value="INVESTMENT">{t("accounts.investment")}</option>
+              <option value="CHECKING">{t("budget.accounts.checking")}</option>
+              <option value="SAVINGS">{t("budget.accounts.savings")}</option>
+              <option value="BUILDING_SAVINGS">{t("budget.accounts.buildingSavings")}</option>
+              <option value="INVESTMENT">{t("budget.accounts.investment")}</option>
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="account-balance" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currentBalance")}</label>
+              <label htmlFor="account-balance" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.accounts.currentBalance")}</label>
               <input
                 id="account-balance"
                 type="number"
@@ -101,7 +101,7 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
               />
             </div>
             <div>
-              <label htmlFor="account-currency" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("accounts.currency")}</label>
+              <label htmlFor="account-currency" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.accounts.currency")}</label>
               <input
                 id="account-currency"
                 type="text"

@@ -37,7 +37,10 @@
     "expand_sidebar": "Seitenleiste erweitern",
     "collapse_sidebar": "Seitenleiste einklappen",
     "select_language": "Sprache auswählen",
-    "notifications": "Benachrichtigungen"
+    "notifications": "Benachrichtigungen",
+    "saving": "Wird gespeichert...",
+    "update": "Aktualisieren",
+    "create": "Erstellen"
   },
   "auth": {
     "error": "Authentifizierungsfehler",

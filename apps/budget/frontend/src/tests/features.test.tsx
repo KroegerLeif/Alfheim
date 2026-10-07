@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
-import { NetWorthCard, AccountList } from "../features/accounts";
+import { NetWorthCard, AccountList, AccountDialog } from "../features/accounts";
 import { PotCard } from "../features/pots";
 import { TransactionLedger, QuickAddModal } from "../features/transactions";
 import { Account, Pot, Transaction } from "../features/budget/types";
@@ -50,8 +50,22 @@ describe("Accounts Feature Components", () => {
     );
 
     expect(screen.getByText("Main Checking")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /add new account/i }));
+    expect(screen.getByText("Konten")).toBeInTheDocument();
+    expect(screen.getByText("Girokonto")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Main Checking bearbeiten" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /neues konto hinzufügen/i }));
     expect(handleAdd).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AccountDialog (issue #579)", () => {
+  it("renders fully translated German labels instead of raw unprefixed keys", () => {
+    render(<AccountDialog open account={null} onClose={vi.fn()} onSubmit={vi.fn()} />);
+
+    expect(screen.getByRole("heading", { name: "Konto erstellen" })).toBeInTheDocument();
+    expect(screen.getByText("Kontoname")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Erstellen" })).toBeInTheDocument();
+    expect(screen.queryByText(/^accounts\./)).not.toBeInTheDocument();
   });
 });
 

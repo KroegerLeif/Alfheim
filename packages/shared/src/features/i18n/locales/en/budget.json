@@ -23,7 +23,8 @@
       "brand": "Alfheim Core",
       "sidebarLabel": "Desktop Sidebar",
       "navLabel": "Sidebar Navigation",
-      "planningModeLabel": "Planning Mode Selector"
+      "planningModeLabel": "Planning Mode Selector",
+      "mobileNavLabel": "Mobile Navigation"
     },
     "accounts": {
       "title": "Accounts & Portfolios",
@@ -42,7 +43,13 @@
       "name": "Account Name",
       "type": "Account Type",
       "currency": "Currency",
-      "placeholder": "e.g. Primary Checking"
+      "placeholder": "e.g. Primary Checking",
+      "listTitle": "Accounts",
+      "newAccount": "New Account",
+      "addNewAccountLabel": "Add new account",
+      "emptyState": "No accounts registered yet. Click \"New Account\" to add one.",
+      "editLabel": "Edit {name}",
+      "deleteLabel": "Delete {name}"
     },
     "pots": {
       "title": "Virtual Pots & Reserves",
