@@ -148,7 +148,7 @@ async def update_location(
 
 @mcp.tool()
 async def delete_location(location_id: str) -> str:
-    """Delete a custom storage location, moving any contents to 'Backlog' system location.
+    """Delete a custom storage location that holds no stock and has no transaction history.
 
     Parameters:
     - location_id: UUID string of the storage location to delete.
@@ -166,7 +166,7 @@ async def delete_location(location_id: str) -> str:
             if not success:
                 return f"Location with ID {location_id} not found or not authorized."
 
-            return f"Success: Deleted storage location {location_id} and reassigned items."
+            return f"Success: Deleted storage location {location_id}."
 
     except ValueError as e:
         return f"Error: Deletion failed: {str(e)}"

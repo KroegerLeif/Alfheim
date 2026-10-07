@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.features.locations.models import Location, LocationCreate, LocationUpdate
+from src.features.locations.models import Location, LocationUpdate
 from src.features.locations.service import LocationService
 
 
@@ -62,18 +62,3 @@ async def test_delete_location_system_blocked(db_session: AsyncSession):
     with pytest.raises(ValueError) as exc:
         await LocationService.delete_location(db_session, sys_loc.id, home_id)
     assert "System locations cannot be modified" in str(exc.value)
-
-
-async def test_delete_location_no_fallback_location(db_session: AsyncSession):
-    """Verify LocationService raises ValueError if deleting a custom location but system Backlog is missing."""
-    owner_id = uuid.uuid4()
-    home_id = uuid.uuid4()
-
-    custom_loc = await LocationService.create_location(
-        db_session, LocationCreate(name="Custom Drawer"), owner_id, home_id
-    )
-
-    # Note: We do NOT seed the system Backlog location, so it's missing
-    with pytest.raises(ValueError) as exc:
-        await LocationService.delete_location(db_session, custom_loc.id, home_id)
-    assert "System fallback location ('Backlog') could not be found" in str(exc.value)

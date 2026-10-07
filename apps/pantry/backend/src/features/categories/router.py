@@ -89,13 +89,20 @@ async def update_category(
     return category
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={409: {"description": "Products still reference the category (`category_in_use`)."}},
+)
 async def delete_category(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Delete a custom category."""
+    """Delete a custom category.
+
+    A category that products still reference is refused with ``409`` and the stable code ``category_in_use``.
+    """
     deleted = await CategoryService.delete_category(
         session=session,
         category_id=id,

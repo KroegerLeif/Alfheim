@@ -127,7 +127,11 @@ async def update_product(
     return product
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={409: {"description": "The product still has stock or transaction history (`product_in_use`)."}},
+)
 async def delete_product(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
@@ -135,7 +139,8 @@ async def delete_product(
 ):
     """Delete a custom product blueprint.
 
-    Global catalog templates cannot be deleted.
+    Global catalog templates cannot be deleted. A product that still has stock lines or transaction
+    history is refused with ``409`` and the stable code ``product_in_use``.
     """
     deleted = await ProductService.delete_product(
         session=session,
