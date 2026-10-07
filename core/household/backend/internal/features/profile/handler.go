@@ -5,8 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"alfheim/household/internal/shared/middleware"
 	"github.com/go-chi/chi/v5"
+
+	"alfheim/household/internal/shared/httpjson"
+	"alfheim/household/internal/shared/middleware"
 )
 
 // Handler manages profile HTTP endpoints.
@@ -32,44 +34,42 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 func (h *Handler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
-		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		httpjson.WriteUnauthorized(w)
 		return
 	}
 
 	p, err := h.service.SyncProfileFromClaims(r.Context(), claims)
 	if err != nil {
-		http.Error(w, `{"error":"internal_server_error","message":"failed to sync profile"}`, http.StatusInternalServerError)
+		httpjson.WriteError(w, http.StatusInternalServerError, "internal_server_error", "failed to sync profile")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(ToResponse(p))
+	httpjson.Write(w, http.StatusOK, ToResponse(p))
 }
 
 // UpdateMyProfile updates the authenticated user's profile metadata.
 func (h *Handler) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
-		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		httpjson.WriteUnauthorized(w)
 		return
 	}
 
 	var dto UpdateDTO
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		http.Error(w, `{"error":"bad_request","message":"invalid json request payload"}`, http.StatusBadRequest)
+		httpjson.WriteError(w, http.StatusBadRequest, "bad_request", "invalid json request payload")
 		return
 	}
 
 	updated, err := h.service.UpdateProfile(r.Context(), claims.Subject, dto)
 	if err != nil {
 		if errors.Is(err, ErrProfileNotFound) {
-			http.Error(w, `{"error":"not_found","message":"profile not found"}`, http.StatusNotFound)
+			httpjson.WriteError(w, http.StatusNotFound, "not_found", "profile not found")
 			return
 		}
-		http.Error(w, `{"error":"internal_server_error","message":"failed to update profile"}`, http.StatusInternalServerError)
+		httpjson.WriteError(w, http.StatusInternalServerError, "internal_server_error", "failed to update profile")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(ToResponse(updated))
+	httpjson.Write(w, http.StatusOK, ToResponse(updated))
 }
