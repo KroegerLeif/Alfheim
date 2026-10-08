@@ -16,7 +16,9 @@ sidebar:
 - [Beobachtungs-Stack (VictoriaStack & Telemetrie)](#beobachtungs-stack-victoriastack--telemetrie)
 - [Microservice-Backend-Variablen](#microservice-backend-variablen)
 - [Haushalts- & Rollendienst (`core/household`)](#haushalts---rollendienst-corehousehold)
-- [Microfrontend-Umgebungsvariablen](#microfrontend-umgebungsvariablen)
+- [Frontend-Umgebungsvariablen](#frontend-umgebungsvariablen)
+- [ACME & TLS-Konfiguration](#acme--tls-konfiguration)
+- [PostgreSQL-Datenbankberechtigungen](#postgresql-datenbankberechtigungen)
 
 ---
 
