@@ -65,6 +65,7 @@ async def test_sync_sends_pantry_compatible_units_but_keeps_stored_unit(
     response = await client.post(f"/api/v1/shopping-lists/{shopping_list.id}/sync-to-pantry")
 
     assert response.status_code == 200
+    assert mock_bulk_add.await_args is not None
     sent = mock_bulk_add.await_args.kwargs["items"]
     assert sent[0]["unit"] == "bottle"
     await db_session.refresh(item)
@@ -99,6 +100,7 @@ async def test_sync_with_item_ids_retries_only_those_items_and_links_the_product
     assert body["status"] == "success"
     assert body["synced_count"] == 1
 
+    assert mock_bulk_add.await_args is not None
     sent_ids = [entry["shopping_item_id"] for entry in mock_bulk_add.await_args.kwargs["items"]]
     assert sent_ids == [str(retried.id)]
 
