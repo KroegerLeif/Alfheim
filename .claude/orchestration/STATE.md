@@ -37,13 +37,15 @@
 | Chat | `.worktrees/app-chat` | `feature/fix-chat` | merged (#634, squash `73f12f66`); worktree removed |
 | Docs & portal | `.worktrees/app-docs` | `feature/fix-docs` | merged (#635, squash `2aac19ca`); worktree removed |
 | Shared follow-ups | `.worktrees/shared-followups` | `feature/fix-shared-followups` | merged (#638, squash `e4b8d8de`); worktree removed |
-| Budget / chores / dashboard | `.worktrees/app-tier-checks` | `feature/fix-swept-apps-recheck` | in progress (Sonnet sub-agent, parallel with shared follow-ups) |
+| Budget / chores / dashboard | `.worktrees/app-tier-checks` | `feature/fix-swept-apps-recheck` | PR #641 open, reviewed, CI green, MERGEABLE; waiting for the user's go to merge |
 
 ## Pause (2026-10-08)
 
 The user asked to pause at the next checkpoint and wait for an explicit "go". The checkpoint is the re-check sub-agent's PR (sweep 10): review it, but do NOT merge it and do NOT start Phase 3 until the user says go.
 
-Resume order after "go": merge sweep 10 PR → Phase 3: (1) Caddy `/api/v1/shopping*` pass-through fix (approved), (2) chat MCP client re-initialize on 404, (3) full `verify.sh` + routing check, (4) move durable STATE content into `.ai/CONTEXT.md`/issues and remove this file, (5) PR `orchestrator/app-stability-sweep` → `dev` listing every fixed issue.
+Status: PR #641 reviewed (no trailers, scope limited to budget/chores/dashboard + their locale files + the budget allow-list, CI green). Open decision for the user: #581 needs a `backend_shared` client for `GET /internal/v1/households/{id}/members` (shared contract change).
+
+Resume order after "go": merge sweep 10 PR #641 → Phase 3: (1) Caddy `/api/v1/shopping*` pass-through fix (approved), (2) chat MCP client re-initialize on 404, (3) full `verify.sh` + routing check, (4) move durable STATE content into `.ai/CONTEXT.md`/issues and remove this file, (5) PR `orchestrator/app-stability-sweep` → `dev` listing every fixed issue.
 
 ## Phase 1: Delta audit (2026-10-07)
 
@@ -160,6 +162,9 @@ sweeps only touch their own `<app>.json`.
 | #636 | shared/testing | Vitest suites time out intermittently under parallel `verify.sh --frontend` |
 | #637 | shared/tooling | Fix ESLint errors (dashboard 11, household 0, budget 8, chat 1, chores 1, library 1, maintenance 5, pantry 30, shopping 8, workout 19), add a config to `packages/shared`, then gate lint in `verify.sh` |
 | #609, #636 (kept open, partly fixed) | shared | Branch coverage 86.83% (<90%); flaky-test timeouts mitigated by bounded parallelism |
+| #639 | budget | Sankey and Net-Worth views unreachable on phones (no mobile tab) |
+| #640 | dashboard | Shell `status`/`ping` print fixed text; `apps`/`uptime` advertised but unknown |
+| #581 (kept open) | chores | Assignees who left the household are not unassigned; needs a `backend_shared` members client (#583) |
 | #583 (kept open) | household | Internal `GET /internal/v1/households/{id}/members` added; `backend_shared` helper + chores consumer still missing |
 
 ### Carry-over for later sweeps (from #608)
