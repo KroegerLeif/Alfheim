@@ -28,6 +28,14 @@ export function ProductCreateForm() {
   const categories = categoriesData ?? [];
   const createProductMut = useCreateProduct();
 
+  // Hide the success notice after 4s; the cleanup cancels the timer on unmount or
+  // when a new message replaces it, so no state update lands after unmount.
+  React.useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
   const clearMessages = () => { setSuccessMessage(null); setErrorMessage(null); };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,7 +49,6 @@ export function ProductCreateForm() {
         onSuccess: () => {
           setSuccessMessage(t("pantry.productSuccess"));
           setName(""); setBrand(""); setBarcode(""); setBaseUnit("piece"); setMinimumStock(0); setCategoryId("");
-          setTimeout(() => setSuccessMessage(null), 4000);
         },
         onError: async (error) => setErrorMessage(await describeApiError(error, t, "pantry.createProductFailed")),
       }
