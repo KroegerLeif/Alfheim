@@ -1,13 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { setTestLocale } from './locale';
 import { PantryBadge } from '../components/shared/PantryBadge';
 import { GlassCheckbox } from '../features/shopping-lists/components/GlassCheckbox';
-
-// Mock next-intl translations for components using useTranslations
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => (key === 'pantryBadge' ? 'Pantry' : key),
-}));
 
 describe('Component Smoke Tests', () => {
   describe('PantryBadge Component', () => {
@@ -27,6 +23,12 @@ describe('Component Smoke Tests', () => {
 
       fireEvent.click(button);
       expect(handleChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('labels the button in the active locale', () => {
+      setTestLocale('de');
+      render(<GlassCheckbox checked={false} onChange={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'Als erledigt markieren' })).toBeInTheDocument();
     });
 
     it('renders unchecked state and handles disabled attribute', () => {

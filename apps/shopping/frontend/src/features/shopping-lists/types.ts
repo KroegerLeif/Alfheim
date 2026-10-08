@@ -4,12 +4,14 @@ import {
   ShoppingListSchema,
   UnrecognizedShoppingItemSchema,
   SyncToPantryResponseSchema,
+  ProductReadSchema,
 } from "./schemas";
 
 export type ShoppingItem = z.infer<typeof ShoppingItemSchema>;
 export type ShoppingList = z.infer<typeof ShoppingListSchema>;
 export type UnrecognizedShoppingItem = z.infer<typeof UnrecognizedShoppingItemSchema>;
 export type SyncToPantryResponse = z.infer<typeof SyncToPantryResponseSchema>;
+export type ProductRead = z.infer<typeof ProductReadSchema>;
 
 export interface ShoppingListCreatePayload {
   name: string;
@@ -21,7 +23,6 @@ export interface ShoppingItemCreatePayload {
   barcode?: string | null;
   quantity: number;
   unit: string;
-  icon?: string | null;
 }
 
 export interface ShoppingItemUpdatePayload {

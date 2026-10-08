@@ -1,7 +1,5 @@
 {
   "Navigation": {
-    "title": "Shopping",
-    "subtitle": "Checklist & Stock",
     "backToDashboard": "Back to Dashboard",
     "expandSidebar": "Expand Sidebar",
     "collapseSidebar": "Collapse Sidebar",
@@ -15,7 +13,9 @@
     "household_lists": "Household Lists",
     "personal_lists": "Personal Lists",
     "household_list_fallback": "Household List",
-    "personal_list_fallback": "Personal List"
+    "personal_list_fallback": "Personal List",
+    "cancel": "Cancel",
+    "shoppingSubtitle": "Checklist & Stock"
   },
   "Checklist": {
     "title": "Shopping Checklist",
@@ -39,7 +39,13 @@
     "show": "Show",
     "removeItem": "Remove item",
     "deleteList": "Delete list",
-    "createList": "Create list"
+    "createList": "Create list",
+    "loadFailed": "Failed to load shopping list details.",
+    "markChecked": "Mark as checked",
+    "markUnchecked": "Mark as unchecked",
+    "clearSearch": "Clear search",
+    "searchLabel": "Search items",
+    "copyFailed": "Could not copy the link."
   },
   "Categories": {
     "produce": "Produce 🥦",
@@ -58,11 +64,15 @@
     "addBtn": "Add Item",
     "stepperDec": "Decrease quantity",
     "stepperInc": "Increase quantity",
-    "categoryLabel": "Category"
+    "categoryLabel": "Category",
+    "nameLabel": "Item name",
+    "quantityLabel": "Quantity",
+    "unitLabel": "Unit"
   },
   "History": {
     "title": "Frequently Bought",
-    "noHistory": "No frequent items"
+    "noHistory": "No frequent items",
+    "removeEntry": "Remove \"{name}\" from frequently bought"
   },
   "Modal": {
     "scanTitle": "Store · Scan",
@@ -87,20 +97,54 @@
     "confirmEdit": "Confirm edit",
     "cancelEdit": "Cancel edit",
     "cancelSave": "Cancel save",
-    "close": "Close"
+    "close": "Close",
+    "catalogFailed": "Could not create the catalog entry.",
+    "editFailed": "Could not save the changes to the item.",
+    "stillUnrecognized": "Pantry still cannot place this item. Check the name and unit.",
+    "retrySyncFailed": "The catalog entry was created, but stocking the item failed.",
+    "reasonProductNotFound": "Pantry still cannot find a product with this name or barcode.",
+    "reasonInvalidUnit": "Pantry does not know the unit of this item.",
+    "reasonIncompatibleUnits": "The unit does not match the unit of the catalog entry.",
+    "reasonSystemLocationMissing": "Pantry has no storage location for new stock yet. Open Pantry once to set it up."
   },
   "Error": {
     "nameRequired": "Item name is required",
     "invalidQty": "Quantity must be positive",
     "fetchFailed": "Failed to Load Shopping Lists",
     "fetchFailedDesc": "Unable to reach the shopping backend service.",
-    "syncFailed": "Pantry sync failed",
+    "syncFailed": "Pantry sync failed.",
     "unrecognizedError": "An unexpected error occurred",
     "sessionExpired": "Session Expired",
     "sessionExpiredDesc": "Your security token has expired or is invalid. Please re-authenticate with Zitadel to resume.",
     "logIn": "Log In",
     "retry": "Retry",
     "forbidden": "Access Denied",
-    "forbiddenDesc": "You do not have permission to view these shopping lists in the selected household."
+    "forbiddenDesc": "You do not have permission to view these shopping lists in the selected household.",
+    "itemAddFailed": "Could not add the item.",
+    "itemUpdateFailed": "Could not update the item.",
+    "itemDeleteFailed": "Could not remove the item.",
+    "listCreateFailed": "Could not create the list.",
+    "listDeleteFailed": "Could not delete the list.",
+    "listReorderFailed": "Could not save the new list order.",
+    "unreachable": "The service could not be reached.",
+    "pageTitle": "Something went wrong",
+    "pageDesc": "An unexpected error occurred while loading this page.",
+    "tryAgain": "Try Again",
+    "dismiss": "Dismiss message",
+    "historyRemoveFailed": "Could not remove the entry."
+  },
+  "Units": {
+    "piece": "pcs",
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "l": "L",
+    "bottle": "btl.",
+    "pack": "pack",
+    "bunch": "bunch",
+    "can": "can",
+    "packet": "pkt.",
+    "bag": "bag",
+    "box": "box"
   }
 }

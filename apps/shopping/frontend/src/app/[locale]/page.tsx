@@ -18,12 +18,14 @@ import {
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
 import { useActiveHousehold, useAuth } from "@alfheim/shared";
 import { cn } from "@/lib/utils";
+import { useErrorNotifier } from "@/lib/useErrorNotifier";
 
 export default function ShoppingDashboard() {
   const t = useTranslations("Checklist");
   const navT = useTranslations("Navigation");
   const { activeListId, setActiveListId } = useActiveList();
   const { user } = useAuth();
+  const notifyError = useErrorNotifier();
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "add">("list");
@@ -73,17 +75,20 @@ export default function ShoppingDashboard() {
     addItem.mutate({ name, quantity: 1, unit });
   };
 
-  const handleSyncToPantry = async () => {
+  const handleSyncToPantry = () => {
     if (!resolvedListId) return;
-    try {
-      const response = await syncToPantry.mutateAsync({ householdId: activeHouseholdId ?? undefined });
-      if (response.status === "partial_success" && (response.unrecognized_items ?? []).length > 0) {
-        setUnrecognizedItems(response.unrecognized_items);
-        setShowModal(true);
+    syncToPantry.mutate(
+      { householdId: activeHouseholdId ?? undefined },
+      {
+        onSuccess: (response) => {
+          if (response.status === "partial_success" && (response.unrecognized_items ?? []).length > 0) {
+            setUnrecognizedItems(response.unrecognized_items);
+            setShowModal(true);
+          }
+        },
+        onError: (err) => notifyError(err, "syncFailed"),
       }
-    } catch (err) {
-      console.error("Sync to Pantry failed:", err);
-    }
+    );
   };
 
   const handleClearCompleted = () => {
@@ -125,7 +130,7 @@ export default function ShoppingDashboard() {
           <div className="flex gap-2 shrink-0 select-none">
             {(["list", "add"] as const).map((view) => (
               <button
-                key={view} onClick={() => setMobileView(view)}
+                key={view} type="button" onClick={() => setMobileView(view)}
                 className={cn("flex-1 h-9 rounded-xl font-heading text-xs font-black uppercase tracking-wider transition-all duration-200", mobileView === view ? "glass-active text-foreground" : "glass-inset text-muted-foreground")}
               >
                 {view === "list" ? t("title") : navT("newList")}
@@ -154,9 +159,9 @@ export default function ShoppingDashboard() {
         </div>
       </div>
 
-      {showModal && activeListId && (
+      {showModal && resolvedListId && (
         <EinlagernModal
-          listId={activeListId} initialItems={unrecognizedItems}
+          listId={resolvedListId} initialItems={unrecognizedItems}
           onClose={() => { setShowModal(false); setUnrecognizedItems([]); }}
         />
       )}

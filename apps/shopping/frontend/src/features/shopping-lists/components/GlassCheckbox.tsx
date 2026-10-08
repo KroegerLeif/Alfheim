@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface GlassCheckboxProps {
@@ -11,8 +12,11 @@ interface GlassCheckboxProps {
  * Tactical glassmorphic checkbox displaying custom checking transitions.
  */
 export function GlassCheckbox({ checked, onChange, disabled = false }: GlassCheckboxProps) {
+  const t = useTranslations("Checklist");
+
   return (
     <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
         if (!disabled) onChange();
@@ -25,7 +29,7 @@ export function GlassCheckbox({ checked, onChange, disabled = false }: GlassChec
           ? "bg-gradient-to-br from-blue-400 via-blue-500 to-blue-800 border-t border-blue-300/50 border-l border-blue-300/30 border-r border-blue-900/40 border-b border-blue-950/50 shadow-md shadow-blue-500/30"
           : "bg-white/5 border border-white/10 dark:border-white/5 hover:border-white/20 shadow-inner"
       )}
-      aria-label={checked ? "Mark as unchecked" : "Mark as checked"}
+      aria-label={checked ? t("markUnchecked") : t("markChecked")}
     >
       <Check
         className={cn(

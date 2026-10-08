@@ -3,11 +3,19 @@ import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import * as matchers from 'vitest-axe/matchers'
 import 'vitest-axe/extend-expect'
 import { server } from './mocks/server'
+import { configure } from '@testing-library/react'
+import { setTestLocale } from './locale'
 
 expect.extend(matchers)
 
+// findBy*/waitFor poll for 5s instead of 1s so the suite also passes while the machine is busy (CI, parallel workspaces).
+configure({ asyncUtilTimeout: 5000 })
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
-afterEach(() => server.resetHandlers())
+afterEach(() => {
+  server.resetHandlers()
+  setTestLocale('en')
+})
 afterAll(() => server.close())
 
 // Mock localStorage and sessionStorage globally for tests
@@ -57,21 +65,52 @@ vi.mock('next/navigation', () => ({
   },
 }))
 
-// Mock next-intl translations and localized routing
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-  useLocale: () => 'en',
-  Link: ({ children, ...props }: any) => {
-    const React = require('react')
-    return React.createElement('a', props, children)
-  },
-  useRouter() {
-    return {
-      push: () => null,
-      replace: () => null,
+// next-intl with the real shared dictionaries. The active locale is "en" unless a test calls
+// setTestLocale(). A key that does not resolve in the active dictionary throws, so a missing or
+// misspelled key fails the test instead of silently rendering the key path.
+vi.mock('next-intl', async () => {
+  const actual = await vi.importActual<typeof import('next-intl')>('next-intl')
+  const { getSharedMessages } = await import('@alfheim/shared')
+  const { getTestLocale } = await import('./locale')
+
+  const translators = new Map<string, ReturnType<typeof actual.createTranslator>>()
+  const translatorFor = (namespace: string | undefined) => {
+    const locale = getTestLocale()
+    const cacheKey = `${locale}:${namespace ?? ''}`
+    let translator = translators.get(cacheKey)
+    if (!translator) {
+      translator = actual.createTranslator({
+        locale,
+        messages: getSharedMessages(locale),
+        namespace: namespace as never,
+        onError: (error) => {
+          throw error
+        },
+        getMessageFallback: ({ namespace: ns, key }) => {
+          throw new Error(`Unresolved i18n key "${ns ? `${ns}.` : ''}${key}" (locale: ${locale})`)
+        },
+      })
+      translators.set(cacheKey, translator)
     }
-  },
-  usePathname() {
-    return ''
-  },
-}))
+    return translator
+  }
+
+  return {
+    ...actual,
+    useTranslations: (namespace?: string) => translatorFor(namespace),
+    useLocale: () => getTestLocale(),
+    Link: ({ children, ...props }: any) => {
+      const React = require('react')
+      return React.createElement('a', props, children)
+    },
+    useRouter() {
+      return {
+        push: () => null,
+        replace: () => null,
+      }
+    },
+    usePathname() {
+      return ''
+    },
+  }
+})

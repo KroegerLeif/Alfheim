@@ -22,6 +22,7 @@ export function SidebarItem({
 }: SidebarItemProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer text-left group",
@@ -32,7 +33,7 @@ export function SidebarItem({
     >
       {icon}
 
-      <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
+      <span className="flex-1 min-w-0 text-xs font-heading font-extrabold uppercase tracking-wider truncate" title={label}>
         {label}
       </span>
 

@@ -1,9 +1,9 @@
 ---
 title: "Shopping Checklist"
-description: "Collaborative household shopping lists, personal private lists, drag-and-drop item reordering, and Digital Pantry stock export synchronization."
+description: "Collaborative household shopping lists, personal private lists, drag-and-drop list reordering, and Digital Pantry stock export synchronization."
 ---
 
-> **TL;DR:** Collaborative household shopping lists, personal private lists, drag-and-drop item reordering, and Digital Pantry stock export synchronization.
+> **TL;DR:** Collaborative household shopping lists, personal private lists, drag-and-drop list reordering, and Digital Pantry stock export synchronization.
 
 Source: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/shopping)
 
@@ -16,7 +16,7 @@ Source: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 | Forgotten shopping items | Shared real-time household shopping list |
 | Private personal purchases | Protected personal shopping list (`is_personal=true`) per user |
 | Pantry stock running low | Automatic low-stock export sync from Digital Pantry |
-| List item chaos | Drag-and-drop item reordering with backend position persistence |
+| List chaos | Drag-and-drop reordering of custom lists with backend position persistence |
 
 ---
 
@@ -52,7 +52,27 @@ Source: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 
 - **Personal List (`is_personal=true`)**: Automatically provisioned per user upon ingress. Private to the user across households. Non-deletable.
 - **Household List (`is_default=true`)**: Automatically provisioned per household. Shared among all members. Non-deletable.
-- **Backend-Driven Sorting**: Item positioning is tracked via `position` column. Drag-and-drop reordering sends bulk `PATCH /api/v1/shopping-lists/reorder` updates.
+- **List ordering**: Custom lists (not the personal or household list) have a `position`. Dragging a list tab or sidebar entry sends a bulk `PATCH /api/v1/shopping-lists/reorder`. Items inside a list have no `position` and cannot be reordered.
+- **Protected lists**: The UI decides which lists are protected and which is labeled as the personal list only from the `is_personal` and `is_default` flags, never from the list name.
+
+---
+
+## 📦 Stock-in (Einlagern) & Pantry Sync
+
+`POST /api/v1/shopping-lists/{list_id}/sync-to-pantry` sends the completed, unsynced items of a list to Pantry (`POST /api/v1/inventory/bulk-add`) with the caller's bearer token and `X-Household-ID`.
+
+- Items Pantry matches are marked `is_synced` and linked through `product_id`. Every completed item is counted once in the quick-add history.
+- Items Pantry cannot match are returned as `unrecognized_items` with a `pantry.error.*` reason (`product_not_found`, `invalid_unit`, `incompatible_units`, `system_location_missing`). The frontend opens the Einlagern dialog for them.
+- The optional JSON body `{"item_ids": ["…"]}` retries only those items and does not count the purchase in the history again. The dialog uses it after a catalog entry was created.
+- The unit picker stores lower-cased German codes (`stk`, `fl.`, `pkg.`, `pkt.`, `bund`, `dose`, `g`, `kg`, `ml`, `l`). Before sending, the backend maps the codes Pantry's unit registry does not know (`stk`/`bund` to `piece`, `fl.` to `bottle`, `pkg.`/`pkt.` to `pack`, `dose` to `can`). The stored unit does not change. The frontend shows localized labels (`Units` namespace) for the codes; codes without a label are shown as stored.
+
+**Save to catalog** in the dialog runs end to end from the browser: create the Pantry product (`POST /pantry/api/v1/products`, with the item's brand and barcode), rename the shopping item to the catalog name (Pantry matches by barcode or exact name), then retry the sync for that item. A failed step shows its error inside the item's row and the dialog keeps the already created product, so retrying does not create a duplicate.
+
+---
+
+## 🔔 Error Handling in the Frontend
+
+Failed item, list and history requests (and the Pantry sync) are shown as a dismissible notification with a localized message followed by the detail the server returned. A request that never got a response says the service could not be reached. Items that only exist optimistically carry a `temp-` id and cannot be toggled or deleted until the server has confirmed them.
 
 ---
 
@@ -85,6 +105,8 @@ Every route depends on `backend_shared.household.require_household`, which confi
   Proxmox VE installs. Suspected but unconfirmed cause: an OOM kill under load — `compose.prod.yaml`
   caps every frontend (not just shopping) at `memory: 128m`, which may be tight for Next.js under
   Proxmox's virtualized overhead. Open follow-up for the shopping app sprint.
+- **No item icons**: the backend stores no icon per item, so the manual-item form has no icon picker (#511).
+- The target-household picker in the Einlagern dialog can only work for the list's own household (#627), repeated syncs count skipped items in the history again (#628) and a Pantry outage is answered with `400` (#629).
 - No known open issues in the Pantry sync path beyond the general household-cache staleness
   documented in [Known Issues](../../explanation/known-issues.md).
 

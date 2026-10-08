@@ -51,17 +51,39 @@ describe('shopping API clients household context', () => {
     expect(listener).toHaveBeenCalledWith({ code: 'household_forbidden', householdId: 'hh-active' })
     unsubscribe()
   })
+
+  it('throws an empty message instead of a raw translation key for non-JSON error bodies', async () => {
+    fetchSpy.mockImplementation(async () => new Response('Bad gateway', { status: 502 }))
+    await expect(shoppingClient.get('api/v1/shopping-lists').json()).rejects.toMatchObject({
+      status: 502,
+      message: '',
+    })
+  })
 })
 
 describe('ShoppingErrorBanner', () => {
   it('does not call a 403 an expired session', () => {
     render(<ShoppingErrorBanner listsErrObj={{ status: 403, code: 'household_role_forbidden', message: 'x' }} refetchLists={() => {}} />)
-    expect(screen.queryByText('sessionExpired')).not.toBeInTheDocument()
-    expect(screen.getByText('forbidden')).toBeInTheDocument()
+    expect(screen.queryByText('Session Expired')).not.toBeInTheDocument()
+    expect(screen.getByText('Access Denied')).toBeInTheDocument()
   })
 
   it('asks to log in again on 401', () => {
     render(<ShoppingErrorBanner listsErrObj={{ status: 401, message: 'x' }} refetchLists={() => {}} />)
-    expect(screen.getByText('sessionExpired')).toBeInTheDocument()
+    expect(screen.getByText('Session Expired')).toBeInTheDocument()
+  })
+
+  it('shows the server message and keeps very long text inside the card', () => {
+    const message = 'Backend said no '.repeat(60).trim()
+    render(<ShoppingErrorBanner listsErrObj={new Error(message)} refetchLists={() => {}} />)
+    expect(screen.getByText(message)).toHaveClass('break-words')
+  })
+
+  it('offers a retry for other failures', () => {
+    const refetch = vi.fn()
+    render(<ShoppingErrorBanner listsErrObj={{ status: 500, message: '' }} refetchLists={refetch} />)
+    expect(screen.getByText('Failed to Load Shopping Lists')).toBeInTheDocument()
+    screen.getByRole('button', { name: 'Retry' }).click()
+    expect(refetch).toHaveBeenCalledTimes(1)
   })
 })

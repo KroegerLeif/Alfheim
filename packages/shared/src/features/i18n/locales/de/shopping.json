@@ -1,7 +1,5 @@
 {
   "Navigation": {
-    "title": "Einkauf",
-    "subtitle": "Checkliste & Vorrat",
     "backToDashboard": "Zurück zum Dashboard",
     "expandSidebar": "Sidebar ausklappen",
     "collapseSidebar": "Sidebar einklappen",
@@ -15,7 +13,9 @@
     "household_lists": "Haushaltslisten",
     "personal_lists": "Persönliche Listen",
     "household_list_fallback": "Haushaltsliste",
-    "personal_list_fallback": "Persönliche Liste"
+    "personal_list_fallback": "Persönliche Liste",
+    "cancel": "Abbrechen",
+    "shoppingSubtitle": "Checkliste & Vorrat"
   },
   "Checklist": {
     "title": "Einkaufszettel",
@@ -39,7 +39,13 @@
     "show": "Einblenden",
     "removeItem": "Artikel entfernen",
     "deleteList": "Liste löschen",
-    "createList": "Liste erstellen"
+    "createList": "Liste erstellen",
+    "loadFailed": "Details der Einkaufsliste konnten nicht geladen werden.",
+    "markChecked": "Als erledigt markieren",
+    "markUnchecked": "Als offen markieren",
+    "clearSearch": "Suche zurücksetzen",
+    "searchLabel": "Artikel suchen",
+    "copyFailed": "Der Link konnte nicht kopiert werden."
   },
   "Categories": {
     "produce": "Obst & Gemüse 🥦",
@@ -58,11 +64,15 @@
     "addBtn": "Hinzufügen",
     "stepperDec": "Menge verringern",
     "stepperInc": "Menge erhöhen",
-    "categoryLabel": "Kategorie"
+    "categoryLabel": "Kategorie",
+    "nameLabel": "Artikelname",
+    "quantityLabel": "Menge",
+    "unitLabel": "Einheit"
   },
   "History": {
     "title": "Häufig gekauft",
-    "noHistory": "Keine Einträge"
+    "noHistory": "Keine Einträge",
+    "removeEntry": "\"{name}\" aus „Häufig gekauft“ entfernen"
   },
   "Modal": {
     "scanTitle": "Einlagern · Scan",
@@ -87,20 +97,54 @@
     "confirmEdit": "Änderung bestätigen",
     "cancelEdit": "Bearbeitung abbrechen",
     "cancelSave": "Speichern abbrechen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "catalogFailed": "Der Katalogeintrag konnte nicht angelegt werden.",
+    "editFailed": "Die Änderungen am Artikel konnten nicht gespeichert werden.",
+    "stillUnrecognized": "Pantry kann diesen Artikel weiterhin nicht zuordnen. Bitte Name und Einheit prüfen.",
+    "retrySyncFailed": "Der Katalogeintrag wurde angelegt, aber das Einlagern des Artikels ist fehlgeschlagen.",
+    "reasonProductNotFound": "Pantry findet unter diesem Namen oder Barcode weiterhin kein Produkt.",
+    "reasonInvalidUnit": "Pantry kennt die Einheit dieses Artikels nicht.",
+    "reasonIncompatibleUnits": "Die Einheit passt nicht zur Einheit des Katalogeintrags.",
+    "reasonSystemLocationMissing": "In Pantry gibt es noch keinen Lagerort für neuen Bestand. Öffne Pantry einmal, um ihn anzulegen."
   },
   "Error": {
     "nameRequired": "Name ist erforderlich",
     "invalidQty": "Menge muss positiv sein",
     "fetchFailed": "Listen konnten nicht geladen werden",
     "fetchFailedDesc": "Verbindung zum Shopping-Backend konnte nicht hergestellt werden.",
-    "syncFailed": "Pantry-Synchronisierung fehlgeschlagen",
+    "syncFailed": "Pantry-Synchronisierung fehlgeschlagen.",
     "unrecognizedError": "Ein unerwarteter Fehler ist aufgetreten",
     "sessionExpired": "Sitzung abgelaufen",
     "sessionExpiredDesc": "Ihr Sicherheitstoken ist abgelaufen oder ungültig. Bitte melden Sie sich erneut über Zitadel an.",
     "logIn": "Anmelden",
     "retry": "Wiederholen",
     "forbidden": "Kein Zugriff",
-    "forbiddenDesc": "Du hast keine Berechtigung, die Einkaufslisten im ausgewählten Haushalt anzuzeigen."
+    "forbiddenDesc": "Du hast keine Berechtigung, die Einkaufslisten im ausgewählten Haushalt anzuzeigen.",
+    "itemAddFailed": "Der Artikel konnte nicht hinzugefügt werden.",
+    "itemUpdateFailed": "Der Artikel konnte nicht aktualisiert werden.",
+    "itemDeleteFailed": "Der Artikel konnte nicht entfernt werden.",
+    "listCreateFailed": "Die Liste konnte nicht erstellt werden.",
+    "listDeleteFailed": "Die Liste konnte nicht gelöscht werden.",
+    "listReorderFailed": "Die neue Reihenfolge der Listen konnte nicht gespeichert werden.",
+    "unreachable": "Der Dienst ist nicht erreichbar.",
+    "pageTitle": "Etwas ist schiefgelaufen",
+    "pageDesc": "Beim Laden dieser Seite ist ein unerwarteter Fehler aufgetreten.",
+    "tryAgain": "Erneut versuchen",
+    "dismiss": "Meldung schließen",
+    "historyRemoveFailed": "Der Eintrag konnte nicht entfernt werden."
+  },
+  "Units": {
+    "piece": "Stk",
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "l": "L",
+    "bottle": "Fl.",
+    "pack": "Pkg.",
+    "bunch": "Bund",
+    "can": "Dose",
+    "packet": "Pkt.",
+    "bag": "Beutel",
+    "box": "Box"
   }
 }

@@ -156,6 +156,7 @@ class ShoppingListService:
         list_id: uuid.UUID,
         home_id: uuid.UUID,
         token: str | None = None,
+        item_ids: list[uuid.UUID] | None = None,
     ) -> SyncToPantryResponse:
         await ListManagementService.get_list(session, list_id, home_id)
         return await PantrySyncService.sync_to_pantry(
@@ -163,4 +164,5 @@ class ShoppingListService:
             list_id=list_id,
             home_id=home_id,
             token=token,
+            item_ids=item_ids,
         )

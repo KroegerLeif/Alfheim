@@ -60,7 +60,7 @@ export function SidebarCustomItem({
         )}
       />
 
-      <span className="flex-1 text-xs font-heading font-extrabold uppercase tracking-wider truncate">
+      <span className="flex-1 min-w-0 text-xs font-heading font-extrabold uppercase tracking-wider truncate" title={name}>
         {name}
       </span>
 
@@ -76,6 +76,7 @@ export function SidebarCustomItem({
       </span>
 
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           if (confirm(tChecklist("deleteListConfirm", { name }))) {
@@ -85,6 +86,7 @@ export function SidebarCustomItem({
         disabled={isPendingDelete}
         className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-red-400 transition-opacity cursor-pointer disabled:opacity-40"
         title={tChecklist("deleteList")}
+        aria-label={tChecklist("deleteList")}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
