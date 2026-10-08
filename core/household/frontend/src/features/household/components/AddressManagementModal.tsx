@@ -4,7 +4,6 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { AddressAutocomplete, Dialog, DialogContent, DialogTitle, type AddressResult } from '@alfheim/shared';
 import { useTranslation } from '@/i18n';
-import { escapeHtml } from '@/lib/html';
 import { Household } from '@/shared/types';
 
 const OSMMapViewer = dynamic(
@@ -61,7 +60,7 @@ export function AddressManagementModal({
               zoom={hasCoords ? 15 : 12}
               markers={
                 hasCoords
-                  ? [{ id: 'household-address', lat: mapCenter[0], lng: mapCenter[1], popupContent: escapeHtml(household.name) }]
+                  ? [{ id: 'household-address', lat: mapCenter[0], lng: mapCenter[1], popupContent: household.name }]
                   : []
               }
               interactive={false}

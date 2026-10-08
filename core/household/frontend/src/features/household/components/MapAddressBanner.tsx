@@ -2,7 +2,6 @@
 
 import { useTranslation } from '@/i18n';
 import dynamic from 'next/dynamic';
-import { escapeHtml } from '@/lib/html';
 import { Household } from '@/shared/types';
 
 const OSMMapViewer = dynamic(
@@ -104,7 +103,7 @@ export function MapAddressBanner({
           zoom={hasGeocodedAddress ? 15 : 12}
           markers={
             hasGeocodedAddress
-              ? [{ id: 'household', lat: mapCenter[0], lng: mapCenter[1], popupContent: escapeHtml(household.name) }]
+              ? [{ id: 'household', lat: mapCenter[0], lng: mapCenter[1], popupContent: household.name }]
               : []
           }
           interactive={false}

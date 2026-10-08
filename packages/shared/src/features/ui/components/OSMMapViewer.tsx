@@ -3,14 +3,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { createMarkerDot, createPopupElement } from './osmMapMarkup';
 
 // Marker definitions used by the OSM map component.
 export interface MapMarker {
 	id: string;
 	lat: number;
 	lng: number;
+	/**
+	 * Optional bold first popup line. Rendered as plain text, never as HTML,
+	 * so user-provided values need no escaping.
+	 */
+	popupTitle?: string;
+	/**
+	 * Popup body. Rendered as plain text, never as HTML; line breaks (`\n`)
+	 * are kept. Pass raw user data here, not pre-escaped strings, or the
+	 * entities will be shown literally.
+	 */
 	popupContent?: string;
-	color?: string; // Optional hex or css color value
+	/** Optional CSS color for a dot marker; invalid color values are ignored. */
+	color?: string;
 }
 
 interface OSMMapViewerProps {
@@ -59,37 +71,33 @@ export function OSMMapViewer({
 		markersList.forEach((m) => {
 			const markerOptions: L.MarkerOptions = {};
 
-			// If a custom color is defined, create a DivIcon with CSS styling
+			// If a custom color is defined, use a colored dot built from DOM nodes
 			if (m.color) {
 				markerOptions.icon = leafletInstance.divIcon({
 					className: 'custom-leaflet-marker',
-					html: `<div style="
-						background-color: ${m.color};
-						width: 14px;
-						height: 14px;
-						border-radius: 50%;
-						border: 2px solid #ffffff;
-						box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-						transform: translate(-1px, -1px);
-					"></div>`,
+					html: createMarkerDot(m.color),
 					iconSize: [14, 14],
 					iconAnchor: [7, 7],
 				});
 			}
 
 			const marker = leafletInstance.marker([m.lat, m.lng], markerOptions);
-			if (m.popupContent) {
-				marker.bindPopup(`<div style="font-family: inherit; font-size: 11px; color: #1e293b;">${m.popupContent}</div>`);
+			const popup = createPopupElement(m);
+			if (popup) {
+				marker.bindPopup(popup);
 			}
 			group.addLayer(marker);
 		});
 
-		// Auto fit bounds if there are multiple markers to map
+		// Auto fit bounds if there are multiple markers to map. A container that
+		// is not laid out yet (hidden, or smaller than the padding) has no usable
+		// size, and Leaflet would compute a NaN zoom for it, so skip fitting then.
 		if (markersList.length > 1) {
-			try {
-				map.fitBounds(group.getBounds(), { padding: [30, 30] });
-			} catch (e) {
-				// Prevent bounds crashes on identical coords
+			const bounds = group.getBounds();
+			const size = map.getSize();
+			const padding = 30;
+			if (bounds.isValid() && size.x > 2 * padding && size.y > 2 * padding) {
+				map.fitBounds(bounds, { padding: [padding, padding] });
 			}
 		}
 	};

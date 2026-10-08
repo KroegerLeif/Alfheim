@@ -2,7 +2,6 @@
 
 import { useTranslation } from '@/i18n';
 import dynamic from 'next/dynamic';
-import { escapeHtml } from '@/lib/html';
 import { Contact, ContactCategory } from '@/shared/types';
 import { ContactCardItem } from './ContactCardItem';
 
@@ -22,11 +21,14 @@ interface ContactCardsProps {
 }
 
 /**
- * HTML for a contact's map popup. The shared map renders popups as HTML, so
- * every user-provided value is escaped.
+ * Popup text for a contact's map marker. The shared map renders both fields
+ * as plain text, so contact data is passed unescaped.
  */
-export function contactPopupHtml(c: Contact): string {
-  return `<strong>${escapeHtml(c.name)}</strong><br/>${escapeHtml(c.address || '')}<br/>${escapeHtml(c.phone || '')}`;
+export function contactPopupText(c: Contact): { popupTitle: string; popupContent: string } {
+  return {
+    popupTitle: c.name,
+    popupContent: [c.address, c.phone].filter(Boolean).join('\n'),
+  };
 }
 
 /**
@@ -52,7 +54,7 @@ export function ContactCards({
         id: c.id,
         lat: c.latitude!,
         lng: c.longitude!,
-        popupContent: contactPopupHtml(c),
+        ...contactPopupText(c),
         color: categoryOf(c)?.color || '#2563eb',
       }));
     return (
