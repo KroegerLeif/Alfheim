@@ -55,14 +55,17 @@ Every chat API route runs `middleware.RequireHousehold` after JWT validation: `X
 - A conversation belongs to one owner in one household. The list shows only the caller's conversations in the active household; other conversations return `403`.
 - Shared model blocks are keyed by the verified household.
 - MCP calls carry the caller's bearer token and `X-Household-ID`, set per request.
-- `PATCH /api/v1/chat/mcp-servers/{id}` (toggling a server in the installation-wide registry) needs the `OWNER` or `ADMIN` role; otherwise `403 household_role_forbidden`.
+- `PATCH /api/v1/chat/mcp-servers/{id}` (toggling a server in the installation-wide registry) needs the `OWNER` or `ADMIN` role; otherwise `403` with `{"detail": {"code": "household_role_forbidden", "message"}}`. Without household context it answers `400 household_required`.
 
 ---
 
 ## 📁 Domain Features (`internal/features/`)
 
 - `conversations`: Conversation sessions, message histories, and SSE streaming handlers.
-- `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption.
+  - A conversation keeps the model block it was created with. The sidebar picker only sets the model of the next new conversation; the header of an open conversation shows that conversation's own model ("Model unavailable" when the block was deleted or is no longer visible).
+  - `GET /conversations/{id}/stream` emits `delta`, `tool_call` (`{"ID", "ToolName", "Arguments"}`), `done` and `error` events. Closing the connection cancels the model request and any running tool call; nothing is stored for the cancelled reply, so the pending user message can be streamed again (the UI's Stop and Retry actions).
+  - Every tool call outcome is stored as a `tool` message whose `tool_calls` holds `{"tool_call_id", "tool_name", "is_error"}`; transport failures are stored with a generic text, never the internal endpoint URL. History replay sends the id as `tool_call_id`. The UI shows tool calls as collapsed entries (name and status; arguments and result on expand, credential-like argument keys, bearer tokens and JWTs masked).
+- `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption. Only `ollama` and `openai_compatible` can run; the UI offers only these two (#632).
 - `attachments`: File attachment uploads backed by RustFS S3 object storage. Each upload records its uploader (`image_refs.owner_user_id`); reading an attachment by ID returns `404` to anyone else, and a message can only link unlinked attachments owned by the conversation owner (otherwise `400`). Attachments uploaded before this ownership column existed have no owner and can no longer be read by ID or linked.
 - `mcpservers`: FastMCP server connection definitions and dynamic tool discovery.
 
@@ -77,6 +80,11 @@ startup upserts the URL but never resets an admin's enabled/disabled toggle. Eve
 the caller's bearer token and `X-Household-ID` so the target app authorizes it the same way it
 authorizes a REST request. A 404 from an MCP endpoint is reported to the caller as a configuration
 error (mismatched `CHAT_MCP_SERVERS` path) rather than treated as reachable.
+
+MCP sessions are kept per endpoint, household and user: `ClientPool` resolves the client for
+every call from that call's caller credentials, so a session id and the cached tool list are
+never shared between users or households. Idle sessions are dropped after 15 minutes. The MCP
+servers themselves do not yet bind a session id to the caller that opened it (#633).
 
 ---
 
