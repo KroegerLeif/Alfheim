@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -6,6 +7,7 @@ import { AppShell, AuthGuard, LanguageProvider, ThemeProvider, HouseholdProvider
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { Header } from "@/components/shared/Header";
+import { getLocalizedMetadata } from "@/lib/metadata";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,6 +25,11 @@ const jetbrainsMono = JetBrains_Mono({
 interface LayoutProps {
   children: ReactNode;
   params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
+  const { locale } = await params;
+  return getLocalizedMetadata(locale);
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {

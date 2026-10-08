@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, ChevronUp, ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
-import { IconPicker } from "@alfheim/shared";
+import { DEFAULT_UNIT } from "../utils/units";
 import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ interface AddManualItemProps {
 }
 
 /**
- * Control block card containing manual checklist item additions with Lucide icon picker.
+ * Control block card for adding a manual checklist item (name, quantity and unit).
  */
 export function AddManualItem({ listId }: AddManualItemProps) {
   const t = useTranslations("AddForm");
@@ -21,8 +21,7 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   // Local Form state
   const [name, setName] = useState("");
   const [qty, setQty] = useState("1");
-  const [unit, setUnit] = useState("Stk");
-  const [selectedIconId, setSelectedIconId] = useState<string>("apple");
+  const [unit, setUnit] = useState<string>(DEFAULT_UNIT);
 
   const { data: lists = [] } = useShoppingLists();
   const effectiveListId = listId || (lists.length > 0 ? lists[0].id : "");
@@ -50,7 +49,6 @@ export function AddManualItem({ listId }: AddManualItemProps) {
         name: trimmed,
         quantity: parseFloat(qty) || 1,
         unit,
-        icon: selectedIconId,
       },
       {
         onSuccess: () => {
@@ -70,7 +68,7 @@ export function AddManualItem({ listId }: AddManualItemProps) {
           {t("title")}
         </h3>
 
-        {/* Text Input & Icon Picker Row */}
+        {/* Name input */}
         <div className="flex items-center gap-2">
           <div className="flex-1 flex items-center gap-3 h-11 pl-4 pr-1.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] min-w-0">
             <Search className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
@@ -79,12 +77,10 @@ export function AddManualItem({ listId }: AddManualItemProps) {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !isInvalid && handleSubmit()}
               placeholder={t("namePlaceholder")}
+              aria-label={t("nameLabel")}
+              maxLength={255}
               className="flex-1 bg-transparent border-none outline-none font-heading text-sm font-semibold tracking-wide text-[var(--text-main)] placeholder:[var(--text-muted)] min-w-0"
               disabled={addItem.isPending}
-            />
-            <IconPicker
-              selectedIconId={selectedIconId}
-              onSelectIcon={setSelectedIconId}
             />
           </div>
         </div>
@@ -93,6 +89,7 @@ export function AddManualItem({ listId }: AddManualItemProps) {
         <div className="flex gap-2">
           <div className="flex items-center h-10 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] overflow-hidden shrink-0">
             <button
+              type="button"
               onClick={handleDecrement}
               disabled={addItem.isPending}
               aria-label={t("stepperDec")}
@@ -102,12 +99,15 @@ export function AddManualItem({ listId }: AddManualItemProps) {
             </button>
             <input
               type="text"
+              inputMode="decimal"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
+              aria-label={t("quantityLabel")}
               className="w-10 h-full bg-transparent border-none outline-none text-center font-mono text-sm font-bold text-[var(--text-main)]"
               disabled={addItem.isPending}
             />
             <button
+              type="button"
               onClick={handleIncrement}
               disabled={addItem.isPending}
               aria-label={t("stepperInc")}
@@ -120,6 +120,7 @@ export function AddManualItem({ listId }: AddManualItemProps) {
           <UnitSelector value={unit} onChange={setUnit} />
 
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={isInvalid}
             className={cn(
