@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"alfheim/dashboard/internal/features/telemetry"
@@ -65,6 +66,11 @@ func TestTelemetryService_GetLogsFallback(t *testing.T) {
 	for _, entry := range logsResp.Logs {
 		if entry.ID == "" || entry.Timestamp == "" || entry.Level == "" || entry.Message == "" {
 			t.Errorf("invalid log entry: %+v", entry)
+		}
+		// Profile data moved to core/household; the dashboard no longer serves /api/v1/profile*
+		// (issue #559), so the fallback feed must not claim requests to it.
+		if strings.Contains(entry.Message, "/api/v1/profile") {
+			t.Errorf("fallback log references the removed profile route: %q", entry.Message)
 		}
 	}
 }
