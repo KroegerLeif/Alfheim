@@ -63,8 +63,12 @@ func (h *Handler) SetEnabled(w http.ResponseWriter, r *http.Request) {
 	// The registry is global to the installation, so toggling it is reserved for
 	// household owners/admins rather than every authenticated user.
 	hc, err := middleware.GetHousehold(r.Context())
-	if err != nil || (hc.Role != householdclient.RoleOwner && hc.Role != householdclient.RoleAdmin) {
-		writeError(w, http.StatusForbidden, "forbidden", "only household owners or admins may change the mcp server registry")
+	if err != nil {
+		middleware.WriteHouseholdError(w, http.StatusBadRequest, middleware.CodeHouseholdRequired, "X-Household-ID header is required")
+		return
+	}
+	if hc.Role != householdclient.RoleOwner && hc.Role != householdclient.RoleAdmin {
+		middleware.WriteHouseholdError(w, http.StatusForbidden, middleware.CodeHouseholdRoleForbidden, "only household owners or admins may change the mcp server registry")
 		return
 	}
 
