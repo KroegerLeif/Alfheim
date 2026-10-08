@@ -453,3 +453,95 @@ func TestClient_EdgeCases(t *testing.T) {
 		}
 	})
 }
+
+// newRestartingMCPServer simulates an MCP server whose sessions can be dropped (as on
+// a backend restart): each initialize issues a new session id, and any request that
+// carries an unknown session id is answered with 404, as the MCP spec requires.
+func newRestartingMCPServer(t *testing.T, toolResult callToolResult) (server *httptest.Server, restart func(), initCount *int) {
+	t.Helper()
+	inits := 0
+	live := map[string]bool{}
+
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req rpcRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("test server failed to decode request body: %v", err)
+		}
+		if req.Method == "initialize" {
+			inits++
+			sessionID := fmt.Sprintf("session-%d", inits)
+			live[sessionID] = true
+			w.Header().Set(headerSessionID, sessionID)
+			w.Header().Set(headerContentType, contentTypeJSON)
+			fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":"2025-06-18","capabilities":{},"serverInfo":{"name":"test","version":"1.0"}}}`, req.ID)
+			return
+		}
+		if !live[r.Header.Get(headerSessionID)] {
+			http.NotFound(w, r)
+			return
+		}
+		switch req.Method {
+		case "notifications/initialized":
+			w.WriteHeader(http.StatusAccepted)
+		case "tools/list":
+			w.Header().Set(headerContentType, contentTypeJSON)
+			payload, _ := json.Marshal(listToolsResult{Tools: []Tool{{Name: "get_stock"}}})
+			fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":%s}`, req.ID, payload)
+		case "tools/call":
+			w.Header().Set(headerContentType, contentTypeJSON)
+			payload, _ := json.Marshal(toolResult)
+			fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":%s}`, req.ID, payload)
+		default:
+			t.Fatalf("test server received unexpected method %q", req.Method)
+		}
+	}))
+	restart = func() { live = map[string]bool{} }
+	return server, restart, &inits
+}
+
+func TestClient_ReinitializesAfterSessionExpired(t *testing.T) {
+	result := callToolResult{Content: []contentBlock{{Type: "text", Text: "ok"}}}
+	server, restart, inits := newRestartingMCPServer(t, result)
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	if _, _, err := client.CallTool(context.Background(), "get_stock", nil); err != nil {
+		t.Fatalf("first call: unexpected error: %v", err)
+	}
+
+	restart()
+
+	text, _, err := client.CallTool(context.Background(), "get_stock", nil)
+	if err != nil {
+		t.Fatalf("call after restart: expected transparent re-initialize, got %v", err)
+	}
+	if text != "ok" {
+		t.Errorf("expected result text after re-initialize, got %q", text)
+	}
+	if *inits != 2 {
+		t.Errorf("expected exactly 2 initialize handshakes, got %d", *inits)
+	}
+
+	// The tools cache belongs to the dropped session and must be refreshed too.
+	restart()
+	tools, err := client.ListTools(context.Background())
+	if err != nil {
+		t.Fatalf("ListTools after restart: unexpected error: %v", err)
+	}
+	if len(tools) != 1 || *inits != 3 {
+		t.Errorf("expected a fresh session for ListTools (tools=%d, inits=%d)", len(tools), *inits)
+	}
+}
+
+func TestClient_NotFoundWithoutSessionIsEndpointError(t *testing.T) {
+	server := httptest.NewServer(http.NotFoundHandler())
+	defer server.Close()
+
+	_, err := NewClient(server.URL).ListTools(context.Background())
+	if !errors.Is(err, ErrEndpointNotFound) {
+		t.Fatalf("expected ErrEndpointNotFound for a 404 on initialize, got %v", err)
+	}
+	if errors.Is(err, errSessionExpired) {
+		t.Fatalf("a 404 without a session must not be treated as an expired session")
+	}
+}
