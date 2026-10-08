@@ -46,7 +46,8 @@ const BASE_URL = sanitizeUrl(
 
 const handleResponseError = async (response: Response) => {
   let code: string | undefined;
-  let message = "budget.requestFailed";
+  // Empty when the server gave no usable message so the UI falls back to its localized text.
+  let message = "";
   try {
     const data = await response.json();
     // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract

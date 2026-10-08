@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslation } from "@alfheim/shared";
 import { NetWorthCard, AccountList } from "@/features/accounts";
 import { PotCard } from "@/features/pots";
 import { TransactionLedger } from "@/features/transactions";
@@ -38,6 +39,8 @@ export function DashboardOverview({
   onQuickAdd,
   onDeleteTransaction,
 }: DashboardOverviewProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -57,20 +60,20 @@ export function DashboardOverview({
 
       {/* Virtual Pots Section */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-[var(--text-main)]">Virtual Pots</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold text-[var(--text-main)]">{t("budget.pots.sectionTitle")}</h3>
           <button
             type="button"
             onClick={onOpenCascadeModal}
             className="px-3 py-1.5 rounded-lg bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--primary-main)] flex items-center gap-1.5 hover:bg-[var(--surface-canvas)]"
           >
             <GitMerge className="w-4 h-4 text-[var(--primary-main)]" />
-            <span>Cascade Surplus</span>
+            <span>{t("budget.pots.cascadeSurplus")}</span>
           </button>
         </div>
         {pots.length === 0 ? (
           <div className="p-6 text-center rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)]">
-            No virtual pots configured.
+            {t("budget.pots.emptyState")}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

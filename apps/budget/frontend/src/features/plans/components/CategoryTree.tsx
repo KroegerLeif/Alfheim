@@ -30,13 +30,15 @@ export function CategoryTree({
     <div className="space-y-2">
       {categories.map((cat) => (
         <div key={cat.id} className="space-y-1">
-          <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Folder className="w-4 h-4 text-[var(--primary-main)]" />
-              <span className="font-semibold text-sm text-[var(--text-main)]">{cat.name}</span>
+          <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Folder className="w-4 h-4 text-[var(--primary-main)] shrink-0" />
+              <span className="font-semibold text-sm text-[var(--text-main)] truncate" title={cat.name}>
+                {cat.name}
+              </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               <MoneyDisplay amount={cat.allocated_amount} size="md" className="font-bold" />
               <div className="flex items-center gap-1">
                 {onAddSubcategory && (
@@ -63,18 +65,20 @@ export function CategoryTree({
             </div>
           </div>
 
-          {cat.subcategories && cat.subcategories.length > 0 && (
+          {(cat.subcategories ?? []).length > 0 && (
             <div className="pl-6 space-y-1">
-              {cat.subcategories.map((sub) => (
+              {(cat.subcategories ?? []).map((sub) => (
                 <div
                   key={sub.id}
-                  className="p-2.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between text-xs"
+                  className="p-2.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs"
                 >
-                  <div className="flex items-center gap-2">
-                    <CornerDownRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                    <span className="font-medium text-[var(--text-main)]">{sub.name}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CornerDownRight className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                    <span className="font-medium text-[var(--text-main)] truncate" title={sub.name}>
+                      {sub.name}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <MoneyDisplay amount={sub.allocated_amount} size="sm" className="font-semibold" />
                     {onDeleteCategory && (
                       <button

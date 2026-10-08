@@ -49,7 +49,9 @@
       "addNewAccountLabel": "Add new account",
       "emptyState": "No accounts registered yet. Click \"New Account\" to add one.",
       "editLabel": "Edit {name}",
-      "deleteLabel": "Delete {name}"
+      "deleteLabel": "Delete {name}",
+      "liquidAssets": "Liquid Assets",
+      "investments": "Investments"
     },
     "pots": {
       "title": "Virtual Pots & Reserves",
@@ -70,7 +72,42 @@
       "cascadeExecute": "Execute Cascade",
       "cascadeCompleted": "Cascade Completed",
       "cascadeAllocatedPrefix": "Allocated",
-      "cascadeAllocatedSuffix": "across pots."
+      "cascadeAllocatedSuffix": "across pots.",
+      "sectionTitle": "Virtual Pots",
+      "cascadeSurplus": "Cascade Surplus",
+      "emptyState": "No virtual pots configured.",
+      "priorityBadge": "Priority {priority}",
+      "overflow": {
+        "CASCADE": "Cascade to Next Pot",
+        "UNASSIGNED": "Unassigned Buffer",
+        "INVESTMENT": "Investment Pool"
+      },
+      "editLabel": "Edit {name}",
+      "deleteLabel": "Delete {name}",
+      "calculateGapLabel": "Calculate gap for {name}",
+      "noDate": "No date",
+      "monthly": "Monthly",
+      "statusLabel": "Status: {status}",
+      "status": {
+        "NO_TARGET": "No target set",
+        "COMPLETED": "Completed",
+        "WARNING": "Savings gap",
+        "ON_TRACK": "On track"
+      },
+      "monthlyTarget": "Monthly Target",
+      "shortfall": "Shortfall",
+      "gap": "Gap",
+      "editPot": "Edit Virtual Pot",
+      "createPotTitle": "Create Virtual Pot",
+      "potName": "Pot Name",
+      "potNamePlaceholder": "e.g. Emergency Fund",
+      "priorityRange": "Priority (1-10)",
+      "overflowStrategy": "Overflow Strategy",
+      "currentAmount": "Current Amount",
+      "targetAmount": "Target Amount",
+      "optionalPlaceholder": "Optional",
+      "monthlyContribution": "Monthly Contribution",
+      "targetDate": "Target Date"
     },
     "plans": {
       "title": "Budget Plans & Categories",
@@ -85,7 +122,33 @@
       "categoriesEmptyState": "No budget categories added yet. Click \"Add Category\" above to allocate your budget.",
       "addSubcategory": "Add Subcategory",
       "deleteCategoryLabel": "Delete category {name}",
-      "deleteSubcategoryLabel": "Delete subcategory {name}"
+      "deleteSubcategoryLabel": "Delete subcategory {name}",
+      "noActivePlan": "No active plan selected or found.",
+      "createNewPlan": "Create New Budget Plan",
+      "addCategory": "Add Category",
+      "editLabel": "Edit {name}",
+      "deleteLabel": "Delete {name}",
+      "totalBudget": "Total Budget",
+      "totalAllocated": "Total Allocated",
+      "unallocated": "Unallocated",
+      "editPlanTitle": "Edit Plan",
+      "createPlanTitle": "Create Budget Plan",
+      "planName": "Plan Name",
+      "planNamePlaceholder": "e.g. November 2025 Household",
+      "planType": "Plan Type",
+      "typeMonthly": "Monthly Recurring",
+      "typeEvent": "Event / Project",
+      "totalTargetBudget": "Total Target Budget",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional notes or details",
+      "addCategoryTitle": "Add Budget Category",
+      "categoryName": "Category Name",
+      "categoryNamePlaceholder": "e.g. Groceries",
+      "allocatedAmount": "Allocated Amount",
+      "creating": "Creating...",
+      "createCategory": "Create Category"
     },
     "transactions": {
       "title": "Transactions & Receipts",
@@ -116,7 +179,9 @@
       "emptyState": "No transactions recorded yet. Click \"Quick-Add\" to log your first transaction.",
       "quickBadge": "Quick",
       "deleteLabel": "Delete transaction {description}",
-      "receiptAttachPrompt": "Attach a receipt (optional)"
+      "receiptAttachPrompt": "Attach a receipt (optional)",
+      "amountWithCurrency": "Amount ({currency})",
+      "receiptUploadFailed": "Receipt upload failed (status {status})."
     },
     "analytics": {
       "title": "Financial Analytics & Cashflow",

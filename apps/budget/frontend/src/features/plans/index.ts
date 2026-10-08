@@ -3,3 +3,4 @@ export * from "./components/PlanOverview";
 export * from "./components/CategoryTree";
 export * from "./components/CategoryDialog";
 export * from "./components/PlanDialog";
+export * from "./components/PlanningView";

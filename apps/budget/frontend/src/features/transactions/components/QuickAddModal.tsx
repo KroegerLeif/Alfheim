@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogTitle, useTranslation, useLanguage } from "@alfheim/shared";
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { QuickAddTransactionCreate, TransactionType, Account, Pot, Plan } from "@/features/budget/types";
-import { transactionsApi } from "../api/transactionsApi";
-import { Zap, Paperclip } from "lucide-react";
+import { FIELD_CLASS, FormField } from "@/components/shared/FormField";
+import { FormError } from "@/components/shared/FormError";
+import { useFormSubmit } from "@/components/shared/useFormSubmit";
+import { accountTypeLabel } from "@/features/accounts/accountTypes";
+import { transactionsApi, ReceiptUploadError } from "../api/transactionsApi";
+import { ReceiptPicker } from "./ReceiptPicker";
+import { Zap } from "lucide-react";
 
 export interface QuickAddModalProps {
   open: boolean;
@@ -15,14 +20,8 @@ export interface QuickAddModalProps {
   onSubmit: (data: QuickAddTransactionCreate) => Promise<void>;
 }
 
-function getCurrencySymbol(locale: string): string {
-  const symbols: Record<string, string> = {
-    en: "€",
-    de: "€",
-    pl: "zł",
-  };
-  return symbols[locale] || "€";
-}
+/** Currency used when no account is selected; matches the backend default. */
+const DEFAULT_CURRENCY = "EUR";
 
 export function QuickAddModal({
   open,
@@ -33,8 +32,7 @@ export function QuickAddModal({
   onSubmit,
 }: QuickAddModalProps) {
   const { t } = useTranslation();
-  const { language } = useLanguage();
-  const currencySymbol = useMemo(() => getCurrencySymbol(language), [language]);
+  const { submitting, error, run } = useFormSubmit(open);
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -43,56 +41,60 @@ export function QuickAddModal({
   const [potId, setPotId] = useState("");
   const [planId, setPlanId] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptError, setReceiptError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  // The amount is booked in the selected account's currency, never in a currency implied by the
+  // UI language.
+  const currency = (accounts ?? []).find((acc) => acc.id === accountId)?.currency ?? DEFAULT_CURRENCY;
 
   if (!open) return null;
+
+  // Uploads the receipt (if any) to RustFS/S3 first and returns the object key to store on the
+  // transaction. OCR extraction is intentionally not wired up here -- see issue #529.
+  const uploadReceipt = async (file: File): Promise<string> => {
+    try {
+      const { upload_url, object_key } = await transactionsApi.getReceiptUploadUrl(
+        file.name,
+        file.type || "image/jpeg"
+      );
+      await transactionsApi.uploadReceiptFile(upload_url, file);
+      return object_key;
+    } catch (err) {
+      if (err instanceof ReceiptUploadError) {
+        throw new Error(t("budget.transactions.receiptUploadFailed", { status: err.status }));
+      }
+      throw err;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0) return;
 
-    setSubmitting(true);
-    setReceiptError(null);
-    try {
-      // Upload the receipt (if any) to RustFS/S3 first, and store its object key on the
-      // transaction. OCR extraction is intentionally not wired up here -- see issue #529.
-      let receiptUrl: string | null = null;
-      if (receiptFile) {
-        try {
-          const { upload_url, object_key } = await transactionsApi.getReceiptUploadUrl(
-            receiptFile.name,
-            receiptFile.type || "image/jpeg"
-          );
-          await transactionsApi.uploadReceiptFile(upload_url, receiptFile);
-          receiptUrl = object_key;
-        } catch (err) {
-          setReceiptError(err instanceof Error ? err.message : String(err));
-          return;
-        }
-      }
-
+    const saved = await run(async () => {
+      const receiptUrl = receiptFile ? await uploadReceipt(receiptFile) : null;
       await onSubmit({
         description,
         amount: parsedAmount,
+        currency,
         transaction_type: transactionType,
         account_id: accountId || null,
         pot_id: potId || null,
         plan_id: planId || null,
         receipt_url: receiptUrl,
       });
-      setDescription("");
-      setAmount("");
-      setAccountId("");
-      setPotId("");
-      setPlanId("");
-      setReceiptFile(null);
-      onClose();
-    } finally {
-      setSubmitting(false);
-    }
+    });
+    if (!saved) return;
+    setDescription("");
+    setAmount("");
+    setAccountId("");
+    setPotId("");
+    setPlanId("");
+    setReceiptFile(null);
+    onClose();
   };
+
+  const noneOption = <option value="">{t("budget.transactions.none")}</option>;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -103,8 +105,7 @@ export function QuickAddModal({
         </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label htmlFor="transaction-description" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.transactions.description")}</label>
+          <FormField id="transaction-description" label={t("budget.transactions.description")}>
             <input
               id="transaction-description"
               type="text"
@@ -112,15 +113,12 @@ export function QuickAddModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t("budget.transactions.descriptionPlaceholder")}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
+              className={FIELD_CLASS}
             />
-          </div>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="transaction-amount" className="block text-xs font-medium text-[var(--text-muted)] mb-1">
-                {t("budget.transactions.amount")} ({currencySymbol})
-              </label>
+            <FormField id="transaction-amount" label={t("budget.transactions.amountWithCurrency", { currency })}>
               <input
                 id="transaction-amount"
                 type="number"
@@ -129,100 +127,77 @@ export function QuickAddModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="25.50"
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] font-mono"
+                className={`${FIELD_CLASS} font-mono`}
               />
-            </div>
-            <div>
-              <label htmlFor="transaction-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.transactions.type")}</label>
+            </FormField>
+            <FormField id="transaction-type" label={t("budget.transactions.type")}>
               <select
                 id="transaction-type"
                 value={transactionType}
                 onChange={(e) => setTransactionType(e.target.value as TransactionType)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
+                className={FIELD_CLASS}
               >
                 <option value="EXPENSE">{t("budget.transactions.expense")} (-)</option>
                 <option value="INCOME">{t("budget.transactions.income")} (+)</option>
                 <option value="TRANSFER">{t("budget.transactions.transfer")} (↔)</option>
               </select>
-            </div>
+            </FormField>
           </div>
 
-          <div>
-            <label htmlFor="transaction-account" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.transactions.accountOptional")}</label>
+          <FormField id="transaction-account" label={t("budget.transactions.accountOptional")}>
             <select
               id="transaction-account"
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
+              className={FIELD_CLASS}
             >
-              <option value="">{t("budget.transactions.none")}</option>
-              {accounts.map((acc) => (
+              {noneOption}
+              {(accounts ?? []).map((acc) => (
                 <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.account_type})
+                  {acc.name} ({accountTypeLabel(acc.account_type, t)})
                 </option>
               ))}
             </select>
-          </div>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="transaction-pot" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.transactions.targetPotOptional")}</label>
+            <FormField id="transaction-pot" label={t("budget.transactions.targetPotOptional")}>
               <select
                 id="transaction-pot"
                 value={potId}
                 onChange={(e) => setPotId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
+                className={FIELD_CLASS}
               >
-                <option value="">{t("budget.transactions.none")}</option>
-                {pots.map((p) => (
+                {noneOption}
+                {(pots ?? []).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label htmlFor="transaction-plan" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.transactions.planOptional")}</label>
+            </FormField>
+            <FormField id="transaction-plan" label={t("budget.transactions.planOptional")}>
               <select
                 id="transaction-plan"
                 value={planId}
                 onChange={(e) => setPlanId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
+                className={FIELD_CLASS}
               >
-                <option value="">{t("budget.transactions.none")}</option>
-                {plans.map((pl) => (
+                {noneOption}
+                {(plans ?? []).map((pl) => (
                   <option key={pl.id} value={pl.id}>
                     {pl.name}
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
           </div>
 
-          <div>
-            <label htmlFor="transaction-receipt" className="block text-xs font-medium text-[var(--text-muted)] mb-1">
-              {t("budget.transactions.receiptUpload")}
-            </label>
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="transaction-receipt"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-main)]"
-              >
-                <Paperclip className="w-3.5 h-3.5" />
-                <span className="truncate max-w-[180px]">
-                  {receiptFile ? receiptFile.name : t("budget.transactions.receiptAttachPrompt")}
-                </span>
-              </label>
-              <input
-                id="transaction-receipt"
-                type="file"
-                accept="image/*,application/pdf"
-                className="sr-only"
-                onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-              />
-            </div>
-            {receiptError && <p className="text-[11px] text-rose-500 mt-1">{receiptError}</p>}
-          </div>
+          <FormField id="transaction-receipt" label={t("budget.transactions.receiptUpload")}>
+            <ReceiptPicker file={receiptFile} onChange={setReceiptFile} />
+          </FormField>
+
+          <FormError message={error} />
 
           <div className="flex justify-end gap-2 pt-2">
             <button

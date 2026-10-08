@@ -3,6 +3,7 @@
 import React from "react";
 import { MoneyDisplay, useTranslation } from "@alfheim/shared";
 import { Account } from "@/features/budget/types";
+import { accountTypeLabel } from "../accountTypes";
 import { CreditCard, Landmark, LineChart, Building, Plus, Trash2, Edit2 } from "lucide-react";
 
 export interface AccountListProps {
@@ -26,13 +27,6 @@ const getAccountIcon = (type: string) => {
     default:
       return <CreditCard className="w-5 h-5 text-gray-500" />;
   }
-};
-
-const ACCOUNT_TYPE_KEYS: Record<string, string> = {
-  CHECKING: "budget.accounts.checking",
-  SAVINGS: "budget.accounts.savings",
-  INVESTMENT: "budget.accounts.investment",
-  BUILDING_SAVINGS: "budget.accounts.buildingSavings",
 };
 
 export function AccountList({
@@ -78,21 +72,23 @@ export function AccountList({
           {accounts.map((acc) => (
             <div
               key={acc.id}
-              className="p-4 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between shadow-xs hover:border-[var(--primary-main)]/30 transition-all"
+              className="p-4 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 shadow-xs hover:border-[var(--primary-main)]/30 transition-all"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-[var(--surface-canvas)]">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2.5 rounded-xl bg-[var(--surface-canvas)] shrink-0">
                   {getAccountIcon(acc.account_type)}
                 </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-[var(--text-main)]">{acc.name}</h4>
-                  <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
-                    {ACCOUNT_TYPE_KEYS[acc.account_type] ? t(ACCOUNT_TYPE_KEYS[acc.account_type]) : acc.account_type.replace("_", " ")}
+                <div className="min-w-0">
+                  <h4 className="font-semibold text-sm text-[var(--text-main)] truncate" title={acc.name}>
+                    {acc.name}
+                  </h4>
+                  <span className="block truncate text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                    {accountTypeLabel(acc.account_type, t)}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <MoneyDisplay amount={acc.balance} currency={acc.currency} size="md" className="font-bold" />
                 <div className="flex items-center gap-1">
                   <button
