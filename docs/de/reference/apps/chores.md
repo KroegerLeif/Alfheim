@@ -97,6 +97,12 @@ Das clientseitig übergebene Feld `completed_by` wurde beim Abschließen von Auf
 
 ---
 
+## 🔗 Dashboard-Integrationen
+
+Das Dashboard zeigt zwei Karten, die andere Apps aus dem Browser lesen, mit Bearer-Token des Aufrufers und `X-Household-ID`: offene Einkaufsartikel (`GET /shopping/api/v1/shopping-lists`) und fällige Wartungsschritte (`GET /maintenance/api/v1/maintenance/summary`). Beide laufen über den eigenen Ingress-Präfix der jeweiligen App: Die einfachen `/api/v1/<app>*`-Regeln in Caddy entfernen den Präfix und lassen einen Rest übrig, den kein Backend bedient (`/api/v1/shopping-lists` wird zu `/api/v1-lists`). Schlägt die Anfrage einer Karte fehl, zeigt sie „NICHT VERFÜGBAR“ statt „VERBUNDEN“. Schlägt das Abschließen, Übernehmen oder Löschen einer Aufgabe fehl, wird die Meldung des Servers angezeigt.
+
+---
+
 ## 🏠 Haushalts-Scoping
 
 Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitgliedsrolle darf lesen und schreiben). Der tägliche Reset (Streak-Erhöhung oder Rücksetzung auf 0) läuft rückwirkend und heilt sich beim ersten Zugriff auf die Aufgabenliste eines Haushalts an dem Tag selbst, falls das System offline war. Siehe [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).
@@ -106,5 +112,7 @@ Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitg
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
+
+- **Zuweisungen werden nach Mitgliedschaftsänderungen nicht abgeglichen (#581).** Eine Aufgabe behält ihre zugewiesene Person, auch wenn diese den Haushalt verlässt. Rollenwechsel spielen keine Rolle: Übernehmen und Abschließen stehen jeder Mitgliedsrolle offen. Für den Abgleich muss die gespeicherte (abgeleitete) Benutzer-ID gegen die Mitgliederliste des Haushalts aufgelöst werden; `GET /internal/v1/households/{householdId}/members` existiert, `backend_shared` hat dafür aber noch keinen Client (#583).
 
 ---

@@ -8,52 +8,7 @@ import { LANGUAGES, LOCALES_DIR, loadNamespace, namespaceFiles, type Lang } from
  * to German at runtime. Do not add entries here: a new key must land in en, de and pl together.
  * Remove entries as the owning app translates them.
  */
-const KNOWN_GAPS: Partial<Record<Lang, Record<string, string[]>>> = {
-  pl: {
-    'budget.json': [
-      'budget.pageSubtitle',
-      'budget.refreshData',
-      'budget.actions.retry',
-      'budget.actions.dismiss',
-      'budget.errors.requestFailed',
-      'budget.navigation.brand',
-      'budget.navigation.sidebarLabel',
-      'budget.navigation.navLabel',
-      'budget.pots.cascadeModalTitle',
-      'budget.pots.cascadeModalDesc',
-      'budget.pots.totalSurplusAmount',
-      'budget.pots.cascadeProcessing',
-      'budget.pots.cascadeExecute',
-      'budget.pots.cascadeCompleted',
-      'budget.pots.cascadeAllocatedPrefix',
-      'budget.pots.cascadeAllocatedSuffix',
-      'budget.plans.categoriesEmptyState',
-      'budget.plans.addSubcategory',
-      'budget.plans.deleteCategoryLabel',
-      'budget.plans.deleteSubcategoryLabel',
-      'budget.transactions.ledgerTitle',
-      'budget.transactions.emptyState',
-      'budget.transactions.quickBadge',
-      'budget.transactions.deleteLabel',
-      'budget.transactions.receiptAttachPrompt',
-      'budget.analytics.sankeyDesc',
-      'budget.analytics.sankeyEmptyTitle',
-      'budget.analytics.sankeyEmptyDesc',
-      'budget.analytics.monthlyInflow',
-      'budget.analytics.priorityAllocation',
-      'budget.analytics.budgetPlansLabel',
-      'budget.analytics.virtualPotsLabel',
-      'budget.analytics.unassignedSurplus',
-      'budget.analytics.netWorthAnalyticsTitle',
-      'budget.analytics.netWorthAnalyticsDesc',
-      'budget.analytics.liquidAssets',
-      'budget.analytics.liquidAssetsDesc',
-      'budget.analytics.investmentPortfolio',
-      'budget.analytics.investmentPortfolioDesc',
-      'budget.analytics.assetBreakdown',
-    ],
-  },
-};
+const KNOWN_GAPS: Partial<Record<Lang, Record<string, string[]>>> = {};
 
 /** Namespaces owned by the shared package itself: these must always be in full parity. */
 const SHARED_NAMESPACES = ['common.json'];

@@ -100,6 +100,12 @@ caller is always the one recorded.
 
 ---
 
+## 🔗 Dashboard Integrations
+
+The dashboard shows two cards that read other apps from the browser, with the caller's bearer token and `X-Household-ID`: pending shopping items (`GET /shopping/api/v1/shopping-lists`) and due maintenance steps (`GET /maintenance/api/v1/maintenance/summary`). Both go through the other app's own ingress prefix: the bare `/api/v1/<app>*` rules in Caddy strip the prefix and leave a suffix no backend serves (`/api/v1/shopping-lists` becomes `/api/v1-lists`). A card whose request fails shows an "unavailable" badge instead of "connected". Completing, claiming or deleting a chore shows the server's message when the request fails.
+
+---
+
 ## 🏠 Household Scoping
 
 Every route depends on `backend_shared.household.require_household` (any member role may read and
@@ -113,5 +119,7 @@ first access of a household's chores list for that day if the system was offline
 
 No known open issues beyond the general household-authorization items in
 [Known Issues](../../explanation/known-issues.md).
+
+- **Assignments are not reconciled after membership changes (#581).** A chore keeps its assignee after that person leaves the household. Role changes do not matter: claiming and completing are open to every member role. Reconciling needs to resolve the stored (derived) user id against the household's member list; `GET /internal/v1/households/{householdId}/members` exists, but `backend_shared` has no client for it yet (#583).
 
 ---

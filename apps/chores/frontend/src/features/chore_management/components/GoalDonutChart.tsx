@@ -31,14 +31,17 @@ export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
     { label: t("chores.missed"), count: distribution["missed"], color: "#ef4444" },
   ].filter((d) => d.count > 0 || total === 0);
 
-  // SVG parameters
-  const size = 180;
-  const radius = 60;
-  const strokeWidth = 16;
-  const circumference = 2 * Math.PI * radius;
-  const center = size / 2;
-
-  let currentOffset = 0;
+  // The donut is a conic-gradient ring: one colour stop range per status, in legend order.
+  let stop = 0;
+  const gradientStops = chartData
+    .filter((d) => d.count > 0)
+    .map((d) => {
+      const start = (stop / total) * 360;
+      stop += d.count;
+      const end = (stop / total) * 360;
+      return `${d.color} ${start}deg ${end}deg`;
+    })
+    .join(", ");
 
   return (
     <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-6 flex flex-col justify-between h-[280px] rounded-lg">
@@ -57,38 +60,15 @@ export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
               <span className="text-[10px] font-mono text-[var(--text-muted)]">{t("chores.empty")}</span>
             </div>
           ) : (
-            <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
-              <circle
-                cx={center}
-                cy={center}
-                r={radius}
-                fill="transparent"
-                stroke="var(--border-subtle)"
-                strokeWidth={strokeWidth}
-              />
-              {chartData.map((data, index) => {
-                const percentage = data.count / total;
-                const strokeDashoffset = circumference - percentage * circumference;
-                const rotation = (currentOffset / total) * 360;
-                currentOffset += data.count;
-
-                return (
-                  <circle
-                    key={index}
-                    cx={center}
-                    cy={center}
-                    r={radius}
-                    fill="transparent"
-                    stroke={data.color}
-                    strokeWidth={strokeWidth}
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    transform={`rotate(${rotation - 90} ${center} ${center})`}
-                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
-                  />
-                );
-              })}
-            </svg>
+            <div
+              data-testid="status-donut"
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: `conic-gradient(${gradientStops})`,
+                WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px))",
+                mask: "radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px))",
+              }}
+            />
           )}
         </div>
 
@@ -97,12 +77,12 @@ export function GoalDonutChart({ chores = [] }: GoalDonutChartProps) {
           {chartData.map((data, idx) => {
             const pct = total > 0 ? Math.round((data.count / total) * 100) : 0;
             return (
-              <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: data.color }} />
-                  <span className="truncate max-w-[90px]">{data.label}</span>
+              <div key={idx} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: data.color }} />
+                  <span className="truncate" title={data.label}>{data.label}</span>
                 </div>
-                <span className="font-bold text-[var(--text-muted)]">
+                <span className="shrink-0 font-bold text-[var(--text-muted)]">
                   {pct}% ({data.count})
                 </span>
               </div>

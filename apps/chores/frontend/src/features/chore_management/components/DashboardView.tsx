@@ -8,6 +8,7 @@ import { ClipboardList, ShoppingCart, ShieldAlert, Calendar } from "lucide-react
 import { formatDate } from "@/core/utils";
 import { useState } from "react";
 import { useTranslation } from "@alfheim/shared";
+import { ErrorNotice } from "@/components/shared/ErrorNotice";
 
 export function DashboardView() {
   const { t } = useTranslation();
@@ -36,14 +37,10 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
-      {isError && (
-        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
-          Failed to load chore dashboard data or service integrations.
-        </div>
-      )}
+      {isError && <ErrorNotice message={t("chores.loadFailed")} />}
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-heading text-3xl font-extrabold text-[var(--text-main)] uppercase tracking-wide">
             {t("chores.dashboardTitle")}
           </h1>
@@ -109,9 +106,9 @@ export function DashboardView() {
           </div>
 
           {/* Integration 1: Shopping list widget */}
-          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-5 flex flex-col justify-between h-[130px] rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-5 flex flex-col justify-between min-h-[130px] gap-2 rounded-lg">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <ShoppingCart className="h-4 w-4 text-emerald-500" />
                 <span className="text-xs font-semibold text-[var(--text-main)] uppercase tracking-wider">
                   {t("chores.shoppingSync")}
@@ -123,7 +120,9 @@ export function DashboardView() {
                 </span>
               ) : (
                 <span className="text-[10px] font-mono bg-emerald-950/20 border border-emerald-800/40 text-emerald-400 px-2 py-0.5 rounded font-bold">
-                  {shoppingData?.pendingCount !== undefined
+                  {shoppingError
+                    ? t("chores.unavailable")
+                    : shoppingData?.pendingCount !== undefined
                     ? t("chores.shoppingPendingBadge", { count: shoppingData.pendingCount })
                     : t("chores.connected")}
                 </span>
@@ -142,9 +141,9 @@ export function DashboardView() {
           </div>
 
           {/* Integration 2: Maintenance alarm alert widget */}
-          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-5 flex flex-col justify-between h-[130px] rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] p-5 flex flex-col justify-between min-h-[130px] gap-2 rounded-lg">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <ShieldAlert className="h-4 w-4 text-amber-500" />
                 <span className="text-xs font-semibold text-[var(--text-main)] uppercase tracking-wider">
                   {t("chores.deviceMaintenance")}
@@ -162,7 +161,9 @@ export function DashboardView() {
                       : "bg-emerald-950/20 border-emerald-800/40 text-emerald-400"
                   }`}
                 >
-                  {(maintenanceData?.dueCount || 0) > 0
+                  {maintenanceError
+                    ? t("chores.unavailable")
+                    : (maintenanceData?.dueCount || 0) > 0
                     ? t("chores.maintenanceDueBadge", { count: maintenanceData?.dueCount ?? 0 })
                     : t("chores.secured")}
                 </span>

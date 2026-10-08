@@ -6,13 +6,14 @@ import { DesktopSidebar, MobileTabBar } from "@/features/navigation";
 import { useBudgetData } from "@/features/dashboard/useBudgetData";
 import { DashboardOverview } from "@/features/dashboard/DashboardOverview";
 import { BudgetDialogContainer } from "@/features/dashboard/BudgetDialogContainer";
+import { BudgetPageHeader } from "@/features/dashboard/BudgetPageHeader";
 import { AccountList, accountsApi } from "@/features/accounts";
-import { PotCard, potsApi } from "@/features/pots";
-import { PlanOverview, CategoryTree, plansApi } from "@/features/plans";
+import { PotsView, potsApi } from "@/features/pots";
+import { PlanningView, plansApi } from "@/features/plans";
 import { TransactionLedger, transactionsApi } from "@/features/transactions";
-import { SankeyCashflowView, NetWorthAnalyticsView } from "@/features/analytics";
+import { SankeyCashflowView, NetWorthAnalyticsView, computeCashflow } from "@/features/analytics";
 import { Account, Pot, Plan } from "@/features/budget/types";
-import { Plus, RefreshCw, AlertCircle } from "lucide-react";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
 
 export default function BudgetHomePage() {
   const { t } = useTranslation();
@@ -49,21 +50,7 @@ export default function BudgetHomePage() {
   const [catParentId, setCatParentId] = useState<string | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
-  // Real cashflow aggregates for the Sankey view: sum of income transactions, sum of active
-  // plan budgets, sum of pot monthly contributions, and the true unassigned surplus left over.
-  // No hardcoded/demo numbers -- see issue #537.
-  const cashflow = useMemo(() => {
-    const totalIncome = transactions
-      .filter((tx) => tx.transaction_type === "INCOME")
-      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-    const totalAllocatedPlans = plans
-      .filter((p) => p.is_active)
-      .reduce((sum, p) => sum + (p.total_budget || 0), 0);
-    const totalPotsContribution = pots.reduce((sum, p) => sum + (p.monthly_contribution || 0), 0);
-    const unassignedSurplus = Math.max(0, totalIncome - totalAllocatedPlans - totalPotsContribution);
-    const hasData = transactions.length > 0 || plans.length > 0 || pots.length > 0;
-    return { totalIncome, totalAllocatedPlans, totalPotsContribution, unassignedSurplus, hasData };
-  }, [transactions, plans, pots]);
+  const cashflow = useMemo(() => computeCashflow(transactions, plans, pots), [transactions, plans, pots]);
 
   const getMobileActiveTab = () => {
     if (activeTab === "/planning") return "planning";
@@ -81,36 +68,17 @@ export default function BudgetHomePage() {
         onTabChange={(path) => setActiveTab(path)}
       />
 
-      <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6 max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--text-main)]">{t("budget.title")}</h1>
-            <p className="text-sm text-[var(--text-muted)] mt-0.5">{t("budget.pageSubtitle")}</p>
-          </div>
-          <button
-            type="button"
-            onClick={reload}
-            aria-label={t("budget.refreshData")}
-            className="p-2 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
+      <main className="flex-1 min-w-0 p-4 md:p-6 pb-24 md:pb-6 max-w-7xl mx-auto space-y-6">
+        <BudgetPageHeader loading={loading} onReload={reload} />
 
-        {error && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs flex items-center justify-between">
-            <span className="flex items-center gap-2"><AlertCircle className="w-4 h-4" /><span>{error}</span></span>
-            <button type="button" onClick={reload} className="font-bold underline">{t("budget.actions.retry")}</button>
-          </div>
-        )}
+        {error && <ErrorBanner message={error} actionLabel={t("budget.actions.retry")} onAction={reload} />}
 
         {actionError && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs flex items-center justify-between">
-            <span className="flex items-center gap-2"><AlertCircle className="w-4 h-4" /><span>{actionError}</span></span>
-            <button type="button" onClick={() => setActionError(null)} className="font-bold underline">
-              {t("budget.actions.dismiss")}
-            </button>
-          </div>
+          <ErrorBanner
+            message={actionError}
+            actionLabel={t("budget.actions.dismiss")}
+            onAction={() => setActionError(null)}
+          />
         )}
 
         {activeTab === "/" && (
@@ -142,47 +110,26 @@ export default function BudgetHomePage() {
         )}
 
         {activeTab === "/planning" && (
-          <div className="space-y-6">
-            <PlanOverview
-              plan={activePlan}
-              summary={planSummary}
-              loading={loading}
-              onAddPlan={() => { setEditPlan(null); setPlanOpen(true); }}
-              onEditPlan={(pl) => { setEditPlan(pl); setPlanOpen(true); }}
-              onDeletePlan={(id) => runAction(() => plansApi.deletePlan(id))}
-              onAddCategory={() => { setCatParentId(null); setCatOpen(true); }}
-            />
-            <CategoryTree
-              categories={planSummary?.categories || []}
-              onAddSubcategory={(pId) => { setCatParentId(pId); setCatOpen(true); }}
-              onDeleteCategory={(cId) => runAction(() => plansApi.deleteCategory(cId))}
-            />
-          </div>
+          <PlanningView
+            plan={activePlan}
+            summary={planSummary}
+            loading={loading}
+            onAddPlan={() => { setEditPlan(null); setPlanOpen(true); }}
+            onEditPlan={(pl) => { setEditPlan(pl); setPlanOpen(true); }}
+            onDeletePlan={(id) => runAction(() => plansApi.deletePlan(id))}
+            onAddCategory={() => { setCatParentId(null); setCatOpen(true); }}
+            onAddSubcategory={(pId) => { setCatParentId(pId); setCatOpen(true); }}
+            onDeleteCategory={(cId) => runAction(() => plansApi.deleteCategory(cId))}
+          />
         )}
 
         {activeTab === "/pots" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-main)]">{t("budget.navigation.pots")}</h3>
-              <button
-                type="button"
-                onClick={() => { setEditPot(null); setPotOpen(true); }}
-                className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" /><span>{t("budget.pots.createPot")}</span>
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {pots.map((pot) => (
-                <PotCard
-                  key={pot.id}
-                  pot={pot}
-                  onEdit={(p) => { setEditPot(p); setPotOpen(true); }}
-                  onDelete={(id) => runAction(() => potsApi.deletePot(id))}
-                />
-              ))}
-            </div>
-          </div>
+          <PotsView
+            pots={pots}
+            onCreate={() => { setEditPot(null); setPotOpen(true); }}
+            onEdit={(p) => { setEditPot(p); setPotOpen(true); }}
+            onDelete={(id) => runAction(() => potsApi.deletePot(id))}
+          />
         )}
 
         {activeTab === "/transactions" && (

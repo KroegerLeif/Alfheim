@@ -33,7 +33,7 @@ func (s *service) getLocalSystemLogs() *LogsResponse {
 		{-3 * time.Minute, "INFO", "telemetry", "VictoriaStack (VictoriaMetrics + VictoriaLogs + OTel) ingestion active"},
 		{-2 * time.Minute, "SUCCESS", "dashboard-go", "Token validation succeeded for sub=zitadel-user-oidc"},
 		{-45 * time.Second, "INFO", "pantry-backend", "GET /api/v1/apps 200 OK (3ms)"},
-		{-20 * time.Second, "INFO", "dashboard-go", "GET /api/v1/profile/me 200 OK (4ms)"},
+		{-20 * time.Second, "INFO", "dashboard-go", "GET /api/v1/user/preferences 200 OK (4ms)"},
 		{-5 * time.Second, "SUCCESS", "telemetry", "Heartbeat check: control plane status=healthy load=0.18"},
 	}
 

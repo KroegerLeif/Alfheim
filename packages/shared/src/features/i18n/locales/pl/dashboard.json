@@ -91,6 +91,8 @@
         "guest": "GOŚĆ",
         "owner": "WŁAŚCICIEL"
       }
-    }
+    },
+    "logs_unavailable": "Strumień logów na żywo niedostępny. Ponawianie...",
+    "service_fallback_name": "Usługa"
   }
 }

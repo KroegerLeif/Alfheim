@@ -40,7 +40,7 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 
 ### FDD Domain-Features (`internal/features/`)
 - `apps`: Einheitliche 3-Tier-Anwendungsregister-Handler und YAML-Loader.
-- `telemetry`: System-Metriken und Log-Abfragen.
+- `telemetry`: System-Metriken und Log-Abfragen. Ist VictoriaLogs nicht erreichbar oder leer, liefert `GET /api/v1/telemetry/logs` feste Beispiel-Einträge (sie verweisen nur auf Routen, die das Dashboard bedient); das Frontend zeigt einen Hinweis, wenn die Log-Anfrage selbst fehlschlägt.
 
 ---
 

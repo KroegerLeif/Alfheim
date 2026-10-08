@@ -91,6 +91,8 @@
         "guest": "GAST",
         "owner": "EIGENTÜMER"
       }
-    }
+    },
+    "logs_unavailable": "Live-Log-Stream nicht verfügbar. Neuer Versuch...",
+    "service_fallback_name": "Dienst"
   }
 }

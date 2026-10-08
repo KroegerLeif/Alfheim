@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { Account, AccountCreate, AccountType } from "@/features/budget/types";
+import { FormError } from "@/components/shared/FormError";
+import { useFormSubmit } from "@/components/shared/useFormSubmit";
 
 export interface AccountDialogProps {
   open: boolean;
@@ -17,7 +19,7 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
   const [accountType, setAccountType] = useState<AccountType>("CHECKING");
   const [balance, setBalance] = useState("0.00");
   const [currency, setCurrency] = useState("EUR");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, error, run } = useFormSubmit(open);
 
   useEffect(() => {
     if (account) {
@@ -37,18 +39,15 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    try {
-      await onSubmit({
+    const saved = await run(() =>
+      onSubmit({
         name,
         account_type: accountType,
         balance: parseFloat(balance) || 0,
         currency,
-      });
-      onClose();
-    } finally {
-      setSubmitting(false);
-    }
+      })
+    );
+    if (saved) onClose();
   };
 
   return (
@@ -113,6 +112,8 @@ export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialo
               />
             </div>
           </div>
+
+          <FormError message={error} />
 
           <div className="flex justify-end gap-2 pt-2">
             <button

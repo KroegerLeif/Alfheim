@@ -7,6 +7,7 @@ import { Plus, Layers } from "lucide-react";
 import { Link } from "@/navigation";
 import { useState } from "react";
 import { useTranslation } from "@alfheim/shared";
+import { ErrorNotice } from "@/components/shared/ErrorNotice";
 
 export function BoardView() {
   const { t } = useTranslation();
@@ -14,7 +15,7 @@ export function BoardView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
-  const filteredTemplates = templates.filter((template) => {
+  const filteredTemplates = (templates ?? []).filter((template) => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     let matchesPoints = true;
@@ -58,9 +59,7 @@ export function BoardView() {
 
       {/* Main Grid View */}
       {isError ? (
-        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
-          Failed to load chore templates board.
-        </div>
+        <ErrorNotice message={t("chores.boardLoadFailed")} />
       ) : isLoading ? (
         <div className="h-60 flex items-center justify-center">
           <div className="h-6.5 w-6.5 animate-spin rounded-full border-2 border-[var(--primary-main)] border-t-transparent"></div>

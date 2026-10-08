@@ -19,8 +19,8 @@ describe('WizardSteps Component', () => {
     renderWithProviders(<WizardSteps />)
 
     // Step 1 headers and inputs
-    expect(screen.getByText('choreDetails')).toBeInTheDocument()
-    expect(screen.getByText('taskName')).toBeInTheDocument()
+    expect(screen.getByText('Chore Details')).toBeInTheDocument()
+    expect(screen.getByText('Task Name')).toBeInTheDocument()
 
     // Back button is disabled on step 1
     const backBtn = screen.getByRole('button', { name: /back/i })
@@ -30,15 +30,15 @@ describe('WizardSteps Component', () => {
     const nextBtn = screen.getByRole('button', { name: /next/i })
     await user.click(nextBtn)
 
-    expect(screen.getByText('nameRequired')).toBeInTheDocument()
+    expect(screen.getByText('Name is required')).toBeInTheDocument()
 
     // Fill in task name and verify validation clears on next
-    const nameInput = screen.getByPlaceholderText('taskNamePlaceholder')
+    const nameInput = screen.getByPlaceholderText('e.g., Wash Kitchen Dishes')
     await user.type(nameInput, 'Clean Kitchen Counters')
     await user.click(nextBtn)
 
     // Should transition to step 2
-    expect(screen.getByText('importanceReward')).toBeInTheDocument()
+    expect(screen.getByText('Importance & Reward')).toBeInTheDocument()
   })
 
   it('navigates through all wizard steps and submits form', async () => {
@@ -54,8 +54,8 @@ describe('WizardSteps Component', () => {
     renderWithProviders(<WizardSteps />)
 
     // Step 1: Fill name and description
-    const nameInput = screen.getByPlaceholderText('taskNamePlaceholder')
-    const descInput = screen.getByPlaceholderText('instructionsPlaceholder')
+    const nameInput = screen.getByPlaceholderText('e.g., Wash Kitchen Dishes')
+    const descInput = screen.getByPlaceholderText('Describe how to perform the chore...')
     await user.type(nameInput, 'Mop Floor')
     await user.type(descInput, 'Use wood floor cleaner')
 
@@ -63,17 +63,17 @@ describe('WizardSteps Component', () => {
     await user.click(nextBtn)
 
     // Step 2: Points selection
-    expect(screen.getByText('importanceReward')).toBeInTheDocument()
+    expect(screen.getByText('Importance & Reward')).toBeInTheDocument()
     const pointsBtn = screen.getByText(/15 PTS/i)
     await user.click(pointsBtn)
     await user.click(screen.getByRole('button', { name: /next/i }))
 
     // Step 3: Recurrence rules -- the final step (the dead "Assignment Rules" step was removed)
-    expect(screen.getByText('dailyExpiryRules')).toBeInTheDocument()
-    const cumulativeOption = screen.getByText('cumulativeTitle')
+    expect(screen.getByText('Daily Expiry Rules')).toBeInTheDocument()
+    const cumulativeOption = screen.getByText('Cumulative Stacking')
     await user.click(cumulativeOption)
 
-    const finishBtn = screen.getByRole('button', { name: /finishSave/i })
+    const finishBtn = screen.getByRole('button', { name: /finish & save/i })
     await user.click(finishBtn)
 
     // Verify submission redirects to board
@@ -87,18 +87,18 @@ describe('WizardSteps Component', () => {
     renderWithProviders(<WizardSteps />)
 
     // Step 1: Type name
-    const nameInput = screen.getByPlaceholderText('taskNamePlaceholder')
+    const nameInput = screen.getByPlaceholderText('e.g., Wash Kitchen Dishes')
     await user.type(nameInput, 'Dust Shelves')
     await user.click(screen.getByRole('button', { name: /next/i }))
 
     // Step 2: Now on step 2, click back
-    expect(screen.getByText('importanceReward')).toBeInTheDocument()
+    expect(screen.getByText('Importance & Reward')).toBeInTheDocument()
     const backBtn = screen.getByRole('button', { name: /back/i })
     await user.click(backBtn)
 
     // Step 1: Check name is preserved
-    expect(screen.getByText('choreDetails')).toBeInTheDocument()
-    const preservedInput = screen.getByPlaceholderText('taskNamePlaceholder') as HTMLInputElement
+    expect(screen.getByText('Chore Details')).toBeInTheDocument()
+    const preservedInput = screen.getByPlaceholderText('e.g., Wash Kitchen Dishes') as HTMLInputElement
     expect(preservedInput.value).toBe('Dust Shelves')
   })
 })

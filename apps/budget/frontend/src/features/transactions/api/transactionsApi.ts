@@ -11,6 +11,16 @@ export interface PresignedUploadResponse {
   object_key: string;
 }
 
+/** Raised when the presigned PUT of a receipt file is rejected by object storage. */
+export class ReceiptUploadError extends Error {
+  readonly status: number;
+  constructor(status: number) {
+    super(`Receipt upload failed with status ${status}`);
+    this.name = "ReceiptUploadError";
+    this.status = status;
+  }
+}
+
 export interface TransactionFilterOptions {
   accountId?: string;
   potId?: string;
@@ -77,7 +87,7 @@ export const transactionsApi = {
       headers: file.type ? { "Content-Type": file.type } : undefined,
     });
     if (!res.ok) {
-      throw new Error(`Receipt upload failed with status ${res.status}`);
+      throw new ReceiptUploadError(res.status);
     }
   },
 };

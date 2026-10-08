@@ -91,6 +91,8 @@
         "guest": "GUEST",
         "owner": "OWNER"
       }
-    }
+    },
+    "logs_unavailable": "Live log stream unavailable. Retrying...",
+    "service_fallback_name": "Service"
   }
 }

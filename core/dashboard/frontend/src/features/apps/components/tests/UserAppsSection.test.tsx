@@ -41,7 +41,7 @@ describe('UserAppsSection navigation targets', () => {
       />
     )
 
-    const link = screen.getByRole('link', { name: /open_link/i })
+    const link = screen.getByRole('link', { name: /open link/i })
     expect(link).toHaveAttribute('href', 'https://example.com')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).not.toHaveAttribute('data-next-link')
@@ -58,7 +58,7 @@ describe('UserAppsSection navigation targets', () => {
       />
     )
 
-    const link = screen.getByRole('link', { name: /open_link/i })
+    const link = screen.getByRole('link', { name: /open link/i })
     expect(link).toHaveAttribute('href', '/pantry')
     expect(link).not.toHaveAttribute('data-next-link')
     expect(link).toHaveAttribute('target', '_blank')
@@ -75,7 +75,7 @@ describe('UserAppsSection navigation targets', () => {
       />
     )
 
-    const link = screen.getByRole('link', { name: /open_link/i })
+    const link = screen.getByRole('link', { name: /open link/i })
     expect(link).toHaveAttribute('href', '/settings')
     expect(link).toHaveAttribute('data-next-link', 'true')
   })

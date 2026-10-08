@@ -8,7 +8,7 @@ import { useTranslation } from '@alfheim/shared';
 function UnderConstructionContent() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
-  const appName = searchParams.get('app') || 'Service';
+  const appName = searchParams.get('app') || t('dashboard.service_fallback_name');
 
   return (
     <div className="col-span-12 min-h-[70vh] flex flex-col items-center justify-center text-center p-8 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] relative overflow-hidden shadow-2xl">

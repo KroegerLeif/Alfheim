@@ -3,6 +3,7 @@
 import React from "react";
 import { MoneyDisplay, useTranslation } from "@alfheim/shared";
 import { NetWorthResponse, Account } from "@/features/budget/types";
+import { accountTypeLabel } from "@/features/accounts/accountTypes";
 import { TrendingUp, ShieldCheck, Landmark } from "lucide-react";
 
 export interface NetWorthAnalyticsViewProps {
@@ -65,16 +66,20 @@ export function NetWorthAnalyticsView({
           {t("budget.analytics.assetBreakdown")}
         </h4>
         <div className="space-y-1.5">
-          {accounts.map((acc) => (
+          {(accounts ?? []).map((acc) => (
             <div
               key={acc.id}
-              className="p-3 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between text-xs"
+              className="p-3 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs"
             >
-              <div>
-                <span className="font-semibold text-[var(--text-main)]">{acc.name}</span>
-                <span className="ml-2 text-[10px] uppercase text-[var(--text-muted)]">({acc.account_type})</span>
+              <div className="min-w-0 flex items-baseline">
+                <span className="font-semibold text-[var(--text-main)] truncate" title={acc.name}>
+                  {acc.name}
+                </span>
+                <span className="ml-2 text-[10px] uppercase text-[var(--text-muted)] shrink-0">
+                  ({accountTypeLabel(acc.account_type, t)})
+                </span>
               </div>
-              <MoneyDisplay amount={acc.balance} currency={acc.currency} size="sm" className="font-bold" />
+              <MoneyDisplay amount={acc.balance} currency={acc.currency} size="sm" className="font-bold shrink-0" />
             </div>
           ))}
         </div>

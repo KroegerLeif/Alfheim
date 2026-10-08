@@ -17,9 +17,9 @@ describe("Accounts Feature Components", () => {
     };
     render(<NetWorthCard summary={summary} />);
 
-    expect(screen.getByText("Total Net-Worth")).toBeInTheDocument();
-    expect(screen.getByText("Liquid Assets")).toBeInTheDocument();
-    expect(screen.getByText("Investments")).toBeInTheDocument();
+    expect(screen.getByText("Gesamtvermögen")).toBeInTheDocument();
+    expect(screen.getByText("Liquide Mittel")).toBeInTheDocument();
+    expect(screen.getByText("Anlagen")).toBeInTheDocument();
   });
 
   it("renders AccountList and triggers add account callback", () => {
@@ -90,7 +90,8 @@ describe("Virtual Pots & Transactions Components", () => {
     render(<PotCard pot={mockPot} onEdit={handleEdit} onDelete={handleDelete} />);
 
     expect(screen.getByText("Emergency Pot")).toBeInTheDocument();
-    expect(screen.getByText("Priority 1")).toBeInTheDocument();
+    expect(screen.getByText("Priorität 1")).toBeInTheDocument();
+    expect(screen.getByText("An nächsten Topf weitergeben")).toBeInTheDocument();
   });
 
   it("renders TransactionLedger correctly", () => {

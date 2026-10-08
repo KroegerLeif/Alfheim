@@ -6,6 +6,8 @@ import { useDeleteChoreTemplate } from "../services/choresService";
 import { Award, RefreshCw, Trash2, Calendar, Check, X, History } from "lucide-react";
 import { useTranslation } from "@alfheim/shared";
 import { TaskTimelineModal } from "./TaskTimelineModal";
+import { ErrorNotice } from "@/components/shared/ErrorNotice";
+import { errorMessage } from "@/core/errors";
 
 interface TaskCardProps {
   template: ChoreTemplateRead;
@@ -29,17 +31,18 @@ export function TaskCard({ template }: TaskCardProps) {
 
   return (
     <>
-      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-all p-5 flex flex-col justify-between min-h-[160px] rounded-lg">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-all p-5 flex flex-col justify-between min-h-[160px] min-w-0 rounded-lg">
         <div>
-          <div className="flex items-start justify-between">
-            <h3 className="font-heading text-lg font-bold text-[var(--text-main)] truncate max-w-[180px]">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 font-heading text-lg font-bold text-[var(--text-main)] truncate" title={template.name}>
               {template.name}
             </h3>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => setShowTimeline(true)}
                 className="text-[var(--text-muted)] hover:text-[var(--primary-main)] cursor-pointer p-1 transition-colors"
-                title={t("chores.timeline") || "Completion History"}
+                title={t("chores.timeline")}
+                aria-label={t("chores.timeline")}
               >
                 <History className="h-4 w-4" />
               </button>
@@ -50,12 +53,15 @@ export function TaskCard({ template }: TaskCardProps) {
                     disabled={deleteMutation.isPending}
                     className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
                     title={t("chores.deleteTemplate")}
+                    aria-label={t("chores.deleteTemplate")}
                   >
                     <Check className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setShowConfirmDelete(false)}
                     className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 cursor-pointer"
+                    title={t("common.cancel")}
+                    aria-label={t("common.cancel")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -65,6 +71,7 @@ export function TaskCard({ template }: TaskCardProps) {
                   onClick={() => setShowConfirmDelete(true)}
                   className="text-[var(--text-muted)] hover:text-red-500 cursor-pointer p-1 transition-colors"
                   title={t("chores.deleteTemplate")}
+                  aria-label={t("chores.deleteTemplate")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -73,7 +80,7 @@ export function TaskCard({ template }: TaskCardProps) {
           </div>
 
         {template.description ? (
-          <p className="text-xs text-[var(--text-muted)] mt-2 line-clamp-2">
+          <p className="text-xs text-[var(--text-muted)] mt-2 line-clamp-2 break-words">
             {template.description}
           </p>
         ) : (
@@ -82,6 +89,10 @@ export function TaskCard({ template }: TaskCardProps) {
           </p>
         )}
       </div>
+
+      {deleteMutation.error && (
+        <ErrorNotice className="mt-3" message={errorMessage(deleteMutation.error, t("chores.actionFailed"))} />
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {/* Recurrence Indicator */}
