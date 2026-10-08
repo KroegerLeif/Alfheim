@@ -60,7 +60,24 @@ Quelle: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 
 ## 🔌 MCP-Tools
 
-Budget hat keinen FastMCP-Server und stellt keine MCP-Tools bereit. Der Chat-Assistent kann Budget-Daten nicht direkt lesen oder ändern.
+Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), gleich authentifiziert
+wie die REST-API. Die Tools nehmen keinen `household_id`-Parameter entgegen: sie lesen
+`get_mcp_household_context()`. Die Tools liegen in `src/mcp/` (`server.py` erzeugt die
+FastMCP-Instanz und registriert `get_budget_status`; `tools.py` registriert die übrigen).
+`discover_and_import_mcp_tools()` importiert außerdem jede `mcp_tools.py` unter `src/features/`,
+aber bisher liefert kein Budget-Feature eine solche Datei.
+
+| Tool | Parameter | Funktion |
+| :--- | :--- | :--- |
+| `get_budget_status` | keine | Liveness-Probe. Gibt eine feste Meldung zurück und liest keine Budget-Daten |
+| `get_pot_balances` | keine | Listet die aktiven Töpfe des Haushalts mit Priorität, aktuellem Betrag, Ziel und Überlauf-Ziel |
+| `suggest_budget_allocation` | `income` | Führt die Prioritäts-Kaskade über die Töpfe aus und meldet die vorgeschlagene Verteilung je Topf, den nicht zugewiesenen Puffer und den Investment-Überlauf. Ein Probelauf: nichts wird gespeichert |
+| `analyze_spending_gap` | `month` (`YYYY-MM`) | Vergleicht die Summe der aktiven Pläne mit den in diesem Monat gebuchten Ausgaben und meldet die Lücke, über oder unter Budget, und die Zahl der Transaktionen |
+| `calculate_sinking_gap` | `pot_id` | Meldet Fehlbetrag, verbleibende Monate, Soll- und Ist-Monatsrate sowie die monatliche Lücke für einen Sinking-Fund-Topf |
+
+Alle fünf Tools lesen nur Budget-Daten; keines legt Konten, Töpfe, Pläne oder Transaktionen an oder
+ändert sie. Ein Fehler in einem Tool wird als `Error …`-Zeichenkette zurückgegeben statt als
+Exception.
 
 ---
 
