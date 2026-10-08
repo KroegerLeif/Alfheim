@@ -61,3 +61,12 @@ describe('memberDisplayName', () => {
     expect(memberInitials(base)).toBe('AB');
   });
 });
+
+describe('translateLocal interpolation', () => {
+  it('inserts parameter values literally, even with dollar patterns', () => {
+    expect(translateLocal('en', 'household_app.invites.revoke_label', { token: 'a$&b$1' })).toBe(
+      'Revoke invite a$&b$1',
+    );
+    expect(translateLocal('en', 'household_app.invites.uses', { uses: 2, max: 5 })).toBe('2/5 uses');
+  });
+});
