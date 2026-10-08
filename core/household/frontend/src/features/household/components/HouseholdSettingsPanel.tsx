@@ -3,18 +3,18 @@
 import { useState } from 'react';
 import { useTranslation } from '@/i18n';
 import { describeApiError } from '@/lib/apiErrors';
-import { Household, HouseholdMember } from '@/shared/types';
+import { Household } from '@/shared/types';
 import { HouseholdPermissions } from '../permissions';
 import {
   useRenameHousehold,
   useDeleteHousehold,
-  useTransferOwnership,
   useLeaveHousehold,
   useSetDefaultHousehold,
 } from '../hooks/queries';
 import { DeleteHouseholdModal } from './DeleteHouseholdModal';
 import { StatusBanner } from './StatusBanner';
-import { memberDisplayName } from './memberDisplay';
+import { TransferOwnershipCard } from './TransferOwnershipCard';
+import { cardClass, dangerButton, inputClass, secondaryButton } from './settingsStyles';
 
 interface HouseholdSettingsPanelProps {
   household: Household;
@@ -26,14 +26,6 @@ interface HouseholdSettingsPanelProps {
 
 type Status = { kind: 'error' | 'success'; text: string } | null;
 
-const cardClass = 'p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] space-y-3';
-const inputClass =
-  'w-full px-3 py-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)]';
-const secondaryButton =
-  'px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-main)] hover:border-[var(--primary-main)]/50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-const dangerButton =
-  'px-3 py-2 rounded-lg border border-red-500/40 text-xs font-semibold text-red-300 hover:bg-red-950/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-
 /**
  * Settings for one household: rename, default, transfer ownership, leave and
  * delete. Each action only renders when the caller's role permits it.
@@ -44,22 +36,16 @@ export function HouseholdSettingsPanel({ household, permissions, isDefault, onRe
   // null = untouched: the input shows the current (server) name.
   const [draftName, setDraftName] = useState<string | null>(null);
   const name = draftName ?? household.name;
-  const [newOwnerId, setNewOwnerId] = useState('');
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const renameMutation = useRenameHousehold(household.id);
   const deleteMutation = useDeleteHousehold(household.id);
-  const transferMutation = useTransferOwnership(household.id);
   const leaveMutation = useLeaveHousehold(household.id);
   const defaultMutation = useSetDefaultHousehold();
 
   const onError = (err: unknown) => setStatus({ kind: 'error', text: describeApiError(err, t) });
   const onSuccess = (key: string) => () => setStatus({ kind: 'success', text: t(key) });
-
-  const transferCandidates: HouseholdMember[] = (household.members ?? []).filter(
-    (m) => m.user_id !== household.owner_id && m.role?.toUpperCase() !== 'OWNER',
-  );
 
   const handleRename = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,21 +56,6 @@ export function HouseholdSettingsPanel({ household, permissions, isDefault, onRe
       onSuccess: () => {
         setDraftName(null);
         setStatus({ kind: 'success', text: t('household_app.settings.renamed') });
-      },
-      onError,
-    });
-  };
-
-  const handleTransfer = (e: React.FormEvent) => {
-    e.preventDefault();
-    const target = transferCandidates.find((m) => m.user_id === newOwnerId);
-    if (!target) return;
-    if (!confirm(t('household_app.settings.confirm_transfer', { name: memberDisplayName(target) }))) return;
-    setStatus(null);
-    transferMutation.mutate(target.user_id, {
-      onSuccess: () => {
-        setNewOwnerId('');
-        setStatus({ kind: 'success', text: t('household_app.settings.transferred') });
       },
       onError,
     });
@@ -129,7 +100,7 @@ export function HouseholdSettingsPanel({ household, permissions, isDefault, onRe
             <label htmlFor="household-rename" className="block text-xs font-bold text-[var(--text-main)]">
               {t('household_app.settings.rename_label')}
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 min-w-0">
               <input
                 id="household-rename"
                 type="text"
@@ -155,7 +126,7 @@ export function HouseholdSettingsPanel({ household, permissions, isDefault, onRe
             <p className="text-[11px] text-[var(--text-muted)]">{t('household_app.settings.default_desc')}</p>
             {isDefault ? (
               <p className="text-xs font-mono text-[var(--primary-main)] flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm">star</span>
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">star</span>
                 {t('household_app.settings.is_default')}
               </p>
             ) : (
@@ -166,33 +137,7 @@ export function HouseholdSettingsPanel({ household, permissions, isDefault, onRe
           </div>
         )}
 
-        {permissions.canTransferOwnership && (
-          <form onSubmit={handleTransfer} className={cardClass}>
-            <div className="text-xs font-bold text-[var(--text-main)]">{t('household_app.settings.transfer_title')}</div>
-            <p className="text-[11px] text-[var(--text-muted)]">{t('household_app.settings.transfer_desc')}</p>
-            {transferCandidates.length > 0 ? (
-              <div className="flex gap-2">
-                <label htmlFor="household-transfer" className="sr-only">{t('household_app.settings.transfer_select')}</label>
-                <select
-                  id="household-transfer"
-                  value={newOwnerId}
-                  onChange={(e) => setNewOwnerId(e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">{t('household_app.settings.transfer_placeholder')}</option>
-                  {transferCandidates.map((m) => (
-                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                  ))}
-                </select>
-                <button type="submit" disabled={!newOwnerId || transferMutation.isPending} className={secondaryButton}>
-                  {t('household_app.settings.transfer_submit')}
-                </button>
-              </div>
-            ) : (
-              <p className="text-[11px] font-mono text-[var(--text-muted)]">{t('household_app.settings.no_transfer_candidates')}</p>
-            )}
-          </form>
-        )}
+        {permissions.canTransferOwnership && <TransferOwnershipCard household={household} onStatus={setStatus} />}
 
         <div className={cardClass}>
           <div className="text-xs font-bold text-[var(--text-main)]">{t('household_app.settings.leave_title')}</div>
@@ -214,7 +159,7 @@ export function HouseholdSettingsPanel({ household, permissions, isDefault, onRe
         <div className="p-4 rounded-xl border border-red-500/30 bg-red-950/20 space-y-2">
           <div className="text-xs font-mono uppercase tracking-wide text-red-300">{t('household_app.settings.danger_zone')}</div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <div className="text-xs font-bold text-[var(--text-main)]">{t('household_app.settings.delete_title')}</div>
               <p className="text-[11px] text-[var(--text-muted)]">{t('household_app.settings.delete_desc')}</p>
             </div>

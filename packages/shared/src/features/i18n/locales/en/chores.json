@@ -109,6 +109,15 @@
     "timeline": "Completion History",
     "timelineTitle": "Completion History Audit",
     "noHistory": "No completion history yet",
-    "noHistorySub": "Complete this chore on the dashboard to record your first timeline log."
+    "noHistorySub": "Complete this chore on the dashboard to record your first timeline log.",
+    "choreCompleted": "Chore completed",
+    "completeChore": "Complete chore",
+    "loadFailed": "Failed to load chore dashboard data or service integrations.",
+    "boardLoadFailed": "Failed to load chore templates board.",
+    "timelineLoadFailed": "Failed to load task timeline history.",
+    "unknownChore": "Unknown chore",
+    "pendingCount": "{count} pending",
+    "unavailable": "UNAVAILABLE",
+    "actionFailed": "The action could not be completed. Please try again."
   }
 }

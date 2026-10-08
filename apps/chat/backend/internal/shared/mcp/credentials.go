@@ -15,11 +15,14 @@ type CallerCredentials struct {
 	AccessToken string
 	// HouseholdID is the verified household UUID, sent as X-Household-ID.
 	HouseholdID string
+	// UserID is the caller's OIDC subject. It is never sent to the MCP server; the
+	// ClientPool uses it to keep MCP sessions apart per user.
+	UserID string
 }
 
 // String redacts the token so credentials can never leak through %v logging.
 func (c CallerCredentials) String() string {
-	return "CallerCredentials{HouseholdID:" + c.HouseholdID + ", AccessToken:[redacted]}"
+	return "CallerCredentials{HouseholdID:" + c.HouseholdID + ", UserID:" + c.UserID + ", AccessToken:[redacted]}"
 }
 
 type credentialsKey struct{}

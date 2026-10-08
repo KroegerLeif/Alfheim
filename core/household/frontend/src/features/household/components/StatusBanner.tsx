@@ -16,7 +16,7 @@ export function StatusBanner({ kind, children }: StatusBannerProps) {
   return (
     <div
       role={kind === 'error' ? 'alert' : 'status'}
-      className={`p-3.5 rounded-xl text-xs font-mono border ${STYLES[kind]}`}
+      className={`p-3.5 rounded-xl text-xs font-mono border wrap-anywhere ${STYLES[kind]}`}
     >
       {children}
     </div>

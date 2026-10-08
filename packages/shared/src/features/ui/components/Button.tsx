@@ -39,13 +39,22 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+/**
+ * Shared button primitive.
+ *
+ * Renders `type="button"` unless the caller passes a `type`, so a button
+ * inside a `<form>` never submits it by accident; submit buttons must pass
+ * `type="submit"` explicitly. With `asChild` the child element is rendered
+ * as is and no default `type` is added.
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, type, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        type={asChild ? type : (type ?? "button")}
         {...props}
       />
     );

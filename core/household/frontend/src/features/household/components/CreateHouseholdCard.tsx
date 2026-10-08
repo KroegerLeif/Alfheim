@@ -46,7 +46,7 @@ export function CreateHouseholdCard({ title, description, onCreated }: CreateHou
       <div>
         <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--text-main)] mb-1">
           <span className="material-symbols-outlined text-[var(--primary-main)]" aria-hidden="true">add_home</span>
-          <span>{title}</span>
+          <span className="min-w-0 wrap-anywhere">{title}</span>
         </h2>
         <p className="text-xs text-[var(--text-muted)] leading-relaxed font-sans">{description}</p>
       </div>

@@ -6,3 +6,5 @@ export * from "./components/PlanExerciseRow";
 export * from "./components/PlanDayBuilder";
 export * from "./components/PlanEditor";
 export * from "./components/PlanListView";
+export * from "./components/PlanDetailView";
+export * from "./utils";

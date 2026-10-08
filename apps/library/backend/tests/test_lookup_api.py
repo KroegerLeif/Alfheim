@@ -233,6 +233,7 @@ async def test_lookup_tmdb_success_and_missing_key(client: AsyncClient, test_app
     with patch.object(settings, "TMDB_API_KEY", None):
         res_nokey = await client.get("/api/v1/library/lookup/tmdb?query=Inception")
         assert res_nokey.status_code == 502
+        assert res_nokey.json()["detail"]["code"] == "lookup_not_configured"
 
     # Test with TMDB_API_KEY
     tmdb_data = {

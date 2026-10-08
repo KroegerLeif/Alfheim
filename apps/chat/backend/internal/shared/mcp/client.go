@@ -52,6 +52,12 @@ var ErrAuthRequired = errors.New("mcp server requires authentication")
 // error (e.g. a wrong CHAT_MCP_SERVERS path) rather than an outage.
 var ErrEndpointNotFound = errors.New("mcp endpoint not found: check the endpoint URL path in CHAT_MCP_SERVERS (expected http://<app>-backend:8000/mcp)")
 
+// errSessionExpired means the server answered 404 to a request that carried an
+// Mcp-Session-Id: per the MCP Streamable HTTP spec the session is gone (server
+// restart, eviction, or termination) and the client must start a new one. The
+// session state has already been reset when this error is returned.
+var errSessionExpired = errors.New("mcp session expired")
+
 // DiagnosticResult captures reachability, latency, and registered tools for an MCP endpoint.
 type DiagnosticResult struct {
 	Reachable bool `json:"reachable"`
@@ -109,8 +115,17 @@ func (c *Client) Ping(ctx context.Context) DiagnosticResult {
 
 // ListTools returns the MCP server's available tools, performing the initialize
 // handshake on first use and caching the result for toolsCacheTTL to avoid
-// re-querying on every single chat turn.
+// re-querying on every single chat turn. If the server reports the session as
+// expired, the client re-initializes and retries once.
 func (c *Client) ListTools(ctx context.Context) ([]Tool, error) {
+	tools, err := c.listTools(ctx)
+	if errors.Is(err, errSessionExpired) {
+		return c.listTools(ctx)
+	}
+	return tools, err
+}
+
+func (c *Client) listTools(ctx context.Context) ([]Tool, error) {
 	c.mu.Lock()
 	if c.initialized && time.Since(c.cachedToolsAt) < toolsCacheTTL {
 		tools := c.cachedTools
@@ -145,7 +160,17 @@ func (c *Client) ListTools(ctx context.Context) ([]Tool, error) {
 // every text content block in the response), along with whether the server flagged
 // the result as an error (isError) — which is fed back to the model as-is, not
 // treated as a Go error, since a tool error is a normal, recoverable model input.
+// If the server reports the session as expired, the client re-initializes and
+// retries once.
 func (c *Client) CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
+	text, isError, err := c.callTool(ctx, toolName, arguments)
+	if errors.Is(err, errSessionExpired) {
+		return c.callTool(ctx, toolName, arguments)
+	}
+	return text, isError, err
+}
+
+func (c *Client) callTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
 	if err := c.ensureInitialized(ctx); err != nil {
 		return "", false, err
 	}
@@ -208,6 +233,22 @@ func (c *Client) ensureInitialized(ctx context.Context) error {
 	c.initialized = true
 	c.mu.Unlock()
 	return nil
+}
+
+// resetSession drops the session state so the next call performs a fresh
+// initialize handshake. It only resets if expiredID is still the current session,
+// so a concurrent caller that already re-initialized is not thrown away again.
+func (c *Client) resetSession(expiredID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.sessionID != expiredID {
+		return
+	}
+	c.sessionID = ""
+	c.negotiatedVer = ""
+	c.initialized = false
+	c.cachedTools = nil
+	c.cachedToolsAt = time.Time{}
 }
 
 // call sends a JSON-RPC request and returns its response message.
@@ -291,6 +332,10 @@ func (c *Client) send(ctx context.Context, id *int64, method string, params any)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 2048))
+		if sessionID != "" {
+			c.resetSession(sessionID)
+			return nil, fmt.Errorf("%w: status 404 for %q at %s", errSessionExpired, method, c.endpointURL)
+		}
 		return nil, fmt.Errorf("%w: status 404 for %q at %s", ErrEndpointNotFound, method, c.endpointURL)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

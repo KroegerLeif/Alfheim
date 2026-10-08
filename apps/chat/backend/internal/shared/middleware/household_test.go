@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -222,3 +223,18 @@ func TestGetHousehold_Missing(t *testing.T) {
 }
 
 func ptr(s string) *string { return &s }
+
+func TestWriteHouseholdError_UsesSharedErrorBody(t *testing.T) {
+	rec := httptest.NewRecorder()
+	WriteHouseholdError(rec, http.StatusForbidden, CodeHouseholdRoleForbidden, "owners only")
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("expected application/json, got %q", ct)
+	}
+	if body := strings.TrimSpace(rec.Body.String()); body != `{"detail":{"code":"household_role_forbidden","message":"owners only"}}` {
+		t.Errorf("unexpected body %s", body)
+	}
+}

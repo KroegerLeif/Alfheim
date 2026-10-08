@@ -99,3 +99,7 @@ export function getAlfiDataUri(state: AlfiState = 'idle'): string {
 export function getAppIconPath(appSlug: AppSlug = 'dashboard'): string {
   return APP_ICONS[appSlug] || APP_ICONS.dashboard;
 }
+
+export { AlfheimMark } from './brand/AlfheimMark';
+export type { AlfheimMarkProps } from './brand/AlfheimMark';
+export { APP_GLYPH_ICONS } from './appGlyphs';

@@ -31,6 +31,15 @@ pnpm dev
 
 ---
 
+## 🔌 Behaviour Notes
+
+- The ledger endpoint (`GET /api/v1/inventory/transactions`) filters by product, location, transaction type and `date_from`/`date_to` and pages with `limit`/`offset`; the ledger page and the consumption chart use it.
+- Deleting a category, location or product that is still referenced answers `409` with `{"detail": {"code", "message", "item_count"}}` (`category_in_use`, `location_in_use`, `product_in_use`).
+- The frontend edits and deletes custom products, locations and categories; global templates and the system location are read-only. The low-stock export reports failed items and retries only those.
+- Open: the product nutrition UI (#540) is not built yet.
+
+---
+
 ## 🧪 Testing & Quality Gates
 
 ```bash

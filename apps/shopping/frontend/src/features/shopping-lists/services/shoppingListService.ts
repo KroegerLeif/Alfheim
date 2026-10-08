@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActiveHousehold, type Household as SharedHousehold } from "@alfheim/shared";
 import { shoppingClient } from "@/lib/api";
+import { useErrorNotifier } from "@/lib/useErrorNotifier";
 import { z } from "zod";
 import { ShoppingListSchema } from "../schemas";
 import { ShoppingList, ShoppingListCreatePayload } from "../types";
@@ -9,6 +10,7 @@ export {
   useAddShoppingItem,
   useUpdateShoppingItem,
   useDeleteShoppingItem,
+  isPendingItem,
 } from "./shoppingItemService";
 
 export {
@@ -64,6 +66,7 @@ export function useShoppingListDetails(listId: string) {
  */
 export function useCreateShoppingList() {
   const queryClient = useQueryClient();
+  const notifyError = useErrorNotifier();
   return useMutation<ShoppingList, Error, ShoppingListCreatePayload>({
     mutationFn: (payload) =>
       shoppingClient
@@ -73,6 +76,7 @@ export function useCreateShoppingList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.lists() });
     },
+    onError: (err) => notifyError(err, "listCreateFailed"),
   });
 }
 
@@ -81,6 +85,7 @@ export function useCreateShoppingList() {
  */
 export function useDeleteShoppingList() {
   const queryClient = useQueryClient();
+  const notifyError = useErrorNotifier();
   return useMutation<void, Error, string>({
     mutationFn: (listId) =>
       shoppingClient
@@ -89,6 +94,7 @@ export function useDeleteShoppingList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.lists() });
     },
+    onError: (err) => notifyError(err, "listDeleteFailed"),
   });
 }
 
@@ -97,6 +103,7 @@ export function useDeleteShoppingList() {
  */
 export function useReorderShoppingLists() {
   const queryClient = useQueryClient();
+  const notifyError = useErrorNotifier();
   return useMutation<void, Error, string[]>({
     mutationFn: (listIds) =>
       shoppingClient
@@ -105,6 +112,7 @@ export function useReorderShoppingLists() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.lists() });
     },
+    onError: (err) => notifyError(err, "listReorderFailed"),
   });
 }
 

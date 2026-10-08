@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { axe } from 'vitest-axe'
 import { renderWithProviders, createTestQueryClient } from '../../../../tests/test-utils'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { StaticHouseholdProvider } from '@alfheim/shared'
+import { LanguageProvider, StaticHouseholdProvider } from '@alfheim/shared'
 import { render } from '@testing-library/react'
 import { DashboardView } from '../DashboardView'
 import { choreKeys } from '../../services/choresService'
@@ -28,12 +28,12 @@ describe('DashboardView Component', () => {
     renderWithProviders(<DashboardView />)
 
     // Verify main header and subtitle
-    expect(screen.getByText('dashboardTitle')).toBeInTheDocument()
-    expect(screen.getByText('dashboardSubtitle')).toBeInTheDocument()
+    expect(screen.getByText('Chore Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Complete daily tasks to maintain streaks and reward points')).toBeInTheDocument()
 
     // Verify cross-app integration panels
-    expect(screen.getByText('shoppingSync')).toBeInTheDocument()
-    expect(screen.getByText('deviceMaintenance')).toBeInTheDocument()
+    expect(screen.getByText('Shopping Sync')).toBeInTheDocument()
+    expect(screen.getByText('Device Maintenance')).toBeInTheDocument()
 
     // Wait for MSW mock data to populate and verify rendered chore task
     await waitFor(() => {
@@ -55,7 +55,9 @@ describe('DashboardView Component', () => {
     render(
       <StaticHouseholdProvider householdId="hh-1">
         <QueryClientProvider client={queryClient}>
-          <DashboardView />
+          <LanguageProvider defaultLanguage="en">
+            <DashboardView />
+          </LanguageProvider>
         </QueryClientProvider>
       </StaticHouseholdProvider>
     )
@@ -63,9 +65,9 @@ describe('DashboardView Component', () => {
     // Verify populated chore items and metrics
     expect(screen.getByText('Vacuum Living Room')).toBeInTheDocument()
     expect(screen.getByText('Clean the carpet and rug')).toBeInTheDocument()
-    expect(screen.getByText('shoppingPendingBadge')).toBeInTheDocument()
-    expect(screen.getByText('maintenanceDueBadge')).toBeInTheDocument()
-    expect(screen.getByText('householdStreak')).toBeInTheDocument()
+    expect(screen.getByText('3 OPEN')).toBeInTheDocument()
+    expect(screen.getByText('! 2 DUE')).toBeInTheDocument()
+    expect(screen.getByText('Household Streak')).toBeInTheDocument()
   })
 
   it('allows toggling date filters between today and tomorrow', async () => {

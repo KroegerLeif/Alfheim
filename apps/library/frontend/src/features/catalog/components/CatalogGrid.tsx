@@ -1,4 +1,5 @@
 import React from "react";
+import { BookOpen, TriangleAlert } from "lucide-react";
 import { useTranslation } from "@alfheim/shared";
 import { MediaItem } from "../types";
 import { ItemCard } from "./ItemCard";
@@ -23,14 +24,14 @@ export function CatalogGrid({
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-red-500/20 bg-red-500/5 p-12 text-center my-6">
-        <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-xl mb-3 text-red-400">
-          ⚠️
+        <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center mb-3 text-red-400">
+          <TriangleAlert className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="text-base font-bold text-[var(--text-main)]">
-          Failed to load catalog
+          {t("library.catalog.errorLoadingTitle")}
         </h3>
         <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1">
-          {t("library.catalog.errorLoading") || "An error occurred while loading your library items. Please try again."}
+          {t("library.catalog.errorLoading")}
         </p>
       </div>
     );
@@ -59,8 +60,8 @@ export function CatalogGrid({
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-subtle)] p-12 text-center my-6">
-        <div className="h-12 w-12 rounded-full bg-[var(--surface-card)] flex items-center justify-center text-xl mb-3">
-          📚
+        <div className="h-12 w-12 rounded-full bg-[var(--surface-card)] flex items-center justify-center mb-3 text-[var(--text-muted)]">
+          <BookOpen className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="text-base font-bold text-[var(--text-main)]">
           {t("library.catalog.noItemsFound")}

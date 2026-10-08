@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { Paperclip, SendHorizontal, X } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { AttachmentSummary, StagedAttachment } from './types';
 
@@ -49,7 +50,7 @@ export function ChatWidgetInput({
         setStaged((prev) =>
           prev.map((s) =>
             s.id === item.id
-              ? { ...s, isUploading: false, error: err instanceof Error ? err.message : 'Error' }
+              ? { ...s, isUploading: false, error: err instanceof Error ? err.message : t('Chat.uploadError') }
               : s
           )
         );
@@ -97,7 +98,11 @@ export function ChatWidgetInput({
               {item.isUploading && (
                 <span className="w-3 h-3 border-2 border-[var(--primary-main)] border-t-transparent rounded-full animate-spin shrink-0" />
               )}
-              {item.error && <span className="text-red-400 text-[10px]">!</span>}
+              {item.error && (
+                <span className="text-red-400 text-[10px]" title={item.error} role="img" aria-label={t('Chat.uploadError')}>
+                  !
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => handleRemove(item.id)}
@@ -105,7 +110,7 @@ export function ChatWidgetInput({
                 aria-label={t('Chat.removeAttachment')}
                 className="ml-1 text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs cursor-pointer"
               >
-                ✕
+                <X aria-hidden="true" className="h-3 w-3" />
               </button>
             </div>
           ))}
@@ -132,9 +137,7 @@ export function ChatWidgetInput({
           title={t('Chat.attachImage')}
           className="p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors disabled:opacity-40 cursor-pointer"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-          </svg>
+          <Paperclip aria-hidden="true" className="w-4 h-4" />
         </button>
 
         <input
@@ -160,10 +163,7 @@ export function ChatWidgetInput({
           title={t('Chat.send')}
           className="p-2 rounded-lg bg-[var(--primary-main)] text-black font-semibold disabled:opacity-40 hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center shrink-0"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" />
-          </svg>
+          <SendHorizontal aria-hidden="true" className="w-4 h-4" />
         </button>
       </div>
     </div>

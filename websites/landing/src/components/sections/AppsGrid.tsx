@@ -23,12 +23,9 @@ export const AppsGrid: React.FC = () => {
       icon: Package,
       color: 'from-amber-500/20 to-orange-500/10 text-amber-400 border-amber-500/30',
       tagColor: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
-      name: t('docs.modules.pantry.name', 'Digital Pantry'),
-      tagline: t('docs.modules.pantry.tagline', 'Inventory & Stock Lifecycle'),
-      description: t(
-        'docs.modules.pantry.description',
-        'Live stock tracking, barcode lookup via OpenFoodFacts, storage location management, and an immutable inventory transaction ledger.'
-      ),
+      name: t('docs.modules.pantry.name'),
+      tagline: t('docs.modules.pantry.tagline'),
+      description: t('docs.modules.pantry.description'),
       tech: 'FastAPI + Next.js',
       db: 'PostgreSQL (pantry-db)',
       route: '/pantry',
@@ -39,12 +36,9 @@ export const AppsGrid: React.FC = () => {
       icon: ShoppingCart,
       color: 'from-emerald-500/20 to-teal-500/10 text-emerald-400 border-emerald-500/30',
       tagColor: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
-      name: t('docs.modules.shopping.name', 'Shopping Lists'),
-      tagline: t('docs.modules.shopping.tagline', 'Collaborative Realtime Lists'),
-      description: t(
-        'docs.modules.shopping.description',
-        'Multi-tenant household and personal shopping lists with auto-sync from pantry deficits and category sorting.'
-      ),
+      name: t('docs.modules.shopping.name'),
+      tagline: t('docs.modules.shopping.tagline'),
+      description: t('docs.modules.shopping.description'),
       tech: 'FastAPI + Next.js',
       db: 'PostgreSQL (shopping-db)',
       route: '/shopping',
@@ -55,12 +49,9 @@ export const AppsGrid: React.FC = () => {
       icon: Wrench,
       color: 'from-blue-500/20 to-indigo-500/10 text-blue-400 border-blue-500/30',
       tagColor: 'bg-blue-500/10 text-blue-300 border-blue-500/30',
-      name: t('docs.modules.maintenance.name', 'Home Maintenance'),
-      tagline: t('docs.modules.maintenance.tagline', 'Asset & Task Lifecycle'),
-      description: t(
-        'docs.modules.maintenance.description',
-        'Preventative maintenance scheduling, warranty storage in RustFS S3, recurring alerts, and household equipment tracking.'
-      ),
+      name: t('docs.modules.maintenance.name'),
+      tagline: t('docs.modules.maintenance.tagline'),
+      description: t('docs.modules.maintenance.description'),
       tech: 'FastAPI + Next.js',
       db: 'PostgreSQL (maintenance-db)',
       route: '/maintenance',
@@ -71,12 +62,9 @@ export const AppsGrid: React.FC = () => {
       icon: CheckSquare,
       color: 'from-purple-500/20 to-pink-500/10 text-purple-400 border-purple-500/30',
       tagColor: 'bg-purple-500/10 text-purple-300 border-purple-500/30',
-      name: t('docs.modules.chores.name', 'Household Chores'),
-      tagline: t('docs.modules.chores.tagline', 'Gamified Habit Tracker'),
-      description: t(
-        'docs.modules.chores.description',
-        'Recurring chore rotation, streak rewards, points system, and fair household member workload distribution.'
-      ),
+      name: t('docs.modules.chores.name'),
+      tagline: t('docs.modules.chores.tagline'),
+      description: t('docs.modules.chores.description'),
       tech: 'FastAPI + Next.js',
       db: 'PostgreSQL (chores-db)',
       route: '/chores',
@@ -87,12 +75,9 @@ export const AppsGrid: React.FC = () => {
       icon: Wallet,
       color: 'from-teal-500/20 to-emerald-500/10 text-teal-400 border-teal-500/30',
       tagColor: 'bg-teal-500/10 text-teal-300 border-teal-500/30',
-      name: t('docs.modules.budget.name', 'Budget & Treasury'),
-      tagline: t('docs.modules.budget.tagline', 'Accounts & Financial Planning'),
-      description: t(
-        'docs.modules.budget.description',
-        'Household financial accounts, sinking funds, virtual savings pots, monthly/event budget plans, and expense transaction ledgers.'
-      ),
+      name: t('docs.modules.budget.name'),
+      tagline: t('docs.modules.budget.tagline'),
+      description: t('docs.modules.budget.description'),
       tech: 'FastAPI + Next.js',
       db: 'PostgreSQL (budget-db)',
       route: '/budget',
@@ -103,12 +88,9 @@ export const AppsGrid: React.FC = () => {
       icon: BookOpen,
       color: 'from-violet-500/20 to-purple-500/10 text-violet-400 border-violet-500/30',
       tagColor: 'bg-violet-500/10 text-violet-300 border-violet-500/30',
-      name: t('docs.modules.library.name', 'Media & Library Hub'),
-      tagline: t('docs.modules.library.tagline', 'Book & Media Collection'),
-      description: t(
-        'docs.modules.library.description',
-        'Personal book library cataloging, reading progress tracking, item borrowing management, and metadata integration.'
-      ),
+      name: t('docs.modules.library.name'),
+      tagline: t('docs.modules.library.tagline'),
+      description: t('docs.modules.library.description'),
       tech: 'FastAPI + Next.js',
       db: 'PostgreSQL (library-db)',
       route: '/library',
@@ -119,12 +101,9 @@ export const AppsGrid: React.FC = () => {
       icon: Dumbbell,
       color: 'from-rose-500/20 to-red-500/10 text-rose-400 border-rose-500/30',
       tagColor: 'bg-rose-500/10 text-rose-300 border-rose-500/30',
-      name: t('docs.modules.workout.name', 'Workout Tracker'),
-      tagline: t('docs.modules.workout.tagline', 'Fitness & Strength Telemetry'),
-      description: t(
-        'docs.modules.workout.description',
-        'Custom exercise routine creation, set and rep logging, personal records tracking, and physical progression analytics.'
-      ),
+      name: t('docs.modules.workout.name'),
+      tagline: t('docs.modules.workout.tagline'),
+      description: t('docs.modules.workout.description'),
       tech: 'FastAPI + Next.js',
       db: 'PostgreSQL (workout-db)',
       route: '/workout',
@@ -135,12 +114,9 @@ export const AppsGrid: React.FC = () => {
       icon: MessageSquare,
       color: 'from-cyan-500/20 to-blue-500/10 text-cyan-400 border-cyan-500/30',
       tagColor: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
-      name: t('docs.modules.chat.name', 'ALFI Chat'),
-      tagline: t('docs.modules.chat.tagline', 'Conversational AI & MCP Interface'),
-      description: t(
-        'docs.modules.chat.description',
-        'Multi-modal AI assistant interface powering ALFI, integrating MCP tool executions, real-time context streaming, and prompt orchestration.'
-      ),
+      name: t('docs.modules.chat.name'),
+      tagline: t('docs.modules.chat.tagline'),
+      description: t('docs.modules.chat.description'),
       tech: 'Go 1.23 + Next.js',
       db: 'PostgreSQL (chat-db)',
       route: '/chat',
@@ -151,12 +127,9 @@ export const AppsGrid: React.FC = () => {
       icon: LayoutDashboard,
       color: 'from-sky-500/20 to-indigo-500/10 text-sky-400 border-sky-500/30',
       tagColor: 'bg-sky-500/10 text-sky-300 border-sky-500/30',
-      name: t('docs.modules.dashboard.name', 'Control Plane'),
-      tagline: t('docs.modules.dashboard.tagline', 'Central Management & Ingress'),
-      description: t(
-        'docs.modules.dashboard.description',
-        'Unified OIDC authentication brokering, live telemetry streaming, catalog management, and Caddy reverse proxy routing.'
-      ),
+      name: t('docs.modules.dashboard.name'),
+      tagline: t('docs.modules.dashboard.tagline'),
+      description: t('docs.modules.dashboard.description'),
       tech: 'Go 1.23 + Next.js',
       db: 'PostgreSQL (dashboard-db)',
       route: '/',
@@ -169,16 +142,13 @@ export const AppsGrid: React.FC = () => {
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto mb-12">
         <span className="text-xs font-mono uppercase px-3 py-1 rounded-full bg-[#111b33] border border-[#1c2847] text-[#3eb1ff]">
-          {t('docs.modules.badge', 'Microservices')}
+          {t('docs.modules.badge')}
         </span>
         <h2 className="text-3xl sm:text-4xl font-bold text-[#f0f6fc] mt-3">
-          {t('docs.modules.title', 'Integrated Platform Modules')}
+          {t('docs.modules.title')}
         </h2>
         <p className="text-[#8b949e] mt-3 text-base">
-          {t(
-            'docs.modules.subtitle',
-            'Containerized microservices built with Python FastAPI, Go, and Next.js isolated across dedicated Docker bridge networks.'
-          )}
+          {t('docs.modules.subtitle')}
         </p>
       </div>
 
@@ -216,14 +186,14 @@ export const AppsGrid: React.FC = () => {
                 <div className="flex items-center justify-between text-xs font-mono text-[#8b949e]">
                   <span className="flex items-center gap-1.5">
                     <Database className="w-3.5 h-3.5 text-[#3eb1ff]" />
-                    {t('docs.modules.storage_label', 'Storage')}
+                    {t('docs.modules.storage_label')}
                   </span>
                   <span className="text-[#f0f6fc]">{app.db}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-mono text-[#8b949e]">
                   <span className="flex items-center gap-1.5">
                     <Globe2 className="w-3.5 h-3.5 text-[#3eb1ff]" />
-                    {t('docs.modules.basepath_label', 'Frontend BasePath')}
+                    {t('docs.modules.basepath_label')}
                   </span>
                   <span className="text-[#3eb1ff] bg-[#0b1326] px-1.5 py-0.5 rounded border border-[#1c2847]">
                     {app.route}

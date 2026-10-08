@@ -2,8 +2,10 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import col, or_, select
+from sqlmodel import col, func, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.core.errors import CODE_PRODUCT_IN_USE, ResourceInUseError
+from src.features.inventory.models import InventoryLedger, InventoryState
 from src.features.products.models import Product, ProductNutrition
 from src.features.products.schemas import (
     ProductCreate,
@@ -103,6 +105,7 @@ class ProductCrudService:
             category_id=payload.category_id,
             image_url=payload.image_url,
             base_unit=payload.base_unit,
+            minimum_stock=payload.minimum_stock,
             is_global=is_global,
             home_id=None if is_global else home_id,
         )
@@ -264,7 +267,12 @@ class ProductCrudService:
         product_id: uuid.UUID | str,
         home_id: uuid.UUID,
     ) -> bool:
-        """Delete an existing product. Global products cannot be deleted."""
+        """Delete an existing product.
+
+        Global products cannot be deleted. A product that still has stock lines or appears in the
+        immutable transaction ledger cannot be deleted either (``ResourceInUseError`` with the number
+        of referencing records).
+        """
         prod_uuid = uuid.UUID(product_id) if isinstance(product_id, str) else product_id
         product = await ProductCrudService.get_product(session, prod_uuid, home_id)
         if not product:
@@ -272,6 +280,25 @@ class ProductCrudService:
 
         if product.is_global:
             raise ValueError("Global products cannot be deleted.")
+
+        state_count = (
+            await session.exec(
+                select(func.count()).select_from(InventoryState).where(col(InventoryState.product_id) == product.id)
+            )
+        ).one()
+        ledger_count = (
+            await session.exec(
+                select(func.count()).select_from(InventoryLedger).where(col(InventoryLedger.product_id) == product.id)
+            )
+        ).one()
+        record_count = state_count + ledger_count
+        if record_count:
+            raise ResourceInUseError(
+                CODE_PRODUCT_IN_USE,
+                f"Product '{product.name}' still has {state_count} stock line(s) and "
+                f"{ledger_count} transaction record(s).",
+                record_count,
+            )
 
         await session.delete(product)
         try:

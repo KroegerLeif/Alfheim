@@ -12,6 +12,7 @@ import {
   useTranslation,
 } from "@alfheim/shared";
 import { Loader2, Plus } from "lucide-react";
+import { describeError } from "@/core/errors";
 import { useCreateExercise } from "../hooks/useExercises";
 import type { ExerciseScope, MuscleGroup } from "../types";
 import { MUSCLE_GROUP_LABEL_KEYS } from "../types";
@@ -64,7 +65,7 @@ export function ExerciseCreateForm({ onSuccess, onCancel }: ExerciseCreateFormPr
           setInstructions("");
           onSuccess();
         },
-        onError: (error) => setErrorMessage(error.message || t("workout.saveFailed")),
+        onError: (error) => setErrorMessage(describeError(error, t, "workout.saveFailed")),
       }
     );
   };

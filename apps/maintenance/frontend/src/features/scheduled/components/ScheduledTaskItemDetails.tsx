@@ -2,18 +2,15 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Device, MaintenanceStep } from "@/shared/types";
-import { formatDate } from "@/core/utils";
-import { FileText, Camera, Save, Loader2 } from "lucide-react";
+import { MaintenanceStep } from "@/shared/types";
+import { useFormatDate } from "@/core/useFormatDate";
+import { FileText, Save, Loader2 } from "lucide-react";
 import { cn } from "@/core/utils";
 
 interface ScheduledTaskItemDetailsProps {
   step: MaintenanceStep;
-  device: Device;
   comment: string;
   setComment: (c: string) => void;
-  photo: string | null;
-  handlePhotoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSaveComment: () => void;
   isPending: boolean;
   isError: boolean;
@@ -22,24 +19,22 @@ interface ScheduledTaskItemDetailsProps {
 
 export function ScheduledTaskItemDetails({
   step,
-  device,
   comment,
   setComment,
-  photo,
-  handlePhotoChange,
   handleSaveComment,
   isPending,
   isError,
   savedFlash,
 }: ScheduledTaskItemDetailsProps) {
   const t = useTranslations("maintenance");
+  const formatDate = useFormatDate();
 
   return (
     <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--surface-canvas)]/80 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
       <div className="grid grid-cols-2 gap-4 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
         <div className="space-y-0.5">
           <span>{t("deviceInventory.fields.nextDue")}</span>
-          <span className="block text-[var(--text-main)] font-mono">{formatDate(step.supply_needed_date || undefined)}</span>
+          <span className="block text-[var(--text-main)] font-mono">{formatDate(step.supply_needed_date)}</span>
         </div>
         <div className="space-y-0.5">
           <span>{t("wizard.interval")}</span>
@@ -49,18 +44,22 @@ export function ScheduledTaskItemDetails({
 
       {/* Step procedure description */}
       {step.description && !comment && (
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed break-words whitespace-pre-line">
           <strong>{t("scheduledTasks.procedureLabel")}</strong> {step.description}
         </p>
       )}
 
       {/* Comment textarea + Save button */}
       <div className="space-y-1.5">
-        <label className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1">
+        <label
+          htmlFor={`step-comment-${step.id}`}
+          className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1"
+        >
           <FileText className="h-3.5 w-3.5" />
           <span>{t("scheduledTasks.commentLabel")}</span>
         </label>
         <textarea
+          id={`step-comment-${step.id}`}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder={t("scheduledTasks.commentPlaceholder")}
@@ -68,7 +67,7 @@ export function ScheduledTaskItemDetails({
         />
         <div className="flex items-center justify-between">
           {isError && (
-            <p className="text-[9px] text-red-500 font-mono">{t("scheduledTasks.saveFailed")}</p>
+            <p role="alert" className="text-[9px] text-red-500 font-mono">{t("scheduledTasks.saveFailed")}</p>
           )}
           {!isError && <span />}
           <button
@@ -91,28 +90,6 @@ export function ScheduledTaskItemDetails({
             )}
             {savedFlash ? t("wizard.saved") : t("scheduledTasks.saveComment")}
           </button>
-        </div>
-      </div>
-
-      {/* Photo attach stub */}
-      <div className="space-y-1.5">
-        <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1">
-          <Camera className="h-3.5 w-3.5" />
-          <span>{t("scheduledTasks.referencePhoto")}</span>
-        </span>
-        <div className="flex items-center gap-3">
-          <label className="px-4 py-2 bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] rounded-xl text-xs font-bold uppercase tracking-wider text-[var(--text-main)] transition-all cursor-pointer flex items-center gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="hidden"
-            />
-            {t("scheduledTasks.chooseFile")}
-          </label>
-          <span className="text-xs text-[var(--text-muted)] font-mono truncate">
-            {photo ?? t("scheduledTasks.noFileChosen")}
-          </span>
         </div>
       </div>
     </div>

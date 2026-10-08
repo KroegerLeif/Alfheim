@@ -10,6 +10,7 @@ import {
   WidgetMessage,
 } from './types';
 import { getResolvedToken, readSSEStream, sanitizeApiUrl } from './sseClient';
+import { useTranslation } from '../../i18n/utils/useTranslation';
 
 export interface UseChatStreamOptions {
   authToken?: string;
@@ -25,6 +26,7 @@ export function useChatStream({
   context,
   isOpen,
 }: UseChatStreamOptions) {
+  const { t } = useTranslation();
   const baseUrl = sanitizeApiUrl(apiBaseUrl);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -160,7 +162,7 @@ export function useChatStream({
         controller.signal
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error sending message');
+      setError(err instanceof Error ? err.message : t('Chat.sendError'));
       setStatus('idle');
     }
   };

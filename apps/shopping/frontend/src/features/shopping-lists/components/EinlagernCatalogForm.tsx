@@ -23,12 +23,17 @@ export function EinlagernCatalogForm({
 
   return (
     <div className="mt-3 pt-2.5 border-t border-border/10 flex flex-col gap-2 select-none">
-      <label className="font-mono text-[8px] font-bold text-blue-500 uppercase tracking-widest leading-none">
+      <label
+        htmlFor="einlagern-catalog-name"
+        className="font-mono text-[8px] font-bold text-blue-500 uppercase tracking-widest leading-none"
+      >
         {t("catalogBlueprintName")}
       </label>
       <div className="flex gap-2">
         <input
+          id="einlagern-catalog-name"
           value={catalogInput}
+          maxLength={255}
           onChange={(e) => setCatalogInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && confirmSave()}
           autoFocus
@@ -36,6 +41,7 @@ export function EinlagernCatalogForm({
           className="flex-1 h-8 px-3 rounded-lg bg-white/5 border border-border/30 outline-none font-heading text-xs font-semibold tracking-wide text-foreground min-w-0"
         />
         <button
+          type="button"
           onClick={confirmSave}
           disabled={isCreateProductPending || !catalogInput.trim()}
           className="h-8 px-3 rounded-lg flex items-center justify-center font-heading text-xs font-black uppercase tracking-wider text-white bg-gradient-to-br from-blue-400 to-blue-800 disabled:opacity-40 shrink-0 border border-blue-900 shadow-sm cursor-pointer"
@@ -43,6 +49,7 @@ export function EinlagernCatalogForm({
           {isCreateProductPending ? "..." : t("saveBtn")}
         </button>
         <button
+          type="button"
           onClick={onCancel}
           className="h-8 px-3 rounded-lg flex items-center justify-center font-heading text-xs font-black uppercase tracking-wider text-white bg-red-600 shrink-0 shadow-sm cursor-pointer"
           title={t("cancelSave")}

@@ -46,11 +46,11 @@ export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionP
             </div>
           ))
         ) : isError ? (
-          <div className="col-span-3 p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
+          <div className="col-span-full p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
             {t('dashboard.tier2_load_error')}
           </div>
         ) : !apps || apps.length === 0 ? (
-          <div className="col-span-3 p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
+          <div className="col-span-full p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
             <span className="material-symbols-outlined text-3xl text-[var(--text-muted)]">dns</span>
             <p className="text-xs font-mono text-[var(--text-muted)]">
               {t('dashboard.tier2_empty')}
@@ -67,10 +67,10 @@ export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionP
             return (
               <div
                 key={app.id}
-                className="p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/60 transition-all duration-200 flex flex-col justify-between group shadow-lg"
+                className="p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/60 transition-all duration-200 flex flex-col justify-between group shadow-lg min-w-0"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-main)]">
                       <span className="material-symbols-outlined text-xl">
                         {app.icon || app.icon_url || 'open_in_new'}
@@ -79,10 +79,10 @@ export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionP
                     <StatusBadge status={app.status || 'active'} />
                   </div>
 
-                  <h3 className="text-base font-bold text-[var(--text-main)]">
+                  <h3 className="text-base font-bold text-[var(--text-main)] truncate" title={app.title || app.name}>
                     {app.title || app.name}
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed break-words">
                     {app.description}
                   </p>
                 </div>

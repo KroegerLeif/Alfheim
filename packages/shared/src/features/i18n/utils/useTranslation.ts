@@ -2,6 +2,7 @@
 
 import { useContext } from 'react';
 import { LanguageContext } from './LanguageContext';
+import { interpolate } from './interpolate';
 import { messages } from './locales';
 import { Dictionary, Language, TranslationParams } from './types';
 
@@ -36,14 +37,7 @@ export function useTranslation() {
       value = key;
     }
 
-    // Interpolate parameters if provided
-    if (params) {
-      Object.entries(params).forEach(([paramKey, paramVal]) => {
-        value = value!.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramVal));
-      });
-    }
-
-    return value;
+    return interpolate(value, params);
   };
 
   return {

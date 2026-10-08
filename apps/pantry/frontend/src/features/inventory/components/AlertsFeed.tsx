@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@alfheim/shared";
+import { formatDate } from "@/core/format";
 import { Badge } from "@alfheim/shared";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
 
@@ -16,7 +17,7 @@ interface AlertsFeedProps {
  * Renders the urgent expiration log feed sorted by severity (expired > expiring soon).
  */
 export function AlertsFeed({ isLoading, alertFeed }: AlertsFeedProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   return (
     <div className="lg:col-span-2 border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex flex-col min-h-[400px] rounded-lg shadow-sm">
@@ -31,17 +32,19 @@ export function AlertsFeed({ isLoading, alertFeed }: AlertsFeedProps) {
         <div className="flex-1 overflow-y-auto space-y-3 max-h-[350px] pr-1">
           {alertFeed.map((alert) => (
             <div key={alert.id}
-              className={`border p-4 flex items-center justify-between rounded ${alert.severity === "high" ? "border-red-800/40 bg-red-950/20 text-red-400" : "border-amber-800/40 bg-amber-950/20 text-amber-400"}`}>
-              <div>
-                <div className="font-black uppercase text-sm tracking-tight">{alert.product?.name}</div>
-                <div className="text-[10px] text-[var(--text-muted)] mt-0.5 uppercase">
-                  {t("pantry.location")}: {alert.location?.name} | {t("pantry.batch")}: {alert.batch_code ?? "NONE"}
+              className={`border p-4 flex items-center justify-between gap-3 rounded ${alert.severity === "high" ? "border-red-800/40 bg-red-950/20 text-red-400" : "border-amber-800/40 bg-amber-950/20 text-amber-400"}`}>
+              <div className="min-w-0">
+                <div className="font-black uppercase text-sm tracking-tight break-words">{alert.product?.name}</div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5 uppercase break-words">
+                  {t("pantry.location")}: {alert.location?.name} | {t("pantry.batch")}: {alert.batch_code ?? t("pantry.noBatch")}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 shrink-0 pl-3">
                 <div className="text-right">
                   <div className="font-bold text-xs uppercase">{t("pantry.expiring")}</div>
-                  <div className="text-[10px] font-bold mt-0.5">{alert.expiration_date}</div>
+                  <div className="text-[10px] font-bold mt-0.5">
+                    {alert.expiration_date ? formatDate(alert.expiration_date, language) : "--"}
+                  </div>
                 </div>
                 <Badge variant={alert.severity === "high" ? "destructive" : "outline"} className="text-[9px]">
                   {alert.severity === "high" ? t("pantry.expired") : t("pantry.soon")}

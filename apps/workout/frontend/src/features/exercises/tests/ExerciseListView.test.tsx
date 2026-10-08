@@ -32,14 +32,14 @@ describe("ExerciseListView", () => {
 
     await screen.findByText("Bench Press");
 
-    await user.click(screen.getByRole("button", { name: "createExercise" }));
-    expect(screen.getByRole("button", { name: "create" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create Exercise" }));
+    expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
 
     // Both the toggle button and the form's own button read "cancel" while
     // the form is open; the form's cancel button is the last one rendered.
-    const cancelButtons = screen.getAllByRole("button", { name: "cancel" });
+    const cancelButtons = screen.getAllByRole("button", { name: "Cancel" });
     await user.click(cancelButtons[cancelButtons.length - 1]);
-    expect(screen.queryByRole("button", { name: "create" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create" })).not.toBeInTheDocument();
   });
 
   it("filters by primary muscle group", async () => {
@@ -48,7 +48,7 @@ describe("ExerciseListView", () => {
 
     await screen.findByText("Bench Press");
 
-    const filter = screen.getByRole("combobox", { name: "primaryMuscle" });
+    const filter = screen.getByRole("combobox", { name: "Primary Muscle" });
     await user.selectOptions(filter, "quads");
 
     await waitFor(() => expect(screen.queryByText("Bench Press")).not.toBeInTheDocument());

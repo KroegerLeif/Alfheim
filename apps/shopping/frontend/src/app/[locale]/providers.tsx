@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider as SharedThemeProvider } from "@alfheim/shared";
 import { ReactNode, useState, createContext, useContext } from "react";
+import { NotificationsProvider } from "@/components/shared/Notifications";
 
 export const SidebarContext = createContext<{
   isSidebarOpen: boolean;
@@ -51,7 +52,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
         <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
           <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
-            {children}
+            <NotificationsProvider>{children}</NotificationsProvider>
           </ActiveListContext.Provider>
         </SidebarContext.Provider>
       </SharedThemeProvider>

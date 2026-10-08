@@ -2,6 +2,7 @@
 title: "Lokale Einrichtung"
 description: "Einsteigerfreundliche Schritt-für-Schritt-Anleitung, um das gesamte Alfheim-Monorepo lokal auf dem Entwicklungsrechner zu starten."
 sidebar:
+  order: 2
   label: "Lokale Einrichtung"
 ---
 

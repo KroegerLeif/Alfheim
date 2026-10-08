@@ -2,7 +2,6 @@ package household
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -81,51 +80,20 @@ func (s *service) CreateHousehold(ctx context.Context, claims *middleware.UserCl
 	return &resp, nil
 }
 
+// GetUserHouseholds lists the caller's households with their role and default
+// flag. It deliberately carries no member roster (issue #576): the list page
+// does not render members, and only GET /api/v1/households/{id} needs them.
 func (s *service) GetUserHouseholds(ctx context.Context, userID string) ([]HouseholdResponse, error) {
 	households, err := s.repo.GetHouseholdsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(households) == 0 {
-		return []HouseholdResponse{}, nil
-	}
-
-	defaultID, err := s.repo.GetDefaultHouseholdID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Fetch roles concurrently for each household using errgroup
 	results := make([]HouseholdResponse, len(households))
-	g, gCtx := errgroup.WithContext(ctx)
-
-	for i, h := range households {
-		index := i
-		item := h
-		g.Go(func() error {
-			role, err := s.repo.GetMemberRole(gCtx, item.ID, userID)
-			if err != nil {
-				return fmt.Errorf("failed to fetch role for household %s: %w", item.ID, err)
-			}
-			members, err := s.repo.GetMembers(gCtx, item.ID)
-			if err != nil {
-				return fmt.Errorf("failed to fetch members for household %s: %w", item.ID, err)
-			}
-			memberResponses := make([]MemberResponse, len(members))
-			for j, m := range members {
-				memberResponses[j] = ToMemberResponse(m)
-			}
-			results[index] = ToHouseholdResponse(item, string(role), memberResponses)
-			results[index].IsDefault = item.ID == defaultID
-			return nil
-		})
+	for i, uh := range households {
+		results[i] = ToHouseholdResponse(&uh.Household, string(uh.Role), nil)
+		results[i].IsDefault = uh.IsDefault
 	}
-
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
 	return results, nil
 }
 
@@ -199,46 +167,4 @@ func (s *service) RenameHousehold(ctx context.Context, requesterID string, house
 	}
 	s.log.Info("renamed household", slog.String("household_id", householdID), slog.String("user_id", requesterID))
 	return s.GetHouseholdDetails(ctx, requesterID, householdID)
-}
-
-func (s *service) DeleteHousehold(ctx context.Context, requesterID string, householdID string) error {
-	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner); err != nil {
-		return err
-	}
-	if err := s.repo.DeleteHousehold(ctx, householdID); err != nil {
-		return err
-	}
-	s.log.Info("deleted household", slog.String("household_id", householdID), slog.String("user_id", requesterID))
-	return nil
-}
-
-func (s *service) TransferOwnership(ctx context.Context, requesterID string, householdID string, targetUserID string) (*HouseholdResponse, error) {
-	targetUserID = strings.TrimSpace(targetUserID)
-	if targetUserID == "" || targetUserID == requesterID {
-		return nil, ErrInvalidTransferTarget
-	}
-	if _, err := s.requireRole(ctx, householdID, requesterID, RoleOwner); err != nil {
-		return nil, err
-	}
-	if _, err := s.repo.GetMemberRole(ctx, householdID, targetUserID); err != nil {
-		if errors.Is(err, ErrUnauthorizedHouseholdAccess) {
-			return nil, ErrMemberNotFound
-		}
-		return nil, err
-	}
-	if err := s.repo.TransferOwnershipTx(ctx, householdID, requesterID, targetUserID); err != nil {
-		return nil, err
-	}
-	s.log.Info("transferred household ownership",
-		slog.String("household_id", householdID),
-		slog.String("from_user_id", requesterID),
-		slog.String("to_user_id", targetUserID))
-	return s.GetHouseholdDetails(ctx, requesterID, householdID)
-}
-
-func (s *service) SetDefaultHousehold(ctx context.Context, requesterID string, householdID string) error {
-	if _, err := s.requireRole(ctx, householdID, requesterID); err != nil {
-		return err
-	}
-	return s.repo.SetDefaultHouseholdTx(ctx, requesterID, householdID)
 }

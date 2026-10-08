@@ -57,6 +57,8 @@ func (m *mockRows) Scan(dest ...any) error {
 			*d = val.(int)
 		case *time.Time:
 			*d = val.(time.Time)
+		case *bool:
+			*d = val.(bool)
 		}
 	}
 	return nil
@@ -67,6 +69,7 @@ func (m *mockRows) RawValues() [][]byte    { return nil }
 
 type mockTx struct {
 	execFunc     func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	queryFunc    func(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	queryRowFunc func(ctx context.Context, sql string, args ...any) pgx.Row
 	commitErr    error
 }
@@ -90,7 +93,10 @@ func (m *mockTx) Exec(ctx context.Context, sql string, arguments ...any) (pgconn
 	return pgconn.NewCommandTag(""), nil
 }
 func (m *mockTx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	return nil, nil
+	if m.queryFunc != nil {
+		return m.queryFunc(ctx, sql, args...)
+	}
+	return &mockRows{}, nil
 }
 func (m *mockTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	if m.queryRowFunc != nil {
@@ -292,17 +298,26 @@ func TestRepository_Households(t *testing.T) {
 			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 				return &mockRows{
 					items: [][]any{
-						{"h1", "H1", "h1", "u1", "st", "1000", "City", "CH", nil, nil, now, now},
+						{"h1", "H1", "h1", "u1", "st", "1000", "City", "CH", nil, nil, now, now, "ADMIN", true},
 					},
 				}, nil
 			},
 		}
+		iterErr := newRepositoryWithDB(&mockDBTX{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				return &mockRows{err: errors.New("iteration")}, nil
+			},
+		})
+		if _, err := iterErr.GetHouseholdsByUserID(ctx, "u1"); err == nil {
+			t.Fatal("expected iteration error, got nil")
+		}
+
 		repoOK := newRepositoryWithDB(dbtxOK)
 		list, err := repoOK.GetHouseholdsByUserID(ctx, "u1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(list) != 1 || list[0].Name != "H1" {
+		if len(list) != 1 || list[0].Name != "H1" || list[0].Role != RoleAdmin || !list[0].IsDefault {
 			t.Errorf("unexpected list: %+v", list)
 		}
 	})
@@ -382,9 +397,6 @@ func TestRepository_Members(t *testing.T) {
 		if err != nil || len(mems) != 1 || mems[0].Role != RoleAdmin {
 			t.Fatalf("unexpected GetMembers err: %v mems: %+v", err, mems)
 		}
-		if err := repo.RemoveMember(ctx, "h1", "u1"); err != nil {
-			t.Fatalf("unexpected RemoveMember err: %v", err)
-		}
 	})
 	t.Run("Members error branches", func(t *testing.T) {
 		dbErr := errors.New("database failure")
@@ -401,9 +413,6 @@ func TestRepository_Members(t *testing.T) {
 		}
 		repo := newRepositoryWithDB(dbtxErr)
 
-		if err := repo.RemoveMember(ctx, "h1", "u1"); err == nil {
-			t.Error("expected error from RemoveMember")
-		}
 		if err := repo.UpdateMemberRole(ctx, "h1", "u1", RoleAdmin); err == nil {
 			t.Error("expected error from UpdateMemberRole")
 		}

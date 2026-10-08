@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { useLocations, useCreateLocation } from '../locationService'
+import { useLocations, useCreateLocation, useUpdateLocation, useDeleteLocation } from '../locationService'
 import { createQueryWrapper } from '@/tests/utils'
 import { pantryClient } from '@/core/api'
 import { vi } from 'vitest'
@@ -9,6 +9,8 @@ vi.mock('@/core/api', () => ({
   pantryClient: {
     get: vi.fn(),
     post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -35,7 +37,7 @@ describe('Location Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockLocations)
-      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/locations')
+      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/locations', { searchParams: { limit: 100, offset: 0 } })
     })
   })
 
@@ -63,6 +65,47 @@ describe('Location Service Hooks', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['locations'] })
 
       invalidateSpy.mockRestore()
+    })
+  })
+
+  describe('useUpdateLocation', () => {
+    it('patches the location and refreshes locations and inventory', async () => {
+      const updated = { id: 'l1', name: 'Cellar', description: null }
+      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue(updated) } as any)
+      const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+
+      const { result } = renderHook(() => useUpdateLocation(), { wrapper: createQueryWrapper() })
+      result.current.mutate({ id: 'l1', payload: { name: 'Cellar', description: null } })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(pantryClient.patch).toHaveBeenCalledWith('api/v1/locations/l1', { json: { name: 'Cellar', description: null } })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['locations'] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['inventory'] })
+      invalidateSpy.mockRestore()
+    })
+  })
+
+  describe('useDeleteLocation', () => {
+    it('deletes the location and refreshes the list', async () => {
+      vi.mocked(pantryClient.delete).mockResolvedValue({} as any)
+      const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+
+      const { result } = renderHook(() => useDeleteLocation(), { wrapper: createQueryWrapper() })
+      result.current.mutate('l1')
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(pantryClient.delete).toHaveBeenCalledWith('api/v1/locations/l1')
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['locations'] })
+      invalidateSpy.mockRestore()
+    })
+
+    it('surfaces a rejected delete to the caller', async () => {
+      vi.mocked(pantryClient.delete).mockRejectedValue(new Error('conflict'))
+
+      const { result } = renderHook(() => useDeleteLocation(), { wrapper: createQueryWrapper() })
+      result.current.mutate('l1')
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
     })
   })
 })

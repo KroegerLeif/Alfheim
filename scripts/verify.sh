@@ -226,8 +226,18 @@ if [[ "$RUN_FRONTEND" == true ]]; then
             ERRORS=$((ERRORS + 1))
         fi
 
-        log_section "Vitest Test Suites"
-        if pnpm -r test; then
+        # Bound Vitest parallelism (#636). Unbounded, pnpm runs 4 packages at
+        # once and every Vitest run starts (CPU count - 1) workers, so an
+        # 8-core machine ran ~28 jsdom workers and async tests timed out under
+        # load. Run 2 packages at a time with half the CPUs as workers each,
+        # so the total stays near the CPU count. Override with
+        # VERIFY_FRONTEND_CONCURRENCY and VITEST_MAX_WORKERS.
+        cpu_count="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+        frontend_concurrency="${VERIFY_FRONTEND_CONCURRENCY:-2}"
+        vitest_max_workers="${VITEST_MAX_WORKERS:-$(( cpu_count / frontend_concurrency > 0 ? cpu_count / frontend_concurrency : 1 ))}"
+
+        log_section "Vitest Test Suites (${frontend_concurrency} packages at a time, ${vitest_max_workers} workers each)"
+        if VITEST_MAX_WORKERS="$vitest_max_workers" pnpm -r --workspace-concurrency="$frontend_concurrency" test; then
             log_success "Vitest suites passed"
         else
             log_fail "Vitest suites failed"

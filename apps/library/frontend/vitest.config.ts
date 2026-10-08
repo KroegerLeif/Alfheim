@@ -14,6 +14,7 @@ export default defineConfig({
     testTimeout: 15000,
     coverage: {
       provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         '**/node_modules/**',
         '**/dist/**',

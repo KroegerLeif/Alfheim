@@ -6,6 +6,13 @@
 variables and domain model — lives in the documentation portal:
 [Reference → ALFI Chat & AI Assistant](../../docs/en/reference/apps/chat.md)
 
+Behaviour worth knowing before changing the code (details in the reference page):
+
+- MCP sessions are pooled per endpoint, household and user (`internal/shared/mcp/pool.go`), never shared between callers.
+- Tool results are stored as `tool` messages tagged with `{"tool_call_id", "tool_name", "is_error"}`; the frontend shows tool calls as collapsed entries and masks credentials.
+- Closing the SSE connection cancels the reply without storing it, which is what the UI's Stop and Retry actions rely on.
+- An open conversation always shows its own model; the sidebar picker only applies to the next new conversation.
+
 ---
 
 ## 🚀 Local Development & Commands

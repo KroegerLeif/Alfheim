@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -435,4 +437,78 @@ func TestHandler_StreamServiceError(t *testing.T) {
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("expected 422, got %d", rec.Code)
 	}
+}
+
+// ctxBoundProvider streams one delta, then blocks until the request context ends
+// and reports the cancellation like the real providers do.
+type ctxBoundProvider struct {
+	started chan struct{}
+	once    sync.Once
+}
+
+func (p *ctxBoundProvider) Name() string { return "ctx-bound" }
+
+func (p *ctxBoundProvider) ChatStream(ctx context.Context, req llm.ChatRequest) (<-chan llm.StreamChunk, error) {
+	out := make(chan llm.StreamChunk, 2)
+	go func() {
+		defer close(out)
+		out <- llm.StreamChunk{DeltaText: "partial"}
+		p.once.Do(func() { close(p.started) })
+		<-ctx.Done()
+		out <- llm.StreamChunk{Done: true, Err: ctx.Err()}
+	}()
+	return out, nil
+}
+
+func (p *ctxBoundProvider) HealthCheck(ctx context.Context) llm.HealthResult {
+	return llm.HealthResult{Status: llm.HealthStatusOK}
+}
+
+func TestHandler_StreamStopsWhenClientAbortsAndCanBeRetried(t *testing.T) {
+	repo := newFakeRepository()
+	provider := &ctxBoundProvider{started: make(chan struct{})}
+	svc := newTestService(repo, &fakeResolver{provider: provider})
+	claims := &middleware.UserClaims{Subject: "user-1"}
+	router := newTestRouter(svc, claims)
+
+	modelBlockID := "mb-1"
+	created, err := svc.CreateConversation(context.Background(), "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := svc.PostMessage(context.Background(), "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "hi"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/"+created.ID+"/stream", nil).WithContext(ctx)
+	rec := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		router.ServeHTTP(rec, req)
+		close(done)
+	}()
+
+	<-provider.started
+	cancel() // the browser's AbortController closes the connection
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stream handler did not return after the client aborted")
+	}
+
+	msgs := repo.messages[created.ID]
+	if len(msgs) != 1 || msgs[0].Role != conversations.RoleUser {
+		t.Fatalf("expected only the pending user message after an abort, got %+v", msgs)
+	}
+	// The pending user message still allows reopening the stream (retry).
+	retryCtx, retryCancel := context.WithCancel(context.Background())
+	defer retryCancel()
+	chunks, err := svc.StreamAssistantReply(retryCtx, "user-1", testHouseholdID, created.ID)
+	if err != nil {
+		t.Fatalf("expected the stream to be reopenable after an abort, got %v", err)
+	}
+	retryCancel()
+	drainChunks(t, chunks, 2*time.Second)
 }

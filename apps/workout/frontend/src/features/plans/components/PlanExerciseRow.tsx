@@ -2,7 +2,7 @@
 
 import { Button, Checkbox, Input, Select, useTranslation } from "@alfheim/shared";
 import { Plus, Trash2 } from "lucide-react";
-import { MUSCLE_GROUP_LABEL_KEYS, type ExerciseRead } from "@/features/exercises/types";
+import { MUSCLE_GROUP_LABEL_KEYS, type ExerciseRead } from "@/features/exercises";
 import type { PlanExerciseRead, PlanSetCreate, TargetWeightType } from "../types";
 
 interface PlanExerciseRowProps {
@@ -30,8 +30,8 @@ export function PlanExerciseRow({
   return (
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 space-y-3">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-2">
-        <div>
-          <h4 className="text-sm font-bold text-[var(--text-primary)]">{exerciseName}</h4>
+        <div className="min-w-0">
+          <h4 className="break-words text-sm font-bold text-[var(--text-primary)]">{exerciseName}</h4>
           {foundExercise && (
             <p className="text-[10px] uppercase font-mono text-[var(--text-muted)]">
               {t(MUSCLE_GROUP_LABEL_KEYS[foundExercise.primary_muscle])}
@@ -39,10 +39,12 @@ export function PlanExerciseRow({
           )}
         </div>
         <Button
+          type="button"
           variant="ghost"
           size="sm"
           onClick={onRemoveExercise}
-          className="text-red-400 hover:text-red-300 hover:bg-red-950/20"
+          aria-label={`${t("workout.removeExercise")}: ${exerciseName}`}
+          className="shrink-0 text-red-400 hover:text-red-300 hover:bg-red-950/20"
         >
           <Trash2 className="h-4 w-4 mr-1" />
           {t("workout.removeExercise")}
@@ -64,6 +66,7 @@ export function PlanExerciseRow({
                 type="number"
                 min="1"
                 placeholder={t("workout.reps")}
+                aria-label={`${t("workout.reps")} #${setIndex + 1}`}
                 value={set.target_reps ?? ""}
                 onChange={(e) =>
                   onUpdateSet(setIndex, {
@@ -76,6 +79,7 @@ export function PlanExerciseRow({
 
             <div className="flex items-center gap-1 w-36">
               <Select
+                aria-label={`${t("workout.targetWeightType")} #${setIndex + 1}`}
                 value={set.target_weight_type}
                 onChange={(e) => {
                   const val = e.target.value as TargetWeightType;
@@ -100,6 +104,7 @@ export function PlanExerciseRow({
                   type="number"
                   step="0.5"
                   placeholder={t("workout.weight")}
+                  aria-label={`${t("workout.weight")} #${setIndex + 1}`}
                   value={set.target_weight_kg ?? ""}
                   onChange={(e) =>
                     onUpdateSet(setIndex, {
@@ -108,7 +113,7 @@ export function PlanExerciseRow({
                   }
                   className="h-8 text-xs"
                 />
-                <span className="text-[10px] text-[var(--text-muted)]">kg</span>
+                <span className="text-[10px] text-[var(--text-muted)]">{t("workout.unit_kg")}</span>
               </div>
             )}
 
@@ -117,7 +122,8 @@ export function PlanExerciseRow({
                 <Input
                   type="number"
                   step="0.5"
-                  placeholder="± kg"
+                  placeholder={t("workout.offsetKg")}
+                  aria-label={`${t("workout.offsetKg")} #${setIndex + 1}`}
                   value={set.offset_kg ?? ""}
                   onChange={(e) =>
                     onUpdateSet(setIndex, {
@@ -126,7 +132,7 @@ export function PlanExerciseRow({
                   }
                   className="h-8 text-xs"
                 />
-                <span className="text-[10px] text-[var(--text-muted)]">kg</span>
+                <span className="text-[10px] text-[var(--text-muted)]">{t("workout.unit_kg")}</span>
               </div>
             )}
 
@@ -142,12 +148,14 @@ export function PlanExerciseRow({
               </label>
 
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
+                aria-label={`${t("workout.removeSet")} #${setIndex + 1}`}
                 onClick={() => onRemoveSet(setIndex)}
                 className="h-7 w-7 p-0 text-[var(--text-muted)] hover:text-red-400"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               </Button>
             </div>
           </div>
@@ -155,6 +163,7 @@ export function PlanExerciseRow({
       </div>
 
       <Button
+        type="button"
         variant="outline"
         size="sm"
         onClick={onAddSet}

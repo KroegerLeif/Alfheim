@@ -3,11 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { ItemRow } from '../ItemRow'
 import { createQueryWrapper } from '@/tests/utils'
-
-// Mock next-intl translations
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}))
+import { setTestLocale } from '@/tests/locale'
 
 describe('ItemRow Component', () => {
   const mockItem = {
@@ -48,7 +44,7 @@ describe('ItemRow Component', () => {
     expect(screen.getByText('L')).toBeInTheDocument()
 
     // No pantry badge since product_id is null
-    expect(screen.queryByText('pantryBadge')).not.toBeInTheDocument()
+    expect(screen.queryByText('Pantry')).not.toBeInTheDocument()
   })
 
   it('displays line-through typography when item is completed', () => {
@@ -83,7 +79,7 @@ describe('ItemRow Component', () => {
       { wrapper: createQueryWrapper() }
     )
 
-    expect(screen.getByText('pantryBadge')).toBeInTheDocument()
+    expect(screen.getByText('Pantry')).toBeInTheDocument()
   })
 
   it('calls onToggle callback when clicking the row', () => {
@@ -104,5 +100,80 @@ describe('ItemRow Component', () => {
     fireEvent.click(row!)
 
     expect(handleToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the unit in the active locale while the stored code stays the same', () => {
+    setTestLocale('de')
+    render(<ItemRow item={{ ...mockItem, unit: 'fl.' }} onToggle={vi.fn()} onDelete={vi.fn()} />, {
+      wrapper: createQueryWrapper(),
+    })
+    expect(screen.getByText('Fl.')).toBeInTheDocument()
+
+    setTestLocale('en')
+    render(<ItemRow item={{ ...mockItem, id: 'h2', unit: 'fl.' }} onToggle={vi.fn()} onDelete={vi.fn()} />, {
+      wrapper: createQueryWrapper(),
+    })
+    expect(screen.getByText('btl.')).toBeInTheDocument()
+  })
+
+  it('shows a unit it does not know as stored', () => {
+    render(<ItemRow item={{ ...mockItem, unit: 'sack' }} onToggle={vi.fn()} onDelete={vi.fn()} />, {
+      wrapper: createQueryWrapper(),
+    })
+    expect(screen.getByText('sack')).toBeInTheDocument()
+  })
+
+  it('blocks toggling and deleting while the item is only an optimistic copy', () => {
+    const handleToggle = vi.fn()
+    const handleDelete = vi.fn()
+    render(<ItemRow item={mockItem} onToggle={handleToggle} onDelete={handleDelete} isOptimistic />, {
+      wrapper: createQueryWrapper(),
+    })
+
+    const checkbox = screen.getByRole('button', { name: 'Mark as checked' })
+    expect(checkbox).toBeDisabled()
+    fireEvent.click(checkbox)
+    // Clicking the row itself must not reach the server either.
+    fireEvent.click(screen.getByText(/Vollmilch/))
+    fireEvent.mouseEnter(screen.getByText(/Vollmilch/).closest('div')!)
+
+    expect(handleToggle).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Remove item' })).not.toBeInTheDocument()
+    expect(handleDelete).not.toHaveBeenCalled()
+  })
+
+  it('deletes through the localized remove button without toggling the row', () => {
+    const handleToggle = vi.fn()
+    const handleDelete = vi.fn()
+    render(<ItemRow item={{ ...mockItem, is_completed: true }} onToggle={handleToggle} onDelete={handleDelete} />, {
+      wrapper: createQueryWrapper(),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove item' }))
+
+    expect(handleDelete).toHaveBeenCalledTimes(1)
+    expect(handleToggle).not.toHaveBeenCalled()
+  })
+
+  it('truncates very long names, brands and quantities instead of overflowing the row', () => {
+    const name = 'Superlongproductname'.repeat(20)
+    const brand = 'Brand'.repeat(30)
+    const { container } = render(
+      <ItemRow
+        item={{ ...mockItem, name, brand, quantity: 123456789.123456, unit: 'Packung'.repeat(10) }}
+        onToggle={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+      { wrapper: createQueryWrapper() }
+    )
+
+    const title = screen.getByTitle(`${name} (${brand})`)
+    expect(title).toHaveClass('truncate', 'min-w-0')
+
+    // The name column must be allowed to shrink below its content width.
+    const row = container.firstElementChild as HTMLElement
+    expect(row.className).toContain('minmax(0,1fr)')
+    expect(screen.getByText('123456789.123456')).toHaveClass('truncate')
+    expect(screen.getByText('Packung'.repeat(10))).toHaveClass('truncate')
   })
 })

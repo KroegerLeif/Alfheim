@@ -37,9 +37,6 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const { data: householdsData } = useHouseholds();
   const households = useMemo(() => householdsData ?? [], [householdsData]);
 
-  const isPersonalList = (l: ShoppingList) =>
-    l.is_personal || l.name.endsWith(" - Liste") || l.name.endsWith("'s List") || l.name.startsWith("Lista ");
-
   const { orderedLists, customListsOnly } = useMemo(() => {
     const hhLists: (ShoppingList & { displayName: string })[] = [];
     const persLists: ShoppingList[] = [];
@@ -143,7 +140,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
                 }}
                 onDragStart={(e) => handleDragStart(e, list.id)}
                 onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, list.id)}
-                onDragEnd={() => setDraggedListId(null)} isPersonalList={isPersonalList(list)}
+                onDragEnd={() => setDraggedListId(null)}
                 isPendingDelete={deleteList.isPending}
               />
             );
@@ -156,9 +153,11 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
             />
           ) : (
             <button
+              type="button"
               onClick={() => setIsCreating(true)}
               className="flex items-center justify-center w-9 h-9 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] transition-colors cursor-pointer shrink-0"
-              title={tNav("newListPlaceholder")}
+              title={tNav("newList")}
+              aria-label={tNav("newList")}
             >
               <Plus className="h-4 w-4" />
             </button>

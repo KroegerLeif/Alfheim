@@ -109,6 +109,15 @@
     "timeline": "Verlauf",
     "timelineTitle": "Aufgaben-Verlauf Audit",
     "noHistory": "Noch kein Erledigungsverlauf vorhanden",
-    "noHistorySub": "Erledigen Sie diese Aufgabe im Dashboard, um den ersten Verlaufseintrag zu erstellen."
+    "noHistorySub": "Erledigen Sie diese Aufgabe im Dashboard, um den ersten Verlaufseintrag zu erstellen.",
+    "choreCompleted": "Aufgabe erledigt",
+    "completeChore": "Aufgabe abschließen",
+    "loadFailed": "Aufgabendaten oder Dienst-Integrationen konnten nicht geladen werden.",
+    "boardLoadFailed": "Die Aufgabenvorlagen konnten nicht geladen werden.",
+    "timelineLoadFailed": "Der Aufgaben-Verlauf konnte nicht geladen werden.",
+    "unknownChore": "Unbekannte Aufgabe",
+    "pendingCount": "{count} ausstehend",
+    "unavailable": "NICHT VERFÜGBAR",
+    "actionFailed": "Die Aktion konnte nicht ausgeführt werden. Bitte versuchen Sie es erneut."
   }
 }

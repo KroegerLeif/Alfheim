@@ -69,7 +69,7 @@
     "deleteTemplate": "Usuń szablon",
     "deleteConfirm": "Czy na pewno chcesz usunąć zadanie \"{name}\"?",
     "daily": "Codziennie",
-    "autoReset": "Auto-reset",
+    "autoReset": "Automatyczny reset",
     "cumulative": "Kumulatywne",
     "highPriority": "Wysoki Priorytet",
     "mediumPriority": "Średni Priorytet",
@@ -109,6 +109,15 @@
     "timeline": "Historia",
     "timelineTitle": "Historia Wykonania Zadań",
     "noHistory": "Brak historii wykonania",
-    "noHistorySub": "Ukończ to zadanie na pulpicie, aby zarejestrować pierwszy wpis w historii."
+    "noHistorySub": "Ukończ to zadanie na pulpicie, aby zarejestrować pierwszy wpis w historii.",
+    "choreCompleted": "Zadanie wykonane",
+    "completeChore": "Wykonaj zadanie",
+    "loadFailed": "Nie udało się załadować danych obowiązków ani integracji z usługami.",
+    "boardLoadFailed": "Nie udało się załadować szablonów zadań.",
+    "timelineLoadFailed": "Nie udało się załadować historii zadania.",
+    "unknownChore": "Nieznane zadanie",
+    "pendingCount": "{count} oczekujących",
+    "unavailable": "NIEDOSTĘPNE",
+    "actionFailed": "Nie udało się wykonać akcji. Spróbuj ponownie."
   }
 }

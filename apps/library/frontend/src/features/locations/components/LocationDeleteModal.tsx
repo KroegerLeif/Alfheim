@@ -8,6 +8,7 @@ import {
   DialogTitle,
   useTranslation,
 } from "@alfheim/shared";
+import { readApiError } from "@/core/apiError";
 import type { LocationNode } from "../types";
 
 interface LocationDeleteModalProps {
@@ -29,15 +30,26 @@ export function LocationDeleteModal({
 
   if (!locationToDelete) return null;
 
+  const handleClose = () => {
+    setError(null);
+    onClose();
+  };
+
   const handleDelete = async () => {
     setIsDeleting(true);
     setError(null);
     try {
       await onConfirm(locationToDelete.id);
-      onClose();
+      handleClose();
     } catch (err: unknown) {
+      const apiError = await readApiError(err);
       setError(
-        err instanceof Error ? err.message : t("library.locations.deleteError")
+        apiError.code === "location_in_use"
+          ? t("library.locations.deleteInUse", {
+              name: locationToDelete.name,
+              count: apiError.itemCount ?? 0,
+            })
+          : t("library.locations.deleteError")
       );
     } finally {
       setIsDeleting(false);
@@ -45,22 +57,30 @@ export function LocationDeleteModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="max-w-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]">
         <DialogHeader>
-          <DialogTitle>{t("library.locations.deleteTitle")}</DialogTitle>
+          <DialogTitle className="break-words">{t("library.locations.deleteTitle")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400">
+            <div
+              role="alert"
+              className="break-words rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400"
+            >
               {error}
             </div>
           )}
 
-          <p className="text-sm text-[var(--text-main)]">
+          <p className="break-words text-sm text-[var(--text-main)]">
             {t("library.locations.deleteConfirm", { name: locationToDelete.name })}
           </p>
+          {(locationToDelete.children ?? []).length > 0 && (
+            <p className="text-xs text-[var(--text-muted)]">
+              {t("library.locations.deleteWithChildren")}
+            </p>
+          )}
         </div>
 
         <DialogFooter className="flex justify-end gap-2">
@@ -68,7 +88,7 @@ export function LocationDeleteModal({
             type="button"
             variant="outline"
             size="sm"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isDeleting}
           >
             {t("library.itemDialog.cancel")}
@@ -80,7 +100,7 @@ export function LocationDeleteModal({
             onClick={handleDelete}
             disabled={isDeleting}
           >
-            {isDeleting ? "..." : t("library.locations.delete")}
+            {isDeleting ? t("library.locations.deleting") : t("library.locations.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

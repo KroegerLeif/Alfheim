@@ -58,6 +58,31 @@ Source: [`apps/workout/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 
 ---
 
+## 🔁 Session Lifecycle & Offline Sync
+
+A session is `active` until it is completed (`POST /sessions/{id}/complete`) or abandoned
+(`POST /sessions/{id}/abandon`); both transitions are one-way. Starting a session from a plan
+clones one day (`plan_id` + `plan_day_id`); the plan cards in the UI offer a start button per day.
+
+`POST /sessions/{id}/sets/sync` upserts a batch of sets by `client_idempotency_key`:
+
+- A set for a slot cloned from the plan day (same `session_exercise_id` and `set_order`, not yet
+  performed) fills that row; otherwise a new row is inserted. Replaying a key returns the stored
+  row without a duplicate.
+- Items whose `session_exercise_id` is not on the session are skipped (not acknowledged).
+- A batch that would add a set to a completed or abandoned session is rejected with
+  `409` and `{"detail": {"code": "session_not_active", "message": "..."}}`. Keys that are already
+  stored are still acknowledged. The `log_completed_set` MCP tool returns the same message as an
+  `Error:` string.
+
+The browser queue (`features/offline_sync`) stores every logged set in IndexedDB first and syncs in
+the background, one request per session, with flushes serialized. Entries are dropped after five
+failed flushes or at once on `session_not_active`; dropped sets raise a dismissible warning in the
+sync badge and are offered again in the HUD. Finishing a session is refused while sets are still
+queued; abandoning flushes the queue first and discards what could not be delivered.
+
+---
+
 ## 🔌 MCP Tools
 
 Served at `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), authenticated the same way
@@ -97,5 +122,9 @@ household/user returns `404`.
   the *new* household. Avoid switching households with sets still pending (see the sync status
   badge). Tracked as a follow-up for the workout app sprint. See
   [Known Issues](../../explanation/known-issues.md).
+- **`preferred_unit` has no effect.** It is stored and returned by the API and the MCP tools, but
+  the UI always logs and shows kilograms (#568).
+- **The leaderboard shows truncated user ids**, because the backend returns no display names (#612).
+- **Exercises and equipment cannot be edited in the UI**, although `PATCH` exists (#613).
 
 ---

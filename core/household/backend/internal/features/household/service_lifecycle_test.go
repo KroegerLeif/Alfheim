@@ -332,17 +332,9 @@ func TestService_ErrorPropagation(t *testing.T) {
 	svc, repo := seededService(t)
 	ctx := context.Background()
 
-	repo.failNext["GetDefaultHouseholdID"] = errMockDB
-	if _, err := svc.GetUserHouseholds(ctx, owner); !errors.Is(err, errMockDB) {
-		t.Errorf("GetUserHouseholds: expected repo error, got %v", err)
-	}
 	repo.failNext["GetHouseholdsByUserID"] = errMockDB
 	if _, err := svc.GetUserHouseholds(ctx, owner); !errors.Is(err, errMockDB) {
 		t.Errorf("GetUserHouseholds: expected repo error, got %v", err)
-	}
-	repo.failNext["GetMembers"] = errMockDB
-	if _, err := svc.GetUserHouseholds(ctx, owner); !errors.Is(err, errMockDB) {
-		t.Errorf("GetUserHouseholds members: expected repo error, got %v", err)
 	}
 	repo.failNext["GetHouseholdByID"] = errMockDB
 	if _, err := svc.GetHouseholdDetails(ctx, owner, hhA); !errors.Is(err, errMockDB) {

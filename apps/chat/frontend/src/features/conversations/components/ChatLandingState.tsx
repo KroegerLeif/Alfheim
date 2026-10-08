@@ -4,12 +4,15 @@ import { useState } from "react";
 import { AlfiMascot, useAlfiChatLifecycle, useTranslation } from "@alfheim/shared";
 import { Cpu, Plus } from "lucide-react";
 import type { ModelBlock } from "@/features/conversations/types";
+import type { ChatFailure } from "@/features/conversations/hooks/useChatStream";
 import { ChatInput } from "./ChatInput";
+import { FailureNotice } from "./FailureNotice";
 
 interface ChatLandingStateProps {
   currentModel?: ModelBlock;
   onOpenAddModel?: () => void;
-  streamError: string | null;
+  failure: ChatFailure | null;
+  onRetry: () => void;
   onSend: (content: string, attachmentIds: string[]) => void;
   isStreaming: boolean;
 }
@@ -21,7 +24,8 @@ interface ChatLandingStateProps {
 export function ChatLandingState({
   currentModel,
   onOpenAddModel,
-  streamError,
+  failure,
+  onRetry,
   onSend,
   isStreaming,
 }: ChatLandingStateProps) {
@@ -32,7 +36,7 @@ export function ChatLandingState({
     isTyping,
     isThinking: isStreaming,
     isStreaming,
-    isError: Boolean(streamError),
+    isError: failure !== null && failure.stage !== "stopped",
   });
 
   return (
@@ -47,9 +51,12 @@ export function ChatLandingState({
         </div>
 
         {currentModel ? (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)] font-mono shadow-xs">
-            <Cpu className="w-3.5 h-3.5 text-[var(--primary-main)]" />
-            <span>{currentModel.display_name}</span>
+          <div
+            title={t("Chat.newConversationModel")}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)] font-mono shadow-xs max-w-full min-w-0"
+          >
+            <Cpu className="w-3.5 h-3.5 shrink-0 text-[var(--primary-main)]" />
+            <span className="truncate">{currentModel.display_name}</span>
           </div>
         ) : (
           onOpenAddModel && (
@@ -64,14 +71,14 @@ export function ChatLandingState({
           )
         )}
 
-        {streamError && (
-          <p className="text-sm text-red-400 max-w-md">{streamError}</p>
-        )}
+        <div className="max-w-md">
+          <FailureNotice failure={failure} onRetry={onRetry} />
+        </div>
       </div>
 
       {currentModel && (
         <div className="w-full max-w-4xl mx-auto">
-          <ChatInput onSend={onSend} onTypingChange={setIsTyping} disabled={isStreaming} />
+          <ChatInput onSend={onSend} onTypingChange={setIsTyping} isStreaming={isStreaming} />
         </div>
       )}
     </div>

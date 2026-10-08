@@ -14,6 +14,7 @@ import { QuickProductForm } from "./QuickProductForm";
 import { TransactionForm } from "./TransactionForm";
 import { useSearchProducts } from "@/features/products/services/productService";
 import { pantryClient } from "@/core/api";
+import { describeApiError, readApiError } from "@/core/apiError";
 import { ProductRead } from "@/features/products/types";
 
 interface StockActionModalProps {
@@ -38,7 +39,8 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
   const [scanError, setScanError] = React.useState("");
   const [isCreatingProduct, setIsCreatingProduct] = React.useState(false);
 
-  const { data: searchResults = [], isLoading: isSearchingProducts } = useSearchProducts(productQuery);
+  const { data: searchResultsData, isLoading: isSearchingProducts } = useSearchProducts(productQuery);
+  const searchResults = searchResultsData ?? [];
 
   // Reset state when modal opens or closes
   React.useEffect(() => {
@@ -58,11 +60,15 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
     if (!barcodeInput.trim()) return;
     setScanError("");
     try {
-      const data = await pantryClient.get(`api/v1/products/barcode/${barcodeInput}`).json<ProductRead>();
+      const data = await pantryClient
+        .get(`api/v1/products/barcode/${encodeURIComponent(barcodeInput.trim())}`)
+        .json<ProductRead>();
       setSelectedProduct(data);
       setBarcodeInput("");
-    } catch {
-      setScanError(t("pantry.noMatchesFound"));
+    } catch (error: unknown) {
+      // 404 means the barcode is unknown; anything else is a failure the user should not read as "no match".
+      const { status } = await readApiError(error);
+      setScanError(status === 404 ? t("pantry.noMatchesFound") : await describeApiError(error, t, "pantry.errors.barcodeLookupFailed"));
     }
   };
 

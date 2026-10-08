@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { LayoutDashboard, Calendar, Plus, PiggyBank } from "lucide-react";
+import { useTranslation } from "@alfheim/shared";
 
 export type TabKey = "dashboard" | "planning" | "pots";
 export type PlanType = "monthly" | "event";
@@ -17,7 +18,7 @@ export interface MobileTabBarProps {
 
 /**
  * Mobile bottom navigation bar component for Budget & Treasury app.
- * Provides 4 bottom tabs: Dashboard, Planning (with Monat / Event Segmented Control), Quick-Add (+), and Pots.
+ * Provides 4 bottom tabs: Dashboard, Planning (with a monthly / event segmented control), Quick-Add (+), and Pots.
  */
 export function MobileTabBar({
   activeTab = "dashboard",
@@ -26,9 +27,11 @@ export function MobileTabBar({
   onQuickAdd,
   onTabChange,
 }: MobileTabBarProps) {
+  const { t } = useTranslation();
+
   return (
     <nav
-      aria-label="Mobile Navigation"
+      aria-label={t("budget.navigation.mobileNavLabel")}
       className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--surface-card)]/95 backdrop-blur-md border-t border-[var(--border-subtle)] px-2 flex items-center justify-around z-40 select-none shadow-[0_-4px_20px_rgba(0,0,0,0.4)]"
     >
       {/* 1. Dashboard Tab */}
@@ -50,10 +53,10 @@ export function MobileTabBar({
           <span className="absolute top-0 w-8 h-1 bg-[var(--primary-main)] rounded-b-full shadow-[0_0_8px_var(--primary-main)]" />
         )}
         <LayoutDashboard className="w-5 h-5" />
-        <span className="text-[10px] tracking-tight mt-1">Dashboard</span>
+        <span className="text-[10px] tracking-tight mt-1">{t("budget.navigation.dashboard")}</span>
       </Link>
 
-      {/* 2. Planning Tab with Monat / Event Segmented Control */}
+      {/* 2. Planning tab with a monthly / event segmented control */}
       <div
         className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors duration-200 ${
           activeTab === "planning"
@@ -75,12 +78,12 @@ export function MobileTabBar({
           className="flex flex-col items-center justify-center hover:text-[var(--text-main)]"
         >
           <Calendar className="w-5 h-5" />
-          <span className="text-[10px] tracking-tight mt-0.5">Planning</span>
+          <span className="text-[10px] tracking-tight mt-0.5">{t("budget.navigation.planning")}</span>
         </Link>
-        {/* Segmented Control for Monat / Event */}
+        {/* Segmented control for monthly / event planning */}
         <div
           role="group"
-          aria-label="Planning Mode"
+          aria-label={t("budget.navigation.planningModeLabel")}
           className="flex items-center bg-[var(--surface-canvas)] rounded-full p-0.5 mt-0.5 text-[9px]"
         >
           <button
@@ -95,7 +98,7 @@ export function MobileTabBar({
                 : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}
           >
-            Monat
+            {t("budget.navigation.monthly")}
           </button>
           <button
             type="button"
@@ -109,7 +112,7 @@ export function MobileTabBar({
                 : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
             }`}
           >
-            Event
+            {t("budget.navigation.event")}
           </button>
         </div>
       </div>
@@ -119,7 +122,7 @@ export function MobileTabBar({
         <button
           type="button"
           onClick={onQuickAdd}
-          aria-label="Quick-Add Transaction"
+          aria-label={t("budget.transactions.quickAdd")}
           className="w-10 h-10 rounded-full bg-[var(--primary-main)] text-white flex items-center justify-center shadow-md hover:opacity-90 active:scale-95 transition-all"
         >
           <Plus className="w-6 h-6" />
@@ -145,7 +148,7 @@ export function MobileTabBar({
           <span className="absolute top-0 w-8 h-1 bg-[var(--primary-main)] rounded-b-full shadow-[0_0_8px_var(--primary-main)]" />
         )}
         <PiggyBank className="w-5 h-5" />
-        <span className="text-[10px] tracking-tight mt-1">Pots</span>
+        <span className="text-[10px] tracking-tight mt-1">{t("budget.navigation.pots")}</span>
       </Link>
     </nav>
   );

@@ -64,7 +64,7 @@ describe('CoreAppsSection navigation targets', () => {
       <CoreAppsSection isLoading={false} isError={false} apps={[makeApp()]} refetch={vi.fn()} />
     )
 
-    const manageLink = screen.getByRole('link', { name: /manage_visibility/i })
+    const manageLink = screen.getByRole('link', { name: /manage visibility/i })
     expect(manageLink).toHaveAttribute('href', '/settings')
   })
 })

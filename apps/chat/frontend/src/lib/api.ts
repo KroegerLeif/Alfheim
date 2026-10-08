@@ -1,7 +1,7 @@
-import { streamAssistantReply as sseStream, type StreamHandlers } from "@/lib/sse";
+import { streamAssistantReply as sseStream, type StreamFailure, type StreamHandlers } from "@/lib/sse";
 import { BASE_URL, authHeaders } from "./api/client";
 
-export type { StreamHandlers };
+export type { StreamFailure, StreamHandlers };
 
 export * from "./api/client";
 export * from "./api/modelBlocks";

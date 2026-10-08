@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { PRESET_ICON_NAMES } from '../presetIcons';
 import { useCreateUserLink } from '../queries';
 import { AddAppFormFields } from './AddAppFormFields';
 
@@ -11,21 +12,6 @@ interface AddAppModalProps {
   onSuccess?: (appName: string) => void;
   initialCategory?: string;
 }
-
-const PRESET_ICONS = [
-  { name: 'link', label: 'Bookmark Link' },
-  { name: 'folder', label: 'Folder / Storage' },
-  { name: 'cloud', label: 'Cloud Drive' },
-  { name: 'home', label: 'Home System' },
-  { name: 'language', label: 'Web Portal' },
-  { name: 'dashboard', label: 'Analytics' },
-  { name: 'movie', label: 'Media Streaming' },
-  { name: 'code', label: 'Developer Tool' },
-  { name: 'terminal', label: 'Console Tool' },
-  { name: 'psychology', label: 'AI Assistant' },
-  { name: 'security', label: 'Vault Access' },
-  { name: 'checklist', label: 'Task List' },
-];
 
 export function AddAppModal({
   isOpen,
@@ -53,11 +39,11 @@ export function AddAppModal({
     const trimmedUrl = url.trim();
 
     if (!trimmedTitle) {
-      setErrorMessage(t('catalog.title_required_error') || 'Title is required');
+      setErrorMessage(t('catalog.title_required_error'));
       return;
     }
     if (!trimmedUrl) {
-      setErrorMessage(t('catalog.url_required_error') || 'URL is required');
+      setErrorMessage(t('catalog.url_required_error'));
       return;
     }
 
@@ -81,7 +67,7 @@ export function AddAppModal({
           onClose();
         },
         onError: (err) => {
-          setErrorMessage(err.message || t('catalog.register_failed_error') || 'Failed to save user link');
+          setErrorMessage(t('catalog.register_failed_error'));
         },
       }
     );
@@ -119,7 +105,7 @@ export function AddAppModal({
             setDescription={setDescription}
             selectedIcon={selectedIcon}
             setSelectedIcon={setSelectedIcon}
-            presetIcons={PRESET_ICONS}
+            presetIcons={PRESET_ICON_NAMES}
           />
 
           <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-end gap-3">

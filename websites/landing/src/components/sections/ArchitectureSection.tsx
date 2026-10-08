@@ -10,42 +10,37 @@ export const ArchitectureSection: React.FC = () => {
       id: 'iam',
       icon: ShieldCheck,
       color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-      title: t('docs.architecture.pillars.iam.title', 'Zero-Trust IAM'),
-      desc: t(
-        'docs.architecture.pillars.iam.desc',
-        'Centralized Zitadel OIDC authentication issuing short-lived RS256 JWT tokens verified by all microservice backends.'
-      ),
+      title: t('docs.architecture.pillars.iam.title'),
+      desc: t('docs.architecture.pillars.iam.desc'),
     },
     {
       id: 'storage',
       icon: HardDrive,
       color: 'text-sky-400 border-sky-500/30 bg-sky-500/10',
-      title: t('docs.architecture.pillars.storage.title', 'Tenant S3 Storage'),
-      desc: t(
-        'docs.architecture.pillars.storage.desc',
-        'RustFS high-performance S3 object storage with tenant-isolated buckets and presigned PUT/GET URLs.'
-      ),
+      title: t('docs.architecture.pillars.storage.title'),
+      desc: t('docs.architecture.pillars.storage.desc'),
     },
     {
       id: 'proxy',
       icon: Network,
       color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10',
-      title: t('docs.architecture.pillars.proxy.title', 'Caddy Reverse Proxy'),
-      desc: t(
-        'docs.architecture.pillars.proxy.desc',
-        'Central ingress gateway performing path-based routing, header injection, and HTTPS certificate management.'
-      ),
+      title: t('docs.architecture.pillars.proxy.title'),
+      desc: t('docs.architecture.pillars.proxy.desc'),
     },
     {
       id: 'observability',
       icon: Activity,
       color: 'text-purple-400 border-purple-500/30 bg-purple-500/10',
-      title: t('docs.architecture.pillars.observability.title', 'OpenTelemetry & VictoriaStack'),
-      desc: t(
-        'docs.architecture.pillars.observability.desc',
-        'Full distributed tracing, structured logging, and real-time CPU/memory/traffic telemetry across all containers.'
-      ),
+      title: t('docs.architecture.pillars.observability.title'),
+      desc: t('docs.architecture.pillars.observability.desc'),
     },
+  ];
+
+  const zones = [
+    { id: 'gateway', network: 'gateway-net', border: 'border-sky-500/30', title: 'text-[#3eb1ff]', note: 'text-sky-400/80' },
+    { id: 'infra', network: 'infra-net', border: 'border-emerald-500/30', title: 'text-emerald-400', note: 'text-emerald-400/80' },
+    { id: 'core', network: 'core-net', border: 'border-cyan-500/30', title: 'text-cyan-400', note: 'text-cyan-400/80' },
+    { id: 'apps', network: 'app-*-net', border: 'border-purple-500/30', title: 'text-purple-400', note: 'text-purple-400/80' },
   ];
 
   return (
@@ -53,16 +48,13 @@ export const ArchitectureSection: React.FC = () => {
       {/* Section Header */}
       <div className="text-center max-w-3xl mx-auto mb-12">
         <span className="text-xs font-mono uppercase px-3 py-1 rounded-full bg-[#111b33] border border-[#1c2847] text-[#3eb1ff]">
-          {t('docs.architecture.badge', 'Topology & Security')}
+          {t('docs.architecture.badge')}
         </span>
         <h2 className="text-3xl sm:text-4xl font-bold text-[#f0f6fc] mt-3">
-          {t('docs.architecture.title', 'Architectural Foundation')}
+          {t('docs.architecture.title')}
         </h2>
         <p className="text-[#8b949e] mt-3 text-base">
-          {t(
-            'docs.architecture.subtitle',
-            'Security-first multi-zone network segmentation with unified Zitadel identity brokering.'
-          )}
+          {t('docs.architecture.subtitle')}
         </p>
       </div>
 
@@ -92,29 +84,16 @@ export const ArchitectureSection: React.FC = () => {
       <div className="mt-10 glass-card rounded-2xl p-6 sm:p-8 border border-[#1c2847]">
         <div className="flex items-center gap-2 text-xs font-mono text-[#3eb1ff] mb-4">
           <NetworkIcon className="w-4 h-4" />
-          <span>{t('docs.architecture.diagram_title', 'DOCKER MULTI-ZONE NETWORK TOPOLOGY')}</span>
+          <span>{t('docs.architecture.diagram_title')}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
-          <div className="p-4 rounded-xl bg-[#0b1326] border border-sky-500/30">
-            <div className="font-bold text-[#3eb1ff] text-sm">gateway-net</div>
-            <div className="text-[#8b949e] mt-1">Caddy Ingress &amp; Frontends</div>
-            <div className="mt-3 text-[11px] text-sky-400/80">Public / WireGuard Ingress</div>
-          </div>
-          <div className="p-4 rounded-xl bg-[#0b1326] border border-emerald-500/30">
-            <div className="font-bold text-emerald-400 text-sm">infra-net</div>
-            <div className="text-[#8b949e] mt-1">Zitadel &amp; postgres-core &amp; RustFS</div>
-            <div className="mt-3 text-[11px] text-emerald-400/80">Isolated Platform IAM</div>
-          </div>
-          <div className="p-4 rounded-xl bg-[#0b1326] border border-cyan-500/30">
-            <div className="font-bold text-cyan-400 text-sm">core-net</div>
-            <div className="text-[#8b949e] mt-1">Dashboard Backend &amp; DB</div>
-            <div className="mt-3 text-[11px] text-cyan-400/80">Platform Control Plane</div>
-          </div>
-          <div className="p-4 rounded-xl bg-[#0b1326] border border-purple-500/30">
-            <div className="font-bold text-purple-400 text-sm">app-*-net</div>
-            <div className="text-[#8b949e] mt-1">8 Microservice Backends &amp; DBs</div>
-            <div className="mt-3 text-[11px] text-purple-400/80">Zero Cross-App DB Coupling</div>
-          </div>
+          {zones.map((zone) => (
+            <div key={zone.id} className={`p-4 rounded-xl bg-[#0b1326] border ${zone.border}`}>
+              <div className={`font-bold text-sm ${zone.title}`}>{zone.network}</div>
+              <div className="text-[#8b949e] mt-1">{t(`docs.architecture.zones.${zone.id}.desc`)}</div>
+              <div className={`mt-3 text-[11px] ${zone.note}`}>{t(`docs.architecture.zones.${zone.id}.note`)}</div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

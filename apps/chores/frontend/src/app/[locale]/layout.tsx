@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -29,6 +30,16 @@ const jetbrainsMono = JetBrains_Mono({
 interface LayoutProps {
   children: ReactNode;
   params: Promise<{ locale: string }>;
+}
+
+/** Localized page title and description, taken from the chores namespace of the shared messages. */
+export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
+  const { locale } = await params;
+  const messages = (await getMessages({ locale })) as { chores?: { title?: string; dashboardSubtitle?: string } };
+  return {
+    title: messages.chores?.title ?? "Chores Tracker",
+    description: messages.chores?.dashboardSubtitle ?? "alfheim Chores Tracker App",
+  };
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {

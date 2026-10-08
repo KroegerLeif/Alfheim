@@ -75,3 +75,26 @@ func TestBuildLLMMessagesPreservesExistingSystemPrompt(t *testing.T) {
 		t.Errorf("expected existing system prompt to be preserved, got %s", llmMsgs[0].Content)
 	}
 }
+
+func TestBuildLLMMessagesReplaysToolCallIDs(t *testing.T) {
+	history := []*Message{
+		{Role: RoleUser, Content: "how much milk?"},
+		{Role: RoleAssistant, ToolCallsJSON: []byte(`[{"ID":"call_7","ToolName":"get_stock","Arguments":{"item":"milk"}}]`)},
+		{Role: RoleTool, Content: "3 liters", ToolCallsJSON: []byte(`{"tool_call_id":"call_7","tool_name":"get_stock","is_error":false}`)},
+		{Role: RoleTool, Content: "legacy row without record"},
+	}
+
+	msgs := BuildLLMMessages(history)
+	if len(msgs) != 5 {
+		t.Fatalf("expected system prompt plus 4 messages, got %d", len(msgs))
+	}
+	if len(msgs[2].ToolCalls) != 1 || msgs[2].ToolCalls[0].ID != "call_7" {
+		t.Errorf("expected the assistant tool call to be replayed, got %+v", msgs[2].ToolCalls)
+	}
+	if msgs[3].ToolCallID != "call_7" {
+		t.Errorf("expected the tool result to carry its tool_call_id, got %q", msgs[3].ToolCallID)
+	}
+	if msgs[4].ToolCallID != "" {
+		t.Errorf("expected no tool_call_id for a legacy tool row, got %q", msgs[4].ToolCallID)
+	}
+}

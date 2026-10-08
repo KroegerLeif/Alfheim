@@ -25,8 +25,7 @@ export function ProviderFormModal({
 }: ProviderFormModalProps) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
-  const [providerType, setProviderType] = useState<ProviderType>("MOVIE");
-  const [notes, setNotes] = useState("");
+  const [providerType, setProviderType] = useState<ProviderType>("STREAMING");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,17 +38,15 @@ export function ProviderFormModal({
     try {
       setError(null);
       await onSubmit({
-        name: name.trim(),
+        provider_name: name.trim(),
         provider_type: providerType,
         is_active: true,
-        notes: notes.trim() || undefined,
       });
       setName("");
-      setNotes("");
-      setProviderType("MOVIE");
+      setProviderType("STREAMING");
       onClose();
     } catch {
-      setError(t("library.itemDialog.saveError"));
+      setError(t("library.providers.saveError"));
     }
   };
 
@@ -78,7 +75,8 @@ export function ProviderFormModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="z.B. Netflix, PS Plus, Xbox Game Pass"
+              maxLength={100}
+              placeholder={t("library.providers.namePlaceholder")}
               className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-primary focus:outline-none"
             />
           </div>
@@ -92,23 +90,10 @@ export function ProviderFormModal({
               onChange={(e) => setProviderType(e.target.value as ProviderType)}
               className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-primary focus:outline-none"
             >
-              <option value="MOVIE">{t("library.providers.typeMovie")}</option>
-              <option value="GAME">{t("library.providers.typeGame")}</option>
-              <option value="BOTH">{t("library.providers.typeBoth")}</option>
+              <option value="STREAMING">{t("library.providers.typeStreaming")}</option>
+              <option value="GAMING_PASS">{t("library.providers.typeGamePass")}</option>
+              <option value="BOOK_PASS">{t("library.providers.typeBookPass")}</option>
             </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
-              {t("library.lending.notes")}
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t("library.providers.notesPlaceholder")}
-              className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-primary focus:outline-none"
-            />
           </div>
 
           <DialogFooter className="pt-2">

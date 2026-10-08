@@ -57,10 +57,6 @@ export async function fetchTelemetryMetrics(): Promise<TelemetryMetrics> {
 }
 
 export async function fetchTelemetryLogs(): Promise<TelemetryLogEntry[]> {
-  try {
-    const res = await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
-    return res.logs;
-  } catch {
-    return [];
-  }
+  const res = await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
+  return res.logs ?? [];
 }

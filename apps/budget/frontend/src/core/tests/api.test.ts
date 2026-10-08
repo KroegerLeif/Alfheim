@@ -48,4 +48,11 @@ describe('budgetClient household context', () => {
     expect(listener).toHaveBeenCalledWith({ code: 'household_forbidden', householdId: 'hh-7' })
     unsubscribe()
   })
+
+  it('leaves the message empty when the server sends no usable error body', async () => {
+    fetchSpy.mockImplementation(async () => new Response('<html>bad gateway</html>', { status: 502 }))
+    const error = await budgetClient.get('api/v1/accounts').json().catch((err: unknown) => err)
+    expect(error).toMatchObject({ status: 502, message: '' })
+    expect((error as Error).message).not.toContain('budget.')
+  })
 })

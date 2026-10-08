@@ -1,7 +1,5 @@
 {
   "Navigation": {
-    "title": "Zakupy",
-    "subtitle": "Lista & Zapasy",
     "backToDashboard": "Powrót do pulpitu",
     "expandSidebar": "Rozwiń panel",
     "collapseSidebar": "Zwiń panel",
@@ -15,7 +13,9 @@
     "household_lists": "Listy domowe",
     "personal_lists": "Listy osobiste",
     "household_list_fallback": "Lista domowa",
-    "personal_list_fallback": "Lista osobista"
+    "personal_list_fallback": "Lista osobista",
+    "cancel": "Anuluj",
+    "shoppingSubtitle": "Lista & Zapasy"
   },
   "Checklist": {
     "title": "Lista zakupów",
@@ -39,7 +39,13 @@
     "show": "Pokaż",
     "removeItem": "Usuń artykuł",
     "deleteList": "Usuń listę",
-    "createList": "Utwórz listę"
+    "createList": "Utwórz listę",
+    "loadFailed": "Nie udało się wczytać szczegółów listy zakupów.",
+    "markChecked": "Oznacz jako kupione",
+    "markUnchecked": "Oznacz jako niekupione",
+    "clearSearch": "Wyczyść wyszukiwanie",
+    "searchLabel": "Szukaj artykułów",
+    "copyFailed": "Nie udało się skopiować linku."
   },
   "Categories": {
     "produce": "Owoce i warzywa 🥦",
@@ -58,11 +64,15 @@
     "addBtn": "Dodaj artykuł",
     "stepperDec": "Zmniejsz ilość",
     "stepperInc": "Zwiększ ilość",
-    "categoryLabel": "Kategoria"
+    "categoryLabel": "Kategoria",
+    "nameLabel": "Nazwa artykułu",
+    "quantityLabel": "Ilość",
+    "unitLabel": "Jednostka"
   },
   "History": {
     "title": "Często kupowane",
-    "noHistory": "Brak historii"
+    "noHistory": "Brak historii",
+    "removeEntry": "Usuń „{name}” z często kupowanych"
   },
   "Modal": {
     "scanTitle": "Zapisz · Skanuj",
@@ -87,20 +97,54 @@
     "confirmEdit": "Potwierdź zmianę",
     "cancelEdit": "Anuluj edycję",
     "cancelSave": "Anuluj zapisywanie",
-    "close": "Zamknij"
+    "close": "Zamknij",
+    "catalogFailed": "Nie udało się utworzyć wpisu w katalogu.",
+    "editFailed": "Nie udało się zapisać zmian w artykule.",
+    "stillUnrecognized": "Spiżarnia nadal nie może dopasować tego artykułu. Sprawdź nazwę i jednostkę.",
+    "retrySyncFailed": "Wpis w katalogu został utworzony, ale dodanie artykułu do zapasów nie powiodło się.",
+    "reasonProductNotFound": "Spiżarnia nadal nie znajduje produktu o tej nazwie ani kodzie kreskowym.",
+    "reasonInvalidUnit": "Spiżarnia nie zna jednostki tego artykułu.",
+    "reasonIncompatibleUnits": "Jednostka nie pasuje do jednostki wpisu w katalogu.",
+    "reasonSystemLocationMissing": "Spiżarnia nie ma jeszcze miejsca przechowywania nowych zapasów. Otwórz Spiżarnię raz, aby je utworzyć."
   },
   "Error": {
     "nameRequired": "Nazwa artykułu jest wymagana",
     "invalidQty": "Ilość musi być dodatnia",
     "fetchFailed": "Nie udało się załadować list zakupów",
     "fetchFailedDesc": "Nie można połączyć się z usługą zakupów.",
-    "syncFailed": "Synchronizacja ze spiżarnią nie powiodła się",
+    "syncFailed": "Synchronizacja ze spiżarnią nie powiodła się.",
     "unrecognizedError": "Wystąpił nieoczekiwany błąd",
     "sessionExpired": "Sesja wygasła",
     "sessionExpiredDesc": "Twój token bezpieczeństwa wygasł. Zaloguj się ponownie przez Zitadel.",
     "logIn": "Zaloguj",
     "retry": "Ponów",
     "forbidden": "Brak dostępu",
-    "forbiddenDesc": "Nie masz uprawnień do wyświetlania list zakupów w wybranym gospodarstwie."
+    "forbiddenDesc": "Nie masz uprawnień do wyświetlania list zakupów w wybranym gospodarstwie.",
+    "itemAddFailed": "Nie udało się dodać artykułu.",
+    "itemUpdateFailed": "Nie udało się zaktualizować artykułu.",
+    "itemDeleteFailed": "Nie udało się usunąć artykułu.",
+    "listCreateFailed": "Nie udało się utworzyć listy.",
+    "listDeleteFailed": "Nie udało się usunąć listy.",
+    "listReorderFailed": "Nie udało się zapisać nowej kolejności list.",
+    "unreachable": "Nie można połączyć się z usługą.",
+    "pageTitle": "Coś poszło nie tak",
+    "pageDesc": "Podczas wczytywania tej strony wystąpił nieoczekiwany błąd.",
+    "tryAgain": "Spróbuj ponownie",
+    "dismiss": "Zamknij komunikat",
+    "historyRemoveFailed": "Nie udało się usunąć wpisu."
+  },
+  "Units": {
+    "piece": "szt.",
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "l": "L",
+    "bottle": "but.",
+    "pack": "opak.",
+    "bunch": "pęczek",
+    "can": "puszka",
+    "packet": "paczka",
+    "bag": "torba",
+    "box": "pudełko"
   }
 }

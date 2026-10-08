@@ -1,6 +1,9 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { fileURLToPath } from 'node:url';
+import { satteri } from '@astrojs/markdown-satteri';
+import createRewriteDocLinksPlugin from './src/plugins/rewrite-doc-links.mjs';
 
 // The portal is merged into the landing page artifact under /docs.
 // To serve it from a dedicated domain later (for example docs.loegien.de),
@@ -11,6 +14,19 @@ export default defineConfig({
   // Both locales are URL-prefixed, so Starlight generates no root page and
   // /docs/ would 404 -- which is exactly where the landing page links.
   redirects: { '/': '/docs/en/' },
+  // Documentation pages link to each other with relative `.md` paths so the
+  // files stay navigable on GitHub; this rewrites them for the rendered site.
+  markdown: {
+    processor: satteri({
+      mdastPlugins: [
+        createRewriteDocLinksPlugin({
+          base: '/docs',
+          docsDir: fileURLToPath(new URL('../../docs', import.meta.url)),
+          repoUrl: 'https://github.com/KroegerLeif/Alfheim',
+        }),
+      ],
+    }),
+  },
   // The content collection and the changelog wrapper import files from the
   // repository root, which sits above this project's directory.
   vite: {
@@ -19,6 +35,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Alfheim',
+      favicon: '/favicon.png',
       description: 'Documentation for Alfheim Sovereign OS.',
       defaultLocale: 'en',
       locales: {

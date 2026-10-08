@@ -26,14 +26,21 @@ interface LocationFormModalProps {
   ) => Promise<void>;
 }
 
-function flattenTree(nodes: LocationNode[]): { id: string; name: string }[] {
+/**
+ * Flatten the tree into select options labelled with their path. The location being edited and
+ * everything below it are skipped, because moving a location under itself would create a cycle.
+ */
+function flattenTree(
+  nodes: LocationNode[],
+  excludedId: string | null
+): { id: string; name: string }[] {
   const list: { id: string; name: string }[] = [];
   function traverse(items: LocationNode[], prefix = "") {
     for (const item of items) {
-      list.push({ id: item.id, name: prefix ? `${prefix} / ${item.name}` : item.name });
-      if (item.children && item.children.length > 0) {
-        traverse(item.children, prefix ? `${prefix} / ${item.name}` : item.name);
-      }
+      if (item.id === excludedId) continue;
+      const path = prefix ? `${prefix} / ${item.name}` : item.name;
+      list.push({ id: item.id, name: path });
+      traverse(item.children ?? [], path);
     }
   }
   traverse(nodes);
@@ -88,16 +95,14 @@ export function LocationFormModal({
         await onSave(payload);
       }
       onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("library.locations.saveError"));
+    } catch {
+      setError(t("library.locations.saveError"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const flatList = flattenTree(allLocations).filter(
-    (loc) => !locationToEdit || loc.id !== locationToEdit.id
-  );
+  const flatList = flattenTree(allLocations, locationToEdit?.id ?? null);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -112,18 +117,23 @@ export function LocationFormModal({
 
         <form id="location-form" onSubmit={handleSubmit} className="space-y-4 py-2">
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400">
+            <div
+              role="alert"
+              className="break-words rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400"
+            >
               {error}
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--text-main)]">
+            <label htmlFor="location-name" className="text-xs font-semibold text-[var(--text-main)]">
               {t("library.locations.name")} *
             </label>
             <input
+              id="location-name"
               type="text"
               required
+              maxLength={100}
               value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               placeholder={t("library.locations.name")}
@@ -132,10 +142,11 @@ export function LocationFormModal({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--text-main)]">
+            <label htmlFor="location-parent" className="text-xs font-semibold text-[var(--text-main)]">
               {t("library.locations.parent")}
             </label>
             <select
+              id="location-parent"
               value={parentId}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setParentId(e.target.value)}
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary"
@@ -150,11 +161,13 @@ export function LocationFormModal({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--text-main)]">
+            <label htmlFor="location-description" className="text-xs font-semibold text-[var(--text-main)]">
               {t("library.itemDialog.description")}
             </label>
             <input
+              id="location-description"
               type="text"
+              maxLength={500}
               value={description}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
               placeholder={t("library.itemDialog.description")}
@@ -168,7 +181,7 @@ export function LocationFormModal({
             {t("library.itemDialog.cancel")}
           </Button>
           <Button type="submit" form="location-form" size="sm" disabled={isSubmitting}>
-            {isSubmitting ? "..." : t("library.itemDialog.save")}
+            {isSubmitting ? t("common.saving") : t("library.itemDialog.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

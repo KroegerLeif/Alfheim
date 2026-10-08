@@ -23,9 +23,18 @@
       "noItemsFound": "No media items found.",
       "addItem": "Add Media Item",
       "players": "{min}-{max} Players",
-      "playersSingle": "{count} Player",
+      "playersSingle": "Players: {count}",
       "runtime": "{minutes} mins",
-      "fsk": "Age {age}+"
+      "fsk": "Age {age}+",
+      "errorLoading": "An error occurred while loading your library items. Please try again.",
+      "errorLoadingTitle": "Failed to load catalog",
+      "clearSearch": "Clear search",
+      "showing": "Showing {shown} of {total}",
+      "loadMore": "Load more",
+      "loadingMore": "Loading more...",
+      "loadMoreError": "Could not load more items. Please try again.",
+      "cookbook": "Cookbook",
+      "manualBadge": "Manual"
     },
     "locations": {
       "title": "Storage Locations",
@@ -44,7 +53,15 @@
       "deleteError": "Failed to delete location.",
       "saveError": "Failed to save location.",
       "name": "Location Name",
-      "parent": "Parent Location"
+      "parent": "Parent Location",
+      "loadError": "Failed to load locations.",
+      "collapseNode": "Collapse {name}",
+      "expandNode": "Expand {name}",
+      "editAria": "Edit location {name}",
+      "deleteAria": "Delete location {name}",
+      "deleteInUse": "Location \"{name}\" still holds {count} item(s). Move or delete them first.",
+      "deleteWithChildren": "Its sub-locations will be deleted as well.",
+      "deleting": "Deleting..."
     },
     "lending": {
       "title": "Lending Tracker",
@@ -60,16 +77,22 @@
       "notes": "Notes",
       "activeLoans": "Active Loans",
       "history": "Lending History",
-      "noActiveLoans": "No items currently lent out."
+      "noActiveLoans": "No items currently lent out.",
+      "errorLoading": "An error occurred while loading the lending history. Please try again.",
+      "statusColumn": "Status",
+      "unknownItem": "Unknown item",
+      "noHistory": "No lending history yet.",
+      "errorLoadingTitle": "Failed to load lending history",
+      "returnError": "Could not mark the item as returned. Please try again.",
+      "lendError": "Could not lend the item. Please try again.",
+      "historyTruncated": "Showing the latest {shown} of {total} records.",
+      "borrowerPlaceholder": "e.g. John Doe"
     },
     "providers": {
       "title": "Streaming & Subscriptions",
       "subtitle": "Active household services for movies, series, and games",
       "addProvider": "Add Provider",
       "activeProviders": "Active Household Providers",
-      "typeMovie": "Movies & Series",
-      "typeGame": "Gaming Subscription",
-      "typeBoth": "Combined",
       "noProviders": "No providers configured.",
       "statusActive": "Active",
       "statusInactive": "Inactive",
@@ -79,10 +102,17 @@
       "providerName": "Provider Name",
       "providerType": "Provider Type",
       "nameRequired": "Name is required.",
-      "notesPlaceholder": "Optional notes about subscription",
       "saving": "Saving...",
       "loading": "Loading providers...",
-      "loadError": "Failed to load streaming providers."
+      "loadError": "Failed to load streaming providers.",
+      "typeStreaming": "Movies & Series",
+      "typeGamePass": "Gaming Subscription",
+      "typeBookPass": "Book Subscription",
+      "namePlaceholder": "e.g. Netflix, PS Plus, Xbox Game Pass",
+      "deleteInUse": "\"{name}\" is still linked to {count} item(s). Unlink them first.",
+      "deleteError": "Failed to delete the provider.",
+      "updateError": "Failed to update the provider.",
+      "saveError": "Failed to save the provider."
     },
     "manuals": {
       "title": "Game Manual (PDF)",
@@ -98,7 +128,9 @@
       "deleteError": "Failed to delete manual.",
       "deleteConfirm": "Are you sure you want to delete the manual for \"{title}\"?",
       "loadUrlError": "Failed to load manual link.",
-      "openNewTab": "Open PDF in new tab"
+      "openNewTab": "Open PDF in new tab",
+      "uploaded": "Uploaded",
+      "deleting": "Deleting..."
     },
     "itemDialog": {
       "createTitle": "Add New Media",
@@ -125,7 +157,15 @@
       "lookupBggLabel": "BGG (Board Game)",
       "lookupTmdbLabel": "TMDB (Movie/Series)",
       "lookupError": "Failed to fetch metadata. Please try manual entry.",
-      "saveError": "Failed to save item. Please check inputs and try again."
+      "saveError": "Failed to save item. Please check inputs and try again.",
+      "provider": "Streaming Provider",
+      "noProvider": "-- No Provider --",
+      "providerInactive": "{name} (inactive)",
+      "lookupInvalid": "The search term is not valid. Please check it and try again.",
+      "lookupNoResults": "No results found. Try a different search term or enter the data manually.",
+      "lookupUnavailable": "The lookup service is currently unavailable. Please try again later or enter the data manually.",
+      "lookupNotConfigured": "This lookup source is not configured on the server (API key missing). Ask your administrator or enter the data manually.",
+      "lookupSource": "Lookup source"
     }
   }
 }

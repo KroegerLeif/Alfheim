@@ -2,6 +2,7 @@
 
 import { useTranslation } from "@alfheim/shared";
 import { TableRow, TableCell, Badge } from "@alfheim/shared";
+import { formatDateTime } from "@/core/format";
 import { ProductRead } from "@/features/products/types";
 import { LocationRead } from "@/features/locations/types";
 
@@ -23,15 +24,8 @@ interface LedgerTableRowProps {
   location: LocationRead | undefined;
 }
 
-function formatDateTime(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  } catch {
-    return dateStr;
-  }
-}
+/** Transaction types that have a localized label under `pantry.txType`. */
+const KNOWN_TX_TYPES = new Set(["in", "out", "waste", "reconciliation"]);
 
 const TX_CLASS: Record<string, string> = {
   in: "bg-emerald-950/20 border-emerald-800/40 text-emerald-400",
@@ -45,27 +39,29 @@ const TX_CLASS: Record<string, string> = {
  * signed quantity formatting, and transaction type badge.
  */
 export function LedgerTableRow({ entry, product, location }: LedgerTableRowProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isPositive = entry.quantity > 0;
   const formattedQty = isPositive ? `+${entry.quantity.toFixed(1)}` : `${entry.quantity.toFixed(1)}`;
   const txClass = TX_CLASS[entry.transaction_type] ?? "bg-sky-950/20 border-sky-800/40 text-sky-400";
 
   return (
     <TableRow className="border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--surface-elevated)]/50">
-      <TableCell className="text-xs font-mono text-[var(--text-muted)]">{formatDateTime(entry.created_at)}</TableCell>
+      <TableCell className="text-xs font-mono text-[var(--text-muted)]">{formatDateTime(entry.created_at, language)}</TableCell>
 
-      <TableCell className="font-sans font-bold uppercase text-xs tracking-tight text-[var(--text-main)]">
+      <TableCell className="font-sans font-bold uppercase text-xs tracking-tight text-[var(--text-main)] max-w-[16rem] break-words">
         {product?.name ?? t("pantry.unknownProduct")}
         {product?.brand && (
           <span className="block text-[9px] text-[var(--text-muted)] font-mono font-normal tracking-wide lowercase mt-0.5">
-            brand: {product.brand}
+            {t("pantry.brandLabel")}: {product.brand}
           </span>
         )}
       </TableCell>
 
       <TableCell>
-        <Badge variant="outline" className={`text-[9px] font-bold ${txClass}`}>
-          {entry.transaction_type.toUpperCase()}
+        <Badge variant="outline" className={`text-[9px] font-bold uppercase ${txClass}`}>
+          {KNOWN_TX_TYPES.has(entry.transaction_type)
+            ? t(`pantry.txType.${entry.transaction_type}`)
+            : entry.transaction_type}
         </Badge>
       </TableCell>
 
@@ -76,18 +72,19 @@ export function LedgerTableRow({ entry, product, location }: LedgerTableRowProps
         </span>
       </TableCell>
 
-      <TableCell className="uppercase text-xs font-semibold text-[var(--text-main)]">
+      <TableCell className="uppercase text-xs font-semibold text-[var(--text-main)] max-w-[12rem] break-words">
         {location?.name ?? t("pantry.unknownLocation")}
       </TableCell>
 
-      <TableCell className="text-xs max-w-[200px] truncate">
+      <TableCell className="text-xs max-w-[200px]">
         {entry.batch_code && (
-          <div className="font-bold text-[9px] bg-[var(--surface-elevated)] border border-[var(--border-subtle)] px-1 py-0.5 inline-block mb-1 text-[var(--primary-main)] rounded">
-            BATCH: {entry.batch_code.toUpperCase()}
+          <div className="font-bold text-[9px] bg-[var(--surface-elevated)] border border-[var(--border-subtle)] px-1 py-0.5 inline-block mb-1 text-[var(--primary-main)] rounded max-w-full truncate align-bottom"
+            title={entry.batch_code}>
+            {t("pantry.batch")}: {entry.batch_code.toUpperCase()}
           </div>
         )}
         {entry.notes ? (
-          <div className="text-[var(--text-muted)] font-sans italic text-[11px] truncate">{entry.notes}</div>
+          <div className="text-[var(--text-muted)] font-sans italic text-[11px] break-words line-clamp-3" title={entry.notes}>{entry.notes}</div>
         ) : (
           !entry.batch_code && <span className="text-[var(--text-muted)]">--</span>
         )}

@@ -54,10 +54,10 @@ export function ModelBlockCard({ model, onEdit, onDelete }: ModelBlockCardProps)
   };
 
   return (
-    <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] hover:border-[var(--border-accent)] transition-all flex flex-col justify-between gap-3 shadow-sm">
-      <div className="space-y-2">
+    <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] hover:border-[var(--border-accent)] transition-all flex flex-col justify-between gap-3 shadow-sm min-w-0">
+      <div className="space-y-2 min-w-0">
         <div className="flex items-start justify-between gap-2 flex-wrap">
-          <h3 className="text-base font-bold text-[var(--text-main)] truncate">
+          <h3 className="text-base font-bold text-[var(--text-main)] truncate min-w-0 max-w-full" title={model.display_name}>
             {model.display_name}
           </h3>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -66,14 +66,18 @@ export function ModelBlockCard({ model, onEdit, onDelete }: ModelBlockCardProps)
           </div>
         </div>
 
-        <div className="text-xs font-mono text-[var(--text-muted)] space-y-0.5">
-          <p><span className="text-[var(--text-main)] font-semibold">{t("Chat.modelProvider")}:</span> {model.provider_type}</p>
-          <p><span className="text-[var(--text-main)] font-semibold">{t("Chat.modelIdentifier")}:</span> {model.model_identifier}</p>
+        <div className="text-xs font-mono text-[var(--text-muted)] space-y-0.5 min-w-0">
+          <p className="truncate"><span className="text-[var(--text-main)] font-semibold">{t("Chat.modelProvider")}:</span> {model.provider_type}</p>
+          <p className="break-words [overflow-wrap:anywhere]"><span className="text-[var(--text-main)] font-semibold">{t("Chat.modelIdentifier")}:</span> {model.model_identifier}</p>
           {model.base_url && (
             <p className="truncate"><span className="text-[var(--text-main)] font-semibold">{t("Chat.modelBaseUrl")}:</span> {model.base_url}</p>
           )}
         </div>
       </div>
+
+      {triggerHealth.isError && (
+        <p role="alert" className="text-xs text-red-400">{t("Chat.healthCheckError")}</p>
+      )}
 
       <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
         <button

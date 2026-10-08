@@ -7,7 +7,7 @@ import {
   SyncToPantryResponseSchema,
   ProductReadSchema,
 } from "../schemas";
-import { ShoppingItem, SyncToPantryResponse } from "../types";
+import { ProductRead, ShoppingItem, SyncToPantryResponse } from "../types";
 import { shoppingKeys } from "./shoppingListService";
 
 export interface PantryProductCreatePayload {
@@ -37,17 +37,25 @@ export function useImportLowStock(listId: string) {
   });
 }
 
+export interface SyncToPantryVariables {
+  /** Explicit target household; the active one is sent when omitted. */
+  householdId?: string;
+  /** Only retry these completed items (for example after their catalog entry was created). */
+  itemIds?: string[];
+}
+
 /**
  * Hook to commit the sync-to-pantry checkout action. Returns unrecognized catalog items.
+ * Callers surface failures themselves because they know what the user was doing.
  */
 export function useSyncToPantry(listId: string) {
   const queryClient = useQueryClient();
-  return useMutation<SyncToPantryResponse, Error, { householdId?: string } | undefined>({
+  return useMutation<SyncToPantryResponse, Error, SyncToPantryVariables | undefined>({
     mutationFn: (variables) => {
-      // Explicit target household when given; otherwise the client sends the active one.
       const headers = householdHeaders(variables?.householdId ?? null);
+      const json = variables?.itemIds ? { item_ids: variables.itemIds } : undefined;
       return shoppingClient
-        .post(`api/v1/shopping-lists/${listId}/sync-to-pantry`, { headers })
+        .post(`api/v1/shopping-lists/${listId}/sync-to-pantry`, { headers, json })
         .json()
         .then((data) => SyncToPantryResponseSchema.parse(data));
     },
@@ -62,7 +70,7 @@ export function useSyncToPantry(listId: string) {
  * Hook to record new product blueprints in the central Pantry catalog.
  */
 export function useCreatePantryProduct() {
-  return useMutation<any, Error, PantryProductCreatePayload>({
+  return useMutation<ProductRead, Error, PantryProductCreatePayload>({
     mutationFn: ({ householdId, ...payload }) => {
       const headers = householdHeaders(householdId ?? null);
       return pantryClient

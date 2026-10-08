@@ -162,7 +162,7 @@ describe('MemberTable Component', () => {
     fireEvent.change(roleSelect, { target: { value: 'ADMIN' } });
     expect(handleRoleChange).toHaveBeenCalledWith('user-member-456', 'MEMBER', 'ADMIN');
 
-    const removeBtn = screen.getByLabelText(/remove_member/i);
+    const removeBtn = screen.getByLabelText('Remove Thor Odinson');
     fireEvent.click(removeBtn);
     expect(handleRemoveMember).toHaveBeenCalledWith('user-member-456', 'Thor Odinson');
   });

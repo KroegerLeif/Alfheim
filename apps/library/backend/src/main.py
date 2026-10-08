@@ -1,4 +1,5 @@
 import importlib
+import logging
 import pathlib
 from contextlib import asynccontextmanager
 
@@ -6,9 +7,11 @@ from backend_shared import setup_telemetry, shutdown_telemetry
 from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import mount_mcp
 from fastapi import APIRouter, FastAPI
+from sqlalchemy.exc import IntegrityError
 
 from src.api.v1 import router as api_v1_router
 from src.config import settings
+from src.errors import CODE_CONFLICT, error_detail
 from src.mcp.server import mcp
 
 
@@ -87,6 +90,20 @@ async def value_error_exception_handler(request: Request, exc: ValueError):
     )
 
 
+@app.exception_handler(IntegrityError)
+async def integrity_error_exception_handler(request: Request, exc: IntegrityError):
+    """Turn database constraint violations that slip past explicit checks into a clean 409."""
+    logging.getLogger("library.backend").warning(
+        "Integrity error on %s %s: %s", request.method, request.url.path, exc.orig
+    )
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail": error_detail(CODE_CONFLICT, "The request conflicts with existing data."),
+        },
+    )
+
+
 # Register API v1 routes
 app.include_router(api_v1_router)
 
@@ -111,7 +128,5 @@ async def health_check_root():
 @app.get("/api/v1/health")
 async def health_check():
     """Simple health check endpoint."""
-    import logging
-
     logging.info("Library health check endpoint hit!")
     return {"status": "ok"}

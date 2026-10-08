@@ -23,9 +23,18 @@
       "noItemsFound": "Nie znaleziono żadnych pozycji.",
       "addItem": "Dodaj pozycję",
       "players": "{min}-{max} Graczy",
-      "playersSingle": "{count} Graczy",
+      "playersSingle": "Graczy: {count}",
       "runtime": "{minutes} min",
-      "fsk": "Od {age} lat"
+      "fsk": "Od {age} lat",
+      "errorLoading": "Podczas ładowania elementów biblioteki wystąpił błąd. Spróbuj ponownie.",
+      "errorLoadingTitle": "Nie udało się załadować katalogu",
+      "clearSearch": "Wyczyść wyszukiwanie",
+      "showing": "Wyświetlono {shown} z {total}",
+      "loadMore": "Załaduj więcej",
+      "loadingMore": "Ładowanie kolejnych pozycji...",
+      "loadMoreError": "Nie udało się załadować kolejnych pozycji. Spróbuj ponownie.",
+      "cookbook": "Książka kucharska",
+      "manualBadge": "Instrukcja"
     },
     "locations": {
       "title": "Miejsca Przechowywania",
@@ -44,7 +53,15 @@
       "deleteError": "Nie udało się usunąć lokalizacji.",
       "saveError": "Nie udało się zapisać lokalizacji.",
       "name": "Nazwa lokalizacji",
-      "parent": "Lokalizacja nadrzędna"
+      "parent": "Lokalizacja nadrzędna",
+      "loadError": "Nie udało się załadować lokalizacji.",
+      "collapseNode": "Zwiń {name}",
+      "expandNode": "Rozwiń {name}",
+      "editAria": "Edytuj lokalizację {name}",
+      "deleteAria": "Usuń lokalizację {name}",
+      "deleteInUse": "W lokalizacji \"{name}\" nadal znajduje się pozycji: {count}. Najpierw przenieś je lub usuń.",
+      "deleteWithChildren": "Lokalizacje podrzędne zostaną również usunięte.",
+      "deleting": "Usuwanie..."
     },
     "lending": {
       "title": "Śledzenie Wypożyczeń",
@@ -60,16 +77,22 @@
       "notes": "Notatki",
       "activeLoans": "Aktywne wypożyczenia",
       "history": "Historia wypożyczeń",
-      "noActiveLoans": "Brak obecnie wypożyczonych pozycji."
+      "noActiveLoans": "Brak obecnie wypożyczonych pozycji.",
+      "errorLoading": "Podczas ładowania historii wypożyczeń wystąpił błąd. Spróbuj ponownie.",
+      "statusColumn": "Status",
+      "unknownItem": "Nieznana pozycja",
+      "noHistory": "Brak historii wypożyczeń.",
+      "errorLoadingTitle": "Nie udało się załadować historii wypożyczeń",
+      "returnError": "Nie udało się oznaczyć pozycji jako zwróconej. Spróbuj ponownie.",
+      "lendError": "Nie udało się wypożyczyć pozycji. Spróbuj ponownie.",
+      "historyTruncated": "Wyświetlono najnowsze {shown} z {total} wpisów.",
+      "borrowerPlaceholder": "np. Jan Kowalski"
     },
     "providers": {
       "title": "Streaming i Subskrypcje",
       "subtitle": "Aktywne usługi domowe dla filmów, seriali i gier",
       "addProvider": "Dodaj dostawcę",
       "activeProviders": "Aktywni dostawcy w gospodarstwie",
-      "typeMovie": "Filmy i Seriale",
-      "typeGame": "Subskrypcja gier",
-      "typeBoth": "Połączone",
       "noProviders": "Brak skonfigurowanych dostawców.",
       "statusActive": "Aktywny",
       "statusInactive": "Nieaktywny",
@@ -79,10 +102,17 @@
       "providerName": "Nazwa dostawcy",
       "providerType": "Typ dostawcy",
       "nameRequired": "Nazwa jest wymagana.",
-      "notesPlaceholder": "Opcjonalne notatki dotyczące subskrypcji",
       "saving": "Zapisywanie...",
       "loading": "Ładowanie dostawców...",
-      "loadError": "Błąd podczas ładowania dostawców streamingu."
+      "loadError": "Błąd podczas ładowania dostawców streamingu.",
+      "typeStreaming": "Filmy i Seriale",
+      "typeGamePass": "Subskrypcja gier",
+      "typeBookPass": "Subskrypcja książek",
+      "namePlaceholder": "np. Netflix, PS Plus, Xbox Game Pass",
+      "deleteInUse": "\"{name}\" jest nadal powiązany z pozycjami: {count}. Najpierw usuń powiązania.",
+      "deleteError": "Nie udało się usunąć dostawcy.",
+      "updateError": "Nie udało się zaktualizować dostawcy.",
+      "saveError": "Nie udało się zapisać dostawcy."
     },
     "manuals": {
       "title": "Instrukcja Gry (PDF)",
@@ -98,7 +128,9 @@
       "deleteError": "Nie udało się usunąć instrukcji.",
       "deleteConfirm": "Czy na pewno chcesz usunąć instrukcję dla \"{title}\"?",
       "loadUrlError": "Nie udało się załadować linku do instrukcji.",
-      "openNewTab": "Otwórz PDF w nowej karcie"
+      "openNewTab": "Otwórz PDF w nowej karcie",
+      "uploaded": "Przesłano",
+      "deleting": "Usuwanie..."
     },
     "itemDialog": {
       "createTitle": "Dodaj Nowe Media",
@@ -125,7 +157,15 @@
       "lookupBggLabel": "BGG (Gra planszowa)",
       "lookupTmdbLabel": "TMDB (Film/Serial)",
       "lookupError": "Nie udało się pobrać metadanych. Spróbuj wprowadzić dane ręcznie.",
-      "saveError": "Nie udało się zapisać pozycji. Sprawdź wprowadzone dane."
+      "saveError": "Nie udało się zapisać pozycji. Sprawdź wprowadzone dane.",
+      "provider": "Dostawca streamingu",
+      "noProvider": "-- Brak dostawcy --",
+      "providerInactive": "{name} (nieaktywny)",
+      "lookupInvalid": "Wyszukiwana fraza jest nieprawidłowa. Sprawdź ją i spróbuj ponownie.",
+      "lookupNoResults": "Nie znaleziono wyników. Spróbuj innej frazy lub wprowadź dane ręcznie.",
+      "lookupUnavailable": "Usługa wyszukiwania jest obecnie niedostępna. Spróbuj ponownie później lub wprowadź dane ręcznie.",
+      "lookupNotConfigured": "To źródło wyszukiwania nie jest skonfigurowane na serwerze (brak klucza API). Skontaktuj się z administratorem lub wprowadź dane ręcznie.",
+      "lookupSource": "Źródło wyszukiwania"
     }
   }
 }

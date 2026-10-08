@@ -16,7 +16,7 @@ export const VpnNoticeBanner: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-sky-500/20 text-[#3eb1ff] border border-sky-500/30 font-semibold">
-                  {t('docs.vpnNotice.badge', 'Security Perimeter')}
+                  {t('docs.vpnNotice.badge')}
                 </span>
                 <span className="text-xs text-[#8b949e] font-mono flex items-center gap-1">
                   <Lock className="w-3 h-3 text-sky-400" />
@@ -24,13 +24,10 @@ export const VpnNoticeBanner: React.FC = () => {
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-semibold text-[#f0f6fc] mt-1">
-                {t('docs.vpnNotice.title', 'Private Network Access Notice')}
+                {t('docs.vpnNotice.title')}
               </h3>
               <p className="text-sm text-[#8b949e] mt-1 leading-relaxed max-w-3xl">
-                {t(
-                  'docs.vpnNotice.description',
-                  'Production apps (Dashboard, Pantry, Shopping, Chores, Maintenance) run within an isolated WireGuard/Tailscale enclave. Direct access to live instances requires active VPN tunnel authorization.'
-                )}
+                {t('docs.vpnNotice.description')}
               </p>
             </div>
           </div>

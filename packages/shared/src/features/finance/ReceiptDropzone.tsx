@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Upload, FileText, X } from "lucide-react";
 import { cn } from "../ui/utils/cn";
+import { useTranslation } from "../i18n/utils/useTranslation";
 
 export interface ReceiptDropzoneProps extends React.HTMLAttributes<HTMLDivElement> {
   onFileSelect: (file: File | null) => void;
@@ -19,6 +20,7 @@ export function ReceiptDropzone({
   className,
   ...props
 }: ReceiptDropzoneProps) {
+  const { t } = useTranslation();
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -26,7 +28,7 @@ export function ReceiptDropzone({
   const validateAndSelect = (file: File) => {
     setErrorMessage(null);
     if (file.size > maxSizeMB * 1024 * 1024) {
-      setErrorMessage(`File exceeds maximum size of ${maxSizeMB}MB`);
+      setErrorMessage(t("common.receipt.too_large", { size: maxSizeMB }));
       return;
     }
     onFileSelect(file);
@@ -91,7 +93,7 @@ export function ReceiptDropzone({
           accept={accept}
           onChange={handleInputChange}
           disabled={disabled}
-          aria-label="Upload receipt file"
+          aria-label={t("common.receipt.upload_label")}
           className="hidden"
           data-testid="receipt-input"
         />
@@ -112,9 +114,9 @@ export function ReceiptDropzone({
                 type="button"
                 onClick={handleRemove}
                 className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-background transition-colors"
-                aria-label="Remove file"
+                aria-label={t("common.receipt.remove_file")}
               >
-                <X className="h-4 w-4" />
+                <X aria-hidden="true" className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -122,9 +124,10 @@ export function ReceiptDropzone({
           <div className="flex flex-col items-center gap-2">
             <Upload className="h-8 w-8 text-muted-foreground" />
             <div className="text-sm">
-              <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+              <span className="font-semibold text-primary">{t("common.receipt.click_to_upload")}</span>{" "}
+              {t("common.receipt.or_drag_and_drop")}
             </div>
-            <p className="text-xs text-muted-foreground">Receipt images or PDFs (up to {maxSizeMB}MB)</p>
+            <p className="text-xs text-muted-foreground">{t("common.receipt.hint", { size: maxSizeMB })}</p>
           </div>
         )}
       </div>

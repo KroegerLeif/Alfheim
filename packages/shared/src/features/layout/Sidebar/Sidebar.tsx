@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { AppLogo, cn, useTranslation } from "@alfheim/shared";
+import { AppLogo } from "../../ui/components/AppLogo";
+import { cn } from "../../ui/utils/cn";
+import { useTranslation } from "../../i18n/utils/useTranslation";
 import React from "react";
 
 export interface SidebarNavItem {
@@ -46,6 +48,10 @@ export function Sidebar({
   const defaultStorageKey = `alfheim_${appName}_sidebar_collapsed`;
   const key = storageKey || defaultStorageKey;
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const titleKey = `${appName}.title`;
+  const translatedTitle = t(titleKey);
+  // t() returns the key itself when it is missing; fall back to the raw app name then.
+  const title = translatedTitle === titleKey ? appName.toUpperCase() : translatedTitle;
 
   useEffect(() => {
     const saved = localStorage.getItem(key);
@@ -76,7 +82,7 @@ export function Sidebar({
         <AppLogo appName={appName as any} size={32} />
         {!isCollapsed && (
           <span className="truncate font-heading text-sm font-bold uppercase tracking-wide">
-            {t(`${appName}.title`) || appName.toUpperCase()}
+            {title}
           </span>
         )}
       </div>

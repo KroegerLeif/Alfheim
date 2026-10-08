@@ -11,7 +11,9 @@ import {
   Printer,
   Trash2,
 } from "lucide-react";
+import { useNotifications } from "@/components/shared/Notifications";
 import type { ShoppingList } from "../types";
+import { ProgressRing } from "./ProgressRing";
 import type { Household } from "../services/shoppingListService";
 
 interface DashboardHeaderProps {
@@ -38,22 +40,14 @@ export function DashboardHeader({
   const t = useTranslations("Checklist");
   const navT = useTranslations("Navigation");
 
+  const { notifyError } = useNotifications();
   const [copiedNotification, setCopiedNotification] = useState(false);
 
-  const progress = totalCount > 0 ? Math.min(Math.max(checkedCount / totalCount, 0), 1) : 0;
   const percentage = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
-  const circumference = 2 * Math.PI * 15; // r=15
-  const strokeDash = totalCount > 0 ? `${progress * circumference} ${circumference}` : `0 ${circumference}`;
-
-  const isPersonalList = (name: string, isPersonalFlag?: boolean) =>
-    isPersonalFlag ||
-    name.endsWith(" - Liste") ||
-    name.endsWith("'s List") ||
-    name.startsWith("Lista ");
 
   const displayListName = useMemo(() => {
     if (!activeList) return t("title");
-    if (isPersonalList(activeList.name, activeList.is_personal)) {
+    if (activeList.is_personal) {
       return username && username !== "User"
         ? navT("personalList", { username })
         : navT("personal_list_fallback");
@@ -65,12 +59,15 @@ export function DashboardHeader({
     return activeList.name;
   }, [activeList, households, username, t, navT]);
 
-  const handleShare = () => {
-    if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedNotification(true);
-      setTimeout(() => setCopiedNotification(false), 2000);
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+    } catch {
+      notifyError(t("copyFailed"));
+      return;
     }
+    setCopiedNotification(true);
+    setTimeout(() => setCopiedNotification(false), 2000);
   };
 
   const handlePrint = () => {
@@ -93,7 +90,10 @@ export function DashboardHeader({
           </div>
 
           <div className="flex flex-col min-w-0">
-            <h1 className="font-heading text-lg md:text-xl font-black uppercase tracking-wide text-[var(--text-main)] truncate">
+            <h1
+              title={displayListName}
+              className="font-heading text-lg md:text-xl font-black uppercase tracking-wide text-[var(--text-main)] truncate"
+            >
               {displayListName}
             </h1>
             <div className="flex items-center gap-2">
@@ -112,29 +112,7 @@ export function DashboardHeader({
         <div className="flex items-center gap-4 shrink-0">
           {/* Progress Circular Indicator */}
           <div className="flex items-center gap-2 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-xl">
-            <div className="relative w-8 h-8 flex items-center justify-center">
-              <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 36 36">
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="15"
-                  fill="none"
-                  stroke="var(--border-subtle)"
-                  strokeWidth="3.5"
-                />
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="15"
-                  fill="none"
-                  stroke="var(--primary-main)"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeDasharray={strokeDash}
-                  className="transition-all duration-500 ease-out"
-                />
-              </svg>
-            </div>
+            <ProgressRing percentage={percentage} />
             <div className="flex flex-col leading-none">
               <span className="font-mono text-xs font-bold text-[var(--text-main)]">
                 {percentage}%
@@ -148,6 +126,7 @@ export function DashboardHeader({
           {/* Action Buttons: Share, Print, Clear Completed */}
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
               onClick={handleShare}
               className="p-2 rounded-xl bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition-all"
               title={t("share")}
@@ -156,6 +135,7 @@ export function DashboardHeader({
             </button>
 
             <button
+              type="button"
               onClick={handlePrint}
               className="p-2 rounded-xl bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition-all"
               title={t("print")}
@@ -165,6 +145,7 @@ export function DashboardHeader({
 
             {checkedCount > 0 && (
               <button
+                type="button"
                 onClick={onClearCompleted}
                 className="p-2 rounded-xl bg-[var(--surface-canvas)] hover:bg-red-500/10 border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-400 cursor-pointer transition-all"
                 title={t("clearCompleted")}
@@ -176,6 +157,7 @@ export function DashboardHeader({
             {/* Primary Action Button: Store Einkauf */}
             {totalCount > 0 && checkedCount > 0 && (
               <button
+                type="button"
                 onClick={onSync}
                 disabled={isSyncPending}
                 className="h-9 px-3.5 rounded-xl flex items-center gap-2 font-heading text-xs font-bold uppercase tracking-wider text-slate-950 bg-[var(--primary-main)] hover:bg-[var(--primary-hover)] shadow-md cursor-pointer transition-all shrink-0"

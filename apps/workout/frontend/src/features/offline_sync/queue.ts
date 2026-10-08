@@ -7,6 +7,7 @@ import type { PendingSet } from "./types";
  * The backend deliberately skips (rather than rejects) sync items whose
  * session_exercise_id is not on the session, so a malformed or stale entry
  * would otherwise be retried forever and permanently pin the pending badge.
+ * Dropped keys are reported to the caller so the user is told about the loss.
  */
 export const MAX_SYNC_ATTEMPTS = 5;
 
@@ -71,8 +72,8 @@ export async function countPending(): Promise<number> {
   return db.count(PENDING_SETS_STORE);
 }
 
-/** Remove entries the backend acknowledged. Safe to call with unknown keys. */
-export async function removeAcked(keys: string[]): Promise<void> {
+/** Remove entries by key. Safe to call with unknown keys. */
+export async function discardEntries(keys: string[]): Promise<void> {
   const safeKeys = keys ?? [];
   if (safeKeys.length === 0) return;
 
@@ -80,6 +81,23 @@ export async function removeAcked(keys: string[]): Promise<void> {
   const tx = db.transaction(PENDING_SETS_STORE, "readwrite");
   await Promise.all(safeKeys.map((key) => tx.store.delete(key)));
   await tx.done;
+}
+
+/** Remove entries the backend acknowledged. Safe to call with unknown keys. */
+export function removeAcked(keys: string[]): Promise<void> {
+  return discardEntries(keys);
+}
+
+/**
+ * Remove every pending entry of one session and return how many were removed.
+ *
+ * Used when a session is abandoned: its queued sets can no longer be accepted,
+ * so keeping them would only produce rejected retries.
+ */
+export async function clearPendingForSession(sessionId: string): Promise<number> {
+  const entries = await listPendingForSession(sessionId);
+  await discardEntries(entries.map((entry) => entry.clientIdempotencyKey));
+  return entries.length;
 }
 
 /**

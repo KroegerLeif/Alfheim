@@ -1,5 +1,6 @@
 export * from './hooks/queries';
 export * from './permissions';
+export * from './roles';
 export * from './components/HouseholdDetailView';
 export * from './components/HouseholdDetailSkeleton';
 export * from './components/HouseholdHeader';
@@ -16,3 +17,4 @@ export * from './components/JoinHouseholdForm';
 export * from './components/CreateHouseholdCard';
 export * from './components/QrCode';
 export * from './components/StatusBanner';
+export * from './components/HouseholdListCard';

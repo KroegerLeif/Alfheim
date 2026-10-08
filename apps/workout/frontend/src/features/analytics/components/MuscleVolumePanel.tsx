@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, EmptyState, Skeleton, useTranslation } from "@alfheim/shared";
 import { BarChart3 } from "lucide-react";
-import { MUSCLE_GROUP_LABEL_KEYS, type MuscleGroup } from "@/features/exercises/types";
+import { MUSCLE_GROUP_LABEL_KEYS, type MuscleGroup } from "@/features/exercises";
 import { useMuscleVolume } from "../hooks/useAnalytics";
 
 /**

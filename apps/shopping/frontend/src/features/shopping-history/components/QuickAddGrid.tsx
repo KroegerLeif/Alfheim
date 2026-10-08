@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { QuickTile } from "./QuickTile";
-import { useShoppingHistory } from "../services/shoppingHistoryService";
+import { useShoppingHistory, useDeleteHistoryEntry } from "../services/shoppingHistoryService";
 
 interface QuickAddGridProps {
   onAdd: (name: string, unit: string) => void;
@@ -14,7 +14,9 @@ interface QuickAddGridProps {
  */
 export function QuickAddGrid({ onAdd, disabled = false }: QuickAddGridProps) {
   const t = useTranslations("History");
-  const { data: history = [], isLoading } = useShoppingHistory();
+  const { data, isLoading } = useShoppingHistory();
+  const history = data ?? [];
+  const removeEntry = useDeleteHistoryEntry();
 
   if (isLoading) {
     return (
@@ -46,6 +48,9 @@ export function QuickAddGrid({ onAdd, disabled = false }: QuickAddGridProps) {
                 label={item.name}
                 iconTag={item.icon_tag ?? null}
                 onAdd={() => onAdd(item.name, item.unit)}
+                onRemove={() => removeEntry.mutate(item.id)}
+                removeLabel={t("removeEntry", { name: item.name })}
+                removeDisabled={removeEntry.isPending}
                 disabled={disabled}
               />
             ))}

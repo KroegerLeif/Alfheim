@@ -145,7 +145,7 @@ func (h *Handler) Stream(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	chunks, err := h.service.StreamAssistantReply(mcp.WithCallerCredentials(r.Context(), mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hh}), claims.Subject, hh, id)
+	chunks, err := h.service.StreamAssistantReply(mcp.WithCallerCredentials(r.Context(), mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hh, UserID: claims.Subject}), claims.Subject, hh, id)
 	if err != nil {
 		writeServiceError(w, err)
 		return

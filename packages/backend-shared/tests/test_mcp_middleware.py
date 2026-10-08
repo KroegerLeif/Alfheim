@@ -190,3 +190,116 @@ def test_mcp_message_rejects_sse_without_data():
     response = httpx.Response(200, headers={"content-type": "text/event-stream"}, text="event: ping\n\n")
     with pytest.raises(AssertionError, match="no data event"):
         testing._mcp_message(response)
+
+
+OTHER_HOUSEHOLD = uuid.UUID("99999999-8888-7777-6666-555555555555")
+OTHER_SUB = "309999999999999999"
+MCP_ACCEPT = {"Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
+
+
+async def _initialize(client: httpx.AsyncClient, hdrs: dict[str, str]) -> str:
+    """Open an MCP session as ``hdrs``' caller and return its session id."""
+    init = await client.post(
+        "/mcp",
+        headers={**hdrs, **MCP_ACCEPT},
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": testing.MCP_TEST_PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "session-binding-test", "version": "0"},
+            },
+        },
+    )
+    assert init.status_code == 200, init.text
+    session_id = init.headers["mcp-session-id"]
+    session = {**hdrs, **MCP_ACCEPT, "Mcp-Session-Id": session_id}
+    notified = await client.post(
+        "/mcp", headers=session, json={"jsonrpc": "2.0", "method": "notifications/initialized"}
+    )
+    assert notified.status_code == 202, notified.text
+    return session_id
+
+
+async def _call_whoami(client: httpx.AsyncClient, hdrs: dict[str, str], session_id: str) -> httpx.Response:
+    return await client.post(
+        "/mcp",
+        headers={**hdrs, **MCP_ACCEPT, "Mcp-Session-Id": session_id},
+        json={"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "whoami", "arguments": {}}},
+    )
+
+
+@pytest.mark.asyncio
+async def test_session_is_bound_to_the_user_and_household_that_opened_it():
+    """Two callers on one session id: only the opener may use it (#633)."""
+    app = _fastmcp_app()
+    with mcp_membership(
+        {(HOUSEHOLD, SUB): "MEMBER", (OTHER_HOUSEHOLD, SUB): "OWNER", (HOUSEHOLD, OTHER_SUB): "MEMBER"}
+    ):
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://svc:8000") as client:
+                session_id = await _initialize(client, headers())
+
+                own = await _call_whoami(client, headers(), session_id)
+                other_household = await _call_whoami(client, headers(household=OTHER_HOUSEHOLD), session_id)
+                other_user = await _call_whoami(client, headers(sub=OTHER_SUB), session_id)
+                unknown = await _call_whoami(client, headers(), "not-a-session")
+                foreign_delete = await client.delete(
+                    "/mcp", headers={**headers(sub=OTHER_SUB), "Mcp-Session-Id": session_id}
+                )
+                still_own = await _call_whoami(client, headers(), session_id)
+
+                deleted = await client.delete("/mcp", headers={**headers(), **MCP_ACCEPT, "Mcp-Session-Id": session_id})
+                after_delete = await _call_whoami(client, headers(), session_id)
+
+    assert own.status_code == 200
+    assert str(HOUSEHOLD) in testing._mcp_message(own)["result"]["content"][0]["text"]
+    for rejected in (other_household, other_user, foreign_delete):
+        assert rejected.status_code == 403
+        assert rejected.json()["detail"]["code"] == "household_forbidden"
+    assert unknown.status_code == 404
+    assert still_own.status_code == 200
+    assert deleted.status_code == 200
+    assert after_delete.status_code == 404
+
+
+async def _issuing_endpoint(request: Request) -> JSONResponse:
+    """Fake MCP app: issues the session id from the query string, 404s for ``gone`` sessions."""
+    if request.headers.get("mcp-session-id") == "gone":
+        return JSONResponse({"error": "Session not found"}, status_code=404)
+    issued = request.query_params.get("issue")
+    return JSONResponse({"ok": True}, headers={"mcp-session-id": issued} if issued else None)
+
+
+def _issuing_middleware(max_bindings: int) -> tuple[TestClient, MCPAuthenticationMiddleware]:
+    inner = Starlette(routes=[Route("/", _issuing_endpoint, methods=["POST", "DELETE"])])
+    lookup = StaticMembershipLookup({(HOUSEHOLD, SUB): "MEMBER"})
+    middleware = MCPAuthenticationMiddleware(inner, membership_lookup=lookup, max_session_bindings=max_bindings)
+    return TestClient(middleware), middleware
+
+
+def test_session_bindings_are_bounded_and_evict_least_recently_used():
+    client, middleware = _issuing_middleware(max_bindings=2)
+    for session_id in ("a", "b"):
+        assert client.post(f"/?issue={session_id}", headers=headers()).status_code == 200
+    assert client.post("/", headers={**headers(), "Mcp-Session-Id": "a"}).status_code == 200  # "a" is now newest
+    assert client.post("/?issue=c", headers=headers()).status_code == 200
+
+    assert list(middleware._session_owners) == ["a", "c"]
+    assert client.post("/", headers={**headers(), "Mcp-Session-Id": "b"}).status_code == 404
+
+
+def test_session_binding_is_dropped_when_the_mcp_app_no_longer_knows_it():
+    client, middleware = _issuing_middleware(max_bindings=10)
+    assert client.post("/?issue=gone", headers=headers()).status_code == 200
+    assert "gone" in middleware._session_owners
+    assert client.post("/", headers={**headers(), "Mcp-Session-Id": "gone"}).status_code == 404
+    assert "gone" not in middleware._session_owners
+
+
+def test_requests_without_session_header_keep_working_when_no_session_is_issued():
+    client, middleware = _issuing_middleware(max_bindings=10)
+    assert client.post("/", headers=headers()).status_code == 200
+    assert not middleware._session_owners

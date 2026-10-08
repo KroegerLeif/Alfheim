@@ -23,7 +23,8 @@ export function Sidebar() {
   const pathname = usePathname();
 
   // Retrieve reactive alert states directly from cache-integrated TanStack Query hooks
-  const { data: lowStockItems = [] } = useLowStockItems();
+  const { data: lowStockItemsData } = useLowStockItems();
+  const lowStockItems = lowStockItemsData ?? [];
   const { data: expirationSummary } = useExpirationSummary();
 
   const lowStockCount = lowStockItems.length;

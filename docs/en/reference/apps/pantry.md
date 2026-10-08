@@ -79,6 +79,14 @@ the REST API. Tools take no `household_id`/`user_id` parameters — they read
 
 ---
 
+## 🔌 REST API Behaviour
+
+- `GET /api/v1/inventory/transactions` returns the ledger newest first. Filter with `product_id`, `location_id`, a repeatable `transaction_type`, `date_from` (inclusive) and `date_to` (exclusive); page with `limit` (max 100) and `offset`.
+- `DELETE` on a category, location or product that other records still reference answers `409` with `{"detail": {"code", "message", "item_count"}}`. The codes are `category_in_use` (products use it), `location_in_use` (stock lines or ledger entries) and `product_in_use` (stock lines or ledger entries). System locations and global catalog templates cannot be deleted.
+- Low-stock export: the browser sends each missing item to the shopping app (`POST /shopping/api/v1/shopping/items`); failed items are listed and can be retried.
+
+---
+
 ## 🏠 Household Scoping
 
 Every route depends on `backend_shared.household.require_household` (any member role may read and

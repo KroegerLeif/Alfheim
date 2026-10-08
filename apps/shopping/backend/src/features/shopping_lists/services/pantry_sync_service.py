@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.history.service import ShoppingHistoryService
 from src.features.shopping_lists.clients.pantry_client import PantryClient
@@ -12,6 +12,23 @@ from src.features.shopping_lists.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+# The unit picker stores German abbreviations (lower-cased by the item service) that Pantry's unit
+# registry does not know. They are mapped to Pantry units at the sync boundary only, so stored
+# items keep their original unit code. Unmapped units (g, kg, ml, l, piece, ...) are sent as-is.
+PANTRY_UNIT_ALIASES: dict[str, str] = {
+    "stk": "piece",
+    "bund": "piece",
+    "fl.": "bottle",
+    "pkg.": "pack",
+    "pkt.": "pack",
+    "dose": "can",
+}
+
+
+def to_pantry_unit(unit: str) -> str:
+    """Translate a shopping unit code into the unit name Pantry understands."""
+    return PANTRY_UNIT_ALIASES.get(unit.strip().lower(), unit)
 
 
 class PantrySyncService:
@@ -102,14 +119,22 @@ class PantrySyncService:
         home_id: uuid.UUID,
         token: str | None = None,
         pantry_client: PantryClient | None = None,
+        item_ids: list[uuid.UUID] | None = None,
     ) -> SyncToPantryResponse:
-        """Push checked-off items in bulk to the Pantry, updating sync state and histories."""
+        """Push checked-off items in bulk to the Pantry, updating sync state and histories.
+
+        ``item_ids`` narrows the sync to a retry of specific items (for example after the catalog
+        entry for an unrecognized item was created). A retry links the items it syncs to their
+        Pantry product but does not count the purchase in the history a second time.
+        """
         # Fetch completed but unsynced items
         stmt = select(ShoppingItem).where(
             ShoppingItem.list_id == list_id,
             ShoppingItem.is_completed == True,  # noqa: E712
             ShoppingItem.is_synced == False,  # noqa: E712
         )
+        if item_ids is not None:
+            stmt = stmt.where(col(ShoppingItem.id).in_(item_ids))
         res = await session.exec(stmt)
         completed_items = res.all()
 
@@ -131,7 +156,7 @@ class PantrySyncService:
                     "brand": item.brand,
                     "barcode": item.barcode,
                     "quantity": item.quantity,
-                    "unit": item.unit,
+                    "unit": to_pantry_unit(item.unit),
                 }
             )
 
@@ -155,15 +180,17 @@ class PantrySyncService:
                 item.product_id = success_map[item.id]
                 session.add(item)
 
-            # Log to selection history for both successful and unrecognized purchases
-            await ShoppingHistoryService.log_purchase(
-                session=session,
-                home_id=home_id,
-                name=item.name,
-                brand=item.brand,
-                barcode=item.barcode,
-                unit=item.unit,
-            )
+            # Log to selection history for both successful and unrecognized purchases. A retry of
+            # specific items already counted them during the original sync.
+            if item_ids is None:
+                await ShoppingHistoryService.log_purchase(
+                    session=session,
+                    home_id=home_id,
+                    name=item.name,
+                    brand=item.brand,
+                    barcode=item.barcode,
+                    unit=item.unit,
+                )
 
         await session.commit()
 

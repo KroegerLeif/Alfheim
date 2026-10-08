@@ -55,14 +55,17 @@ Jede Chat-API-Route führt nach der JWT-Prüfung `middleware.RequireHousehold` a
 - Eine Unterhaltung gehört einem Eigentümer in einem Haushalt. Die Liste zeigt nur die Unterhaltungen des Aufrufers im aktiven Haushalt; andere Unterhaltungen liefern `403`.
 - Geteilte Model-Blocks sind an den bestätigten Haushalt gebunden.
 - MCP-Aufrufe tragen das Bearer-Token des Aufrufers und `X-Household-ID`, pro Anfrage gesetzt.
-- `PATCH /api/v1/chat/mcp-servers/{id}` (Umschalten eines Servers in der installationsweiten Registry) verlangt die Rolle `OWNER` oder `ADMIN`; sonst `403 household_role_forbidden`.
+- `PATCH /api/v1/chat/mcp-servers/{id}` (Umschalten eines Servers in der installationsweiten Registry) verlangt die Rolle `OWNER` oder `ADMIN`; sonst `403` mit `{"detail": {"code": "household_role_forbidden", "message"}}`. Ohne Haushaltskontext antwortet die Route mit `400 household_required`.
 
 ---
 
 ## 📁 Domain-Features (`internal/features/`)
 
 - `conversations`: Gesprächs-Sessions, Nachrichts-Historien und SSE-Streaming-Handler.
-- `modelblocks`: Provider-Konfigurationsblöcke (Ollama, OpenAI) mit AES-256-Schlüssel-Verschlüsselung.
+  - Eine Unterhaltung behält den Model-Block, mit dem sie angelegt wurde. Die Modellauswahl in der Seitenleiste legt nur das Modell der nächsten neuen Unterhaltung fest; die Kopfzeile einer offenen Unterhaltung zeigt deren eigenes Modell („Modell nicht verfügbar“, wenn der Block gelöscht oder nicht mehr sichtbar ist).
+  - `GET /conversations/{id}/stream` sendet die Events `delta`, `tool_call` (`{"ID", "ToolName", "Arguments"}`), `done` und `error`. Schließt der Client die Verbindung, werden die Modellanfrage und ein laufender Tool-Aufruf abgebrochen; für die abgebrochene Antwort wird nichts gespeichert, sodass die offene Nutzernachricht erneut gestreamt werden kann (Stopp und Erneut versuchen in der UI).
+  - Jedes Ergebnis eines Tool-Aufrufs wird als `tool`-Nachricht gespeichert, deren `tool_calls` `{"tool_call_id", "tool_name", "is_error"}` enthält; Transportfehler werden mit einem allgemeinen Text gespeichert, nie mit der internen Endpunkt-URL. Beim Wiederholen der Historie wird die ID als `tool_call_id` gesendet. Die UI zeigt Tool-Aufrufe als eingeklappte Einträge (Name und Status; Argumente und Ergebnis beim Aufklappen, Argumente mit Zugangsdaten-Schlüsseln, Bearer-Tokens und JWTs maskiert).
+- `modelblocks`: Provider-Konfigurationsblöcke (Ollama, OpenAI) mit AES-256-Schlüssel-Verschlüsselung. Nur `ollama` und `openai_compatible` sind lauffähig; die UI bietet nur diese beiden an (#632).
 - `attachments`: Datei-Anhang-Uploads mit RustFS S3-Objektspeicher. Jeder Upload speichert den Hochladenden (`image_refs.owner_user_id`); allen anderen liefert das Lesen eines Anhangs per ID `404`, und eine Nachricht kann nur noch nicht verknüpfte Anhänge des Gesprächsinhabers verknüpfen (sonst `400`). Anhänge aus der Zeit vor dieser Spalte haben keinen Inhaber und lassen sich weder per ID lesen noch verknüpfen.
 - `mcpservers`: FastMCP-Server-Verbindungsdefinitionen und dynamische Tool-Ermittlung.
 
@@ -71,6 +74,8 @@ Jede Chat-API-Route führt nach der JWT-Prüfung `middleware.RequireHousehold` a
 ## 🔌 MCP-Tools
 
 Chat stellt selbst keine MCP-Tools bereit – es ist der MCP-**Client** für den FastMCP-Server jeder anderen App (`internal/shared/mcp`, ein von Grund auf neu geschriebener Streamable-HTTP-Client). `CHAT_MCP_SERVERS` befüllt die Registry (`app_slug` → `internal_url`, z. B. `http://pantry-backend:8000/mcp`); erneutes Seeding beim Start aktualisiert die URL, setzt aber nie den Enabled/Disabled-Schalter eines Admins zurück. Jeder Aufruf leitet das Bearer-Token des Aufrufers und `X-Household-ID` weiter, sodass die Ziel-App genauso autorisiert wie bei einer REST-Anfrage. Ein 404 von einem MCP-Endpunkt wird dem Aufrufer als Konfigurationsfehler gemeldet (nicht passender `CHAT_MCP_SERVERS`-Pfad), statt als erreichbar zu gelten.
+
+MCP-Sessions werden pro Endpunkt, Haushalt und Nutzer geführt: `ClientPool` wählt den Client bei jedem Aufruf anhand der Aufrufer-Zugangsdaten dieses Aufrufs, sodass eine Session-ID und die zwischengespeicherte Tool-Liste nie zwischen Nutzern oder Haushalten geteilt werden. Unbenutzte Sessions werden nach 15 Minuten verworfen. Die MCP-Server selbst binden eine Session-ID noch nicht an den Aufrufer, der sie geöffnet hat (#633).
 
 ---
 

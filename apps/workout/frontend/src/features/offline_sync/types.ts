@@ -42,6 +42,8 @@ export interface SyncQueueState {
   isSyncing: boolean;
   isOnline: boolean;
   lastError: string | null;
+  /** Keys of sets discarded without reaching the server, until the user dismisses the warning. */
+  droppedKeys: string[];
 }
 
 export function toSyncItem(entry: PendingSet): SessionSetSyncItem {

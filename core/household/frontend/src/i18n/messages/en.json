@@ -85,6 +85,30 @@
       "confirm": "Delete permanently",
       "deleting": "Deleting…"
     },
+    "detail": {
+      "short_id": "ID: {id}…"
+    },
+    "address": {
+      "coordinates": "Lat: {lat} • Lng: {lng}"
+    },
+    "members": {
+      "unnamed": "User ({id}…)",
+      "confirm_remove": "Remove {name} from this household?",
+      "remove_label": "Remove {name}"
+    },
+    "contacts": {
+      "edit_category": "Edit category {name}",
+      "delete_category": "Delete category {name}",
+      "call": "Call {name}",
+      "email": "Email {name}",
+      "open_link": "Open link for {name}",
+      "edit": "Edit {name}",
+      "delete": "Delete {name}"
+    },
+    "profile": {
+      "zitadel_id": "Zitadel ID: {id}",
+      "saved": "Profile saved."
+    },
     "errors": {
       "unauthorized": "Your session has expired. Please sign in again.",
       "forbidden": "You don't have permission to do this in this household.",

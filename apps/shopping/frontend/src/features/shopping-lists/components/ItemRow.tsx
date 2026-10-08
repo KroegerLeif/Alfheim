@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { GlassCheckbox } from "./GlassCheckbox";
 import { PantryBadge } from "@/components/shared/PantryBadge";
 import { ShoppingItem } from "../types";
+import { unitLabel } from "../utils/units";
 import { cn } from "@/lib/utils";
 
 interface ItemRowProps {
@@ -20,15 +21,17 @@ interface ItemRowProps {
  */
 export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: ItemRowProps) {
   const t = useTranslations("Checklist");
+  const tUnits = useTranslations("Units");
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
-      onClick={onToggle}
+      onClick={isOptimistic ? undefined : onToggle}
       onMouseEnter={() => !isOptimistic && setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        "grid grid-cols-[22px_1fr_auto_24px] items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer",
+        "grid grid-cols-[22px_minmax(0,1fr)_auto_24px] items-center gap-3 px-3 py-2.5 rounded-xl",
+        isOptimistic ? "cursor-progress" : "cursor-pointer",
         "transition-all duration-200 border border-transparent select-none",
         item.is_completed ? "opacity-50 glass-inset" : "glass-card hover:glass-active",
         hovered && !item.is_completed && "border-blue-500/20 shadow-xs"
@@ -44,8 +47,9 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
       {/* Item details */}
       <div className="flex items-center gap-2 min-w-0">
         <span
+          title={item.brand ? `${item.name} (${item.brand})` : item.name}
           className={cn(
-            "font-heading text-sm font-bold tracking-wide truncate transition-all duration-300",
+            "font-heading text-sm font-bold tracking-wide truncate min-w-0 transition-all duration-300",
             item.is_completed
               ? "line-through text-muted-foreground/60"
               : "text-foreground"
@@ -64,10 +68,10 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
       </div>
 
       {/* Quantities & units */}
-      <div className="flex items-baseline gap-1 font-mono shrink-0 select-none">
+      <div className="flex items-baseline gap-1 font-mono shrink-0 max-w-[8rem] select-none">
         <span
           className={cn(
-            "text-xs font-black leading-none",
+            "text-xs font-black leading-none truncate",
             item.is_completed
               ? "text-muted-foreground/40"
               : "text-primary"
@@ -75,8 +79,8 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
         >
           {item.quantity}
         </span>
-        <span className="text-[10px] font-bold text-muted-foreground/60 leading-none">
-          {item.unit}
+        <span className="text-[10px] font-bold text-muted-foreground/60 leading-none truncate">
+          {unitLabel(item.unit, tUnits)}
         </span>
       </div>
 
@@ -84,6 +88,7 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
       <div className="w-5 h-5 flex items-center justify-center shrink-0">
         {!isOptimistic && (hovered || item.is_completed) && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
