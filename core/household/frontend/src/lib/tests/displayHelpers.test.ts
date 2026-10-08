@@ -1,26 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import { translateLocal } from '@/i18n';
-import { escapeHtml } from '../html';
 import { roleLabel } from '@/features/household/roles';
 import { memberDisplayName, memberInitials } from '@/features/household/components/memberDisplay';
-import { contactPopupHtml } from '@/features/contact/components/ContactCards';
+import { contactPopupText } from '@/features/contact/components/ContactCards';
 import { Contact, HouseholdMember } from '@/shared/types';
 
 const tFor = (lang: string) => (key: string, params?: Record<string, string | number>) =>
   translateLocal(lang, key, params) ?? key;
 
-describe('escapeHtml', () => {
-  it('escapes every HTML-significant character', () => {
-    expect(escapeHtml(`<img src=x onerror="alert('x')">&`)).toBe(
-      '&lt;img src=x onerror=&quot;alert(&#39;x&#39;)&quot;&gt;&amp;',
-    );
+describe('contactPopupText', () => {
+  it('passes contact data unescaped because the shared map renders it as text', () => {
+    const contact = { name: '<script>x</script>', address: 'A & B', phone: '"1"' } as Contact;
+    expect(contactPopupText(contact)).toEqual({
+      popupTitle: '<script>x</script>',
+      popupContent: 'A & B\n"1"',
+    });
   });
 
-  it('keeps contact data out of the map popup markup', () => {
-    const contact = { name: '<script>x</script>', address: 'A & B', phone: '"1"' } as Contact;
-    expect(contactPopupHtml(contact)).toBe(
-      '<strong>&lt;script&gt;x&lt;/script&gt;</strong><br/>A &amp; B<br/>&quot;1&quot;',
-    );
+  it('skips missing address and phone lines', () => {
+    expect(contactPopupText({ name: 'Ann', address: '', phone: '0301' } as Contact)).toEqual({
+      popupTitle: 'Ann',
+      popupContent: '0301',
+    });
   });
 });
 
@@ -58,5 +59,14 @@ describe('memberDisplayName', () => {
     expect(memberInitials({ ...base, first_name: 'odin', last_name: 'allfather' })).toBe('OA');
     expect(memberInitials({ ...base, email: 'thor@a.org' })).toBe('TH');
     expect(memberInitials(base)).toBe('AB');
+  });
+});
+
+describe('translateLocal interpolation', () => {
+  it('inserts parameter values literally, even with dollar patterns', () => {
+    expect(translateLocal('en', 'household_app.invites.revoke_label', { token: 'a$&b$1' })).toBe(
+      'Revoke invite a$&b$1',
+    );
+    expect(translateLocal('en', 'household_app.invites.uses', { uses: 2, max: 5 })).toBe('2/5 uses');
   });
 });

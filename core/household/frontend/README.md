@@ -69,5 +69,5 @@ or copy the literal paths.
 - **Errors:** `describeApiError` (`src/lib/apiErrors.ts`) shows the backend's
   `message` (also `{detail}` / `{detail: {message}}` bodies) inside a
   translated wrapper; 401, 403 and 404 keep their dedicated texts.
-- **Map popups:** the shared `OSMMapViewer` renders `popupContent` as HTML, so
-  build it with `escapeHtml` (`src/lib/html.ts`).
+- **Map popups:** the shared `OSMMapViewer` renders `popupTitle` and
+  `popupContent` as plain text, so pass household and contact data unescaped.

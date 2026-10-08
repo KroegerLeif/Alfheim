@@ -82,6 +82,9 @@ broadcast via a `storage-household-changed` event; consumers should always read 
 - Every new key goes into `en`, `de` and `pl` in the same change. `src/features/i18n/tests/localeParity.test.ts`
   enforces parity (and matching `{placeholders}`), and `translationKeys.test.ts` fails on any literal key passed
   to the shared `t()` in `packages/shared` or a consumer frontend that does not resolve.
+- `t(key, params)` replaces `{name}` placeholders with `params.name` literally (the exported `interpolate()`
+  helper): values containing `$&`, `$1` or another `{placeholder}` are inserted as they are, and placeholders
+  without a matching parameter stay in the text.
 - In app tests, prefer the real `useTranslation` (optionally wrapped to throw on unresolved keys, as in
   `apps/budget/frontend/src/tests/setup.ts`) over mocks that return hardcoded strings.
 
@@ -90,6 +93,14 @@ broadcast via a `storage-household-changed` event; consumers should always read 
 - Use `lucide-react` icons in shared components; do not inline `<svg>` markup or rely on the Material Symbols font.
 - Brand artwork lives in `src/assets`: `AlfheimMark` (the line-art brand mark), `APP_GLYPH_ICONS` (per-app glyphs used
   by `AppLogo`; change an app icon there), the static brand/app SVG files, and the Alfi mascot poses.
+
+## UI Primitive Rules
+
+- `Button` renders `type="button"` unless a `type` is passed, so it never submits a surrounding form by accident.
+  Submit buttons must pass `type="submit"`. With `asChild` no default `type` is added.
+- `OSMMapViewer` renders a marker's `popupTitle` (bold first line) and `popupContent` (body, `\n` kept) as plain
+  text, and applies `color` through the CSSOM, which drops invalid colors. Pass user data unescaped: pre-escaped
+  strings would show their entities. There is deliberately no HTML popup option.
 
 ## Theme Rules
 

@@ -60,8 +60,17 @@ class Page(HTMLParser):
                 self.sidebar_links.add(a["href"])
         elif tag == "img" and a.get("src"):
             self.refs.append(("img", a["src"]))
-        elif tag == "link" and a.get("href") and a.get("rel") in (
-            "stylesheet", "icon", "manifest", "apple-touch-icon", "shortcut icon",
+        elif (
+            tag == "link"
+            and a.get("href")
+            and a.get("rel")
+            in (
+                "stylesheet",
+                "icon",
+                "manifest",
+                "apple-touch-icon",
+                "shortcut icon",
+            )
         ):
             self.refs.append(("link", a["href"]))
         elif tag == "script" and a.get("src"):
@@ -136,8 +145,12 @@ def crawl(site: Path) -> int:
         pages[f] = p
 
     problems: dict[str, list[str]] = {
-        "broken links": [], "broken assets": [], "broken anchors": [],
-        "base path violations": [], "orphan pages": [], "empty pages": [],
+        "broken links": [],
+        "broken assets": [],
+        "broken anchors": [],
+        "base path violations": [],
+        "orphan pages": [],
+        "empty pages": [],
     }
     for f, page in pages.items():
         here = url_of(site, f)
@@ -194,7 +207,11 @@ def crawl(site: Path) -> int:
 
     for f, page in pages.items():
         u = url_of(site, f)
-        if u.startswith(BASE + "/") and u != f"{BASE}/404.html" and "sl-markdown-content" in f.read_text(encoding="utf-8"):
+        if (
+            u.startswith(BASE + "/")
+            and u != f"{BASE}/404.html"
+            and "sl-markdown-content" in f.read_text(encoding="utf-8")
+        ):
             if len(page.body_text.strip()) < MIN_BODY_CHARS:
                 problems["empty pages"].append(u)
 

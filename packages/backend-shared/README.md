@@ -45,6 +45,8 @@ Results are cached per process, keyed by `(household_id, sub)`: members for 30 s
 
 Serve the FastMCP server with `mcp_app = mount_mcp(app, mcp, settings=settings)`: the Streamable HTTP endpoint is exactly `/mcp` (no `/mcp/mcp`, no 307 to `/mcp/`), wrapped by `MCPAuthenticationMiddleware`. Run the returned app's lifespan inside the FastAPI lifespan (`async with mcp_app.router.lifespan_context(mcp_app): yield`), otherwise the session manager never starts and requests fail with "Task group is not initialized". The middleware runs the same resolution and error contract. Tools read the context with `backend_shared.mcp_middleware.get_mcp_household_context()`, which returns a `HouseholdContext` and raises `RuntimeError` when the middleware did not run.
 
+Stateful sessions are bound to the caller that opened them. The middleware records `(user_sub, household_id)` for the `Mcp-Session-Id` returned by `initialize`; a later request on that session from another user or household gets `403 household_forbidden`, and a session id it never issued (or no longer remembers) gets the MCP spec's `404 Session not found`, after which a client opens a new session. MCP clients therefore need one session per user and household (as chat does). Bindings live in process memory, are dropped on `DELETE` and when the MCP app answers 404, and are bounded by `max_session_bindings` (default `MCP_MAX_SESSION_BINDINGS`, 10,000, least recently used evicted first).
+
 ### Error contract
 
 The body is `{"detail": {"code": ..., "message": ...}}`.

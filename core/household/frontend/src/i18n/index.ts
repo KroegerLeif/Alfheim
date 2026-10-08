@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation as useSharedTranslation } from '@alfheim/shared';
+import { interpolate, useTranslation as useSharedTranslation } from '@alfheim/shared';
 import en from './messages/en.json';
 import de from './messages/de.json';
 import pl from './messages/pl.json';
@@ -28,14 +28,6 @@ function lookup(messages: Messages | undefined, key: string): string | undefined
     }
   }
   return typeof current === 'string' ? current : undefined;
-}
-
-function interpolate(value: string, params?: Params): string {
-  if (!params) return value;
-  return Object.entries(params).reduce(
-    (acc, [name, val]) => acc.replace(new RegExp(`\\{${name}\\}`, 'g'), String(val)),
-    value,
-  );
 }
 
 export function translateLocal(language: string, key: string, params?: Params): string | undefined {
