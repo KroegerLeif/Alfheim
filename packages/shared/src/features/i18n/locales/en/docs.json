@@ -16,7 +16,29 @@
       "subtitle": "Self-hosted, multi-tenant home automation, inventory management, chores, and telemetry secured behind zero-trust IAM and WireGuard/Tailscale VPN.",
       "exploreModules": "Explore Modules",
       "readArchitecture": "Architecture Specs",
-      "githubRepo": "GitHub Repository"
+      "githubRepo": "GitHub Repository",
+      "metrics": {
+        "architecture": {
+          "label": "Architecture",
+          "value": "Multi-Zone",
+          "note": "Isolated Networks"
+        },
+        "identity": {
+          "label": "Identity",
+          "value": "Zitadel OIDC",
+          "note": "RS256 JWT Signed"
+        },
+        "storage": {
+          "label": "Object Storage",
+          "value": "RustFS S3",
+          "note": "Tenant Presigned URLs"
+        },
+        "ai": {
+          "label": "AI Companion",
+          "value": "ALFI Agent",
+          "note": "MCP Tool Enabled"
+        }
+      }
     },
     "vpnNotice": {
       "badge": "Security Perimeter",
@@ -111,8 +133,12 @@
         "eating": "Eating",
         "fixing": "Fixing",
         "chasing": "Chasing",
-        "sleeping": "Standby"
-      }
+        "sleeping": "Standby",
+        "loading": "Loading",
+        "curious": "Curious"
+      },
+      "mascotAlt": "ALFI companion",
+      "protocolFooter": "Model Context Protocol (FastMCP) · Event-Driven S3 & Telemetry Hooks"
     },
     "architecture": {
       "badge": "Topology & Security",
@@ -137,6 +163,24 @@
           "title": "OpenTelemetry & VictoriaStack",
           "desc": "Full distributed tracing, structured logging, and live telemetry across all containers."
         }
+      },
+      "zones": {
+        "gateway": {
+          "desc": "Caddy Ingress & Frontends",
+          "note": "Public / WireGuard Ingress"
+        },
+        "infra": {
+          "desc": "Zitadel & postgres-core & RustFS",
+          "note": "Isolated Platform IAM"
+        },
+        "core": {
+          "desc": "Dashboard Backend & DB",
+          "note": "Platform Control Plane"
+        },
+        "apps": {
+          "desc": "8 Microservice Backends & DBs",
+          "note": "Zero Cross-App DB Coupling"
+        }
       }
     },
     "techStack": {
@@ -151,6 +195,15 @@
         "backends": "API Backends",
         "storage": "Databases & Storage",
         "platform": "Platform & Mesh"
+      },
+      "items": {
+        "controlPlane": "Go 1.23 (Control Plane & Chat)",
+        "postgres": "PostgreSQL 16 (Isolated instances)",
+        "rustfs": "RustFS (High-performance S3)",
+        "victoria": "VictoriaStack (Metrics & Logs)",
+        "redis": "Redis (Caching)",
+        "compose": "Docker Compose & Multi-Bridge Networks",
+        "caddy": "Caddy 2 Reverse Proxy"
       }
     },
     "footer": {

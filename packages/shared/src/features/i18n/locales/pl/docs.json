@@ -16,7 +16,29 @@
       "subtitle": "Self-hosted, wielolokalowa automatyka domowa, spiżarnia, obowiązki domowe i telemetria zabezpieczone przez Zero-Trust IAM i WireGuard/Tailscale VPN.",
       "exploreModules": "Przeglądaj moduły",
       "readArchitecture": "Specyfikacja architektury",
-      "githubRepo": "Repozytorium GitHub"
+      "githubRepo": "Repozytorium GitHub",
+      "metrics": {
+        "architecture": {
+          "label": "Architektura",
+          "value": "Multi-Zone",
+          "note": "Izolowane sieci"
+        },
+        "identity": {
+          "label": "Tożsamość",
+          "value": "Zitadel OIDC",
+          "note": "Tokeny JWT podpisane RS256"
+        },
+        "storage": {
+          "label": "Magazyn obiektów",
+          "value": "RustFS S3",
+          "note": "Presigned URL per najemca"
+        },
+        "ai": {
+          "label": "Asystent AI",
+          "value": "ALFI Agent",
+          "note": "Narzędzia MCP aktywne"
+        }
+      }
     },
     "vpnNotice": {
       "badge": "Obwód bezpieczeństwa",
@@ -111,8 +133,12 @@
         "eating": "Je",
         "fixing": "Naprawia",
         "chasing": "Goni",
-        "sleeping": "Standby"
-      }
+        "sleeping": "Standby",
+        "loading": "Ładuje",
+        "curious": "Ciekawy"
+      },
+      "mascotAlt": "Asystent ALFI",
+      "protocolFooter": "Model Context Protocol (FastMCP) · Hooki S3 i telemetrii sterowane zdarzeniami"
     },
     "architecture": {
       "badge": "Topologia i bezpieczeństwo",
@@ -137,6 +163,24 @@
           "title": "OpenTelemetry & VictoriaStack",
           "desc": "Pełne rozproszone śledzenie, ustrukturyzowane logi i telemetria na żywo we wszystkich kontenerach."
         }
+      },
+      "zones": {
+        "gateway": {
+          "desc": "Ingress Caddy i frontendy",
+          "note": "Publiczny ingress / WireGuard"
+        },
+        "infra": {
+          "desc": "Zitadel, postgres-core i RustFS",
+          "note": "Izolowane IAM platformy"
+        },
+        "core": {
+          "desc": "Backend i baza Dashboard",
+          "note": "Płaszczyzna sterowania platformy"
+        },
+        "apps": {
+          "desc": "8 backendów mikroserwisów i baz",
+          "note": "Brak sprzężenia baz między aplikacjami"
+        }
       }
     },
     "techStack": {
@@ -151,6 +195,15 @@
         "backends": "API Backends",
         "storage": "Bazy danych i pamięć",
         "platform": "Platforma i sieć"
+      },
+      "items": {
+        "controlPlane": "Go 1.23 (płaszczyzna sterowania i czat)",
+        "postgres": "PostgreSQL 16 (izolowane instancje)",
+        "rustfs": "RustFS (wydajny S3)",
+        "victoria": "VictoriaStack (metryki i logi)",
+        "redis": "Redis (cache)",
+        "compose": "Docker Compose i sieci multi-bridge",
+        "caddy": "Caddy 2 Reverse Proxy"
       }
     },
     "footer": {
