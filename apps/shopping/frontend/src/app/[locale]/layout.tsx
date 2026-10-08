@@ -45,10 +45,6 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       suppressHydrationWarning
     >
       <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        />
         {/*
           Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
           by a dynamic route handler, never baked into the prerendered HTML: the
