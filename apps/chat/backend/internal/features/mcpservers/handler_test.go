@@ -126,7 +126,7 @@ func TestHandler_Diagnostics_ForwardsCallerCredentials(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
-	if len(pool.seen) != 1 || pool.seen[0].AccessToken != "tok-1" || pool.seen[0].HouseholdID != "11111111-1111-1111-1111-111111111111" {
+	if len(pool.seen) != 1 || pool.seen[0].AccessToken != "tok-1" || pool.seen[0].HouseholdID != "11111111-1111-1111-1111-111111111111" || pool.seen[0].UserID != "user-1" {
 		t.Fatalf("expected forwarded caller credentials, got %+v", pool.seen)
 	}
 }

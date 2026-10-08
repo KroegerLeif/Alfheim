@@ -48,7 +48,7 @@ func (h *Handler) Diagnostics(w http.ResponseWriter, r *http.Request) {
 	claims, cErr := middleware.GetUserClaims(ctx)
 	hc, hErr := middleware.GetHousehold(ctx)
 	if cErr == nil && hErr == nil {
-		ctx = mcp.WithCallerCredentials(ctx, mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hc.HouseholdID.String()})
+		ctx = mcp.WithCallerCredentials(ctx, mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hc.HouseholdID.String(), UserID: claims.Subject})
 	}
 
 	diags, err := h.service.DiagnoseServers(ctx, h.pool)
