@@ -39,6 +39,12 @@
 | Shared follow-ups | `.worktrees/shared-followups` | `feature/fix-shared-followups` | merged (#638, squash `e4b8d8de`); worktree removed |
 | Budget / chores / dashboard | `.worktrees/app-tier-checks` | `feature/fix-swept-apps-recheck` | in progress (Sonnet sub-agent, parallel with shared follow-ups) |
 
+## Pause (2026-10-08)
+
+The user asked to pause at the next checkpoint and wait for an explicit "go". The checkpoint is the re-check sub-agent's PR (sweep 10): review it, but do NOT merge it and do NOT start Phase 3 until the user says go.
+
+Resume order after "go": merge sweep 10 PR → Phase 3: (1) Caddy `/api/v1/shopping*` pass-through fix (approved), (2) chat MCP client re-initialize on 404, (3) full `verify.sh` + routing check, (4) move durable STATE content into `.ai/CONTEXT.md`/issues and remove this file, (5) PR `orchestrator/app-stability-sweep` → `dev` listing every fixed issue.
+
 ## Phase 1: Delta audit (2026-10-07)
 
 ### Open `app-sprint` issues (baseline backlog)
