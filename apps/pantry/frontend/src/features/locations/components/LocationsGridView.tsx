@@ -41,8 +41,14 @@ export function LocationsGridView() {
   const handleCreateSuccess = () => {
     setIsFormOpen(false);
     setSuccessMessage(t("pantry.locationSuccess"));
-    setTimeout(() => setSuccessMessage(null), 4000);
   };
+
+  // Hide the success notice after 4s; the cleanup cancels the timer on unmount.
+  React.useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-[var(--surface-canvas)] text-[var(--text-main)] font-mono p-4 sm:p-8 space-y-6">
