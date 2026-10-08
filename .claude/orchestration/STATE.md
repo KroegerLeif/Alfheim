@@ -34,8 +34,8 @@
 | Maintenance | `.worktrees/app-maintenance` | `feature/fix-maintenance` | merged (#624, squash `3d1018be`); worktree removed |
 | Pantry | `.worktrees/app-pantry` | `feature/fix-pantry` | merged (#625, squash `805c5636`); worktree removed |
 | Shopping | `.worktrees/app-shopping` | `feature/fix-shopping` | merged (#631, squash `7d2a0a0e`); worktree removed |
-| Chat | `.worktrees/app-chat` | `feature/fix-chat` | in progress (Opus sub-agent; #565 is a security fix) |
-| Docs & portal | `.worktrees/app-docs` | `feature/fix-docs` | pending |
+| Chat | `.worktrees/app-chat` | `feature/fix-chat` | merged (#634, squash `73f12f66`); worktree removed |
+| Docs & portal | `.worktrees/app-docs` | `feature/fix-docs` | in progress (Sonnet sub-agent) |
 | Budget / chores / dashboard | `.worktrees/app-tier-checks` | `feature/fix-swept-apps-recheck` | pending (quick check) |
 
 ## Phase 1: Delta audit (2026-10-07)
@@ -113,6 +113,7 @@ sweeps only touch their own `<app>.json`.
 | --- | --- | --- |
 | shared (#608) | `tsc --noEmit`; Vitest + v8 coverage (296 tests); new static key-resolution, locale-parity and German-rendering tests; `verify.sh --frontend` | Pass. Coverage stmts 87.12→90.19, branches 75.54→81.49 (below the 90% threshold that was already missed before; see #609), funcs 89.24→92.24, lines 88.79→91.97 |
 | household (#611) | Go `build`/`vet`/`test -race -cover`; PostgreSQL integration tests against a throwaway `postgres:16-alpine`; frontend `tsc`, Vitest (38→73 tests) incl. en/de/pl key-resolution + parity tests and a long-content layout test; `verify.sh --frontend --go` | Pass. Go coverage 81–100% per package (household 98.2, membership 96.8, httpjson 100). Frontend stmts 58.7 / branches 55.9 / funcs 44.1 / lines 60.2 (`src/app/**` excluded) |
+| chat (#634) | Go `build`/`vet`/`test -race -cover` incl. concurrent two-household/three-user pool test and stream-cancel handler test; frontend `tsc`, Vitest + v8 coverage with real dictionaries (26→56 tests, long content); `verify.sh --frontend --go` | Pass. Go 94.7–100% per package (conversations 95.7, mcp 97.2, mcpservers 98.8). Frontend stmts 81.1 / branches 74.0 / funcs 76.3 / lines 82.8 (base 73.2 / 61.5 / 67.3 / 75.1) |
 | shopping (#631) | ruff, `ty`, pytest + cov; frontend `tsc`, Vitest + v8 coverage with real dictionaries via the `next-intl` mock (long content, notifications, optimistic items, Einlagern flow); `verify.sh --frontend --python` | Pass. Backend 65 tests, 95.95% (base 51, 95.72%). Frontend 112 tests, stmts 80.60 / branches 68.88 / funcs 76.02 / lines 82.51 (base 20 tests, 55.58 / 46.32 / 45.57 / 56.25) |
 | pantry (#625) | ruff, `ty`, pytest + cov; frontend `tsc`, Vitest + v8 coverage with real dictionaries (long content, de/pl error states, nested-form fix, export outcomes, ledger paging); `verify.sh --frontend --python` | Pass. Backend 135 tests, 96.17%. Frontend 134 tests, stmts 88.0 / lines 91.4 |
 | maintenance (#624) | frontend `tsc`, Vitest + v8 coverage with real en/de/pl dictionaries (18→164 tests; TZ tests under LA, São Paulo, UTC, Auckland + DST; MSW for the shopping cart; i18n guard test); backend ruff/`ty`/pytest unchanged code; `verify.sh --frontend --python` | Pass. Frontend stmts 95.18 / branches 84.86 / funcs 93.81 / lines 95.94 (base 68.00 / 47.14 / 64.35 / 70.49). Backend 58 tests, 98.59% |
@@ -145,6 +146,8 @@ sweeps only touch their own `<app>.json`.
 | #629 | shopping | Pantry failures answered with 400 instead of a gateway status |
 | #630 | pantry | `bulk_add_items` turns any barcode lookup exception into `product_not_found` |
 | #511, #530, #535 (kept open) | shopping | Icon picker hidden (no column); dead OpenFoodFacts client; N+1 on list read |
+| #632 | chat | Backend accepts OpenRouter/Anthropic/Gemini model blocks it cannot run (hidden in UI) |
+| #633 | shared/security | Python MCP servers don't bind session ids to the caller; idle chat sessions are not terminated server-side |
 | #583 (kept open) | household | Internal `GET /internal/v1/households/{id}/members` added; `backend_shared` helper + chores consumer still missing |
 
 ### Carry-over for later sweeps (from #608)
@@ -158,6 +161,8 @@ sweeps only touch their own `<app>.json`.
 - maintenance (#624): "Send to Shopping" posts each part to `POST /shopping/api/v1/shopping/items`. Notification bell now lists real overdue/due-soon steps. `testTimeout` raised to 30s under heavy machine load.
 - pantry (#625): 409 `category_in_use`/`location_in_use`/`product_in_use` on deletes (additive; MCP tools catch the `ValueError` base); `GET /inventory/transactions` gained `date_from`, `date_to`, repeatable `transaction_type` and an id tie-break; low-stock export posts to `/shopping/api/v1/shopping/items` with per-item retry; dead server-side shopping push removed (#542). Product creation had dropped `minimum_stock`.
 - shopping (#631): `POST /api/v1/shopping-lists/{id}/sync-to-pantry` takes an optional `{"item_ids": [...]}` body (additive). Unit codes Pantry rejected (`stk`, `fl.`, `pkg.`, `pkt.`, `bund`, `dose`) are mapped on sync. Shopping header now uses `Navigation.shoppingSubtitle` because pantry's `Navigation.subtitle` won in the merged dictionary. `verify.sh --security` fails at the pre-commit step because of #617, and its hooks edit unrelated files.
+- chat (#634): MCP clients pooled per (endpoint, household, user), resolved per call, 15 min idle TTL. Registry role errors now use the household `{"detail":{...}}` shape (`household_role_forbidden`, `household_required`). Tool results persisted with `tool_call_id`/`tool_name`/`is_error`; history replay sends `tool_call_id`. SSE wire format unchanged.
+- `Closes #n` in PRs into the orchestrator branch does not auto-close issues (not the default branch). Issues close when the work reaches `main`; the final PR body must list them.
 - **Caddy finding (needs user decision, not changed):** `handle_path /api/v1/shopping*` and `/shopping/api/v1*` both rewrite to `/api/v1{rest}`, while the shopping backend serves `/api/v1/shopping/items` and `/api/v1/shopping-lists`. So `/api/v1/shopping/items` → `/api/v1/items` (404) and `/api/v1/shopping-lists` → `/api/v1-lists` (404); only `/shopping/api/v1/shopping/...` and `/shopping/api/v1/shopping-lists` work. Verified by reading the Caddyfile and routers. Decision: user approved fixing the Caddy rule in Phase 3 (switch the shopping block to pass-through like chores/chat/library, then verify `/shopping/api/v1/...` callers still work).
 - shared follow-up candidates for the final re-check sweep: #610, #614, #615 (small, low-risk).
 - Fresh worktrees need `pnpm --filter @alfheim/docs-portal exec astro sync` before `verify.sh --frontend`.
