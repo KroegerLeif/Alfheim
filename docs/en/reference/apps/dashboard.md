@@ -40,7 +40,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 
 ### FDD Domain Features (`internal/features/`)
 - `apps`: Unified 3-Tier application registry handlers and YAML loaders.
-- `telemetry`: System metrics and log queries.
+- `telemetry`: System metrics and log queries. When VictoriaLogs is unreachable or empty, `GET /api/v1/telemetry/logs` returns a fixed set of illustrative entries (they only reference routes the dashboard serves); the frontend shows a notice when the log request itself fails.
 
 ---
 
