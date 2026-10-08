@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActiveHousehold } from "@alfheim/shared";
 import { pantryClient } from "@/core/api";
-import { ProductRead, ProductCreate } from "@/features/products/types";
+import { fetchAllPages } from "@/core/pagination";
+import { ProductRead, ProductCreate, ProductUpdate } from "@/features/products/types";
 
 export const productKeys = {
   /** Prefix for invalidation across every household. */
@@ -56,10 +57,7 @@ export function useProducts() {
   const { householdId, status } = useActiveHousehold();
   return useQuery<ProductRead[]>({
     queryKey: productKeys.list(householdId),
-    queryFn: () =>
-      pantryClient
-        .get("api/v1/products")
-        .json<ProductRead[]>(),
+    queryFn: () => fetchAllPages<ProductRead>("api/v1/products"),
     enabled: status === "ready",
   });
 }
@@ -70,11 +68,48 @@ export function useProducts() {
 export function useCreateProduct() {
   const queryClient = useQueryClient();
 
-  return useMutation<ProductRead, any, ProductCreate>({
+  return useMutation<ProductRead, Error, ProductCreate>({
     mutationFn: (payload) =>
       pantryClient
         .post("api/v1/products", { json: payload })
         .json<ProductRead>(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+/**
+ * Hook to edit a custom product blueprint (PATCH /products/{id}). Global catalog templates are
+ * read-only on the server.
+ */
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ProductRead, Error, { id: string; payload: ProductUpdate }>({
+    mutationFn: ({ id, payload }) =>
+      pantryClient
+        .patch(`api/v1/products/${id}`, { json: payload })
+        .json<ProductRead>(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      // Stock lines, low-stock alerts and the ledger embed or resolve the product.
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+  });
+}
+
+/**
+ * Hook to delete a custom product blueprint (DELETE /products/{id}). The server answers 409
+ * `product_in_use` while the product still has stock or transaction history.
+ */
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      await pantryClient.delete(`api/v1/products/${id}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
     },

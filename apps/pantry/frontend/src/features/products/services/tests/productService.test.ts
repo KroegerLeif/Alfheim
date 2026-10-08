@@ -1,5 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { useSearchProducts, useProductByBarcode, useProducts, useCreateProduct, productKeys } from '../productService'
+import {
+  useSearchProducts, useProductByBarcode, useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, productKeys,
+} from '../productService'
 import { createQueryWrapper } from '@/tests/utils'
 import { pantryClient } from '@/core/api'
 import { vi } from 'vitest'
@@ -9,6 +11,8 @@ vi.mock('@/core/api', () => ({
   pantryClient: {
     get: vi.fn(),
     post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -82,7 +86,7 @@ describe('Product Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockProducts)
-      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/products')
+      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/products', { searchParams: { limit: 100, offset: 0 } })
     })
   })
 
@@ -109,6 +113,38 @@ describe('Product Service Hooks', () => {
       expect(pantryClient.post).toHaveBeenCalledWith('api/v1/products', { json: newProduct })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: productKeys.all })
 
+      invalidateSpy.mockRestore()
+    })
+  })
+
+  describe('useUpdateProduct', () => {
+    it('patches the product and refreshes products and inventory', async () => {
+      const payload = { name: 'Oat Milk', minimum_stock: 3 }
+      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'p1', ...payload }) } as any)
+      const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+
+      const { result } = renderHook(() => useUpdateProduct(), { wrapper: createQueryWrapper() })
+      result.current.mutate({ id: 'p1', payload })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(pantryClient.patch).toHaveBeenCalledWith('api/v1/products/p1', { json: payload })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: productKeys.all })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['inventory'] })
+      invalidateSpy.mockRestore()
+    })
+  })
+
+  describe('useDeleteProduct', () => {
+    it('deletes the product and refreshes the catalog', async () => {
+      vi.mocked(pantryClient.delete).mockResolvedValue({} as any)
+      const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+
+      const { result } = renderHook(() => useDeleteProduct(), { wrapper: createQueryWrapper() })
+      result.current.mutate('p1')
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(pantryClient.delete).toHaveBeenCalledWith('api/v1/products/p1')
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: productKeys.all })
       invalidateSpy.mockRestore()
     })
   })

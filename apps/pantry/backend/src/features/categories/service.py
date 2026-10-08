@@ -2,9 +2,11 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import or_, select
+from sqlmodel import col, func, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.core.errors import CODE_CATEGORY_IN_USE, ResourceInUseError
 from src.features.categories.models import Category, CategoryCreate, CategoryUpdate
+from src.features.products.models import Product
 
 
 class CategoryService:
@@ -119,7 +121,11 @@ class CategoryService:
         category_id: uuid.UUID,
         home_id: uuid.UUID,
     ) -> bool:
-        """Delete an existing personal category. Global categories cannot be deleted."""
+        """Delete an existing personal category.
+
+        Global categories cannot be deleted, and neither can a category that products still
+        reference (``ResourceInUseError`` with the number of products).
+        """
         category = await CategoryService.get_category(session, category_id, home_id)
         if not category:
             return False
@@ -127,6 +133,21 @@ class CategoryService:
         if category.is_global:
             raise ValueError("Global categories cannot be deleted.")
 
+        usage = await session.exec(
+            select(func.count()).select_from(Product).where(col(Product.category_id) == category.id)
+        )
+        product_count = usage.one()
+        if product_count:
+            raise ResourceInUseError(
+                CODE_CATEGORY_IN_USE,
+                f"Category '{category.name}' is still used by {product_count} product(s).",
+                product_count,
+            )
+
         await session.delete(category)
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError as e:
+            await session.rollback()
+            raise ValueError(f"Failed to delete category: {e}") from e
         return True

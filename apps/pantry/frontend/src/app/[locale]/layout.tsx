@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -13,6 +14,7 @@ import {
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ClientHeader } from "@/components/shared/ClientHeader";
+import { getLocalizedMetadata } from "@/core/metadata";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,6 +33,11 @@ interface LayoutProps {
   params: Promise<{ locale: string }>;
 }
 
+export async function generateMetadata({ params }: Pick<LayoutProps, "params">): Promise<Metadata> {
+  const { locale } = await params;
+  return getLocalizedMetadata(locale);
+}
+
 export default async function LocaleLayout({ children, params }: LayoutProps) {
   const { locale } = await params;
 
@@ -44,10 +51,6 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       suppressHydrationWarning
     >
       <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        />
         {/*
           Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
           by a dynamic route handler, never baked into the prerendered HTML: the

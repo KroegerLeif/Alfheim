@@ -1,10 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  resolveApiUrl,
-  LEGACY_ACCESS_TOKEN_KEY,
-  householdHeaders,
-  useActiveHousehold,
-} from "@alfheim/shared";
+import { useActiveHousehold } from "@alfheim/shared";
 import { pantryClient } from "@/core/api";
 import {
   InventoryStateReadWithRelations,
@@ -83,70 +78,4 @@ export function useExpirationSummary() {
         .json<ExpirationSummary>(),
     enabled: status === "ready",
   });
-}
-
-/**
- * 4. Helper action to push low-stock items to active household Shopping App
- * Fetches current low-stock levels and forwards them via POST /api/v1/shopping/items.
- */
-export async function pushLowStockToShoppingApp(): Promise<{ success: boolean; pushedCount: number }> {
-  const lowStockItems = await pantryClient
-    .get("api/v1/inventory/low-stock")
-    .json<LowStockItem[]>();
-
-  if (lowStockItems.length === 0) {
-    return { success: true, pushedCount: 0 };
-  }
-
-  let token = "";
-  if (typeof window !== "undefined") {
-    token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY) || "";
-  }
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...householdHeaders(),
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  let pushedCount = 0;
-  for (const item of lowStockItems) {
-    const requiredQty = Math.max(1, item.product.minimum_stock - item.current_stock);
-    const payload = {
-      name: item.product.name,
-      quantity: requiredQty,
-      unit: item.product.base_unit || "piece",
-      product_id: item.product.id,
-      barcode: item.product.barcode || null,
-    };
-
-    try {
-      const shoppingBase = process.env.NEXT_PUBLIC_SHOPPING_API_URL
-        ? `${process.env.NEXT_PUBLIC_SHOPPING_API_URL}/items`
-        : undefined;
-      const targetUrl = resolveApiUrl("/shopping/api/v1/items", shoppingBase);
-
-      const res = await fetch(targetUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        pushedCount++;
-      }
-    } catch (err) {
-      console.error("Error pushing item to shopping app:", err);
-    }
-  }
-
-  return { success: pushedCount > 0, pushedCount };
-}
-
-export async function exportLowStockShoppingList(): Promise<LowStockItem[]> {
-  return pantryClient
-    .get("api/v1/inventory/low-stock")
-    .json<LowStockItem[]>();
 }

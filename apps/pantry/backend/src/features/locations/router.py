@@ -95,7 +95,11 @@ async def update_location(
     return location
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={409: {"description": "The location still holds stock or appears in the ledger (`location_in_use`)."}},
+)
 async def delete_location(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
@@ -103,8 +107,8 @@ async def delete_location(
 ):
     """Delete a storage location.
 
-    All pantry items currently in the deleted location will be automatically
-    reassigned to the fallback 'Backlog' system location. System locations cannot be deleted.
+    System locations cannot be deleted. A location that still holds stock lines or has transaction
+    history is refused with ``409`` and the stable code ``location_in_use``.
     """
     deleted = await LocationService.delete_location(
         session=session,

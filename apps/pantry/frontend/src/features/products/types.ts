@@ -33,3 +33,12 @@ export interface ProductCreate {
   category_id?: string | null;
   nutrition?: ProductNutritionCreate | null;
 }
+
+export interface ProductUpdate {
+  name?: string;
+  brand?: string | null;
+  barcode?: string | null;
+  base_unit?: string;
+  minimum_stock?: number;
+  category_id?: string | null;
+}

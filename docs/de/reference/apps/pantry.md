@@ -77,6 +77,14 @@ Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), au
 
 ---
 
+## 🔌 Verhalten der REST-API
+
+- `GET /api/v1/inventory/transactions` liefert das Journal absteigend nach Zeit. Filter: `product_id`, `location_id`, wiederholbares `transaction_type`, `date_from` (inklusive) und `date_to` (exklusiv); Seitenwechsel mit `limit` (max. 100) und `offset`.
+- `DELETE` auf eine Kategorie, einen Lagerort oder ein Produkt, auf die noch andere Datensätze verweisen, antwortet mit `409` und `{"detail": {"code", "message", "item_count"}}`. Die Codes sind `category_in_use` (Produkte verwenden sie), `location_in_use` (Bestandszeilen oder Journaleinträge) und `product_in_use` (Bestandszeilen oder Journaleinträge). Systemlagerorte und globale Katalogvorlagen können nicht gelöscht werden.
+- Export knapper Bestände: Der Browser sendet jeden fehlenden Artikel an die Einkaufs-App (`POST /shopping/api/v1/shopping/items`); fehlgeschlagene Artikel werden aufgelistet und können erneut gesendet werden.
+
+---
+
 ## 🏠 Haushalts-Scoping
 
 Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitgliedsrolle darf lesen und schreiben). Globale Produkte mit gültigem EAN/UPC-Barcode sind haushaltsübergreifend geteilt (`is_global = True`) statt haushaltsbezogen. Siehe [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md).

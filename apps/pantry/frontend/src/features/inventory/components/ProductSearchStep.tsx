@@ -44,6 +44,7 @@ export function ProductSearchStep({
             value={productQuery}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={t("pantry.searchPlaceholder")}
+            aria-label={t("pantry.searchProduct")}
             className="w-full pl-10 pr-4 py-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono"
           />
         </div>
@@ -59,8 +60,8 @@ export function ProductSearchStep({
               searchResults.map((product) => (
                 <button key={product.id} type="button" onClick={() => onProductSelect(product)}
                   className="w-full text-left px-3 py-2 hover:bg-[var(--surface-elevated)] text-xs border-b border-[var(--border-subtle)] last:border-b-0">
-                  <div className="font-bold uppercase">{product.name}</div>
-                  {product.brand && <div className="text-[var(--text-muted)]">{product.brand}</div>}
+                  <div className="font-bold uppercase break-words">{product.name}</div>
+                  {product.brand && <div className="text-[var(--text-muted)] break-words">{product.brand}</div>}
                 </button>
               ))
             )}
@@ -75,13 +76,13 @@ export function ProductSearchStep({
         </label>
         <div className="flex gap-2">
           <input type="text" value={barcodeInput} onChange={(e) => onBarcodeChange(e.target.value)}
-            placeholder={t("pantry.barcodePlaceholder")}
-            className="flex-1 p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
+            placeholder={t("pantry.barcodePlaceholder")} aria-label={t("pantry.barcode")}
+            className="flex-1 min-w-0 p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           <Button type="submit" variant="outline" size="sm" className="text-xs uppercase shrink-0">
             {t("pantry.scan")}
           </Button>
         </div>
-        {scanError && <p className="text-xs text-red-400 font-bold">{scanError}</p>}
+        {scanError && <p role="alert" className="text-xs text-red-400 font-bold break-words">{scanError}</p>}
       </form>
 
       {/* Quick product creation CTA */}
