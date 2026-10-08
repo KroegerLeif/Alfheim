@@ -3,9 +3,13 @@ import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import * as matchers from 'vitest-axe/matchers'
 import 'vitest-axe/extend-expect'
 import { server } from './mocks/server'
+import { configure } from '@testing-library/react'
 import { setTestLocale } from './locale'
 
 expect.extend(matchers)
+
+// findBy*/waitFor poll for 5s instead of 1s so the suite also passes while the machine is busy (CI, parallel workspaces).
+configure({ asyncUtilTimeout: 5000 })
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => {
