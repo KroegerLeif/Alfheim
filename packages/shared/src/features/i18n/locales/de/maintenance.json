@@ -27,13 +27,12 @@
       "noDevicesDesc": "Es sind keine Geräte für den ausgewählten Haushalt registriert.",
       "locationGroup": "Standortgruppe //",
       "otherLocations": "Sonstige Standorte",
-      "deviceCount": "{count} {count, plural, =1 {Gerät} other {Geräte}}",
+      "deviceCount": "{count, plural, one {# Gerät} other {# Geräte}}",
       "model": "Modell:",
       "details": "Gerätedetails //",
       "tabs": {
         "overview": "Übersicht",
         "steps": "Schritte",
-        "manuals": "Handbücher",
         "timeline": "Chronik"
       },
       "fields": {
@@ -45,20 +44,21 @@
         "statusFlagged": "Dieses Gerät ist aktuell als {status} markiert. Geplante Wartungsprotokolle melden fällige Prüfungen.",
         "startMaintenance": "Wartung starten",
         "noSteps": "Keine Wartungsschritte definiert.",
-        "noManuals": "Keine Dokumentation für dieses Gerät verknüpft.",
         "noHistory": "Keine früheren Vorgänge protokolliert.",
-        "intervalMonths": "{count} Monate",
+        "intervalMonths": "{count, plural, one {# Monat} other {# Monate}}",
         "lastDone": "Zuletzt erledigt",
         "nextDue": "Nächstes Fälligkeitsdatum",
         "overdueBy": "Überfällig seit {days}T",
-        "dueIn": "In {days}T"
-      }
+        "dueIn": "In {days}T",
+        "steps": "Schritte"
+      },
+      "loadError": "Geräte oder Standortdaten konnten nicht geladen werden. Bitte aktualisieren Sie die Seite oder versuchen Sie es später erneut."
     },
     "wizard": {
       "registerTitle": "Neues Gerät registrieren",
       "registerSubtitle": "Erstellen Sie ein Gerät und definieren Sie den ersten Wartungsplan.",
       "deviceDetailsLegend": "Gerätedetails",
-      "name": "Name *",
+      "name": "Name",
       "namePlaceholder": "z.B. Wärmepumpe Daikin",
       "modelPlaceholder": "z.B. EHVH08S23EJ6V",
       "serialPlaceholder": "z.B. DK-90812903-HP",
@@ -72,7 +72,7 @@
       "stepsLegend": "Wartungsschritte",
       "addStep": "Schritt hinzufügen",
       "stepNumber": "Schritt {number}",
-      "title": "Titel *",
+      "title": "Titel",
       "titlePlaceholder": "z.B. Luftfilter wechseln",
       "supplyItem": "Ersatzteil / Material",
       "supplyPlaceholder": "z.B. HEPA Filter F7",
@@ -83,7 +83,8 @@
       "cancel": "Abbrechen",
       "registerDevice": "Gerät registrieren",
       "saved": "Gespeichert!",
-      "saving": "Speichern..."
+      "saving": "Speichern...",
+      "removeStep": "Schritt entfernen"
     },
     "maintenanceWork": {
       "totalSteps": "Gesamtschritte",
@@ -91,7 +92,7 @@
       "dueSoon": "Demnächst fällig",
       "good": "In Ordnung",
       "scheduleHeader": "Wartungsplan //",
-      "showingFilter": "Zeige {filter} ({count} Einträge)",
+      "showingFilter": "Zeige {filter} ({count, plural, one {# Eintrag} other {# Einträge}})",
       "allClear": "Alles erledigt",
       "noMatchFilter": "Keine Geräte entsprechen dem ausgewählten Filter.",
       "nextServiceDue": "Nächste Wartung",
@@ -99,7 +100,11 @@
       "startBtn": "Starten",
       "statusGood": "GUT",
       "statusDueSoon": "DEMNÄCHST FÄLLIG",
-      "statusOverdue": "ÜBERFÄLLIG"
+      "statusOverdue": "ÜBERFÄLLIG",
+      "filterAll": "alle Geräte",
+      "filterOverdue": "überfällig",
+      "filterDueSoon": "demnächst fällig",
+      "filterOk": "in Ordnung"
     },
     "scheduledTasks": {
       "tagline": "Aufgabenplaner //",
@@ -116,14 +121,11 @@
       "commentLabel": "Prüfkommentar",
       "commentPlaceholder": "Fügen Sie Kommentare oder Bemerkungen hinzu...",
       "saveComment": "Kommentar speichern",
-      "saveFailed": "Speichern fehlgeschlagen – bitte erneut versuchen.",
-      "referencePhoto": "Referenzfoto",
-      "chooseFile": "Datei auswählen",
-      "noFileChosen": "Keine Datei ausgewählt"
+      "saveFailed": "Speichern fehlgeschlagen – bitte erneut versuchen."
     },
     "serviceHistory": {
       "tagline": "Wartungsprotokolle //",
-      "recordCount": "{count} {count, plural, =1 {Eintrag} other {Einträge}}",
+      "recordCount": "{count, plural, one {# Eintrag} other {# Einträge}}",
       "noHistoryFound": "Kein Verlauf vorhanden",
       "noHistoryDesc": "Für diesen Standort wurden noch keine Wartungsvorgänge protokolliert.",
       "completedPrefix": "Abgeschlossen:",
@@ -146,7 +148,13 @@
       "requiredPart": "Benötigtes Ersatzteil",
       "associatedSupplies": "Zugehöriges Material",
       "removeFromList": "Aus Liste entfernen",
-      "selectForCart": "Für Warenkorb vormerken"
+      "selectForCart": "Für Warenkorb vormerken",
+      "sending": "Wird gesendet...",
+      "sendFailed": "Die Artikel konnten nicht an die Einkaufsliste gesendet werden. Sie bleiben im Warenkorb, bitte versuchen Sie es erneut.",
+      "partialSendFailed": "{failed} von {total} Artikeln konnten nicht gesendet werden und bleiben im Warenkorb.",
+      "csvPartName": "Ersatzteil",
+      "csvStatus": "Status",
+      "csvRequired": "Benötigt"
     },
     "wizardMode": {
       "tagline": "Wartungsassistent //",
@@ -155,7 +163,6 @@
       "noStepsDefined": "Keine Schritte definiert",
       "noStepsDesc": "Für dieses Gerät sind keine Wartungsschritte konfiguriert.",
       "close": "Schließen",
-      "directManuals": "Direkter Handbuch-Zugriff",
       "stepCounter": "SCHRITT {current} VON {total}",
       "intervalTag": "Intervall: {recurrence}M",
       "markCompleted": "Diesen Schritt als erledigt markieren",
@@ -164,12 +171,37 @@
       "back": "Zurück",
       "finishAndSave": "Abschließen & Speichern",
       "next": "Weiter",
-      "saving": "Speichern..."
+      "saving": "Speichern...",
+      "submitFailed": "Das Wartungsprotokoll konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "defaultNotes": "Alle Wartungsschritte geprüft und abgeschlossen.",
+      "stepFallback": "Schritt",
+      "performerFallback": "Angemeldeter Benutzer",
+      "noSupplyItem": "Für diesen Schritt ist kein Ersatzteil erforderlich."
     },
     "header": {
-      "systemAlerts": "Systemwarnungen",
       "urgentBadge": "{count} Dringend",
-      "noAlerts": "Keine aktiven Systemwarnungen"
+      "notifications": "Benachrichtigungen",
+      "allCaughtUp": "Alles erledigt",
+      "noNotifications": "Keine Benachrichtigungen",
+      "overdueItem": "{step} ({device}) ist seit {days, plural, one {# Tag} other {# Tagen}} überfällig",
+      "dueSoonItem": "{step} ({device}) ist {days, plural, =0 {heute} =1 {morgen} other {in # Tagen}} fällig"
+    },
+    "dates": {
+      "notScheduled": "Nicht geplant",
+      "never": "Nie"
+    },
+    "deviceStatus": {
+      "active": "Aktiv",
+      "maintenance": "In Wartung",
+      "inactive": "Inaktiv"
+    },
+    "categories": {
+      "hvac": "Heizung & Klima",
+      "plumbing": "Sanitär",
+      "electrical": "Elektrik",
+      "appliances": "Haushaltsgeräte",
+      "security": "Sicherheit",
+      "garden": "Garten"
     }
   }
 }

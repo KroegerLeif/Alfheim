@@ -2,9 +2,11 @@ package conversations_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -578,6 +580,10 @@ func TestService_ToolCallingLoop(t *testing.T) {
 		if messages[2].Role != conversations.RoleTool || messages[2].Content != "3 liters of milk" {
 			t.Errorf("expected message 3 to be the tool result, got %+v", messages[2])
 		}
+		assertToolResultRecord(t, messages[2], conversations.ToolResultRecord{ToolCallID: "call_0", ToolName: "get_stock"})
+		if messages[2].MCPServerID == nil || *messages[2].MCPServerID != pantryServer.ID {
+			t.Errorf("expected the tool result to reference its mcp server, got %v", messages[2].MCPServerID)
+		}
 		if messages[3].Role != conversations.RoleAssistant || messages[3].Content != "You have 3 liters of milk." {
 			t.Errorf("expected message 4 to be the final assistant answer, got %+v", messages[3])
 		}
@@ -840,6 +846,11 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 
 		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		drainChunks(t, chunks, 2*time.Second)
+		tool := lastToolMessage(t, repo, created.ID)
+		if !strings.Contains(tool.Content, "unknown tool") || tool.MCPServerID != nil {
+			t.Errorf("expected a persisted unknown-tool result without server, got %+v", tool)
+		}
+		assertToolResultRecord(t, tool, conversations.ToolResultRecord{ToolCallID: "call_0", ToolName: "unknown_tool", IsError: true})
 	})
 
 	t.Run("MCP call error returns error text", func(t *testing.T) {
@@ -867,6 +878,11 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 
 		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		drainChunks(t, chunks, 2*time.Second)
+		tool := lastToolMessage(t, repo, created.ID)
+		if strings.Contains(tool.Content, "mcp error") || !strings.HasPrefix(tool.Content, "tool error:") {
+			t.Errorf("expected a generic persisted failure text, got %q", tool.Content)
+		}
+		assertToolResultRecord(t, tool, conversations.ToolResultRecord{ToolCallID: "call_0", ToolName: "failing_tool", IsError: true})
 	})
 
 	t.Run("MCP call isError result", func(t *testing.T) {
@@ -893,6 +909,11 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 
 		chunks, _ := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
 		drainChunks(t, chunks, 2*time.Second)
+		tool := lastToolMessage(t, repo, created.ID)
+		if tool.Content != "tool reported error" {
+			t.Errorf("expected the tool's own error text, got %q", tool.Content)
+		}
+		assertToolResultRecord(t, tool, conversations.ToolResultRecord{ToolCallID: "call_0", ToolName: "error_tool", IsError: true})
 	})
 
 	t.Run("ChatStream fails on continuation round", func(t *testing.T) {
@@ -926,6 +947,29 @@ func TestService_ExecuteToolCall_EdgeCases(t *testing.T) {
 			t.Fatalf("expected terminal error chunk, got %+v", last)
 		}
 	})
+}
+
+func lastToolMessage(t *testing.T, repo *fakeRepository, conversationID string) *conversations.Message {
+	t.Helper()
+	msgs := repo.messages[conversationID]
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if msgs[i].Role == conversations.RoleTool {
+			return msgs[i]
+		}
+	}
+	t.Fatalf("expected a persisted tool message, got %+v", msgs)
+	return nil
+}
+
+func assertToolResultRecord(t *testing.T, m *conversations.Message, want conversations.ToolResultRecord) {
+	t.Helper()
+	var got conversations.ToolResultRecord
+	if err := json.Unmarshal(m.ToolCallsJSON, &got); err != nil {
+		t.Fatalf("expected a tool result record, got %q: %v", m.ToolCallsJSON, err)
+	}
+	if got != want {
+		t.Errorf("expected tool result record %+v, got %+v", want, got)
+	}
 }
 
 type fakeToolCallerWithCallError struct {

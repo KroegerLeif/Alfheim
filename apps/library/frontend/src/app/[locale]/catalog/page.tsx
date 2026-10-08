@@ -5,6 +5,7 @@ import { Button, useTranslation } from "@alfheim/shared";
 import {
   CatalogFilterBar,
   CatalogGrid,
+  CatalogPager,
   useCatalog,
 } from "@/features/catalog";
 import { MediaItem } from "@/features/catalog/types";
@@ -22,10 +23,16 @@ export default function CatalogPage() {
     activeProvidersOnly,
     setActiveProvidersOnly,
     items,
+    total,
+    hasMore,
+    loadMore,
+    isLoadingMore,
+    isLoadMoreError,
     isLoading,
     isError,
     locationsMap,
     locations,
+    providers,
     refetch,
   } = useCatalog();
 
@@ -45,7 +52,7 @@ export default function CatalogPage() {
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-[var(--text-main)]">
             {t("library.catalog.title")}
           </h1>
@@ -78,11 +85,23 @@ export default function CatalogPage() {
         onEditItem={handleOpenEditDialog}
       />
 
+      {!isLoading && !isError && (
+        <CatalogPager
+          shown={items.length}
+          total={total}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          isLoadMoreError={isLoadMoreError}
+          onLoadMore={() => void loadMore()}
+        />
+      )}
+
       <ItemDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         item={editingItem}
         locations={locations}
+        providers={providers}
         onSuccess={refetch}
       />
     </div>

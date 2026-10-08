@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StaticHouseholdProvider, subscribeHouseholdErrors } from '@alfheim/shared'
-import { pantryClient } from '../api'
+import { pantryClient, shoppingClient } from '../api'
 import { useLowStockItems } from '@/features/inventory/services/inventoryService'
 
 function jsonResponse(status: number, body: unknown) {
@@ -51,5 +51,14 @@ describe('pantryClient household context', () => {
     const { result } = renderHook(() => useLowStockItems(), { wrapper })
     expect(result.current.fetchStatus).toBe('idle')
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('reaches the shopping API on the public ingress prefix with token and household', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-42')
+    sessionStorage.setItem('alfheim_access_token', 'token-9')
+    await shoppingClient.post('shopping/items', { json: { name: 'Milk' } }).json()
+    const request = fetchSpy.mock.calls[0][0] as Request
+    expect(new URL(request.url).pathname).toBe('/shopping/api/v1/shopping/items')
+    expect(request.headers.get('X-Household-ID')).toBe('hh-42')
   })
 })

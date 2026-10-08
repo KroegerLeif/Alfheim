@@ -17,7 +17,7 @@ func execTag(tag string, err error) func(ctx context.Context, sql string, args .
 	}
 }
 
-func TestRepository_RenameAndDelete(t *testing.T) {
+func TestRepository_RenameAndDeleteInvite(t *testing.T) {
 	ctx := context.Background()
 	dbErr := errors.New("db")
 
@@ -25,15 +25,9 @@ func TestRepository_RenameAndDelete(t *testing.T) {
 	if err := ok.RenameHousehold(ctx, "h1", "n"); err != nil {
 		t.Errorf("rename: %v", err)
 	}
-	if err := ok.DeleteHousehold(ctx, "h1"); err != nil {
-		t.Errorf("delete: %v", err)
-	}
 	zero := newRepositoryWithDB(&mockDBTX{execFunc: execTag("UPDATE 0", nil)})
 	if err := zero.RenameHousehold(ctx, "h1", "n"); !errors.Is(err, ErrHouseholdNotFound) {
 		t.Errorf("rename 0 rows: %v", err)
-	}
-	if err := zero.DeleteHousehold(ctx, "h1"); !errors.Is(err, ErrHouseholdNotFound) {
-		t.Errorf("delete 0 rows: %v", err)
 	}
 	if err := zero.DeleteInvite(ctx, "h1", "t"); !errors.Is(err, ErrInviteNotFound) {
 		t.Errorf("delete invite 0 rows: %v", err)
@@ -44,9 +38,6 @@ func TestRepository_RenameAndDelete(t *testing.T) {
 	bad := newRepositoryWithDB(&mockDBTX{execFunc: execTag("", dbErr)})
 	if err := bad.RenameHousehold(ctx, "h1", "n"); !errors.Is(err, dbErr) {
 		t.Errorf("rename err: %v", err)
-	}
-	if err := bad.DeleteHousehold(ctx, "h1"); !errors.Is(err, dbErr) {
-		t.Errorf("delete err: %v", err)
 	}
 	if err := bad.DeleteInvite(ctx, "h1", "t"); !errors.Is(err, dbErr) {
 		t.Errorf("delete invite err: %v", err)

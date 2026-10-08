@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { shoppingClient } from "@/lib/api";
+import { useErrorNotifier } from "@/lib/useErrorNotifier";
 import { ShoppingItemSchema } from "../schemas";
 import {
   ShoppingItem,
@@ -21,17 +22,29 @@ const generateUUID = (): string => {
   });
 };
 
+/** Prefix of the client-generated id an item carries until the server has confirmed it. */
+export const TEMP_ITEM_ID_PREFIX = "temp-";
+
+/** True while an item only exists in the optimistic cache, so the server does not know its id yet. */
+export const isPendingItem = (item: Pick<ShoppingItem, "id">): boolean =>
+  item.id.startsWith(TEMP_ITEM_ID_PREFIX);
+
+interface AddItemContext {
+  previousList: ShoppingList | undefined;
+  tempId: string;
+}
+
 /**
  * Hook to add a new shopping item with optimistic updates.
+ *
+ * The optimistic item carries a `temp-` id (see `isPendingItem`) so the UI can block actions that
+ * would reach the server with an id it does not know yet. It is swapped for the server's item on
+ * success and removed again on failure.
  */
 export function useAddShoppingItem(listId: string) {
   const queryClient = useQueryClient();
-  return useMutation<
-    ShoppingItem,
-    Error,
-    ShoppingItemCreatePayload,
-    { previousList: ShoppingList | undefined }
-  >({
+  const notifyError = useErrorNotifier();
+  return useMutation<ShoppingItem, Error, ShoppingItemCreatePayload, AddItemContext>({
     mutationFn: (payload) =>
       shoppingClient
         .post(`api/v1/shopping-lists/${listId}/items`, { json: payload })
@@ -42,11 +55,11 @@ export function useAddShoppingItem(listId: string) {
       await queryClient.cancelQueries({ queryKey: shoppingKeys.list(listId) });
 
       const previousList = queryClient.getQueryData<ShoppingList>(shoppingKeys.list(listId));
+      const tempId = `${TEMP_ITEM_ID_PREFIX}${generateUUID()}`;
 
       if (previousList) {
-        // Enforce valid UUID string format for schema compliance
         const tempItem: ShoppingItem = {
-          id: generateUUID(),
+          id: tempId,
           list_id: listId,
           name: newItemPayload.name,
           brand: newItemPayload.brand || null,
@@ -67,13 +80,22 @@ export function useAddShoppingItem(listId: string) {
         });
       }
 
-      return { previousList };
+      return { previousList, tempId };
+    },
+    onSuccess: (created, _payload, context) => {
+      // Swap the optimistic item for the persisted one right away instead of waiting for the refetch.
+      queryClient.setQueryData<ShoppingList>(shoppingKeys.list(listId), (current) =>
+        current
+          ? { ...current, items: current.items.map((item) => (item.id === context?.tempId ? created : item)) }
+          : current
+      );
     },
     onError: (err, newItem, context) => {
       // Revert state if backend request fails
       if (context?.previousList) {
         queryClient.setQueryData(shoppingKeys.list(listId), context.previousList);
       }
+      notifyError(err, "itemAddFailed");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.list(listId) });
@@ -83,9 +105,13 @@ export function useAddShoppingItem(listId: string) {
 
 /**
  * Hook to update a shopping item properties (checked state, qty, unit) optimistically.
+ *
+ * Failures are shown as a notification unless `silent` is set, for callers that present the
+ * error themselves (the mutation still rejects `mutateAsync`).
  */
-export function useUpdateShoppingItem(listId: string) {
+export function useUpdateShoppingItem(listId: string, { silent = false }: { silent?: boolean } = {}) {
   const queryClient = useQueryClient();
+  const notifyError = useErrorNotifier();
   return useMutation<
     ShoppingItem,
     Error,
@@ -119,6 +145,7 @@ export function useUpdateShoppingItem(listId: string) {
       if (context?.previousList) {
         queryClient.setQueryData(shoppingKeys.list(listId), context.previousList);
       }
+      if (!silent) notifyError(err, "itemUpdateFailed");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.list(listId) });
@@ -131,6 +158,7 @@ export function useUpdateShoppingItem(listId: string) {
  */
 export function useDeleteShoppingItem(listId: string) {
   const queryClient = useQueryClient();
+  const notifyError = useErrorNotifier();
   return useMutation<
     void,
     Error,
@@ -159,6 +187,7 @@ export function useDeleteShoppingItem(listId: string) {
       if (context?.previousList) {
         queryClient.setQueryData(shoppingKeys.list(listId), context.previousList);
       }
+      notifyError(err, "itemDeleteFailed");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.list(listId) });

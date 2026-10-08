@@ -2,8 +2,10 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.core.errors import CODE_LOCATION_IN_USE, ResourceInUseError
+from src.features.inventory.models import InventoryLedger, InventoryState
 from src.features.locations.models import Location, LocationCreate, LocationUpdate
 
 
@@ -102,7 +104,9 @@ class LocationService:
     ) -> bool:
         """Delete a storage location.
 
-        Reassigns stored items to fallback location. System locations cannot be deleted.
+        System locations cannot be deleted. A location that still holds stock lines or appears in the
+        immutable transaction ledger cannot be deleted either (``ResourceInUseError`` with the number
+        of referencing records), because stock and history must keep a valid location.
         """
         location = await LocationService.get_location(session, location_id, home_id)
         if not location:
@@ -111,15 +115,25 @@ class LocationService:
         if location.is_system:
             raise ValueError("System locations cannot be modified or deleted.")
 
-        # 1. Locate the default fallback location for this home
-        fallback_statement = select(Location).where(Location.home_id == home_id, Location.is_system)
-        fallback_result = await session.exec(fallback_statement)
-        fallback = fallback_result.first()
+        state_count = (
+            await session.exec(
+                select(func.count()).select_from(InventoryState).where(col(InventoryState.location_id) == location.id)
+            )
+        ).one()
+        ledger_count = (
+            await session.exec(
+                select(func.count()).select_from(InventoryLedger).where(col(InventoryLedger.location_id) == location.id)
+            )
+        ).one()
+        record_count = state_count + ledger_count
+        if record_count:
+            raise ResourceInUseError(
+                CODE_LOCATION_IN_USE,
+                f"Location '{location.name}' still has {state_count} stock line(s) and "
+                f"{ledger_count} transaction record(s).",
+                record_count,
+            )
 
-        if not fallback:
-            raise ValueError("System fallback location ('Backlog') could not be found.")
-
-        # 2. Delete the target location
         await session.delete(location)
         try:
             await session.commit()

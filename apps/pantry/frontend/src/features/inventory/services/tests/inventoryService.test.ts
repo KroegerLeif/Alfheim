@@ -5,7 +5,6 @@ import {
   useExpirationSummary,
   useCreateTransaction,
   useLedgerHistory,
-  exportLowStockShoppingList
 } from '../inventoryService'
 import { createQueryWrapper } from '@/tests/utils'
 import { pantryClient } from '@/core/api'
@@ -78,18 +77,6 @@ describe('Inventory Hooks Service', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual(mockData)
-  })
-
-  it('exportLowStockShoppingList fetches stock list directly', async () => {
-    const mockData = [{ product: { name: 'Sugar' }, current_stock: 0 }]
-    const mockJson = vi.fn().mockResolvedValue(mockData)
-    vi.mocked(pantryClient.get).mockReturnValue({
-      json: mockJson,
-    } as any)
-
-    const list = await exportLowStockShoppingList()
-    expect(list).toEqual(mockData)
-    expect(pantryClient.get).toHaveBeenCalledWith('api/v1/inventory/low-stock')
   })
 
   it('useCreateTransaction posts transaction mutation successfully', async () => {

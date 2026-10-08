@@ -4,16 +4,14 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Device } from "@/shared/types";
 import { CATEGORY_ICONS } from "@/shared/data";
-import { formatDate, daysUntil } from "@/core/utils";
 import { cn } from "@/core/utils";
+import { useFormatDate } from "@/core/useFormatDate";
 import { Eye, Play, Info, CheckCircle2 } from "lucide-react";
-
-type MetricFilter = "all" | "overdue" | "due_soon" | "ok";
+import { getDeviceMaintenanceState, getNextServiceDate, MetricFilter } from "../utils";
 
 interface DeviceMaintenanceListProps {
   filteredDevices: Device[];
   filter: MetricFilter;
-  getDeviceMaintenanceState: (d: Device) => MetricFilter;
   setSelectedDevice: (d: Device) => void;
   onStartMaintenance: (d: Device) => void;
 }
@@ -21,22 +19,19 @@ interface DeviceMaintenanceListProps {
 export function DeviceMaintenanceList({
   filteredDevices = [],
   filter,
-  getDeviceMaintenanceState,
   setSelectedDevice,
   onStartMaintenance,
 }: DeviceMaintenanceListProps) {
   const t = useTranslations("maintenance");
+  const formatDate = useFormatDate();
   const list = filteredDevices ?? [];
 
-  const getNextServiceDate = (device: Device): string => {
-    const steps = device.steps ?? [];
-    if (steps.length === 0) return "Never";
-    const dates = steps
-      .map((s) => s.supply_needed_date)
-      .filter((d): d is string => !!d);
-    if (dates.length === 0) return "Never";
-    return dates.reduce((min, d) => (d < min ? d : min), dates[0]);
-  };
+  const filterLabel = {
+    all: t("maintenanceWork.filterAll"),
+    overdue: t("maintenanceWork.filterOverdue"),
+    due_soon: t("maintenanceWork.filterDueSoon"),
+    ok: t("maintenanceWork.filterOk"),
+  }[filter];
 
   const getStatusColor = (state: MetricFilter) => {
     switch (state) {
@@ -53,12 +48,12 @@ export function DeviceMaintenanceList({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
+      <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
         <span className="text-xs font-black uppercase tracking-widest text-[var(--primary-main)]">
           {t("maintenanceWork.scheduleHeader")}
         </span>
         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[var(--surface-elevated)] text-[var(--text-muted)] uppercase">
-          {t("maintenanceWork.showingFilter", { filter, count: list.length })}
+          {t("maintenanceWork.showingFilter", { filter: filterLabel, count: list.length })}
         </span>
       </div>
 
@@ -82,7 +77,7 @@ export function DeviceMaintenanceList({
             return (
               <div
                 key={device.id}
-                className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl p-4 border hover:border-[var(--border-accent)] transition-all shadow-sm grid grid-cols-1 md:grid-cols-12 md:items-center gap-4"
+                className="bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl p-4 border hover:border-[var(--border-accent)] transition-all shadow-sm grid grid-cols-12 md:items-center gap-4"
               >
                 {/* Cols 1–5: Icon & Device Info */}
                 <div className="col-span-12 md:col-span-5 flex items-center gap-4 min-w-0">
@@ -90,13 +85,13 @@ export function DeviceMaintenanceList({
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-[var(--text-main)] uppercase tracking-wide truncate">
+                    <h3 className="text-sm font-bold text-[var(--text-main)] uppercase tracking-wide truncate" title={device.name}>
                       {device.name}
                     </h3>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">
-                      <span className="truncate">{device.location}</span>
-                      <span>•</span>
-                      <span className="font-mono text-[10px] text-[var(--text-muted)]">{device.model}</span>
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider min-w-0">
+                      <span className="truncate" title={device.location}>{device.location}</span>
+                      <span className="shrink-0">•</span>
+                      <span className="font-mono text-[10px] text-[var(--text-muted)] truncate" title={device.model}>{device.model}</span>
                     </div>
                   </div>
                 </div>
@@ -117,8 +112,9 @@ export function DeviceMaintenanceList({
                 </div>
 
                 {/* Cols 10–12: Action Buttons */}
-                <div className="col-span-12 md:col-span-3 flex items-center justify-end gap-2.5">
+                <div className="col-span-12 md:col-span-3 flex flex-wrap items-center justify-end gap-2.5">
                   <button
+                    type="button"
                     onClick={() => setSelectedDevice(device)}
                     className="px-3.5 py-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all flex items-center gap-1.5 cursor-pointer"
                   >
@@ -126,6 +122,7 @@ export function DeviceMaintenanceList({
                     {t("maintenanceWork.detailsBtn")}
                   </button>
                   <button
+                    type="button"
                     onClick={() => onStartMaintenance(device)}
                     className="px-4 py-2 rounded-xl bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[var(--primary-main)]/10"
                   >

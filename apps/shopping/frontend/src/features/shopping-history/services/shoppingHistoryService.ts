@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActiveHousehold } from "@alfheim/shared";
 import { shoppingClient } from "@/lib/api";
+import { useErrorNotifier } from "@/lib/useErrorNotifier";
 import { z } from "zod";
 import { ShoppingHistorySchema } from "../schemas";
 import { ShoppingHistory } from "../types";
@@ -32,6 +33,7 @@ export function useShoppingHistory() {
  */
 export function useDeleteHistoryEntry() {
   const queryClient = useQueryClient();
+  const notifyError = useErrorNotifier();
   return useMutation<void, Error, string>({
     mutationFn: (historyId) =>
       shoppingClient
@@ -40,5 +42,6 @@ export function useDeleteHistoryEntry() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: historyKeys.all });
     },
+    onError: (err) => notifyError(err, "historyRemoveFailed"),
   });
 }

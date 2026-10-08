@@ -6,8 +6,10 @@ import { Button } from "@alfheim/shared";
 import { Loader2, PackagePlus } from "lucide-react";
 import { useCreateProduct } from "@/features/products/services/productService";
 import { useCategories } from "@/features/categories/services/categoryService";
-import { QuickCategoryForm } from "./QuickCategoryForm";
+import { CategoryCreateForm } from "@/features/categories/components/CategoryCreateForm";
 import { ProductRead } from "@/features/products/types";
+import { describeApiError } from "@/core/apiError";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
 
 interface QuickProductFormProps {
   initialName?: string;
@@ -31,68 +33,76 @@ export function QuickProductForm({
   const [minStock, setMinStock] = React.useState(0);
   const [categoryId, setCategoryId] = React.useState("");
   const [isCreatingCategory, setIsCreatingCategory] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  const { data: categories = [] } = useCategories();
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData ?? [];
   const createProductMut = useCreateProduct();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    setErrorMessage(null);
     createProductMut.mutate(
       { name: name.trim(), brand: brand.trim() || null, barcode: barcode.trim() || null,
         base_unit: baseUnit, minimum_stock: Number(minStock) || 0, category_id: categoryId || null, nutrition: null },
-      { onSuccess: onCreated }
+      {
+        onSuccess: onCreated,
+        // Every field keeps its value, so the user only has to fix what the server rejected.
+        onError: async (error) => setErrorMessage(await describeApiError(error, t, "pantry.createProductFailed")),
+      }
     );
   };
 
   return (
     <div className="border border-[var(--border-accent)] p-5 bg-[var(--surface-elevated)] space-y-4 rounded-lg">
       <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-3">
-        <h3 className="font-heading font-bold text-lg uppercase flex items-center gap-2 text-[var(--primary-main)]">
-          <PackagePlus className="h-5 w-5" />{t("pantry.createProductTitle")}
+        <h3 className="font-heading font-bold text-lg uppercase flex items-center gap-2 text-[var(--primary-main)] min-w-0">
+          <PackagePlus className="h-5 w-5 shrink-0" />{t("pantry.createProductTitle")}
         </h3>
-        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-xs uppercase">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-xs uppercase shrink-0">
           {t("pantry.cancel")}
         </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {errorMessage && <ErrorBanner message={errorMessage} />}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.productName")} *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
+            <label htmlFor="qp-name" className="text-xs font-bold uppercase block">{t("pantry.productName")} *</label>
+            <input id="qp-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.brand")}</label>
-            <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)}
+            <label htmlFor="qp-brand" className="text-xs font-bold uppercase block">{t("pantry.brand")}</label>
+            <input id="qp-brand" type="text" value={brand} onChange={(e) => setBrand(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.barcode")}</label>
-            <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)}
+            <label htmlFor="qp-barcode" className="text-xs font-bold uppercase block">{t("pantry.barcode")}</label>
+            <input id="qp-barcode" type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>
           <div className="space-y-1">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold uppercase block">{t("pantry.category")}</label>
+              <label htmlFor="qp-category" className="text-xs font-bold uppercase block">{t("pantry.category")}</label>
               <button type="button" onClick={() => setIsCreatingCategory(!isCreatingCategory)}
-                className="text-[10px] text-[var(--primary-main)] hover:underline uppercase font-bold">
+                className="text-[10px] text-[var(--primary-main)] hover:underline uppercase font-bold text-right">
                 + {t("pantry.createCategoryTitle")}
               </button>
             </div>
             {isCreatingCategory ? (
-              <QuickCategoryForm
+              <CategoryCreateForm
                 onCreated={(id) => { setCategoryId(id); setIsCreatingCategory(false); }}
                 onCancel={() => setIsCreatingCategory(false)}
               />
             ) : (
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
+              <select id="qp-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded uppercase font-mono">
-                <option value="">{t("pantry.filterCategory")}</option>
+                <option value="">{t("pantry.noCategory")}</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>)}
               </select>
             )}
@@ -101,8 +111,8 @@ export function QuickProductForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.baseUnit")}</label>
-            <select value={baseUnit} onChange={(e) => setBaseUnit(e.target.value)}
+            <label htmlFor="qp-unit" className="text-xs font-bold uppercase block">{t("pantry.baseUnit")}</label>
+            <select id="qp-unit" value={baseUnit} onChange={(e) => setBaseUnit(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded uppercase font-mono">
               <option value="piece">{t("pantry.unitPiece")}</option>
               <option value="g">{t("pantry.unitGrams")}</option>
@@ -111,8 +121,8 @@ export function QuickProductForm({
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.minStockLabel")}</label>
-            <input type="number" step="any" min="0" value={minStock}
+            <label htmlFor="qp-min" className="text-xs font-bold uppercase block">{t("pantry.minStockLabel")}</label>
+            <input id="qp-min" type="number" step="any" min="0" value={minStock}
               onChange={(e) => setMinStock(Math.max(0, parseFloat(e.target.value) || 0))}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>

@@ -10,6 +10,7 @@ import { useTranslation } from '../../i18n/utils/useTranslation';
 
 export interface IconOption {
   id: string;
+  /** Human-readable English name; the UI shows the translated `common.icon_names.<id>` label. */
   name: string;
   component: React.ComponentType<{ className?: string }>;
 }
@@ -63,8 +64,15 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = '' }: Ico
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredIcons = AVAILABLE_ICONS.filter((icon) =>
-    icon.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const iconLabel = (icon: IconOption) => {
+    const key = `common.icon_names.${icon.id}`;
+    const translated = t(key);
+    return translated === key ? icon.name : translated;
+  };
+
+  const query = searchTerm.toLowerCase();
+  const filteredIcons = AVAILABLE_ICONS.filter(
+    (icon) => iconLabel(icon).toLowerCase().includes(query) || icon.name.toLowerCase().includes(query)
   );
 
   return (
@@ -88,7 +96,8 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = '' }: Ico
           <div className="mb-2">
             <input
               type="text"
-              placeholder={t('common.search_placeholder') || 'Search icon...'}
+              placeholder={t('common.search_icon')}
+              aria-label={t('common.search_icon')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full h-8 px-2.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--primary-main)]"
@@ -113,7 +122,8 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = '' }: Ico
                       ? 'bg-[var(--primary-main)]/20 border border-[var(--primary-main)] text-[var(--primary-main)] scale-105 shadow-md'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-elevated)]'
                   }`}
-                  title={iconItem.name}
+                  title={iconLabel(iconItem)}
+                  aria-label={iconLabel(iconItem)}
                 >
                   <IconComp className="h-4 w-4" />
                 </button>
@@ -122,7 +132,7 @@ export function IconPicker({ selectedIconId, onSelectIcon, className = '' }: Ico
 
             {filteredIcons.length === 0 && (
               <div className="col-span-5 text-center py-4 text-xs text-[var(--text-muted)] italic">
-                {t('common.no_results') || 'No icons found'}
+                {t('common.no_results')}
               </div>
             )}
           </div>

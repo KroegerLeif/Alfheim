@@ -6,6 +6,7 @@ import httpx
 from fastapi import HTTPException, status
 from src.config import settings
 from src.db.models import MediaType
+from src.errors import CODE_LOOKUP_NOT_CONFIGURED, error_detail
 from src.schemas.lookup import MovieSeriesLookupListResponse, MovieSeriesLookupResponse
 
 logger = logging.getLogger("library.backend.tmdb")
@@ -29,7 +30,10 @@ async def fetch_tmdb_metadata(query: str) -> MovieSeriesLookupListResponse:
     if not settings.TMDB_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="TMDB API key is not configured on the server.",
+            detail=error_detail(
+                CODE_LOOKUP_NOT_CONFIGURED,
+                "TMDB API key is not configured on the server.",
+            ),
         )
 
     url = "https://api.themoviedb.org/3/search/multi"

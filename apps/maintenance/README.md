@@ -37,6 +37,11 @@ pnpm dev
 # Execute Backend Pytest Suite & Coverage
 cd backend && uv run pytest --cov
 
-# Execute Frontend Typecheck & Vitest Suite
-cd frontend && pnpm check-types && pnpm test
+# Execute Frontend Typecheck & Vitest Suite (with coverage)
+cd frontend && npx tsc --noEmit && npx vitest run --coverage
 ```
+
+Frontend tests render with the real `en`/`de`/`pl` dictionaries from `@alfheim/shared`
+(`src/tests/test-utils.tsx`), so an unresolved translation key fails a test.
+`src/tests/i18n.test.ts` additionally checks every literal key in all three languages and
+rejects hardcoded JSX text. Date logic is tested under negative, zero and positive UTC offsets.

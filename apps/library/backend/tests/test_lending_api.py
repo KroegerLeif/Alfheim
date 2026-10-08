@@ -84,6 +84,7 @@ async def test_lend_and_return_item(client: AsyncClient, test_app: FastAPI):
     assert lend_data["contact_name"] == "Alice"
     assert lend_data["status"] == "LENT_OUT"
     assert lend_data["item_id"] == item_id
+    assert lend_data["item_title"] == "Dune"
     assert lend_data["returned_at"] is None
 
     # Check item status updated to LENT_OUT
@@ -99,6 +100,7 @@ async def test_lend_and_return_item(client: AsyncClient, test_app: FastAPI):
     assert return_res.status_code == 200
     return_data = return_res.json()
     assert return_data["status"] == "AVAILABLE"
+    assert return_data["item_title"] == "Dune"
     assert return_data["returned_at"] is not None
     assert "Returned in pristine condition" in return_data["notes"]
 
@@ -239,3 +241,31 @@ async def test_lending_household_isolation(client: AsyncClient, test_app: FastAP
     assert hist_h2.status_code == 200
     assert hist_h2.json()["total"] == 0
     assert len(hist_h2.json()["records"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_lending_history_resolves_item_titles(client: AsyncClient, test_app: FastAPI):
+    """History records carry the item title so clients never have to show a raw UUID (issue #549)."""
+    override_household(test_app, household_id=HOUSEHOLD_1)
+
+    titles = {}
+    for title in ("Dune", "Carcassonne"):
+        created = await client.post(
+            "/api/v1/library/items",
+            json={"title": title, "media_type": "BOOK"},
+        )
+        item_id = created.json()["id"]
+        titles[item_id] = title
+        lend = await client.post(f"/api/v1/library/items/{item_id}/lend", json={"contact_name": "Alice"})
+        assert lend.status_code == 201
+
+    history = await client.get("/api/v1/library/lending/history")
+    assert history.status_code == 200
+    records = history.json()["records"]
+    assert history.json()["total"] == 2
+    assert {record["item_id"]: record["item_title"] for record in records} == titles
+
+    filtered = await client.get("/api/v1/library/lending/history?contact_name=ali&status=LENT_OUT&limit=1")
+    assert filtered.json()["total"] == 2
+    assert len(filtered.json()["records"]) == 1
+    assert filtered.json()["records"][0]["item_title"] in titles.values()

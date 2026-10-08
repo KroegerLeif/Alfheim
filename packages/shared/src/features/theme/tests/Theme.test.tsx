@@ -63,12 +63,12 @@ describe('Theme System & ThemeToggle', () => {
       </ThemeProvider>
     )
 
-    const toggleButton = screen.getByRole('button')
-    expect(toggleButton).toHaveAttribute('title', 'Switch to light mode')
+    const toggleButton = screen.getByRole('button', { name: 'Zum hellen Modus wechseln' })
+    expect(toggleButton).toHaveAttribute('title', 'Zum hellen Modus wechseln')
 
     await user.click(toggleButton)
 
-    expect(toggleButton).toHaveAttribute('title', 'Switch to dark mode')
+    expect(toggleButton).toHaveAttribute('title', 'Zum dunklen Modus wechseln')
     expect(document.documentElement.getAttribute('data-mode')).toBe('light')
   })
 

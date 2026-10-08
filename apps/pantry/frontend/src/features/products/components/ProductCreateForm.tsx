@@ -5,7 +5,9 @@ import { useTranslation } from "@alfheim/shared";
 import { useCreateProduct } from "../services/productService";
 import { useCategories } from "@/features/categories/services/categoryService";
 import { Button } from "@alfheim/shared";
-import { Plus, Loader2, Check, AlertCircle, Barcode } from "lucide-react";
+import { Plus, Loader2, Check, Barcode } from "lucide-react";
+import { describeApiError } from "@/core/apiError";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
 
 /**
  * ProductCreateForm
@@ -22,8 +24,17 @@ export function ProductCreateForm() {
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  const { data: categories = [] } = useCategories();
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData ?? [];
   const createProductMut = useCreateProduct();
+
+  // Hide the success notice after 4s; the cleanup cancels the timer on unmount or
+  // when a new message replaces it, so no state update lands after unmount.
+  React.useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
 
   const clearMessages = () => { setSuccessMessage(null); setErrorMessage(null); };
 
@@ -38,25 +49,20 @@ export function ProductCreateForm() {
         onSuccess: () => {
           setSuccessMessage(t("pantry.productSuccess"));
           setName(""); setBrand(""); setBarcode(""); setBaseUnit("piece"); setMinimumStock(0); setCategoryId("");
-          setTimeout(() => setSuccessMessage(null), 4000);
         },
-        onError: (error: any) => setErrorMessage(error.message || t("pantry.createProductFailed")),
+        onError: async (error) => setErrorMessage(await describeApiError(error, t, "pantry.createProductFailed")),
       }
     );
   };
 
   return (
-    <div className="lg:col-span-1 p-8 bg-[var(--surface-elevated)] flex flex-col">
+    <div className="p-8 flex flex-col">
       <div className="border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 space-y-6 rounded-lg shadow-sm">
         <h2 className="text-2xl font-heading font-black tracking-wide border-b border-[var(--border-subtle)] pb-3 text-[var(--text-main)]">
           {t("pantry.createProductTitle")}
         </h2>
 
-        {errorMessage && (
-          <div className="border border-red-800/40 bg-red-950/20 text-red-400 p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal rounded">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><span>{errorMessage}</span>
-          </div>
-        )}
+        {errorMessage && <ErrorBanner message={errorMessage} />}
         {successMessage && (
           <div className="border border-emerald-800/40 bg-emerald-950/20 text-emerald-400 p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal rounded">
             <Check className="h-4 w-4 shrink-0 mt-0.5" /><span>{successMessage}</span>
@@ -89,7 +95,7 @@ export function ProductCreateForm() {
             <label htmlFor="product-category" className="text-xs font-bold uppercase tracking-wider block text-[var(--text-main)]">{t("pantry.category")}</label>
             <select id="product-category" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); clearMessages(); }}
               className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase rounded">
-              <option value="">{t("pantry.filterCategory")}</option>
+              <option value="">{t("pantry.noCategory")}</option>
               {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>)}
             </select>
           </div>
@@ -106,7 +112,7 @@ export function ProductCreateForm() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="product-minimum-stock" className="text-xs font-bold uppercase tracking-wider block text-nowrap truncate text-[var(--text-main)]">{t("pantry.minStockLabel")}</label>
+              <label htmlFor="product-minimum-stock" className="text-xs font-bold uppercase tracking-wider block truncate text-[var(--text-main)]" title={t("pantry.minStockLabel")}>{t("pantry.minStockLabel")}</label>
               <input id="product-minimum-stock" type="number" step="any" min="0" value={minimumStock}
                 onChange={(e) => { setMinimumStock(Math.max(0, parseFloat(e.target.value) || 0)); clearMessages(); }}
                 className="w-full py-3 px-3 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-12 uppercase font-mono rounded" />

@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ShoppingCart, X } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ItemRow } from "./ItemRow";
+import { ChecklistToolbar } from "./ChecklistToolbar";
 import {
   useShoppingListDetails,
   useUpdateShoppingItem,
   useDeleteShoppingItem,
+  isPendingItem,
 } from "../services/shoppingListService";
+import type { ShoppingItem } from "../types";
 import { getCategoryKeyForItem } from "../utils/category";
 
 interface ChecklistContainerProps {
@@ -33,7 +36,7 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="p-4 border border-rose-800/40 bg-rose-950/20 text-rose-400 font-mono text-xs font-bold uppercase rounded-lg">
-          Failed to load shopping list details.
+          {t("loadFailed")}
         </div>
       </div>
     );
@@ -83,32 +86,24 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
 
   const categoryKeys = Object.keys(categoriesMap);
 
+  const renderRow = (item: ShoppingItem) => (
+    <ItemRow
+      key={item.id}
+      item={item}
+      onToggle={() => toggleItem.mutate({ itemId: item.id, payload: { is_completed: !item.is_completed } })}
+      onDelete={() => deleteItem.mutate(item.id)}
+      isOptimistic={isPendingItem(item)}
+    />
+  );
+
   return (
     <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-      {/* Search and item count filter sub-header */}
-      <div className="p-3 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3 shrink-0">
-        <div className="flex-1 flex items-center gap-2 h-9 px-3 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)]">
-          <Search className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("searchPlaceholder")}
-            className="flex-1 bg-transparent border-none outline-none font-heading text-xs font-semibold text-[var(--text-main)] placeholder:[var(--text-muted)]"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)]">
-              <X className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold text-[var(--text-muted)] shrink-0 select-none">
-          <span className="text-[var(--primary-main)]">{openItems.length}</span> {t("open")}
-          <span>•</span>
-          <span className="text-[var(--text-muted)]">{completedItems.length}</span> {t("completed")}
-        </div>
-      </div>
+      <ChecklistToolbar
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
+        openCount={openItems.length}
+        completedCount={completedItems.length}
+      />
 
       {/* Main checklist container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-none min-h-0">
@@ -121,20 +116,7 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
               </span>
             </div>
             <div className="space-y-1.5">
-              {categoriesMap[catKey].map((item) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  onToggle={() =>
-                    toggleItem.mutate({
-                      itemId: item.id,
-                      payload: { is_completed: !item.is_completed },
-                    })
-                  }
-                  onDelete={() => deleteItem.mutate(item.id)}
-                  isOptimistic={item.id.startsWith("temp-") || !item.created_at}
-                />
-              ))}
+              {categoriesMap[catKey].map(renderRow)}
             </div>
           </div>
         ))}
@@ -143,6 +125,7 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
         {completedItems.length > 0 && (
           <div className="pt-4 border-t border-[var(--border-subtle)]">
             <button
+              type="button"
               onClick={() => setShowCompleted(!showCompleted)}
               className="w-full font-mono text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 mb-2 select-none flex items-center justify-between cursor-pointer"
             >
@@ -156,20 +139,7 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
 
             {showCompleted && (
               <div className="space-y-1.5 animate-in fade-in">
-                {completedItems.map((item) => (
-                  <ItemRow
-                    key={item.id}
-                    item={item}
-                    onToggle={() =>
-                      toggleItem.mutate({
-                        itemId: item.id,
-                        payload: { is_completed: !item.is_completed },
-                      })
-                    }
-                    onDelete={() => deleteItem.mutate(item.id)}
-                    isOptimistic={item.id.startsWith("temp-") || !item.created_at}
-                  />
-                ))}
+                {completedItems.map(renderRow)}
               </div>
             )}
           </div>

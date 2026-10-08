@@ -34,9 +34,9 @@ export function CategoryStockChart({ data, maxValue }: CategoryStockChartProps) 
         <div className="flex-1 overflow-y-auto space-y-4 py-6 pr-2 max-h-[280px]">
           {data.map((d, index) => (
             <div key={index} className="space-y-1 group">
-              <div className="flex items-center justify-between text-xs font-bold uppercase select-none">
-                <span className="text-[var(--text-main)]">{d.name}</span>
-                <span className="font-mono text-[10px] text-[var(--text-muted)] group-hover:text-[var(--primary-main)] transition-colors">
+              <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase select-none">
+                <span className="text-[var(--text-main)] truncate min-w-0" title={d.name}>{d.name}</span>
+                <span className="font-mono text-[10px] text-[var(--text-muted)] group-hover:text-[var(--primary-main)] transition-colors shrink-0">
                   {d.value} {t("pantry.items")}
                 </span>
               </div>

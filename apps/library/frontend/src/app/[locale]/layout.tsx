@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -9,6 +10,8 @@ import {
   ThemeProvider,
   HouseholdProvider,
   HouseholdGate,
+  getSharedMessages,
+  type Language,
 } from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/components/shared/Sidebar";
@@ -32,6 +35,18 @@ interface LayoutProps {
   params: Promise<{ locale: string }>;
 }
 
+function resolveLanguage(locale: string): Language {
+  return locale === "en" || locale === "pl" ? locale : "de";
+}
+
+/** Tab title and description follow the active locale. */
+export async function generateMetadata({ params }: Pick<LayoutProps, "params">): Promise<Metadata> {
+  const { locale } = await params;
+  const { library } = getSharedMessages(resolveLanguage(locale));
+
+  return { title: library.title, description: library.subtitle };
+}
+
 export default async function LocaleLayout({ children, params }: LayoutProps) {
   const { locale } = await params;
   const messages = await getMessages({ locale });
@@ -43,10 +58,6 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       suppressHydrationWarning
     >
       <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        />
         {/*
           Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
           by a dynamic route handler, never baked into the prerendered HTML: the
@@ -57,7 +68,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       <body className="min-h-full flex bg-[var(--surface-canvas)] text-[var(--text-main)] font-sans antialiased overflow-hidden selection:bg-[var(--primary-main)] selection:text-black">
         <AuthGuard basePath="/library">
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
+            <LanguageProvider defaultLanguage={resolveLanguage(locale)}>
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
                 <HouseholdProvider>
                   <Providers>

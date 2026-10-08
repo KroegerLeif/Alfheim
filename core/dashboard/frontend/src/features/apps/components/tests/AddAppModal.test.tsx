@@ -18,8 +18,8 @@ describe('AddAppModal Component', () => {
     renderWithProviders(
       <AddAppModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />
     )
-    expect(screen.getByText('add_user_link_title')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('link_title_placeholder')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('target_url_placeholder')).toBeInTheDocument()
+    expect(screen.getByText('Add Personal Link')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('e.g. My Google Drive')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('https://drive.google.com')).toBeInTheDocument()
   })
 })

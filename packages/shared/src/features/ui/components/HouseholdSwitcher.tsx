@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Check, ChevronDown, ChevronUp, House } from 'lucide-react';
 import { useTranslation } from '../../i18n/utils/useTranslation';
 import { useHouseholdSwitcher } from '../hooks/useHouseholdSwitcher';
 import { HouseholdProvider } from '../../household/HouseholdProvider';
@@ -34,13 +35,15 @@ function HouseholdSwitcherInner({ className = '' }: { className?: string }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/50 text-xs font-mono text-[var(--text-main)] transition-all duration-200 cursor-pointer"
-        aria-label={t('household.select_household') || 'Select Household'}
+        aria-label={t('household.select_household')}
       >
-        <span className="material-symbols-outlined text-sm text-[var(--primary-main)]">home</span>
+        <House aria-hidden="true" className="h-3.5 w-3.5 text-[var(--primary-main)]" />
         <span className="font-semibold">{selectedHousehold?.name || t('household.title')}</span>
-        <span className="material-symbols-outlined text-xs text-[var(--text-muted)] transition-transform duration-200">
-          {isOpen ? 'expand_less' : 'expand_more'}
-        </span>
+        {isOpen ? (
+          <ChevronUp aria-hidden="true" className="h-3 w-3 text-[var(--text-muted)]" />
+        ) : (
+          <ChevronDown aria-hidden="true" className="h-3 w-3 text-[var(--text-muted)]" />
+        )}
       </button>
 
       {isOpen && (
@@ -58,7 +61,7 @@ function HouseholdSwitcherInner({ className = '' }: { className?: string }) {
             >
               <span className="truncate">{hh.name}</span>
               {activeId === hh.id && (
-                <span className="material-symbols-outlined text-xs text-[var(--primary-main)]">check</span>
+                <Check aria-hidden="true" className="h-3 w-3 text-[var(--primary-main)]" />
               )}
             </button>
           ))}

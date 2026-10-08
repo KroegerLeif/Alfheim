@@ -146,6 +146,25 @@
     "saveFailed": "Zapis nie powiódł się",
     "retry": "Spróbuj ponownie",
     "unit_kg": "kg",
-    "unit_reps": "Powt."
+    "unit_reps": "Powt.",
+    "metaDescription": "Treningi, plany i postępy w jednym miejscu",
+    "dayFallbackLabel": "Dzień {number}",
+    "start": "Start",
+    "startDay": "Rozpocznij: {label}",
+    "planDescriptionPlaceholder": "Opcjonalne notatki do planu",
+    "setsDropped": "Serie, których nie udało się zapisać i które odrzucono: {count}. Zarejestruj je ponownie.",
+    "dismiss": "Zamknij",
+    "errorSessionNotActive": "Ta sesja jest już zakończona, więc nie można rejestrować kolejnych serii.",
+    "finishPendingSets": "Serie oczekujące na synchronizację: {count}. Połącz się z internetem i zakończ ponownie, aby nie utracić żadnej serii.",
+    "finishFailed": "Nie udało się zakończyć sesji",
+    "abandonFailed": "Nie udało się przerwać sesji",
+    "startFailed": "Nie udało się rozpocząć sesji",
+    "logFailed": "Nie udało się zapisać serii na urządzeniu",
+    "planSaveFailed": "Nie udało się zapisać planu",
+    "planDeleteFailed": "Nie udało się usunąć planu",
+    "deleteFailed": "Nie udało się usunąć wpisu",
+    "backToToday": "Wróć do ekranu Dzisiaj",
+    "errorTitle": "Coś poszło nie tak",
+    "errorGeneric": "Podczas ładowania tej strony wystąpił nieoczekiwany błąd."
   }
 }

@@ -16,19 +16,19 @@ const getTypeBadge = (type: string) => {
   switch (type) {
     case "INCOME":
       return (
-        <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+        <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0">
           <ArrowDownLeft className="w-4 h-4" />
         </span>
       );
     case "EXPENSE":
       return (
-        <span className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+        <span className="p-2 rounded-xl bg-rose-500/10 text-rose-500 shrink-0">
           <ArrowUpRight className="w-4 h-4" />
         </span>
       );
     default:
       return (
-        <span className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+        <span className="p-2 rounded-xl bg-blue-500/10 text-blue-500 shrink-0">
           <ArrowLeftRight className="w-4 h-4" />
         </span>
       );
@@ -81,15 +81,17 @@ export function TransactionLedger({
             return (
               <div
                 key={tx.id}
-                className="p-3.5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between shadow-xs hover:border-[var(--primary-main)]/30 transition-all"
+                className="p-3.5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 shadow-xs hover:border-[var(--primary-main)]/30 transition-all"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {getTypeBadge(tx.transaction_type)}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-sm text-[var(--text-main)]">{tx.description}</h4>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h4 className="font-semibold text-sm text-[var(--text-main)] truncate" title={tx.description}>
+                        {tx.description}
+                      </h4>
                       {tx.is_quick_add && (
-                        <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-amber-500/10 text-amber-500 uppercase">
+                        <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-amber-500/10 text-amber-500 uppercase shrink-0">
                           {t("budget.transactions.quickBadge")}
                         </span>
                       )}
@@ -106,7 +108,7 @@ export function TransactionLedger({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <MoneyDisplay
                     amount={signAmount}
                     currency={tx.currency}

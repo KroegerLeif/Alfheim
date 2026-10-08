@@ -4,20 +4,29 @@ import { vi } from "vitest";
 import { LanguageProvider } from "@alfheim/shared";
 import { MobileTabBar, DesktopSidebar } from "../features/navigation";
 
-// DesktopSidebar now routes its labels through the shared translation dictionary (issue #543),
-// so these tests render it under an explicit English LanguageProvider to keep asserting on the
-// English copy, matching this file's other (untranslated) MobileTabBar assertions.
+// Navigation labels come from the shared translation dictionary (issues #543 and #579). Tests that
+// assert on English copy render under an explicit English LanguageProvider; the default is German.
 function renderSidebar(ui: React.ReactElement) {
   return render(<LanguageProvider defaultLanguage="en">{ui}</LanguageProvider>);
 }
 
 describe("MobileTabBar Component", () => {
-  it("renders exactly 4 bottom tabs", () => {
+  it("renders exactly 4 bottom tabs in German by default", () => {
     render(<MobileTabBar />);
 
+    expect(screen.getByRole("navigation", { name: "Mobile Navigation" })).toBeInTheDocument();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Budgetplanung")).toBeInTheDocument();
+    expect(screen.getByText("Virtuelle Töpfe")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Schnellbuchung" })).toBeInTheDocument();
+  });
+
+  it("renders the bottom tabs in English under an English LanguageProvider", () => {
+    renderSidebar(<MobileTabBar />);
+
     expect(screen.getByText("Planning")).toBeInTheDocument();
     expect(screen.getByText("Pots")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Planning Mode Selector" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Quick-Add Transaction" })
     ).toBeInTheDocument();
@@ -27,7 +36,7 @@ describe("MobileTabBar Component", () => {
     const handleQuickAdd = vi.fn();
     render(<MobileTabBar onQuickAdd={handleQuickAdd} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Quick-Add Transaction" }));
+    fireEvent.click(screen.getByRole("button", { name: "Schnellbuchung" }));
     expect(handleQuickAdd).toHaveBeenCalledTimes(1);
   });
 

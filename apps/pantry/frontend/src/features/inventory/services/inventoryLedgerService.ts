@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pantryClient } from "@/core/api";
 import {
   InventoryTransactionCreate,
@@ -14,7 +14,7 @@ import { inventoryKeys } from "./inventoryService";
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
 
-  return useMutation<InventoryLedgerRead, any, InventoryTransactionCreate>({
+  return useMutation<InventoryLedgerRead, Error, InventoryTransactionCreate>({
     mutationFn: (payload) =>
       pantryClient
         .post("api/v1/inventory/transactions", { json: payload })
@@ -26,7 +26,9 @@ export function useCreateTransaction() {
 }
 
 /**
- * Retrieves transaction audit ledger history logs.
+ * Retrieves one page of the transaction audit ledger, newest first. Product and location filters are
+ * applied by the server, so they cover the whole history and not only the rows already loaded; the
+ * previous page stays on screen while the next one loads.
  */
 export function useLedgerHistory(productId?: string, locationId?: string, limit = 100, offset = 0) {
   const { householdId: activeHouseholdId, status } = useActiveHousehold();
@@ -45,5 +47,6 @@ export function useLedgerHistory(productId?: string, locationId?: string, limit 
         })
         .json<InventoryLedgerRead[]>(),
     enabled: status === "ready",
+    placeholderData: keepPreviousData,
   });
 }

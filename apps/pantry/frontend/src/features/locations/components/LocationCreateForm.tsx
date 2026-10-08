@@ -4,7 +4,9 @@ import * as React from "react";
 import { useTranslation } from "@alfheim/shared";
 import { useCreateLocation } from "../services/locationService";
 import { Button } from "@alfheim/shared";
-import { Plus, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
+import { describeApiError } from "@/core/apiError";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
 
 interface LocationCreateFormProps {
   onSuccess: () => void;
@@ -30,7 +32,7 @@ export function LocationCreateForm({ onSuccess, onCancel }: LocationCreateFormPr
       { name: name.trim(), description: description.trim() || null },
       {
         onSuccess: () => { setName(""); setDescription(""); onSuccess(); },
-        onError: (err: any) => setErrorMessage(err.message || t("pantry.createLocationFailed")),
+        onError: async (err) => setErrorMessage(await describeApiError(err, t, "pantry.createLocationFailed")),
       }
     );
   };
@@ -41,11 +43,7 @@ export function LocationCreateForm({ onSuccess, onCancel }: LocationCreateFormPr
         {t("pantry.createLocationTitle")}
       </h2>
 
-      {errorMessage && (
-        <div className="border border-red-800/40 bg-red-950/20 text-red-400 p-3 text-xs flex items-start gap-2 uppercase font-bold leading-normal mb-4 rounded">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><span>{errorMessage}</span>
-        </div>
-      )}
+      {errorMessage && <div className="mb-4"><ErrorBanner message={errorMessage} /></div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">

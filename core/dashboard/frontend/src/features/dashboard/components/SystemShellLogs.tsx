@@ -7,7 +7,7 @@ import { SystemShellLogsOutput, LogEntry } from './SystemShellLogsOutput';
 
 export function SystemShellLogs() {
   const { t } = useTranslation();
-  const { data: serverLogs } = useTelemetryLogs();
+  const { data: serverLogs, isError: logsUnavailable } = useTelemetryLogs();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [commandInput, setCommandInput] = useState('');
   const [, setCommandHistory] = useState<string[]>([]);
@@ -144,6 +144,12 @@ export function SystemShellLogs() {
           </button>
         </div>
       </div>
+
+      {logsUnavailable && (
+        <div role="alert" className="px-4 py-1.5 text-[10px] font-mono text-amber-300 bg-amber-500/10 border-t border-amber-500/30">
+          {t('dashboard.logs_unavailable')}
+        </div>
+      )}
 
       <SystemShellLogsOutput
         logs={logs}

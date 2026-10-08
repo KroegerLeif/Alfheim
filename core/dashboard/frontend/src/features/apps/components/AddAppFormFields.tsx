@@ -11,7 +11,7 @@ interface AddAppFormFieldsProps {
   setDescription: (val: string) => void;
   selectedIcon: string;
   setSelectedIcon: (val: string) => void;
-  presetIcons: { name: string; label: string }[];
+  presetIcons: readonly string[];
 }
 
 export function AddAppFormFields({
@@ -75,19 +75,19 @@ export function AddAppFormFields({
           {t('catalog.select_icon')}
         </label>
         <div className="grid grid-cols-6 gap-2 p-2 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] max-h-36 overflow-y-auto">
-          {presetIcons.map((item) => (
+          {presetIcons.map((name) => (
             <button
-              key={item.name}
+              key={name}
               type="button"
-              onClick={() => setSelectedIcon(item.name)}
-              title={t(`catalog.icons.${item.name}`) || item.label}
+              onClick={() => setSelectedIcon(name)}
+              title={t(`catalog.icons.${name}`)}
               className={`p-2.5 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                selectedIcon === item.name
+                selectedIcon === name
                   ? 'bg-[var(--primary-main)] text-slate-950 shadow-[0_0_10px_var(--primary-main)] font-bold'
                   : 'bg-[var(--surface-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-subtle)]'
               }`}
             >
-              <span className="material-symbols-outlined text-lg">{item.name}</span>
+              <span className="material-symbols-outlined text-lg">{name}</span>
             </button>
           ))}
         </div>

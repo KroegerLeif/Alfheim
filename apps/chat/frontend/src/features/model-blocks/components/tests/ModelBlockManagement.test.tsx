@@ -14,6 +14,7 @@ import {
   useDiscoverModels,
 } from "../../services/modelBlockService";
 import { createQueryWrapper } from "@/tests/utils";
+import { setTestLocale } from "@/tests/locale";
 
 vi.mock("../../services/modelBlockService", () => ({
   useModelBlocks: vi.fn(),
@@ -84,9 +85,9 @@ describe("ModelBlockCard", () => {
     );
 
     expect(screen.getByText("Shared Llama")).toBeInTheDocument();
-    expect(screen.getByText("sharedInHousehold")).toBeInTheDocument();
-    expect(screen.queryByLabelText("editModelBlock")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("deleteModelBlock")).not.toBeInTheDocument();
+    expect(screen.getByText("Shared in household")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Edit model block")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Delete model block")).not.toBeInTheDocument();
   });
 
   it("renders private badge and shows edit/delete for owner", () => {
@@ -103,15 +104,21 @@ describe("ModelBlockCard", () => {
     );
 
     expect(screen.getByText("My Private GPT")).toBeInTheDocument();
-    expect(screen.getByText("privateModel")).toBeInTheDocument();
+    expect(screen.getByText("Private")).toBeInTheDocument();
 
-    const editBtn = screen.getByLabelText("editModelBlock");
-    const deleteBtn = screen.getByLabelText("deleteModelBlock");
+    const editBtn = screen.getByLabelText("Edit model block");
+    const deleteBtn = screen.getByLabelText("Delete model block");
     expect(editBtn).toBeInTheDocument();
     expect(deleteBtn).toBeInTheDocument();
 
     fireEvent.click(editBtn);
     expect(onEdit).toHaveBeenCalledWith(ownedModel);
+  });
+
+  it("shows a failed status check", () => {
+    ;(useTriggerHealthCheck as Mock).mockReturnValue({ mutate: mockTriggerHealth, isPending: false, isError: true });
+    render(<ModelBlockCard model={sharedModel} onEdit={vi.fn()} onDelete={vi.fn()} />, { wrapper: createQueryWrapper() });
+    expect(screen.getByRole("alert")).toHaveTextContent("The status check failed.");
   });
 
   it("triggers health check on button click even for shared non-owned models", () => {
@@ -124,7 +131,7 @@ describe("ModelBlockCard", () => {
       { wrapper: createQueryWrapper() }
     );
 
-    fireEvent.click(screen.getByTitle("checkHealth"));
+    fireEvent.click(screen.getByTitle("Check status"));
     expect(mockTriggerHealth).toHaveBeenCalledWith("mb-shared");
   });
 });
@@ -150,16 +157,16 @@ describe("ModelBlockFormModal", () => {
       />
     );
 
-    fireEvent.change(screen.getByPlaceholderText("placeholderDisplayName"), {
+    fireEvent.change(screen.getByPlaceholderText("e.g. Gemma 2 9B or Local Llama"), {
       target: { value: "New Model" },
     });
-    fireEvent.change(screen.getByPlaceholderText("placeholderModelIdentifier"), {
+    fireEvent.change(screen.getByPlaceholderText("e.g. llama3.1:8b, gemma2:9b, gpt-4o"), {
       target: { value: "mistral:7b" },
     });
 
     // Toggle to shared
-    fireEvent.click(screen.getByText("visibilityShared"));
-    fireEvent.click(screen.getByText("save"));
+    fireEvent.click(screen.getByText("Shared (household)"));
+    fireEvent.click(screen.getByText("Save"));
 
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -184,11 +191,11 @@ describe("ModelBlockFormModal", () => {
       />
     );
 
-    const scanBtn = screen.getByText("scanModels");
+    const scanBtn = screen.getByText("Scan / Load Models");
     fireEvent.click(scanBtn);
 
     expect(mockDiscover).toHaveBeenCalled();
-    expect(screen.getByText("scanSuccess")).toBeInTheDocument();
+    expect(screen.getByText("Found 2 model(s)")).toBeInTheDocument();
 
     const selects = screen.getAllByRole("combobox");
     const modelSelect = selects[selects.length - 1];
@@ -202,18 +209,41 @@ describe("ModelBlockFormModal", () => {
   });
 });
 
+describe("ModelBlockFormModal provider and errors", () => {
+  beforeEach(() => {
+    ;(useDiscoverModels as Mock).mockReturnValue({ mutate: vi.fn(), isPending: false });
+  });
+
+  it("offers only the providers the backend supports", () => {
+    render(<ModelBlockFormModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} isPending={false} />);
+
+    const providerSelect = screen.getAllByRole("combobox")[0];
+    const options = Array.from(providerSelect.querySelectorAll("option")).map((o) => o.value);
+    expect(options).toEqual(["ollama", "openai_compatible"]);
+    expect(screen.getByText("Ollama (local / self-hosted)")).toBeInTheDocument();
+  });
+
+  it("shows a save failure and renders in German", () => {
+    setTestLocale("de");
+    render(<ModelBlockFormModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} isPending={false} submitFailed />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Der Modellblock konnte nicht gespeichert werden.");
+    expect(screen.getByRole("dialog", { name: "Modell hinzufügen" })).toBeInTheDocument();
+  });
+});
+
 describe("ModelBlockVisibilitySelector", () => {
   it("renders both options and calls onChange when clicked", () => {
     const onChange = vi.fn();
     render(<ModelBlockVisibilitySelector value="private" onChange={onChange} />);
 
-    expect(screen.getByText("visibilityPrivate")).toBeInTheDocument();
-    expect(screen.getByText("visibilityShared")).toBeInTheDocument();
+    expect(screen.getByText("Private (only me)")).toBeInTheDocument();
+    expect(screen.getByText("Shared (household)")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("visibilityShared"));
+    fireEvent.click(screen.getByText("Shared (household)"));
     expect(onChange).toHaveBeenCalledWith("shared");
 
-    fireEvent.click(screen.getByText("visibilityPrivate"));
+    fireEvent.click(screen.getByText("Private (only me)"));
     expect(onChange).toHaveBeenCalledWith("private");
   });
 
@@ -221,8 +251,8 @@ describe("ModelBlockVisibilitySelector", () => {
     const onChange = vi.fn();
     render(<ModelBlockVisibilitySelector value="private" onChange={onChange} disabled={true} />);
 
-    const privateBtn = screen.getByText("visibilityPrivate");
-    const sharedBtn = screen.getByText("visibilityShared");
+    const privateBtn = screen.getByText("Private (only me)");
+    const sharedBtn = screen.getByText("Shared (household)");
 
     expect(privateBtn).toBeDisabled();
     expect(sharedBtn).toBeDisabled();
@@ -255,8 +285,20 @@ describe("ModelBlockManagementView", () => {
     });
 
     expect(screen.getByText("Test Model")).toBeInTheDocument();
-    const addButtons = screen.getAllByText("addModelBlock");
+    const addButtons = screen.getAllByText("Add model block");
     fireEvent.click(addButtons[0]);
-    expect(screen.getByRole("heading", { name: "addModelBlock" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Add model block" })).toBeInTheDocument();
+  });
+
+  it("surfaces load and delete failures", () => {
+    ;(useModelBlocks as Mock).mockReturnValue({ data: undefined, isLoading: false, isError: true });
+    ;(useCreateModelBlock as Mock).mockReturnValue({ mutate: vi.fn(), isPending: false, reset: vi.fn() });
+    ;(useUpdateModelBlock as Mock).mockReturnValue({ mutate: vi.fn(), isPending: false, reset: vi.fn() });
+    ;(useDeleteModelBlock as Mock).mockReturnValue({ mutate: vi.fn(), isError: true });
+
+    render(<ModelBlockManagementView isOpen={true} onClose={vi.fn()} />, { wrapper: createQueryWrapper() });
+
+    expect(screen.getByText("Model blocks could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByText("The model block could not be deleted.")).toBeInTheDocument();
   });
 });

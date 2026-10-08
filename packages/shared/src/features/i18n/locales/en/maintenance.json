@@ -27,13 +27,12 @@
       "noDevicesDesc": "There are no devices registered under the selected household.",
       "locationGroup": "Location Group //",
       "otherLocations": "Other Locations",
-      "deviceCount": "{count} {count, plural, =1 {device} other {devices}}",
+      "deviceCount": "{count, plural, one {# device} other {# devices}}",
       "model": "Model:",
       "details": "Device Details //",
       "tabs": {
         "overview": "Overview",
         "steps": "Steps",
-        "manuals": "Manuals",
         "timeline": "Timeline"
       },
       "fields": {
@@ -45,20 +44,21 @@
         "statusFlagged": "This unit is currently flagged as {status}. Scheduled service logs will alert when intervals require inspection.",
         "startMaintenance": "Start Maintenance",
         "noSteps": "No maintenance steps defined.",
-        "noManuals": "No documentation linked to this device.",
         "noHistory": "No previous operations logged.",
-        "intervalMonths": "{count} Months",
+        "intervalMonths": "{count, plural, one {# month} other {# months}}",
         "lastDone": "Last Done",
         "nextDue": "Next Due",
         "overdueBy": "Overdue by {days}d",
-        "dueIn": "In {days}d"
-      }
+        "dueIn": "In {days}d",
+        "steps": "Steps"
+      },
+      "loadError": "Failed to load devices or location data. Please refresh or try again later."
     },
     "wizard": {
       "registerTitle": "Register New Device",
       "registerSubtitle": "Create a device and define its initial maintenance schedule.",
       "deviceDetailsLegend": "Device Details",
-      "name": "Name *",
+      "name": "Name",
       "namePlaceholder": "e.g. Heat Pump Daikin",
       "modelPlaceholder": "e.g. EHVH08S23EJ6V",
       "serialPlaceholder": "e.g. DK-90812903-HP",
@@ -72,7 +72,7 @@
       "stepsLegend": "Maintenance Steps",
       "addStep": "Add Step",
       "stepNumber": "Step {number}",
-      "title": "Title *",
+      "title": "Title",
       "titlePlaceholder": "e.g. Replace Air Filter",
       "supplyItem": "Supply Item",
       "supplyPlaceholder": "e.g. HEPA Filter F7",
@@ -83,7 +83,8 @@
       "cancel": "Cancel",
       "registerDevice": "Register Device",
       "saved": "Saved!",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "removeStep": "Remove step"
     },
     "maintenanceWork": {
       "totalSteps": "Total Steps",
@@ -91,7 +92,7 @@
       "dueSoon": "Due Soon",
       "good": "Good",
       "scheduleHeader": "Maintenance Schedule //",
-      "showingFilter": "Showing {filter} ({count} items)",
+      "showingFilter": "Showing {filter} ({count, plural, one {# item} other {# items}})",
       "allClear": "All Clear",
       "noMatchFilter": "No devices match the selected filter category.",
       "nextServiceDue": "Next Service Due",
@@ -99,7 +100,11 @@
       "startBtn": "Start",
       "statusGood": "GOOD",
       "statusDueSoon": "DUE SOON",
-      "statusOverdue": "OVERDUE"
+      "statusOverdue": "OVERDUE",
+      "filterAll": "all devices",
+      "filterOverdue": "overdue",
+      "filterDueSoon": "due soon",
+      "filterOk": "in good shape"
     },
     "scheduledTasks": {
       "tagline": "Task Planner //",
@@ -116,14 +121,11 @@
       "commentLabel": "Inspection Comment",
       "commentPlaceholder": "Add comments or status remarks about this task...",
       "saveComment": "Save Comment",
-      "saveFailed": "Save failed — try again.",
-      "referencePhoto": "Reference Photo",
-      "chooseFile": "Choose File",
-      "noFileChosen": "No file chosen"
+      "saveFailed": "Save failed — try again."
     },
     "serviceHistory": {
       "tagline": "Service History Logs //",
-      "recordCount": "{count} {count, plural, =1 {record} other {records}}",
+      "recordCount": "{count, plural, one {# record} other {# records}}",
       "noHistoryFound": "No History Found",
       "noHistoryDesc": "There are no previous service operations logged for this location.",
       "completedPrefix": "Completed:",
@@ -146,7 +148,13 @@
       "requiredPart": "Required Part",
       "associatedSupplies": "Associated Supplies",
       "removeFromList": "Remove Cart",
-      "selectForCart": "Select for Cart"
+      "selectForCart": "Select for Cart",
+      "sending": "Sending...",
+      "sendFailed": "Could not send the items to the shopping list. They stay in your cart, please try again.",
+      "partialSendFailed": "{failed} of {total} items could not be sent and stay in your cart.",
+      "csvPartName": "Part Name",
+      "csvStatus": "Status",
+      "csvRequired": "Required"
     },
     "wizardMode": {
       "tagline": "Maintenance Wizard //",
@@ -155,7 +163,6 @@
       "noStepsDefined": "No Steps Defined",
       "noStepsDesc": "This device does not have any service steps configured.",
       "close": "Close",
-      "directManuals": "Direct Manuals Access",
       "stepCounter": "STEP {current} OF {total}",
       "intervalTag": "Interval: {recurrence}m",
       "markCompleted": "Mark this step as completed",
@@ -164,12 +171,37 @@
       "back": "Back",
       "finishAndSave": "Finish & Save",
       "next": "Next",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "submitFailed": "The maintenance log could not be saved. Please try again.",
+      "defaultNotes": "All service steps inspected and completed.",
+      "stepFallback": "Step",
+      "performerFallback": "Authenticated user",
+      "noSupplyItem": "No part is required for this step."
     },
     "header": {
-      "systemAlerts": "System Alerts",
       "urgentBadge": "{count} Urgent",
-      "noAlerts": "No active system alerts"
+      "notifications": "Notifications",
+      "allCaughtUp": "All caught up",
+      "noNotifications": "No notifications",
+      "overdueItem": "{step} ({device}) is overdue by {days, plural, one {# day} other {# days}}",
+      "dueSoonItem": "{step} ({device}) is due {days, plural, =0 {today} =1 {tomorrow} other {in # days}}"
+    },
+    "dates": {
+      "notScheduled": "Not scheduled",
+      "never": "Never"
+    },
+    "deviceStatus": {
+      "active": "Active",
+      "maintenance": "Maintenance",
+      "inactive": "Inactive"
+    },
+    "categories": {
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
+      "electrical": "Electrical",
+      "appliances": "Appliances",
+      "security": "Security",
+      "garden": "Garden"
     }
   }
 }

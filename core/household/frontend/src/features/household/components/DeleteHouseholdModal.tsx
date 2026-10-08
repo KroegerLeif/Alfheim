@@ -40,7 +40,7 @@ export function DeleteHouseholdModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
-        <DialogTitle className="text-base font-bold text-red-300">
+        <DialogTitle className="text-base font-bold text-red-300 wrap-anywhere">
           {t('household_app.delete_modal.title', { name: householdName })}
         </DialogTitle>
         <p className="text-xs text-[var(--text-muted)]">{t('household_app.delete_modal.description')}</p>
@@ -55,7 +55,7 @@ export function DeleteHouseholdModal({
           className="space-y-4"
         >
           <div>
-            <label htmlFor="delete-household-confirm" className="block text-xs font-mono text-[var(--text-muted)] mb-1">
+            <label htmlFor="delete-household-confirm" className="block text-xs font-mono text-[var(--text-muted)] mb-1 wrap-anywhere">
               {t('household_app.delete_modal.input_label', { name: householdName })}
             </label>
             <input

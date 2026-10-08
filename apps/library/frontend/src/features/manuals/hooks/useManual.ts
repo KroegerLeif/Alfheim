@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { manualsApi } from "../api/manualsApi";
 
+/** Which manual action failed last; the UI maps it to a localized message. */
+export type ManualErrorKind = "upload" | "url" | "delete";
+
 export function useManual(itemId: string, onManualUpdated?: () => void) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ManualErrorKind | null>(null);
 
   const uploadManual = async (file: File) => {
     setIsUploading(true);
@@ -17,8 +20,7 @@ export function useManual(itemId: string, onManualUpdated?: () => void) {
         onManualUpdated();
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to upload manual";
-      setError(msg);
+      setError("upload");
       throw err;
     } finally {
       setIsUploading(false);
@@ -32,9 +34,8 @@ export function useManual(itemId: string, onManualUpdated?: () => void) {
       const res = await manualsApi.getManualUrl(itemId);
       setDownloadUrl(res.download_url);
       return res.download_url;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to fetch manual URL";
-      setError(msg);
+    } catch {
+      setError("url");
       return null;
     } finally {
       setIsFetchingUrl(false);
@@ -51,8 +52,7 @@ export function useManual(itemId: string, onManualUpdated?: () => void) {
         onManualUpdated();
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete manual";
-      setError(msg);
+      setError("delete");
       throw err;
     } finally {
       setIsDeleting(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlfiAvatar } from "@alfheim/shared";
+import { AlfiAvatar, useTranslation } from "@alfheim/shared";
 import type { Message } from "@/features/conversations/types";
 
 interface MessageItemProps {
@@ -8,7 +8,9 @@ interface MessageItemProps {
 }
 
 export function MessageItem({ message }: MessageItemProps) {
+  const { t } = useTranslation();
   const isUser = message.role === "user";
+  const attachments = message.attachments ?? [];
 
   return (
     <div className={`flex gap-3 w-full ${isUser ? "justify-end" : "justify-start"}`}>
@@ -16,15 +18,15 @@ export function MessageItem({ message }: MessageItemProps) {
         <AlfiAvatar status="idle" size="sm" className="mt-1 shrink-0" />
       )}
       <div
-        className={`max-w-3xl sm:max-w-4xl rounded-xl px-4 py-3 text-sm whitespace-pre-wrap shadow-xs ${
+        className={`min-w-0 max-w-[85%] sm:max-w-3xl rounded-xl px-4 py-3 text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] shadow-xs ${
           isUser
             ? "bg-[var(--primary-main)] text-black font-medium"
             : "bg-[var(--surface-card)] text-[var(--text-main)] border border-[var(--border-subtle)]"
         }`}
       >
-        {message.attachments && message.attachments.length > 0 && (
+        {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
-            {message.attachments.map((att) => (
+            {attachments.map((att) => (
               <a
                 key={att.id}
                 href={att.url}
@@ -34,7 +36,7 @@ export function MessageItem({ message }: MessageItemProps) {
               >
                 <img
                   src={att.url}
-                  alt="Attachment"
+                  alt={t("Chat.attachmentAlt")}
                   className="max-h-48 max-w-full rounded-lg object-contain bg-black/5 dark:bg-white/5"
                   loading="lazy"
                 />

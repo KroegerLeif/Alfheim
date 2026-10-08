@@ -14,7 +14,7 @@ import (
 type Repository interface {
 	CreateHouseholdTx(ctx context.Context, h *Household, ownerEmail, ownerUsername string) error
 	GetHouseholdByID(ctx context.Context, id string) (*Household, error)
-	GetHouseholdsByUserID(ctx context.Context, userID string) ([]*Household, error)
+	GetHouseholdsByUserID(ctx context.Context, userID string) ([]*UserHousehold, error)
 	RenameHousehold(ctx context.Context, id string, name string) error
 	DeleteHousehold(ctx context.Context, id string) error
 	TransferOwnershipTx(ctx context.Context, householdID, fromUserID, toUserID string) error

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/i18n';
 
@@ -9,6 +8,7 @@ import { HouseholdHeader } from './HouseholdHeader';
 import { MapAddressBanner } from './MapAddressBanner';
 import { MemberTable } from './MemberTable';
 import { HouseholdDetailSkeleton } from './HouseholdDetailSkeleton';
+import { HouseholdLoadError } from './HouseholdLoadError';
 import { HouseholdContactsSection } from './HouseholdContactsSection';
 import { HouseholdModals } from './HouseholdModals';
 import { InviteList } from './InviteList';
@@ -29,7 +29,7 @@ import {
 
 import type { AddressResult } from '@alfheim/shared';
 import { InviteCodeResponse, Contact, ContactCategory } from '@/shared/types';
-import { describeApiError, getErrorStatus } from '@/lib/apiErrors';
+import { describeApiError } from '@/lib/apiErrors';
 import { setActiveHousehold, replaceActiveHousehold } from '@/lib/activeHousehold';
 import { APP_ROUTES } from '@/lib/routes';
 
@@ -94,27 +94,7 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
 
   if (isHhLoading || isContactsLoading) return <HouseholdDetailSkeleton />;
 
-  if (!household) {
-    const status = getErrorStatus(householdError);
-    const title = status === 403
-      ? t('household_app.errors.forbidden')
-      : status === 404 || !householdError
-        ? t('household.not_found')
-        : t('household_app.errors.load_failed');
-    const description = householdError && status !== 404
-      ? describeApiError(householdError, t, 'household')
-      : t('household.not_found_desc');
-    return (
-      <div role="alert" className="col-span-12 flex flex-col items-center justify-center p-8 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] space-y-4 min-h-[40vh] text-center">
-        <span className="material-symbols-outlined text-4xl text-[var(--text-muted)]">{status === 403 ? 'lock' : 'error'}</span>
-        <h1 className="text-lg font-bold text-[var(--text-main)]">{title}</h1>
-        <p className="text-xs text-[var(--text-muted)] max-w-md">{description}</p>
-        <Link href={APP_ROUTES.list} className="px-4 py-2 bg-[var(--primary-main)] text-slate-950 rounded-lg text-xs font-bold font-mono hover:bg-[var(--primary-hover)] transition-colors">
-          {t('household.back_to_list')}
-        </Link>
-      </div>
-    );
-  }
+  if (!household) return <HouseholdLoadError error={householdError} />;
 
   const permissions = getHouseholdPermissions(household.role);
   const isDefault =
@@ -155,7 +135,7 @@ export function HouseholdDetailView({ householdId }: HouseholdDetailViewProps) {
   };
 
   const handleRemoveMemberClick = (userId: string, displayName: string) => {
-    if (confirm(`${t('household.confirm_remove')} (${displayName})`)) {
+    if (confirm(t('household_app.members.confirm_remove', { name: displayName }))) {
       setActionError(null);
       removeMemberMutation.mutate(userId, { onError: onActionError });
     }

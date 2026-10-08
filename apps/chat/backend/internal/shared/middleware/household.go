@@ -25,6 +25,7 @@ const (
 	CodeHouseholdInvalid            = "household_invalid"
 	CodeHouseholdForbidden          = "household_forbidden"
 	CodeHouseholdServiceUnavailable = "household_service_unavailable"
+	CodeHouseholdRoleForbidden      = "household_role_forbidden"
 )
 
 // HouseholdContext is the verified household scope of a request: the caller
@@ -112,6 +113,13 @@ func Chain(mws ...func(http.Handler) http.Handler) func(http.Handler) http.Handl
 type householdErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// WriteHouseholdError writes the shared household error body
+// {"detail": {"code", "message"}}. Handlers use it for role checks
+// (CodeHouseholdRoleForbidden) so every household rejection has the same shape.
+func WriteHouseholdError(w http.ResponseWriter, status int, code, message string) {
+	writeHouseholdError(w, status, code, message)
 }
 
 func writeHouseholdError(w http.ResponseWriter, status int, code, message string) {

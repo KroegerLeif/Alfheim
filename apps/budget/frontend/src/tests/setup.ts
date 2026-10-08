@@ -1,5 +1,4 @@
 import "@testing-library/jest-dom";
-import { useContext } from "react";
 import { vi } from "vitest";
 
 const localStorageMock = (function () {
@@ -65,75 +64,27 @@ vi.mock("next-intl", () => ({
   },
 }));
 
-// Mock the shared library's useTranslation hook for tests.
+// Wrap the shared library's real useTranslation hook for tests.
 //
-// This still respects whichever LanguageProvider/language a test actually renders under (via the
-// real LanguageContext), so components wrapped in <LanguageProvider defaultLanguage="de"> render
-// German text in tests just like in production. On top of the real dictionary lookup, it keeps a
-// small legacy map for a handful of pre-existing components that call t() with short, unprefixed
-// keys (missing the "budget." prefix the real dictionary requires -- see issue #543). New code
-// should use full dictionary paths (e.g. "budget.transactions.quickAdd").
+// Translations come from the real dictionaries and the real LanguageContext, so components rendered
+// under <LanguageProvider defaultLanguage="de"> show German text exactly as in production. Any key
+// that does not resolve in the active dictionary throws, so a missing or unprefixed key (see #579)
+// fails the test instead of silently rendering the raw key.
 vi.mock("@alfheim/shared", async () => {
-  const actual = await vi.importActual<Record<string, unknown>>("@alfheim/shared");
-  const messages = actual.messages as Record<string, Record<string, unknown>>;
-  const LanguageContext = actual.LanguageContext as React.Context<{ language: string; setLanguage: (l: string) => void }>;
-
-  function getNestedValue(obj: unknown, path: string): string | undefined {
-    let current: unknown = obj;
-    for (const key of path.split(".")) {
-      if (current && typeof current === "object" && key in (current as Record<string, unknown>)) {
-        current = (current as Record<string, unknown>)[key];
-      } else {
-        return undefined;
-      }
-    }
-    return typeof current === "string" ? current : undefined;
-  }
-
-  const legacyTranslations: Record<string, string> = {
-    "transactions.quickAdd": "Quick-Add Transaction",
-    "transactions.description": "Description",
-    "transactions.descriptionPlaceholder": "e.g. Supermarket Grocery",
-    "transactions.amount": "Amount",
-    "transactions.type": "Type",
-    "transactions.expense": "Expense",
-    "transactions.income": "Income",
-    "transactions.transfer": "Transfer",
-    "transactions.accountOptional": "Account (Optional)",
-    "transactions.targetPotOptional": "Target Pot (Optional)",
-    "transactions.planOptional": "Plan (Optional)",
-    "transactions.none": "-- None --",
-    "transactions.logging": "Logging...",
-    "common.cancel": "Cancel",
-  };
-
-  function translate(language: string, key: string, params?: Record<string, string | number>): string {
-    let value =
-      legacyTranslations[key] ?? getNestedValue(messages[language], key) ?? getNestedValue(messages.de, key) ?? key;
-    if (params) {
-      Object.entries(params).forEach(([paramKey, paramVal]) => {
-        value = value.replace(new RegExp(`\\{${paramKey}\\}`, "g"), String(paramVal));
-      });
-    }
-    return value;
-  }
-
+  const actual = await vi.importActual<typeof import("@alfheim/shared")>("@alfheim/shared");
   return {
     ...actual,
     useTranslation: () => {
-      const context = useContext(LanguageContext);
-      const language = context?.language || "de";
+      const result = actual.useTranslation();
       return {
-        t: (key: string, params?: Record<string, string | number>) => translate(language, key, params),
-        language,
-        setLanguage: context?.setLanguage || (() => {}),
-      };
-    },
-    useLanguage: () => {
-      const context = useContext(LanguageContext);
-      return {
-        language: context?.language || "de",
-        setLanguage: context?.setLanguage || (() => {}),
+        ...result,
+        t: (key: string, params?: Record<string, string | number>) => {
+          const value = result.t(key, params);
+          if (value === key) {
+            throw new Error(`Unresolved i18n key "${key}" (language: ${result.language})`);
+          }
+          return value;
+        },
       };
     },
   };

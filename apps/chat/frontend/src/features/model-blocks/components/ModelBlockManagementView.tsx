@@ -20,7 +20,8 @@ interface ModelBlockManagementViewProps {
 
 export function ModelBlockManagementView({ isOpen, onClose }: ModelBlockManagementViewProps) {
   const { t } = useTranslation();
-  const { data: modelBlocks, isLoading } = useModelBlocks();
+  const { data: modelBlocksData, isLoading, isError } = useModelBlocks();
+  const modelBlocks = modelBlocksData ?? [];
   const createMutation = useCreateModelBlock();
   const updateMutation = useUpdateModelBlock();
   const deleteMutation = useDeleteModelBlock();
@@ -61,19 +62,24 @@ export function ModelBlockManagementView({ isOpen, onClose }: ModelBlockManageme
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-3xl max-h-[85vh] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-canvas)] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("Chat.modelBlocks")}
+        className="w-full max-w-3xl max-h-[85vh] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-canvas)] flex flex-col shadow-2xl overflow-hidden"
+      >
         {/* Header */}
-        <div className="p-5 border-b border-[var(--border-subtle)] bg-[var(--surface-card)] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
+        <div className="p-4 sm:p-5 border-b border-[var(--border-subtle)] bg-[var(--surface-card)] flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-2 rounded-lg bg-[var(--primary-main)]/10 text-[var(--primary-main)] border border-[var(--border-accent)]">
               <Cpu className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-[var(--text-main)]">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-[var(--text-main)] truncate">
                 {t("Chat.modelBlocks")}
               </h2>
-              <p className="text-xs text-[var(--text-muted)]">
+              <p className="text-xs text-[var(--text-muted)] truncate">
                 {t("Chat.manageModels")}
               </p>
             </div>
@@ -102,13 +108,18 @@ export function ModelBlockManagementView({ isOpen, onClose }: ModelBlockManageme
         </div>
 
         {/* Content list */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+          {deleteMutation.isError && (
+            <p role="alert" className="text-xs text-red-400">{t("Chat.deleteModelError")}</p>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center py-12 gap-2 text-[var(--text-muted)] text-sm">
               <Loader2 className="w-5 h-5 animate-spin text-[var(--primary-main)]" />
-              <span>…</span>
+              <span>{t("common.loading")}</span>
             </div>
-          ) : modelBlocks && modelBlocks.length > 0 ? (
+          ) : isError ? (
+            <p role="alert" className="text-sm text-red-400 py-12 text-center">{t("Chat.modelBlocksLoadError")}</p>
+          ) : modelBlocks.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {modelBlocks.map((model) => (
                 <ModelBlockCard
@@ -135,9 +146,12 @@ export function ModelBlockManagementView({ isOpen, onClose }: ModelBlockManageme
         onClose={() => {
           setFormOpen(false);
           setEditingModel(null);
+          createMutation.reset();
+          updateMutation.reset();
         }}
         onSubmit={handleFormSubmit}
         isPending={createMutation.isPending || updateMutation.isPending}
+        submitFailed={createMutation.isError || updateMutation.isError}
       />
     </div>
   );

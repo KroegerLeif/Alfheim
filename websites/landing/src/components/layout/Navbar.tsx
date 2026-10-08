@@ -8,10 +8,10 @@ export const Navbar: React.FC = () => {
   const { locale, setLocale, t } = useDocTranslation();
 
   const navLinks = [
-    { href: '#modules', label: t('docs.nav.modules', 'Modules') },
-    { href: '#alfi', label: t('docs.nav.alfi', 'Meet ALFI') },
-    { href: '#architecture', label: t('docs.nav.architecture', 'Architecture') },
-    { href: '#stack', label: t('docs.nav.quickstart', 'Tech Stack') },
+    { href: '#modules', label: t('docs.nav.modules') },
+    { href: '#alfi', label: t('docs.nav.alfi') },
+    { href: '#architecture', label: t('docs.nav.architecture') },
+    { href: '#stack', label: t('docs.nav.quickstart') },
   ];
 
   return (
@@ -47,17 +47,17 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-4">
           {/* Documentation Portal */}
           <a
-            href="/docs"
+            href={`/docs/${locale === 'de' ? 'de' : 'en'}/`}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0b1326] bg-[#3eb1ff] hover:bg-[#66c2ff] rounded-lg transition-all"
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>{t('docs.nav.documentation', 'Documentation')}</span>
+            <span>{t('docs.nav.documentation')}</span>
           </a>
 
           {/* Status Badge */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-emerald-950/40 border border-emerald-500/30 text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>{t('docs.nav.status', 'Enclave Online')}</span>
+            <span>{t('docs.nav.status')}</span>
           </div>
 
           {/* Language Switcher */}

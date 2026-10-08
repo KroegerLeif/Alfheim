@@ -1,5 +1,7 @@
 import React from "react";
+import { BookOpen, FileText, MapPin } from "lucide-react";
 import { Badge, Button, useTranslation } from "@alfheim/shared";
+import { getItemSpecs, getMediaTypeLabelKey } from "../itemSpecs";
 import { MediaItem } from "../types";
 
 interface ItemCardProps {
@@ -19,54 +21,10 @@ export function ItemCard({
 }: ItemCardProps) {
   const { t } = useTranslation();
 
-  const renderMediaTypeBadge = () => {
-    switch (item.media_type) {
-      case "BOOK":
-        return <Badge variant="secondary">{t("library.catalog.filterBooks")}</Badge>;
-      case "GAME":
-        return <Badge variant="secondary">{t("library.catalog.filterBoardGames")}</Badge>;
-      case "MOVIE":
-        return <Badge variant="secondary">{t("library.catalog.filterMovies")}</Badge>;
-      case "SERIES":
-        return <Badge variant="secondary">{t("library.catalog.filterSeries")}</Badge>;
-      default:
-        return <Badge variant="secondary">{item.media_type}</Badge>;
-    }
-  };
-
-  const renderSpecs = () => {
-    const specs: string[] = [];
-
-    if (item.min_players) {
-      if (item.max_players && item.max_players > item.min_players) {
-        specs.push(
-          t("library.catalog.players", {
-            min: item.min_players,
-            max: item.max_players,
-          })
-        );
-      } else {
-        specs.push(
-          t("library.catalog.playersSingle", { count: item.min_players })
-        );
-      }
-    }
-
-    if (item.runtime_minutes) {
-      specs.push(
-        t("library.catalog.runtime", { minutes: item.runtime_minutes })
-      );
-    }
-
-    if (item.fsk_rating !== null && item.fsk_rating !== undefined) {
-      specs.push(t("library.catalog.fsk", { age: item.fsk_rating }));
-    }
-
-    return specs;
-  };
+  const mediaTypeKey = getMediaTypeLabelKey(item.media_type);
 
   const isLent = item.status === "LENT_OUT";
-  const specs = renderSpecs();
+  const specs = getItemSpecs(item, t);
 
   return (
     <div
@@ -94,16 +52,20 @@ export function ItemCard({
           </div>
         )}
 
-        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-          {renderMediaTypeBadge()}
+        <div className="absolute top-2 left-2 flex max-w-[60%] flex-wrap gap-1">
+          <Badge variant="secondary">
+            {mediaTypeKey ? t(mediaTypeKey) : item.media_type}
+          </Badge>
           {item.is_cookbook && (
-            <Badge className="bg-amber-600 text-white border-none">
-              📖 {t("library.catalog.filterCookbooks")}
+            <Badge className="gap-1 bg-amber-600 text-white border-none">
+              <BookOpen className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {t("library.catalog.cookbook")}
             </Badge>
           )}
           {item.manual_s3_key && (
-            <Badge className="bg-emerald-600 text-white border-none">
-              📄 {t("library.manuals.viewBtn")}
+            <Badge className="gap-1 bg-emerald-600 text-white border-none">
+              <FileText className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {t("library.catalog.manualBadge")}
             </Badge>
           )}
         </div>
@@ -125,16 +87,16 @@ export function ItemCard({
 
       <div className="flex flex-1 flex-col justify-between p-4 space-y-3">
         <div>
-          <h3 className="font-bold text-base text-[var(--text-main)] line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="break-words font-bold text-base text-[var(--text-main)] line-clamp-2 group-hover:text-primary transition-colors">
             {item.title}
           </h3>
           {item.author_creator && (
-            <p className="text-xs text-[var(--text-muted)] line-clamp-1 mt-0.5">
+            <p className="break-words text-xs text-[var(--text-muted)] line-clamp-1 mt-0.5">
               {item.author_creator}
             </p>
           )}
           {item.description && (
-            <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-2">
+            <p className="break-words text-xs text-[var(--text-muted)] line-clamp-2 mt-2">
               {item.description}
             </p>
           )}
@@ -142,8 +104,9 @@ export function ItemCard({
 
         <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
           {locationName && (
-            <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-              <span className="font-medium">📍 {locationName}</span>
+            <div className="flex min-w-0 items-center gap-1.5 text-xs text-[var(--text-muted)]">
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 truncate font-medium">{locationName}</span>
             </div>
           )}
 
@@ -152,7 +115,7 @@ export function ItemCard({
               {specs.map((spec, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)]"
+                  className="max-w-full truncate px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)]"
                 >
                   {spec}
                 </span>

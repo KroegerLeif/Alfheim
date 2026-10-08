@@ -16,6 +16,7 @@ from src.features.shopping_lists.schemas import (
     ShoppingItemUpdate,
     ShoppingListCreate,
     ShoppingListRead,
+    SyncToPantryRequest,
     SyncToPantryResponse,
 )
 from src.features.shopping_lists.service import ShoppingListService
@@ -230,16 +231,22 @@ async def auto_import_low_stock(
 async def sync_to_pantry(
     list_id: uuid.UUID,
     request: Request,
+    payload: SyncToPantryRequest | None = None,
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Sync completed items on the list in bulk to Pantry stock and record purchase frequencies."""
+    """Sync completed items on the list in bulk to Pantry stock and record purchase frequencies.
+
+    Without a body every completed, unsynced item is sent. With ``item_ids`` only those items are
+    retried (and no purchase frequency is recorded again).
+    """
     token = request.headers.get("Authorization")
     return await ShoppingListService.sync_to_pantry(
         session=session,
         list_id=list_id,
         home_id=context.household_id,
         token=token,
+        item_ids=payload.item_ids if payload else None,
     )
 
 

@@ -71,14 +71,15 @@ func TestHandler_SetEnabled_RequiresOwnerOrAdmin(t *testing.T) {
 	servers, _ := svc.List(context.Background())
 
 	for _, tc := range []struct {
-		name string
-		mw   func(http.Handler) http.Handler
-		want int
+		name     string
+		mw       func(http.Handler) http.Handler
+		want     int
+		wantCode string
 	}{
-		{"member", withScope(householdclient.RoleMember), http.StatusForbidden},
-		{"guest", withScope(householdclient.RoleGuest), http.StatusForbidden},
-		{"no household context", passthroughMiddleware, http.StatusForbidden},
-		{"admin", withScope(householdclient.RoleAdmin), http.StatusOK},
+		{"member", withScope(householdclient.RoleMember), http.StatusForbidden, middleware.CodeHouseholdRoleForbidden},
+		{"guest", withScope(householdclient.RoleGuest), http.StatusForbidden, middleware.CodeHouseholdRoleForbidden},
+		{"no household context", passthroughMiddleware, http.StatusBadRequest, middleware.CodeHouseholdRequired},
+		{"admin", withScope(householdclient.RoleAdmin), http.StatusOK, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := chi.NewRouter()
@@ -89,6 +90,20 @@ func TestHandler_SetEnabled_RequiresOwnerOrAdmin(t *testing.T) {
 			r.ServeHTTP(rec, req)
 			if rec.Code != tc.want {
 				t.Fatalf("expected %d, got %d: %s", tc.want, rec.Code, rec.Body.String())
+			}
+			if tc.wantCode != "" {
+				var body struct {
+					Detail struct {
+						Code    string `json:"code"`
+						Message string `json:"message"`
+					} `json:"detail"`
+				}
+				if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+					t.Fatalf("failed to decode error body: %v", err)
+				}
+				if body.Detail.Code != tc.wantCode || body.Detail.Message == "" {
+					t.Fatalf("expected household error code %q, got %+v", tc.wantCode, body.Detail)
+				}
 			}
 		})
 	}
@@ -126,7 +141,7 @@ func TestHandler_Diagnostics_ForwardsCallerCredentials(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
-	if len(pool.seen) != 1 || pool.seen[0].AccessToken != "tok-1" || pool.seen[0].HouseholdID != "11111111-1111-1111-1111-111111111111" {
+	if len(pool.seen) != 1 || pool.seen[0].AccessToken != "tok-1" || pool.seen[0].HouseholdID != "11111111-1111-1111-1111-111111111111" || pool.seen[0].UserID != "user-1" {
 		t.Fatalf("expected forwarded caller credentials, got %+v", pool.seen)
 	}
 }

@@ -1,22 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "@alfheim/shared";
-import { Cpu, Plus } from "lucide-react";
+import { Cpu, X } from "lucide-react";
 import {
   useConversations,
   useCreateConversation,
   useDeleteConversation,
   useModelBlocks,
 } from "@/features/conversations/services/conversationService";
+import { NewConversationPanel } from "./NewConversationPanel";
 
 interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Model block for the next new conversation (controlled by the page). */
   selectedModelBlockId?: string;
   onSelectModelBlockId?: (id: string) => void;
   onOpenModelManager?: () => void;
   onOpenAddModel?: () => void;
+  className?: string;
 }
 
 /**
@@ -30,47 +33,30 @@ export function ConversationList({
   onSelectModelBlockId,
   onOpenModelManager,
   onOpenAddModel,
+  className = "flex",
 }: ConversationListProps) {
   const { t } = useTranslation();
-  const { data: modelBlocks } = useModelBlocks();
-  const { data: conversations, isLoading } = useConversations();
+  const { data: modelBlocksData } = useModelBlocks();
+  const { data: conversationsData, isLoading, isError } = useConversations();
   const createConversation = useCreateConversation();
   const deleteConversation = useDeleteConversation();
+  const modelBlocks = modelBlocksData ?? [];
+  const conversations = conversationsData ?? [];
 
   const [internalModelBlockId, setInternalModelBlockId] = useState("");
   const activeModelBlockId = externalModelBlockId ?? internalModelBlockId;
+  const setModelBlockId = onSelectModelBlockId ?? setInternalModelBlockId;
 
-  // Auto-select first model block if none is selected
+  // Default the new-conversation model to the first visible block.
   useEffect(() => {
-    if (modelBlocks && modelBlocks.length > 0) {
-      const exists = modelBlocks.some((b) => b.id === activeModelBlockId);
-      if (!activeModelBlockId || !exists) {
-        const firstId = modelBlocks[0].id;
-        if (onSelectModelBlockId) {
-          onSelectModelBlockId(firstId);
-        } else {
-          setInternalModelBlockId(firstId);
-        }
-      }
+    if (modelBlocks.length > 0 && !modelBlocks.some((b) => b.id === activeModelBlockId)) {
+      setModelBlockId(modelBlocks[0].id);
     }
-  }, [modelBlocks, activeModelBlockId, onSelectModelBlockId]);
-
-  const handleModelChange = (id: string) => {
-    if (onSelectModelBlockId) {
-      onSelectModelBlockId(id);
-    } else {
-      setInternalModelBlockId(id);
-    }
-  };
+  }, [modelBlocks, activeModelBlockId, setModelBlockId]);
 
   const handleCreate = () => {
     if (!activeModelBlockId) return;
-    createConversation.mutate(
-      { model_block_id: activeModelBlockId },
-      {
-        onSuccess: (created) => onSelect(created.id),
-      }
-    );
+    createConversation.mutate({ model_block_id: activeModelBlockId }, { onSuccess: (created) => onSelect(created.id) });
   };
 
   const handleDelete = (id: string, event: React.MouseEvent) => {
@@ -84,10 +70,10 @@ export function ConversationList({
   };
 
   return (
-    <aside className="w-72 shrink-0 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] flex flex-col h-full">
+    <aside className={`w-full md:w-72 shrink-0 border-r border-[var(--border-subtle)] bg-[var(--surface-card)] flex-col h-full min-w-0 ${className}`}>
       <div className="p-4 border-b border-[var(--border-subtle)] space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] truncate">
             {t("Chat.conversations")}
           </h2>
           {onOpenModelManager && (
@@ -96,69 +82,34 @@ export function ConversationList({
               onClick={onOpenModelManager}
               aria-label={t("Chat.manageModels")}
               title={t("Chat.manageModels")}
-              className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-canvas)] transition-colors cursor-pointer"
+              className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-canvas)] transition-colors cursor-pointer shrink-0"
             >
               <Cpu className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {modelBlocks && modelBlocks.length > 0 ? (
-          <div className="space-y-2">
-            <select
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm px-2 py-1.5"
-              value={activeModelBlockId}
-              onChange={(e) => handleModelChange(e.target.value)}
-            >
-              <option value="">{t("Chat.selectModel")}</option>
-              {modelBlocks.map((block) => (
-                <option key={block.id} value={block.id}>
-                  {block.display_name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={!activeModelBlockId || createConversation.isPending}
-              className="w-full rounded-lg bg-[var(--primary-main)] text-black text-sm font-semibold py-1.5 disabled:opacity-50 cursor-pointer"
-            >
-              {t("Chat.newConversation")}
-            </button>
-          </div>
-        ) : (
-          <div className="p-3.5 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] space-y-2.5 text-center">
-            <div className="w-8 h-8 rounded-lg bg-[var(--primary-main)]/10 text-[var(--primary-main)] flex items-center justify-center mx-auto">
-              <Cpu className="w-4 h-4" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-[var(--text-main)]">
-                {t("Chat.noModelsConfiguredTitle")}
-              </p>
-              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                {t("Chat.noModelBlocksPrompt")}
-              </p>
-            </div>
-            {(onOpenAddModel || onOpenModelManager) && (
-              <button
-                type="button"
-                onClick={onOpenAddModel || onOpenModelManager}
-                className="w-full rounded-lg bg-[var(--primary-main)] text-black text-xs font-bold py-1.5 flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{t("Chat.addModelBlock")}</span>
-              </button>
-            )}
-          </div>
-        )}
+        <NewConversationPanel
+          modelBlocks={modelBlocks}
+          modelBlockId={activeModelBlockId}
+          onModelBlockChange={setModelBlockId}
+          onCreate={handleCreate}
+          isCreating={createConversation.isPending}
+          createFailed={createConversation.isError}
+          onOpenAddModel={onOpenAddModel ?? onOpenModelManager}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {isLoading && <p className="p-4 text-sm text-[var(--text-muted)]">…</p>}
-        {conversations && conversations.length === 0 && (
+        {isLoading && <p className="p-4 text-sm text-[var(--text-muted)]">{t("common.loading")}</p>}
+        {isError && <p role="alert" className="p-4 text-sm text-red-400">{t("Chat.conversationsLoadError")}</p>}
+        {deleteConversation.isError && (
+          <p role="alert" className="px-4 pt-3 text-xs text-red-400">{t("Chat.deleteError")}</p>
+        )}
+        {!isLoading && !isError && conversations.length === 0 && (
           <p className="p-4 text-sm text-[var(--text-muted)]">{t("Chat.noConversations")}</p>
         )}
-        {conversations?.map((conversation) => (
+        {conversations.map((conversation) => (
           <div
             key={conversation.id}
             className={`w-full border-b border-[var(--border-subtle)] flex items-center gap-2 hover:bg-[var(--surface-canvas)] ${
@@ -168,6 +119,7 @@ export function ConversationList({
             <button
               type="button"
               onClick={() => onSelect(conversation.id)}
+              title={conversation.title || undefined}
               className="flex-1 min-w-0 text-left px-4 py-3 truncate text-sm text-[var(--text-main)] cursor-pointer"
             >
               {conversation.title || t("Chat.untitledConversation")}
@@ -175,10 +127,12 @@ export function ConversationList({
             <button
               type="button"
               onClick={(e) => handleDelete(conversation.id, e)}
-              className="pr-4 text-xs text-[var(--text-muted)] hover:text-red-400 shrink-0 cursor-pointer"
-              aria-label={t("Chat.deleteConfirm")}
+              disabled={deleteConversation.isPending}
+              className="mr-3 p-1 rounded-md text-[var(--text-muted)] hover:text-red-400 shrink-0 cursor-pointer disabled:opacity-50"
+              aria-label={t("Chat.deleteConversation")}
+              title={t("Chat.deleteConversation")}
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         ))}

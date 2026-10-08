@@ -38,10 +38,10 @@ export function InviteModal({ isOpen, invite, onClose, origin }: InviteModalProp
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-[var(--surface-card)] w-full max-w-sm flex flex-col items-center text-center">
         <div className="w-12 h-12 rounded-2xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] mb-3 shadow-[0_0_15px_var(--accent-glow)]">
-          <span className="material-symbols-outlined text-2xl">qr_code_2</span>
+          <span className="material-symbols-outlined text-2xl" aria-hidden="true">qr_code_2</span>
         </div>
         <DialogTitle className="text-lg font-bold text-[var(--text-main)]">{t('household.qr_code_title')}</DialogTitle>
-        <p className="text-xs text-[var(--text-muted)] font-mono mt-1 mb-5">
+        <p className="text-xs text-[var(--text-muted)] font-mono mt-1 mb-5 wrap-anywhere">
           {t('household.qr_code_desc')}
         </p>
 
@@ -58,7 +58,7 @@ export function InviteModal({ isOpen, invite, onClose, origin }: InviteModalProp
             onClick={() => handleCopy(invite.token, 'token')}
             className="px-2.5 py-1 rounded bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] cursor-pointer transition-all duration-150 flex items-center gap-1 shrink-0"
           >
-            <span className="material-symbols-outlined text-sm">{copied === 'token' ? 'check' : 'content_copy'}</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">{copied === 'token' ? 'check' : 'content_copy'}</span>
             <span>{copied === 'token' ? t('household.copied') : t('household.copy')}</span>
           </button>
         </div>
@@ -73,7 +73,7 @@ export function InviteModal({ isOpen, invite, onClose, origin }: InviteModalProp
             onClick={() => handleCopy(joinUrl, 'link')}
             className="px-2.5 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-main)] font-semibold text-xs cursor-pointer flex items-center gap-1 shrink-0"
           >
-            <span className="material-symbols-outlined text-sm">{copied === 'link' ? 'check' : 'link'}</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">{copied === 'link' ? 'check' : 'link'}</span>
             <span>{copied === 'link' ? t('household.copied') : t('household_app.invites.copy_link')}</span>
           </button>
         </div>

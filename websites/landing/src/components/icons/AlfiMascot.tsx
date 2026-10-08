@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlfiState, ALFI_MASCOT_ASSETS } from '@alfheim/shared';
+import { useDocTranslation } from '../../i18n/useDocTranslation';
 import alfiIdle from '@alfheim/shared/assets/alfi/alfi-idle.svg';
 import alfiThinking from '@alfheim/shared/assets/alfi/alfi-thinking.svg';
 import alfiSleeping from '@alfheim/shared/assets/alfi/alfi-sleeping.svg';
@@ -35,13 +36,14 @@ export const AlfiMascot: React.FC<AlfiMascotProps> = ({
   state = 'idle',
   onClick,
 }) => {
+  const { t } = useDocTranslation();
   const assetPath = ALFI_MASCOT_ASSETS[state] || ALFI_MASCOT_ASSETS.idle;
   const src = mascotSrcMap[state] || alfiIdle;
 
   return (
     <img
       src={src}
-      alt={`ALFI Companion (${state})`}
+      alt={`${t('docs.alfi.mascotAlt')} (${t(`docs.alfi.states.${state}`)})`}
       width={size}
       height={size}
       className={`${className} object-contain cursor-pointer transition-all duration-300 drop-shadow-[0_0_24px_rgba(62,177,255,0.25)]`}

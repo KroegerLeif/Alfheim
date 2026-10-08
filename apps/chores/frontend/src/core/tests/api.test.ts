@@ -48,4 +48,10 @@ describe('choresClient household context', () => {
     expect(listener).toHaveBeenCalledWith({ code: 'household_forbidden', householdId: 'hh-7' })
     unsubscribe()
   })
+
+  it('leaves the message empty when the server sends no usable error body', async () => {
+    fetchSpy.mockImplementation(async () => new Response('<html>bad gateway</html>', { status: 502 }))
+    const error = await choresClient.get('templates').json().catch((err: unknown) => err)
+    expect(error).toMatchObject({ status: 502, message: '' })
+  })
 })

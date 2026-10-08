@@ -1,4 +1,5 @@
 import React from "react";
+import { MapPin } from "lucide-react";
 import { Button, useTranslation } from "@alfheim/shared";
 import type { LocationNode } from "../types";
 import { LocationTreeNodeItem } from "./LocationTreeNodeItem";
@@ -38,8 +39,8 @@ export function LocationTreeView({
   if (locations.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-card)] flex flex-col items-center justify-center p-12 text-center">
-        <div className="h-12 w-12 rounded-full bg-[var(--surface-card)] flex items-center justify-center text-xl mb-3">
-          📍
+        <div className="h-12 w-12 rounded-full bg-[var(--surface-card)] flex items-center justify-center mb-3 text-[var(--text-muted)]">
+          <MapPin className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="text-base font-bold text-[var(--text-main)]">
           {t("library.locations.noLocations")}
@@ -47,7 +48,7 @@ export function LocationTreeView({
         <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1 mb-4">
           {t("library.locations.subtitle")}
         </p>
-        <Button onClick={onAddRootLocation}>
+        <Button type="button" onClick={onAddRootLocation}>
           + {t("library.locations.addLocation")}
         </Button>
       </div>
@@ -60,7 +61,7 @@ export function LocationTreeView({
         <h2 className="text-lg font-bold text-[var(--text-main)]">
           {t("library.locations.title")}
         </h2>
-        <Button onClick={onAddRootLocation} size="sm">
+        <Button type="button" onClick={onAddRootLocation} size="sm">
           + {t("library.locations.addLocation")}
         </Button>
       </div>

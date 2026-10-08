@@ -8,17 +8,37 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// RemoveMember deletes a membership. If it was the user's default household,
+// their oldest remaining membership becomes the new default in the same
+// transaction (issue #575).
 func (r *repository) RemoveMember(ctx context.Context, householdID string, userID string) error {
-	query := `
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start member removal transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var wasDefault bool
+	err = tx.QueryRow(ctx, `
 		DELETE FROM household_members
 		WHERE household_id = $1 AND user_id = $2
-	`
-	cmd, err := r.db.Exec(ctx, query, householdID, userID)
+		RETURNING is_default
+	`, householdID, userID).Scan(&wasDefault)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrMemberNotFound
+		}
 		return fmt.Errorf("failed to remove member: %w", err)
 	}
-	if cmd.RowsAffected() == 0 {
-		return ErrMemberNotFound
+
+	if wasDefault {
+		if err := promoteNextDefault(ctx, tx, []string{userID}); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit member removal: %w", err)
 	}
 	return nil
 }

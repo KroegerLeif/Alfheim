@@ -6,6 +6,8 @@ import { ChoreInstanceRead, ChoreTemplateRead } from "../types";
 import { useCompleteChoreInstance, useClaimChoreInstance } from "../services/choresService";
 import { CheckCircle2, Circle, User2, Award, RefreshCw, History } from "lucide-react";
 import { TaskTimelineModal } from "./TaskTimelineModal";
+import { ErrorNotice } from "@/components/shared/ErrorNotice";
+import { errorMessage } from "@/core/errors";
 
 interface ChoresListProps {
   chores: ChoreInstanceRead[];
@@ -20,8 +22,10 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
   const [selectedTemplate, setSelectedTemplate] = useState<ChoreTemplateRead | null>(null);
 
   const getTemplate = (templateId: string) => {
-    return templates.find((t) => t.id === templateId);
+    return templates.find((tpl) => tpl.id === templateId);
   };
+
+  const actionError = completeMutation.error ?? claimMutation.error;
 
   const handleComplete = (id: string, currentStatus: string) => {
     if (currentStatus === "completed") return;
@@ -34,7 +38,7 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
     claimMutation.mutate({ id, isClaimed: !!currentAssignee, dueDate });
   };
 
-  if (chores.length === 0) {
+  if ((chores ?? []).length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg">
         <RefreshCw className="h-8 w-8 text-[var(--text-muted)] animate-spin mb-3" />
@@ -51,38 +55,42 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
   return (
     <>
       <div className="space-y-3">
-        {chores.map((chore) => {
+        {actionError && <ErrorNotice message={errorMessage(actionError, t("chores.actionFailed"))} />}
+        {(chores ?? []).map((chore) => {
           const template = getTemplate(chore.template_id);
-          const name = template?.name || "Unknown Chore";
+          const name = template?.name || t("chores.unknownChore");
           const points = template?.points || 10;
           const isCompleted = chore.status === "completed";
 
           return (
             <div
               key={chore.id}
-              className={`flex items-center justify-between p-4 border transition-all rounded-lg select-none ${
+              className={`flex flex-wrap items-center justify-between gap-3 p-4 border transition-all rounded-lg select-none ${
                 isCompleted
                   ? "bg-[var(--surface-container)] border-emerald-800/40 text-[var(--text-muted)]"
                   : "bg-[var(--surface-card)] border-[var(--border-subtle)] text-[var(--text-main)] hover:border-[var(--border-accent)]"
               }`}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1 basis-40">
                 <button
                   onClick={() => handleComplete(chore.id, chore.status)}
                   disabled={isCompleted}
                   aria-label={isCompleted ? t("chores.choreCompleted") : t("chores.completeChore")}
-                  className={`cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] rounded transition-transform active:scale-95 ${
+                  className={`shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] rounded transition-transform active:scale-95 ${
                     isCompleted ? "text-emerald-500" : "text-[var(--text-muted)] hover:text-[var(--primary-main)]"
                   }`}
                 >
                   {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
                 </button>
                 <div className="min-w-0">
-                  <span className={`text-sm font-semibold tracking-wide ${isCompleted ? "line-through" : ""}`}>
+                  <span
+                    className={`block truncate text-sm font-semibold tracking-wide ${isCompleted ? "line-through" : ""}`}
+                    title={name}
+                  >
                     {name}
                   </span>
                   {template?.description && (
-                    <p className="text-xs text-[var(--text-muted)] truncate max-w-md">
+                    <p className="text-xs text-[var(--text-muted)] truncate max-w-md" title={template.description}>
                       {template.description}
                     </p>
                   )}
@@ -95,7 +103,8 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
                   <button
                     onClick={() => setSelectedTemplate(template)}
                     className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
-                    title={t("chores.timeline") || "Completion History"}
+                    title={t("chores.timeline")}
+                    aria-label={t("chores.timeline")}
                   >
                     <History className="h-4 w-4" />
                   </button>

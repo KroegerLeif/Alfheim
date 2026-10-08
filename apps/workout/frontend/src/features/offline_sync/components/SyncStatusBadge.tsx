@@ -1,11 +1,13 @@
 "use client";
 
 import { Badge, Button, useTranslation } from "@alfheim/shared";
-import { CloudOff, RefreshCw, Check, Loader2 } from "lucide-react";
+import { CloudOff, RefreshCw, Check, Loader2, TriangleAlert, X } from "lucide-react";
 import type { SyncQueueState } from "../types";
 
 interface SyncStatusBadgeProps extends SyncQueueState {
   onRetry: () => void;
+  /** Hides the dropped-sets warning once the user has read it. */
+  onDismissDropped?: () => void;
 }
 
 /**
@@ -17,9 +19,12 @@ export function SyncStatusBadge({
   isSyncing,
   isOnline,
   lastError,
+  droppedKeys,
   onRetry,
+  onDismissDropped,
 }: SyncStatusBadgeProps) {
   const { t } = useTranslation();
+  const droppedCount = (droppedKeys ?? []).length;
 
   const content = () => {
     if (!isOnline) {
@@ -65,8 +70,31 @@ export function SyncStatusBadge({
   };
 
   return (
-    <div role="status" aria-live="polite" className="flex items-center">
-      {content()}
+    <div className="flex min-w-0 flex-col items-end gap-2">
+      <div role="status" aria-live="polite" className="flex max-w-full items-center">
+        {content()}
+      </div>
+
+      {droppedCount > 0 && (
+        <div
+          role="alert"
+          className="flex max-w-full items-start gap-2 rounded-lg border border-red-800/40 bg-red-950/20 px-3 py-2 text-xs font-bold text-red-400"
+        >
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 break-words">{t("workout.setsDropped", { count: droppedCount })}</span>
+          {onDismissDropped && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 min-h-6 w-6 shrink-0 text-red-400"
+              aria-label={t("workout.dismiss")}
+              onClick={onDismissDropped}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

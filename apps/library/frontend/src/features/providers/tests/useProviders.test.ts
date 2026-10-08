@@ -13,8 +13,8 @@ const mockProviders: ProviderSubscription[] = [
   {
     id: "p-1",
     household_id: "hh-1",
-    name: "Netflix",
-    provider_type: "MOVIE",
+    provider_name: "Netflix",
+    provider_type: "STREAMING",
     is_active: true,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
@@ -51,7 +51,7 @@ describe("useProviders hook", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.providers).toHaveLength(1);
-    expect(result.current.providers[0].name).toBe("Netflix");
+    expect(result.current.providers[0].provider_name).toBe("Netflix");
   });
 
   it("calls createProvider when creating new subscription", async () => {
@@ -63,13 +63,13 @@ describe("useProviders hook", () => {
     });
 
     await result.current.createProvider({
-      name: "Netflix",
-      provider_type: "MOVIE",
+      provider_name: "Netflix",
+      provider_type: "STREAMING",
     });
 
     expect(createSpy).toHaveBeenCalledWith({
-      name: "Netflix",
-      provider_type: "MOVIE",
+      provider_name: "Netflix",
+      provider_type: "STREAMING",
     });
   });
 });

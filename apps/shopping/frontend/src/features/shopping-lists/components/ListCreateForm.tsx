@@ -25,6 +25,8 @@ export function ListCreateForm({
     <div className="flex items-center gap-1 px-2.5 h-9 bg-[var(--surface-elevated)] rounded-xl border border-[var(--border-subtle)] shrink-0">
       <input
         type="text"
+        maxLength={255}
+        aria-label={tNav("newListPlaceholder")}
         value={newListName}
         onChange={(e) => setNewListName(e.target.value)}
         placeholder={tNav("newListPlaceholder")}
@@ -36,14 +38,20 @@ export function ListCreateForm({
         }}
       />
       <button
+        type="button"
         onClick={onCreate}
         disabled={!newListName.trim() || isPending}
+        aria-label={tNav("newList")}
+        title={tNav("newList")}
         className="text-green-500 hover:text-green-400 p-1 cursor-pointer disabled:opacity-40"
       >
         <Check className="h-3.5 w-3.5" />
       </button>
       <button
+        type="button"
         onClick={onCancel}
+        aria-label={tNav("cancel")}
+        title={tNav("cancel")}
         className="text-red-500 hover:text-red-400 p-1 cursor-pointer"
       >
         <X className="h-3.5 w-3.5" />

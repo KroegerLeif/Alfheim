@@ -1,8 +1,18 @@
 import { ReactNode } from "react";
+import type { Metadata } from "next";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { AppShell, AuthGuard, LanguageProvider, ThemeProvider, HouseholdProvider, HouseholdGate } from "@alfheim/shared";
+import {
+  AppShell,
+  AuthGuard,
+  LanguageProvider,
+  ThemeProvider,
+  HouseholdProvider,
+  HouseholdGate,
+  getSharedMessages,
+  type Language,
+} from "@alfheim/shared";
 import Providers from "./providers";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Header } from "@/shared/layout/Header";
@@ -33,6 +43,18 @@ interface LayoutProps {
   params: Promise<{ locale: string }>;
 }
 
+function resolveLanguage(locale: string): Language {
+  return locale === "en" || locale === "pl" ? locale : "de";
+}
+
+/** Tab title and description follow the active locale. */
+export async function generateMetadata({ params }: Pick<LayoutProps, "params">): Promise<Metadata> {
+  const { locale } = await params;
+  const { maintenance } = getSharedMessages(resolveLanguage(locale));
+
+  return { title: maintenance.title, description: maintenance.subtitle };
+}
+
 export default async function LocaleLayout({ children, params }: LayoutProps) {
   const { locale } = await params;
 
@@ -46,10 +68,6 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       suppressHydrationWarning
     >
       <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        />
         {/*
           Runtime configuration (OIDC issuer/client id, frontend/API URLs) is served
           by a dynamic route handler, never baked into the prerendered HTML: the
@@ -63,7 +81,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
       >
         <AuthGuard basePath="/maintenance">
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <LanguageProvider defaultLanguage={(locale === "en" || locale === "pl") ? locale : "de"}>
+            <LanguageProvider defaultLanguage={resolveLanguage(locale)}>
               <ThemeProvider defaultMode="dark" defaultVariant="nordic">
                 <HouseholdProvider>
                   <Providers>

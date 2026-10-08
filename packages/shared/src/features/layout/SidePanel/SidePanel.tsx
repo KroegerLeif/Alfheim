@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { X } from 'lucide-react';
+import { useTranslation } from '../../i18n/utils/useTranslation';
 
 export interface SidePanelProps {
   title?: React.ReactNode;
@@ -21,6 +23,8 @@ export function SidePanel({
   header,
   children,
 }: SidePanelProps) {
+  const { t } = useTranslation();
+
   if (!isOpen) {
     return null;
   }
@@ -37,9 +41,9 @@ export function SidePanel({
               type="button"
               onClick={onClose}
               className="text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs cursor-pointer"
-              aria-label="Close"
+              aria-label={t('common.close')}
             >
-              ✕
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           )}
         </div>

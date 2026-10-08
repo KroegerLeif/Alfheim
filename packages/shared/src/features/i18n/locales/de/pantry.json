@@ -238,6 +238,78 @@
     "systemBrand": "ALFHEIM // OS",
     "systemVersion": "Vorratsschrank System v1.0",
     "askAlfi": "ALFI Assistent",
-    "askAlfiAboutProduct": "ALFI zu diesem Produkt befragen"
+    "askAlfiAboutProduct": "ALFI zu diesem Produkt befragen",
+    "unknownProduct": "Unbekanntes Produkt",
+    "unknownLocation": "Unbekannter Lagerort",
+    "searchProduct": "Produkt suchen",
+    "scan": "Scannen",
+    "batchLabel": "Charge / Los",
+    "batchPlaceholder": "z. B. LOT-2024-A",
+    "notes": "Notizen",
+    "submitting": "Wird gesendet...",
+    "noBatch": "Keine",
+    "stockOfMinimum": "{current} / {minimum} min.",
+    "decreaseQuantity": "Menge verringern",
+    "increaseQuantity": "Menge erhöhen",
+    "categoriesTitle": "Kategorien",
+    "noCategories": "Noch keine Kategorien.",
+    "analyticsTruncated": "Das Diagramm berücksichtigt nur die neuesten Verbrauchsbuchungen. Ältere Buchungen dieses Zeitraums fehlen.",
+    "errors": {
+      "unreachable": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "loadDashboard": "Das Bestands-Dashboard konnte nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut.",
+      "loadProducts": "Der Produktkatalog konnte nicht geladen werden. Bitte versuche es später erneut.",
+      "loadLocations": "Lagerorte oder Bestandsdaten konnten nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut.",
+      "loadInventory": "Die Lagerbestände konnten nicht geladen werden.",
+      "loadLedger": "Die Buchungen des Bestandsjournals konnten nicht geladen werden.",
+      "loadAnalytics": "Die Analysedaten konnten nicht geladen werden. Bitte aktualisiere die Seite oder versuche es später erneut.",
+      "transactionFailed": "Die Buchung konnte nicht erfasst werden.",
+      "barcodeLookupFailed": "Die Barcode-Suche ist fehlgeschlagen.",
+      "createCategoryFailed": "Die Kategorie konnte nicht angelegt werden.",
+      "updateProductFailed": "Das Produkt konnte nicht gespeichert werden.",
+      "updateLocationFailed": "Der Lagerort konnte nicht gespeichert werden.",
+      "updateCategoryFailed": "Die Kategorie konnte nicht umbenannt werden.",
+      "deleteProductFailed": "Das Produkt konnte nicht gelöscht werden.",
+      "deleteLocationFailed": "Der Lagerort konnte nicht gelöscht werden.",
+      "deleteCategoryFailed": "Die Kategorie konnte nicht gelöscht werden.",
+      "productInUse": "Für dieses Produkt gibt es noch Bestand oder Buchungen ({count} Einträge). Es kann nicht gelöscht werden.",
+      "locationInUse": "In diesem Lagerort liegt noch Bestand oder er kommt in den Buchungen vor ({count} Einträge). Er kann nicht gelöscht werden.",
+      "categoryInUse": "Diese Kategorie ist noch {count} Produkt(en) zugeordnet. Entferne sie zuerst aus diesen Produkten."
+    },
+    "export": {
+      "sent": "An die Einkaufs-App gesendete Artikel: {count}",
+      "failedAll": "Kein Artikel konnte an die Einkaufs-App gesendet werden ({count} fehlgeschlagen). Prüfe deine Verbindung und versuche es erneut.",
+      "failedSome": "Einige Artikel konnten nicht an die Einkaufs-App gesendet werden. Gesendet: {sent}, nicht gesendet: {failed}. Fehlende Artikel:",
+      "retryFailed": "Fehlgeschlagene Artikel erneut senden"
+    },
+    "pager": {
+      "label": "Seiten des Journals",
+      "newer": "Neuer",
+      "older": "Älter",
+      "page": "Seite {page}"
+    },
+    "txType": {
+      "in": "Zugang",
+      "out": "Abgang",
+      "waste": "Verderb",
+      "reconciliation": "Inventur"
+    },
+    "edit": {
+      "product": "Produkt bearbeiten",
+      "productTitle": "Produkt bearbeiten",
+      "location": "Lagerort bearbeiten",
+      "locationTitle": "Lagerort bearbeiten",
+      "category": "Kategorie umbenennen"
+    },
+    "delete": {
+      "product": "Produkt löschen",
+      "productTitle": "Produkt löschen",
+      "productQuestion": "Dieses Produkt endgültig löschen?",
+      "location": "Lagerort löschen",
+      "locationTitle": "Lagerort löschen",
+      "locationQuestion": "Diesen Lagerort endgültig löschen?",
+      "category": "Kategorie löschen",
+      "categoryTitle": "Kategorie löschen",
+      "categoryQuestion": "Diese Kategorie endgültig löschen?"
+    }
   }
 }

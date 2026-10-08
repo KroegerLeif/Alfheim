@@ -348,11 +348,32 @@ export const handlers = [
     return HttpResponse.json(mockPlans)
   }),
 
-  http.get(/\/sessions/, () => {
+  http.post(/\/sessions\/([^/]+)\/sets\/sync$/, async ({ request }) => {
+    const body = (await request.json()) as { items: { client_idempotency_key: string }[] }
+    const keys = body.items.map((item) => item.client_idempotency_key)
+    return HttpResponse.json({
+      acked: keys,
+      server_ids: Object.fromEntries(keys.map((key) => [key, `server-${key}`])),
+    })
+  }),
+
+  http.post(/\/sessions\/([^/]+)\/complete$/, () => {
+    return HttpResponse.json({ ...mockSession, status: 'completed', completed_at: '2026-08-16T10:00:00Z' })
+  }),
+
+  http.post(/\/sessions\/([^/]+)\/abandon$/, () => {
+    return HttpResponse.json({ ...mockSession, status: 'abandoned', completed_at: '2026-08-16T10:00:00Z' })
+  }),
+
+  http.get(/\/sessions\/([^/]+)$/, () => {
+    return HttpResponse.json(mockSession)
+  }),
+
+  http.get(/\/sessions$/, () => {
     return HttpResponse.json([])
   }),
 
-  http.post(/\/sessions/, () => {
+  http.post(/\/sessions$/, () => {
     return HttpResponse.json(mockSession, { status: 201 })
   }),
 

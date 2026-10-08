@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MoneyDisplay } from "@alfheim/shared";
+import { MoneyDisplay, useTranslation } from "@alfheim/shared";
 import { NetWorthResponse } from "@/features/budget/types";
 import { Wallet, TrendingUp, PiggyBank } from "lucide-react";
 
@@ -11,6 +11,8 @@ export interface NetWorthCardProps {
 }
 
 export function NetWorthCard({ summary, loading }: NetWorthCardProps) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] animate-pulse space-y-4">
@@ -27,7 +29,7 @@ export function NetWorthCard({ summary, loading }: NetWorthCardProps) {
   return (
     <div className="p-6 rounded-2xl bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-canvas)] border border-[var(--border-subtle)] shadow-sm">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-[var(--text-muted)]">Total Net-Worth</span>
+        <span className="text-sm font-medium text-[var(--text-muted)] truncate">{t("budget.accounts.netWorth")}</span>
         <div className="p-2 rounded-xl bg-[var(--primary-main)]/10 text-[var(--primary-main)]">
           <TrendingUp className="w-5 h-5" />
         </div>
@@ -37,22 +39,22 @@ export function NetWorthCard({ summary, loading }: NetWorthCardProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border-subtle)] text-xs">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
             <Wallet className="w-4 h-4" />
           </div>
-          <div>
-            <p className="text-[var(--text-muted)]">Liquid Assets</p>
+          <div className="min-w-0">
+            <p className="text-[var(--text-muted)] truncate">{t("budget.accounts.liquidAssets")}</p>
             <MoneyDisplay amount={liquid} size="sm" className="font-bold text-[var(--text-main)]" />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
             <PiggyBank className="w-4 h-4" />
           </div>
-          <div>
-            <p className="text-[var(--text-muted)]">Investments</p>
+          <div className="min-w-0">
+            <p className="text-[var(--text-muted)] truncate">{t("budget.accounts.investments")}</p>
             <MoneyDisplay amount={investments} size="sm" className="font-bold text-[var(--text-main)]" />
           </div>
         </div>

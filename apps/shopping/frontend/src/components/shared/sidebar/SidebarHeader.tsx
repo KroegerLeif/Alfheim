@@ -21,11 +21,12 @@ export function SidebarHeader({ onClose }: SidebarHeaderProps) {
             ALFHEIM // SHOPPING
           </span>
           <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest leading-none">
-            {t("subtitle") || "Smart Grocery List"}
+            {t("shoppingSubtitle")}
           </span>
         </div>
       </div>
       <button
+        type="button"
         onClick={onClose}
         className="p-1.5 rounded-lg bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-subtle)] cursor-pointer transition-colors"
         aria-label={t("collapseSidebar")}

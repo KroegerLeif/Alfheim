@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Button, Card, CardContent, Field, Input, Select, useTranslation } from "@alfheim/shared";
 import { Loader2, Plus } from "lucide-react";
+import { describeError } from "@/core/errors";
 import { useCreateEquipment } from "../hooks/useEquipment";
 import type { EquipmentScope } from "../types";
 
@@ -41,7 +42,7 @@ export function EquipmentCreateForm({ onSuccess, onCancel }: EquipmentCreateForm
           setCategory("");
           onSuccess();
         },
-        onError: (error) => setErrorMessage(error.message || t("workout.saveFailed")),
+        onError: (error) => setErrorMessage(describeError(error, t, "workout.saveFailed")),
       }
     );
   };

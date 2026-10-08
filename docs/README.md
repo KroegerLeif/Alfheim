@@ -62,6 +62,8 @@ source with a translation notice, so untranslated paths never 404.
 * [Trust the Local Root CA](./en/how-to/trust-local-root-ca.md) — Importing the installer's root CA for the `internal` TLS strategy, or accepting the warning for both hosts.
 * [Secrets Hardening](./en/how-to/secrets-hardening.md) — Generating, storing and rotating secrets; verifying no development fallback reaches production.
 * [Backup, Restore & Data Migration](./en/how-to/backup-restore.md) — PostgreSQL databases, RustFS S3 object storage, and volumes.
+* [Update an Installation](./en/how-to/update-installation.md) — One-command release updates with `alfheim-setup update`.
+* [Get a Dev Test Access Token](./en/how-to/dev-test-token.md) — Minting a working Zitadel token to call the APIs locally.
 * [Platform Troubleshooting & Operations](./en/how-to/troubleshooting.md) — Container boot races, migration locks, and gateway errors.
 
 ### 📖 Reference (information-oriented)
@@ -70,6 +72,7 @@ source with a translation notice, so untranslated paths never 404.
 * [Environment Variables Reference](./en/reference/environment-variables.md) — Every `.env` configuration flag.
 * [Installer CLI Reference](./en/reference/installer-cli.md) — Every flag, environment variable and exit code of `alfheim-setup`.
 * [CLI Scripts Reference](./en/reference/cli-scripts.md) — Flags for `up.sh`, `down.sh`, `seed.sh`, and `verify.sh`.
+* App references under [`en/reference/apps/`](./en/reference/apps/): [Budget](./en/reference/apps/budget.md), [Chat](./en/reference/apps/chat.md), [Chores](./en/reference/apps/chores.md), [Dashboard](./en/reference/apps/dashboard.md), [Household](./en/reference/apps/household.md), [Library](./en/reference/apps/library.md), [Maintenance](./en/reference/apps/maintenance.md), [Pantry](./en/reference/apps/pantry.md), [Shopping](./en/reference/apps/shopping.md), [Workout](./en/reference/apps/workout.md) — Routes, environment, domain features, MCP tools, and known issues per app.
 
 ### 💡 Explanation (understanding-oriented)
 * [Platform Architecture Overview](./en/explanation/architecture-overview.md) — Multi-zone networks, control plane, container topology.

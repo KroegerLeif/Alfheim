@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { PRESET_ICON_NAMES } from '../presetIcons';
 import { useUpdateUserLink, useDeleteUserLink } from '../queries';
 import { AppItem } from '@/shared/types';
 import { EditAppFormFields } from './EditAppFormFields';
@@ -12,21 +13,6 @@ interface EditAppModalProps {
   onClose: () => void;
   onSuccess?: (appName: string) => void;
 }
-
-const PRESET_ICONS = [
-  { name: 'link', label: 'Bookmark Link' },
-  { name: 'folder', label: 'Folder / Storage' },
-  { name: 'cloud', label: 'Cloud Drive' },
-  { name: 'home', label: 'Home System' },
-  { name: 'language', label: 'Web Portal' },
-  { name: 'dashboard', label: 'Analytics' },
-  { name: 'movie', label: 'Media Streaming' },
-  { name: 'code', label: 'Developer Tool' },
-  { name: 'terminal', label: 'Console Tool' },
-  { name: 'psychology', label: 'AI Assistant' },
-  { name: 'security', label: 'Vault Access' },
-  { name: 'checklist', label: 'Task List' },
-];
 
 export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalProps) {
   const { t } = useTranslation();
@@ -60,11 +46,11 @@ export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalPr
     const trimmedUrl = url.trim();
 
     if (!trimmedTitle) {
-      setErrorMessage(t('catalog.title_required_error') || 'Title is required');
+      setErrorMessage(t('catalog.title_required_error'));
       return;
     }
     if (!trimmedUrl) {
-      setErrorMessage(t('catalog.url_required_error') || 'URL is required');
+      setErrorMessage(t('catalog.url_required_error'));
       return;
     }
 
@@ -75,7 +61,7 @@ export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalPr
           if (onSuccess) onSuccess(updatedItem.title || updatedItem.name || trimmedTitle);
           onClose();
         },
-        onError: (err) => setErrorMessage(err.message || t('catalog.update_failed_error') || 'Failed to update user link'),
+        onError: (err) => setErrorMessage(t('catalog.update_failed_error')),
       }
     );
   };
@@ -86,7 +72,7 @@ export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalPr
         if (onSuccess) onSuccess(t('dashboard.toast_bookmark_deleted', { name: app.title || app.name || '' }));
         onClose();
       },
-      onError: (err) => setErrorMessage(err.message || t('catalog.delete_failed_error') || 'Failed to delete user link'),
+      onError: (err) => setErrorMessage(t('catalog.delete_failed_error')),
     });
   };
 
@@ -108,7 +94,7 @@ export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalPr
           <EditAppFormFields
             title={title} setTitle={setTitle} url={url} setUrl={setUrl}
             description={description} setDescription={setDescription}
-            selectedIcon={selectedIcon} setSelectedIcon={setSelectedIcon} presetIcons={PRESET_ICONS}
+            selectedIcon={selectedIcon} setSelectedIcon={setSelectedIcon} presetIcons={PRESET_ICON_NAMES}
           />
 
           <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">

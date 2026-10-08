@@ -27,11 +27,18 @@ Source: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 - **Frontend:** Next.js 16 (App Router) microfrontend, TanStack Query, Tailwind CSS v4, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_chores` database, owned by `chores_user`).
 
-### FDD Domain Features (`src/features/chores/`)
-- `templates`: Chore templates (points, instructions, recurrence rules).
-- `instances`: Scheduled daily chore instances tracking execution status.
-- `streaks`: Household streak engine tracking consecutive days of 100% completion.
-- `history`: Immutable completion audit timeline (timestamp, user, points awarded).
+### FDD Domain Features (`src/features/chore_management/`)
+
+The backend has one feature directory, `chore_management`, that owns the whole domain:
+
+- `models.py`, `schemas.py`, `router.py`, `mcp_tools.py` and `exceptions.py`: tables, DTOs, the REST routes under `/api/v1/chores`, the MCP tools and the domain errors.
+- `service.py`: a thin `ChoreService` facade that delegates to the sub-services in `services/`.
+- `services/template_service.py`: chore template CRUD with a per-household unique name.
+- `services/instance_service.py`: daily instance generation and reset, assign, claim, complete, task timeline and the integration summary.
+- `services/streak_service.py`: get-or-create of the household streak row.
+
+There is no recurrence or schedule configuration. Every template produces exactly one instance
+per day (see [Daily Scheduling & Reset](#-daily-scheduling--reset)).
 
 ---
 
@@ -58,10 +65,23 @@ Source: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 
 ## 🔑 Domain Model & Key Concepts
 
-- **Chore Template** (`chore_templates`): The blueprint config for a chore (name, instructions, points, recurrence properties).
-- **Chore Instance** (`chore_instances`): A scheduled copy of a chore assigned to a specific day.
-- **Completion History** (`chore_completion_history`): Immutable audit timeline recording every instance completion event.
-- **Household Streak** (`household_streaks`): Cumulative day counter incremented upon completing scheduled chores by midnight.
+- **Chore Template** (`chore_templates`): The blueprint of a chore: `name` (unique per household), optional `description`, `points` (default 10) and `is_non_cumulative` (default `true`). It carries no recurrence field.
+- **Chore Instance** (`chore_instances`): One template on one `due_date`, with a `status` of `pending`, `completed` or `missed`, an optional `assigned_to` and the completion fields. At most one instance exists per template and day.
+- **Completion History** (`chore_completion_history`): Immutable audit timeline recording every completion (user, display name, points awarded).
+- **Household Streak** (`household_streaks`): One row per household with `current_streak`, `longest_streak` and `last_completed_date`.
+
+---
+
+## 🔁 Daily Scheduling & Reset
+
+Chores always repeat daily; the only per-template switch is `is_non_cumulative`.
+
+- **Generation:** `ensure_household_reset` creates a `pending` instance for every template that has none for the day. It runs on the first read of a household's chores for that day (`GET /api/v1/chores/today`, `GET /api/v1/chores/integrations/summary`, the MCP tools) and again from the nightly scheduler in `src/main.py`, which fires at 00:00:05 server-local time for every household that has templates or a streak. It is idempotent, so a template created later in the day still gets its instance.
+- **Non-cumulative templates (default):** an unfinished instance of the previous day is marked `missed`, a fresh `pending` instance is generated, and the household streak is reset to 0.
+- **Cumulative templates:** an unfinished instance is not marked missed. It rolls forward (its `due_date` becomes today) and keeps stacking until someone completes it. On its own it does not reset the streak.
+- **Streak:** the streak grows by one when every instance of a day is completed, either when the last one is completed or at the next day's reset. A gap of more than one day without any instances resets it to 0. Skipped days are not backfilled.
+- **Assigning and claiming:** anyone can claim an unassigned chore for themselves or release their own claim. Assigning it to another member requires the `OWNER` or `ADMIN` household role and a member target. A completed or missed instance cannot be reassigned.
+- **Completing:** the recorded user is always the authenticated caller; only the display name may be supplied by the client.
 
 ---
 
@@ -80,6 +100,12 @@ caller is always the one recorded.
 
 ---
 
+## 🔗 Dashboard Integrations
+
+The dashboard shows two cards that read other apps from the browser, with the caller's bearer token and `X-Household-ID`: pending shopping items (`GET /shopping/api/v1/shopping-lists`) and due maintenance steps (`GET /maintenance/api/v1/maintenance/summary`). Both go through the other app's own ingress prefix: the bare `/api/v1/<app>*` rules in Caddy strip the prefix and leave a suffix no backend serves (`/api/v1/shopping-lists` becomes `/api/v1-lists`). A card whose request fails shows an "unavailable" badge instead of "connected". Completing, claiming or deleting a chore shows the server's message when the request fails.
+
+---
+
 ## 🏠 Household Scoping
 
 Every route depends on `backend_shared.household.require_household` (any member role may read and
@@ -93,5 +119,7 @@ first access of a household's chores list for that day if the system was offline
 
 No known open issues beyond the general household-authorization items in
 [Known Issues](../../explanation/known-issues.md).
+
+- **Assignments are not reconciled after membership changes (#581).** A chore keeps its assignee after that person leaves the household. Role changes do not matter: claiming and completing are open to every member role. Reconciling needs to resolve the stored (derived) user id against the household's member list; `GET /internal/v1/households/{householdId}/members` exists, but `backend_shared` has no client for it yet (#583).
 
 ---

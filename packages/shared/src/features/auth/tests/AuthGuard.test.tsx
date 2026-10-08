@@ -42,7 +42,7 @@ describe('AuthGuard', () => {
     );
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByText(/misconfigured/i)).toBeInTheDocument();
+    expect(screen.getByText(/falsch konfiguriert/i)).toBeInTheDocument();
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
   });
 

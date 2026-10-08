@@ -6,6 +6,7 @@ from backend_shared.household import close_membership_client, configure_househol
 from backend_shared.mcp_middleware import mount_mcp
 from fastapi import APIRouter, FastAPI, Request
 from src.core.config import settings
+from src.core.errors import ResourceInUseError
 from src.mcp.server import mcp
 
 
@@ -78,6 +79,15 @@ app.add_middleware(
 from backend_shared.telemetry import setup_telemetry
 
 setup_telemetry(app)
+
+
+@app.exception_handler(ResourceInUseError)
+async def resource_in_use_exception_handler(request: Request, exc: ResourceInUseError):
+    """Convert refused deletes of referenced resources into 409 responses with a stable error code."""
+    return JSONResponse(
+        status_code=409,
+        content={"detail": exc.to_detail()},
+    )
 
 
 @app.exception_handler(ValueError)

@@ -5,8 +5,13 @@ import {
   LocationItem,
 } from "../types";
 
+/** Items requested per page; divisible by the 1, 2, 3 and 4 column grid layouts. */
+export const CATALOG_PAGE_SIZE = 48;
+
 export async function fetchCatalogItems(
-  filters: CatalogFilters
+  filters: CatalogFilters,
+  skip = 0,
+  limit = CATALOG_PAGE_SIZE
 ): Promise<ItemListResponse> {
   const searchParams = new URLSearchParams();
 
@@ -26,9 +31,10 @@ export async function fetchCatalogItems(
     searchParams.set("active_providers_only", "true");
   }
 
-  const endpoint = searchParams.toString() ? `search?${searchParams.toString()}` : "search";
-  const data = await libraryClient.get(endpoint).json<ItemListResponse>();
-  return data;
+  searchParams.set("skip", String(skip));
+  searchParams.set("limit", String(limit));
+
+  return libraryClient.get(`search?${searchParams.toString()}`).json<ItemListResponse>();
 }
 
 export async function fetchLocations(): Promise<LocationItem[]> {

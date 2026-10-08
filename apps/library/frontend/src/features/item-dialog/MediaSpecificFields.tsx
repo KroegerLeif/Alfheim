@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { BookOpen } from "lucide-react";
 import { useTranslation } from "@alfheim/shared";
 import { ItemFormData } from "./types";
 
@@ -38,7 +39,8 @@ export function MediaSpecificFields({
                 onChange={(e) => onChange({ is_cookbook: e.target.checked })}
                 className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-primary focus:ring-primary"
               />
-              📖 {t("library.itemDialog.isCookbook")}
+              <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {t("library.itemDialog.isCookbook")}
             </label>
           </div>
         </>

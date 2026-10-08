@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@alfheim/shared";
+import { Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { Plan, PlanCreate, PlanType } from "@/features/budget/types";
+import { FormError } from "@/components/shared/FormError";
+import { useFormSubmit } from "@/components/shared/useFormSubmit";
 
 export interface PlanDialogProps {
   open: boolean;
@@ -19,13 +21,14 @@ export function PlanDialog({
   onClose,
   onSubmit,
 }: PlanDialogProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [planType, setPlanType] = useState<PlanType>(defaultType);
   const [totalBudget, setTotalBudget] = useState("0.00");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, error, run } = useFormSubmit(open);
 
   useEffect(() => {
     if (plan) {
@@ -49,58 +52,55 @@ export function PlanDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    try {
-      await onSubmit({
+    const saved = await run(() =>
+      onSubmit({
         name,
         description: description || null,
         plan_type: planType,
         total_budget: parseFloat(totalBudget) || 0,
         start_date: startDate || null,
         end_date: endDate || null,
-      });
-      onClose();
-    } finally {
-      setSubmitting(false);
-    }
+      })
+    );
+    if (saved) onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[var(--surface-card)] w-full max-w-md">
         <DialogTitle className="text-lg font-bold text-[var(--text-main)]">
-          {plan ? "Edit Plan" : "Create Budget Plan"}
+          {plan ? t("budget.plans.editPlanTitle") : t("budget.plans.createPlanTitle")}
         </DialogTitle>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label htmlFor="plan-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Plan Name</label>
+            <label htmlFor="plan-name" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.plans.planName")}</label>
             <input
               id="plan-name"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. November 2025 Household"
+              placeholder={t("budget.plans.planNamePlaceholder")}
               className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
 
           <div>
-            <label htmlFor="plan-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Plan Type</label>
+            <label htmlFor="plan-type" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.plans.planType")}</label>
             <select
               id="plan-type"
               value={planType}
               onChange={(e) => setPlanType(e.target.value as PlanType)}
               className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             >
-              <option value="MONTHLY">Monthly Recurring</option>
-              <option value="EVENT">Event / Project</option>
+              <option value="MONTHLY">{t("budget.plans.typeMonthly")}</option>
+              <option value="EVENT">{t("budget.plans.typeEvent")}</option>
             </select>
           </div>
 
           <div>
-            <label htmlFor="plan-budget" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Total Target Budget</label>
+            <label htmlFor="plan-budget" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.plans.totalTargetBudget")}</label>
             <input
               id="plan-budget"
               type="number"
@@ -114,7 +114,7 @@ export function PlanDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="plan-start-date" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Start Date</label>
+              <label htmlFor="plan-start-date" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.plans.startDate")}</label>
               <input
                 id="plan-start-date"
                 type="date"
@@ -124,7 +124,7 @@ export function PlanDialog({
               />
             </div>
             <div>
-              <label htmlFor="plan-end-date" className="block text-xs font-medium text-[var(--text-muted)] mb-1">End Date</label>
+              <label htmlFor="plan-end-date" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.plans.endDate")}</label>
               <input
                 id="plan-end-date"
                 type="date"
@@ -136,16 +136,18 @@ export function PlanDialog({
           </div>
 
           <div>
-            <label htmlFor="plan-description" className="block text-xs font-medium text-[var(--text-muted)] mb-1">Description</label>
+            <label htmlFor="plan-description" className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("budget.plans.description")}</label>
             <textarea
               id="plan-description"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional notes or details"
+              placeholder={t("budget.plans.descriptionPlaceholder")}
               className="w-full px-3 py-2 rounded-lg bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
             />
           </div>
+
+          <FormError message={error} />
 
           <div className="flex justify-end gap-2 pt-2">
             <button
@@ -153,14 +155,14 @@ export function PlanDialog({
               onClick={onClose}
               className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-canvas)]"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium hover:opacity-90 disabled:opacity-50"
             >
-              {submitting ? "Saving..." : plan ? "Update" : "Create"}
+              {submitting ? t("common.saving") : plan ? t("common.update") : t("common.create")}
             </button>
           </div>
         </form>

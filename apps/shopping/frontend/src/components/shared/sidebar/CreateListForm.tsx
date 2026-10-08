@@ -33,6 +33,8 @@ export function CreateListForm({ onSave, isPending }: CreateListFormProps) {
         <div className="flex items-center gap-1.5 px-3 h-10 rounded-xl border border-border/60 glass-inset">
           <input
             type="text"
+            maxLength={255}
+            aria-label={t("newListPlaceholder")}
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
             placeholder={t("newListPlaceholder")}
@@ -44,14 +46,20 @@ export function CreateListForm({ onSave, isPending }: CreateListFormProps) {
             }}
           />
           <button
+            type="button"
             onClick={handleCreate}
             disabled={!newListName.trim() || isPending}
+            aria-label={t("newList")}
+            title={t("newList")}
             className="text-emerald-500 hover:text-emerald-400 p-1 cursor-pointer disabled:opacity-40 transition-colors"
           >
             <Check className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={handleCancel}
+            aria-label={t("cancel")}
+            title={t("cancel")}
             className="text-red-500 hover:text-red-400 p-1 cursor-pointer transition-colors"
           >
             <X className="h-4 w-4" />
@@ -59,6 +67,7 @@ export function CreateListForm({ onSave, isPending }: CreateListFormProps) {
         </div>
       ) : (
         <button
+          type="button"
           onClick={() => setIsCreating(true)}
           className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-dashed border-border/60 text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-200 cursor-pointer text-xs font-heading font-bold uppercase tracking-wider"
         >

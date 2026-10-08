@@ -27,13 +27,12 @@
       "noDevicesDesc": "Brak zarejestrowanych urządzeń dla wybranego gospodarstwa domowego.",
       "locationGroup": "Grupa lokalizacji //",
       "otherLocations": "Inne lokalizacje",
-      "deviceCount": "{count} {count, plural, =1 {urządzenie} other {urządzenia}}",
+      "deviceCount": "{count, plural, one {# urządzenie} few {# urządzenia} many {# urządzeń} other {# urządzenia}}",
       "model": "Model:",
       "details": "Szczegóły urządzenia //",
       "tabs": {
         "overview": "Przegląd",
         "steps": "Kroki",
-        "manuals": "Instrukcje",
         "timeline": "Oś czasu"
       },
       "fields": {
@@ -45,20 +44,21 @@
         "statusFlagged": "To urządzenie jest obecnie oznaczone jako {status}. Zaplanowane dzienniki serwisu powiadomią o wymaganych przeglądach.",
         "startMaintenance": "Rozpocznij konserwację",
         "noSteps": "Brak zdefiniowanych kroków konserwacji.",
-        "noManuals": "Brak dokumentacji powiązanej z tym urządzeniem.",
         "noHistory": "Brak zarejestrowanych wcześniejszych operacji.",
-        "intervalMonths": "{count} Miesiące",
+        "intervalMonths": "{count, plural, one {# miesiąc} few {# miesiące} many {# miesięcy} other {# miesiąca}}",
         "lastDone": "Ostatnio wykonano",
         "nextDue": "Następny termin",
         "overdueBy": "Zaległe o {days}d",
-        "dueIn": "Za {days}d"
-      }
+        "dueIn": "Za {days}d",
+        "steps": "Kroki"
+      },
+      "loadError": "Nie udało się wczytać urządzeń ani danych lokalizacji. Odśwież stronę lub spróbuj ponownie później."
     },
     "wizard": {
       "registerTitle": "Zarejestruj nowe urządzenie",
       "registerSubtitle": "Utwórz urządzenie i zdefiniuj jego początkowy harmonogram konserwacji.",
       "deviceDetailsLegend": "Szczegóły urządzenia",
-      "name": "Nazwa *",
+      "name": "Nazwa",
       "namePlaceholder": "np. Pompa ciepła Daikin",
       "modelPlaceholder": "np. EHVH08S23EJ6V",
       "serialPlaceholder": "np. DK-90812903-HP",
@@ -72,7 +72,7 @@
       "stepsLegend": "Kroki konserwacji",
       "addStep": "Dodaj krok",
       "stepNumber": "Krok {number}",
-      "title": "Tytuł *",
+      "title": "Tytuł",
       "titlePlaceholder": "np. Wymień filtr powietrza",
       "supplyItem": "Materiały / Części",
       "supplyPlaceholder": "np. Filtr HEPA F7",
@@ -83,7 +83,8 @@
       "cancel": "Anuluj",
       "registerDevice": "Zarejestruj urządzenie",
       "saved": "Zapisano!",
-      "saving": "Zapisywanie..."
+      "saving": "Zapisywanie...",
+      "removeStep": "Usuń krok"
     },
     "maintenanceWork": {
       "totalSteps": "Łącznie kroków",
@@ -91,7 +92,7 @@
       "dueSoon": "Wkrótce fällige",
       "good": "W normie",
       "scheduleHeader": "Harmonogram konserwacji //",
-      "showingFilter": "Wyświetlanie {filter} ({count} pozycji)",
+      "showingFilter": "Wyświetlanie: {filter} ({count, plural, one {# pozycja} few {# pozycje} many {# pozycji} other {# pozycji}})",
       "allClear": "Wszystko w czystości",
       "noMatchFilter": "Brak urządzeń pasujących do wybranego filtra.",
       "nextServiceDue": "Następny serwis",
@@ -99,7 +100,11 @@
       "startBtn": "Start",
       "statusGood": "DOBRY",
       "statusDueSoon": "WKRÓTCE",
-      "statusOverdue": "ZALEGŁY"
+      "statusOverdue": "ZALEGŁY",
+      "filterAll": "wszystkie urządzenia",
+      "filterOverdue": "zaległe",
+      "filterDueSoon": "wkrótce do wykonania",
+      "filterOk": "w porządku"
     },
     "scheduledTasks": {
       "tagline": "Planer zadań //",
@@ -116,14 +121,11 @@
       "commentLabel": "Komentarz z inspekcji",
       "commentPlaceholder": "Dodaj komentarze lub uwagi...",
       "saveComment": "Zapisz komentarz",
-      "saveFailed": "Zapisywanie nie powiodło się – spróbuj ponownie.",
-      "referencePhoto": "Zdjęcie referencyjne",
-      "chooseFile": "Wybierz plik",
-      "noFileChosen": "Nie wybrano pliku"
+      "saveFailed": "Zapisywanie nie powiodło się – spróbuj ponownie."
     },
     "serviceHistory": {
       "tagline": "Dzienniki historii serwisu //",
-      "recordCount": "{count} {count, plural, =1 {wpis} other {wpisy}}",
+      "recordCount": "{count, plural, one {# wpis} few {# wpisy} many {# wpisów} other {# wpisu}}",
       "noHistoryFound": "Brak historii",
       "noHistoryDesc": "Nie zarejestrowano jeszcze wcześniejszych operacji serwisowych dla tej lokalizacji.",
       "completedPrefix": "Ukończono:",
@@ -146,7 +148,13 @@
       "requiredPart": "Wymagana część",
       "associatedSupplies": "Powiązane materiały",
       "removeFromList": "Usuń z koszyka",
-      "selectForCart": "Wybierz do koszyka"
+      "selectForCart": "Wybierz do koszyka",
+      "sending": "Wysyłanie...",
+      "sendFailed": "Nie udało się wysłać pozycji na listę zakupów. Pozostają w koszyku, spróbuj ponownie.",
+      "partialSendFailed": "Nie udało się wysłać {failed} z {total} pozycji, pozostają w koszyku.",
+      "csvPartName": "Nazwa części",
+      "csvStatus": "Status",
+      "csvRequired": "Wymagane"
     },
     "wizardMode": {
       "tagline": "Kreator konserwacji //",
@@ -155,7 +163,6 @@
       "noStepsDefined": "Brak zdefiniowanych kroków",
       "noStepsDesc": "To urządzenie nie ma skonfigurowanych kroków serwisowych.",
       "close": "Zamknij",
-      "directManuals": "Bezpośredni dostęp do instrukcji",
       "stepCounter": "KROK {current} Z {total}",
       "intervalTag": "Interwał: {recurrence}m",
       "markCompleted": "Oznacz ten krok jako completed",
@@ -164,12 +171,37 @@
       "back": "Wstecz",
       "finishAndSave": "Zakończ i zapisz",
       "next": "Dalej",
-      "saving": "Zapisywanie..."
+      "saving": "Zapisywanie...",
+      "submitFailed": "Nie udało się zapisać dziennika konserwacji. Spróbuj ponownie.",
+      "defaultNotes": "Wszystkie kroki serwisowe sprawdzone i wykonane.",
+      "stepFallback": "Krok",
+      "performerFallback": "Zalogowany użytkownik",
+      "noSupplyItem": "Ten krok nie wymaga części."
     },
     "header": {
-      "systemAlerts": "Alerty systemowe",
       "urgentBadge": "{count} Pilne",
-      "noAlerts": "Brak aktywnych alertów"
+      "notifications": "Powiadomienia",
+      "allCaughtUp": "Wszystko aktualne",
+      "noNotifications": "Brak powiadomień",
+      "overdueItem": "{step} ({device}): zaległe od {days, plural, one {# dnia} other {# dni}}",
+      "dueSoonItem": "{step} ({device}): termin {days, plural, =0 {dzisiaj} =1 {jutro} other {za # dni}}"
+    },
+    "dates": {
+      "notScheduled": "Niezaplanowane",
+      "never": "Nigdy"
+    },
+    "deviceStatus": {
+      "active": "Aktywne",
+      "maintenance": "W konserwacji",
+      "inactive": "Nieaktywne"
+    },
+    "categories": {
+      "hvac": "Ogrzewanie i klimatyzacja",
+      "plumbing": "Hydraulika",
+      "electrical": "Elektryka",
+      "appliances": "AGD",
+      "security": "Bezpieczeństwo",
+      "garden": "Ogród"
     }
   }
 }

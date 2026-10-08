@@ -24,8 +24,8 @@ export function EquipmentCard({ equipment, onDelete, isDeleting = false }: Equip
   return (
     <Card>
       <CardContent className="flex items-start justify-between gap-4 p-4">
-        <div className="min-w-0 space-y-2">
-          <h3 className="truncate font-heading text-base font-bold uppercase tracking-wide">
+        <div className="min-w-0 flex-1 space-y-2">
+          <h3 className="line-clamp-2 break-words font-heading text-base font-bold uppercase tracking-wide">
             {equipment.name}
           </h3>
           <div className="flex flex-wrap items-center gap-2">
@@ -33,7 +33,7 @@ export function EquipmentCard({ equipment, onDelete, isDeleting = false }: Equip
               {t(SCOPE_LABEL_KEYS[equipment.scope])}
             </Badge>
             {equipment.category && (
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="min-w-0 break-words text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
                 {equipment.category}
               </span>
             )}
@@ -44,6 +44,7 @@ export function EquipmentCard({ equipment, onDelete, isDeleting = false }: Equip
           <Button
             variant="ghost"
             size="icon"
+            className="shrink-0"
             aria-label={`${t("workout.delete")} ${equipment.name}`}
             disabled={isDeleting}
             onClick={() => onDelete(equipment)}

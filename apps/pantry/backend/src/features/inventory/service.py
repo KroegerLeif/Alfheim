@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Sequence
+from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, or_, select
@@ -194,6 +195,9 @@ class InventoryService:
         location_id: uuid.UUID | None = None,
         limit: int = 100,
         offset: int = 0,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        transaction_types: Sequence[InventoryTransactionType] | None = None,
     ) -> Sequence[InventoryLedger]:
         """Retrieve historical transaction log entries (delegates to LedgerService)."""
         return await LedgerService.get_ledger_history(
@@ -203,6 +207,9 @@ class InventoryService:
             location_id=location_id,
             limit=limit,
             offset=offset,
+            date_from=date_from,
+            date_to=date_to,
+            transaction_types=transaction_types,
         )
 
     @staticmethod

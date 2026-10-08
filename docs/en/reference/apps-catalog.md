@@ -8,13 +8,13 @@ description: "Central directory of all Tier-1 Core microservices and Tier-2 exte
 ---
 
 ## 📋 Table of Contents
-- [Tier 1 Core Microservice Applications](#-tier-1-core-microservice-applications)
+- [Tier 1 Core Microservice Applications](#tier-1-core-microservice-applications)
 - [Tier 2 Stack Applications & External Integrations](#-tier-2-stack-applications--external-integrations)
 - [Application Classification Guidelines](#-application-classification-guidelines)
 
 ---
 
-## 🏛️ Tier 1 Core Microservice Applications
+## Tier 1 Core Microservice Applications
 
 Tier-1 applications are native monorepo microservices registered in Go (`core/dashboard/backend/internal/features/apps/tier1_core_registry.go`) featuring isolated database containers, Next.js microfrontends, and FastMCP AI agent surfaces.
 

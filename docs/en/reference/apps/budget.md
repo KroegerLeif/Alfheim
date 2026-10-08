@@ -60,8 +60,22 @@ Source: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 
 ## 🔌 MCP Tools
 
-Budget has no FastMCP server and exposes no MCP tools. The chat assistant cannot read or modify
-budget data directly.
+Served at `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`), authenticated the same way as
+the REST API. Tools take no `household_id` parameter: they read `get_mcp_household_context()`.
+The tools live in `src/mcp/` (`server.py` creates the FastMCP instance and registers
+`get_budget_status`; `tools.py` registers the rest). `discover_and_import_mcp_tools()` also
+imports any `mcp_tools.py` found under `src/features/`, but no budget feature ships one yet.
+
+| Tool | Parameters | What it does |
+| :--- | :--- | :--- |
+| `get_budget_status` | none | Liveness probe. Returns a fixed message and does not read budget data |
+| `get_pot_balances` | none | Lists the household's active pots with priority, current amount, target and overflow target |
+| `suggest_budget_allocation` | `income` | Runs the priority cascade over the pots and reports the suggested allocation per pot, the unassigned buffer and the investment overflow. A dry run: it persists nothing |
+| `analyze_spending_gap` | `month` (`YYYY-MM`) | Compares the total of the active plans with the expenses booked in that month and reports the gap, over or under budget, and the transaction count |
+| `calculate_sinking_gap` | `pot_id` | Reports shortfall, remaining months, target and actual monthly rate, and the monthly gap for one sinking fund pot |
+
+All five tools only read budget data; none of them creates or changes accounts, pots, plans or
+transactions. A failure inside a tool is returned as an `Error …` string instead of an exception.
 
 ---
 

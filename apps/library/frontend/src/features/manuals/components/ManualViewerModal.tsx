@@ -1,4 +1,5 @@
 import React from "react";
+import { ExternalLink } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -29,7 +30,7 @@ export function ManualViewerModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="break-words">
             {t("library.manuals.title")} - {title}
           </DialogTitle>
         </DialogHeader>
@@ -37,7 +38,7 @@ export function ManualViewerModal({
         <div className="space-y-4 pt-2">
           {isLoading ? (
             <div className="flex h-96 items-center justify-center text-sm text-[var(--text-muted)]">
-              Loading...
+              {t("common.loading")}
             </div>
           ) : pdfUrl ? (
             <div className="space-y-3">
@@ -51,7 +52,8 @@ export function ManualViewerModal({
                   rel="noreferrer"
                   className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] hover:bg-[var(--surface-elevated)] text-[var(--text-main)]"
                 >
-                  🔗 {t("library.manuals.openNewTab")}
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {t("library.manuals.openNewTab")}
                 </a>
                 <Button
                   type="button"

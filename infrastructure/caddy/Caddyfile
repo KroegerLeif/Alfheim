@@ -68,8 +68,10 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 		reverse_proxy pantry-backend:8000
 	}
 
-	handle_path /api/v1/shopping* {
-		rewrite * /api/v1{path}
+	# Pass-through: the shopping backend already serves /api/v1/shopping-lists,
+	# /api/v1/shopping/items and /api/v1/shopping-history, so stripping the prefix
+	# would turn them into /api/v1-lists and /api/v1/items (404).
+	handle /api/v1/shopping* {
 		reverse_proxy shopping-backend:8000
 	}
 	handle_path /shopping/api/v1* {
@@ -269,8 +271,10 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 	}
 
 	# Shopping API
-	handle_path /api/v1/shopping* {
-		rewrite * /api/v1{path}
+	# Pass-through: the shopping backend already serves /api/v1/shopping-lists,
+	# /api/v1/shopping/items and /api/v1/shopping-history, so stripping the prefix
+	# would turn them into /api/v1-lists and /api/v1/items (404).
+	handle /api/v1/shopping* {
 		reverse_proxy shopping-backend:8000
 	}
 	handle_path /shopping/api/v1* {

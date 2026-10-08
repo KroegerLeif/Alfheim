@@ -1,5 +1,5 @@
-// Static reference data used by the frontend UI
-// Device data is now served live from the backend API via useQuery hooks
+// Static reference data used by the frontend UI.
+// Device data is served live from the backend API via useQuery hooks.
 
 import {
   Wind,
@@ -9,16 +9,6 @@ import {
   ShieldAlert,
   Sprout
 } from "lucide-react";
-import { Household } from "./types";
-
-// Fallback static household list (overridden by the live API)
-export const households: Household[] = [];
-
-export const currentUser = {
-  name: "Authenticated User",
-  role: "Maintenance User",
-  avatarUrl: null as string | null
-};
 
 export const CATEGORIES = [
   "HVAC",

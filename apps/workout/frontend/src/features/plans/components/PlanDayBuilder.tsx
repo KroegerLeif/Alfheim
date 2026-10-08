@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, Select, useTranslation } from "@alfheim/shared";
+import { Button, Field, Input, Select, useTranslation } from "@alfheim/shared";
 import { Plus, Trash2 } from "lucide-react";
-import type { ExerciseRead } from "@/features/exercises/types";
+import { MUSCLE_GROUP_LABEL_KEYS, type ExerciseRead } from "@/features/exercises";
 import type { PlanDayRead, PlanSetCreate } from "../types";
 import { PlanExerciseRow } from "./PlanExerciseRow";
 
@@ -42,19 +42,19 @@ export function PlanDayBuilder({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[var(--surface-elevated)] p-4">
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1">
-            {t("workout.dayLabel")}
-          </label>
+        <Field htmlFor="plan-day-label" label={t("workout.dayLabel")} className="min-w-0 flex-1 basis-48">
           <Input
+            id="plan-day-label"
             value={day.label}
+            maxLength={100}
             onChange={(e) => onUpdateLabel(e.target.value)}
             placeholder={t("workout.dayLabelPlaceholder")}
             className="font-bold text-sm"
           />
-        </div>
+        </Field>
 
         <Button
+          type="button"
           variant="outline"
           size="sm"
           onClick={onDeleteDay}
@@ -85,19 +85,21 @@ export function PlanDayBuilder({
         )}
       </div>
 
-      <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-base)] p-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-base)] p-3">
         <Select
           value={selectedExerciseId}
           onChange={(e) => setSelectedExerciseId(e.target.value)}
+          aria-label={t("workout.addExercise")}
           placeholder={`-- ${t("workout.addExercise")} --`}
           options={availableExercises.map((ex) => ({
             value: ex.id,
-            label: `${ex.name} (${ex.primary_muscle})`,
+            label: `${ex.name} (${t(MUSCLE_GROUP_LABEL_KEYS[ex.primary_muscle])})`,
           }))}
-          className="flex-1 text-xs"
+          className="min-w-0 flex-1 text-xs"
         />
 
         <Button
+          type="button"
           size="sm"
           disabled={!selectedExerciseId}
           onClick={handleAddSelectedExercise}

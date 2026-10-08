@@ -46,8 +46,8 @@ export function LendItemDialog({
       setDueDate("");
       setNotes("");
       onOpenChange(false);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error lending item");
+    } catch {
+      setError(t("library.lending.lendError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -59,7 +59,7 @@ export function LendItemDialog({
         <DialogHeader>
           <DialogTitle>{t("library.lending.lendItem")}</DialogTitle>
           {itemTitle && (
-            <p className="text-xs text-[var(--text-muted)]">{itemTitle}</p>
+            <p className="break-words text-xs text-[var(--text-muted)]">{itemTitle}</p>
           )}
         </DialogHeader>
 
@@ -80,7 +80,8 @@ export function LendItemDialog({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setContactName(e.target.value)
               }
-              placeholder="e.g. John Doe"
+              placeholder={t("library.lending.borrowerPlaceholder")}
+              maxLength={255}
               required
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-2 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
@@ -110,6 +111,7 @@ export function LendItemDialog({
                 setNotes(e.target.value)
               }
               rows={3}
+              maxLength={1000}
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-2.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -130,7 +132,7 @@ export function LendItemDialog({
             size="sm"
             disabled={isSubmitting || !contactName.trim()}
           >
-            {isSubmitting ? "..." : t("library.lending.lendItem")}
+            {isSubmitting ? t("common.saving") : t("library.lending.lendItem")}
           </Button>
         </DialogFooter>
       </DialogContent>

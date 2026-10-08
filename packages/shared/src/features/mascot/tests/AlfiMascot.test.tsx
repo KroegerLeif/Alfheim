@@ -7,13 +7,27 @@ import { useAlfiChatLifecycle } from '../useAlfiChatLifecycle';
 import { renderHook } from '@testing-library/react';
 
 describe('AlfiMascot Component', () => {
+  it('falls back to the xl size for an unknown size token and to the idle pose on image errors', () => {
+    render(<AlfiMascot size={'huge' as never} alt="Alfi" />);
+    const mascot = screen.getByTestId('alfi-mascot');
+    expect(mascot.className).toContain('w-56 h-56');
+
+    const img = screen.getByRole('img', { name: 'Alfi' }) as HTMLImageElement;
+    img.src = 'https://example.invalid/broken.svg';
+    fireEvent.error(img);
+    expect(img.src).not.toBe('https://example.invalid/broken.svg');
+    const idleSrc = img.src;
+    fireEvent.error(img);
+    expect(img.src).toBe(idleSrc);
+  });
+
   it('renders idle state by default with proper data attributes and aria label', () => {
     render(<AlfiMascot />);
     const mascot = screen.getByTestId('alfi-mascot');
     expect(mascot).toBeInTheDocument();
     expect(mascot).toHaveAttribute('data-state', 'idle');
     expect(mascot).toHaveAttribute('data-asset', 'alfi/alfi-idle.svg');
-    expect(mascot).toHaveAttribute('aria-label', 'ALFI (idle)');
+    expect(mascot).toHaveAttribute('aria-label', 'ALFI-Maskottchen (idle)');
   });
 
   it('renders specific mascot states (thinking, speaking, listening, eating, fixing, chasing, sleeping)', () => {

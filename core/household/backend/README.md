@@ -35,8 +35,8 @@ Every route requires a valid Zitadel JWT (`Authorization: Bearer ...`).
 | Method and path | Who |
 | --- | --- |
 | `POST /api/v1/households` `{name, slug?}` | any user; creator becomes OWNER |
-| `GET /api/v1/households/me` | own households, each with `role` and `is_default` |
-| `GET /api/v1/households/{id}` | member |
+| `GET /api/v1/households/me` | own households, each with `role` and `is_default` (no `members`; one query) |
+| `GET /api/v1/households/{id}` | member; includes the `members` roster |
 | `PATCH /api/v1/households/{id}` `{name}` | OWNER, ADMIN |
 | `DELETE /api/v1/households/{id}` | OWNER (cascades to members, invites, contacts) |
 | `POST /api/v1/households/{id}/transfer-ownership` `{user_id}` | OWNER; the target must be a member; the old owner becomes ADMIN |
@@ -54,11 +54,17 @@ Every route requires a valid Zitadel JWT (`Authorization: Bearer ...`).
 | `GET, PUT /api/v1/profile/me` | any user |
 
 The first household a user creates or joins becomes their default household.
+When a user leaves, is removed from or loses (deletion) their default
+household, their oldest remaining membership (by `joined_at`) becomes the new
+default in the same transaction; with no membership left they have none.
+
+Errors are JSON with `Content-Type: application/json`:
+`{"error": "<code>", "message": "<explanation>"}`.
 
 ## Internal API
 
-Other backends call this route over the internal network. Caddy never routes
-it, and it takes no JWT.
+Other backends call these routes over the internal network. Caddy never routes
+them, and they take no JWT.
 
 ```
 GET /internal/v1/memberships/{householdId}/{userSub}
@@ -74,6 +80,25 @@ The service compares the token in constant time.
 | `401` | missing or wrong token |
 | `404` | the household does not exist or the user is not a member |
 | `503` | `ALFHEIM_INTERNAL_TOKEN` is not configured |
+
+```
+GET /internal/v1/households/{householdId}/members
+Authorization: Bearer <ALFHEIM_INTERNAL_TOKEN>
+```
+
+Lists every member with the subject and the user id the apps store, so an app
+can check whether another user, known only by that derived id, is a member.
+
+| Status | Meaning |
+| --- | --- |
+| `200` | `{"household_id":"<uuid>","members":[{"user_id":"<sub>","app_user_id":"<uuid>","role":"OWNER\|ADMIN\|MEMBER\|GUEST"}]}` |
+| `400` | `householdId` is not a UUID |
+| `401` | missing or wrong token |
+| `404` | the household does not exist |
+| `503` | `ALFHEIM_INTERNAL_TOKEN` is not configured |
+
+`app_user_id` is the subject itself when it is a UUID, otherwise
+`uuid5(NAMESPACE_DNS, sub)`, the same as `backend_shared.household.derive_user_id`.
 
 ## Roles
 

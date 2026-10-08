@@ -146,6 +146,25 @@
     "saveFailed": "Speichern fehlgeschlagen",
     "retry": "Erneut versuchen",
     "unit_kg": "kg",
-    "unit_reps": "Wdh."
+    "unit_reps": "Wdh.",
+    "metaDescription": "Training, Pläne und Fortschritt an einem Ort",
+    "dayFallbackLabel": "Tag {number}",
+    "start": "Starten",
+    "startDay": "{label} starten",
+    "planDescriptionPlaceholder": "Optionale Notizen zu diesem Plan",
+    "setsDropped": "Sätze, die nicht gespeichert werden konnten und verworfen wurden: {count}. Bitte protokolliere sie erneut.",
+    "dismiss": "Schließen",
+    "errorSessionNotActive": "Diese Einheit ist bereits beendet, daher können keine weiteren Sätze protokolliert werden.",
+    "finishPendingSets": "Sätze, die noch auf die Synchronisierung warten: {count}. Stelle die Verbindung wieder her und schließe erneut ab, damit kein Satz verloren geht.",
+    "finishFailed": "Einheit konnte nicht abgeschlossen werden",
+    "abandonFailed": "Einheit konnte nicht abgebrochen werden",
+    "startFailed": "Einheit konnte nicht gestartet werden",
+    "logFailed": "Satz konnte nicht auf dem Gerät gespeichert werden",
+    "planSaveFailed": "Plan konnte nicht gespeichert werden",
+    "planDeleteFailed": "Plan konnte nicht gelöscht werden",
+    "deleteFailed": "Eintrag konnte nicht gelöscht werden",
+    "backToToday": "Zurück zu Heute",
+    "errorTitle": "Etwas ist schiefgelaufen",
+    "errorGeneric": "Beim Laden dieser Seite ist ein unerwarteter Fehler aufgetreten."
   }
 }

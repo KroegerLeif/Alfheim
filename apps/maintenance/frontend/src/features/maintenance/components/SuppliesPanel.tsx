@@ -21,7 +21,7 @@ export function SuppliesPanel({
   const t = useTranslations("maintenance");
 
   return (
-    <div className="hidden lg:flex lg:col-span-3 border-l border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex-col space-y-4 overflow-y-auto">
+    <div className="flex lg:col-span-3 border-t lg:border-t-0 lg:border-l border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 flex-col space-y-4 lg:overflow-y-auto">
       <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)] text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">
         <ShoppingCart className="h-4 w-4 text-[var(--text-muted)]" />
         <span>{t("shopping.associatedSupplies")}</span>
@@ -33,10 +33,11 @@ export function SuppliesPanel({
             <span className="text-[10px] font-black uppercase tracking-wider text-[var(--primary-main)] block">
               {t("shopping.requiredPart")}
             </span>
-            <p className="text-xs font-bold text-[var(--text-main)] leading-tight">{currentSupplyItem}</p>
+            <p className="text-xs font-bold text-[var(--text-main)] leading-tight break-words">{currentSupplyItem}</p>
           </div>
 
           <button
+            type="button"
             onClick={toggleCartPart}
             disabled={isPending}
             className={cn(
@@ -62,7 +63,7 @@ export function SuppliesPanel({
       ) : (
         <div className="p-4 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-center">
           <p className="text-xs text-[var(--text-muted)]">
-            {t("shopping.cartEmpty")}
+            {t("wizardMode.noSupplyItem")}
           </p>
         </div>
       )}

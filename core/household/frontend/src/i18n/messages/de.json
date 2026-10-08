@@ -85,6 +85,30 @@
       "confirm": "Endgültig löschen",
       "deleting": "Wird gelöscht…"
     },
+    "detail": {
+      "short_id": "ID: {id}…"
+    },
+    "address": {
+      "coordinates": "Breite: {lat} • Länge: {lng}"
+    },
+    "members": {
+      "unnamed": "Benutzer ({id}…)",
+      "confirm_remove": "{name} aus diesem Haushalt entfernen?",
+      "remove_label": "{name} entfernen"
+    },
+    "contacts": {
+      "edit_category": "Kategorie {name} bearbeiten",
+      "delete_category": "Kategorie {name} löschen",
+      "call": "{name} anrufen",
+      "email": "E-Mail an {name}",
+      "open_link": "Link von {name} öffnen",
+      "edit": "{name} bearbeiten",
+      "delete": "{name} löschen"
+    },
+    "profile": {
+      "zitadel_id": "Zitadel-ID: {id}",
+      "saved": "Profil gespeichert."
+    },
     "errors": {
       "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
       "forbidden": "Du hast keine Berechtigung, das in diesem Haushalt zu tun.",

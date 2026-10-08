@@ -18,12 +18,13 @@ export function Header() {
     <AppHeader
       appName="shopping"
       brandTitle="ALFHEIM // SHOPPING"
-      brandSubtitle={tNav("subtitle") || "Smart Grocery List"}
+      brandSubtitle={tNav("shoppingSubtitle")}
       showBackToDashboard={true}
       backToDashboardHref={resolveFrontendUrl()}
       leftSlot={
         !isSidebarOpen ? (
           <button
+            type="button"
             onClick={() => setIsSidebarOpen(true)}
             className="p-1.5 rounded-lg bg-[var(--surface-canvas)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition-colors"
             aria-label={tNav("expandSidebar")}

@@ -49,7 +49,7 @@ describe("streamAssistantReply", () => {
 
     await streamAssistantReply("convo-1", { onDelta, onDone, onError });
 
-    expect(onError).toHaveBeenCalledWith("model overloaded");
+    expect(onError).toHaveBeenCalledWith({ kind: "server", detail: "model overloaded" });
     expect(onDone).not.toHaveBeenCalled();
   });
 
@@ -62,7 +62,48 @@ describe("streamAssistantReply", () => {
     const onError = vi.fn();
     await streamAssistantReply("missing-convo", { onDelta: vi.fn(), onDone: vi.fn(), onError });
 
-    expect(onError).toHaveBeenCalledWith(expect.stringContaining("404"));
+    expect(onError).toHaveBeenCalledWith({ kind: "http", status: 404, detail: undefined });
+  });
+
+  it("forwards tool_call events with the backend's field names normalized", async () => {
+    const frames = [
+      'event: tool_call\ndata: {"ID":"call_1","ToolName":"get_stock","Arguments":{"item":"milk"}}\n\n',
+      'event: tool_call\ndata: {"ID":"call_2"}\n\n',
+      'event: done\ndata: {}\n\n',
+    ];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(frames)));
+
+    const onToolCall = vi.fn();
+    await streamAssistantReply("convo-1", { onDelta: vi.fn(), onToolCall, onDone: vi.fn(), onError: vi.fn() });
+
+    expect(onToolCall).toHaveBeenCalledTimes(1);
+    expect(onToolCall).toHaveBeenCalledWith({ id: "call_1", name: "get_stock", arguments: { item: "milk" } });
+  });
+
+  it("reports network failures but stays silent when the caller aborts", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    const onError = vi.fn();
+    await streamAssistantReply("convo-1", { onDelta: vi.fn(), onDone: vi.fn(), onError });
+    expect(onError).toHaveBeenCalledWith({ kind: "network", detail: "Failed to fetch" });
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("aborted", "AbortError")));
+    const onAbortError = vi.fn();
+    const controller = new AbortController();
+    controller.abort();
+    await streamAssistantReply("convo-1", { onDelta: vi.fn(), onDone: vi.fn(), onError: onAbortError }, controller.signal);
+    expect(onAbortError).not.toHaveBeenCalled();
+  });
+
+  it("passes the backend message of a failed stream request on as detail", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: "bad_request", message: "no pending user message" }), { status: 400 })
+      )
+    );
+    const onError = vi.fn();
+    await streamAssistantReply("convo-1", { onDelta: vi.fn(), onDone: vi.fn(), onError });
+    expect(onError).toHaveBeenCalledWith({ kind: "http", status: 400, detail: "no pending user message" });
   });
 
   it("splits a frame arriving across multiple chunks", async () => {

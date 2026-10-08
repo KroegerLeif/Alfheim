@@ -1,11 +1,11 @@
-import { MediaItem } from "../catalog/types";
-
 export type LendingStatus = "AVAILABLE" | "LENT_OUT";
 
 export interface LendingRecord {
   id: string;
   household_id: string;
   item_id: string;
+  /** Title of the lent item, resolved by the API. */
+  item_title?: string | null;
   contact_name: string;
   status: LendingStatus;
   lent_at: string;
@@ -14,7 +14,6 @@ export interface LendingRecord {
   notes?: string | null;
   created_at: string;
   updated_at: string;
-  item?: MediaItem;
 }
 
 export interface LendItemPayload {
