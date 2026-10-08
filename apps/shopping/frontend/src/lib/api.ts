@@ -49,7 +49,8 @@ const PANTRY_API_URL =
  */
 const handleResponseError = async (response: Response) => {
   let code: string | undefined;
-  let message = "shopping.error.unrecognized_error";
+  // Empty when the server sent no usable text; the UI then shows its own localized message.
+  let message = "";
   try {
     const data = await response.json();
     // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
@@ -58,7 +59,7 @@ const handleResponseError = async (response: Response) => {
     message = parsed.message || message;
   } catch {
     // Fallback if response body is not JSON
-    message = response.statusText || message;
+    message = response.statusText;
   }
 
   throw {

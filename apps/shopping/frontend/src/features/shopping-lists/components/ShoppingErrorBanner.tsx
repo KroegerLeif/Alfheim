@@ -32,14 +32,14 @@ export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingError
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 text-center">
-      <div className="glass-card max-w-md p-6 rounded-2xl border border-red-500/20 space-y-4">
+      <div className="glass-card max-w-md w-full min-w-0 p-6 rounded-2xl border border-red-500/20 space-y-4">
         <div className="h-12 w-12 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center mx-auto">
           <ShoppingCart className="h-6 w-6" />
         </div>
         <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
           {isAuthError ? errT("sessionExpired") : isForbidden ? errT("forbidden") : errT("fetchFailed")}
         </h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground break-words">
           {isAuthError
             ? errT("sessionExpiredDesc")
             : isForbidden
@@ -51,6 +51,7 @@ export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingError
         <div className="flex gap-2 justify-center">
           {isAuthError ? (
             <button
+              type="button"
               onClick={handleLogin}
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
             >
@@ -58,6 +59,7 @@ export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingError
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => refetchLists()}
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-heading text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
             >
