@@ -1,6 +1,7 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { LanguageProvider } from '@alfheim/shared'
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -18,11 +19,14 @@ export function createTestQueryClient() {
 
 export function renderWithProviders(
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
+  options?: Omit<RenderOptions, 'wrapper'>,
+  language: 'en' | 'de' | 'pl' = 'en'
 ) {
   const testQueryClient = createTestQueryClient()
   return render(
-    <QueryClientProvider client={testQueryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={testQueryClient}>
+      <LanguageProvider defaultLanguage={language}>{ui}</LanguageProvider>
+    </QueryClientProvider>,
     options
   )
 }

@@ -28,7 +28,7 @@ describe('MetricsWidget', () => {
 
     await waitFor(() => expect(screen.getByText('42.5%')).toBeInTheDocument())
     expect(screen.getByText('8 / 16 GB')).toBeInTheDocument()
-    expect(screen.getByText('telemetry_live_stream')).toBeInTheDocument()
+    expect(screen.getByText('LIVE STREAM')).toBeInTheDocument()
   })
 
   it('renders an explicit unavailable state instead of fabricating numbers', async () => {
@@ -44,7 +44,7 @@ describe('MetricsWidget', () => {
 
     renderWithProviders(<MetricsWidget />)
 
-    await waitFor(() => expect(screen.getByText('telemetry_unavailable')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('METRICS UNAVAILABLE')).toBeInTheDocument())
     expect(screen.getByText('victoriametrics is unreachable')).toBeInTheDocument()
     expect(screen.queryByText('42.5%')).not.toBeInTheDocument()
   })
@@ -62,7 +62,7 @@ describe('MetricsWidget', () => {
 
     renderWithProviders(<MetricsWidget />)
 
-    await waitFor(() => expect(screen.getByText('telemetry_unavailable')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('METRICS UNAVAILABLE')).toBeInTheDocument())
     expect(
       screen.getByText('victoriametrics is reachable but has no host-level metrics available yet')
     ).toBeInTheDocument()

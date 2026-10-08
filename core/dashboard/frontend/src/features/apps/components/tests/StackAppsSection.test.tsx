@@ -35,7 +35,7 @@ describe('StackAppsSection navigation targets', () => {
       <StackAppsSection isLoading={false} isError={false} apps={[makeApp()]} />
     )
 
-    const link = screen.getByRole('link', { name: /open_portal/i })
+    const link = screen.getByRole('link', { name: /open portal/i })
     expect(link).toHaveAttribute('href', '/nextcloud')
     expect(link).not.toHaveAttribute('data-next-link')
     expect(link).toHaveAttribute('target', '_blank')
@@ -50,7 +50,7 @@ describe('StackAppsSection navigation targets', () => {
       />
     )
 
-    const link = screen.getByRole('link', { name: /open_portal/i })
+    const link = screen.getByRole('link', { name: /open portal/i })
     expect(link.getAttribute('href')).toMatch(/^\/under-construction/)
     expect(link).toHaveAttribute('data-next-link', 'true')
   })
@@ -64,7 +64,7 @@ describe('StackAppsSection navigation targets', () => {
       />
     )
 
-    const link = screen.getByRole('link', { name: /open_portal/i })
+    const link = screen.getByRole('link', { name: /open portal/i })
     expect(link).toHaveAttribute('href', 'http://homeassistant.local')
     expect(link).toHaveAttribute('target', '_blank')
   })
