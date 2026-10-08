@@ -6,6 +6,7 @@ import { useLocations } from "../services/locationService";
 import { useInventoryState, useLowStockItems } from "@/features/inventory/services/inventoryService";
 import { Button } from "@alfheim/shared";
 import { Plus, Minus, Loader2, Check } from "lucide-react";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { LocationCard } from "./LocationCard";
 import { LocationCreateForm } from "./LocationCreateForm";
 
@@ -41,13 +42,13 @@ export function LocationsGridView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-[var(--surface-canvas)] text-[var(--text-main)] font-mono p-8 space-y-6">
+    <div className="flex-1 flex flex-col min-w-0 bg-[var(--surface-canvas)] text-[var(--text-main)] font-mono p-4 sm:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--border-subtle)] pb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-heading font-black tracking-wide leading-none select-none text-[var(--text-main)]">{t("pantry.locationsTitle")}</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-4xl font-heading font-black tracking-wide leading-none select-none text-[var(--text-main)]">{t("pantry.locationsTitle")}</h1>
           <p className="uppercase tracking-widest text-[10px] text-[var(--text-muted)] mt-2 font-mono">{t("pantry.locationsSub")}</p>
         </div>
-        <Button id="toggle-create-location" onClick={() => setIsFormOpen(!isFormOpen)} variant="outline"
+        <Button type="button" id="toggle-create-location" onClick={() => setIsFormOpen(!isFormOpen)} variant="outline"
           className="py-6 px-6 font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--surface-card)] text-[var(--primary-main)] hover:bg-[var(--primary-main)] hover:text-black cursor-pointer select-none transition-all h-12 flex items-center justify-center gap-2 self-start rounded-lg">
           {isFormOpen ? <><Minus className="h-4 w-4" />{t("pantry.createBtnClose")}</> : <><Plus className="h-4 w-4" />{t("pantry.createBtn")}</>}
         </Button>
@@ -66,11 +67,7 @@ export function LocationsGridView() {
         </div>
       )}
 
-      {isErrorData && (
-        <div className="border border-rose-800/40 bg-rose-950/20 text-rose-400 p-4 text-xs font-bold uppercase rounded-lg">
-          Failed to load storage locations or inventory data. Please refresh or try again later.
-        </div>
-      )}
+      {isErrorData && <ErrorBanner message={t("pantry.errors.loadLocations")} />}
 
       {isLoadingData ? (
         <div className="flex items-center justify-center py-20 gap-3">

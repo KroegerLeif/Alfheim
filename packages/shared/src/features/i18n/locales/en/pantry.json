@@ -164,8 +164,8 @@
     "noLocations": "No storage locations found.",
     "systemLocation": "System Fallback",
     "ok": "✓ OK",
-    "mhd": "MHD",
-    "knapp": "knapp",
+    "mhd": "expired",
+    "knapp": "low",
     "productsTitle": "Product Catalog",
     "productsSub": "Global and custom item blueprints",
     "searchBlueprints": "Search product blueprints...",
@@ -246,6 +246,70 @@
     "batchLabel": "Batch / Lot",
     "batchPlaceholder": "e.g. LOT-2024-A",
     "notes": "Notes",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "noBatch": "None",
+    "stockOfMinimum": "{current} / {minimum} min",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "categoriesTitle": "Categories",
+    "noCategories": "No categories yet.",
+    "analyticsTruncated": "The chart only covers the most recent consumption records. Older records of this period were left out.",
+    "errors": {
+      "unreachable": "The server could not be reached. Check your connection and try again.",
+      "loadDashboard": "Failed to load the inventory dashboard. Please refresh or try again later.",
+      "loadProducts": "Failed to load the product catalog. Please try again later.",
+      "loadLocations": "Failed to load storage locations or inventory data. Please refresh or try again later.",
+      "loadInventory": "Failed to load inventory stock levels.",
+      "loadLedger": "Failed to load transaction ledger records.",
+      "loadAnalytics": "Failed to load the analytics data. Please refresh or try again later.",
+      "transactionFailed": "The transaction could not be recorded.",
+      "barcodeLookupFailed": "The barcode lookup failed.",
+      "createCategoryFailed": "Failed to create the category.",
+      "updateProductFailed": "Failed to save the product.",
+      "updateLocationFailed": "Failed to save the location.",
+      "updateCategoryFailed": "Failed to rename the category.",
+      "deleteProductFailed": "Failed to delete the product.",
+      "deleteLocationFailed": "Failed to delete the location.",
+      "deleteCategoryFailed": "Failed to delete the category.",
+      "productInUse": "This product still has stock or transaction history ({count} records). It cannot be deleted.",
+      "locationInUse": "This location still holds stock or appears in the transaction history ({count} records). It cannot be deleted.",
+      "categoryInUse": "This category is still assigned to {count} product(s). Remove it from those products first."
+    },
+    "export": {
+      "sent": "Items sent to the shopping app: {count}",
+      "failedAll": "No item could be sent to the shopping app ({count} failed). Check your connection and try again.",
+      "failedSome": "Some items could not be sent to the shopping app. Sent: {sent}, not sent: {failed}. Missing items:",
+      "retryFailed": "Retry failed items"
+    },
+    "pager": {
+      "label": "Ledger pages",
+      "newer": "Newer",
+      "older": "Older",
+      "page": "Page {page}"
+    },
+    "txType": {
+      "in": "In",
+      "out": "Out",
+      "waste": "Waste",
+      "reconciliation": "Reconciliation"
+    },
+    "edit": {
+      "product": "Edit product",
+      "productTitle": "Edit product",
+      "location": "Edit location",
+      "locationTitle": "Edit storage location",
+      "category": "Rename category"
+    },
+    "delete": {
+      "product": "Delete product",
+      "productTitle": "Delete product",
+      "productQuestion": "Delete this product permanently?",
+      "location": "Delete location",
+      "locationTitle": "Delete storage location",
+      "locationQuestion": "Delete this storage location permanently?",
+      "category": "Delete category",
+      "categoryTitle": "Delete category",
+      "categoryQuestion": "Delete this category permanently?"
+    }
   }
 }

@@ -164,8 +164,8 @@
     "noLocations": "Nie znaleziono lokalizacji magazynowych.",
     "systemLocation": "Lokalizacja systemowa",
     "ok": "✓ OK",
-    "mhd": "MHD",
-    "knapp": "niski stan",
+    "mhd": "po terminie",
+    "knapp": "mało",
     "productsTitle": "Katalog produktów",
     "productsSub": "Globalne i własne szablony produktów",
     "searchBlueprints": "Szukaj szablonów produktów...",
@@ -246,6 +246,70 @@
     "batchLabel": "Partia",
     "batchPlaceholder": "np. LOT-2024-A",
     "notes": "Notatki",
-    "submitting": "Wysyłanie..."
+    "submitting": "Wysyłanie...",
+    "noBatch": "Brak",
+    "stockOfMinimum": "{current} / {minimum} min.",
+    "decreaseQuantity": "Zmniejsz ilość",
+    "increaseQuantity": "Zwiększ ilość",
+    "categoriesTitle": "Kategorie",
+    "noCategories": "Brak kategorii.",
+    "analyticsTruncated": "Wykres obejmuje tylko najnowsze zapisy zużycia. Starsze zapisy z tego okresu zostały pominięte.",
+    "errors": {
+      "unreachable": "Nie można połączyć się z serwerem. Sprawdź połączenie i spróbuj ponownie.",
+      "loadDashboard": "Nie udało się wczytać pulpitu zapasów. Odśwież stronę lub spróbuj ponownie później.",
+      "loadProducts": "Nie udało się wczytać katalogu produktów. Spróbuj ponownie później.",
+      "loadLocations": "Nie udało się wczytać miejsc przechowywania ani danych o zapasach. Odśwież stronę lub spróbuj ponownie później.",
+      "loadInventory": "Nie udało się wczytać stanów magazynowych.",
+      "loadLedger": "Nie udało się wczytać zapisów dziennika operacji.",
+      "loadAnalytics": "Nie udało się wczytać danych analitycznych. Odśwież stronę lub spróbuj ponownie później.",
+      "transactionFailed": "Nie udało się zapisać operacji.",
+      "barcodeLookupFailed": "Wyszukiwanie kodu kreskowego nie powiodło się.",
+      "createCategoryFailed": "Nie udało się utworzyć kategorii.",
+      "updateProductFailed": "Nie udało się zapisać produktu.",
+      "updateLocationFailed": "Nie udało się zapisać miejsca przechowywania.",
+      "updateCategoryFailed": "Nie udało się zmienić nazwy kategorii.",
+      "deleteProductFailed": "Nie udało się usunąć produktu.",
+      "deleteLocationFailed": "Nie udało się usunąć miejsca przechowywania.",
+      "deleteCategoryFailed": "Nie udało się usunąć kategorii.",
+      "productInUse": "Ten produkt nadal ma zapasy lub historię operacji ({count} wpisów). Nie można go usunąć.",
+      "locationInUse": "To miejsce nadal zawiera zapasy lub występuje w historii operacji ({count} wpisów). Nie można go usunąć.",
+      "categoryInUse": "Ta kategoria jest nadal przypisana do produktów: {count}. Najpierw usuń ją z tych produktów."
+    },
+    "export": {
+      "sent": "Pozycje wysłane do aplikacji zakupów: {count}",
+      "failedAll": "Żadnej pozycji nie udało się wysłać do aplikacji zakupów (niepowodzenia: {count}). Sprawdź połączenie i spróbuj ponownie.",
+      "failedSome": "Nie udało się wysłać części pozycji do aplikacji zakupów. Wysłano: {sent}, nie wysłano: {failed}. Brakujące pozycje:",
+      "retryFailed": "Ponów wysyłanie nieudanych pozycji"
+    },
+    "pager": {
+      "label": "Strony dziennika",
+      "newer": "Nowsze",
+      "older": "Starsze",
+      "page": "Strona {page}"
+    },
+    "txType": {
+      "in": "Przyjęcie",
+      "out": "Wydanie",
+      "waste": "Strata",
+      "reconciliation": "Inwentaryzacja"
+    },
+    "edit": {
+      "product": "Edytuj produkt",
+      "productTitle": "Edytuj produkt",
+      "location": "Edytuj miejsce",
+      "locationTitle": "Edytuj miejsce przechowywania",
+      "category": "Zmień nazwę kategorii"
+    },
+    "delete": {
+      "product": "Usuń produkt",
+      "productTitle": "Usuń produkt",
+      "productQuestion": "Usunąć ten produkt na stałe?",
+      "location": "Usuń miejsce",
+      "locationTitle": "Usuń miejsce przechowywania",
+      "locationQuestion": "Usunąć to miejsce przechowywania na stałe?",
+      "category": "Usuń kategorię",
+      "categoryTitle": "Usuń kategorię",
+      "categoryQuestion": "Usunąć tę kategorię na stałe?"
+    }
   }
 }

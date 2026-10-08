@@ -59,12 +59,12 @@ export function InventoryTableView() {
   return (
     <div className="flex-1 p-6 md:p-12 space-y-6 max-w-7xl mx-auto w-full select-none text-[var(--text-main)] font-mono">
       <header className="border-b border-[var(--border-subtle)] pb-4 flex justify-between items-baseline gap-4">
-        <div>
-          <h1 className="text-4xl font-heading font-black tracking-wide text-[var(--text-main)] uppercase">{t("pantry.stockInventory")}</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-4xl font-heading font-black tracking-wide text-[var(--text-main)] uppercase">{t("pantry.stockInventory")}</h1>
           <p className="font-mono text-xs text-[var(--text-muted)] mt-1 uppercase tracking-wider">{t("pantry.stockInventorySub")}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}
-          className="h-8 text-xs font-mono uppercase tracking-wider gap-1 cursor-pointer border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)]">
+        <Button type="button" variant="outline" size="sm" onClick={() => refetch()}
+          className="h-8 text-xs font-mono uppercase tracking-wider gap-1 cursor-pointer border-[var(--border-subtle)] hover:bg-[var(--surface-elevated)] shrink-0">
           <RefreshCw className="h-3 w-3" />{t("pantry.refresh")}
         </Button>
       </header>
@@ -89,7 +89,7 @@ export function InventoryTableView() {
           </TableHeader>
           <TableBody>
             {isError ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-12 text-xs font-bold text-rose-400 uppercase">Failed to load inventory stock levels.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-12 text-xs font-bold text-rose-400 uppercase" role="alert">{t("pantry.errors.loadInventory")}</TableCell></TableRow>
             ) : isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-10 text-xs text-[var(--text-muted)] uppercase">{t("pantry.loadingRegisters")}</TableCell></TableRow>
             ) : filteredStates.length === 0 ? (

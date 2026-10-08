@@ -13,3 +13,8 @@ export interface LocationCreate {
   name: string;
   description?: string | null;
 }
+
+export interface LocationUpdate {
+  name?: string;
+  description?: string | null;
+}

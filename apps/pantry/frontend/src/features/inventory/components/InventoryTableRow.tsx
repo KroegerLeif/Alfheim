@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation, Button, TableRow, TableCell, AlfiAvatar } from "@alfheim/shared";
+import { formatDate } from "@/core/format";
 import { Plus, Minus, AlertTriangle } from "lucide-react";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
 import { usePantryChat } from "@/core/chatContext";
@@ -16,7 +17,7 @@ interface InventoryTableRowProps {
  * expiration status, contextual ALFI assistant trigger, and quick IN/OUT action buttons.
  */
 export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { openChat } = usePantryChat();
 
   const product = state.product;
@@ -33,15 +34,15 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
   return (
     <TableRow className="border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--surface-elevated)]/50">
       {/* Product info */}
-      <TableCell className="font-sans">
-        <div className="font-bold uppercase text-sm tracking-tight text-[var(--text-main)]">{product.name}</div>
+      <TableCell className="font-sans max-w-[16rem]">
+        <div className="font-bold uppercase text-sm tracking-tight text-[var(--text-main)] break-words">{product.name}</div>
         {product.brand && (
-          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 font-mono">{product.brand}</div>
+          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 font-mono break-words">{product.brand}</div>
         )}
       </TableCell>
 
       {/* Location */}
-      <TableCell className="uppercase text-[var(--text-main)] font-mono text-xs">{location.name}</TableCell>
+      <TableCell className="uppercase text-[var(--text-main)] font-mono text-xs max-w-[12rem] break-words">{location.name}</TableCell>
 
       {/* Stock level */}
       <TableCell className="text-right">
@@ -58,7 +59,7 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
       <TableCell className="font-mono text-xs">
         {state.expiration_date ? (
           <span className={isExpired ? "text-red-500 font-bold" : "text-[var(--text-main)]"}>
-            {state.expiration_date}{isExpired && ` [${t("pantry.expired")}]`}
+            {formatDate(state.expiration_date, language)}{isExpired && ` [${t("pantry.expired")}]`}
           </span>
         ) : (
           <span className="text-[var(--text-muted)] font-normal">--</span>

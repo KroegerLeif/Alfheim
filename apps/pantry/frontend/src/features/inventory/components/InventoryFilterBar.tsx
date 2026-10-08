@@ -33,16 +33,16 @@ export function InventoryFilterBar({
       <div className="relative flex-1">
         <Search className="absolute left-3 top-3.5 h-4 w-4 text-[var(--text-muted)]" />
         <input type="text" value={searchQuery} onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={t("pantry.searchPlaceholder")}
+          placeholder={t("pantry.searchPlaceholder")} aria-label={t("pantry.searchPlaceholder")}
           className="w-full pl-9 pr-4 py-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-sm h-11 rounded" />
       </div>
-      <select value={selectedCategoryId} onChange={(e) => onCategoryChange(e.target.value)}
-        className="py-2.5 px-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-xs uppercase h-11 min-w-[180px] cursor-pointer rounded">
+      <select value={selectedCategoryId} onChange={(e) => onCategoryChange(e.target.value)} aria-label={t("pantry.filterCategory")}
+        className="py-2.5 px-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-xs uppercase h-11 w-full md:w-auto md:min-w-[180px] md:max-w-[240px] cursor-pointer rounded">
         <option value="">{t("pantry.filterCategory")}</option>
         {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>)}
       </select>
-      <select value={selectedLocationId} onChange={(e) => onLocationChange(e.target.value)}
-        className="py-2.5 px-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-xs uppercase h-11 min-w-[180px] cursor-pointer rounded">
+      <select value={selectedLocationId} onChange={(e) => onLocationChange(e.target.value)} aria-label={t("pantry.filterLocation")}
+        className="py-2.5 px-3 border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] focus:outline-none focus:border-[var(--primary-main)] text-xs uppercase h-11 w-full md:w-auto md:min-w-[180px] md:max-w-[240px] cursor-pointer rounded">
         <option value="">{t("pantry.filterLocation")}</option>
         {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name.toUpperCase()}</option>)}
       </select>

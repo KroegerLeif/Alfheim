@@ -6,6 +6,7 @@ import { ClientHeader } from '@/components/shared/ClientHeader';
 import { PantryChatOverlay } from '@/components/shared/PantryChatOverlay';
 import { ProductList } from '@/features/products/components/ProductList';
 import { InventoryTableRow } from '@/features/inventory/components/InventoryTableRow';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider, StaticHouseholdProvider, ThemeProvider } from '@alfheim/shared';
 
 describe('Pantry ALFI Chat Integration', () => {
@@ -17,14 +18,16 @@ describe('Pantry ALFI Chat Integration', () => {
 
   const renderWithProviders = (ui: React.ReactNode) => {
     return render(
-      <LanguageProvider defaultLanguage="de">
-        <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
-          <PantryChatProvider>
-            {ui}
-            <PantryChatOverlay />
-          </PantryChatProvider>
-        </ThemeProvider>
-      </LanguageProvider>
+      <QueryClientProvider client={new QueryClient()}>
+        <LanguageProvider defaultLanguage="de">
+          <ThemeProvider defaultMode="dark" defaultVariant="obsidian">
+            <PantryChatProvider>
+              {ui}
+              <PantryChatOverlay />
+            </PantryChatProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
     );
   };
 
