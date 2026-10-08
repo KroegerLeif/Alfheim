@@ -8,13 +8,13 @@ description: "Zentrales Verzeichnis aller Tier-1-Kern-Microservices und Tier-2-A
 ---
 
 ## 📋 Inhaltsverzeichnis
-- [Tier 1 Kern-Microservice-Anwendungen](#-tier-1-kern-microservice-anwendungen)
+- [Tier 1 Kern-Microservice-Anwendungen](#tier-1-kern-microservice-anwendungen)
 - [Tier 2 Stack-Anwendungen & externe Integrationen](#-tier-2-stack-anwendungen--externe-integrationen)
 - [Klassifizierungsrichtlinien für Anwendungen](#-klassifizierungsrichtlinien-für-anwendungen)
 
 ---
 
-## 🏛️ Tier 1 Kern-Microservice-Anwendungen
+## Tier 1 Kern-Microservice-Anwendungen
 
 Tier-1-Anwendungen sind native Monorepo-Microservices, registriert in Go (`core/dashboard/backend/internal/features/apps/tier1_core_registry.go`), mit isolierten Datenbankcontainern, Next.js-Microfrontends und FastMCP-KI-Agent-Oberflächen.
 

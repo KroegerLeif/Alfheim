@@ -1,6 +1,8 @@
 ---
 title: "Neuen FDD-Microservice erstellen"
 description: "Schritt-für-Schritt-Anleitung zum Aufsetzen, Implementieren und Registrieren eines neuen Feature-Driven-Design-Microservices im Alfheim-Monorepo."
+sidebar:
+  order: 3
 ---
 
 > **Kurzfassung:** Schritt-für-Schritt-Anleitung zum Aufsetzen, Implementieren und Registrieren eines neuen Feature-Driven-Design-Microservices (FDD) im Alfheim-Monorepo.

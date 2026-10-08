@@ -1,6 +1,8 @@
 ---
 title: "Create a New FDD Microservice"
 description: "Step-by-step guide to scaffolding, implementing, and registering a new Feature-Driven Design (FDD) microservice application in the Alfheim monorepo."
+sidebar:
+  order: 3
 ---
 
 > **TL;DR:** Step-by-step guide to scaffolding, implementing, and registering a new Feature-Driven Design (FDD) microservice application in the Alfheim monorepo.

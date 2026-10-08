@@ -9,21 +9,21 @@ export const AlfiSection: React.FC = () => {
   const [mascotState, setMascotState] = useState<AlfiState>('idle');
 
   const capabilities = [
-    t('docs.alfi.cap1', 'Proactive inventory restocking & deficit detection'),
-    t('docs.alfi.cap2', 'Natural language recipe suggestions from available pantry items'),
-    t('docs.alfi.cap3', 'Automated maintenance scheduling & warranty ingestion'),
-    t('docs.alfi.cap4', 'Fair chore allocation & streak preservation reminders'),
+    t('docs.alfi.cap1'),
+    t('docs.alfi.cap2'),
+    t('docs.alfi.cap3'),
+    t('docs.alfi.cap4'),
   ];
 
   const statesList: { key: AlfiState; label: string }[] = [
-    { key: 'idle', label: t('docs.states.idle', 'Idle') },
-    { key: 'thinking', label: t('docs.states.thinking', 'Thinking') },
-    { key: 'speaking', label: t('docs.states.speaking', 'Speaking') },
-    { key: 'listening', label: t('docs.states.listening', 'Listening') },
-    { key: 'eating', label: t('docs.states.eating', 'Eating') },
-    { key: 'fixing', label: t('docs.states.fixing', 'Fixing') },
-    { key: 'chasing', label: t('docs.states.chasing', 'Chasing') },
-    { key: 'sleeping', label: t('docs.states.sleeping', 'Standby') },
+    { key: 'idle', label: t('docs.alfi.states.idle') },
+    { key: 'thinking', label: t('docs.alfi.states.thinking') },
+    { key: 'speaking', label: t('docs.alfi.states.speaking') },
+    { key: 'listening', label: t('docs.alfi.states.listening') },
+    { key: 'eating', label: t('docs.alfi.states.eating') },
+    { key: 'fixing', label: t('docs.alfi.states.fixing') },
+    { key: 'chasing', label: t('docs.alfi.states.chasing') },
+    { key: 'sleeping', label: t('docs.alfi.states.sleeping') },
   ];
 
   const cycleState = () => {
@@ -86,25 +86,22 @@ export const AlfiSection: React.FC = () => {
             <div className="lg:col-span-7 space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3eb1ff]/10 border border-[#3eb1ff]/30 text-xs font-mono text-[#3eb1ff]">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{t('docs.alfi.badge', 'Autonomous Companion')}</span>
+                <span>{t('docs.alfi.badge')}</span>
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-bold text-[#f0f6fc] leading-tight">
-                {t('docs.alfi.title', 'Meet ALFI: Your Ambient Household Companion')}
+                {t('docs.alfi.title')}
               </h2>
 
               <p className="text-base text-[#8b949e] leading-relaxed">
-                {t(
-                  'docs.alfi.description',
-                  'ALFI is the intelligent orchestration layer for Alfheim. Interacting through natural language and Model Context Protocol (MCP) tools, ALFI proactively manages groceries, schedules maintenance, and distributes chores.'
-                )}
+                {t('docs.alfi.description')}
               </p>
 
               {/* Capability Checklist */}
               <div className="space-y-3 pt-2">
                 <div className="text-sm font-semibold uppercase tracking-wider text-[#f0f6fc] font-mono flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-[#3eb1ff]" />
-                  {t('docs.alfi.capabilitiesTitle', 'Core AI Capabilities')}
+                  {t('docs.alfi.capabilitiesTitle')}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {capabilities.map((cap, idx) => (
@@ -122,7 +119,7 @@ export const AlfiSection: React.FC = () => {
               {/* FastMCP / Tool Calling Protocol Footer */}
               <div className="pt-2 flex items-center gap-3 text-xs font-mono text-[#8b949e]">
                 <MessageSquareCode className="w-4 h-4 text-[#3eb1ff]" />
-                <span>Model Context Protocol (FastMCP) · Event-Driven S3 & Telemetry Hooks</span>
+                <span>{t('docs.alfi.protocolFooter')}</span>
               </div>
             </div>
           </div>

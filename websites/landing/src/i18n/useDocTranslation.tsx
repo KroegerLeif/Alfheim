@@ -4,7 +4,7 @@ import { getSharedMessages, Language } from '@alfheim/shared';
 interface I18nContextType {
   locale: Language;
   setLocale: (lang: Language) => void;
-  t: (path: string, fallback?: string) => string;
+  t: (path: string) => string;
   messages: any;
 }
 
@@ -33,17 +33,17 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLocaleState(lang);
   };
 
-  const t = (path: string, fallback?: string): string => {
+  const t = (path: string): string => {
     const parts = path.split('.');
     let current = messages;
     for (const part of parts) {
       if (current && typeof current === 'object' && part in current) {
         current = current[part];
       } else {
-        return fallback || path;
+        return path;
       }
     }
-    return typeof current === 'string' ? current : fallback || path;
+    return typeof current === 'string' ? current : path;
   };
 
   return (
