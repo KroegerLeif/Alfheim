@@ -109,35 +109,64 @@ func (s *service) runToolLoop(
 // result text fed back to the model. Any failure (unknown tool, transport error, or
 // the tool itself reporting isError) becomes readable error text rather than
 // aborting the loop, so the model can react to it instead of the whole turn crashing.
+// Every outcome is persisted as a tool message tagged with the tool call id, so the
+// history can be replayed to the provider and shown in the UI.
 func (s *service) executeToolCall(ctx context.Context, conversationID string, call llm.ToolCallRequest, toolServers map[string]mcp.ServerRef) string {
 	server, ok := toolServers[call.ToolName]
 	if !ok {
-		return fmt.Sprintf("tool error: unknown tool %q", call.ToolName)
+		resultText := fmt.Sprintf("tool error: unknown tool %q", call.ToolName)
+		s.persistToolResult(ctx, conversationID, call, resultText, true, nil)
+		return resultText
 	}
 
 	client := s.mcpPool.Get(server.EndpointURL)
 	resultText, isError, err := client.CallTool(ctx, call.ToolName, call.Arguments)
 	if err != nil {
 		s.log.Warn("mcp tool call failed", slog.String("tool_name", call.ToolName), slog.String("app_slug", server.Slug), slog.String("error", err.Error()))
+		// The stored text stays generic: transport errors name internal endpoints,
+		// which the user-facing history must not show.
+		s.persistToolResult(ctx, conversationID, call, toolCallFailedText, true, &server.ID)
 		return fmt.Sprintf("tool error: %v", err)
 	}
 	if isError {
 		s.log.Debug("mcp tool call reported an error result", slog.String("tool_name", call.ToolName), slog.String("app_slug", server.Slug))
 	}
 
-	serverID := server.ID
+	s.persistToolResult(ctx, conversationID, call, resultText, isError, &server.ID)
+	return resultText
+}
+
+// toolCallFailedText is the persisted result of a tool call that never reached a
+// result (transport or protocol failure).
+const toolCallFailedText = "tool error: the tool call could not be completed"
+
+// ToolResultRecord is stored in a tool message's tool_calls_json. It links the
+// result to the assistant's tool call (replayed to the provider as tool_call_id)
+// and records whether the tool failed, for the UI.
+type ToolResultRecord struct {
+	ToolCallID string `json:"tool_call_id"`
+	ToolName   string `json:"tool_name"`
+	IsError    bool   `json:"is_error"`
+}
+
+// persistToolResult stores one tool result message.
+func (s *service) persistToolResult(ctx context.Context, conversationID string, call llm.ToolCallRequest, content string, isError bool, serverID *string) {
+	record, err := json.Marshal(ToolResultRecord{ToolCallID: call.ID, ToolName: call.ToolName, IsError: isError})
+	if err != nil {
+		s.log.Error("failed to marshal tool result record", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
+		record = nil
+	}
 	msg := &Message{
 		ID:             uuid.NewString(),
 		ConversationID: conversationID,
 		Role:           RoleTool,
-		Content:        resultText,
-		MCPServerID:    &serverID,
+		Content:        content,
+		ToolCallsJSON:  record,
+		MCPServerID:    serverID,
 	}
 	if err := s.repo.CreateMessage(context.WithoutCancel(ctx), msg); err != nil {
 		s.log.Error("failed to persist tool result message", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
 	}
-
-	return resultText
 }
 
 // persistToolRound stores the assistant's tool-call request turn (the text, if any,

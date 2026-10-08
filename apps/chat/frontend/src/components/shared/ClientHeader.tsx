@@ -1,12 +1,8 @@
 "use client";
 
-import { ClientHeader as SharedClientHeader } from "@alfheim/shared";
+import { ClientHeader as SharedClientHeader, useTranslation } from "@alfheim/shared";
 
 export function ClientHeader() {
-  return (
-    <SharedClientHeader
-      appName="chat"
-      brandTitle="ALFHEIM // CHAT"
-    />
-  );
+  const { t } = useTranslation();
+  return <SharedClientHeader appName="chat" brandTitle={t("Chat.brandTitle")} />;
 }

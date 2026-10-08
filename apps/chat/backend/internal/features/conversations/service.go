@@ -217,6 +217,12 @@ func toLLMMessages(messages []*Message) []llm.Message {
 		if m.Role == RoleAssistant && len(m.ToolCallsJSON) > 0 {
 			_ = json.Unmarshal(m.ToolCallsJSON, &msg.ToolCalls) // best-effort; malformed history just loses replay context
 		}
+		if m.Role == RoleTool && len(m.ToolCallsJSON) > 0 {
+			var record ToolResultRecord
+			if json.Unmarshal(m.ToolCallsJSON, &record) == nil { // rows written before the record existed carry none
+				msg.ToolCallID = record.ToolCallID
+			}
+		}
 		out = append(out, msg)
 	}
 	return out

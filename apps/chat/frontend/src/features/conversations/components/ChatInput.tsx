@@ -2,24 +2,26 @@
 
 import { useRef, useState } from "react";
 import { useTranslation } from "@alfheim/shared";
-import { Paperclip, Send } from "lucide-react";
+import { Paperclip, Send, Square } from "lucide-react";
 import { uploadAttachment } from "@/lib/api";
 import { AttachmentPreview, type StagedAttachment } from "./AttachmentPreview";
 
 interface ChatInputProps {
   onSend: (content: string, attachmentIds: string[]) => void;
   onTypingChange?: (isTyping: boolean) => void;
-  disabled?: boolean;
+  /** While a reply streams, sending is blocked and the send button becomes a stop button. */
+  isStreaming?: boolean;
+  onStop?: () => void;
 }
 
-export function ChatInput({ onSend, onTypingChange, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onTypingChange, isStreaming = false, onStop }: ChatInputProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [staged, setStaged] = useState<StagedAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const hasPendingUploads = staged.some((s) => s.isUploading);
-  const canSend = !disabled && !hasPendingUploads && (input.trim().length > 0 || staged.length > 0);
+  const canSend = !isStreaming && !hasPendingUploads && (input.trim().length > 0 || staged.length > 0);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -47,7 +49,7 @@ export function ChatInput({ onSend, onTypingChange, disabled }: ChatInputProps) 
         setStaged((prev) =>
           prev.map((s) =>
             s.id === item.id
-              ? { ...s, isUploading: false, error: err instanceof Error ? err.message : "Upload failed" }
+              ? { ...s, isUploading: false, error: err instanceof Error ? err.message : t("Chat.uploadError") }
               : s
           )
         );
@@ -96,15 +98,15 @@ export function ChatInput({ onSend, onTypingChange, disabled }: ChatInputProps) 
           multiple
           className="hidden"
           onChange={handleFileChange}
-          disabled={disabled}
+          disabled={isStreaming}
         />
 
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || hasPendingUploads}
+          disabled={isStreaming || hasPendingUploads}
           aria-label={t("Chat.attachImage")}
-          className="p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-canvas)] transition-colors disabled:opacity-50 cursor-pointer"
+          className="p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--surface-canvas)] transition-colors disabled:opacity-50 cursor-pointer shrink-0"
         >
           <Paperclip className="w-4 h-4" />
         </button>
@@ -124,20 +126,33 @@ export function ChatInput({ onSend, onTypingChange, disabled }: ChatInputProps) 
             }
           }}
           placeholder={t("Chat.inputPlaceholder")}
-          disabled={disabled}
-          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] text-sm px-3 py-2 disabled:opacity-50"
+          aria-label={t("Chat.inputPlaceholder")}
+          className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] text-sm px-3 py-2 disabled:opacity-50"
         />
 
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!canSend}
-          aria-label={t("Chat.send")}
-          className="flex items-center gap-1.5 rounded-lg bg-[var(--primary-main)] text-black text-sm font-semibold px-4 py-2 disabled:opacity-50 cursor-pointer"
-        >
-          <Send className="w-4 h-4" />
-          <span className="hidden sm:inline">{t("Chat.send")}</span>
-        </button>
+        {isStreaming && onStop ? (
+          <button
+            type="button"
+            onClick={onStop}
+            aria-label={t("Chat.stopReply")}
+            title={t("Chat.stopReply")}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-main)] text-sm font-semibold px-4 py-2 hover:border-red-500 cursor-pointer shrink-0"
+          >
+            <Square className="w-4 h-4" />
+            <span className="hidden sm:inline">{t("Chat.stop")}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!canSend}
+            aria-label={t("Chat.send")}
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--primary-main)] text-black text-sm font-semibold px-4 py-2 disabled:opacity-50 cursor-pointer shrink-0"
+          >
+            <Send className="w-4 h-4" />
+            <span className="hidden sm:inline">{t("Chat.send")}</span>
+          </button>
+        )}
       </div>
     </div>
   );
