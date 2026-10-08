@@ -71,6 +71,23 @@ describe('integrationService Hooks', () => {
       expect(householdHeader).toBe('hh-test-123')
     })
 
+    it('calls the shopping app through its own ingress prefix, not the bare /api/v1 rule (#623)', async () => {
+      const urls: string[] = []
+      server.use(
+        http.get(/\/shopping-lists$/, ({ request }) => {
+          urls.push(new URL(request.url).pathname)
+          return HttpResponse.json([])
+        })
+      )
+
+      const { result } = renderHook(() => useShoppingIntegration(), {
+        wrapper: createWrapper(queryClient),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(urls).toEqual(['/shopping/api/v1/shopping-lists'])
+    })
+
     it('handles empty response gracefully', async () => {
       server.use(
         http.get(/\/shopping-lists$/, () => {
@@ -145,6 +162,23 @@ describe('integrationService Hooks', () => {
 
       expect(authHeader).toBe('Bearer test-bearer-token')
       expect(householdHeader).toBe('hh-test-123')
+    })
+
+    it('calls the maintenance app through its own ingress prefix, not the bare /api/v1 rule', async () => {
+      const urls: string[] = []
+      server.use(
+        http.get(/\/maintenance\/summary$/, ({ request }) => {
+          urls.push(new URL(request.url).pathname)
+          return HttpResponse.json([])
+        })
+      )
+
+      const { result } = renderHook(() => useMaintenanceIntegration(), {
+        wrapper: createWrapper(queryClient),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(urls).toEqual(['/maintenance/api/v1/maintenance/summary'])
     })
 
     it('handles empty array summary gracefully', async () => {

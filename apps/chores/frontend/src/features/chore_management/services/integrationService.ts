@@ -6,6 +6,14 @@ import {
   useActiveHousehold,
 } from "@alfheim/shared";
 
+/**
+ * Browser paths of the other apps' APIs. Caddy's bare `/api/v1/<app>*` rules strip the prefix and
+ * leave a suffix that no backend serves (`/api/v1/shopping-lists` becomes `/api/v1-lists`), so the
+ * apps are reached through their own `/<app>/api/v1` ingress prefix, like their frontends do.
+ */
+export const SHOPPING_LISTS_PATH = "/shopping/api/v1/shopping-lists";
+export const MAINTENANCE_SUMMARY_PATH = "/maintenance/api/v1/maintenance/summary";
+
 const getApiUrl = (path: string) => {
   if (typeof window !== "undefined") {
     return window.location.origin + path;
@@ -36,7 +44,7 @@ export function useShoppingIntegration() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
       Object.assign(headers, householdHeaders(activeHouseholdId));
 
-      const url = getApiUrl("/api/v1/shopping-lists");
+      const url = getApiUrl(SHOPPING_LISTS_PATH);
       const res = await fetch(url, { headers });
       if (!res.ok) {
         throw new Error("Failed to fetch shopping lists");
@@ -73,7 +81,7 @@ export function useMaintenanceIntegration() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
       Object.assign(headers, householdHeaders(activeHouseholdId));
 
-      const url = getApiUrl("/api/v1/maintenance/summary");
+      const url = getApiUrl(MAINTENANCE_SUMMARY_PATH);
       const res = await fetch(url, { headers });
       if (!res.ok) {
         throw new Error("Failed to fetch maintenance summary");

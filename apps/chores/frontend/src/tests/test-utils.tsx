@@ -1,7 +1,7 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { StaticHouseholdProvider } from '@alfheim/shared'
+import { LanguageProvider, StaticHouseholdProvider } from '@alfheim/shared'
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -19,13 +19,14 @@ export function createTestQueryClient() {
 
 export function renderWithProviders(
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
+  options?: Omit<RenderOptions, 'wrapper'>,
+  language: 'en' | 'de' | 'pl' = 'en'
 ) {
   const testQueryClient = createTestQueryClient()
   return render(
     <StaticHouseholdProvider householdId="hh-1">
       <QueryClientProvider client={testQueryClient}>
-        {ui}
+        <LanguageProvider defaultLanguage={language}>{ui}</LanguageProvider>
       </QueryClientProvider>
     </StaticHouseholdProvider>,
     options
