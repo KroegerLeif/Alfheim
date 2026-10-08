@@ -20,8 +20,10 @@ import { CategoryStockChart } from "./CategoryStockChart";
 export function AnalyticsView() {
   const { t, language } = useTranslation();
 
-  const { data: states = [], isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
-  const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
+  const { data: statesData, isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
+  const states = statesData ?? [];
+  const { data: categoriesData, isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
+  const categories = categoriesData ?? [];
   const { data: consumption, isLoading: isLoadingLedger, isError: isLedgerError } = useConsumptionLedger();
 
   const isLoading = isLoadingStates || isLoadingCategories || isLoadingLedger;

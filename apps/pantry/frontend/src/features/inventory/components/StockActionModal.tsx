@@ -39,7 +39,8 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
   const [scanError, setScanError] = React.useState("");
   const [isCreatingProduct, setIsCreatingProduct] = React.useState(false);
 
-  const { data: searchResults = [], isLoading: isSearchingProducts } = useSearchProducts(productQuery);
+  const { data: searchResultsData, isLoading: isSearchingProducts } = useSearchProducts(productQuery);
+  const searchResults = searchResultsData ?? [];
 
   // Reset state when modal opens or closes
   React.useEffect(() => {

@@ -22,9 +22,12 @@ import { ProductRead } from "@/features/products/types";
 export function InventoryTableView() {
   const { t } = useTranslation();
 
-  const { data: states = [], isLoading, isError, refetch } = useInventoryState();
-  const { data: locations = [] } = useLocations();
-  const { data: categories = [] } = useCategories();
+  const { data: statesData, isLoading, isError, refetch } = useInventoryState();
+  const states = statesData ?? [];
+  const { data: locationsData } = useLocations();
+  const locations = locationsData ?? [];
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData ?? [];
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedLocationId, setSelectedLocationId] = React.useState("");

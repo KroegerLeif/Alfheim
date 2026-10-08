@@ -22,8 +22,10 @@ import { ShoppingSyncPanel } from "./ShoppingSyncPanel";
 export function DashboardView() {
   const { t } = useTranslation();
 
-  const { data: states = [], isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
-  const { data: lowStockItems = [], isLoading: isLoadingLowStock, isError: isLowStockError } = useLowStockItems();
+  const { data: statesData, isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
+  const states = statesData ?? [];
+  const { data: lowStockItemsData, isLoading: isLoadingLowStock, isError: isLowStockError } = useLowStockItems();
+  const lowStockItems = lowStockItemsData ?? [];
   const { data: expirationSummary, isLoading: isLoadingExp, isError: isExpError } = useExpirationSummary();
 
   const [modalMode, setModalMode] = React.useState<"in" | "out">("in");

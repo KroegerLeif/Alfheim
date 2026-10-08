@@ -25,7 +25,8 @@ const QUICK_PICKS = [1, 2, 3, 6, 12];
 export function TransactionForm({ mode, selectedProduct, onSuccess }: TransactionFormProps) {
   const { t } = useTranslation();
 
-  const { data: locations = [] } = useLocations();
+  const { data: locationsData } = useLocations();
+  const locations = locationsData ?? [];
   const createTransactionMut = useCreateTransaction();
 
   const [selectedLocationId, setSelectedLocationId] = React.useState("");

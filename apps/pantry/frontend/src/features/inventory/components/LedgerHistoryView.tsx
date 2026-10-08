@@ -32,8 +32,10 @@ export function LedgerHistoryView() {
     LEDGER_PAGE_SIZE + 1,
     page * LEDGER_PAGE_SIZE
   );
-  const { data: locations = [] } = useLocations();
-  const { data: products = [] } = useProducts();
+  const { data: locationsData } = useLocations();
+  const locations = locationsData ?? [];
+  const { data: productsData } = useProducts();
+  const products = productsData ?? [];
 
   const rows = data ?? [];
   const ledger = rows.slice(0, LEDGER_PAGE_SIZE);

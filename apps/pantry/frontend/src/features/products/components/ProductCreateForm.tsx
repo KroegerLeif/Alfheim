@@ -24,7 +24,8 @@ export function ProductCreateForm() {
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  const { data: categories = [] } = useCategories();
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData ?? [];
   const createProductMut = useCreateProduct();
 
   const clearMessages = () => { setSuccessMessage(null); setErrorMessage(null); };

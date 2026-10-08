@@ -21,9 +21,12 @@ export function LocationsGridView() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
 
-  const { data: locations = [], isLoading: isLoadingLocs, isError: isLocsError } = useLocations();
-  const { data: states = [], isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
-  const { data: lowStockItems = [], isLoading: isLoadingLowStock, isError: isLowStockError } = useLowStockItems();
+  const { data: locationsData, isLoading: isLoadingLocs, isError: isLocsError } = useLocations();
+  const locations = locationsData ?? [];
+  const { data: statesData, isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
+  const states = statesData ?? [];
+  const { data: lowStockItemsData, isLoading: isLoadingLowStock, isError: isLowStockError } = useLowStockItems();
+  const lowStockItems = lowStockItemsData ?? [];
 
   const todayStr = new Date().toISOString().split("T")[0];
 

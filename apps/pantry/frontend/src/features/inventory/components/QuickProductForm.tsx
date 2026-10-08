@@ -35,7 +35,8 @@ export function QuickProductForm({
   const [isCreatingCategory, setIsCreatingCategory] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  const { data: categories = [] } = useCategories();
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData ?? [];
   const createProductMut = useCreateProduct();
 
   const handleSubmit = (e: React.FormEvent) => {

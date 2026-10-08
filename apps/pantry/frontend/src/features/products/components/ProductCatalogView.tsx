@@ -26,9 +26,12 @@ export function ProductCatalogView() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const { data: allProducts = [], isLoading: isLoadingAll, isError: isAllError } = useProducts();
-  const { data: searchResults = [], isLoading: isSearching, isError: isSearchError } = useSearchProducts(debouncedQuery);
-  const { data: categories = [], isError: isCategoriesError } = useCategories();
+  const { data: allProductsData, isLoading: isLoadingAll, isError: isAllError } = useProducts();
+  const allProducts = allProductsData ?? [];
+  const { data: searchResultsData, isLoading: isSearching, isError: isSearchError } = useSearchProducts(debouncedQuery);
+  const searchResults = searchResultsData ?? [];
+  const { data: categoriesData, isError: isCategoriesError } = useCategories();
+  const categories = categoriesData ?? [];
 
   const isSearchActive = debouncedQuery.trim().length > 0;
   const products = isSearchActive ? searchResults : allProducts;

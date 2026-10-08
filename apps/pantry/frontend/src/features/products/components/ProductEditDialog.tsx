@@ -33,7 +33,8 @@ const FIELD =
  */
 export function ProductEditDialog({ product, onClose }: ProductEditDialogProps) {
   const { t } = useTranslation();
-  const { data: categories = [] } = useCategories();
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData ?? [];
   const updateProductMut = useUpdateProduct();
   const [name, setName] = React.useState(product.name);
   const [brand, setBrand] = React.useState(product.brand ?? "");
