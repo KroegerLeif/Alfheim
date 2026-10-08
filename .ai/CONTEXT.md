@@ -8,6 +8,26 @@
 
 The current sprint focuses on monorepo stabilization, Feature-Driven Design (FDD) migrations, zero-hardcoding compliance, and database migrations.
 
+### App Stability Sweep (2026-10-07 → 2026-10-08, branch `orchestrator/app-stability-sweep`)
+
+Monorepo-wide pass over every app and shared package: open `app-sprint` bugs, i18n (no hardcoded strings, en/de/pl parity, real-dictionary test mocks that throw on unresolved keys), icon cleanup (no inline `<svg>` in feature code), long-content overflow, hidden dead UI, docs portal rendering. Each sweep was one squash-merged PR into the orchestrator branch: shared #608, household #611, workout #616, library #619, maintenance #624, pantry #625, shopping #631, chat #634, docs #635, shared follow-ups #638, budget/chores/dashboard re-check #641, gateway + MCP reconnect (phase 3). Per-sweep test methods and coverage are in `CHANGELOG.md` under `[Unreleased]`.
+
+**Contract changes to know about**
+* `t()` from `@alfheim/shared` requires full key paths (`<app>.section.key` / `common.*`); `translationKeys.test.ts` and `localeParity.test.ts` guard this. Shared `Button` defaults to `type="button"`. `MapMarker.popupContent` is plain text (+ `popupTitle`). New export `interpolate()`.
+* household: `GET /api/v1/households/me` no longer returns `members`; errors are `application/json`; new internal `GET /internal/v1/households/{id}/members` (subject, derived user id, role).
+* `backend_shared` `MCPAuthenticationMiddleware` binds each `Mcp-Session-Id` to (subject, household): 403 `household_forbidden` on mismatch, 404 on unknown id, max 10,000 bindings. Chat pools MCP clients per (endpoint, household, user) and re-initializes after a 404 on a session.
+* In-use deletes return `409` with `{"detail": {"code", "message", "item_count"}}`: library `location_in_use`/`provider_in_use`, pantry `category_in_use`/`location_in_use`/`product_in_use`. Workout set sync into a finalized session returns `409 session_not_active`.
+* Gateway: `/api/v1/shopping*` is proxied unchanged (was rewritten to 404 paths). Browser code calls other apps through `/<app>/api/v1/...` (e.g. `/shopping/api/v1/shopping/items`).
+* Root `pnpm.overrides` splits `brace-expansion` per major (fixes the ESLint crash). `verify.sh --frontend` runs 2 packages at a time with half the CPUs as Vitest workers.
+* Docs portal loads `docs/` through the tracked symlink `websites/portal/src/content/docs`; `scripts/check-docs-site.py` crawls the built Pages artifact.
+
+**Open follow-ups (GitHub issues)**
+* Security/contract: #633 (chat does not terminate idle MCP sessions server-side), #583 + #581 (`backend_shared` members client, then unassign chores of members who left), #632 (backend accepts model providers it cannot run).
+* Tooling/tests: #637 (ESLint errors per frontend, then gate lint), #636 (flaky async tests under load), #609 (shared branch coverage 86.8 % < 90 %).
+* Features left out on purpose: library lending UI #551, facets #567; pantry nutrition #540, location archive #626; workout `preferred_unit` #568, leaderboard names #612, exercise edit #613; maintenance device/step edit #505, photo picker #503, manuals #509; shopping item icons #511.
+* Bugs found, not fixed: maintenance #620, #621; shopping #627, #628, #629; pantry #630; library #618; budget #639; dashboard #640; workout residual sync race (status checked once per request).
+* Dashboard page `<html lang>`/title stay English (root layout has no locale). Material Symbols names stored in the database (household contacts, dashboard) still need a mapping before moving to lucide.
+
 ### Completed Commits (Recent first):
 * **`fix(ci): sanitize unlabelled networks before compose startup and remove gateway-net in teardown`**
   - Added network sanitization loop in `scripts/test-prod-startup.sh` removing any pre-existing unlabelled bridge networks that would cause Docker Compose v2 label mismatch errors.
