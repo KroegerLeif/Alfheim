@@ -1,10 +1,26 @@
-import type { ApiErrorPayload } from "@/features/conversations/types";
+import type { ApiErrorPayload, ToolCallRequest } from "@/features/conversations/types";
+import { parseToolCall } from "@/features/conversations/utils/toolCalls";
 import { reportHouseholdErrorResponse } from "@alfheim/shared";
+
+/**
+ * Why a stream failed. The UI shows a localized headline per kind; `detail` carries the
+ * backend's (English, technical) message when there is one.
+ */
+export interface StreamFailure {
+  kind: "network" | "http" | "read" | "server";
+  status?: number;
+  detail?: string;
+}
 
 export interface StreamHandlers {
   onDelta: (text: string) => void;
+  onToolCall?: (call: ToolCallRequest) => void;
   onDone: (usage?: unknown) => void;
-  onError: (message: string) => void;
+  onError: (failure: StreamFailure) => void;
+}
+
+function isAbort(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
 }
 
 /**
@@ -13,7 +29,8 @@ export interface StreamHandlers {
  * The native EventSource API cannot send an Authorization header, but the backend
  * requires a bearer JWT on every request (including SSE), so this reads the
  * `text/event-stream` response body manually via fetch()'s ReadableStream instead of
- * using EventSource.
+ * using EventSource. Aborting `signal` ends the stream silently: no handler is called,
+ * and the backend cancels the model request when the connection closes.
  */
 export async function streamAssistantReply(
   baseUrl: string,
@@ -29,20 +46,23 @@ export async function streamAssistantReply(
       signal,
     });
   } catch (err) {
-    handlers.onError(err instanceof Error ? err.message : "Failed to reach the chat backend");
+    if (!isAbort(err)) {
+      handlers.onError({ kind: "network", detail: err instanceof Error ? err.message : undefined });
+    }
     return;
   }
 
   if (!res.ok || !res.body) {
     await reportHouseholdErrorResponse(res);
-    let message = `Failed to open stream (status ${res.status})`;
+    let detail: string | undefined;
     try {
       const payload: ApiErrorPayload = await res.json();
-      message = payload.message || message;
+      detail = payload.message || undefined;
     } catch {
-      // ignore, keep generic message
+      // The body is not JSON; the status code alone describes the failure.
+      detail = undefined;
     }
-    handlers.onError(message);
+    handlers.onError({ kind: "http", status: res.status, detail });
     return;
   }
 
@@ -64,8 +84,8 @@ export async function streamAssistantReply(
       }
     }
   } catch (err) {
-    if (!(err instanceof DOMException && err.name === "AbortError")) {
-      handlers.onError(err instanceof Error ? err.message : "Stream reading failed");
+    if (!isAbort(err)) {
+      handlers.onError({ kind: "read", detail: err instanceof Error ? err.message : undefined });
     }
   }
 }
@@ -87,11 +107,16 @@ function dispatchSSEFrame(rawFrame: string, handlers: StreamHandlers): void {
     case "delta":
       handlers.onDelta(typeof data.text === "string" ? data.text : "");
       break;
+    case "tool_call": {
+      const call = parseToolCall(data);
+      if (call) handlers.onToolCall?.(call);
+      break;
+    }
     case "done":
       handlers.onDone(data.usage);
       break;
     case "error":
-      handlers.onError(typeof data.message === "string" ? data.message : "Unknown streaming error");
+      handlers.onError({ kind: "server", detail: typeof data.message === "string" ? data.message : undefined });
       break;
     default:
       break;

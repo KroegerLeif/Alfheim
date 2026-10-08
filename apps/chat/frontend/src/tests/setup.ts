@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom'
 import { createElement, type PropsWithChildren } from 'react'
-import { vi } from 'vitest'
+import { afterEach, vi } from 'vitest'
+import { setTestLocale } from './locale'
+
+afterEach(() => {
+  setTestLocale('en')
+})
 
 // Mock localStorage and sessionStorage globally for tests
 const localStorageMock = (function () {
@@ -66,16 +71,35 @@ vi.mock('next-intl', () => ({
   },
 }))
 
-// Mock @alfheim/shared's translation hook: return the last path segment of the key
-// (e.g. "Chat.send" -> "send") so component tests can assert on stable, readable text
-// without needing every real locale string in a hardcoded map.
+// The shared translation hook backed by the real dictionaries. Keys resolve in the test
+// locale ("en" unless a test calls setTestLocale) without the hook's German fallback, and
+// a key that does not resolve throws, so a missing or misspelled key fails the test instead
+// of rendering a key fragment.
 vi.mock('@alfheim/shared', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@alfheim/shared')>()
+  const { getTestLocale } = await import('./locale')
+
+  const lookup = (key: string): string => {
+    const language = getTestLocale()
+    let current: unknown = actual.getSharedMessages(language)
+    for (const part of key.split('.')) {
+      current = (current as Record<string, unknown> | undefined)?.[part]
+    }
+    if (typeof current !== 'string') {
+      throw new Error(`Unresolved i18n key "${key}" (language: ${language})`)
+    }
+    return current
+  }
+
   return {
     ...actual,
     useTranslation: () => ({
-      t: (key: string) => key.split('.').pop() ?? key,
-      language: 'en',
+      t: (key: string, params?: Record<string, string | number>) =>
+        Object.entries(params ?? {}).reduce(
+          (text, [name, value]) => text.split(`{${name}}`).join(String(value)),
+          lookup(key)
+        ),
+      language: getTestLocale(),
       setLanguage: () => {},
     }),
   }

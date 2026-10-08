@@ -13,7 +13,15 @@ interface ModelBlockFormModalProps {
   onClose: () => void;
   onSubmit: (payload: CreateModelBlockRequest | { id: string; payload: UpdateModelBlockRequest }) => void;
   isPending: boolean;
+  /** The last submit failed; the form stays open so the input is not lost. */
+  submitFailed?: boolean;
 }
+
+/** Provider types the chat backend can talk to (see llm.NewProvider). */
+const PROVIDER_OPTIONS = [
+  { value: "ollama", labelKey: "Chat.providerOllama" },
+  { value: "openai_compatible", labelKey: "Chat.providerOpenAICompatible" },
+] as const;
 
 export function ModelBlockFormModal({
   model,
@@ -21,6 +29,7 @@ export function ModelBlockFormModal({
   onClose,
   onSubmit,
   isPending,
+  submitFailed = false,
 }: ModelBlockFormModalProps) {
   const { t } = useTranslation();
   const isEditing = !!model;
@@ -70,10 +79,15 @@ export function ModelBlockFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 shadow-2xl space-y-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEditing ? t("Chat.editModelBlock") : t("Chat.addModelBlock")}
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4 sm:p-6 shadow-2xl space-y-4"
+      >
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-          <h2 className="text-lg font-bold text-[var(--text-main)]">
+          <h2 className="text-lg font-bold text-[var(--text-main)] truncate">
             {isEditing ? t("Chat.editModelBlock") : t("Chat.addModelBlock")}
           </h2>
           <button
@@ -99,11 +113,11 @@ export function ModelBlockFormModal({
                 }}
                 className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none"
               >
-                <option value="ollama">Ollama (Local / Self-hosted)</option>
-                <option value="openai_compatible">OpenAI Compatible / vLLM</option>
-                <option value="openrouter">OpenRouter</option>
-                <option value="anthropic">Anthropic Claude</option>
-                <option value="gemini">Google Gemini</option>
+                {PROVIDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {t(option.labelKey)}
+                  </option>
+                ))}
               </select>
             </div>
           )}
@@ -127,7 +141,7 @@ export function ModelBlockFormModal({
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none"
-              placeholder={t("Chat.placeholderDisplayName") || "e.g. Gemma 2 9B or Local Llama"}
+              placeholder={t("Chat.placeholderDisplayName")}
             />
           </div>
 
@@ -140,11 +154,7 @@ export function ModelBlockFormModal({
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-canvas)] px-3 py-2 text-sm text-[var(--text-main)] focus:border-[var(--primary-main)] outline-none font-mono"
-              placeholder={
-                isEditing
-                  ? t("Chat.placeholderApiKeyKeep") || "(Leave unchanged)"
-                  : t("Chat.placeholderApiKeyOptional") || "sk-... (optional for Ollama)"
-              }
+              placeholder={isEditing ? t("Chat.placeholderApiKeyKeep") : t("Chat.placeholderApiKeyOptional")}
             />
           </div>
 
@@ -153,6 +163,12 @@ export function ModelBlockFormModal({
             onChange={setVisibility}
             disabled={isPending}
           />
+
+          {submitFailed && (
+            <p role="alert" className="text-xs text-red-400">
+              {t("Chat.saveModelError")}
+            </p>
+          )}
 
           <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-end gap-2">
             <button

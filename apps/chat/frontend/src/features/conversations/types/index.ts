@@ -61,9 +61,29 @@ export interface Message {
   role: MessageRole;
   content: string;
   attachments?: AttachmentSummary[];
+  /**
+   * Assistant messages: the tool calls the model requested, serialized by the Go
+   * backend as `[{"ID", "ToolName", "Arguments"}]`. Tool messages: the result record
+   * `{"tool_call_id", "tool_name", "is_error"}` (absent on rows written before it existed).
+   */
   tool_calls?: unknown;
   token_usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
   created_at: string;
+}
+
+/** A tool call announced by the SSE `tool_call` event or stored on an assistant message. */
+export interface ToolCallRequest {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export type ToolCallStatus = "running" | "done" | "error" | "no_result";
+
+/** A tool call as rendered in the message list, with its result once known. */
+export interface ToolCallView extends ToolCallRequest {
+  status: ToolCallStatus;
+  result?: string;
 }
 
 export interface CreateConversationRequest {
