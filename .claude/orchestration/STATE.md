@@ -179,3 +179,4 @@ sweeps only touch their own `<app>.json`.
 | --- | --- | --- | --- |
 | 2026-10-07 | orchestrator | SSH to github.com:22 times out | All pushes/deletes go over HTTPS; briefs updated |
 | 2026-10-08 | pantry sub-agent | Stopped by the account session limit (HTTP 429) mid-sweep; 1 commit + uncommitted frontend work left in `.worktrees/app-pantry` | Resumed the same agent with its context after the limit reset; told it to commit incrementally |
+| 2026-10-08 | re-check + shared follow-up sub-agents | Both stopped by the account session limit (HTTP 429). Re-check: 2 budget commits + 9 uncommitted files. Shared: 7 commits (#610, #614, #615, overrides, verify.sh parallelism, #633, format) + 3 uncommitted (#609 tests) | Both resumed with their context after the reset |
