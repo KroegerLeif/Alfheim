@@ -102,6 +102,18 @@ class UnrecognizedShoppingItem(BaseModel):
     reason: str = Field(description="Standardized translatable i18n error key (e.g. 'pantry.error.product_not_found').")
 
 
+class SyncToPantryRequest(BaseModel):
+    """Optional body of the sync endpoint that narrows the sync to specific items."""
+
+    item_ids: list[uuid.UUID] | None = Field(
+        default=None,
+        description=(
+            "Restrict the sync to these completed, unsynced items of the list. "
+            "Used to retry items the first sync could not match after their catalog entry was created."
+        ),
+    )
+
+
 class SyncToPantryResponse(BaseModel):
     """JSON response returned to the client summarizing the sync status."""
 
