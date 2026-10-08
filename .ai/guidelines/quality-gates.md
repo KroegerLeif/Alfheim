@@ -114,6 +114,7 @@ Managed via `pnpm` workspace across `apps/*/frontend`, `core/dashboard/frontend`
   ```
 - **Requirements**:
   - Microfrontend components and services must maintain passing Vitest test suites with mocking via `@testing-library/react`.
+- **Parallelism**: `./scripts/verify.sh --frontend` runs 2 packages at a time (`--workspace-concurrency`) with `VITEST_MAX_WORKERS` set to half the CPU count, so the total number of Vitest workers stays near the CPU count. Unbounded (`pnpm -r test`: 4 packages, each with CPU count - 1 workers) async tests timed out intermittently under load. Override with `VERIFY_FRONTEND_CONCURRENCY` and `VITEST_MAX_WORKERS`.
 
 ---
 
