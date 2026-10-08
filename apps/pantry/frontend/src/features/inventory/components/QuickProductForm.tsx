@@ -68,26 +68,26 @@ export function QuickProductForm({
         {errorMessage && <ErrorBanner message={errorMessage} />}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.productName")} *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
+            <label htmlFor="qp-name" className="text-xs font-bold uppercase block">{t("pantry.productName")} *</label>
+            <input id="qp-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.brand")}</label>
-            <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)}
+            <label htmlFor="qp-brand" className="text-xs font-bold uppercase block">{t("pantry.brand")}</label>
+            <input id="qp-brand" type="text" value={brand} onChange={(e) => setBrand(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.barcode")}</label>
-            <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)}
+            <label htmlFor="qp-barcode" className="text-xs font-bold uppercase block">{t("pantry.barcode")}</label>
+            <input id="qp-barcode" type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>
           <div className="space-y-1">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold uppercase block">{t("pantry.category")}</label>
+              <label htmlFor="qp-category" className="text-xs font-bold uppercase block">{t("pantry.category")}</label>
               <button type="button" onClick={() => setIsCreatingCategory(!isCreatingCategory)}
                 className="text-[10px] text-[var(--primary-main)] hover:underline uppercase font-bold text-right">
                 + {t("pantry.createCategoryTitle")}
@@ -99,7 +99,7 @@ export function QuickProductForm({
                 onCancel={() => setIsCreatingCategory(false)}
               />
             ) : (
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
+              <select id="qp-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded uppercase font-mono">
                 <option value="">{t("pantry.noCategory")}</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>)}
@@ -110,8 +110,8 @@ export function QuickProductForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.baseUnit")}</label>
-            <select value={baseUnit} onChange={(e) => setBaseUnit(e.target.value)}
+            <label htmlFor="qp-unit" className="text-xs font-bold uppercase block">{t("pantry.baseUnit")}</label>
+            <select id="qp-unit" value={baseUnit} onChange={(e) => setBaseUnit(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded uppercase font-mono">
               <option value="piece">{t("pantry.unitPiece")}</option>
               <option value="g">{t("pantry.unitGrams")}</option>
@@ -120,8 +120,8 @@ export function QuickProductForm({
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase block">{t("pantry.minStockLabel")}</label>
-            <input type="number" step="any" min="0" value={minStock}
+            <label htmlFor="qp-min" className="text-xs font-bold uppercase block">{t("pantry.minStockLabel")}</label>
+            <input id="qp-min" type="number" step="any" min="0" value={minStock}
               onChange={(e) => setMinStock(Math.max(0, parseFloat(e.target.value) || 0))}
               className="w-full p-2.5 border border-[var(--border-subtle)] bg-[var(--surface-canvas)] text-[var(--text-main)] text-sm rounded font-mono" />
           </div>
