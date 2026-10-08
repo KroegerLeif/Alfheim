@@ -99,3 +99,18 @@ DNS API-Token werden in `.env` geschrieben und von der Caddyfile als `{env.HETZN
 * Gut, weil es bereits in die Release-Artefakte verdrahtet ist.
 * Schlecht, weil Secret-Generierung und TLS-Branching untestbar bleiben, daher kann die 80%-Coverage-Gate nicht erreicht werden.
 * Schlecht, weil es bereits aus Sync mit ADR 0003 drifted war, während es immer noch der dokumentierte Installations-Pfad war.
+
+### Option 2: Ansible-Playbook oder cloud-init
+
+* Gut, weil es deklarativ und von Natur aus idempotent ist.
+* Gut, weil es auf mehr als einen Host skaliert.
+* Schlecht, weil es Python und Ansible auf dem Steuerrechner voraussetzt, was den Ein-Befehl-Bootstrap auf einem nackten Server zunichtemacht.
+* Schlecht, weil sich ein interaktiver Assistent nur umständlich ausdrücken lässt und der Zitadel-Pausenschritt tatsächlich interaktiv ist.
+
+### Option 3: Eigenständige Go-CLI mit Charm `huh`
+
+* Gut, weil die Logik typisiert, unit-testbar und in der CI lint-geprüft ist.
+* Gut, weil `CGO_ENABLED=0` eine abhängigkeitsfreie statische Binärdatei für `linux/amd64` und `linux/arm64` erzeugt.
+* Gut, weil `go:embed` die Binärdatei autark macht, sodass auf dem Zielhost kein Repository-Klon nötig ist.
+* Schlecht, weil sie ein kompiliertes Artefakt einführt, das bei jedem Release gebaut, mit Prüfsumme versehen und veröffentlicht werden muss.
+* Schlecht, weil das TUI eine Terminal-Behandlung braucht, die einfache Skripte vermeiden.
