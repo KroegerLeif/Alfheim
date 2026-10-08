@@ -2,6 +2,7 @@
 title: "Local Getting Started Guide"
 description: "Beginner-friendly, step-by-step tutorial to set up and run the entire Alfheim monorepo locally on your development machine."
 sidebar:
+  order: 2
   label: "Local Getting Started"
 ---
 
