@@ -108,6 +108,8 @@ if [[ -z "${ISSUER_URL}" ]]; then
   exit 2
 fi
 
+# Expanded as ${CURL_INSECURE[@]+...} below: bash 3.2 (macOS) treats an empty
+# array as unbound under `set -u`.
 CURL_INSECURE=()
 if [[ "${VERIFY_STACK_INSECURE:-0}" == "1" ]]; then
   # The installer's --tls internal strategy signs with a locally generated
@@ -154,7 +156,7 @@ echo ""
 # 2. Caddy's own healthcheck.
 # ------------------------------------------------------------------------------
 log_info "Checking Caddy /livez..."
-livez="$(curl -fsSL "${CURL_INSECURE[@]}" "${BASE_URL}/livez" 2>/dev/null || echo "FAILED")"
+livez="$(curl -fsSL ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/livez" 2>/dev/null || echo "FAILED")"
 if [[ "${livez}" == "OK" ]]; then
   log_success "/livez responded OK"
 else
@@ -166,7 +168,7 @@ echo ""
 # 3. OIDC discovery names the configured issuer.
 # ------------------------------------------------------------------------------
 log_info "Checking OIDC discovery..."
-discovery="$(curl -fsSL "${CURL_INSECURE[@]}" "${ISSUER_URL}/.well-known/openid-configuration" 2>/dev/null || echo "")"
+discovery="$(curl -fsSL ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${ISSUER_URL}/.well-known/openid-configuration" 2>/dev/null || echo "")"
 if [[ -z "${discovery}" ]]; then
   fail "could not fetch ${ISSUER_URL}/.well-known/openid-configuration"
 else
@@ -199,7 +201,7 @@ ROUTES=(
   "/grafana"
 )
 for route in "${ROUTES[@]}"; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' "${CURL_INSECURE[@]}" "${BASE_URL}${route}" 2>/dev/null || echo "000")"
+  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}${route}" 2>/dev/null || echo "000")"
   if [[ "${code}" =~ ^[0-9]+$ ]] && [[ "${code}" -ge 200 ]] && [[ "${code}" -lt 500 ]]; then
     log_success "${route} -> ${code}"
   else
@@ -213,7 +215,7 @@ echo ""
 # ------------------------------------------------------------------------------
 log_info "Checking /internal/* is blocked at the edge..."
 for route in "/internal" "/internal/whatever"; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' "${CURL_INSECURE[@]}" "${BASE_URL}${route}" 2>/dev/null || echo "000")"
+  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}${route}" 2>/dev/null || echo "000")"
   if [[ "${code}" == "404" ]]; then
     log_success "${route} -> 404"
   else
@@ -223,14 +225,16 @@ done
 echo ""
 
 # ------------------------------------------------------------------------------
-# 6. The household API rejects a request with no bearer token.
+# 6. The household API rejects a request with no bearer token. GET /me is used
+# because /api/v1/households itself only accepts POST, so a GET there is
+# answered 405 by the router before authentication runs.
 # ------------------------------------------------------------------------------
 log_info "Checking the household API requires authentication..."
-code="$(curl -s -o /dev/null -w '%{http_code}' "${CURL_INSECURE[@]}" "${BASE_URL}/api/v1/households" 2>/dev/null || echo "000")"
+code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/api/v1/households/me" 2>/dev/null || echo "000")"
 if [[ "${code}" == "401" ]]; then
-  log_success "/api/v1/households -> 401 without a token"
+  log_success "/api/v1/households/me -> 401 without a token"
 else
-  fail "/api/v1/households -> ${code}, want 401"
+  fail "/api/v1/households/me -> ${code}, want 401"
 fi
 echo ""
 

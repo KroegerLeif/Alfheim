@@ -23,6 +23,10 @@
 #                      [live at ${ALFHEIM_BASE_URL}/budget after this stage]
 #   8. Chat          — chat-backend  →  chat-frontend
 #                      [live at ${ALFHEIM_BASE_URL}/chat after this stage]
+#   8a. Workout      — workout-backend  →  workout-frontend
+#                      [live at ${ALFHEIM_BASE_URL}/workout after this stage]
+#   8b. Library      — library-backend  →  library-frontend
+#                      [live at ${ALFHEIM_BASE_URL}/library after this stage]
 #   9. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
 #   10. Summary      — print accessible URLs with green checkmarks
 #
@@ -542,6 +546,36 @@ dc up ${BUILD_FLAG} -d chat-frontend
 wait_healthy "chat-frontend" "chat-frontend" 240
 
 notice "🟢 Chat App is live at ${BASE_URL}/chat"
+
+# =============================================================================
+# STAGE 8a — Workout App Slice  (workout-backend → workout-frontend)
+# =============================================================================
+step "STAGE 8a · Workout App Slice  (backend · frontend)"
+
+info "Starting workout-backend …"
+dc up ${BUILD_FLAG} -d workout-backend
+wait_healthy "workout-backend" "workout-backend" 180
+
+info "Starting workout-frontend …"
+dc up ${BUILD_FLAG} -d workout-frontend
+wait_healthy "workout-frontend" "workout-frontend" 240
+
+notice "🟢 Workout App is live at ${BASE_URL}/workout"
+
+# =============================================================================
+# STAGE 8b — Library App Slice  (library-backend → library-frontend)
+# =============================================================================
+step "STAGE 8b · Library App Slice  (backend · frontend)"
+
+info "Starting library-backend …"
+dc up ${BUILD_FLAG} -d library-backend
+wait_healthy "library-backend" "library-backend" 180
+
+info "Starting library-frontend …"
+dc up ${BUILD_FLAG} -d library-frontend
+wait_healthy "library-frontend" "library-frontend" 240
+
+notice "🟢 Library App is live at ${BASE_URL}/library"
 
 # =============================================================================
 # STAGE 9 — Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
