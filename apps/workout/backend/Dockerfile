@@ -12,8 +12,10 @@ ENV UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
 
-# Copy workspace-level configuration first to maximize layer caching
-COPY pyproject.toml ./
+# Copy workspace-level configuration and the lockfile first to maximize layer
+# caching and to install exactly the locked versions (without uv.lock, uv
+# re-resolves on every build and can pull newer, untested releases).
+COPY pyproject.toml uv.lock ./
 COPY packages/backend-shared ./packages/backend-shared
 COPY apps/workout/backend/pyproject.toml ./apps/workout/backend/pyproject.toml
 
