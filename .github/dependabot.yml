@@ -3,11 +3,17 @@ updates:
   # Python dependencies (via uv/pip)
   - package-ecosystem: pip
     directory: '/'
+    # PRs go to dev; main only receives dev via release merges.
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: '03:00'
     open-pull-requests-limit: 5
+    # One PR per ecosystem for minor/patch bumps; majors stay separate.
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
     pull-request-branch-name:
       separator: '/'
     labels:
@@ -20,11 +26,15 @@ updates:
   # Go module dependencies
   - package-ecosystem: gomod
     directory: '/apps/chat/backend'
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: '03:00'
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
     pull-request-branch-name:
       separator: '/'
     labels:
@@ -33,11 +43,32 @@ updates:
 
   - package-ecosystem: gomod
     directory: '/core/dashboard/backend'
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: '03:00'
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  - package-ecosystem: gomod
+    directory: '/core/household/backend'
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
     pull-request-branch-name:
       separator: '/'
     labels:
@@ -46,11 +77,15 @@ updates:
 
   - package-ecosystem: gomod
     directory: '/tools/installer'
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: '03:00'
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
     pull-request-branch-name:
       separator: '/'
     labels:
@@ -60,11 +95,15 @@ updates:
   # Node.js / npm dependencies (managed via pnpm)
   - package-ecosystem: npm
     directory: '/'
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: '03:00'
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
     pull-request-branch-name:
       separator: '/'
     labels:
@@ -74,11 +113,15 @@ updates:
   # GitHub Actions
   - package-ecosystem: github-actions
     directory: '/'
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: '03:00'
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
     pull-request-branch-name:
       separator: '/'
     labels:
