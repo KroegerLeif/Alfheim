@@ -29,7 +29,7 @@ The tables below list the development stack (`scripts/up.sh`), which serves the 
 
 | TLS strategy | Certificates | Browser trust |
 | :--- | :--- | :--- |
-| `hetzner`, `cloudflare` | Let's Encrypt wildcard via DNS-01 | Trusted |
+| `hetzner`, `cloudflare`, `desec` | Let's Encrypt wildcard via DNS-01 | Trusted |
 | `custom` | Your own PEM files | Depends on the issuing CA |
 | `internal` (also the LAN `.localhost` preset) | Signed by the installer's root CA (Caddy CA id `alfheim`, root mounted read-only from `infrastructure/caddy/pki/`) | Warns until [the local root CA is trusted](../how-to/trust-local-root-ca.md) |
 

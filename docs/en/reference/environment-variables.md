@@ -149,6 +149,7 @@ Automatic TLS certificate issuance via Let's Encrypt. See `docs/en/how-to/hetzne
 | `ACME_EMAIL` | _(empty)_ | Email address for ACME certificate notifications and recovery; **required** for automatic HTTPS |
 | `HETZNER_API_TOKEN` | _(empty)_ | Hetzner DNS API token for DNS-01 challenges (required if using Hetzner DNS) |
 | `CLOUDFLARE_API_TOKEN` | _(empty)_ | Cloudflare API token for DNS-01 challenges (required if using Cloudflare DNS) |
+| `DESEC_TOKEN` | _(empty)_ | deSEC API token for DNS-01 challenges (required if using deSEC) |
 
 ---
 
