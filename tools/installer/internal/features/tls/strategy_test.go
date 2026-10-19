@@ -7,7 +7,7 @@ import (
 
 func TestStrategyKnown(t *testing.T) {
 	for _, s := range []Strategy{
-		StrategyHetznerDNS, StrategyCloudflareDNS, StrategyCustomCerts, StrategyInternal,
+		StrategyHetznerDNS, StrategyCloudflareDNS, StrategyDesecDNS, StrategyCustomCerts, StrategyInternal,
 	} {
 		if !s.Known() {
 			t.Errorf("%s must be a known strategy", s)
@@ -26,6 +26,7 @@ func TestParseStrategy(t *testing.T) {
 	}{
 		{"hetzner", StrategyHetznerDNS, false},
 		{"cloudflare", StrategyCloudflareDNS, false},
+		{"desec", StrategyDesecDNS, false},
 		{"custom", StrategyCustomCerts, false},
 		{"internal", StrategyInternal, false},
 		{"", "", true},
@@ -49,7 +50,7 @@ func TestParseStrategy(t *testing.T) {
 	if err == nil {
 		t.Fatal("ParseStrategy(bogus) error = nil")
 	}
-	for _, want := range []string{"hetzner", "cloudflare", "custom", "internal"} {
+	for _, want := range []string{"hetzner", "cloudflare", "desec", "custom", "internal"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error %q should list %q as a valid strategy", err, want)
 		}
@@ -60,6 +61,7 @@ func TestUsesDNSChallenge(t *testing.T) {
 	tests := map[Strategy]bool{
 		StrategyHetznerDNS:    true,
 		StrategyCloudflareDNS: true,
+		StrategyDesecDNS:      true,
 		StrategyCustomCerts:   false,
 		StrategyInternal:      false,
 	}
@@ -74,6 +76,7 @@ func TestDNSProvider(t *testing.T) {
 	tests := map[Strategy]string{
 		StrategyHetznerDNS:    "hetzner",
 		StrategyCloudflareDNS: "cloudflare",
+		StrategyDesecDNS:      "desec",
 		StrategyCustomCerts:   "",
 		StrategyInternal:      "",
 	}
@@ -88,6 +91,7 @@ func TestTokenEnvVar(t *testing.T) {
 	tests := map[Strategy]string{
 		StrategyHetznerDNS:    "HETZNER_API_TOKEN",
 		StrategyCloudflareDNS: "CLOUDFLARE_API_TOKEN",
+		StrategyDesecDNS:      "DESEC_TOKEN",
 		StrategyCustomCerts:   "",
 		StrategyInternal:      "",
 	}
@@ -100,8 +104,8 @@ func TestTokenEnvVar(t *testing.T) {
 
 func TestStrategiesListIsComplete(t *testing.T) {
 	// Every offered strategy must be one the manager can actually handle.
-	if len(Strategies) != 4 {
-		t.Fatalf("Strategies has %d entries, want 4", len(Strategies))
+	if len(Strategies) != 5 {
+		t.Fatalf("Strategies has %d entries, want 5", len(Strategies))
 	}
 	for _, s := range Strategies {
 		if !s.ID.Known() {

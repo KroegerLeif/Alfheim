@@ -13,6 +13,8 @@ const (
 	StrategyHetznerDNS Strategy = "hetzner"
 	// StrategyCloudflareDNS is the same challenge against Cloudflare DNS.
 	StrategyCloudflareDNS Strategy = "cloudflare"
+	// StrategyDesecDNS is the same challenge against deSEC (desec.io).
+	StrategyDesecDNS Strategy = "desec"
 	// StrategyCustomCerts mounts operator-supplied certificate files.
 	StrategyCustomCerts Strategy = "custom"
 	// StrategyInternal serves HTTPS with a root CA the installer generates
@@ -83,6 +85,8 @@ var Strategies = []struct {
 		"Automatic wildcard certificates via the Hetzner DNS API. No inbound port 80 required."},
 	{StrategyCloudflareDNS, "Cloudflare DNS-01 (wildcard)",
 		"Automatic wildcard certificates via the Cloudflare DNS API."},
+	{StrategyDesecDNS, "deSEC DNS-01 (wildcard)",
+		"Automatic wildcard certificates via the deSEC DNS API."},
 	{StrategyCustomCerts, "Custom certificates",
 		"Mount certificate files you already hold."},
 	{StrategyInternal, "Local CA (self-signed HTTPS)",
@@ -91,7 +95,7 @@ var Strategies = []struct {
 
 // UsesDNSChallenge reports whether the strategy solves ACME over DNS-01.
 func (s Strategy) UsesDNSChallenge() bool {
-	return s == StrategyHetznerDNS || s == StrategyCloudflareDNS
+	return s == StrategyHetznerDNS || s == StrategyCloudflareDNS || s == StrategyDesecDNS
 }
 
 // DNSProvider returns the Caddy DNS module name backing the strategy.
@@ -101,6 +105,8 @@ func (s Strategy) DNSProvider() string {
 		return "hetzner"
 	case StrategyCloudflareDNS:
 		return "cloudflare"
+	case StrategyDesecDNS:
+		return "desec"
 	default:
 		return ""
 	}
@@ -115,6 +121,8 @@ func (s Strategy) TokenEnvVar() string {
 		return "HETZNER_API_TOKEN"
 	case StrategyCloudflareDNS:
 		return "CLOUDFLARE_API_TOKEN"
+	case StrategyDesecDNS:
+		return "DESEC_TOKEN"
 	default:
 		return ""
 	}
@@ -123,7 +131,7 @@ func (s Strategy) TokenEnvVar() string {
 // Known reports whether the strategy is one this installer supports.
 func (s Strategy) Known() bool {
 	switch s {
-	case StrategyHetznerDNS, StrategyCloudflareDNS, StrategyCustomCerts, StrategyInternal:
+	case StrategyHetznerDNS, StrategyCloudflareDNS, StrategyDesecDNS, StrategyCustomCerts, StrategyInternal:
 		return true
 	default:
 		return false
@@ -134,7 +142,7 @@ func (s Strategy) Known() bool {
 func ParseStrategy(raw string) (Strategy, error) {
 	s := Strategy(raw)
 	if !s.Known() {
-		return "", fmt.Errorf("tls: unknown strategy %q (want hetzner, cloudflare, custom or internal)", raw)
+		return "", fmt.Errorf("tls: unknown strategy %q (want hetzner, cloudflare, desec, custom or internal)", raw)
 	}
 	return s, nil
 }

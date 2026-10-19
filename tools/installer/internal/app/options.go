@@ -64,7 +64,7 @@ Headless answers (each also readable from the environment):
   --domain HOST        ALFHEIM_DOMAIN         Base domain, e.g. example.com
   --app-host HOST      ALFHEIM_APP_HOST       Dashboard host (default: the base domain)
   --admin-email MAIL   ALFHEIM_ADMIN_EMAIL    ACME and administrator contact
-  --tls STRATEGY       ALFHEIM_TLS_STRATEGY   hetzner | cloudflare | custom | internal
+  --tls STRATEGY       ALFHEIM_TLS_STRATEGY   hetzner | cloudflare | desec | custom | internal
   --api-token TOKEN    ALFHEIM_DNS_API_TOKEN  DNS provider token for the DNS-01 challenge
   --cert-path DIR      ALFHEIM_CERT_PATH      Absolute path holding fullchain.pem and privkey.pem
   --image-tag TAG      ALFHEIM_IMAGE_TAG      Container image tag (default: latest)
@@ -142,6 +142,7 @@ func (o *Options) applyEnvDefaults() {
 		// Caddy modules themselves read.
 		for _, key := range []string{
 			"ALFHEIM_DNS_API_TOKEN", "HETZNER_API_TOKEN", "CLOUDFLARE_API_TOKEN",
+			"DESEC_TOKEN",
 		} {
 			if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 				o.APIToken = v

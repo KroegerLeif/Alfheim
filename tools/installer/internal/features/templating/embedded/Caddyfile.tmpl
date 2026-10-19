@@ -17,7 +17,14 @@
 {{- if $tls.ACMEEmail }}
 	email {{ $tls.ACMEEmail }}
 {{- end }}
+{{- if eq $tls.Strategy.String "desec" }}
+	# The desec module only accepts its token as a block subdirective.
+	acme_dns desec {
+		token {env.{{ $tls.Strategy.TokenEnvVar }}}
+	}
+{{- else }}
 	acme_dns {{ $tls.Strategy.DNSProvider }} {env.{{ $tls.Strategy.TokenEnvVar }}}
+{{- end }}
 	# Certificate management stays on, but Caddy's own blanket HTTP->HTTPS
 	# redirect is disabled: without this, any site here that manages a TLS
 	# certificate makes Caddy install a catch-all redirect on port 80 for

@@ -18,7 +18,7 @@ services:
   # ----------------------------------------------------------------------------
   caddy:
     # Custom build: the stock caddy image ships no ACME DNS-01 provider
-    # modules, which the Hetzner and Cloudflare TLS strategies require.
+    # modules, which the Hetzner, Cloudflare and deSEC TLS strategies require.
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/caddy:${IMAGE_TAG:-latest}
     build:
       context: ./infrastructure/caddy
@@ -36,6 +36,7 @@ services:
       ACME_EMAIL: "${ACME_EMAIL:-}"
       HETZNER_API_TOKEN: "${HETZNER_API_TOKEN:-}"
       CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
+      DESEC_TOKEN: "${DESEC_TOKEN:-}"
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Installer-generated root cert + key that sign the --tls internal
