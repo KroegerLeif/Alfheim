@@ -23,7 +23,7 @@ Quelle: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 
 ## 🏗️ Architektur & Tech Stack
 
-- **Backend:** Go 1.25 Microservice mit Chi-Router, SSE-Streaming, AES-256-Kryptographie und FastMCP-Client-Integrationen.
+- **Backend:** Go 1.26 Microservice mit Chi-Router, SSE-Streaming, AES-256-Kryptographie und FastMCP-Client-Integrationen.
 - **Frontend:** Next.js 16 (App Router) Microfrontend, SSE-Stream-Parser, Tailwind CSS v4 und `@alfheim/shared`.
 - **Datenbank:** Gehostet auf `postgres-core` (`alfheim_chat`-Datenbank, Besitzer `chat_user`).
 

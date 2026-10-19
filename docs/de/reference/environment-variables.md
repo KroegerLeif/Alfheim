@@ -149,6 +149,7 @@ Automatische TLS-Zertifikat-Ausstellung via Let's Encrypt. Siehe `docs/en/how-to
 | `ACME_EMAIL` | _(leer)_ | E-Mail-Adresse für ACME-Zertifikat-Benachrichtigungen und Wiederherstellung; **erforderlich** für automatisches HTTPS |
 | `HETZNER_API_TOKEN` | _(leer)_ | Hetzner DNS API-Token für DNS-01-Challenges (erforderlich wenn Hetzner DNS verwendet wird) |
 | `CLOUDFLARE_API_TOKEN` | _(leer)_ | Cloudflare API-Token für DNS-01-Challenges (erforderlich wenn Cloudflare DNS verwendet wird) |
+| `DESEC_TOKEN` | _(leer)_ | deSEC API-Token für DNS-01-Challenges (erforderlich wenn deSEC verwendet wird) |
 
 ---
 

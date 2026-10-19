@@ -130,7 +130,7 @@ func TestResolveErrors(t *testing.T) {
 
 func TestResolveIsANoOpForNonCustomStrategies(t *testing.T) {
 	m := NewManager(paths.Layout{Root: t.TempDir()})
-	for _, s := range []Strategy{StrategyHetznerDNS, StrategyCloudflareDNS, StrategyInternal} {
+	for _, s := range []Strategy{StrategyHetznerDNS, StrategyCloudflareDNS, StrategyDesecDNS, StrategyInternal} {
 		c := &Config{Strategy: s}
 		if err := m.Resolve(c); err != nil {
 			t.Fatalf("Resolve(%s) error = %v", s, err)
@@ -144,7 +144,7 @@ func TestResolveIsANoOpForNonCustomStrategies(t *testing.T) {
 func TestValidateDNSStrategies(t *testing.T) {
 	m := NewManager(paths.Layout{Root: t.TempDir()})
 
-	for _, s := range []Strategy{StrategyHetznerDNS, StrategyCloudflareDNS} {
+	for _, s := range []Strategy{StrategyHetznerDNS, StrategyCloudflareDNS, StrategyDesecDNS} {
 		t.Run(string(s)+" without token", func(t *testing.T) {
 			c := &Config{Strategy: s, APIToken: "  "}
 			err := m.Validate(c)

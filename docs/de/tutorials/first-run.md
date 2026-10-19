@@ -76,7 +76,7 @@ Der Wizard fragt vier Dinge ab:
    Dashboard-Host entspricht standardmäßig deiner Basis-Domain; der Identity
    Provider liegt immer auf `auth.example.com`.
 2. **Administrator-E-Mail.** Wird Anmeldename des Zitadel-Administrators und ACME-Kontakt.
-3. **Zertifikatsstrategie.** Wähle *Hetzner DNS-01* oder *Cloudflare DNS-01*, wenn
+3. **Zertifikatsstrategie.** Wähle *Hetzner DNS-01*, *Cloudflare DNS-01* oder *deSEC DNS-01*, wenn
    deine Domain dort gehostet ist — das stellt Wildcard-Zertifikate aus und
    benötigt keinen eingehenden Port 80. Andernfalls wähle *Custom certificates*
    oder *Local CA (self-signed HTTPS)* für eine reine LAN-Installation. Mit der
@@ -86,7 +86,8 @@ Der Wizard fragt vier Dinge ab:
    Anmeldung für **beide** Hosts akzeptieren, App-Host und Auth-Host (siehe
    [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md)).
 4. **DNS-API-Token**, falls du eine DNS-01-Strategie gewählt hast. Wie du eines
-   anlegst, steht unter [Wildcard-TLS mit Hetzner DNS-01](../how-to/hetzner-dns-tls.md).
+   anlegst, steht unter [Wildcard-TLS mit Hetzner DNS-01](../how-to/hetzner-dns-tls.md)
+   und [Wildcard-TLS mit deSEC DNS-01](../how-to/desec-dns-tls.md).
 
 Anschließend erzeugt der Installer sämtliche Zugangsdaten aus `crypto/rand` und schreibt:
 
@@ -137,6 +138,7 @@ Jeder Dienst sollte `running` melden, Dienste mit Healthcheck zusätzlich `healt
 ## Nächste Schritte
 
 * [Wildcard-TLS mit Hetzner DNS-01](../how-to/hetzner-dns-tls.md) — Wildcard-Zertifikate
+* [Wildcard-TLS mit deSEC DNS-01](../how-to/desec-dns-tls.md) — Wildcard-Zertifikate bei deSEC
 * [Eigene TLS-Zertifikate](../how-to/custom-certificates.md) — Bring your own
 * [Der lokalen Root-CA vertrauen](../how-to/trust-local-root-ca.md) — für die Strategie mit lokaler CA
 * [Installer-CLI-Referenz](../reference/installer-cli.md) — jedes Flag

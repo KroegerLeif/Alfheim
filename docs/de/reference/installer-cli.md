@@ -51,8 +51,8 @@ Jedes Flag hat ein Umgebungsvariablen-Äquivalent. Das Flag gewinnt, wenn beide 
 | `--domain HOST` | `ALFHEIM_DOMAIN` | Basis-Domain, z.B. `example.com`. **Erforderlich** im nicht-interaktiven Modus. |
 | `--app-host HOST` | `ALFHEIM_APP_HOST` | Host, der das Dashboard bedient. Standardmäßig die Basis-Domain. |
 | `--admin-email MAIL` | `ALFHEIM_ADMIN_EMAIL` | Zitadel-Administrator-Anmeldename (verifiziert, keine E-Mail erforderlich) und ACME-Kontakt. **Erforderlich** im nicht-interaktiven Modus. |
-| `--tls STRATEGY` | `ALFHEIM_TLS_STRATEGY` | `hetzner`, `cloudflare`, `custom` oder `internal`. **Erforderlich** im nicht-interaktiven Modus. |
-| `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN` | DNS-Provider-Token. Erforderlich für `hetzner` und `cloudflare`. |
+| `--tls STRATEGY` | `ALFHEIM_TLS_STRATEGY` | `hetzner`, `cloudflare`, `desec`, `custom` oder `internal`. **Erforderlich** im nicht-interaktiven Modus. |
+| `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN`, `DESEC_TOKEN` | DNS-Provider-Token. Erforderlich für `hetzner`, `cloudflare` und `desec`. |
 | `--cert-path DIR` | `ALFHEIM_CERT_PATH` | Absolutes Verzeichnis mit `fullchain.pem` und `privkey.pem`. Nur für `--tls custom`; weglassen zum Standard `./data/caddy/certs/` nutzen. |
 | `--image-tag TAG` | `ALFHEIM_IMAGE_TAG` | Container-Image-Tag. Standard `latest`. |
 | — | `ALFHEIM_INSTALL_DIR` | Äquivalent zu `--install-dir`. |
@@ -79,6 +79,7 @@ Nutze `ALFHEIM_CHANNEL=prerelease`, um den neuesten Release jeglicher Art zu neh
 | :--- | :--- | :--- | :--- |
 | `hetzner` | Let's Encrypt Wildcard via DNS-01 | Nicht erforderlich | Benötigt einen Hetzner DNS API-Token. |
 | `cloudflare` | Let's Encrypt Wildcard via DNS-01 | Nicht erforderlich | Benötigt einen Cloudflare-Token mit `Zone:DNS:Edit`. |
+| `desec` | Let's Encrypt Wildcard via DNS-01 | Nicht erforderlich | Benötigt einen deSEC API-Token. Siehe [deSEC DNS-01](../how-to/desec-dns-tls.md). |
 | `custom` | Von dir bereitgestellt | Nicht erforderlich | Benötigt `fullchain.pem` und `privkey.pem`. |
 | `internal` | Vom Installer erzeugte Root-CA (HTTPS) | Nicht erforderlich | Browser warnen, bis du `infrastructure/ca/alfheim-root-ca.crt` importierst (Fingerprint wird am Ende ausgegeben) oder die Warnung akzeptierst. Die Root wird einmal erzeugt und nie stillschweigend ersetzt. Installationen aus der Zeit, als hier noch HTTP galt, migrieren mit `--reconfigure`. |
 

@@ -150,6 +150,7 @@ var allowedUngenerated = map[string]string{
 	// DNS provider credentials the operator supplies for DNS-01 issuance.
 	"HETZNER_API_TOKEN":    "operator-supplied DNS API token",
 	"CLOUDFLARE_API_TOKEN": "operator-supplied DNS API token",
+	"DESEC_TOKEN":          "operator-supplied DNS API token",
 }
 
 func TestManifestCoversEveryRepositorySecret(t *testing.T) {

@@ -55,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 7. **Phase 2, Zitadel-Provisionierung:** legt über die Management-API von Zitadel das Projekt `Alfheim`, den gemeinsamen Web-Client für Dashboard und alle Apps sowie den Grafana-Client an und schreibt deren IDs in die `.env`.
 8. **Phase 3, Core- & Anwendungs-Stack:** lädt und startet alle übrigen Dienste, wartet auf das Dashboard und gibt die Zugangs-URLs, den Administrator-Login und bei `internal` die Schritte zum Vertrauen der Root-CA aus.
 
-Jede Strategie liefert HTTPS aus. `hetzner` und `cloudflare` beziehen Let's-Encrypt-Wildcard-Zertifikate, `custom` nutzt deine PEM-Dateien, und `internal` signiert mit der lokalen Root-CA ([auf jedem Gerät vertrauen](./trust-local-root-ca.md)).
+Jede Strategie liefert HTTPS aus. `hetzner`, `cloudflare` und `desec` beziehen Let's-Encrypt-Wildcard-Zertifikate, `custom` nutzt deine PEM-Dateien, und `internal` signiert mit der lokalen Root-CA ([auf jedem Gerät vertrauen](./trust-local-root-ca.md)).
 
 Für ein Pre-Release pinnst du einen Tag oder wählst den Pre-Release-Kanal:
 

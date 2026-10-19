@@ -93,6 +93,15 @@ func TestRenderGoldenFiles(t *testing.T) {
 			},
 		},
 		{
+			"loegien_desec",
+			onboarding.PresetLoegien,
+			tls.Config{
+				Strategy:  tls.StrategyDesecDNS,
+				APIToken:  "desec-test-token",
+				ACMEEmail: "ops@loegien.de",
+			},
+		},
+		{
 			"custom_cloudflare",
 			onboarding.PresetCustom,
 			tls.Config{
@@ -261,7 +270,7 @@ func TestRenderedCaddyfileNeverContainsTheAPIToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, strategy := range []tls.Strategy{tls.StrategyHetznerDNS, tls.StrategyCloudflareDNS} {
+	for _, strategy := range []tls.Strategy{tls.StrategyHetznerDNS, tls.StrategyCloudflareDNS, tls.StrategyDesecDNS} {
 		m := model(t, onboarding.PresetLoegien, tls.Config{
 			Strategy: strategy, APIToken: "super-secret-token", ACMEEmail: "ops@example.com",
 		})
