@@ -34,7 +34,7 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 
 ## 🏗️ Architektur & Tech Stack
 
-- **Backend:** Go 1.25 REST API-Backend mit Chi-Router, PostgreSQL (`pgxpool`) und generischer OIDC (Zitadel) Bearer-Token-Middleware.
+- **Backend:** Go 1.26 REST API-Backend mit Chi-Router, PostgreSQL (`pgxpool`) und generischer OIDC (Zitadel) Bearer-Token-Middleware.
 - **Frontend:** Next.js 16 (App Router) Microfrontend, Tailwind CSS v4, Lucide React und `@alfheim/shared`.
 - **Datenbank:** Gehostet auf `postgres-core` (`alfheim_dashboard`-Datenbank, Besitzer `dashboard_user`).
 
