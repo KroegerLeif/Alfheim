@@ -55,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 7. **Phase 2, Zitadel provisioning:** creates the `Alfheim` project, the web client shared by the dashboard and every app, and the Grafana client through Zitadel's Management API, and writes their IDs into `.env`.
 8. **Phase 3, Core & Application Stack:** pulls and starts every remaining service, waits for the dashboard, and prints the access URLs, the administrator login and, for `internal`, how to trust the root CA.
 
-Every strategy serves HTTPS. `hetzner` and `cloudflare` obtain Let's Encrypt wildcard certificates, `custom` uses your PEM files, and `internal` signs with the local root CA ([trust it](./trust-local-root-ca.md) on each device).
+Every strategy serves HTTPS. `hetzner`, `cloudflare` and `desec` obtain Let's Encrypt wildcard certificates, `custom` uses your PEM files, and `internal` signs with the local root CA ([trust it](./trust-local-root-ca.md) on each device).
 
 To install a pre-release, pin a tag or opt into the pre-release channel:
 

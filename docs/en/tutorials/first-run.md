@@ -79,7 +79,7 @@ The wizard asks four things:
    placed at `auth.example.com`.
 2. **Administrator e-mail.** Becomes the login name of the Zitadel
    administrator and the ACME contact.
-3. **Certificate strategy.** Choose *Hetzner DNS-01* or *Cloudflare DNS-01* if
+3. **Certificate strategy.** Choose *Hetzner DNS-01*, *Cloudflare DNS-01* or *deSEC DNS-01* if
    your domain is hosted there — this issues wildcard certificates and needs no
    inbound port 80. Otherwise choose *Custom certificates*, or *Local CA
    (self-signed HTTPS)* for a LAN-only install. With the local CA, import
@@ -88,7 +88,8 @@ The wizard asks four things:
    **both** the app host and the auth host before signing in (see
    [Trust the local root CA](../how-to/trust-local-root-ca.md)).
 4. **DNS API token**, if you chose a DNS-01 strategy. See
-   [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) for how to create one.
+   [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) or
+   [deSEC DNS-01 TLS](../how-to/desec-dns-tls.md) for how to create one.
 
 The installer then generates every credential from `crypto/rand` and writes:
 
@@ -139,6 +140,7 @@ report `healthy`. Open the dashboard URL and sign in with your Zitadel account.
 ## Next steps
 
 * [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) — wildcard certificates
+* [deSEC DNS-01 TLS](../how-to/desec-dns-tls.md) — wildcard certificates on deSEC
 * [Custom certificates](../how-to/custom-certificates.md) — bring your own
 * [Trust the local root CA](../how-to/trust-local-root-ca.md) — for the local CA strategy
 * [Installer CLI reference](../reference/installer-cli.md) — every flag

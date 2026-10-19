@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- deSEC DNS-01 TLS strategy: the Caddy image (`infrastructure/caddy/Dockerfile`) now also bundles `github.com/caddy-dns/desec`, `compose.prod.yaml` passes `DESEC_TOKEN` to the gateway, and `alfheim-setup --tls desec` renders `acme_dns desec { token {env.DESEC_TOKEN} }` with the token kept in `.env`. New how-to `desec-dns-tls.md` (EN and DE).
+  Tested: installer `go test -race ./...`; a local xcaddy build (Caddy v2.10.2, Go 1.25) lists `dns.providers.desec` and `caddy validate` accepts the rendered `loegien_desec` Caddyfile.
 - Household internal API `GET /internal/v1/households/{householdId}/members` (#583, backend part): every member's subject, the derived user id the apps store (`app_user_id`, same derivation as `backend_shared.household.derive_user_id`) and role, behind `ALFHEIM_INTERNAL_TOKEN`. The existing membership lookup is unchanged. No `backend_shared` helper wraps it yet.
 - `household-frontend` ships Polish (`src/i18n/messages/pl.json`); before, Polish users saw German for every household-specific string. New tests check that every translation key in the app resolves in `en`, `de` and `pl` and that the three dictionaries stay in parity.
 - How-to guide `dev-test-token.md` (EN and DE): minting an OIDC access token locally with `curl`/`jq` to call an app's API directly, without a browser sign-in.

@@ -58,6 +58,7 @@ source with a translation notice, so untranslated paths never 404.
 ### 🛠️ How-To Guides (task-oriented)
 * [Self-Hosting & Installation Guide](./en/how-to/homelab-deployment.md) — Deploying on Linux bare-metal or Proxmox VE.
 * [Wildcard TLS with Hetzner DNS-01](./en/how-to/hetzner-dns-tls.md) — API token and wildcard certificates without inbound port 80.
+* [Wildcard TLS with deSEC DNS-01](./en/how-to/desec-dns-tls.md) — the same for domains hosted on deSEC.
 * [Use Your Own TLS Certificates](./en/how-to/custom-certificates.md) — Bundled directory versus a custom absolute host path.
 * [Trust the Local Root CA](./en/how-to/trust-local-root-ca.md) — Importing the installer's root CA for the `internal` TLS strategy, or accepting the warning for both hosts.
 * [Secrets Hardening](./en/how-to/secrets-hardening.md) — Generating, storing and rotating secrets; verifying no development fallback reaches production.

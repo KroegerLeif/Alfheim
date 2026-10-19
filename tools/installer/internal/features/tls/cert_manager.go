@@ -99,7 +99,7 @@ func (m *Manager) Validate(c *Config) error {
 	}
 
 	switch c.Strategy {
-	case StrategyHetznerDNS, StrategyCloudflareDNS:
+	case StrategyHetznerDNS, StrategyCloudflareDNS, StrategyDesecDNS:
 		if strings.TrimSpace(c.APIToken) == "" {
 			return fmt.Errorf("tls: the %s strategy requires an API token", c.Strategy)
 		}

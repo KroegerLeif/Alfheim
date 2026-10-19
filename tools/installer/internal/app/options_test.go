@@ -92,6 +92,17 @@ func TestParseOptionsAcceptsProviderTokenNames(t *testing.T) {
 	}
 }
 
+func TestParseOptionsAcceptsDesecTokenName(t *testing.T) {
+	t.Setenv("DESEC_TOKEN", "desec-token")
+	opts, err := ParseOptions(nil, &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opts.APIToken != "desec-token" {
+		t.Fatalf("APIToken = %q, want DESEC_TOKEN to be honoured", opts.APIToken)
+	}
+}
+
 func TestParseOptionsErrors(t *testing.T) {
 	tests := []struct {
 		name string

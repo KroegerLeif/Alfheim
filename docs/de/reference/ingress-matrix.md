@@ -29,7 +29,7 @@ Die Tabellen unten beschreiben den Entwicklungs-Stack (`scripts/up.sh`), der die
 
 | TLS-Strategie | Zertifikate | Browser-Vertrauen |
 | :--- | :--- | :--- |
-| `hetzner`, `cloudflare` | Let's-Encrypt-Wildcard via DNS-01 | Vertraut |
+| `hetzner`, `cloudflare`, `desec` | Let's-Encrypt-Wildcard via DNS-01 | Vertraut |
 | `custom` | Eigene PEM-Dateien | Hängt von der ausstellenden CA ab |
 | `internal` (auch das LAN-Preset `.localhost`) | Signiert von der Root-CA des Installers (Caddy-CA-ID `alfheim`, Root schreibgeschützt eingebunden aus `infrastructure/caddy/pki/`) | Warnt, bis [der lokalen Root-CA vertraut wird](../how-to/trust-local-root-ca.md) |
 
