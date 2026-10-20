@@ -38,11 +38,23 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 	}
 }
 
+func passthroughAuth(next http.Handler) http.Handler { return next }
+
+func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected buildRouter to panic when auth middleware is nil")
+		}
+	}()
+	buildRouter(log, &db.Client{Pool: nil}, nil, "", []string{})
+}
+
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, "", []string{})
+	router := buildRouter(log, dbClient, passthroughAuth, "", []string{})
 
 	t.Run("/healthz endpoint returns 200 healthy", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)

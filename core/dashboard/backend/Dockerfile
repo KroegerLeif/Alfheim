@@ -17,7 +17,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o dashboard-backend ./cmd/server
 
 # Production stage
-FROM alpine:3.20 AS runner
+FROM alpine:3.24 AS runner
 
 WORKDIR /app
 
