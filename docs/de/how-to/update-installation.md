@@ -122,9 +122,14 @@ ausführen.
    Build-Version dieser Binärdatei — niemals `latest`.
 3. Lädt die Stack-Dateien des Ziel-Releases herunter und verifiziert sie
    gegen dessen `SHA256SUMS`.
-4. Sichert die aktuellen Stack-Dateien in ein Verzeichnis mit Zeitstempel
+4. Erstellt ein [Backup](./backup-restore.md) von Datenbanken und Secrets
+   (`backups/alfheim-backup-<UTC-Zeitstempel>.tar.gz`, ohne Objektspeicher)
+   und gibt den Pfad aus. Schlägt das fehl, bricht das Update ab, bevor sich
+   etwas ändert; `--skip-backup` überspringt den Schritt. Für den Datenbank-Dump
+   muss der Stack laufen.
+5. Sichert die aktuellen Stack-Dateien in ein Verzeichnis mit Zeitstempel
    (`.alfheim-backups/<UTC-Zeitstempel>/`), bevor irgendetwas ersetzt wird.
-5. Ersetzt `compose.prod.yaml` und die weiteren Stack-Dateien, setzt
+6. Ersetzt `compose.prod.yaml` und die weiteren Stack-Dateien, setzt
    `IMAGE_TAG` in der `.env` und rendert das Caddyfile aus der gespeicherten
    Konfiguration neu.
 6. Hängt jedes Secret an, das ein neueres Release benötigt und das in der
@@ -197,6 +202,11 @@ bleiben:
 Da Secrets, die Root-CA und jedes Docker-Volume nie angerührt wurden, löst
 ein Rollback nie erneut einen Assistenten aus, provisioniert Zitadel nicht
 neu von Grund auf und verliert keine Daten.
+
+Hat das neue Release eine Datenbank so migriert, dass das alte sie nicht mehr
+lesen kann, rolle auch die Daten zurück: das Archiv vor dem Update aus
+`backups/` mit `alfheim-setup restore` einspielen (siehe
+[Backup, Wiederherstellung & Datenmigration](./backup-restore.md)).
 
 ---
 

@@ -93,6 +93,9 @@ func (l Layout) ZitadelMachineKeyDir() string {
 	return filepath.Join(l.Root, "infrastructure", "zitadel", "machinekey")
 }
 
+// BackupDir is the default destination of `alfheim-setup backup` archives.
+func (l Layout) BackupDir() string { return filepath.Join(l.Root, "backups") }
+
 // Marker is the Day-1 completion marker.
 func (l Layout) Marker() string { return filepath.Join(l.Root, MarkerName) }
 

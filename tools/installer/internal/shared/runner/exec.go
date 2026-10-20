@@ -27,10 +27,15 @@ func (r *ExecRunner) Run(ctx context.Context, cmd Command) (Result, error) {
 		proc.Env = append(os.Environ(), cmd.Env...)
 	}
 
+	proc.Stdin = cmd.Stdin
+
 	var stdout, stderr bytes.Buffer
-	if cmd.Stdout != nil {
+	switch {
+	case cmd.Stdout != nil && cmd.StreamOnly:
+		proc.Stdout = cmd.Stdout
+	case cmd.Stdout != nil:
 		proc.Stdout = io.MultiWriter(&stdout, cmd.Stdout)
-	} else {
+	default:
 		proc.Stdout = &stdout
 	}
 	proc.Stderr = &stderr

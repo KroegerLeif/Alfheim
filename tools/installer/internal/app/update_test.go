@@ -116,7 +116,7 @@ func newTestUpdateApp(dir string, opts *UpdateOptions, srv *httptest.Server) (*U
 	return &UpdateApp{
 		Options:     opts,
 		Build:       BuildInfo{Version: "v1.0.0-test"},
-		Runner:      healthyDocker(),
+		Runner:      newBackupDocker(),
 		Stdout:      &stdout,
 		Stderr:      &stderr,
 		Provisioner: &stubProvisioner{},

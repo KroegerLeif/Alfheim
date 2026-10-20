@@ -138,6 +138,10 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 		return fmt.Errorf("alfheim-setup update: %w", err)
 	}
 
+	if err := u.backupBeforeUpdate(ctx, layout); err != nil {
+		return err
+	}
+
 	backupList := append(append([]assets.Asset{}, assets.StackAssets...), assets.GeneratedAssets...)
 	backupDir, err := updater.Backup(layout.Root, backupList, u.now())
 	if err != nil {
