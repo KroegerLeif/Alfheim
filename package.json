@@ -1,7 +1,7 @@
 {
   "name": "alfheim",
   "private": true,
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@10.34.6",
   "scripts": {
     "check-types": "pnpm -r --filter=!@alfheim/docs-portal exec tsc --noEmit && pnpm --filter @alfheim/docs-portal run check-types",
     "lint": "pnpm -r --if-present run lint",
