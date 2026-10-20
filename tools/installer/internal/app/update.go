@@ -174,7 +174,8 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	if err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
-	if err := provisionZitadel(ctx, u.Stdout, u.provisioner(), layout, on); err != nil {
+	warnings, err := provisionZitadel(ctx, u.Stdout, u.provisioner(), layout, on)
+	if err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
 
@@ -201,6 +202,7 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	fmt.Fprintf(u.Stdout, "\nAlfheim was updated to %s.\n"+
 		"  Previous stack files were backed up to %s.\n",
 		target, backupDir)
+	printWarnings(u.Stdout, warnings)
 	return nil
 }
 
