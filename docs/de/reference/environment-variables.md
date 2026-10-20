@@ -33,7 +33,7 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `DOMAIN` | `loegien.de` | Root-Domain für alle Dienste |
 | `IMAGE_REGISTRY` | `ghcr.io` | Container-Image-Registry |
 | `IMAGE_REPO` | `kroegerleif/alfheim` | Container-Image-Repository |
-| `IMAGE_TAG` | `latest` | Container-Image-Tag |
+| `IMAGE_TAG` | _(erforderlich)_ | Container-Image-Tag. `compose.prod.yaml` startet ohne ihn nicht; der Installer schreibt ihn immer (Standard: die eigene Release-Version des Installers, `latest` bei einem Entwicklungs-Build) |
 | `CADDY_TLS_DIRECTIVE` | _(leer)_ | Optional Caddy-TLS-Override (`tls internal` für lokal signiertes HTTPS; leer lassen für Auto-HTTPS) |
 | `ALFHEIM_EXTRA_CA_FILE` | _(leer)_ | Pfad im Container zu einem PEM-Bundle zusätzlicher Root-CAs, denen serverseitige OIDC-Clients (Python-Backends, Go-Backends von Dashboard und Chat, Grafana über `GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) **zusätzlich** zu den System-Roots vertrauen. Der Installer setzt `/etc/alfheim/ca/alfheim-root-ca.crt` für die TLS-Strategie `internal` (Host-Verzeichnis `infrastructure/ca/`, schreibgeschützt eingebunden) und lässt ihn sonst leer. Eine unlesbare oder Nicht-PEM-Datei wird als Fehler mit dem Pfad gemeldet, nie stillschweigend ignoriert |
 
@@ -86,6 +86,8 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `GRAFANA_OIDC_CLIENT_ID` | `alfheim-grafana` | Zitadel-OIDC-Client-ID für Grafana-SSO |
 | `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel-OIDC-Client-Secret für Grafana-SSO (gesetzt von `alfheim-setup provision` / dem Provisioning-Schritt des Installers) |
 
+Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` beschränkt; alle anderen werden abgewiesen. Der lokale `admin`-Login funktioniert weiterhin. Siehe [Grafana-Zugriff gewähren](../how-to/grafana-access.md).
+
 ---
 
 ## Microservice-Backend-Variablen
@@ -134,7 +136,8 @@ Abgeleitete `NEXT_PUBLIC_API_URL` pro Frontend:
 | `dashboard-frontend`, `household-frontend` | `${ALFHEIM_BASE_URL}/api/v1` |
 | `pantry-frontend` | `${ALFHEIM_BASE_URL}/pantry/api/v1` |
 | `shopping-frontend` | `${ALFHEIM_BASE_URL}/shopping/api/v1` |
-| `chores-frontend`, `budget-frontend`, `chat-frontend`, `maintenance-frontend`, `workout-frontend`, `library-frontend` | `${ALFHEIM_BASE_URL}/api/v1/<app>` |
+| `workout-frontend` | `${ALFHEIM_BASE_URL}/workout/api/v1` |
+| `chores-frontend`, `budget-frontend`, `chat-frontend`, `maintenance-frontend`, `library-frontend` | `${ALFHEIM_BASE_URL}/api/v1/<app>` |
 
 Im Entwicklungs-Stack liest `household-frontend` stattdessen `NEXT_PUBLIC_HOUSEHOLD_API_URL` (Standard `http://api.alfheim.loegien.localhost/api/v1`).
 
