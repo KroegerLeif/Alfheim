@@ -5,7 +5,7 @@ import { useChatStream } from '../useChatStream'
 import { LanguageProvider } from '../../../i18n/utils/LanguageContext'
 
 const englishWrapper = ({ children }: { children: ReactNode }) =>
-  createElement(LanguageProvider, { defaultLanguage: 'en' }, children)
+  createElement(LanguageProvider, { defaultLanguage: 'en', children })
 
 describe('useChatStream hook', () => {
   beforeEach(() => {
