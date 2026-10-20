@@ -90,3 +90,8 @@ export interface TelemetryLogsResponse {
   logs: TelemetryLogEntry[];
   total: number;
 }
+
+/** Capabilities of the authenticated user, from GET /api/v1/user/capabilities. */
+export interface UserCapabilities {
+  operator: boolean;
+}

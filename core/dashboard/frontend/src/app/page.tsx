@@ -10,8 +10,7 @@ import {
   StackAppsSection,
   UserAppsSection,
 } from '@/features/apps';
-import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
-import { MetricsWidget } from '@/features/dashboard/components/MetricsWidget';
+import { OperatorTelemetry } from '@/features/dashboard/components/OperatorTelemetry';
 import { AppItem } from '@/shared/types';
 
 /**
@@ -69,11 +68,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Live System Health Telemetry (CPU/RAM/Network from VictoriaMetrics) */}
-      <MetricsWidget />
-
-      {/* Live System Shell / Terminal Log Feed */}
-      <SystemShellLogs />
+      {/* Operator-only: live system metrics (VictoriaMetrics) and the log shell */}
+      <OperatorTelemetry />
 
       {/* TIER 1: CORE APPLICATIONS */}
       <CoreAppsSection

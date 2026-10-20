@@ -33,6 +33,7 @@ func (m *mockTelemetryService) GetLogs(ctx context.Context) (*telemetry.LogsResp
 	return &telemetry.LogsResponse{}, nil
 }
 
+// mockAuthMW authenticates the request as an operator (telemetry is operator-only).
 func mockAuthMW(shouldAuth bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +41,7 @@ func mockAuthMW(shouldAuth bool) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "u1"})
+			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "u1", IsOperator: true})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -161,4 +162,43 @@ func TestTelemetryHandler_GetLogs(t *testing.T) {
 			t.Errorf("expected status 200, got %d", rec.Code)
 		}
 	})
+}
+
+func TestTelemetryHandler_RequiresOperator(t *testing.T) {
+	regularUser := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "u1"})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+	called := false
+	svc := &mockTelemetryService{
+		getMetricsFn: func(ctx context.Context) (*telemetry.MetricsResponse, error) {
+			called = true
+			return &telemetry.MetricsResponse{}, nil
+		},
+		getLogsFn: func(ctx context.Context) (*telemetry.LogsResponse, error) {
+			called = true
+			return &telemetry.LogsResponse{}, nil
+		},
+	}
+	r := chi.NewRouter()
+	telemetry.NewHandler(svc).RegisterRoutes(r, regularUser)
+
+	for _, path := range []string{"/api/v1/telemetry", "/api/v1/telemetry/metrics", "/api/v1/telemetry/logs"} {
+		t.Run(path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+			if rec.Code != http.StatusForbidden {
+				t.Fatalf("expected 403 for a non-operator, got %d", rec.Code)
+			}
+			var body map[string]string
+			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil || body["error"] != "operator_required" {
+				t.Fatalf("expected error code operator_required, got %v (%v)", body, err)
+			}
+		})
+	}
+	if called {
+		t.Fatal("the telemetry service must not be reached by a non-operator")
+	}
 }
