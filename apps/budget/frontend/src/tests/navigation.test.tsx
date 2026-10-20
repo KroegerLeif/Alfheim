@@ -14,7 +14,7 @@ describe("MobileTabBar Component", () => {
   it("renders exactly 4 bottom tabs in German by default", () => {
     render(<MobileTabBar />);
 
-    expect(screen.getByRole("navigation", { name: "Mobile Navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Mobil-Navigation" })).toBeInTheDocument();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Budgetplanung")).toBeInTheDocument();
     expect(screen.getByText("Virtuelle Töpfe")).toBeInTheDocument();
@@ -60,7 +60,34 @@ describe("MobileTabBar Component", () => {
   });
 });
 
+describe("MobileTabBar More menu", () => {
+  it("opens the More menu and routes to views without a bottom tab", () => {
+    const handleTabChange = vi.fn();
+    renderSidebar(<MobileTabBar onTabChange={handleTabChange} />);
+
+    const more = screen.getByRole("button", { name: "More" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Sankey Cashflow" }));
+    expect(handleTabChange).toHaveBeenCalledWith("sankey");
+    expect(screen.queryByRole("group", { name: "More" })).not.toBeInTheDocument();
+  });
+});
+
 describe("DesktopSidebar Component", () => {
+  it("exposes accounts and transactions as buttons that report the selected view", () => {
+    const handleTabChange = vi.fn();
+    renderSidebar(<DesktopSidebar currentPath="/" onTabChange={handleTabChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Accounts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Transactions" }));
+    expect(handleTabChange).toHaveBeenNthCalledWith(1, "/accounts");
+    expect(handleTabChange).toHaveBeenNthCalledWith(2, "/transactions");
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("renders all expected desktop navigation items and Quick-Add button", () => {
     renderSidebar(<DesktopSidebar currentPath="/" />);
 

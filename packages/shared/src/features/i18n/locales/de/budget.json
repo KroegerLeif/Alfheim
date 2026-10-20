@@ -24,7 +24,10 @@
       "sidebarLabel": "Desktop-Seitenleiste",
       "navLabel": "Seitenleisten-Navigation",
       "planningModeLabel": "Planungsmodus-Auswahl",
-      "mobileNavLabel": "Mobile Navigation"
+      "mobileNavLabel": "Mobil-Navigation",
+      "accounts": "Konten",
+      "transactions": "Transaktionen",
+      "more": "Mehr"
     },
     "accounts": {
       "title": "Konten & Depots",
@@ -172,7 +175,7 @@
       "type": "Typ",
       "accountOptional": "Konto (Optional)",
       "targetPotOptional": "Ziel-Topf (Optional)",
-      "planOptional": "Plan (Optional)",
+      "planOptional": "Plan (optional)",
       "none": "-- Keine --",
       "logging": "Buchung wird verarbeitet...",
       "ledgerTitle": "Transaktionsjournal",

@@ -1,5 +1,7 @@
 import * as React from "react";
 import { cn } from "../ui/utils/cn";
+import { useTranslation } from "../i18n/utils/useTranslation";
+import { intlLocaleFor } from "./formatLocale";
 
 export interface MoneyDisplayProps extends React.HTMLAttributes<HTMLSpanElement> {
   amount: number;
@@ -20,16 +22,19 @@ const sizeClasses = {
 export function MoneyDisplay({
   amount,
   currency = "EUR",
-  locale = "de-DE",
+  locale,
   colored = false,
   size = "md",
   showSign = false,
   className,
   ...props
 }: MoneyDisplayProps) {
+  const { language } = useTranslation();
+  const resolvedLocale = locale ?? intlLocaleFor(language);
+
   const formatted = React.useMemo(() => {
     try {
-      const formatter = new Intl.NumberFormat(locale, {
+      const formatter = new Intl.NumberFormat(resolvedLocale, {
         style: "currency",
         currency,
         minimumFractionDigits: 2,
@@ -43,7 +48,7 @@ export function MoneyDisplay({
     } catch {
       return `${amount.toFixed(2)} ${currency}`;
     }
-  }, [amount, currency, locale, showSign]);
+  }, [amount, currency, resolvedLocale, showSign]);
 
   const colorClass = React.useMemo(() => {
     if (!colored || amount === 0) return "";

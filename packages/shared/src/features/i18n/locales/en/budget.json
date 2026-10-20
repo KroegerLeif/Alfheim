@@ -24,7 +24,10 @@
       "sidebarLabel": "Desktop Sidebar",
       "navLabel": "Sidebar Navigation",
       "planningModeLabel": "Planning Mode Selector",
-      "mobileNavLabel": "Mobile Navigation"
+      "mobileNavLabel": "Mobile Navigation",
+      "accounts": "Accounts",
+      "transactions": "Transactions",
+      "more": "More"
     },
     "accounts": {
       "title": "Accounts & Portfolios",

@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { axe } from "vitest-axe";
 import { MoneyDisplay } from "../MoneyDisplay";
+import { LanguageProvider } from "../../i18n/utils/LanguageContext";
 
 describe("MoneyDisplay Component", () => {
   it("passes accessibility audit", async () => {
@@ -31,5 +32,23 @@ describe("MoneyDisplay Component", () => {
   it("shows explicit positive sign when showSign is true", () => {
     render(<MoneyDisplay amount={25} showSign locale="en-US" currency="EUR" />);
     expect(screen.getByText("+€25.00")).toBeInTheDocument();
+  });
+
+  it("formats with the active UI language when no locale is given", () => {
+    render(
+      <LanguageProvider defaultLanguage="en">
+        <MoneyDisplay amount={1234.5} currency="EUR" />
+      </LanguageProvider>
+    );
+    expect(screen.getByText("€1,234.50")).toBeInTheDocument();
+  });
+
+  it("lets an explicit locale override the active UI language", () => {
+    render(
+      <LanguageProvider defaultLanguage="en">
+        <MoneyDisplay amount={1234.5} currency="EUR" locale="de-DE" />
+      </LanguageProvider>
+    );
+    expect(screen.getByText(/1\.234,50/)).toBeInTheDocument();
   });
 });

@@ -16,7 +16,7 @@ export function MetricStatCard({
   title,
   amount,
   currency = "EUR",
-  locale = "de-DE",
+  locale,
   trendPercentage,
   trendLabel,
   icon,
