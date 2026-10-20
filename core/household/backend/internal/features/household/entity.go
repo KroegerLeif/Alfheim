@@ -71,6 +71,10 @@ type Member struct {
 }
 
 // Invite represents an invitation token generated for joining a household.
+//
+// Token holds the plaintext only on a freshly created invite (it is returned to
+// the creator once and never persisted). On invites read from the store it
+// holds the stored SHA-256 hash, an opaque id that cannot be redeemed.
 type Invite struct {
 	Token       string        `json:"token"`
 	HouseholdID string        `json:"household_id"`

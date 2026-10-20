@@ -11,6 +11,13 @@ import (
 	"alfheim/household/internal/shared/middleware"
 )
 
+const (
+	defaultInviteTTL  = 24 * time.Hour
+	maxInviteTTL      = 30 * 24 * time.Hour
+	defaultInviteUses = 1
+	maxInviteUses     = 100
+)
+
 func (s *service) CreateInvite(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error) {
 	targetRole := RoleMember
 	if req.Role != "" {
@@ -21,7 +28,19 @@ func (s *service) CreateInvite(ctx context.Context, requesterID string, req Crea
 		targetRole = role
 	}
 
-	if _, err := s.requireRole(ctx, req.HouseholdID, requesterID, RoleOwner, RoleAdmin); err != nil {
+	requesterRole, err := s.requireRole(ctx, req.HouseholdID, requesterID, RoleOwner, RoleAdmin)
+	if err != nil {
+		return nil, err
+	}
+
+	// Granting ADMIN is reserved to the owner (see UpdateMemberRole); otherwise
+	// an admin could mint admin invites for an accomplice account.
+	if targetRole == RoleAdmin && requesterRole != RoleOwner {
+		return nil, ErrUnauthorizedHouseholdAccess
+	}
+
+	ttl, maxUses, err := inviteLimits(req)
+	if err != nil {
 		return nil, err
 	}
 
@@ -36,17 +55,9 @@ func (s *service) CreateInvite(ctx context.Context, requesterID string, req Crea
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return nil, fmt.Errorf("failed to generate secure invite token: %w", err)
 	}
+	// The plaintext token is returned to the creator exactly once; the
+	// repository persists only its SHA-256 hash.
 	token := hex.EncodeToString(tokenBytes)
-
-	ttl := 24 * time.Hour
-	if req.TTLMinutes > 0 {
-		ttl = time.Duration(req.TTLMinutes) * time.Minute
-	}
-
-	maxUses := 1
-	if req.MaxUses > 0 {
-		maxUses = req.MaxUses
-	}
 
 	invite := &Invite{
 		Token:       token,
@@ -66,6 +77,28 @@ func (s *service) CreateInvite(ctx context.Context, requesterID string, req Crea
 	s.log.Info("created household invite token", slog.String("household_id", req.HouseholdID), slog.String("inviter_id", requesterID))
 	resp := ToInviteResponse(invite)
 	return &resp, nil
+}
+
+// inviteLimits applies the defaults for unset (zero) values and rejects negative
+// or out-of-range ones. The bounds are checked on the raw integers before any
+// multiplication so a huge ttl_minutes cannot overflow time.Duration.
+func inviteLimits(req CreateInviteRequest) (time.Duration, int, error) {
+	ttl := defaultInviteTTL
+	if req.TTLMinutes != 0 {
+		if req.TTLMinutes < 0 || req.TTLMinutes > int(maxInviteTTL/time.Minute) {
+			return 0, 0, ErrInvalidInviteParams
+		}
+		ttl = time.Duration(req.TTLMinutes) * time.Minute
+	}
+
+	maxUses := defaultInviteUses
+	if req.MaxUses != 0 {
+		if req.MaxUses < 0 || req.MaxUses > maxInviteUses {
+			return 0, 0, ErrInvalidInviteParams
+		}
+		maxUses = req.MaxUses
+	}
+	return ttl, maxUses, nil
 }
 
 func (s *service) ListInvites(ctx context.Context, requesterID string, householdID string) ([]InviteResponse, error) {

@@ -118,7 +118,7 @@ func TestIntegration_ConcurrentJoinOnSingleUseInvite(t *testing.T) {
 		t.Errorf("unexpected errors: %v", otherErrs)
 	}
 	var uses, members int
-	if err := pool.QueryRow(ctx, `SELECT uses FROM household_invites WHERE token = $1`, inv.Token).Scan(&uses); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT uses FROM household_invites WHERE token_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex')`, inv.Token).Scan(&uses); err != nil {
 		t.Fatal(err)
 	}
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM household_members WHERE household_id = $1`, h.ID).Scan(&members); err != nil {
@@ -158,7 +158,7 @@ func TestIntegration_JoinRules(t *testing.T) {
 		t.Errorf("expected ErrMemberAlreadyExists, got %v", err)
 	}
 	var uses int
-	_ = pool.QueryRow(ctx, `SELECT uses FROM household_invites WHERE token = $1`, inv.Token).Scan(&uses)
+	_ = pool.QueryRow(ctx, `SELECT uses FROM household_invites WHERE token_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex')`, inv.Token).Scan(&uses)
 	if uses != 1 {
 		t.Errorf("expected uses=1 after duplicate join, got %d", uses)
 	}
@@ -166,7 +166,7 @@ func TestIntegration_JoinRules(t *testing.T) {
 	if _, err := svc.JoinHousehold(ctx, claimsFor("x"), "does-not-exist"); !errors.Is(err, household.ErrInviteNotFound) {
 		t.Errorf("expected ErrInviteNotFound, got %v", err)
 	}
-	if _, err := pool.Exec(ctx, `UPDATE household_invites SET expires_at = NOW() - interval '1 minute' WHERE token = $1`, inv.Token); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE household_invites SET expires_at = NOW() - interval '1 minute' WHERE token_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex')`, inv.Token); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := svc.JoinHousehold(ctx, claimsFor("late"), inv.Token); !errors.Is(err, household.ErrInviteExpiredOrInvalid) {
@@ -174,7 +174,7 @@ func TestIntegration_JoinRules(t *testing.T) {
 	}
 
 	// The schema itself refuses OWNER invites and unknown roles.
-	if _, err := pool.Exec(ctx, `INSERT INTO household_invites (token, household_id, inviter_id, role, expires_at) VALUES ('t-owner', $1, 'owner', 'OWNER', NOW() + interval '1 hour')`, h.ID); err == nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO household_invites (token_hash, household_id, inviter_id, role, expires_at) VALUES ('t-owner', $1, 'owner', 'OWNER', NOW() + interval '1 hour')`, h.ID); err == nil {
 		t.Error("expected CHECK violation for OWNER invite")
 	}
 	if _, err := pool.Exec(ctx, `UPDATE household_members SET role = 'ROOT' WHERE household_id = $1 AND user_id = 'guest'`, h.ID); err == nil {

@@ -2,6 +2,8 @@ package household
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -10,8 +12,20 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-const inviteColumns = `token, household_id, inviter_id, role, expires_at, max_uses, uses, created_at`
+// inviteColumns lists the persisted invite columns. The first one holds the
+// SHA-256 hash of the invite token, never the token itself.
+const inviteColumns = `token_hash, household_id, inviter_id, role, expires_at, max_uses, uses, created_at`
 
+// hashInviteToken returns the hex SHA-256 of an invite token. Tokens carry 256
+// bits of entropy, so an unsalted fast hash is sufficient and keeps the
+// redemption lookup an indexed equality match.
+func hashInviteToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+// scanInvite reads an invite row. Invite.Token receives the stored token hash,
+// which identifies the invite (e.g. for revocation) but cannot be redeemed.
 func scanInvite(row pgx.Row) (*Invite, error) {
 	i := &Invite{}
 	var roleStr string
@@ -40,7 +54,7 @@ func (r *repository) CreateInvite(ctx context.Context, invite *Invite) error {
 		invite.CreatedAt = time.Now()
 	}
 	_, err := r.db.Exec(ctx, query,
-		invite.Token,
+		hashInviteToken(invite.Token),
 		invite.HouseholdID,
 		invite.InviterID,
 		string(invite.Role),
@@ -83,9 +97,14 @@ func (r *repository) ListActiveInvites(ctx context.Context, householdID string) 
 	return invites, nil
 }
 
-// DeleteInvite revokes an invite, scoped to its household.
+// DeleteInvite revokes an invite, scoped to its household. The identifier is
+// either the invite id returned by ListActiveInvites (the stored hash) or the
+// plaintext token itself.
 func (r *repository) DeleteInvite(ctx context.Context, householdID string, token string) error {
-	cmd, err := r.db.Exec(ctx, `DELETE FROM household_invites WHERE token = $1 AND household_id = $2`, token, householdID)
+	cmd, err := r.db.Exec(ctx, `
+		DELETE FROM household_invites
+		WHERE household_id = $1 AND (token_hash = $2 OR token_hash = $3)`,
+		householdID, token, hashInviteToken(token))
 	if err != nil {
 		return fmt.Errorf("failed to delete invite: %w", err)
 	}
@@ -105,6 +124,7 @@ func (r *repository) DeleteInvite(ctx context.Context, householdID string, token
 // and ErrMemberAlreadyExists is returned. The member role is the invite's role,
 // but never OWNER.
 func (r *repository) RedeemInviteTx(ctx context.Context, token, userID, email, username string) (*Invite, error) {
+	tokenHash := hashInviteToken(token)
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start invite redemption transaction: %w", err)
@@ -118,14 +138,14 @@ func (r *repository) RedeemInviteTx(ctx context.Context, token, userID, email, u
 	invite, err := scanInvite(tx.QueryRow(ctx, `
 		UPDATE household_invites
 		SET uses = uses + 1
-		WHERE token = $1 AND uses < max_uses AND expires_at > NOW()
-		RETURNING `+inviteColumns, token))
+		WHERE token_hash = $1 AND uses < max_uses AND expires_at > NOW()
+		RETURNING `+inviteColumns, tokenHash))
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("failed to consume invite: %w", err)
 		}
 		var exists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM household_invites WHERE token = $1)`, token).Scan(&exists); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM household_invites WHERE token_hash = $1)`, tokenHash).Scan(&exists); err != nil {
 			return nil, fmt.Errorf("failed to look up invite: %w", err)
 		}
 		if exists {

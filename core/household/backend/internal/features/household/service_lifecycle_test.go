@@ -116,7 +116,7 @@ func TestService_JoinHousehold(t *testing.T) {
 	svc, repo := seededService(t)
 	ctx := context.Background()
 
-	inv, err := svc.CreateInvite(ctx, admin, household.CreateInviteRequest{HouseholdID: hhA, Role: "ADMIN", MaxUses: 2})
+	inv, err := svc.CreateInvite(ctx, owner, household.CreateInviteRequest{HouseholdID: hhA, Role: "ADMIN", MaxUses: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
