@@ -310,6 +310,7 @@ async def test_repeated_atomic_deltas_never_lose_an_update(db_session: AsyncSess
             pot_id=None,
             account_delta=Decimal("10.00"),
             pot_delta=Decimal("0.00"),
+            household_id=household_id,
         )
     await db_session.commit()
 

@@ -28,7 +28,8 @@ def get_pot_service(
     return PotService(repository)
 
 
-@router.post("/", response_model=PotRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PotRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PotRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_pot(
     pot_in: PotCreate,
     ctx: HouseholdContext = Depends(require_household),
@@ -42,7 +43,8 @@ async def create_pot(
     return PotRead.model_validate(pot)
 
 
-@router.get("/", response_model=list[PotRead])
+@router.get("", response_model=list[PotRead])
+@router.get("/", response_model=list[PotRead], include_in_schema=False)
 async def list_pots(
     include_inactive: bool = Query(default=False),
     ctx: HouseholdContext = Depends(require_household),

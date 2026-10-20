@@ -28,7 +28,8 @@ def get_transaction_service(
     return TransactionService(repository)
 
 
-@router.post("/", response_model=TransactionRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TransactionRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=TransactionRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_transaction(
     transaction_in: TransactionCreate,
     ctx: HouseholdContext = Depends(require_household),
@@ -56,7 +57,8 @@ async def quick_add_transaction(
     return TransactionRead.model_validate(tx)
 
 
-@router.get("/", response_model=list[TransactionRead])
+@router.get("", response_model=list[TransactionRead])
+@router.get("/", response_model=list[TransactionRead], include_in_schema=False)
 async def list_transactions(
     account_id: UUID | None = Query(default=None),
     pot_id: UUID | None = Query(default=None),

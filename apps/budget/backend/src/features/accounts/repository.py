@@ -59,8 +59,15 @@ class AccountRepository:
         await self.session.delete(account)
         await self.session.commit()
 
-    async def count_referencing_transactions(self, account_id: UUID) -> int:
+    async def count_referencing_transactions(self, account_id: UUID, household_id: UUID) -> int:
         """Count transactions that still reference this account (used to guard deletion)."""
-        statement = select(func.count()).select_from(Transaction).where(Transaction.account_id == account_id)
+        statement = (
+            select(func.count())
+            .select_from(Transaction)
+            .where(
+                Transaction.account_id == account_id,
+                Transaction.household_id == household_id,
+            )
+        )
         result = await self.session.exec(statement)
         return int(result.one())
