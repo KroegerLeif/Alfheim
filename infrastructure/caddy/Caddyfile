@@ -5,12 +5,44 @@
 }
 
 # =============================================================================
+# Security headers, imported by every site block below.
+#
+# The "?" prefix only sets a header the upstream did not already send, so
+# Zitadel and Grafana keep the headers they ship themselves.
+#
+# X-Frame-Options / frame-ancestors: no Alfheim app frames another one, and
+# neither Zitadel's login UI nor Grafana is embedded anywhere. The only iframe
+# (the library PDF viewer) loads a same-origin /storage URL, so SAMEORIGIN is
+# the tightest value that does not break it.
+#
+# Content-Security-Policy-Report-Only documents the intended baseline but is
+# NOT enforced yet: Next.js emits inline bootstrap scripts, so enforcing
+# script-src without nonces would break every frontend. Violations show up in
+# the browser console. connect-src lists the auth host because the browser
+# talks to Zitadel's OIDC endpoints directly.
+# HSTS is deliberately absent: the dev stack is plain HTTP.
+# =============================================================================
+(security_headers) {
+	header {
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "SAMEORIGIN"
+		?Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		?Content-Security-Policy "frame-ancestors 'self'"
+		?Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://auth.{$ALFHEIM_HOST:alfheim.loegien.de} https://auth.{$ALFHEIM_HOST:alfheim.loegien.de} http://auth.alfheim.loegien.localhost https://auth.alfheim.loegien.localhost; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+}
+
+# =============================================================================
 # 0. IDENTITY PROVIDER DOMAIN (Zitadel OIDC)
 # Zitadel is served on its own dedicated host; it does not support sub-path
 # hosting. The issuer therefore is the bare origin of these domains.
 # =============================================================================
 http://auth.{$ALFHEIM_HOST:alfheim.loegien.de}, https://auth.{$ALFHEIM_HOST:alfheim.loegien.de}, http://auth.loegien.de, https://auth.loegien.de, http://auth.alfheim.loegien.localhost, https://auth.alfheim.loegien.localhost {
 	{$CADDY_TLS_DIRECTIVE:}
+
+	import security_headers
 
 	reverse_proxy zitadel:8080 {
 		# Zitadel speaks gRPC-Web / HTTP/2 to its own frontend and API.
@@ -26,28 +58,16 @@ http://auth.{$ALFHEIM_HOST:alfheim.loegien.de}, https://auth.{$ALFHEIM_HOST:alfh
 http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegien.de}, http://alfheim.loegien.localhost, https://alfheim.loegien.localhost, http://alfheim, https://alfheim, http://localhost, http://127.0.0.1 {
 	{$CADDY_TLS_DIRECTIVE:}
 
+	import security_headers
+
 	# Dedicated Ingress Gateway Healthcheck Endpoint (isolated from downstream services)
 	handle /livez {
 		respond "OK" 200
 	}
 
-	# Exact locale redirects for bare base paths
-	redir /pantry /pantry/en 302
-	redir /pantry/ /pantry/en 302
-	redir /shopping /shopping/en 302
-	redir /shopping/ /shopping/en 302
-	redir /maintenance /maintenance/en 302
-	redir /maintenance/ /maintenance/en 302
-	redir /chores /chores/de 302
-	redir /chores/ /chores/de 302
-	redir /library /library/en 302
-	redir /library/ /library/en 302
-	redir /workout /workout/de 302
-	redir /workout/ /workout/de 302
-	redir /chat /chat/de 302
-	redir /chat/ /chat/de 302
-	redir /budget /budget/en 302
-	redir /budget/ /budget/en 302
+	# Bare app paths (/pantry, /chores, ...) are not redirected here: each
+	# Next.js app's next-intl middleware owns locale selection (NEXT_LOCALE
+	# cookie, Accept-Language, default locale); the gateway only routes.
 
 	# API Gateway Proxies on Frontend Domain (allows relative /api/v1/... calls without CORS)
 	handle_path /api/v1/maintenance* {
@@ -191,28 +211,13 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfheim.loegien.de}, http://api.alfheim.loegien.localhost, https://api.alfheim.loegien.localhost, http://api.alfheim, https://api.alfheim {
 	{$CADDY_TLS_DIRECTIVE:}
 
-	# Dynamic Origin matching for CORS (the OIDC issuer lives on the auth.* host)
-	@cors_origin {
-		not path /auth*
-		header Origin *
-	}
-	@cors_options {
-		not path /auth*
-		method OPTIONS
-	}
+	import security_headers
 
-	handle @cors_options {
-		header @cors_origin Access-Control-Allow-Origin "{http.request.header.Origin}"
-		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-		header Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
-		header Access-Control-Allow-Credentials "true"
-		respond 204
-	}
-
-	header @cors_origin ?Access-Control-Allow-Origin "{http.request.header.Origin}"
-	header @cors_origin ?Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-	header @cors_origin ?Access-Control-Allow-Headers "Authorization, Content-Type, X-Household-Id, X-Household-Role"
-	header @cors_origin ?Access-Control-Allow-Credentials "true"
+	# No CORS handling: every frontend calls the API through its own origin
+	# (NEXT_PUBLIC_API_URL is derived from ALFHEIM_BASE_URL, see the frontend
+	# host above), so browsers never issue cross-origin requests to this host.
+	# Reflecting arbitrary origins together with credentials would let any
+	# website read authenticated API responses.
 
 	# Maintenance API
 	handle_path /api/v1/maintenance* {

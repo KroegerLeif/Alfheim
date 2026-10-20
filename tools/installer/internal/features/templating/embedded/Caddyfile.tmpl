@@ -78,6 +78,39 @@
 {{- end }}
 }
 
+# =============================================================================
+# Security headers, imported by every site block below.
+#
+# The "?" prefix only sets a header the upstream did not already send, so
+# Zitadel and Grafana keep the headers they ship themselves.
+#
+# X-Frame-Options / frame-ancestors: no Alfheim app frames another one, and
+# neither Zitadel's login UI nor Grafana is embedded anywhere. The only iframe
+# (the library PDF viewer) loads a same-origin /storage URL, so SAMEORIGIN is
+# the tightest value that does not break it.
+#
+# Content-Security-Policy-Report-Only documents the intended baseline but is
+# NOT enforced yet: Next.js emits inline bootstrap scripts, so enforcing
+# script-src without nonces would break every frontend. Violations show up in
+# the browser console; tighten the policy and promote it to an enforced header
+# once the frontends use nonces. connect-src lists the auth host because the
+# browser talks to Zitadel's OIDC endpoints directly.
+# =============================================================================
+(security_headers) {
+	header {
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "SAMEORIGIN"
+		?Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		?Content-Security-Policy "frame-ancestors 'self'"
+		?Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' {{ $on.Scheme }}://{{ $on.AuthHost }}; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+{{- if $on.Secure }}
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+{{- end }}
+		-Server
+	}
+}
+
 {{- define "tlsDirective" }}
 {{- if eq .Strategy.String "internal" }}
 	tls {
@@ -97,6 +130,8 @@
 # =============================================================================
 {{ $on.Scheme }}://{{ $on.AuthHost }} {
 {{- template "tlsDirective" $tls }}
+
+	import security_headers
 
 	# Defense in depth: /internal/* is the service-to-service API authenticated
 	# by ALFHEIM_INTERNAL_TOKEN and must never be reachable from outside.
@@ -127,6 +162,8 @@ http://{{ $on.AuthHost }} {
 {{ $on.Scheme }}://{{ $on.AppHost }} {
 {{- template "tlsDirective" $tls }}
 
+	import security_headers
+
 	# Dedicated ingress healthcheck endpoint, isolated from downstream services.
 	handle /livez {
 		respond "OK" 200
@@ -138,23 +175,9 @@ http://{{ $on.AuthHost }} {
 		respond 404
 	}
 
-	# Exact locale redirects for bare base paths.
-	redir /pantry /pantry/en 302
-	redir /pantry/ /pantry/en 302
-	redir /shopping /shopping/en 302
-	redir /shopping/ /shopping/en 302
-	redir /maintenance /maintenance/en 302
-	redir /maintenance/ /maintenance/en 302
-	redir /chores /chores/de 302
-	redir /chores/ /chores/de 302
-	redir /library /library/en 302
-	redir /library/ /library/en 302
-	redir /workout /workout/de 302
-	redir /workout/ /workout/de 302
-	redir /chat /chat/de 302
-	redir /chat/ /chat/de 302
-	redir /budget /budget/en 302
-	redir /budget/ /budget/en 302
+	# Bare app paths (/pantry, /chores, ...) are not redirected here: each
+	# Next.js app's next-intl middleware owns locale selection (NEXT_LOCALE
+	# cookie, Accept-Language, default locale); the gateway only routes.
 
 	# API gateway proxies on the frontend domain, so browsers can issue
 	# relative /api/v1/... calls without a CORS preflight.
@@ -172,19 +195,24 @@ http://{{ $on.AuthHost }} {
 		reverse_proxy household-backend:8080
 	}
 {{- range .APIRoutes }}
+{{- if .Direct }}
+	handle /api/v1/{{ .Slug }}* {
+		reverse_proxy {{ .Upstream }}
+	}
+{{- else }}
 	handle_path /api/v1/{{ .Slug }}* {
 		rewrite * /api/v1{path}
 		reverse_proxy {{ .Upstream }}
 	}
+{{- end }}
 	handle_path /{{ .Slug }}/api/v1* {
-		rewrite * /api/v1{path}
+		rewrite * {{ .BackendPrefix }}{path}
 		reverse_proxy {{ .Upstream }}
 	}
 {{- end }}
 
-	# Central dashboard control plane.
-	handle_path /api/v1* {
-		rewrite * /api/v1{path}
+	# Central dashboard control plane (path preserved).
+	handle /api/v1/* {
 		reverse_proxy dashboard-backend:8080
 	}
 
@@ -201,7 +229,7 @@ http://{{ $on.AuthHost }} {
 	# Application frontends.
 {{- range .APIRoutes }}
 	handle /{{ .Slug }}* {
-		reverse_proxy {{ .Slug }}-frontend:3000
+		reverse_proxy {{ .Slug }}-frontend:{{ .FrontendPort }}
 	}
 {{- end }}
 
