@@ -1,11 +1,5 @@
-import json
-import logging
-import urllib.request
-
-from backend_shared.tls import get_oidc_ssl_context
+from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -17,7 +11,9 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Workout Tracker"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
+    # Log every SQL statement (separate from DEBUG: statements may contain personal data)
+    SQL_ECHO: bool = False
 
     # Security: Restrict allowed origins for CORS
     CORS_ORIGINS: list[str] = [
@@ -38,40 +34,12 @@ class Settings(BaseSettings):
 
     @property
     def jwks_url(self) -> str:
-        if self.OIDC_JWKS_URL:
-            return self.OIDC_JWKS_URL
-        issuer = self.OIDC_ISSUER_URL.rstrip("/")
-        discovery_url = f"{issuer}/.well-known/openid-configuration"
-        ssl_context = get_oidc_ssl_context()
-        try:
-            req = urllib.request.Request(discovery_url, headers={"Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=3, context=ssl_context) as resp:
-                if resp.status == 200:
-                    data = json.loads(resp.read().decode())
-                    if "jwks_uri" in data:
-                        return data["jwks_uri"]
-        except Exception as e:
-            logger.debug("OIDC discovery failed for %s: %s", discovery_url, e)
-        return f"{issuer}/keys"
+        """Return the OIDC JWKS endpoint URL (explicit override or OIDC discovery, cached per issuer)."""
+        return resolve_jwks_url(self.OIDC_ISSUER_URL, self.OIDC_JWKS_URL or None)
 
     @property
     def expected_issuer(self) -> str:
         return self.OIDC_ISSUER_URL.rstrip("/")
-
-    @property
-    def jwks_fallback_urls(self) -> list[str]:
-        urls = [self.jwks_url]
-        base = self.OIDC_ISSUER_URL.rstrip("/")
-        for cert_path in [
-            "/keys",
-            "/oauth/v2/keys",
-            "/protocol/openid-connect/certs",
-            "/certs",
-        ]:
-            url = f"{base}{cert_path}"
-            if url not in urls:
-                urls.append(url)
-        return urls
 
     # OpenTelemetry Configuration
     OTEL_ENABLED: bool = False

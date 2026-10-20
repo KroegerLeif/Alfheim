@@ -12,12 +12,12 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+asyncpg://library_user:postgres@localhost:5432/alfheim_library",
 )
-DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "t")
+SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() in ("true", "1", "t")
 
 # Create the async engine
 engine = create_async_engine(
     DATABASE_URL,
-    echo=DEBUG,
+    echo=SQL_ECHO,
     future=True,
 )
 
