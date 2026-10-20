@@ -229,7 +229,7 @@ func TestRepository_Categories(t *testing.T) {
 			},
 		}
 		repoZero := newRepositoryWithDB(dbtxZero)
-		if err := repoZero.DeleteCategory(ctx, "cat1"); !errors.Is(err, ErrCategoryNotFound) {
+		if err := repoZero.DeleteCategory(ctx, "hh-1", "cat1"); !errors.Is(err, ErrCategoryNotFound) {
 			t.Errorf("expected ErrCategoryNotFound, got %v", err)
 		}
 
@@ -239,7 +239,7 @@ func TestRepository_Categories(t *testing.T) {
 			},
 		}
 		repoOK := newRepositoryWithDB(dbtxOK)
-		if err := repoOK.DeleteCategory(ctx, "cat1"); err != nil {
+		if err := repoOK.DeleteCategory(ctx, "hh-1", "cat1"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
@@ -369,7 +369,7 @@ func TestRepository_Contacts(t *testing.T) {
 			},
 		}
 		repoZero := newRepositoryWithDB(dbtxZero)
-		if err := repoZero.DeleteContact(ctx, "c1"); !errors.Is(err, ErrContactNotFound) {
+		if err := repoZero.DeleteContact(ctx, "hh-1", "c1"); !errors.Is(err, ErrContactNotFound) {
 			t.Errorf("expected ErrContactNotFound, got %v", err)
 		}
 
@@ -379,7 +379,7 @@ func TestRepository_Contacts(t *testing.T) {
 			},
 		}
 		repoOK := newRepositoryWithDB(dbtxOK)
-		if err := repoOK.DeleteContact(ctx, "c1"); err != nil {
+		if err := repoOK.DeleteContact(ctx, "hh-1", "c1"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
@@ -429,7 +429,7 @@ func TestRepository_DBErrors(t *testing.T) {
 			},
 		}
 		repo := newRepositoryWithDB(dbtx)
-		err := repo.DeleteCategory(ctx, "cat-1")
+		err := repo.DeleteCategory(ctx, "hh-1", "cat-1")
 		if err == nil || errors.Is(err, ErrCategoryNotFound) {
 			t.Errorf("expected underlying DB error, got %v", err)
 		}
@@ -468,7 +468,7 @@ func TestRepository_DBErrors(t *testing.T) {
 			},
 		}
 		repo := newRepositoryWithDB(dbtx)
-		err := repo.DeleteContact(ctx, "c-1")
+		err := repo.DeleteContact(ctx, "hh-1", "c-1")
 		if err == nil || errors.Is(err, ErrContactNotFound) {
 			t.Errorf("expected underlying DB error, got %v", err)
 		}
