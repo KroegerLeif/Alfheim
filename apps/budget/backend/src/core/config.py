@@ -13,7 +13,9 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Budget & Treasury Service"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
+    # Log every SQL statement (separate from DEBUG: statements may contain personal data)
+    SQL_ECHO: bool = False
 
     # CORS configuration
     CORS_ORIGINS: list[str] = [

@@ -11,7 +11,9 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Maintenance Manager"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
+    # Log every SQL statement (separate from DEBUG: statements may contain personal data)
+    SQL_ECHO: bool = False
 
     # Security: Restrict allowed origins for CORS
     CORS_ORIGINS: list[str] = [

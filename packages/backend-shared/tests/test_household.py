@@ -1,5 +1,6 @@
 """Tests for backend_shared.household (membership-API backed household authorization)."""
 
+import sys
 import uuid
 
 import httpx
@@ -319,6 +320,41 @@ async def test_missing_token_outside_tests_fails_loudly(monkeypatch):
     with pytest.raises(MembershipServiceError):
         await lookup(HOUSEHOLD, SUB)
     assert recorder.requests == []
+
+
+@pytest.mark.parametrize(
+    "token",
+    ["dev-internal-token-change-me", "change-me-internal-token", "too-short-token", "x" * 31],
+    ids=["compose-default", "env-example", "short", "31-chars"],
+)
+@pytest.mark.parametrize("environment", ["production", "staging", ""])
+def test_weak_internal_token_rejected_outside_explicit_dev(monkeypatch, token, environment):
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.delenv("TESTING", raising=False)
+    monkeypatch.delitem(sys.modules, "pytest")  # the check treats a loaded pytest as a test context
+    monkeypatch.setenv("ENVIRONMENT", environment)
+    monkeypatch.setenv("ALFHEIM_INTERNAL_TOKEN", token)
+
+    with pytest.raises(HouseholdConfigError, match="ALFHEIM_INTERNAL_TOKEN"):
+        configure_household_auth(object())
+
+
+def test_strong_internal_token_accepted_in_production(monkeypatch):
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.delenv("TESTING", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ALFHEIM_INTERNAL_TOKEN", "a" * 32)
+
+    configure_household_auth(object())
+    assert hh.get_membership_client().internal_token() == "a" * 32
+
+
+@pytest.mark.parametrize("environment", ["development", "test"])
+def test_weak_internal_token_allowed_in_explicit_dev_or_test(monkeypatch, environment):
+    monkeypatch.setenv("ENVIRONMENT", environment)
+    monkeypatch.setenv("ALFHEIM_INTERNAL_TOKEN", "dev-internal-token-change-me")
+
+    configure_household_auth(object())
 
 
 @pytest.mark.asyncio

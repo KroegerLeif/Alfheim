@@ -8,7 +8,7 @@ from src.core.config import settings
 # Create async engine for database operations
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
+    echo=settings.SQL_ECHO,
     future=True,
 )
 

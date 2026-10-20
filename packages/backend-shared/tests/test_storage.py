@@ -1,5 +1,7 @@
 """Unit tests for backend-shared storage module."""
 
+import sys
+
 import pytest
 from backend_shared.storage import StorageSettings, get_household_object_key, get_user_object_key
 
@@ -12,6 +14,23 @@ def test_storage_settings_dev_default_fallback(monkeypatch):
     settings = StorageSettings()
     assert settings.S3_ACCESS_KEY == "minioadmin"
     assert settings.S3_SECRET_KEY == "minioadmin"
+
+
+@pytest.mark.parametrize("env", [None, "", "production", "staging"])
+def test_storage_settings_no_default_credentials_without_explicit_dev(monkeypatch, env):
+    """An unset or non-development ENVIRONMENT must never silently fall back to minioadmin."""
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.delenv("TESTING", raising=False)
+    monkeypatch.delitem(sys.modules, "pytest")  # the check treats a loaded pytest as a test context
+    if env is None:
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+    else:
+        monkeypatch.setenv("ENVIRONMENT", env)
+    monkeypatch.delenv("S3_ACCESS_KEY", raising=False)
+    monkeypatch.delenv("S3_SECRET_KEY", raising=False)
+
+    with pytest.raises(ValueError, match="S3_ACCESS_KEY is required"):
+        StorageSettings()
 
 
 def test_storage_settings_production_missing_access_key(monkeypatch):
