@@ -101,13 +101,13 @@ class TaskService:
         """
         statement = (
             select(ServiceHistoryEvent)
+            .join(Device, col(Device.id) == col(ServiceHistoryEvent.device_id))
+            .where(col(Device.household_id) == household_id)
             .options(selectinload(cast(Any, ServiceHistoryEvent.device)))
             .order_by(col(ServiceHistoryEvent.date).desc())
         )
         result = await session.exec(statement)
         events = list(result.all())
-
-        events = [e for e in events if e.device and e.device.household_id == household_id]
 
         return [
             ServiceHistoryEventDetailRead(
@@ -116,8 +116,8 @@ class TaskService:
                 performer=e.performer,
                 notes=e.notes,
                 device_id=e.device_id,
-                device_name=e.device.name if e.device else "Unknown",
-                device_location=e.device.location if e.device else "Unknown",
+                device_name=e.device.name,
+                device_location=e.device.location,
                 completed_steps=e.completed_steps,
             )
             for e in events
@@ -204,18 +204,13 @@ class TaskService:
         """
         statement = (
             select(MaintenanceStep)
-            .options(selectinload(cast(Any, MaintenanceStep.device)))
-            .where(MaintenanceStep.id == step_id)
+            .join(Device, col(Device.id) == col(MaintenanceStep.device_id))
+            .where(MaintenanceStep.id == step_id, col(Device.household_id) == household_id)
         )
         res = await session.exec(statement)
         step = res.first()
         if not step:
             raise StepNotFoundError(f"MaintenanceStep {step_id} not found")
-
-        if step.device and step.device.household_id != household_id:
-            raise StepNotFoundError(
-                f"MaintenanceStep {step_id} not found or not authorized for household {household_id}"
-            )
 
         if payload.comment is not None:
             step.description = payload.comment
@@ -237,16 +232,19 @@ class TaskService:
             session: Database session
             household_id: The user's authenticated household_id from context
         """
-        statement = select(MaintenanceStep).options(selectinload(cast(Any, MaintenanceStep.device)))
+        statement = (
+            select(MaintenanceStep)
+            .join(Device, col(Device.id) == col(MaintenanceStep.device_id))
+            .where(col(Device.household_id) == household_id)
+            .options(selectinload(cast(Any, MaintenanceStep.device)))
+        )
         result = await session.exec(statement)
-        all_steps = list(result.all())
+        household_steps = list(result.all())
 
         today = datetime.date.today()
         overdue: list[dict[str, Any]] = []
 
-        for step in all_steps:
-            if step.device and step.device.household_id != household_id:
-                continue
+        for step in household_steps:
             if not step.supply_needed_date:
                 continue
             try:
@@ -261,8 +259,8 @@ class TaskService:
                         "step_id": step.id,
                         "title": step.title,
                         "device_id": step.device_id,
-                        "device_name": step.device.name if step.device else "Unknown",
-                        "device_location": step.device.location if step.device else "Unknown",
+                        "device_name": step.device.name,
+                        "device_location": step.device.location,
                         "due_date": step.supply_needed_date,
                         "days_overdue": days_overdue,
                         "supply_item": step.supply_item,
