@@ -228,8 +228,12 @@ if [[ "$RUN_FRONTEND" == true ]]; then
     log_banner "3. Frontend Verification (TypeScript & Vitest)"
 
     if command -v pnpm >/dev/null 2>&1; then
-        log_section "TypeScript Type Checking (tsc --noEmit across workspace)"
-        if pnpm -r exec tsc --noEmit; then
+        # Mirrors the root `check-types` script. The docs portal is an Astro project: a bare
+        # `tsc --noEmit` fails there because `astro:content` types only exist after `astro sync`,
+        # so it runs its own `astro check`. --no-bail reports every failing package, not just the first.
+        log_section "TypeScript Type Checking (tsc --noEmit across workspace, astro check for the docs portal)"
+        if pnpm -r --no-bail --filter '!@alfheim/docs-portal' exec tsc --noEmit \
+            && pnpm --filter @alfheim/docs-portal run check-types; then
             log_success "TypeScript type checking passed across all frontends & packages"
         else
             log_fail "TypeScript type checking failed"
@@ -247,7 +251,7 @@ if [[ "$RUN_FRONTEND" == true ]]; then
         vitest_max_workers="${VITEST_MAX_WORKERS:-$(( cpu_count / frontend_concurrency > 0 ? cpu_count / frontend_concurrency : 1 ))}"
 
         log_section "Vitest Test Suites (${frontend_concurrency} packages at a time, ${vitest_max_workers} workers each)"
-        if VITEST_MAX_WORKERS="$vitest_max_workers" pnpm -r --workspace-concurrency="$frontend_concurrency" test; then
+        if VITEST_MAX_WORKERS="$vitest_max_workers" pnpm -r --no-bail --workspace-concurrency="$frontend_concurrency" test; then
             log_success "Vitest suites passed"
         else
             log_fail "Vitest suites failed"
