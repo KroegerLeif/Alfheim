@@ -2,12 +2,11 @@ import uuid
 from datetime import date
 
 from backend_shared.household import HouseholdContext, MembershipLookup, get_membership_lookup, require_household
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
 from src.features.chore_management.schemas import (
     ChoreAssignRequest,
-    ChoreCompleteRequest,
     ChoreInstanceRead,
     ChoreIntegrationSummary,
     ChoreTemplateCreate,
@@ -37,8 +36,8 @@ async def create_chore_template(
 
 @router.get("/templates", response_model=list[ChoreTemplateRead])
 async def list_chore_templates(
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
@@ -54,8 +53,8 @@ async def list_chore_templates(
 @router.get("/templates/{template_id}/timeline", response_model=list[ChoreTimelineRead])
 async def get_task_timeline(
     template_id: uuid.UUID,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
@@ -191,18 +190,16 @@ async def claim_chore_instance(
 @router.post("/instances/{id}/complete", response_model=ChoreInstanceRead)
 async def complete_chore_instance(
     id: uuid.UUID,
-    payload: ChoreCompleteRequest | None = None,
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Mark a chore instance as completed."""
-    # Always the authenticated caller: a client can never record a chore as done by someone else.
+    """Mark a chore instance as completed.
+
+    Both the completing user and the displayed name come from the authenticated
+    caller; a client can never record a chore as done by (or under the name of) someone else.
+    """
     completed_by = context.user_id
-    completed_by_name = (
-        payload.completed_by_name
-        if payload and payload.completed_by_name
-        else (context.username or context.email or "User")
-    )
+    completed_by_name = context.username or context.email or "User"
     return await ChoreService.complete_chore_instance(
         session=session,
         instance_id=id,

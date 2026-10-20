@@ -1,10 +1,13 @@
 import pytest
+from backend_shared.household.testing import DEFAULT_TEST_SUB, make_test_token
 from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
 async def test_chore_completion_timeline(client: AsyncClient, auth_headers):
     headers = auth_headers()
+    # The recorded name comes from the caller's token claims, never from the request body.
+    headers["Authorization"] = f"Bearer {make_test_token(DEFAULT_TEST_SUB, preferred_username='Alice')}"
 
     # 1. Create a chore template
     template_resp = await client.post(
@@ -26,7 +29,7 @@ async def test_chore_completion_timeline(client: AsyncClient, auth_headers):
     # 3. Complete the chore instance
     complete_resp = await client.post(
         f"/api/v1/chores/instances/{target_instance['id']}/complete",
-        json={"completed_by_name": "Test User"},
+        json={"completed_by_name": "Spoofed Name"},
         headers=headers,
     )
     assert complete_resp.status_code == 200
@@ -40,4 +43,4 @@ async def test_chore_completion_timeline(client: AsyncClient, auth_headers):
     assert history_item["template_id"] == template_id
     assert history_item["instance_id"] == target_instance["id"]
     assert history_item["points_awarded"] == 15
-    assert history_item["completed_by_name"] == "Test User"
+    assert history_item["completed_by_name"] == "Alice"
