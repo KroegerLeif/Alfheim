@@ -116,9 +116,14 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
    version — never `latest`.
 3. Downloads and verifies the target release's stack files against its
    `SHA256SUMS`.
-4. Backs up the current stack files to a timestamped directory
+4. Takes a [backup](./backup-restore.md) of the databases and secrets
+   (`backups/alfheim-backup-<UTC timestamp>.tar.gz`, without the object
+   storage) and prints its path. If this fails, the update aborts before
+   anything changes; `--skip-backup` skips it. The stack must be running for the
+   database dump.
+5. Backs up the current stack files to a timestamped directory
    (`.alfheim-backups/<UTC timestamp>/`) before replacing anything.
-5. Replaces `compose.prod.yaml` and the other stack files, sets
+6. Replaces `compose.prod.yaml` and the other stack files, sets
    `IMAGE_TAG` in `.env`, and re-renders the Caddyfile from the stored
    configuration.
 6. Appends any secret a newer release requires and `.env` lacks.
@@ -186,6 +191,10 @@ If `update` fails, or you decide the new release should not have shipped:
 Because secrets, the root CA and every Docker volume were never touched, a
 rollback never re-triggers a wizard, re-provisions Zitadel from scratch, or
 loses data.
+
+If the new release migrated a database in a way the old release cannot read,
+roll back the data too: `alfheim-setup restore` the pre-update archive from
+`backups/` (see [Backup, Restore & Data Migration](./backup-restore.md)).
 
 ---
 

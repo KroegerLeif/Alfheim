@@ -22,7 +22,8 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 
 The installer starts the whole stack itself and prints the access URLs and the
 administrator login when it finishes. Re-running it in the same directory
-updates the installation.
+updates the installation. Back up with `alfheim-setup backup` and restore with
+`alfheim-setup restore`, see the [backup and restore guide](docs/en/how-to/backup-restore.md).
 
 By default only stable releases are installed. To install a pre-release, pin a
 tag or opt into the pre-release channel:
