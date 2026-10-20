@@ -1,37 +1,13 @@
 name: Python Quality Gate & Test Matrix
 
+# Reusable gate: triggered by ci-required.yml (path filtering and the
+# aggregated required check live there). workflow_dispatch runs it standalone.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'apps/*/backend/**'
-      - 'packages/backend-shared/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'ruff.toml'
-      - '.pre-commit-config.yaml'
-      - '.github/workflows/python-ci.yml'
-  pull_request:
-    branches:
-      - main
-      - dev
-    paths:
-      - 'apps/*/backend/**'
-      - 'packages/backend-shared/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'ruff.toml'
-      - '.pre-commit-config.yaml'
-      - '.github/workflows/python-ci.yml'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   quality-gate:
@@ -39,16 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Python 3.12 and uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           python-version: '3.12'
           enable-cache: true
 
       - name: Sync Root Workspace
-        run: uv sync --all-packages --all-groups
+        run: uv sync --all-packages --all-groups --locked
 
       - name: Run Ruff Linter
         run: uv run ruff check .
@@ -78,16 +54,41 @@ jobs:
         working-directory: ${{ matrix.service }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Python 3.12 and uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           python-version: '3.12'
           enable-cache: true
 
       - name: Sync Backend Dependencies
-        run: uv sync --all-groups
+        run: uv sync --all-groups --locked
 
       - name: Run Pytest with Coverage
         run: uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=95
+
+  # packages/backend-shared is a workspace member without a dev group of its
+  # own, so it syncs the whole workspace and runs its suite from its directory.
+  shared-tests:
+    name: Pytest (packages/backend-shared)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/backend-shared
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Python 3.12 and uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - name: Sync Root Workspace
+        working-directory: .
+        run: uv sync --all-packages --all-groups --locked
+
+      - name: Run Pytest with Coverage
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml

@@ -1,33 +1,13 @@
 name: Go Quality Gate & Test Matrix
 
+# Reusable gate: triggered by ci-required.yml (path filtering and the
+# aggregated required check live there). workflow_dispatch runs it standalone.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'apps/chat/backend/**'
-      - 'core/dashboard/backend/**'
-      - 'core/household/backend/**'
-      - 'tools/installer/**'
-      - '.github/workflows/go-ci.yml'
-  pull_request:
-    branches:
-      - main
-      - dev
-    paths:
-      - 'apps/chat/backend/**'
-      - 'core/dashboard/backend/**'
-      - 'core/household/backend/**'
-      - 'tools/installer/**'
-      - '.github/workflows/go-ci.yml'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   test-matrix:
@@ -46,10 +26,10 @@ jobs:
         working-directory: ${{ matrix.service }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Go 1.26
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26'
           cache-dependency-path: '${{ matrix.service }}/go.sum'
@@ -71,10 +51,10 @@ jobs:
         working-directory: tools/installer
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Go 1.26
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26'
           cache-dependency-path: 'tools/installer/go.sum'
