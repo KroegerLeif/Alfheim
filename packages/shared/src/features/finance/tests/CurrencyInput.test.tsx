@@ -22,6 +22,13 @@ describe("CurrencyInput Component", () => {
     expect(screen.getByDisplayValue("50.00")).toBeInTheDocument();
   });
 
+  it("derives the currency symbol from the currency code", () => {
+    render(
+      <CurrencyInput value="5" currency="USD" onChange={() => {}} aria-label="Amount" />
+    );
+    expect(screen.getByText("$")).toBeInTheDocument();
+  });
+
   it("calls onChange when valid numeric input is typed", async () => {
     const handleChange = vi.fn();
     const user = userEvent.setup();

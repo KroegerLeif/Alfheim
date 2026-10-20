@@ -1,11 +1,17 @@
 import * as React from "react";
 import { cn } from "../ui/utils/cn";
+import { useTranslation } from "../i18n/utils/useTranslation";
+import { currencySymbolFor, intlLocaleFor } from "./formatLocale";
 
 export interface CurrencyInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> {
   value: number | string;
   onChange: (value: number | string) => void;
+  /** ISO currency code; the symbol is derived from it unless currencySymbol is given. */
+  currency?: string;
+  /** Explicit symbol override; takes precedence over the symbol derived from currency. */
   currencySymbol?: string;
+  locale?: string;
   error?: string;
 }
 
@@ -14,7 +20,9 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     {
       value,
       onChange,
-      currencySymbol = "€",
+      currency = "EUR",
+      currencySymbol,
+      locale,
       error,
       className,
       disabled,
@@ -23,6 +31,10 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     },
     ref
   ) => {
+    const { language } = useTranslation();
+    const resolvedLocale = locale ?? intlLocaleFor(language);
+    const symbol = currencySymbol ?? currencySymbolFor(currency, resolvedLocale);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       // Allow empty string or numerical values with optional decimal point
@@ -35,7 +47,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
       <div className="w-full">
         <div className="relative flex items-center">
           <span className="absolute left-3 text-sm text-muted-foreground select-none font-mono">
-            {currencySymbol}
+            {symbol}
           </span>
           <input
             ref={ref}
