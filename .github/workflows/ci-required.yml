@@ -1,0 +1,101 @@
+name: CI
+
+# Single entry point for the path-filtered quality gates. Each stack gate
+# (python-ci.yml, go-ci.yml, frontend-ci.yml) is a reusable workflow that only
+# runs when its paths changed. The `ci-required` job always runs and succeeds
+# only if every gate that ran succeeded and every other gate was skipped. It is
+# the one status check to mark as required in the branch protection of `main`
+# and `dev`: a path-filtered workflow that never starts would otherwise leave a
+# required check "pending" forever.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changed Stacks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      go: ${{ steps.filter.outputs.go }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Filter Changed Paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            python:
+              - 'apps/*/backend/**'
+              - 'packages/backend-shared/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'ruff.toml'
+              - '.pre-commit-config.yaml'
+              - '.github/workflows/python-ci.yml'
+              - '.github/workflows/ci-required.yml'
+            go:
+              - 'apps/chat/backend/**'
+              - 'core/dashboard/backend/**'
+              - 'core/household/backend/**'
+              - 'tools/installer/**'
+              - '.github/workflows/go-ci.yml'
+              - '.github/workflows/ci-required.yml'
+            frontend:
+              - 'apps/*/frontend/**'
+              - 'core/*/frontend/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/frontend-ci.yml'
+              - '.github/workflows/ci-required.yml'
+
+  python:
+    name: Python
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.python == 'true'
+    uses: ./.github/workflows/python-ci.yml
+
+  go:
+    name: Go
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.go == 'true'
+    uses: ./.github/workflows/go-ci.yml
+
+  frontend:
+    name: Frontend
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/frontend-ci.yml
+
+  ci-required:
+    name: ci-required
+    needs: [changes, python, go, frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify All Gates Passed or Were Skipped
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          allowed-skips: python, go, frontend
+          jobs: ${{ toJSON(needs) }}

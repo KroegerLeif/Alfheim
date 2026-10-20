@@ -1,7 +1,7 @@
 version: 2
 updates:
-  # Python dependencies (via uv/pip)
-  - package-ecosystem: pip
+  # Python dependencies (uv workspace, resolved from uv.lock)
+  - package-ecosystem: uv
     directory: '/'
     # PRs go to dev; main only receives dev via release merges.
     target-branch: dev
@@ -126,3 +126,50 @@ updates:
       separator: '/'
     labels:
       - 'area:tooling'
+
+  # Base images in every Dockerfile (apps, core services, Caddy gateway)
+  - package-ecosystem: docker
+    directories:
+      - '/apps/*/backend'
+      - '/apps/*/frontend'
+      - '/core/*/backend'
+      - '/core/*/frontend'
+      - '/infrastructure/caddy'
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  # Image tags referenced from compose files
+  - package-ecosystem: docker-compose
+    directories:
+      - '/'
+      - '/apps/*'
+      - '/core/*'
+      - '/infrastructure'
+      - '/infrastructure/caddy'
+      - '/infrastructure/telemetry'
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
