@@ -96,9 +96,20 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `CHAT_ENCRYPTION_KEY` | _(empty)_ | AES-256-GCM key (base64-encoded) for encrypting stored LLM API keys and credentials |
 | `CHAT_ENCRYPTION_KEY_ID` | `v1` | Version identifier for the encryption key (used for key rotation) |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp` | Comma-separated MCP server definitions for the chat assistant |
+| `CHAT_ALLOWED_LLM_HOSTS` | `host.docker.internal` | Comma-separated host names, IPs and CIDR ranges that model block base URLs may point to even though they are private (see below) |
 | `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Internal URL for shopping list service to reach the pantry inventory API |
 | `GOOGLE_BOOKS_API_KEY` | _(empty)_ | Google Books API key for library metadata enrichment (optional; leave empty to disable) |
 | `TMDB_API_KEY` | _(empty)_ | The Movie Database API key for library media metadata enrichment (optional; leave empty to disable) |
+
+### Chat: outbound model endpoints
+
+Model block base URLs are user input, so the chat backend only connects to them if they are `http`/`https` URLs whose host resolves exclusively to public addresses. Loopback, link-local (including the cloud metadata address `169.254.169.254`), unspecified, multicast, private (RFC 1918, `fc00::/7`), carrier-grade NAT (`100.64.0.0/10`) and similar ranges are rejected when a block is created or updated, during model discovery, and again at connection time (which defeats DNS rebinding). Redirects are never followed and upstream error bodies are logged server-side only.
+
+`CHAT_ALLOWED_LLM_HOSTS` lists the private destinations you accept. Entries are host names (for example `host.docker.internal`), IP addresses or CIDR ranges (for example `192.168.1.0/24`), separated by commas. When unset it defaults to `host.docker.internal`, which keeps the documented setup with Ollama on the Docker host working. An invalid value is logged and treated as an empty list (nothing private is allowed).
+
+**Migration:** if Ollama runs on another machine in your LAN (for example `http://192.168.1.50:11434` or `http://gpu-box.lan:11434`), existing model blocks pointing there stop working until you add that host or range, for example `CHAT_ALLOWED_LLM_HOSTS=host.docker.internal,192.168.1.50` or `CHAT_ALLOWED_LLM_HOSTS=host.docker.internal,gpu-box.lan`, and restart the chat backend. Setting the variable replaces the default, so keep `host.docker.internal` in the list if you still need it.
+
+Bootstrap model blocks (seeded from `CHAT_BOOTSTRAP_*`) are managed by the server environment and are read-only for all API users: they cannot be edited or deleted, and any user can still select them and run a status check. The bootstrap URL is subject to the same allowlist at connection time. Changing `base_url` on any other block requires a new `api_key` (or `clear_api_key`), because the stored key is never sent to a different endpoint.
 
 ---
 
