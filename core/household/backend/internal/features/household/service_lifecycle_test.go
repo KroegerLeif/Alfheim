@@ -302,7 +302,7 @@ func TestService_InviteManagement(t *testing.T) {
 	repo.invites["other"] = &household.Invite{Token: "other", HouseholdID: "hh-b", Role: household.RoleMember, MaxUses: 1, ExpiresAt: time.Now().Add(time.Hour)}
 
 	list, err := svc.ListInvites(ctx, admin, hhA)
-	if err != nil || len(list) != 1 || list[0].Token != active.Token {
+	if err != nil || len(list) != 1 || list[0].ID != active.ID || list[0].Token != "" {
 		t.Errorf("expected only the active invite, got %+v, %v", list, err)
 	}
 	if _, err := svc.ListInvites(ctx, member, hhA); !errors.Is(err, household.ErrUnauthorizedHouseholdAccess) {

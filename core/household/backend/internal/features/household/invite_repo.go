@@ -24,13 +24,14 @@ func hashInviteToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// scanInvite reads an invite row. Invite.Token receives the stored token hash,
-// which identifies the invite (e.g. for revocation) but cannot be redeemed.
+// scanInvite reads an invite row. Invite.ID receives the stored token hash,
+// which identifies the invite (e.g. for revocation) but cannot be redeemed;
+// the plaintext token is not recoverable and Invite.Token stays empty.
 func scanInvite(row pgx.Row) (*Invite, error) {
 	i := &Invite{}
 	var roleStr string
 	if err := row.Scan(
-		&i.Token,
+		&i.ID,
 		&i.HouseholdID,
 		&i.InviterID,
 		&roleStr,
@@ -53,8 +54,9 @@ func (r *repository) CreateInvite(ctx context.Context, invite *Invite) error {
 	if invite.CreatedAt.IsZero() {
 		invite.CreatedAt = time.Now()
 	}
+	invite.ID = hashInviteToken(invite.Token)
 	_, err := r.db.Exec(ctx, query,
-		hashInviteToken(invite.Token),
+		invite.ID,
 		invite.HouseholdID,
 		invite.InviterID,
 		string(invite.Role),
@@ -98,7 +100,7 @@ func (r *repository) ListActiveInvites(ctx context.Context, householdID string) 
 }
 
 // DeleteInvite revokes an invite, scoped to its household. The identifier is
-// either the invite id returned by ListActiveInvites (the stored hash) or the
+// either the invite id returned in invite responses (the stored hash) or the
 // plaintext token itself.
 func (r *repository) DeleteInvite(ctx context.Context, householdID string, token string) error {
 	cmd, err := r.db.Exec(ctx, `

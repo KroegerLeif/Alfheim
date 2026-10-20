@@ -73,10 +73,12 @@ type Member struct {
 // Invite represents an invitation token generated for joining a household.
 //
 // Token holds the plaintext only on a freshly created invite (it is returned to
-// the creator once and never persisted). On invites read from the store it
-// holds the stored SHA-256 hash, an opaque id that cannot be redeemed.
+// the creator once and never persisted). ID is the stored SHA-256 hash of the
+// token: a stable identifier (used for revocation) that cannot be redeemed.
+// Invites read back from the store have an ID but no Token.
 type Invite struct {
-	Token       string        `json:"token"`
+	ID          string        `json:"id"`
+	Token       string        `json:"token,omitempty"`
 	HouseholdID string        `json:"household_id"`
 	InviterID   string        `json:"inviter_id"`
 	Role        HouseholdRole `json:"role"`

@@ -244,6 +244,7 @@ func (m *mockRepository) CreateInvite(ctx context.Context, invite *household.Inv
 	if err := m.fail("CreateInvite"); err != nil {
 		return err
 	}
+	invite.ID = invite.Token // the real repository sets the stored hash here
 	m.invites[invite.Token] = invite
 	return nil
 }
@@ -257,7 +258,10 @@ func (m *mockRepository) ListActiveInvites(ctx context.Context, householdID stri
 	res := []*household.Invite{}
 	for _, inv := range m.invites {
 		if inv.HouseholdID == householdID && inv.Uses < inv.MaxUses && inv.ExpiresAt.After(time.Now()) {
-			res = append(res, inv)
+			// Like the real store, listed invites carry only the id, never the token.
+			listed := *inv
+			listed.ID, listed.Token = inv.Token, ""
+			res = append(res, &listed)
 		}
 	}
 	return res, nil

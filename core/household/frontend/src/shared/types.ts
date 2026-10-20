@@ -117,7 +117,10 @@ export interface CreateInviteRequest {
 }
 
 export interface InviteCodeResponse {
-  token: string;
+  /** Stable invite identifier (stored token hash); used to revoke. */
+  id: string;
+  /** Plaintext redeem token. Only present in the create response; never listed. */
+  token?: string;
   household_id: string;
   role: string;
   expires_at: string;

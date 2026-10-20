@@ -59,8 +59,12 @@ type CreateInviteRequest struct {
 }
 
 // InviteResponse DTO returned upon invite creation.
+//
+// ID is the stable invite identifier (use it to revoke). Token is the plaintext
+// redeem token and is only present in the create response; it is never stored.
 type InviteResponse struct {
-	Token       string    `json:"token"`
+	ID          string    `json:"id"`
+	Token       string    `json:"token,omitempty"`
 	HouseholdID string    `json:"household_id"`
 	Role        string    `json:"role"`
 	ExpiresAt   time.Time `json:"expires_at"`
@@ -126,6 +130,7 @@ func ToMemberResponse(m *Member) MemberResponse {
 // ToInviteResponse converts domain Invite entity to response DTO.
 func ToInviteResponse(i *Invite) InviteResponse {
 	return InviteResponse{
+		ID:          i.ID,
 		Token:       i.Token,
 		HouseholdID: i.HouseholdID,
 		Role:        string(i.Role),

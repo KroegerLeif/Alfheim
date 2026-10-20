@@ -40,12 +40,12 @@
       "role_label": "Rola dla nowego zaproszenia",
       "revoke": "Unieważnij",
       "revoke_label": "Unieważnij zaproszenie {token}",
+      "shown_once_hint": "Link zaproszenia jest wyświetlany tylko raz, zaraz po utworzeniu. W razie zgubienia unieważnij zaproszenie i utwórz nowe.",
       "confirm_revoke": "Unieważnić to zaproszenie? Kod i kod QR natychmiast przestaną działać.",
       "revoked": "Zaproszenie unieważnione.",
       "uses": "Użycia: {uses}/{max}",
       "expires": "Wygasa {time}",
       "expired": "Wygasło",
-      "show_qr": "Pokaż QR",
       "qr_label": "Kod QR do dołączenia do gospodarstwa",
       "join_link": "Link do dołączenia",
       "copy_link": "Kopiuj link"
