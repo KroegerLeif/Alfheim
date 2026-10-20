@@ -11,6 +11,7 @@ from sqlalchemy.orm import lazyload
 from sqlmodel import col, select
 
 from src.api.dependencies import get_current_household_id
+from src.api.permissions import get_writer_household_id
 from src.db.database import get_db_session
 from src.db.models import Item, LendingRecord, LendingStatus
 from src.schemas.lending import (
@@ -65,7 +66,7 @@ async def _get_item_or_404(
 async def lend_item(
     item_id: uuid.UUID,
     payload: LendItemRequest,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> Any:
     """Lend a media item to a contact."""
@@ -112,7 +113,7 @@ async def lend_item(
 async def return_item(
     item_id: uuid.UUID,
     payload: ReturnItemRequest | None = None,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> Any:
     """Mark a lent media item as returned."""

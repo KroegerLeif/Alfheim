@@ -4,6 +4,7 @@ from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import require_admin, require_writer
 from src.features.locations import (
     LocationCreate,
     LocationRead,
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/v1/locations", tags=["locations"])
 async def create_location(
     payload: LocationCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Create a new physical storage location in the user's home space."""
     return await LocationService.create_location(
@@ -75,7 +76,7 @@ async def update_location(
     id: uuid.UUID,
     payload: LocationUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Partially update an existing location's properties.
 
@@ -103,7 +104,7 @@ async def update_location(
 async def delete_location(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_admin),
 ):
     """Delete a storage location.
 

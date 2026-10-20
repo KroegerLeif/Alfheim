@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.dependencies import HouseholdContext, get_db_session, require_household
+from src.core.permissions import require_admin, require_writer
 from src.features.plans.models import (
     PlanCategoryCreate,
     PlanCategoryRead,
@@ -28,7 +29,7 @@ def get_plan_service(
 @router.post("/", response_model=PlanRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_plan(
     plan_in: PlanCreate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PlanService = Depends(get_plan_service),
 ) -> PlanRead:
     """Create a new budget plan for the authenticated household."""
@@ -69,7 +70,7 @@ async def get_plan(
 async def update_plan(
     plan_id: UUID,
     plan_update: PlanUpdate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PlanService = Depends(get_plan_service),
 ) -> PlanRead:
     """Update an existing budget plan for the active household."""
@@ -83,7 +84,7 @@ async def update_plan(
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_plan(
     plan_id: UUID,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_admin),
     service: PlanService = Depends(get_plan_service),
 ) -> None:
     """Delete a budget plan for the active household."""
@@ -114,7 +115,7 @@ async def get_plan_summary(
 async def create_category(
     plan_id: UUID,
     category_in: PlanCategoryCreate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PlanService = Depends(get_plan_service),
 ) -> PlanCategoryRead:
     """Create a new category or subcategory under a plan."""
@@ -129,7 +130,7 @@ async def create_category(
 async def update_category(
     category_id: UUID,
     category_update: PlanCategoryUpdate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PlanService = Depends(get_plan_service),
 ) -> PlanCategoryRead:
     """Update an existing category or subcategory."""
@@ -143,7 +144,7 @@ async def update_category(
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
     category_id: UUID,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PlanService = Depends(get_plan_service),
 ) -> None:
     """Delete a category from a plan."""

@@ -6,6 +6,7 @@ from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import require_writer
 from src.features.inventory.alert_service import AlertService
 from src.features.inventory.ledger_service import LedgerService
 from src.features.inventory.models import InventoryTransactionType
@@ -32,7 +33,7 @@ router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 async def create_transaction(
     payload: InventoryTransactionCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Log a physical inventory movement (IN, OUT, WASTE, RECONCILIATION) with unit conversion."""
     return await InventoryService.create_transaction(
@@ -139,7 +140,7 @@ async def get_expiration_summary(
 async def bulk_add_items(
     payload: BulkAddInventoryPayload,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Sync completed items from the Shopping App into the digital pantry in bulk."""
     return await InventoryService.bulk_add_items(

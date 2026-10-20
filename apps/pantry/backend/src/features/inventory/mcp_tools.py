@@ -3,6 +3,7 @@ from datetime import date
 
 from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
+from src.core.permissions import mcp_requires_role
 from src.features.inventory.alert_service import AlertService
 from src.features.inventory.exceptions import InventoryError
 from src.features.inventory.schemas import InventoryTransactionCreate
@@ -11,6 +12,7 @@ from src.mcp.server import mcp
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def record_inventory_movement(
     product_id: str,
     location_id: str,

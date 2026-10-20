@@ -12,6 +12,7 @@ from backend_shared.mcp_middleware import get_mcp_household_context
 
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
+from app.core.permissions import mcp_requires_role
 from app.features.tasks.exceptions import TaskError
 from app.features.tasks.schemas import TaskStateUpdate
 from app.features.tasks.service import TaskService
@@ -42,6 +43,7 @@ async def list_overdue_tasks() -> dict[str, Any]:
 
 
 @mcp_server.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def update_task_state_tool(
     step_id: int,
     comment: str | None = None,

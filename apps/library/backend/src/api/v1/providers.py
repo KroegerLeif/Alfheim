@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from src.api.dependencies import get_current_household_id
+from src.api.permissions import get_admin_household_id, get_writer_household_id
 from src.db.database import get_db_session
 from src.db.models import Item, ProviderSubscription
 from src.errors import CODE_PROVIDER_IN_USE, error_detail
@@ -49,7 +50,7 @@ async def _get_provider_or_404(
 )
 async def create_provider(
     payload: ProviderCreate,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> Any:
     """Create a new streaming provider subscription for the active household."""
@@ -107,7 +108,7 @@ async def get_provider(
 async def update_provider(
     provider_id: uuid.UUID,
     payload: ProviderUpdate,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> Any:
     """Update details of a streaming provider subscription."""
@@ -130,7 +131,7 @@ async def update_provider(
 )
 async def delete_provider(
     provider_id: uuid.UUID,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_admin_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
     """Delete a streaming provider subscription from the household.

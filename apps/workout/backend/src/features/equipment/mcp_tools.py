@@ -1,7 +1,9 @@
 import uuid
 
 from backend_shared.mcp_middleware import get_mcp_household_context
+from fastmcp.exceptions import ToolError
 from src.core.database import async_session_factory
+from src.core.permissions import ensure_mcp_catalog_write
 from src.features.equipment.models import EquipmentScope
 from src.features.equipment.schemas import EquipmentCreate, EquipmentUpdate
 from src.features.equipment.service import EquipmentService
@@ -62,6 +64,7 @@ async def create_equipment(
         home_uuid = context.household_id
         user_uuid = context.user_id
         payload = EquipmentCreate(name=name, category=category, scope=EquipmentScope(scope))
+        ensure_mcp_catalog_write(payload.scope)
         async with async_session_factory() as session:
             equipment = await EquipmentService.create_equipment(
                 session=session,
@@ -70,6 +73,8 @@ async def create_equipment(
                 user_id=user_uuid,
             )
             return f"Success: Created equipment '{equipment.name}' with ID {equipment.id}."
+    except ToolError:
+        raise
     except ValueError as e:
         return f"Error: Failed to create equipment: {str(e)}"
     except Exception as e:
@@ -98,6 +103,14 @@ async def update_equipment(
         eq_uuid = uuid.UUID(equipment_id)
         payload = EquipmentUpdate(name=name, category=category, is_active=is_active)
         async with async_session_factory() as session:
+            existing = await EquipmentService.get_equipment(
+                session=session,
+                equipment_id=eq_uuid,
+                home_id=home_uuid,
+                user_id=user_uuid,
+            )
+            if existing:
+                ensure_mcp_catalog_write(existing.scope)
             equipment = await EquipmentService.update_equipment(
                 session=session,
                 equipment_id=eq_uuid,
@@ -108,6 +121,8 @@ async def update_equipment(
             if not equipment:
                 return f"Equipment with ID {equipment_id} not found or not authorized."
             return f"Success: Updated equipment {equipment.id} (Name: '{equipment.name}')."
+    except ToolError:
+        raise
     except ValueError as e:
         return f"Error: Update failed: {str(e)}"
     except Exception as e:
@@ -127,6 +142,14 @@ async def delete_equipment(equipment_id: str) -> str:
         user_uuid = context.user_id
         eq_uuid = uuid.UUID(equipment_id)
         async with async_session_factory() as session:
+            existing = await EquipmentService.get_equipment(
+                session=session,
+                equipment_id=eq_uuid,
+                home_id=home_uuid,
+                user_id=user_uuid,
+            )
+            if existing:
+                ensure_mcp_catalog_write(existing.scope, destructive=True)
             deleted = await EquipmentService.delete_equipment(
                 session=session,
                 equipment_id=eq_uuid,
@@ -136,6 +159,8 @@ async def delete_equipment(equipment_id: str) -> str:
             if not deleted:
                 return f"Equipment with ID {equipment_id} not found or not authorized."
             return f"Success: Deleted equipment {equipment_id}."
+    except ToolError:
+        raise
     except ValueError as e:
         return f"Error: Deletion failed: {str(e)}"
     except Exception as e:

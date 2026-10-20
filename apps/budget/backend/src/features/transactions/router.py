@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.dependencies import HouseholdContext, get_db_session, require_household
+from src.core.permissions import require_writer
 from src.features.transactions.models import (
     PresignedUploadRequest,
     PresignedUploadResponse,
@@ -32,7 +33,7 @@ def get_transaction_service(
 @router.post("/", response_model=TransactionRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_transaction(
     transaction_in: TransactionCreate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: TransactionService = Depends(get_transaction_service),
 ) -> TransactionRead:
     """Create a new manual transaction for the active household."""
@@ -46,7 +47,7 @@ async def create_transaction(
 @router.post("/quick-add", response_model=TransactionRead, status_code=status.HTTP_201_CREATED)
 async def quick_add_transaction(
     quick_add_in: QuickAddTransactionCreate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: TransactionService = Depends(get_transaction_service),
 ) -> TransactionRead:
     """Quick-add a transaction for the active household."""
@@ -85,7 +86,7 @@ async def list_transactions(
 @router.post("/receipt/upload-url", response_model=PresignedUploadResponse)
 async def generate_receipt_upload_url(
     upload_req: PresignedUploadRequest,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: TransactionService = Depends(get_transaction_service),
 ) -> PresignedUploadResponse:
     """Generate RustFS S3 presigned upload URL for receipt image attachment."""
@@ -99,7 +100,7 @@ async def generate_receipt_upload_url(
 @router.post("/receipt/ocr", response_model=ReceiptOCRResponse)
 async def extract_receipt_ocr(
     ocr_req: ReceiptOCRRequest,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: TransactionService = Depends(get_transaction_service),
 ) -> ReceiptOCRResponse:
     """Extract vendor, total, and line item split from receipt OCR payload."""
@@ -128,7 +129,7 @@ async def get_transaction(
 async def update_transaction(
     transaction_id: UUID,
     transaction_update: TransactionUpdate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: TransactionService = Depends(get_transaction_service),
 ) -> TransactionRead:
     """Update an existing transaction for active household."""
@@ -143,7 +144,7 @@ async def update_transaction(
 @router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_transaction(
     transaction_id: UUID,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: TransactionService = Depends(get_transaction_service),
 ) -> None:
     """Delete a transaction for active household."""

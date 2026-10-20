@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import HouseholdContext, require_household
+from app.core.permissions import require_writer
 from app.features.devices.exceptions import DeviceError, DeviceNotFoundError
 from app.features.devices.schemas import DeviceCreate, DeviceRead, HouseholdRead
 from app.features.devices.service import DeviceService
@@ -80,7 +81,7 @@ async def get_device_by_id(
 async def create_device(
     payload: DeviceCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Create a new Device record in the household selected by ``X-Household-ID``.
 

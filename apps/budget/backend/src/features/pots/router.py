@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.dependencies import HouseholdContext, get_db_session, require_household
+from src.core.permissions import require_admin, require_writer
 from src.features.pots.models import (
     CascadeAllocationRequest,
     CascadeAllocationResponse,
@@ -32,7 +33,7 @@ def get_pot_service(
 @router.post("/", response_model=PotRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_pot(
     pot_in: PotCreate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PotService = Depends(get_pot_service),
 ) -> PotRead:
     """Create a new virtual pot for the authenticated household."""
@@ -61,7 +62,7 @@ async def list_pots(
 @router.post("/cascade", response_model=CascadeAllocationResponse)
 async def allocate_cascade(
     req: CascadeAllocationRequest,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PotService = Depends(get_pot_service),
 ) -> CascadeAllocationResponse:
     """Distribute amount across pots in order of priority cascade."""
@@ -74,7 +75,7 @@ async def allocate_cascade(
 @router.post("/maintenance-reserve", response_model=PotRead, status_code=status.HTTP_201_CREATED)
 async def create_maintenance_reserve(
     req: MaintenanceReserveRequest,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PotService = Depends(get_pot_service),
 ) -> PotRead:
     """Receive maintenance reserve request from external apps (e.g. maintenance service)."""
@@ -117,7 +118,7 @@ async def calculate_sinking_fund_gap(
 async def update_pot(
     pot_id: UUID,
     pot_update: PotUpdate,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_writer),
     service: PotService = Depends(get_pot_service),
 ) -> PotRead:
     """Update an existing pot for active household."""
@@ -132,7 +133,7 @@ async def update_pot(
 @router.delete("/{pot_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pot(
     pot_id: UUID,
-    ctx: HouseholdContext = Depends(require_household),
+    ctx: HouseholdContext = Depends(require_admin),
     service: PotService = Depends(get_pot_service),
 ) -> None:
     """Delete a pot for active household."""
