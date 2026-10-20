@@ -47,6 +47,15 @@ func run(args []string, stdout, stderr *os.File) int {
 		return app.RunUpdate(args[1:], stdout, stderr, app.BuildInfo{Version: version, Commit: commit, Date: date})
 	}
 
+	// `backup` and `restore` archive and rebuild an installation's databases,
+	// object storage and secrets; like `update` they never run the wizard.
+	if len(args) > 0 && args[0] == "backup" {
+		return app.RunBackup(args[1:], stdout, stderr, app.BuildInfo{Version: version, Commit: commit, Date: date})
+	}
+	if len(args) > 0 && args[0] == "restore" {
+		return app.RunRestore(args[1:], stdout, stderr, app.BuildInfo{Version: version, Commit: commit, Date: date})
+	}
+
 	// Restore the terminal even when we unwind through a signal. An interrupt
 	// during a container wait would otherwise leave the operator's shell in
 	// raw mode with a hidden cursor.
