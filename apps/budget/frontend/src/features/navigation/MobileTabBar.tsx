@@ -1,18 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  LayoutDashboard,
-  Calendar,
-  Plus,
-  PiggyBank,
-  Ellipsis,
-  Landmark,
-  ArrowLeftRight,
-  GitMerge,
-  TrendingUp,
-} from "lucide-react";
+import { LayoutDashboard, Calendar, Plus, PiggyBank } from "lucide-react";
 import { useTranslation } from "@alfheim/shared";
+import { MobileMoreButton, MobileMorePanel, isMoreTab } from "./MobileMoreMenu";
 
 export type TabKey =
   | "dashboard"
@@ -32,16 +23,6 @@ export interface MobileTabBarProps {
   onTabChange?: (tab: TabKey) => void;
 }
 
-// Views that do not fit the bottom bar; reached through the "More" menu.
-const MORE_ITEMS: { key: TabKey; labelKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: "accounts", labelKey: "budget.navigation.accounts", icon: Landmark },
-  { key: "transactions", labelKey: "budget.navigation.transactions", icon: ArrowLeftRight },
-  { key: "sankey", labelKey: "budget.navigation.sankey", icon: GitMerge },
-  { key: "analytics", labelKey: "budget.navigation.analytics", icon: TrendingUp },
-];
-
-const MORE_PANEL_ID = "budget-mobile-more-menu";
-
 /**
  * Mobile bottom navigation bar component for Budget & Treasury app.
  * Provides bottom tabs: Dashboard, Planning (with a monthly / event segmented control), Quick-Add (+),
@@ -56,7 +37,6 @@ export function MobileTabBar({
 }: MobileTabBarProps) {
   const { t } = useTranslation();
   const [moreOpen, setMoreOpen] = useState(false);
-  const isMoreActive = MORE_ITEMS.some((item) => item.key === activeTab);
 
   const selectTab = (tab: TabKey) => {
     setMoreOpen(false);
@@ -65,35 +45,7 @@ export function MobileTabBar({
 
   return (
     <>
-      {moreOpen && (
-        <div
-          id={MORE_PANEL_ID}
-          role="group"
-          aria-label={t("budget.navigation.more")}
-          className="md:hidden fixed bottom-16 left-2 right-2 p-2 grid grid-cols-2 gap-2 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-2xl z-40"
-        >
-          {MORE_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => selectTab(item.key)}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
-                  isActive
-                    ? "bg-[var(--primary-main)]/10 text-[var(--primary-main)] font-semibold"
-                    : "text-[var(--text-muted)] hover:bg-[var(--surface-canvas)] hover:text-[var(--text-main)]"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{t(item.labelKey)}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {moreOpen && <MobileMorePanel activeTab={activeTab} onSelect={selectTab} />}
 
       <nav
         aria-label={t("budget.navigation.mobileNavLabel")}
@@ -205,23 +157,11 @@ export function MobileTabBar({
         </button>
 
         {/* 5. More menu: views without a bottom tab */}
-        <button
-          type="button"
-          onClick={() => setMoreOpen((open) => !open)}
-          aria-expanded={moreOpen}
-          aria-controls={MORE_PANEL_ID}
-          className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors duration-200 ${
-            isMoreActive || moreOpen
-              ? "text-[var(--primary-main)] font-semibold"
-              : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
-          }`}
-        >
-          {isMoreActive && (
-            <span className="absolute top-0 w-8 h-1 bg-[var(--primary-main)] rounded-b-full shadow-[0_0_8px_var(--primary-main)]" />
-          )}
-          <Ellipsis className="w-5 h-5" />
-          <span className="text-[10px] tracking-tight mt-1">{t("budget.navigation.more")}</span>
-        </button>
+        <MobileMoreButton
+          active={isMoreTab(activeTab)}
+          open={moreOpen}
+          onToggle={() => setMoreOpen((open) => !open)}
+        />
       </nav>
     </>
   );
