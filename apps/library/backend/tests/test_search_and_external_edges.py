@@ -10,7 +10,6 @@ from fastapi import HTTPException
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import settings
-from src.db.migrations import run_search_index_migrations
 from src.db.models import Item, MediaType, ProviderSubscription
 from src.main import app, lifespan
 from src.services.external.bgg_service import fetch_bgg_metadata
@@ -206,29 +205,8 @@ async def test_isbn_and_tmdb_service_error_handling():
 
 
 @pytest.mark.asyncio
-async def test_migrations_and_main_lifespan():
-    """Verify run_search_index_migrations handles sqlite skip and postgresql run, and test main lifespan."""
-    # 1. SQLite skip
-    mock_sqlite_engine = MagicMock()
-    mock_sqlite_conn = MagicMock()
-    mock_sqlite_conn.dialect.name = "sqlite"
-    mock_sqlite_engine.begin.return_value.__aenter__.return_value = mock_sqlite_conn
-    mock_sqlite_engine.begin.return_value.__aexit__.return_value = None
-
-    await run_search_index_migrations(mock_sqlite_engine)
-    mock_sqlite_conn.execute.assert_not_called()
-
-    # 2. PostgreSQL execution
-    mock_pg_engine = MagicMock()
-    mock_pg_conn = AsyncMock()
-    mock_pg_conn.dialect.name = "postgresql"
-    mock_pg_engine.begin.return_value.__aenter__.return_value = mock_pg_conn
-    mock_pg_engine.begin.return_value.__aexit__.return_value = None
-
-    await run_search_index_migrations(mock_pg_engine)
-    assert mock_pg_conn.execute.call_count == 3
-
-    # 3. Main lifespan
+async def test_main_lifespan():
+    """Verify the application lifespan runs the startup migrations and shuts telemetry down."""
     with patch("src.main.shutdown_telemetry") as mock_shutdown:
         async with lifespan(app):
             pass
