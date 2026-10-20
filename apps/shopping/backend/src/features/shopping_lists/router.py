@@ -118,6 +118,7 @@ async def get_list(
         session=session,
         list_id=list_id,
         home_id=context.household_id,
+        user_id=context.user_id,
     )
 
 
@@ -136,6 +137,7 @@ async def delete_list(
         session=session,
         list_id=list_id,
         home_id=context.household_id,
+        user_id=context.user_id,
     )
 
 
@@ -157,6 +159,7 @@ async def add_item(
         list_id=list_id,
         payload=payload,
         home_id=context.household_id,
+        user_id=context.user_id,
     )
 
 
@@ -179,6 +182,7 @@ async def update_item(
         item_id=item_id,
         payload=payload,
         home_id=context.household_id,
+        user_id=context.user_id,
     )
 
 
@@ -199,6 +203,7 @@ async def delete_item(
         list_id=list_id,
         item_id=item_id,
         home_id=context.household_id,
+        user_id=context.user_id,
     )
 
 
@@ -219,6 +224,7 @@ async def auto_import_low_stock(
         session=session,
         list_id=list_id,
         home_id=context.household_id,
+        user_id=context.user_id,
         token=token,
     )
 
@@ -245,6 +251,7 @@ async def sync_to_pantry(
         session=session,
         list_id=list_id,
         home_id=context.household_id,
+        user_id=context.user_id,
         token=token,
         item_ids=payload.item_ids if payload else None,
     )

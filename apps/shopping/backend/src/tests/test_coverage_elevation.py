@@ -110,21 +110,21 @@ async def test_list_management_service_edge_cases(db_session: AsyncSession):
 
     # 5. get_list boundary checks
     with pytest.raises(ShoppingListNotFoundError):
-        await ListManagementService.get_list(db_session, uuid.uuid4(), home_id)
+        await ListManagementService.get_list(db_session, uuid.uuid4(), home_id, owner_id)
 
     foreign_home = uuid.uuid4()
     with pytest.raises(ShoppingListNotFoundError):
-        await ListManagementService.get_list(db_session, custom.id, foreign_home)
+        await ListManagementService.get_list(db_session, custom.id, foreign_home, owner_id)
 
     # 6. delete_list protected checks
     with pytest.raises(ShoppingListProtectedError):
-        await ListManagementService.delete_list(db_session, h_list.id, home_id)
+        await ListManagementService.delete_list(db_session, h_list.id, home_id, owner_id)
 
     with pytest.raises(ShoppingListProtectedError):
-        await ListManagementService.delete_list(db_session, p_list.id, home_id)
+        await ListManagementService.delete_list(db_session, p_list.id, home_id, owner_id)
 
     # Delete custom list success
-    assert await ListManagementService.delete_list(db_session, custom.id, home_id) is True
+    assert await ListManagementService.delete_list(db_session, custom.id, home_id, owner_id) is True
 
     # 7. reorder_lists
     c1 = await ListManagementService.create_list(db_session, ShoppingListCreate(name="C1"), home_id, owner_id)
@@ -147,6 +147,7 @@ async def test_shopping_item_service_operations_and_errors(db_session: AsyncSess
         h_list.id,
         ShoppingItemCreate(name="Butter", brand="Dairy", quantity=2.0, unit="pack"),
         home_id,
+        owner_id,
     )
     assert item.name == "Butter"
 
@@ -167,6 +168,7 @@ async def test_shopping_item_service_operations_and_errors(db_session: AsyncSess
         item.id,
         ShoppingItemUpdate(name="Salted Butter", unit="piece"),
         home_id,
+        owner_id,
     )
     assert updated.name == "Salted Butter"
     assert updated.unit == "piece"
@@ -179,14 +181,15 @@ async def test_shopping_item_service_operations_and_errors(db_session: AsyncSess
             uuid.uuid4(),
             ShoppingItemUpdate(name="Missing"),
             home_id,
+            owner_id,
         )
 
     # 5. Delete item not found
     with pytest.raises(ShoppingItemNotFoundError):
-        await ShoppingItemService.delete_item(db_session, h_list.id, uuid.uuid4(), home_id)
+        await ShoppingItemService.delete_item(db_session, h_list.id, uuid.uuid4(), home_id, owner_id)
 
     # 6. Delete item success
-    assert await ShoppingItemService.delete_item(db_session, h_list.id, item.id, home_id) is True
+    assert await ShoppingItemService.delete_item(db_session, h_list.id, item.id, home_id, owner_id) is True
 
 
 @pytest.mark.asyncio
@@ -200,6 +203,7 @@ async def test_router_households_and_delete_item_endpoint(client: AsyncClient, d
         h_list.id,
         ShoppingItemCreate(name="Juice", quantity=1.0, unit="l"),
         DEFAULT_TEST_HOUSEHOLD_ID,
+        TEST_USER_ID,
     )
 
     del_res = await client.delete(f"/api/v1/shopping-lists/{h_list.id}/items/{item.id}")
