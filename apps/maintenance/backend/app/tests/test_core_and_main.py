@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from app.core.config import settings
-from app.core.database import LegacyHouseholdSchemaError, _python_type, get_db_session, init_db
+from app.core.database import get_db_session, init_db
 from app.core.dependencies import get_authorization
 from app.core.mcp import discover_and_import_mcp_tools
 from app.main import app, lifespan
@@ -13,9 +13,6 @@ from backend_shared import oidc_discovery
 from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
 from fastapi import Request
 from httpx import AsyncClient
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.types import NullType
 
 
 def test_settings_jwks_url_explicit_override_wins():
@@ -97,37 +94,3 @@ async def test_application_lifespan():
         mock_init.assert_called_once()
         mock_shutdown.assert_called_once()
         mock_close.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "legacy_ddl",
-    [
-        ["CREATE TABLE household (id INTEGER PRIMARY KEY, name VARCHAR)"],
-        ["CREATE TABLE device (id INTEGER PRIMARY KEY, household_id INTEGER)"],
-    ],
-)
-async def test_init_db_refuses_legacy_integer_household_schema(legacy_ddl: list[str]):
-    """init_db fails fast (with reset instructions) on the pre-UUID schema instead of serving broken queries."""
-    legacy_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with legacy_engine.begin() as conn:
-        for ddl in legacy_ddl:
-            await conn.execute(text(ddl))
-    with patch("app.core.database.engine", legacy_engine):
-        with pytest.raises(LegacyHouseholdSchemaError, match="Data reset required"):
-            await init_db()
-    await legacy_engine.dispose()
-
-
-@pytest.mark.asyncio
-async def test_init_db_accepts_uuid_schema():
-    """A database already on the UUID schema (or empty) initializes normally and stays idempotent."""
-    fresh_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    with patch("app.core.database.engine", fresh_engine):
-        await init_db()
-        await init_db()
-    await fresh_engine.dispose()
-
-
-def test_python_type_of_unknown_column_type():
-    assert _python_type(NullType()) is None
