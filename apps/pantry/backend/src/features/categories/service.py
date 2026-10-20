@@ -1,3 +1,4 @@
+import logging
 import uuid
 from collections.abc import Sequence
 
@@ -7,6 +8,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.errors import CODE_CATEGORY_IN_USE, ResourceInUseError
 from src.features.categories.models import Category, CategoryCreate, CategoryUpdate
 from src.features.products.models import Product
+
+logger = logging.getLogger(__name__)
 
 
 class CategoryService:
@@ -111,7 +114,8 @@ class CategoryService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Category name conflict: {e}") from e
+            logger.warning("Integrity error updating category '%s'", category_id, exc_info=e)
+            raise ValueError("Category name conflicts with an existing category.") from e
         await session.refresh(category)
         return category
 
@@ -149,5 +153,6 @@ class CategoryService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Failed to delete category: {e}") from e
+            logger.warning("Integrity error deleting category '%s'", category_id, exc_info=e)
+            raise ValueError("Category could not be deleted because it is still referenced.") from e
         return True

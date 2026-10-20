@@ -210,8 +210,7 @@ async def update_product(
             if not prod:
                 return f"Product with ID {product_id} not found or not authorized."
 
-            global_tag = " (now promoted to Global)" if prod.is_global else ""
-            return f"Success: Updated product blueprint {prod.id} (Name: '{prod.name}'){global_tag}."
+            return f"Success: Updated product blueprint {prod.id} (Name: '{prod.name}')."
 
     except ValueError as e:
         return f"Error: Update failed: {str(e)}"

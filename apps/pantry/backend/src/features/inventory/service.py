@@ -1,3 +1,4 @@
+import logging
 import uuid
 from collections.abc import Sequence
 from datetime import datetime
@@ -18,6 +19,8 @@ from src.features.inventory.schemas import (
 )
 from src.features.locations.models import Location
 from src.features.products.models import Product
+
+logger = logging.getLogger(__name__)
 
 
 class InventoryService:
@@ -45,10 +48,10 @@ class InventoryService:
         if not product:
             raise InventoryError(f"Product with ID '{payload.product_id}' not found or not authorized.")
 
-        # 2. Fetch and validate Location (must be system location or owned by home space)
+        # 2. Fetch and validate Location (must belong to the home space)
         location_stmt = select(Location).where(
             Location.id == payload.location_id,
-            or_(Location.is_system, Location.home_id == home_id),
+            Location.home_id == home_id,
         )
         location_res = await session.exec(location_stmt)
         location = location_res.first()
@@ -160,7 +163,10 @@ class InventoryService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise InventoryError(f"Database error during transaction creation: {e}") from e
+            logger.warning("Integrity error creating inventory transaction", exc_info=e)
+            raise InventoryError(
+                "Inventory transaction could not be saved because it conflicts with existing data."
+            ) from e
 
         await session.refresh(ledger_entry)
         return ledger_entry
