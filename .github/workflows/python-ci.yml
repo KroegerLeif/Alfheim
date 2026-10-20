@@ -68,6 +68,65 @@ jobs:
       - name: Run Pytest with Coverage
         run: uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=95
 
+  # Every backend owns its schema through Alembic revisions that run at startup. This job proves, on a real
+  # PostgreSQL, that `upgrade head` builds a schema matching the models (`alembic check`) and that the
+  # PostgreSQL-only migration tests (legacy databases, downgrade, concurrent startups) pass.
+  migrations:
+    name: Alembic Migrations (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - apps/pantry/backend
+          - apps/shopping/backend
+          - apps/maintenance/backend
+          - apps/chores/backend
+          - apps/workout/backend
+          - apps/budget/backend
+          - apps/library/backend
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: pg
+          POSTGRES_DB: migration_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Python 3.12 and uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - name: Sync Backend Dependencies
+        run: uv sync --all-groups --locked
+
+      - name: Upgrade to head and compare with the models
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:pg@localhost:5432/migration_check
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+
+      # The test fixtures drop and recreate the public schema of the `postgres` database.
+      - name: Run PostgreSQL migration tests
+        env:
+          ALFHEIM_MIGRATION_TEST_DATABASE_URL: postgresql+asyncpg://postgres:pg@localhost:5432/postgres
+        run: uv run pytest --no-cov -q -k migrations
+
   # packages/backend-shared is a workspace member without a dev group of its
   # own, so it syncs the whole workspace and runs its suite from its directory.
   shared-tests:

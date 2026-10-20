@@ -38,7 +38,7 @@ class WorkoutSession(SQLModel, table=True):
         default_factory=lambda: datetime.now(UTC),
         sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False),
     )
-    completed_at: datetime | None = Field(default=None)
+    completed_at: datetime | None = Field(default=None, sa_column=Column(DateTime(timezone=True), nullable=True))
     status: SessionStatus = Field(
         sa_column=Column(String, nullable=False, index=True),
         default=SessionStatus.ACTIVE,
@@ -113,7 +113,7 @@ class SessionSet(SQLModel, table=True):
     actual_reps: int | None = Field(default=None)
     actual_weight_kg: float | None = Field(default=None)
     is_warmup: bool = Field(default=False, nullable=False)
-    completed_at: datetime | None = Field(default=None)
+    completed_at: datetime | None = Field(default=None, sa_column=Column(DateTime(timezone=True), nullable=True))
     client_idempotency_key: str | None = Field(default=None, max_length=100, index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
