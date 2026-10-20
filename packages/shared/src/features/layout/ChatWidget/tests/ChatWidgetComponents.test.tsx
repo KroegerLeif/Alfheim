@@ -8,6 +8,8 @@ import { LanguageProvider } from '../../../i18n/utils/LanguageContext'
 
 describe('ChatWidgetInput Component', () => {
   beforeEach(() => {
+    // jsdom does not implement object URLs, which the input uses for attachment previews.
+    Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:preview'), revokeObjectURL: vi.fn() })
     sessionStorage.clear()
     sessionStorage.setItem('alfheim_access_token', 'valid-jwt')
   })

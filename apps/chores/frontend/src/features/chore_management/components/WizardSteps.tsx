@@ -35,7 +35,7 @@ export function WizardSteps() {
     if (currentStep === 1) {
       const result = z.string().min(1, t("chores.nameRequired")).safeParse(name);
       if (!result.success) {
-        setErrors({ name: result.error.errors[0].message });
+        setErrors({ name: result.error.issues[0].message });
         return;
       }
       setErrors({});
@@ -61,7 +61,7 @@ export function WizardSteps() {
 
     if (!parseResult.success) {
       const fieldErrors: Record<string, string> = {};
-      parseResult.error.errors.forEach((err) => {
+      parseResult.error.issues.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0].toString()] = err.message;
         }
