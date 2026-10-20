@@ -79,16 +79,18 @@ class ShoppingListService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> ShoppingList:
-        return await ListManagementService.get_list(session, list_id, home_id)
+        return await ListManagementService.get_list(session, list_id, home_id, user_id)
 
     @staticmethod
     async def delete_list(
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> bool:
-        return await ListManagementService.delete_list(session, list_id, home_id)
+        return await ListManagementService.delete_list(session, list_id, home_id, user_id)
 
     @staticmethod
     async def reorder_lists(
@@ -104,8 +106,9 @@ class ShoppingListService:
         list_id: uuid.UUID,
         payload: ShoppingItemCreate,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> ShoppingItem:
-        return await ShoppingItemService.add_item(session, list_id, payload, home_id)
+        return await ShoppingItemService.add_item(session, list_id, payload, home_id, user_id)
 
     @staticmethod
     async def push_item(
@@ -123,8 +126,9 @@ class ShoppingListService:
         item_id: uuid.UUID,
         payload: ShoppingItemUpdate,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> ShoppingItem:
-        return await ShoppingItemService.update_item(session, list_id, item_id, payload, home_id)
+        return await ShoppingItemService.update_item(session, list_id, item_id, payload, home_id, user_id)
 
     @staticmethod
     async def delete_item(
@@ -132,17 +136,19 @@ class ShoppingListService:
         list_id: uuid.UUID,
         item_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> bool:
-        return await ShoppingItemService.delete_item(session, list_id, item_id, home_id)
+        return await ShoppingItemService.delete_item(session, list_id, item_id, home_id, user_id)
 
     @staticmethod
     async def auto_import_low_stock(
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
         token: str | None = None,
     ) -> list[ShoppingItem]:
-        await ListManagementService.get_list(session, list_id, home_id)
+        await ListManagementService.get_list(session, list_id, home_id, user_id)
         return await PantrySyncService.auto_import_low_stock(
             session=session,
             list_id=list_id,
@@ -155,10 +161,11 @@ class ShoppingListService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
         token: str | None = None,
         item_ids: list[uuid.UUID] | None = None,
     ) -> SyncToPantryResponse:
-        await ListManagementService.get_list(session, list_id, home_id)
+        await ListManagementService.get_list(session, list_id, home_id, user_id)
         return await PantrySyncService.sync_to_pantry(
             session=session,
             list_id=list_id,

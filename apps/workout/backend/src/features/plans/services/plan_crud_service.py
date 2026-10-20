@@ -1,9 +1,10 @@
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import and_, col, func, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.features.exercises.service import ExerciseService
 from src.features.plans.exceptions import PlanValidationError
 from src.features.plans.models import Plan, PlanDay, PlanExercise, PlanSet
 from src.features.plans.schemas import (
@@ -49,6 +50,23 @@ def _build_day(payload: PlanDayCreate, day_order: int) -> PlanDay:
     return day
 
 
+async def _assert_exercises_visible(
+    session: AsyncSession,
+    exercise_ids: Iterable[uuid.UUID],
+    home_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> None:
+    """Reject exercise ids the caller cannot see (other tenants' household/user exercises)."""
+    wanted = set(exercise_ids)
+    visible = await ExerciseService.visible_exercise_ids(session, wanted, home_id, user_id)
+    if wanted - visible:
+        raise PlanValidationError("Exercise not found or not visible to caller.")
+
+
+def _day_exercise_ids(days: Iterable[PlanDayCreate]) -> list[uuid.UUID]:
+    return [e.exercise_id for d in days for e in d.exercises]
+
+
 class PlanCrudService:
     """Service class encapsulating nested Plan/PlanDay/PlanExercise/PlanSet CRUD.
 
@@ -69,6 +87,7 @@ class PlanCrudService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> Plan:
+        await _assert_exercises_visible(session, _day_exercise_ids(payload.days), home_id, user_id)
         plan = Plan(
             home_id=home_id,
             owner_user_id=user_id,
@@ -163,6 +182,7 @@ class PlanCrudService:
         if "days" in update_data:
             del update_data["days"]
             if payload.days is not None:
+                await _assert_exercises_visible(session, _day_exercise_ids(payload.days), home_id, user_id)
                 plan.days = [_build_day(d, i) for i, d in enumerate(payload.days)]
 
         for key, value in update_data.items():
@@ -202,6 +222,7 @@ class PlanCrudService:
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return None
+        await _assert_exercises_visible(session, _day_exercise_ids([payload]), home_id, user_id)
         count_result = await session.exec(select(func.count()).select_from(PlanDay).where(PlanDay.plan_id == plan.id))
         day_order = count_result.one()
         day = _build_day(payload, day_order)
@@ -248,6 +269,7 @@ class PlanCrudService:
         day = await PlanCrudService._get_day(session, plan.id, day_id)
         if not day:
             return None
+        await _assert_exercises_visible(session, [payload.exercise_id], home_id, user_id)
         count_result = await session.exec(
             select(func.count()).select_from(PlanExercise).where(PlanExercise.plan_day_id == day.id)
         )

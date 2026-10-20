@@ -226,11 +226,12 @@ class ListManagementService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> ShoppingList:
         """Retrieve a specific shopping list with boundary checks.
 
-        Personal Lists are accessible from any household context — the home_id
-        constraint is relaxed for is_personal=True lists.
+        Household lists must belong to home_id. Personal Lists are accessible from any
+        household context, but only to their owner (owner_id == user_id).
         """
         stmt = select(ShoppingList).where(ShoppingList.id == list_id)
         result = await session.exec(stmt)
@@ -239,8 +240,11 @@ class ListManagementService:
         if not db_list:
             raise ShoppingListNotFoundError(f"Shopping list with ID '{list_id}' not found.")
 
-        # Allow access if the list belongs to this household, OR if it is the caller's personal list
-        if db_list.home_id != home_id and not db_list.is_personal:
+        if db_list.is_personal:
+            allowed = db_list.owner_id == user_id
+        else:
+            allowed = db_list.home_id == home_id
+        if not allowed:
             raise ShoppingListNotFoundError(f"Shopping list with ID '{list_id}' not found.")
 
         return db_list
@@ -250,13 +254,14 @@ class ListManagementService:
         session: AsyncSession,
         list_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> bool:
         """Delete a user-created shopping list.
 
         Protected lists (is_default=True or is_personal=True) cannot be deleted.
         Raises ShoppingListProtectedError (→ HTTP 400 via global handler) on violation.
         """
-        db_list = await ListManagementService.get_list(session, list_id, home_id)
+        db_list = await ListManagementService.get_list(session, list_id, home_id, user_id)
 
         if db_list.is_default:
             raise ShoppingListProtectedError("The Household List is protected and cannot be deleted.")

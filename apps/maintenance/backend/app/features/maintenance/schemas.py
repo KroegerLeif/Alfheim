@@ -9,8 +9,9 @@ complement — not duplicate — the schemas in the tasks and devices features.
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 # ---------------------------------------------------------------------------
 # Wizard session input schemas
@@ -22,10 +23,12 @@ class WizardStepEntry(BaseModel):
 
     step_id: int = Field(..., description="Primary key of the MaintenanceStep being completed")
     comment: str | None = Field(
+        max_length=2000,
         default=None,
         description="Optional technician note recorded for this specific step",
     )
     supply_item_override: str | None = Field(
+        max_length=200,
         default=None,
         description="Optional override for the supply item recorded during this session",
     )
@@ -39,16 +42,19 @@ class WizardSessionPayload(BaseModel):
     """
 
     device_id: int = Field(..., description="ID of the device being serviced")
-    performer: str = Field(..., min_length=1, description="Name of the person performing maintenance")
+    performer: str = Field(..., min_length=1, max_length=150, description="Name of the person performing maintenance")
     session_notes: str | None = Field(
+        max_length=2000,
         default=None,
         description="Free-text notes recorded at the end of the full session",
     )
     completed_steps: list[WizardStepEntry] = Field(
         default_factory=list,
+        max_length=200,
         description="Ordered list of steps completed during this session",
     )
-    supply_items_to_order: list[str] | None = Field(
+    supply_items_to_order: list[Annotated[str, StringConstraints(min_length=1, max_length=200)]] | None = Field(
+        max_length=50,
         default=None,
         description="Parts or consumables that need to be added to the shopping list",
     )

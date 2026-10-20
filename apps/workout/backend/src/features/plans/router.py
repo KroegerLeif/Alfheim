@@ -1,7 +1,7 @@
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
 from src.features.plans import service
@@ -36,8 +36,8 @@ async def create_plan(
 
 @router.get("", response_model=list[PlanRead])
 async def list_plans(
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):

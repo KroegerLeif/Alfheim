@@ -26,10 +26,11 @@ class ShoppingItemService:
         list_id: uuid.UUID,
         payload: ShoppingItemCreate,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> ShoppingItem:
         """Add a manual shopping item to a list."""
         # Validate list ownership / boundary
-        await ListManagementService.get_list(session, list_id, home_id)
+        await ListManagementService.get_list(session, list_id, home_id, user_id)
 
         db_item = ShoppingItem(
             list_id=list_id,
@@ -58,7 +59,7 @@ class ShoppingItemService:
         """
         list_id = payload.list_id
         if list_id:
-            await ListManagementService.get_list(session, list_id, home_id)
+            await ListManagementService.get_list(session, list_id, home_id, owner_id)
         else:
             # Prefer the shared Household List for cross-service pushes
             stmt = select(ShoppingList).where(
@@ -96,9 +97,10 @@ class ShoppingItemService:
         item_id: uuid.UUID,
         payload: ShoppingItemUpdate,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> ShoppingItem:
         """Update an existing item's quantity, unit, or completion status."""
-        await ListManagementService.get_list(session, list_id, home_id)
+        await ListManagementService.get_list(session, list_id, home_id, user_id)
 
         stmt = select(ShoppingItem).where(
             ShoppingItem.id == item_id,
@@ -133,9 +135,10 @@ class ShoppingItemService:
         list_id: uuid.UUID,
         item_id: uuid.UUID,
         home_id: uuid.UUID,
+        user_id: uuid.UUID,
     ) -> bool:
         """Delete an item from a list."""
-        await ListManagementService.get_list(session, list_id, home_id)
+        await ListManagementService.get_list(session, list_id, home_id, user_id)
 
         stmt = select(ShoppingItem).where(
             ShoppingItem.id == item_id,

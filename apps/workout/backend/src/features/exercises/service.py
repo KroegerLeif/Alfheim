@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import and_, col, or_, select
@@ -100,6 +100,23 @@ class ExerciseService:
         )
         result = await session.exec(statement)
         return result.first()
+
+    @staticmethod
+    async def visible_exercise_ids(
+        session: AsyncSession,
+        exercise_ids: Collection[uuid.UUID],
+        home_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> set[uuid.UUID]:
+        """Return the subset of ``exercise_ids`` the caller may see (same rule as ``get_exercise``)."""
+        if not exercise_ids:
+            return set()
+        statement = select(Exercise.id).where(
+            col(Exercise.id).in_(exercise_ids),
+            _visibility_filter(home_id, user_id),
+        )
+        result = await session.exec(statement)
+        return set(result.all())
 
     @staticmethod
     async def update_exercise(
@@ -230,8 +247,12 @@ class ExerciseService:
         """Favorite an exercise for the caller. Idempotent: re-adding returns the existing row.
 
         Checks for an existing row first (the common re-favorite case), and falls back to
-        catching IntegrityError from a concurrent insert as a safety net.
+        catching IntegrityError from a concurrent insert as a safety net. The exercise must be
+        visible to the caller, otherwise ExerciseValidationError is raised.
         """
+        if not await ExerciseService.get_exercise(session, exercise_id, home_id, user_id):
+            raise ExerciseValidationError("Exercise not found or not visible to caller.")
+
         existing_statement = select(ExerciseFavorite).where(
             ExerciseFavorite.user_id == user_id,
             ExerciseFavorite.exercise_id == exercise_id,
@@ -293,11 +314,11 @@ class ExerciseService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> Sequence[Exercise]:
-        """List the actual Exercise rows the caller has favorited."""
+        """List the actual Exercise rows the caller has favorited and may still see."""
         statement = (
             select(Exercise)
             .join(ExerciseFavorite, col(ExerciseFavorite.exercise_id) == Exercise.id)
-            .where(ExerciseFavorite.user_id == user_id)
+            .where(ExerciseFavorite.user_id == user_id, _visibility_filter(home_id, user_id))
             .order_by(Exercise.name)
         )
         result = await session.exec(statement)
