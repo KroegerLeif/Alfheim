@@ -376,6 +376,52 @@ services:
         reservations:
           memory: 256m
           cpus: 0.25
+  # Read-only Docker API gateway for Vector. Mounting docker.sock into Vector
+  # directly would hand it root on the host, even with :ro. The proxy holds the
+  # socket and allows only the GET endpoints the docker_logs source needs
+  # (version/ping/info, events, container list/inspect/logs). Everything else,
+  # including POST and the GET /containers/{id}/archive file-exfiltration path,
+  # is denied by the default-deny allowlist. It sits on a private internal
+  # network that only Vector can reach.
+  docker-socket-proxy:
+    image: wollomatic/socket-proxy:1.13.1
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+    logging: *default-logging
+    # Container group must match the host docker group that owns the socket.
+    user: "65534:${DOCKER_SOCKET_GID:?DOCKER_SOCKET_GID must be set to the host docker group id (getent group docker | cut -d: -f3)}"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    command:
+      - "-loglevel=info"
+      - "-listenip=0.0.0.0"
+      - "-allowfrom=vector-shipper"
+      - "-allowhealthcheck"
+      - '-allowGET=(/v[0-9.]+)?/(_ping|version|info|events|containers/json|containers/[^/]+/(json|logs))'
+      - "-watchdoginterval=10"
+      - "-stoponwatchdog"
+      - "-shutdowngracetime=5"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "./healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - docker-proxy-net
+
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: 0.10
+        reservations:
+          memory: 64m
+          cpus: 0.10
   vector:
     image: timberio/vector:0.39.0-alpine
     container_name: vector-shipper
@@ -385,7 +431,6 @@ services:
       - no-new-privileges:true
     command: ["--config", "/etc/vector/vector.toml"]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infrastructure/telemetry/vector/vector.toml:/etc/vector/vector.toml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
@@ -396,8 +441,11 @@ services:
     depends_on:
       otel-collector:
         condition: service_started
+      docker-socket-proxy:
+        condition: service_healthy
     networks:
       - observability-internal
+      - docker-proxy-net
 
     deploy:
       resources:
@@ -1438,3 +1486,9 @@ networks:
   observability-internal:
     name: observability-internal
     driver: bridge
+  # Private link between Vector and its Docker socket proxy only. internal: true
+  # removes any route out of the host network, so nothing else can reach the proxy.
+  docker-proxy-net:
+    name: docker-proxy-net
+    driver: bridge
+    internal: true

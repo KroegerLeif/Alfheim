@@ -8,6 +8,9 @@ address = "127.0.0.1:8686"
 [sources.docker_socket]
 type = "docker_logs"
 exclude_containers = ["vector-shipper"]
+# Reads through the read-only socket proxy on the internal docker-proxy-net,
+# never the raw docker.sock (see docker-socket-proxy in compose files).
+docker_host = "tcp://docker-socket-proxy:2375"
 
 [sources.docker_socket.multiline]
 start_pattern = '^[^\s\t]'
