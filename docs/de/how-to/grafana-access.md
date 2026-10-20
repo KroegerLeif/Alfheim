@@ -25,6 +25,9 @@ Installation führt ein Fehler dabei nur zu einer Warnung, nie zu einem
 abgebrochenen Update. Die folgenden manuellen Schritte brauchst du nur, wenn
 diese Warnung erscheint oder um weiteren Nutzern Zugriff zu geben.
 
+Dieselbe Rolle schaltet auch die Dashboard-System-Telemetrie und die
+Chat-MCP-Registry frei, siehe [Authentifizierung & Mandantenfähigkeit](../explanation/authentication-security.md#installations-operatoren-alfheim_operator).
+
 ## Rolle anlegen (manuell, nur falls nötig)
 
 1. Öffne die Zitadel-Konsole unter `https://<ZITADEL_EXTERNALDOMAIN>/ui/console`

@@ -23,6 +23,9 @@ for the project and grants the role to the initial administrator (the user
 warning and never aborts the update. You only need the manual steps below when
 that warning appears, or to give further users access.
 
+The same role also unlocks the dashboard system telemetry and the chat MCP
+registry, see [Authentication & Security](../explanation/authentication-security.md#installation-operators-alfheim_operator).
+
 ## Create the role (manually, only if needed)
 
 1. Open the Zitadel console at `https://<ZITADEL_EXTERNALDOMAIN>/ui/console`

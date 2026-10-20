@@ -14,6 +14,7 @@ sidebar:
 - [Trennung der Zuständigkeiten: AuthN vs. AuthZ](#trennung-der-zuständigkeiten-authn-vs-authz)
 - [Authentifizierungsablauf (generisches OIDC PKCE)](#authentifizierungsablauf-generisches-oidc-pkce)
 - [JWT-Claims & Nutzeridentität](#jwt-claims--nutzeridentität)
+- [Installations-Operatoren (`alfheim_operator`)](#installations-operatoren-alfheim_operator)
 - [Mandantentrennung (`X-Household-ID`)](#mandantentrennung-x-household-id)
 - [Mandantensicherheit der FastMCP-KI-Agenten](#mandantensicherheit-der-fastmcp-ki-agenten)
 - [Haushaltskontext im Frontend](#haushaltskontext-im-frontend)
@@ -67,6 +68,24 @@ Zitadel stellt standardisierte OIDC-Identitäts-Tokens aus:
   "email_verified": true
 }
 ```
+
+---
+
+## Installations-Operatoren (`alfheim_operator`)
+
+Haushaltsrollen (`owner`, `admin`, `member`, `guest`) gelten nur innerhalb eines Haushalts, und jeder Nutzer kann einen Haushalt anlegen und dessen Owner werden. Sie schützen daher nie Ressourcen, die zur gesamten Installation gehören. Diese Ressourcen sind stattdessen an die Zitadel-Projektrolle `alfheim_operator` gebunden:
+
+| Ressource | Operator | Alle anderen |
+| --- | --- | --- |
+| Dashboard-Systemmetriken und -Logs (`/api/v1/telemetry/*`) | erlaubt | `403 operator_required`; die Widgets werden durch einen kurzen Hinweis ersetzt |
+| Chat-MCP-Registry: Server aktivieren oder deaktivieren (`PATCH /api/v1/chat/mcp-servers/{id}`) | erlaubt | `403 operator_required` |
+| Chat-MCP-Registry: Diagnose (`GET /api/v1/chat/mcp-servers/diagnostics`) | erlaubt | `403 operator_required` |
+| Chat-MCP-Registry: Liste (`GET /api/v1/chat/mcp-servers`) | vollständige Einträge samt interner Endpoint-URL | nur ID, App-Slug und Aktiv-Status |
+| Grafana | `Admin` | abgewiesen |
+
+Die Go-Backends lesen die Rolle aus dem validierten Access-Token. Zitadel legt sie im Claim `urn:zitadel:iam:org:project:roles` ab (sowie im projektbezogenen `urn:zitadel:iam:org:project:<projectId>:roles`), einem nach Rollen-Key geschlüsselten Objekt. Ein Claim anderer Form gewährt nichts. Voraussetzung sind Access-Token-Role-Assertion an der OIDC-Anwendung und JWT-Access-Tokens, was `alfheim-setup` bei Installation und bei jedem Update einrichtet. Das Dashboard-Frontend fragt `GET /api/v1/user/capabilities` (`{"operator": true|false}`) nur ab, um Bedienelemente auszublenden; die Backends erzwingen die Rolle bei jeder Anfrage.
+
+`alfheim-setup` vergibt die Rolle an den initialen Administrator. Weitere Nutzer berechtigst du wie unter [Grafana-Zugriff gewähren](../how-to/grafana-access.md) beschrieben; dieselbe Rolle deckt Grafana, System-Telemetrie und die MCP-Registry ab. Nach der Vergabe braucht der Nutzer ein frisches Token (ab- und wieder anmelden).
 
 ---
 

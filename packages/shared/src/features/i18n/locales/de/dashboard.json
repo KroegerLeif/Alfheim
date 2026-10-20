@@ -34,6 +34,8 @@
     "containers_online": "{count} Container Online",
     "expand_telemetry": "Telemetrieansicht erweitern",
     "collapse_telemetry": "Telemetrieansicht einklappen",
+    "operator_only_title": "Operator-Zugriff erforderlich",
+    "operator_only_desc": "Systemmetriken und Logs betreffen die gesamte Installation und werden nur Operatoren angezeigt. Bitte einen Administrator, dir die Rolle alfheim_operator zuzuweisen.",
     "telemetry_unavailable": "METRIKEN NICHT VERFÜGBAR",
     "telemetry_unavailable_desc": "Derzeit sind keine Live-Systemmetriken verfügbar. VictoriaMetrics ist möglicherweise nicht erreichbar oder es sind keine Host-Level-Exporter konfiguriert.",
     "shell_title": "live-telemetrie-feed",

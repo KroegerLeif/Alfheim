@@ -34,6 +34,8 @@
     "containers_online": "{count} Kontenerów Online",
     "expand_telemetry": "Rozwiń widok telemetrii",
     "collapse_telemetry": "Zwiń widok telemetrii",
+    "operator_only_title": "Wymagany dostęp operatora",
+    "operator_only_desc": "Metryki i logi systemowe dotyczą całej instalacji i są widoczne tylko dla operatorów. Poproś administratora o nadanie roli alfheim_operator.",
     "telemetry_unavailable": "METRYKI NIEDOSTĘPNE",
     "telemetry_unavailable_desc": "Obecnie brak dostępnych na żywo metryk systemowych. VictoriaMetrics może być nieosiągalny lub nie skonfigurowano eksporterów na poziomie hosta.",
     "shell_title": "kanał-telemetrii-na-żywo",

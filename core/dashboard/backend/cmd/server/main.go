@@ -18,6 +18,7 @@ import (
 
 	"alfheim/dashboard/config"
 	"alfheim/dashboard/internal/features/apps"
+	"alfheim/dashboard/internal/features/capabilities"
 	"alfheim/dashboard/internal/features/telemetry"
 	"alfheim/dashboard/internal/shared/db"
 	"alfheim/dashboard/internal/shared/logger"
@@ -153,6 +154,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler)
 	// Initialize Handlers
 	appsHandler := apps.NewHandler(appsService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
+	capabilitiesHandler := capabilities.NewHandler()
 
 	// Router Setup
 	r := chi.NewRouter()
@@ -196,6 +198,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler)
 	// Register Feature Domain Routes
 	appsHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
+	capabilitiesHandler.RegisterRoutes(r, authMw)
 
 	return r
 }

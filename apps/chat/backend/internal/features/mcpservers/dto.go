@@ -26,6 +26,19 @@ func ToResponse(s *Server) ResponseDTO {
 	}
 }
 
+// SummaryDTO is the redacted registry entry shown to non-operators: it omits the
+// internal endpoint URL and timestamps.
+type SummaryDTO struct {
+	ID      string `json:"id"`
+	AppSlug string `json:"app_slug"`
+	Enabled bool   `json:"enabled"`
+}
+
+// ToSummary reduces a full registry entry to its non-sensitive fields.
+func ToSummary(r ResponseDTO) SummaryDTO {
+	return SummaryDTO{ID: r.ID, AppSlug: r.AppSlug, Enabled: r.Enabled}
+}
+
 // SetEnabledRequest is the payload for PATCH /api/v1/chat/mcp-servers/{id}.
 type SetEnabledRequest struct {
 	Enabled bool `json:"enabled"`
