@@ -2,7 +2,11 @@
 // (local Ollama today, OpenAI-compatible and other external APIs in later phases).
 package llm
 
-import "context"
+import (
+	"context"
+	"errors"
+	"fmt"
+)
 
 // Role identifies who authored a chat message.
 type Role string
@@ -122,4 +126,20 @@ type Provider interface {
 	// HealthCheck verifies the provider is reachable and, where applicable, that
 	// credentials are valid, without performing a full chat completion.
 	HealthCheck(ctx context.Context) HealthResult
+}
+
+// ErrUpstreamUnreachable is returned when the provider endpoint cannot be reached. The
+// underlying network error is logged server-side only: it can reveal internal topology.
+var ErrUpstreamUnreachable = errors.New("the model endpoint could not be reached")
+
+// ErrUpstreamStream is surfaced when the provider reports an error mid-stream. The
+// upstream message is logged server-side only.
+var ErrUpstreamStream = errors.New("the model endpoint reported an error")
+
+// UpstreamStatusError reports a non-success HTTP status from the provider without
+// exposing the upstream response body.
+type UpstreamStatusError struct{ Status int }
+
+func (e *UpstreamStatusError) Error() string {
+	return fmt.Sprintf("the model endpoint returned status %d", e.Status)
 }

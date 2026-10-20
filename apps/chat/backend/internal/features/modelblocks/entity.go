@@ -63,7 +63,7 @@ func (m *ModelBlock) IsOwnedBy(userID string) bool {
 // IsVisibleTo reports whether a user in the given household may see and select this
 // model block. Ownership always grants visibility; otherwise the block must be
 // shared and scoped to the caller's household, or a bootstrap block (visible to
-// everyone, see CanModify).
+// everyone, usable but read-only, see CanModify).
 func (m *ModelBlock) IsVisibleTo(userID, householdID string) bool {
 	if m.IsOwnedBy(userID) || m.IsBootstrap {
 		return true
@@ -74,13 +74,12 @@ func (m *ModelBlock) IsVisibleTo(userID, householdID string) bool {
 	return m.HouseholdID != nil && *m.HouseholdID == householdID
 }
 
-// CanModify reports whether userID may edit, delete, or trigger a health check for
-// this model block. Regular blocks may only be modified by their owner (shared
-// blocks are usable by the household but not editable, per product decision).
-// Bootstrap blocks are a deliberate exception: they are seeded from server ENV vars
-// with no natural personal owner ("system"), so any authenticated user may take them
-// over once created — after which they behave like any other block they now own in
-// spirit, even though ownership in the database stays "system".
+// CanModify reports whether userID may edit or delete this model block. Regular
+// blocks may only be modified by their owner (shared blocks are usable by the
+// household but not editable, per product decision). Bootstrap blocks are managed
+// exclusively through the CHAT_BOOTSTRAP_* environment variables and are read-only
+// for every API user: they carry the operator's API key, so letting any user repoint
+// their base URL would leak that key to an attacker-controlled host.
 func (m *ModelBlock) CanModify(userID string) bool {
-	return m.IsOwnedBy(userID) || m.IsBootstrap
+	return !m.IsBootstrap && m.IsOwnedBy(userID)
 }
