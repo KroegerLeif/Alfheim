@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlmodel import col, func, or_, select
+from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.inventory.models import InventoryState
 from src.features.locations.models import Location
@@ -34,7 +34,7 @@ class AlertService:
             select(Product, func.coalesce(subq.c.total_quantity, 0.0).label("current_stock"))
             .outerjoin(subq, col(Product.id) == subq.c.product_id)
             .where(
-                or_(Product.is_global, Product.home_id == home_id),
+                Product.home_id == home_id,
                 func.coalesce(subq.c.total_quantity, 0.0) < Product.minimum_stock,
             )
         )

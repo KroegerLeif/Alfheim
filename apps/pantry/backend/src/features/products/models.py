@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import Column, DateTime, Index, String, text
 from sqlmodel import Field, Relationship, SQLModel, func
 
 
@@ -20,6 +20,19 @@ class Product(SQLModel, table=True):
     """Database model for the abstract product blueprint (Stammdaten)."""
 
     __tablename__ = "products"
+    # A barcode is unique within its owning scope: per household for local products and across
+    # the shared catalog for global ones. NULL home_id values are distinct in a plain unique index,
+    # hence the separate partial index for global rows.
+    __table_args__ = (
+        Index("uq_products_home_barcode", "home_id", "barcode", unique=True),
+        Index(
+            "uq_products_global_barcode",
+            "barcode",
+            unique=True,
+            postgresql_where=text("is_global"),
+            sqlite_where=text("is_global"),
+        ),
+    )
 
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
@@ -47,10 +60,9 @@ class Product(SQLModel, table=True):
     )
     barcode: str | None = Field(
         default=None,
-        unique=True,
         nullable=True,
         index=True,
-        description="Globally unique barcode if present, otherwise null for local items.",
+        description="Barcode, unique per household (local products) or across the shared catalog (global products).",
     )
     image_url: str | None = Field(
         default=None,

@@ -66,12 +66,12 @@ async def test_get_low_stock_items(client: AsyncClient, db_session: AsyncSession
     data = response.json()
 
     low_stock_product_ids = {item["product"]["id"] for item in data}
-    assert str(spaghetti.id) in low_stock_product_ids
+    # Shared catalog rows never appear in a household's low-stock list
+    assert str(spaghetti.id) not in low_stock_product_ids
     assert str(new_prod_id) in low_stock_product_ids
     assert str(oatly.id) not in low_stock_product_ids
 
     items = {item["product"]["id"]: item for item in data}
-    assert items[str(spaghetti.id)]["current_stock"] == 500.0
     assert items[str(new_prod_id)]["current_stock"] == 0.0
 
 

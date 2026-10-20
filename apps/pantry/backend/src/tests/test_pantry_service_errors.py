@@ -131,7 +131,7 @@ async def test_inventory_service_errors(db_session: AsyncSession):
         patch.object(db_session, "commit", AsyncMock(side_effect=IntegrityError("stmt", "params", Exception("orig")))),
         patch.object(db_session, "rollback", AsyncMock()),
     ):
-        with pytest.raises(InventoryError, match="Database error during transaction creation"):
+        with pytest.raises(InventoryError, match="could not be saved"):
             await InventoryService.create_transaction(
                 db_session,
                 InventoryTransactionCreate(
@@ -381,7 +381,7 @@ async def test_category_and_location_service_edge_cases(db_session: AsyncSession
     ):
         with pytest.raises(ValueError, match="already exists"):
             await CategoryService.create_category(db_session, CategoryCreate(name="Fail Cat"), owner_id, home_id)
-        with pytest.raises(ValueError, match="Category name conflict"):
+        with pytest.raises(ValueError, match="Category name conflicts"):
             await CategoryService.update_category(db_session, cat2.id, home_id, CategoryUpdate(description="fail"))
 
     # Location success deletion with Backlog fallback
@@ -408,9 +408,9 @@ async def test_category_and_location_service_edge_cases(db_session: AsyncSession
         patch.object(db_session, "commit", AsyncMock(side_effect=IntegrityError("stmt", "params", Exception("orig")))),
         patch.object(db_session, "rollback", AsyncMock()),
     ):
-        with pytest.raises(ValueError, match="Failed to create location"):
+        with pytest.raises(ValueError, match="could not be created"):
             await LocationService.create_location(db_session, LocationCreate(name="Fail Loc"), owner_id, home_id)
-        with pytest.raises(ValueError, match="Failed to update location"):
+        with pytest.raises(ValueError, match="could not be updated"):
             await LocationService.update_location(db_session, loc3_id, home_id, LocationUpdate(name="Fail Update"))
 
 

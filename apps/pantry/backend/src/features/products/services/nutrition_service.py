@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from sqlalchemy.exc import IntegrityError
@@ -6,6 +7,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.products.models import Product, ProductNutrition
 from src.features.products.schemas import ProductNutritionUpdate
 from src.features.products.services.product_crud_service import ProductCrudService
+
+logger = logging.getLogger(__name__)
 
 
 class ProductNutritionService:
@@ -93,7 +96,8 @@ class ProductNutritionService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Database error during nutrition update: {e}") from e
+            logger.warning("Integrity error updating nutrition for product '%s'", product_id, exc_info=e)
+            raise ValueError("Nutrition profile could not be updated.") from e
 
         await session.refresh(nutrition)
         return nutrition
