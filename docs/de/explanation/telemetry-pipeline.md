@@ -49,7 +49,9 @@ Alfheim setzt unter `infrastructure/telemetry` auf eine einheitliche Telemetrie-
 
 ## Log-Sammlung & Normalisierung (Vector)
 
-Vector (`infrastructure/telemetry/vector/vector.toml`) sammelt Container-Logs direkt vom Docker-Socket.
+Vector (`infrastructure/telemetry/vector/vector.toml`) sammelt Container-Logs über einen schreibgeschützten Docker-Socket-Proxy (`docker-socket-proxy`, `wollomatic/socket-proxy`). Vector bindet `/var/run/docker.sock` nie selbst ein, weil Zugriff auf die Docker-API einem Root-Zugriff auf dem Host entspricht, auch wenn der Socket `:ro` gemountet ist.
+
+Der Proxy hält den Socket und leitet nur die GET-Endpunkte weiter, die die `docker_logs`-Quelle benötigt (Version, Ping, Info, Events, Container-Liste, Inspect und Logs). Alle anderen Anfragen werden abgelehnt, einschließlich aller POST/PUT/DELETE-Aufrufe und des Datei-Archiv-Endpunkts von Containern. Der Proxy hängt am rein internen Netzwerk `docker-proxy-net`, das nur Vector erreichen kann und keine Route aus dem Host hinaus hat.
 
 Wesentliche Funktionen:
 * **Zusammenführung mehrzeiliger Stacktraces:** Fasst mehrzeilige Python-Tracebacks und Go-Panic-Traces (`\tat`, `\tgoroutine`) zu einem logischen Log-Ereignis zusammen.

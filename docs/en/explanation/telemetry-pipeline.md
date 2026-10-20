@@ -49,7 +49,9 @@ Alfheim implements a unified telemetry architecture based on **VictoriaStack** u
 
 ## Log Harvesting & Normalization (Vector)
 
-Vector (`infrastructure/telemetry/vector/vector.toml`) harvests container logs directly from the Docker socket.
+Vector (`infrastructure/telemetry/vector/vector.toml`) harvests container logs through a read-only Docker socket proxy (`docker-socket-proxy`, `wollomatic/socket-proxy`). Vector never mounts `/var/run/docker.sock` itself, because access to the Docker API is equivalent to root on the host, even when mounted `:ro`.
+
+The proxy holds the socket and forwards only the GET endpoints the `docker_logs` source needs (version, ping, info, events, container list, inspect, and logs). Every other request is denied, including all POST/PUT/DELETE calls and the container file-archive endpoint. It sits on the internal-only `docker-proxy-net` network, which only Vector can reach and which has no route out of the host.
 
 Key Vector features:
 * **Multiline Stack Trace Aggregation:** Merges multiline Python tracebacks and Go panic traces (`\tat`, `\tgoroutine`) into single logical log events.
