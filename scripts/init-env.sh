@@ -54,6 +54,10 @@ if [[ ! -f "$TEMPLATE_FILE" ]]; then
   fi
 fi
 
+# DOCKER_SOCKET_GID detection shared with up.sh and test-prod-startup.sh.
+# shellcheck source=lib/docker-socket-gid.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/docker-socket-gid.sh"
+
 # ------------------------------------------------------------------------------
 # Cryptographic Random Generators
 # ------------------------------------------------------------------------------
@@ -415,6 +419,15 @@ migrate_existing_env() {
     log_warn "Dropped obsolete NEXT_PUBLIC_*_API_URL entries (now derived from ALFHEIM_BASE_URL) in $(basename "$env_file")"
   fi
 
+  # 6. Host docker group id for the socket proxy in compose.prod.yaml. Older
+  #    .env files predate it; a value that already exists is never changed.
+  if ! grep -qE '^DOCKER_SOCKET_GID=[0-9]+[[:space:]]*$' "$env_file"; then
+    if ! ensure_docker_socket_gid "$env_file"; then
+      exit 1
+    fi
+    log_success "Set DOCKER_SOCKET_GID in $(basename "$env_file") from the host docker socket."
+  fi
+
   if [[ "$migrated" == true ]]; then
     log_success "Successfully migrated legacy database configuration in $(basename "$env_file")"
   fi
@@ -723,6 +736,14 @@ if ! grep -q '^HOUSEHOLD_POSTGRES_PASSWORD=' "$OUTPUT_FILE"; then
 fi
 if ! grep -q '^ALFHEIM_INTERNAL_TOKEN=' "$OUTPUT_FILE"; then
   printf "ALFHEIM_INTERNAL_TOKEN=%s\n" "${INTERNAL_TOKEN}" >> "$OUTPUT_FILE"
+fi
+
+# Host docker group id for the socket proxy in compose.prod.yaml. The template
+# ships a generic placeholder (999) that is not host specific, so it is dropped
+# and the detected id is written instead.
+sed -i.bak -e '/^DOCKER_SOCKET_GID=/d' "$OUTPUT_FILE" && rm -f "${OUTPUT_FILE}.bak"
+if ! ensure_docker_socket_gid "$OUTPUT_FILE"; then
+  exit 1
 fi
 
 # Restrict file permissions to current user only (0600)
