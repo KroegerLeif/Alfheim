@@ -14,6 +14,7 @@ sidebar:
 - [Separation of Concerns: AuthN vs AuthZ](#separation-of-concerns-authn-vs-authz)
 - [Authentication Flow (Generic OIDC PKCE)](#authentication-flow-generic-oidc-pkce)
 - [JWT Token Claims & User Identity](#jwt-token-claims--user-identity)
+- [Installation Operators (`alfheim_operator`)](#installation-operators-alfheim_operator)
 - [Multi-Tenancy Isolation (`X-Household-ID`)](#multi-tenancy-isolation-x-household-id)
 - [FastMCP AI Agent Tenant Safety](#fastmcp-ai-agent-tenant-safety)
 - [Frontend Household Context](#frontend-household-context)
@@ -67,6 +68,24 @@ Zitadel issues standardized OIDC identity tokens:
   "email_verified": true
 }
 ```
+
+---
+
+## Installation Operators (`alfheim_operator`)
+
+Household roles (`owner`, `admin`, `member`, `guest`) only apply inside one household, and any user can create a household and become its owner. They therefore never protect resources that belong to the whole installation. Those resources are gated on the Zitadel project role `alfheim_operator` instead:
+
+| Resource | Operator | Everyone else |
+| --- | --- | --- |
+| Dashboard system metrics and logs (`/api/v1/telemetry/*`) | allowed | `403 operator_required`; the widgets are replaced by a short note |
+| Chat MCP registry: enable or disable a server (`PATCH /api/v1/chat/mcp-servers/{id}`) | allowed | `403 operator_required` |
+| Chat MCP registry: diagnostics (`GET /api/v1/chat/mcp-servers/diagnostics`) | allowed | `403 operator_required` |
+| Chat MCP registry: list (`GET /api/v1/chat/mcp-servers`) | full entries including the internal endpoint URL | id, app slug and enabled state only |
+| Grafana | `Admin` | denied |
+
+The Go backends read the role from the validated access token. Zitadel puts it into the claim `urn:zitadel:iam:org:project:roles` (and the project-scoped `urn:zitadel:iam:org:project:<projectId>:roles`), an object keyed by role key. A claim of any other shape grants nothing. This needs access token role assertion on the OIDC application and JWT access tokens, which `alfheim-setup` configures on install and on every update. The dashboard frontend asks `GET /api/v1/user/capabilities` (`{"operator": true|false}`) only to hide controls; the backends enforce the role on every request.
+
+`alfheim-setup` grants the role to the initial administrator. To grant it to further users, see [Grant Grafana access](../how-to/grafana-access.md); the same role covers Grafana, system telemetry and the MCP registry. A user needs a fresh token (sign out and in) after the role was granted.
 
 ---
 
