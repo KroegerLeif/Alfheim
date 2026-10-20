@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from typing import Any
 from urllib.parse import urlparse
 
@@ -37,6 +38,16 @@ SAFE_TEST_SUFFIXES = (
 )
 
 
+#: Minimum seconds between forced JWKS refreshes triggered by an unknown ``kid``. Within this window a token
+#: signed with an unknown key is rejected without any network call, so unauthenticated callers cannot make a
+#: backend hammer the identity provider.
+JWKS_REFRESH_COOLDOWN_SECONDS = 60
+
+#: Claims every accepted access token must carry.
+REQUIRED_TOKEN_CLAIMS = ["exp", "iat", "sub"]
+
+INVALID_TOKEN_DETAIL = "invalid or expired token"
+
 _jwks_clients: dict[str, jwt.PyJWKClient] = {}
 
 
@@ -57,6 +68,20 @@ def _is_safe_test_url(url: str | None) -> bool:
     except (ValueError, AttributeError) as e:
         logger.warning("Failed to parse test URL '%s': %s", url, e)
         return False
+
+
+def is_explicit_dev_or_test_environment() -> bool:
+    """True only when the process is explicitly marked as development or test (never by default).
+
+    An explicit ``ENVIRONMENT`` always decides. When it is unset only a test runner (pytest / ``TESTING=true``)
+    qualifies; a plain unset ``ENVIRONMENT`` does not: development-only conveniences (default storage credentials, weak
+    internal tokens) must never silently apply to a deployment that merely forgot to set it.
+    """
+    env = (os.getenv("ENVIRONMENT") or "").strip().lower()
+    if env:
+        return env in ("development", "dev", "testing", "test")
+    # ``pytest`` in sys.modules covers import-time checks during test collection, before PYTEST_CURRENT_TEST is set.
+    return bool(os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "true" or "pytest" in sys.modules)
 
 
 def is_mock_auth_allowed(settings: Any = None) -> bool:
@@ -92,11 +117,21 @@ def is_mock_auth_allowed(settings: Any = None) -> bool:
 
 def get_jwks_client(jwks_url: str) -> jwt.PyJWKClient:
     if jwks_url not in _jwks_clients:
-        _jwks_clients[jwks_url] = jwt.PyJWKClient(jwks_url, ssl_context=get_oidc_ssl_context())
+        _jwks_clients[jwks_url] = jwt.PyJWKClient(
+            jwks_url,
+            ssl_context=get_oidc_ssl_context(),
+            cooldown_duration=JWKS_REFRESH_COOLDOWN_SECONDS,
+        )
     return _jwks_clients[jwks_url]
 
 
 def decode_oidc_token(token: str, settings: Any = None) -> dict:
+    """Validate an OIDC access token and return its claims.
+
+    This function is synchronous and may block on network I/O (OIDC discovery and JWKS fetches). Async callers
+    must run it in a worker thread, e.g. ``await anyio.to_thread.run_sync(decode_oidc_token, token, settings)``.
+    Failures raise ``HTTPException(401)`` with a generic detail; specifics are only logged.
+    """
     if is_mock_auth_allowed(settings):
         try:
             logger.debug("Decoding OIDC token without signature verification in test context.")
@@ -105,7 +140,7 @@ def decode_oidc_token(token: str, settings: Any = None) -> dict:
             logger.warning("Mock JWT decoding failed: %s", e)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"invalid or expired token: {e}",
+                detail=INVALID_TOKEN_DETAIL,
             )
 
     expected_issuer = getattr(settings, "expected_issuer", None) if settings else None
@@ -148,6 +183,7 @@ def decode_oidc_token(token: str, settings: Any = None) -> dict:
                 "verify_aud": True,
                 "verify_iss": True,
                 "verify_exp": True,
+                "require": REQUIRED_TOKEN_CLAIMS,
             },
         )
     except HTTPException:
@@ -156,5 +192,5 @@ def decode_oidc_token(token: str, settings: Any = None) -> dict:
         logger.warning("OIDC JWT validation failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"invalid or expired token: {e}",
+            detail=INVALID_TOKEN_DETAIL,
         )

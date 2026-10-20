@@ -8,6 +8,8 @@ from botocore.exceptions import ClientError
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from backend_shared.dependencies import is_explicit_dev_or_test_environment
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,12 +32,15 @@ class StorageSettings(BaseSettings):
         if base_url and self.S3_PUBLIC_URL == "http://api.alfheim.loegien.localhost/storage":
             self.S3_PUBLIC_URL = f"{base_url}/storage"
 
-        env = (os.getenv("ENVIRONMENT") or "development").strip().lower()
-        if env not in ("development", "dev", "testing", "test"):
+        if not is_explicit_dev_or_test_environment():
             if not self.S3_ACCESS_KEY:
-                raise ValueError("S3_ACCESS_KEY is required in non-development environment")
+                raise ValueError(
+                    "S3_ACCESS_KEY is required in non-development environment (ENVIRONMENT must be explicitly development or test to use defaults)"
+                )
             if not self.S3_SECRET_KEY:
-                raise ValueError("S3_SECRET_KEY is required in non-development environment")
+                raise ValueError(
+                    "S3_SECRET_KEY is required in non-development environment (ENVIRONMENT must be explicitly development or test to use defaults)"
+                )
         else:
             if not self.S3_ACCESS_KEY:
                 self.S3_ACCESS_KEY = "minioadmin"

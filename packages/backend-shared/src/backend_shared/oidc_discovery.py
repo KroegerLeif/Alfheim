@@ -45,11 +45,11 @@ def get_jwks_uri(issuer_url: str) -> str:
                 raise ValueError("Missing jwks_uri in OpenID configuration")
             _discovered_jwks_uris[normalized_issuer] = jwks_uri
             return jwks_uri
-    except Exception as e:
+    except (httpx.HTTPError, ValueError) as e:
         logger.error("Failed to discover JWKS URI from %s: %s", discovery_url, e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Unable to discover OIDC JWKS configuration: {e}",
+            detail="Unable to discover OIDC JWKS configuration",
         )
 
 
