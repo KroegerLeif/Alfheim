@@ -149,6 +149,38 @@ wizard, rotates a secret, or touches the root CA, the Zitadel machinekey/PAT,
 or a Docker volume. Full walkthrough, one-liner and rollback:
 [Update an installation](../how-to/update-installation.md).
 
+`update` first takes a database and secrets backup (see below) and aborts if
+it fails. Pass `--skip-backup` to update without one.
+
+---
+
+## The `backup` subcommand
+
+```
+alfheim-setup backup [--output DIR] [--keep N] [--skip-media] [--install-dir DIR]
+```
+
+Writes one `alfheim-backup-<UTC>.tar.gz` (mode `0600`) holding a `pg_dumpall`
+of every database, the RustFS object storage, `.env`, the Zitadel machinekey,
+the root CA and Caddy PKI, the stack files and a checksummed `manifest.json`.
+The stack must be running. `--output` (or `ALFHEIM_BACKUP_DIR`) defaults to
+`<install-dir>/backups`; `--keep` retains the N newest archives (default 7);
+`--skip-media` leaves out the object storage. The archive contains all secrets
+in plaintext. Details, scheduling and off-site copies:
+[Backup, Restore & Data Migration](../how-to/backup-restore.md).
+
+## The `restore` subcommand
+
+```
+alfheim-setup restore <archive> [--install-dir DIR] [--yes]
+```
+
+Verifies the archive against its manifest, then replaces `.env` and the other
+secrets, drops and recreates every database and role from the dump, refills the
+RustFS storage, starts the stack and runs `scripts/verify-stack.sh`. It asks
+for confirmation unless `--yes` is given. The recommended target is a fresh
+host. See [Backup, Restore & Data Migration](../how-to/backup-restore.md).
+
 ---
 
 ## Two-phase bootstrap
