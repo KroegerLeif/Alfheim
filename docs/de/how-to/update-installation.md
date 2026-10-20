@@ -134,7 +134,15 @@ ausführen.
    stellt sicher, dass die Selbstregistrierung in der Zitadel-Login-Policy
    deaktiviert ist. Konten legt der Betreiber an, nie ein Besucher der
    Login-Seite. Dafür dient das in der `.env` als `ZITADEL_BOOTSTRAP_PAT`
-   gespeicherte Bootstrap-PAT.
+   gespeicherte Bootstrap-PAT. Bei einer bestehenden Installation bricht
+   dieser Schritt das Update nie ab: fehlen dem PAT die Rechte oder lässt sich
+   die Policy nicht ändern oder verifizieren, läuft das Update weiter und gibt
+   eine deutliche Warnung aus (erneut in der Abschlusszusammenfassung), dass
+   die Selbstregistrierung noch aktiv sein kann. Dann in der Zitadel-Konsole
+   von Hand deaktivieren: **Default settings → Login behavior and security →
+   „User registration allowed" abwählen**, ebenso in den Login-Einstellungen
+   der Organisation, falls diese eine eigene Policy hat. Eine Neuinstallation
+   schlägt stattdessen fehl.
 8. Stellt sicher, dass jede Dienst-Datenbank existiert (erneuter Lauf des
    idempotenten Postgres-Init-Skripts).
 9. `docker compose pull`, gefolgt von `docker compose up -d --remove-orphans`.

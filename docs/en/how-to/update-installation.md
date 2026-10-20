@@ -126,7 +126,14 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
    missing redirect URI, changes nothing that already matches) and makes sure
    self-registration is disabled on the Zitadel login policy. Accounts are
    created by the operator, never by a visitor of the login page. This uses
-   the bootstrap PAT stored in `.env` as `ZITADEL_BOOTSTRAP_PAT`.
+   the bootstrap PAT stored in `.env` as `ZITADEL_BOOTSTRAP_PAT`. On an
+   existing installation this step never aborts the update: if the PAT lacks
+   the rights, or the policy cannot be changed or verified, the update
+   continues and prints a prominent warning (again in the final summary) that
+   self-registration may still be enabled. Then disable it by hand in the
+   Zitadel console: **Default settings → Login behavior and security → uncheck
+   "User registration allowed"**, and the same setting under the organization's
+   own login behavior if it has a custom policy. A fresh install fails instead.
 8. Ensures every service database exists (re-runs the idempotent Postgres
    init script).
 9. `docker compose pull` followed by `docker compose up -d --remove-orphans`.
