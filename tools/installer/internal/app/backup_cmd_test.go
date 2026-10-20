@@ -197,7 +197,7 @@ func TestRestoreApp_RestoresIntoFreshDirectory(t *testing.T) {
 		t.Errorf(".env not restored: %v", err)
 	}
 	calls := strings.Join(rec.CallStrings(), "\n")
-	for _, want := range []string{"create rustfs", "--volumes-from alfheim_rustfs alpine:3.20", "up -d --remove-orphans"} {
+	for _, want := range []string{"create rustfs", "--volumes-from alfheim_rustfs alpine:3.24", "up -d --remove-orphans"} {
 		if !strings.Contains(calls, want) {
 			t.Errorf("missing %q in calls:\n%s", want, calls)
 		}

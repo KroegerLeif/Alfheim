@@ -116,7 +116,7 @@ func TestCreateRunsExactCommandsWithoutTTY(t *testing.T) {
 	want := []string{
 		compose + " exec -T postgres-core psql -U admin_pg -d postgres -X -At -c SHOW server_version",
 		compose + " exec -T postgres-core pg_dumpall -U admin_pg",
-		"docker run --rm --volumes-from alfheim_rustfs:ro alpine:3.20 tar cf - -C /data .",
+		"docker run --rm --volumes-from alfheim_rustfs:ro alpine:3.24 tar cf - -C /data .",
 	}
 	for i, w := range want {
 		if got := f.calls[i].String(); got != w {
@@ -507,7 +507,7 @@ func TestRestoreMediaStreamsTarIntoVolume(t *testing.T) {
 		t.Errorf("first call = %q", got)
 	}
 	run := f.calls[1]
-	if !strings.HasPrefix(run.String(), "docker run --rm -i --volumes-from alfheim_rustfs alpine:3.20 sh -c") {
+	if !strings.HasPrefix(run.String(), "docker run --rm -i --volumes-from alfheim_rustfs alpine:3.24 sh -c") {
 		t.Errorf("run call = %q", run.String())
 	}
 	if f.stdins[run.String()] != "MEDIA" {

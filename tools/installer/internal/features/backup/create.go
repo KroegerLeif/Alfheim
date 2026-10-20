@@ -29,7 +29,7 @@ const (
 	postgresService   = "postgres-core"
 	mediaContainer    = "alfheim_rustfs"
 	mediaDataDir      = "/data"
-	helperImage       = "alpine:3.20"
+	helperImage       = "alpine:3.24"
 	dumpTrailer       = "PostgreSQL database cluster dump complete"
 	defaultPGUser     = "postgres"
 	maxCommandErrSize = 2000
