@@ -24,7 +24,10 @@
       "sidebarLabel": "Pasek boczny na komputerze",
       "navLabel": "Nawigacja w pasku bocznym",
       "planningModeLabel": "Wybór trybu planowania",
-      "mobileNavLabel": "Nawigacja mobilna"
+      "mobileNavLabel": "Nawigacja mobilna",
+      "accounts": "Konta",
+      "transactions": "Transakcje",
+      "more": "Więcej"
     },
     "accounts": {
       "title": "Konta i Portfele",

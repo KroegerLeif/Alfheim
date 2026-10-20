@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useTranslation } from "@alfheim/shared";
 import {
   LayoutDashboard,
@@ -11,6 +10,8 @@ import {
   TrendingUp,
   Plus,
   Wallet,
+  Landmark,
+  ArrowLeftRight,
 } from "lucide-react";
 
 export interface DesktopSidebarProps {
@@ -29,16 +30,19 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { labelKey: "budget.navigation.dashboard", href: "/", icon: LayoutDashboard },
+  { labelKey: "budget.navigation.accounts", href: "/accounts", icon: Landmark },
   { labelKey: "budget.navigation.planning", href: "/planning", icon: Calendar },
   { labelKey: "budget.navigation.pots", href: "/pots", icon: PiggyBank },
+  { labelKey: "budget.navigation.transactions", href: "/transactions", icon: ArrowLeftRight },
   { labelKey: "budget.navigation.sankey", href: "/sankey", icon: GitMerge },
   { labelKey: "budget.navigation.analytics", href: "/analytics", icon: TrendingUp },
 ];
 
 /**
  * Desktop sidebar navigation component for Budget & Treasury app.
- * Provides full sidebar navigation including Dashboard, Planning (Monat / Event), Pots,
- * Sankey Cashflow view, Net-Worth Analytics, and a Quick-Add button.
+ * Provides full sidebar navigation including Dashboard, Accounts, Planning (Monat / Event), Pots,
+ * Transactions, Sankey Cashflow view, Net-Worth Analytics, and a Quick-Add button.
+ * Items are buttons because the page renders views from state (onTabChange), not from routes.
  */
 export function DesktopSidebar({
   currentPath = "/",
@@ -88,15 +92,11 @@ export function DesktopSidebar({
 
           return (
             <div key={item.href} className="space-y-1">
-              <Link
-                href={item.href}
-                onClick={(e) => {
-                  if (onTabChange) {
-                    e.preventDefault();
-                    onTabChange(item.href);
-                  }
-                }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              <button
+                type="button"
+                onClick={() => onTabChange?.(item.href)}
+                aria-current={isActive ? "page" : undefined}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-[var(--primary-main)]/10 text-[var(--primary-main)] font-semibold"
                     : "text-[var(--text-muted)] hover:bg-[var(--surface-canvas)] hover:text-[var(--text-main)]"
@@ -104,7 +104,7 @@ export function DesktopSidebar({
               >
                 <Icon className="w-5 h-5" />
                 <span>{t(item.labelKey)}</span>
-              </Link>
+              </button>
 
               {/* Segmented Control for Planning (Monat / Event) */}
               {item.href === "/planning" && isActive && (
