@@ -53,7 +53,10 @@ EXPECTED_ROW = "Barbell"
 # A table without dependants that is safe to drop in the "skipped release" scenario.
 DROPPABLE_TABLE = "session_sets"
 # DDL turning a freshly created PostgreSQL schema into the shape older releases had (empty: no drift so far).
-LEGACY_POSTGRES_DDL: list[str] = []
+LEGACY_POSTGRES_DDL: list[str] = [
+    "ALTER TABLE workout_sessions ALTER COLUMN completed_at TYPE timestamp",
+    "ALTER TABLE session_sets ALTER COLUMN completed_at TYPE timestamp",
+]
 
 
 def _is_app_object(obj: object, name: str | None, type_: str, reflected: bool, compare_to: object) -> bool:
@@ -198,3 +201,25 @@ async def test_concurrent_startups_serialize_on_the_advisory_lock(postgres_engin
     assert await _current_revision(postgres_engine) == _head_revision()
     async with postgres_engine.connect() as connection:
         assert await connection.run_sync(_schema_diff) == []
+
+
+@requires_postgres
+async def test_postgres_orm_inserts_accept_timezone_aware_completion_times(postgres_engine: AsyncEngine):
+    """Regression: aware ``datetime.now(UTC)`` values were rejected by asyncpg on `timestamp` columns."""
+    from datetime import UTC, datetime
+
+    from sqlmodel.ext.asyncio.session import AsyncSession
+    from src.features.session.models import SessionSet, WorkoutSession
+
+    await run_migrations(postgres_engine)
+
+    completed = datetime.now(UTC)
+    async with AsyncSession(postgres_engine) as session:
+        session.add(WorkoutSession(home_id=uuid4(), user_id=uuid4(), completed_at=completed))
+        session.add(SessionSet(set_order=1, completed_at=completed))
+        await session.commit()
+
+    async with postgres_engine.connect() as connection:
+        for table in ("workout_sessions", "session_sets"):
+            stored = (await connection.execute(text(f"SELECT completed_at FROM {table}"))).scalar_one()
+            assert stored == completed
