@@ -146,7 +146,7 @@ func (a *Authenticator) AuthenticateMiddleware(next http.Handler) http.Handler {
 
 		rawToken := parts[1]
 
-		parseOpts := []jwt.ParserOption{jwt.WithExpirationRequired()}
+		parseOpts := []jwt.ParserOption{jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"RS256"})}
 		if a.expectedIssuer != "" {
 			parseOpts = append(parseOpts, jwt.WithIssuer(a.expectedIssuer))
 		}

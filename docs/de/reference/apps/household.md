@@ -54,6 +54,9 @@ Die Datenbank-Variablen stehen in der [Referenz der Umgebungsvariablen](../envir
 
 - Die öffentliche API autorisiert nur über `household_members`, anhand der Haushalts-ID im URL-Pfad. `X-Household-ID` und `X-Household-Role` werden ignoriert.
 - Nur der Eigentümerwechsel (Transfer Ownership) ändert den Eigentümer. Einladungen und Rollenänderungen vergeben nie `OWNER`.
+- Ein `ADMIN` verwaltet nur `MEMBER` und `GUEST`: Er kann sie entfernen, zwischen beiden Rollen wechseln und einladen. `ADMIN` vergeben oder entziehen, einen `ADMIN` entfernen und `ADMIN`-Einladungen erstellen darf nur der `OWNER`. Austreten kann weiterhin jedes Mitglied.
+- Einladungen gelten höchstens 30 Tage (`ttl_minutes` bis 43200, Standard 24 Stunden) und erlauben höchstens 100 Verwendungen (`max_uses`, Standard 1). Werte außerhalb des Bereichs werden mit `400` abgelehnt.
+- Das Einladungstoken wird nur einmal angezeigt, in der Antwort beim Erstellen (in der Oberfläche als QR-Code oder Beitrittslink). Gespeichert wird nur sein SHA-256-Hash, daher zeigen aufgelistete Einladungen eine kurze ID und lassen sich nicht erneut teilen. Eine verlorene Einladung widerrufen und eine neue erstellen.
 - Der erste Haushalt, den ein Benutzer anlegt oder dem er beitritt, wird sein Standard-Haushalt. Verlässt er seinen Standard-Haushalt, wird er daraus entfernt oder wird dieser gelöscht, wird seine älteste verbleibende Mitgliedschaft zum neuen Standard-Haushalt.
 - `GET /api/v1/households/me` liefert jeden Haushalt mit `role` und `is_default`, aber ohne Mitgliederliste; `GET /api/v1/households/{id}` enthält `members`.
 - Fehler sind `application/json`-Antworten `{"error": "<code>", "message": "<Erklärung>"}`.

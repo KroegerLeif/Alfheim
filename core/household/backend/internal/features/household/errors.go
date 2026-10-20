@@ -17,6 +17,8 @@ var (
 	ErrInviteNotFound = errors.New("invite token not found")
 	// ErrInviteExpiredOrInvalid indicates the invite token is expired or exceeded usage limit.
 	ErrInviteExpiredOrInvalid = errors.New("invite token is expired or invalid")
+	// ErrInvalidInviteParams indicates a negative or out-of-range invite TTL or use limit.
+	ErrInvalidInviteParams = errors.New("invalid invite parameters")
 	// ErrCannotRemoveOwner indicates that the household owner cannot be removed.
 	ErrCannotRemoveOwner = errors.New("household owner cannot be removed")
 	// ErrInvalidRole indicates a role string outside OWNER, ADMIN, MEMBER, GUEST.

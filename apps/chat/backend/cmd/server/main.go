@@ -233,26 +233,32 @@ func buildRouter(
 	attachmentsHandler *attachments.Handler,
 	allowedOrigins []string,
 ) http.Handler {
+	// An unauthenticated API must never be served: refuse to build the router.
+	if authMw == nil {
+		panic("chat-backend: auth middleware is required to build the router")
+	}
+
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.CORSWithOrigins(allowedOrigins))
 	r.Use(middleware.RequestLogger(log))
+	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes, map[string]int64{
+		"/api/v1/chat/attachments": attachments.MaxUploadBodyBytes,
+	}))
 
 	r.Get("/api/v1/chat/health", healthHandler(dbClient))
 
-	if authMw != nil {
-		if modelBlocksHandler != nil {
-			modelBlocksHandler.RegisterRoutes(r, authMw)
-		}
-		if conversationsHandler != nil {
-			conversationsHandler.RegisterRoutes(r, authMw)
-		}
-		if mcpServersHandler != nil {
-			mcpServersHandler.RegisterRoutes(r, authMw)
-		}
-		if attachmentsHandler != nil {
-			attachmentsHandler.RegisterRoutes(r, authMw)
-		}
+	if modelBlocksHandler != nil {
+		modelBlocksHandler.RegisterRoutes(r, authMw)
+	}
+	if conversationsHandler != nil {
+		conversationsHandler.RegisterRoutes(r, authMw)
+	}
+	if mcpServersHandler != nil {
+		mcpServersHandler.RegisterRoutes(r, authMw)
+	}
+	if attachmentsHandler != nil {
+		attachmentsHandler.RegisterRoutes(r, authMw)
 	}
 	return r
 }

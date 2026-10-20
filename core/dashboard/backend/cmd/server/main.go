@@ -72,7 +72,7 @@ func run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
+	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -133,7 +133,12 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, stackAppsPath string, allowedOrigins []string) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string) http.Handler {
+	// An unauthenticated API must never be served: refuse to build the router.
+	if jwtMw == nil {
+		panic("dashboard-backend: auth middleware is required to build the router")
+	}
+
 	// Initialize Repositories
 	var pool = dbClient.Pool
 	appsRepo := apps.NewRepository(pool)
@@ -154,6 +159,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.CORSWithOrigins(allowedOrigins))
 	r.Use(middleware.RequestLogger(log))
+	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes))
 
 	// Health Check Endpoints
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -184,10 +190,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 		profileMw = middleware.EnsureUserProfile(pool, log)
 	}
 	authMw := func(next http.Handler) http.Handler {
-		if auth == nil {
-			return profileMw(next)
-		}
-		return auth.AuthenticateMiddleware(profileMw(next))
+		return jwtMw(profileMw(next))
 	}
 
 	// Register Feature Domain Routes

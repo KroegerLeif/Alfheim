@@ -54,6 +54,9 @@ See the [environment variables reference](../environment-variables.md#household-
 
 - The public API authorizes only from `household_members`, keyed by the household id in the URL path. It ignores `X-Household-ID` and `X-Household-Role`.
 - Only transfer-ownership changes the owner. Invites and role changes never grant `OWNER`.
+- An `ADMIN` manages only `MEMBER` and `GUEST`: they can remove them, switch them between the two roles and invite them. Granting or revoking `ADMIN`, removing an `ADMIN` and creating `ADMIN` invites are reserved to the `OWNER`. Any member can still leave.
+- Invites last at most 30 days (`ttl_minutes` up to 43200, default 24 hours) and allow at most 100 uses (`max_uses`, default 1). Out-of-range values are rejected with `400`.
+- The invite token is shown once, in the create response (and as QR code or join link in the UI). Only its SHA-256 hash is stored, so listed invites show a short id and cannot be re-shared. Revoke a lost invite and create a new one.
 - The first household a user creates or joins becomes their default. Leaving, being removed from or deleting the default household promotes the user's oldest remaining membership to the new default.
 - `GET /api/v1/households/me` returns each household with `role` and `is_default` but no member roster; `GET /api/v1/households/{id}` includes `members`.
 - Errors are `application/json` bodies `{"error": "<code>", "message": "<explanation>"}`.

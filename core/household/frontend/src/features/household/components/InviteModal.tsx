@@ -24,9 +24,11 @@ export function InviteModal({ isOpen, invite, onClose, origin }: InviteModalProp
   const { t } = useTranslation();
   const [copied, setCopied] = useState<'token' | 'link' | null>(null);
 
-  if (!isOpen || !invite) return null;
+  // The plaintext token only exists right after creation; listed invites cannot be shown.
+  if (!isOpen || !invite?.token) return null;
+  const token = invite.token;
 
-  const joinUrl = buildJoinUrl(invite.token, origin);
+  const joinUrl = buildJoinUrl(token, origin);
 
   const handleCopy = (value: string, which: 'token' | 'link') => {
     void navigator.clipboard?.writeText(value);
@@ -51,11 +53,11 @@ export function InviteModal({ isOpen, invite, onClose, origin }: InviteModalProp
 
         <div className="w-full p-3 rounded-xl bg-[var(--surface-canvas)] border border-[var(--border-subtle)] flex items-center justify-between font-mono mb-2 overflow-hidden gap-2">
           <span className="text-sm font-bold text-[var(--primary-main)] tracking-wider truncate overflow-hidden min-w-0 flex-1 text-left">
-            {invite.token}
+            {token}
           </span>
           <button
             type="button"
-            onClick={() => handleCopy(invite.token, 'token')}
+            onClick={() => handleCopy(token, 'token')}
             className="px-2.5 py-1 rounded bg-[var(--primary-main)] text-slate-950 font-semibold text-xs hover:bg-[var(--primary-hover)] cursor-pointer transition-all duration-150 flex items-center gap-1 shrink-0"
           >
             <span className="material-symbols-outlined text-sm" aria-hidden="true">{copied === 'token' ? 'check' : 'content_copy'}</span>

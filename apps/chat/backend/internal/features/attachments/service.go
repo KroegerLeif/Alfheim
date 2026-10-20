@@ -17,6 +17,10 @@ import (
 // MaxAttachmentSizeBytes defines the maximum allowed attachment file size (10 MB).
 const MaxAttachmentSizeBytes = 10 * 1024 * 1024
 
+// MaxUploadBodyBytes caps the whole multipart upload request: the attachment
+// plus 1 MiB of multipart framing and form fields.
+const MaxUploadBodyBytes = MaxAttachmentSizeBytes + (1 << 20)
+
 var allowedMimeTypes = map[string]bool{
 	"image/jpeg": true,
 	"image/png":  true,

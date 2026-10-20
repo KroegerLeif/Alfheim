@@ -18,13 +18,13 @@ type Repository interface {
 	GetCategories(ctx context.Context, householdID string) ([]*ContactCategory, error)
 	GetCategoryByID(ctx context.Context, id string) (*ContactCategory, error)
 	UpdateCategory(ctx context.Context, cat *ContactCategory) error
-	DeleteCategory(ctx context.Context, id string) error
+	DeleteCategory(ctx context.Context, householdID, id string) error
 
 	CreateContact(ctx context.Context, c *Contact) error
 	GetContacts(ctx context.Context, householdID string) ([]*Contact, error)
 	GetContactByID(ctx context.Context, id string) (*Contact, error)
 	UpdateContact(ctx context.Context, c *Contact) error
-	DeleteContact(ctx context.Context, id string) error
+	DeleteContact(ctx context.Context, householdID, id string) error
 }
 
 type repository struct {
@@ -94,9 +94,9 @@ func (r *repository) UpdateCategory(ctx context.Context, cat *ContactCategory) e
 	query := `
 		UPDATE contact_categories
 		SET name = $1, icon = $2, color = $3, updated_at = NOW()
-		WHERE id = $4
+		WHERE id = $4 AND household_id = $5
 	`
-	cmd, err := r.db.Exec(ctx, query, cat.Name, cat.Icon, cat.Color, cat.ID)
+	cmd, err := r.db.Exec(ctx, query, cat.Name, cat.Icon, cat.Color, cat.ID, cat.HouseholdID)
 	if err != nil {
 		return fmt.Errorf("failed to update contact category: %w", err)
 	}
@@ -106,9 +106,9 @@ func (r *repository) UpdateCategory(ctx context.Context, cat *ContactCategory) e
 	return nil
 }
 
-func (r *repository) DeleteCategory(ctx context.Context, id string) error {
-	query := `DELETE FROM contact_categories WHERE id = $1`
-	cmd, err := r.db.Exec(ctx, query, id)
+func (r *repository) DeleteCategory(ctx context.Context, householdID, id string) error {
+	query := `DELETE FROM contact_categories WHERE id = $1 AND household_id = $2`
+	cmd, err := r.db.Exec(ctx, query, id, householdID)
 	if err != nil {
 		return fmt.Errorf("failed to delete contact category: %w", err)
 	}
@@ -206,7 +206,7 @@ func (r *repository) UpdateContact(ctx context.Context, c *Contact) error {
 	query := `
 		UPDATE contacts
 		SET category_id = $1, name = $2, phone = $3, email = $4, address = $5, latitude = $6, longitude = $7, description = $8, links = $9, icon = $10, avatar_url = $11, updated_at = NOW()
-		WHERE id = $12
+		WHERE id = $12 AND household_id = $13
 	`
 	linksJSON, err := json.Marshal(c.Links)
 	if err != nil {
@@ -215,7 +215,7 @@ func (r *repository) UpdateContact(ctx context.Context, c *Contact) error {
 
 	cmd, err := r.db.Exec(ctx, query,
 		c.CategoryID, c.Name, c.Phone, c.Email, c.Address,
-		c.Latitude, c.Longitude, c.Description, linksJSON, c.Icon, c.AvatarURL, c.ID,
+		c.Latitude, c.Longitude, c.Description, linksJSON, c.Icon, c.AvatarURL, c.ID, c.HouseholdID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update contact: %w", err)
@@ -226,9 +226,9 @@ func (r *repository) UpdateContact(ctx context.Context, c *Contact) error {
 	return nil
 }
 
-func (r *repository) DeleteContact(ctx context.Context, id string) error {
-	query := `DELETE FROM contacts WHERE id = $1`
-	cmd, err := r.db.Exec(ctx, query, id)
+func (r *repository) DeleteContact(ctx context.Context, householdID, id string) error {
+	query := `DELETE FROM contacts WHERE id = $1 AND household_id = $2`
+	cmd, err := r.db.Exec(ctx, query, id, householdID)
 	if err != nil {
 		return fmt.Errorf("failed to delete contact: %w", err)
 	}

@@ -108,16 +108,16 @@ export function useCreateInvite() {
 }
 
 /**
- * Mutation hook to revoke an invite by token.
+ * Mutation hook to revoke an invite by its id.
  */
 export function useRevokeInvite(householdId: string) {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string>({
-    mutationFn: (token) => revokeHouseholdInvite(householdId, token),
-    onSuccess: (_, token) => {
+    mutationFn: (inviteId) => revokeHouseholdInvite(householdId, inviteId),
+    onSuccess: (_, inviteId) => {
       queryClient.setQueryData<InviteCodeResponse[]>(
         HOUSEHOLD_INVITES_QUERY_KEY(householdId),
-        (prev) => prev?.filter((inv) => inv.token !== token),
+        (prev) => prev?.filter((inv) => inv.id !== inviteId),
       );
       queryClient.invalidateQueries({ queryKey: HOUSEHOLD_INVITES_QUERY_KEY(householdId) });
     },

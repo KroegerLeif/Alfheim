@@ -234,9 +234,9 @@ func TestHouseholdHandler_ListInvites(t *testing.T) {
 		{
 			name: "success", method: http.MethodGet, path: path,
 			svc: &mockService{listInvitesFn: func(ctx context.Context, requesterID, householdID string) ([]InviteResponse, error) {
-				return []InviteResponse{{Token: "tok-1", HouseholdID: "hh-1", Role: "MEMBER"}}, nil
+				return []InviteResponse{{ID: "id-1", HouseholdID: "hh-1", Role: "MEMBER"}}, nil
 			}},
-			wantStatus: http.StatusOK, wantSubstr: `"token":"tok-1"`,
+			wantStatus: http.StatusOK, wantSubstr: `"id":"id-1"`,
 		},
 	})
 }

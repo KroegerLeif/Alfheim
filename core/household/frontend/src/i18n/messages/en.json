@@ -40,12 +40,12 @@
       "role_label": "Role for new invite",
       "revoke": "Revoke",
       "revoke_label": "Revoke invite {token}",
+      "shown_once_hint": "An invite link is only shown once, right after you create it. If it was lost, revoke the invite and create a new one.",
       "confirm_revoke": "Revoke this invite? The code and QR code stop working immediately.",
       "revoked": "Invite revoked.",
       "uses": "{uses}/{max} uses",
       "expires": "Expires {time}",
       "expired": "Expired",
-      "show_qr": "Show QR",
       "qr_label": "QR code for joining household",
       "join_link": "Join link",
       "copy_link": "Copy link"

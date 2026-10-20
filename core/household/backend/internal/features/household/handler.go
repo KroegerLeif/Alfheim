@@ -47,6 +47,8 @@ func writeServiceError(w http.ResponseWriter, err error, fallback string) {
 	switch {
 	case errors.Is(err, ErrInvalidRole):
 		httpjson.WriteError(w, http.StatusBadRequest, "bad_request", "role must be one of OWNER, ADMIN, MEMBER, GUEST")
+	case errors.Is(err, ErrInvalidInviteParams):
+		httpjson.WriteError(w, http.StatusBadRequest, "bad_request", "ttl_minutes must be 1-43200 (30 days) and max_uses 1-100")
 	case errors.Is(err, ErrInvalidHouseholdName):
 		httpjson.WriteError(w, http.StatusBadRequest, "bad_request", "household name must be 1-150 characters")
 	case errors.Is(err, ErrInvalidTransferTarget):

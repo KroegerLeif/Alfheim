@@ -37,8 +37,15 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Limit multipart memory parsing to 10MB + margin
-	if err := r.ParseMultipartForm(MaxAttachmentSizeBytes + (1 << 20)); err != nil {
+	// ParseMultipartForm's argument only bounds memory (the rest spills to disk),
+	// so the request body itself is capped explicitly.
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadBodyBytes)
+	if err := r.ParseMultipartForm(MaxUploadBodyBytes); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, http.StatusRequestEntityTooLarge, "payload_too_large", "attachment exceeds the maximum allowed size")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "bad_request", "failed to parse multipart form or file too large")
 		return
 	}

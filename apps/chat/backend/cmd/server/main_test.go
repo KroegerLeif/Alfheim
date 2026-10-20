@@ -77,11 +77,23 @@ func TestHealthHandler(t *testing.T) {
 	})
 }
 
+func passthroughAuth(next http.Handler) http.Handler { return next }
+
+func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected buildRouter to panic when auth middleware is nil")
+		}
+	}()
+	buildRouter(log, &db.Client{Pool: nil}, nil, nil, nil, nil, nil, nil)
+}
+
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, nil, nil, nil, nil, nil)
+	router := buildRouter(log, dbClient, passthroughAuth, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
 	rec := httptest.NewRecorder()

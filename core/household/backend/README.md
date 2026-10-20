@@ -43,12 +43,12 @@ Every route requires a valid Zitadel JWT (`Authorization: Bearer ...`).
 | `POST /api/v1/households/{id}/leave` | any member except OWNER |
 | `PUT /api/v1/households/{id}/default` | member; sets the caller's default household |
 | `PUT /api/v1/households/{id}/address` | OWNER, ADMIN |
-| `POST /api/v1/households/invite` `{household_id, role?, ttl_minutes?, max_uses?}` | OWNER, ADMIN; role ADMIN, MEMBER or GUEST |
-| `GET /api/v1/households/{id}/invites` | OWNER, ADMIN (active invites only) |
-| `DELETE /api/v1/households/{id}/invites/{token}` | OWNER, ADMIN |
+| `POST /api/v1/households/invite` `{household_id, role?, ttl_minutes?, max_uses?}` | OWNER (role ADMIN, MEMBER or GUEST), ADMIN (role MEMBER or GUEST). `ttl_minutes` 1-43200 (30 days, default 1440), `max_uses` 1-100 (default 1); out-of-range values return 400. The response is the only place the plaintext `token` appears |
+| `GET /api/v1/households/{id}/invites` | OWNER, ADMIN (active invites only); items carry a stable `id` (the stored SHA-256 hash) and never a `token` |
+| `DELETE /api/v1/households/{id}/invites/{id}` | OWNER, ADMIN; takes the invite `id` from the listing |
 | `POST /api/v1/households/join` `{token}` | any user; 409 if already a member |
-| `PUT /api/v1/households/{id}/members/{userID}/role` `{role}` | OWNER, ADMIN; never grants OWNER |
-| `DELETE /api/v1/households/{id}/members/{userID}` | OWNER, ADMIN, or the member themselves; never the owner |
+| `PUT /api/v1/households/{id}/members/{userID}/role` `{role}` | OWNER; ADMIN only switches MEMBER and GUEST; never grants OWNER |
+| `DELETE /api/v1/households/{id}/members/{userID}` | OWNER, ADMIN (MEMBER and GUEST only), or the member themselves; never the owner |
 | `GET, POST /api/v1/households/{id}/contact-categories`, `PUT, DELETE .../{catId}` | read: member; write: OWNER, ADMIN |
 | `GET, POST /api/v1/households/{id}/contacts`, `PUT, DELETE .../{contactId}` | read: member; write: see `internal/features/contact` |
 | `GET, PUT /api/v1/profile/me` | any user |
@@ -106,7 +106,8 @@ can check whether another user, known only by that derived id, is a member.
 | --- | :-: | :-: | :-: | :-: |
 | View household, members, contacts | yes | yes | yes | yes |
 | Rename, edit address, manage invites | yes | yes | no | no |
-| Change roles and remove members (not the owner) | yes | yes | no | no |
+| Switch MEMBER and GUEST, remove MEMBER and GUEST | yes | yes | no | no |
+| Grant or revoke ADMIN, remove an ADMIN (and invite as ADMIN) | yes | no | no | no |
 | Grant OWNER (invite or role change) | no | no | no | no |
 | Transfer ownership, delete household | yes | no | no | no |
 | Leave household | no | yes | yes | yes |
@@ -114,6 +115,11 @@ can check whether another user, known only by that derived id, is a member.
 Only transfer-ownership can change the owner. The schema enforces one OWNER
 per household, one default household per user, valid role names, and that
 invites never carry OWNER.
+
+Invite tokens are random 256-bit values shown exactly once, in the create
+response. Only their SHA-256 hash is stored (migration `000003`), so listings
+expose an `id` and the link or QR code cannot be re-shown later: revoke and
+create a new invite if it was lost.
 
 ## Development
 
