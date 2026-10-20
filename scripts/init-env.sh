@@ -16,6 +16,10 @@
 
 set -euo pipefail
 
+# Everything this script creates (the .env with all generated secrets) must be
+# readable by the owner only, from the moment it exists.
+umask 077
+
 # ------------------------------------------------------------------------------
 # Terminal Formatting & UI Utilities
 # ------------------------------------------------------------------------------
@@ -53,13 +57,38 @@ fi
 # ------------------------------------------------------------------------------
 # Cryptographic Random Generators
 # ------------------------------------------------------------------------------
+# Minimum length of every generated secret, in characters.
+readonly MIN_SECRET_LENGTH=32
+
+# random_alnum prints exactly <length> random characters from [a-zA-Z0-9] read
+# from /dev/urandom. It fails (instead of falling back to anything guessable)
+# when the system cannot supply them.
+random_alnum() {
+  local length="$1" out
+  # base64 of 3x the bytes always holds >= length alphanumerics after the
+  # '+', '/' and '=' characters are dropped; the pipeline is not truncated by
+  # head, so no SIGPIPE can make pipefail report a spurious failure.
+  out="$(head -c "$((length * 3))" /dev/urandom | base64 | LC_ALL=C tr -dc 'a-zA-Z0-9')" || true
+  if (( ${#out} < length )); then
+    log_error "Could not read ${length} random characters from /dev/urandom."
+    return 1
+  fi
+  printf '%s' "${out:0:length}"
+}
+
+# generate_secret prints a random alphanumeric secret of at least
+# MIN_SECRET_LENGTH characters (shorter requests are raised to the minimum).
 generate_secret() {
-  local length="${1:-24}"
+  local length="${1:-$MIN_SECRET_LENGTH}"
+  if (( length < MIN_SECRET_LENGTH )); then
+    length="$MIN_SECRET_LENGTH"
+  fi
   if command -v openssl >/dev/null 2>&1; then
-    openssl rand -hex "$((length / 2))"
+    local out
+    out="$(openssl rand -hex "$(((length + 1) / 2))")" || return 1
+    printf '%s' "${out:0:length}"
   else
-    # POSIX /dev/urandom fallback
-    LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c "$length" || echo "alfheim_$(date +%s)"
+    random_alnum "$length"
   fi
 }
 
@@ -76,7 +105,7 @@ generate_masterkey() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 16
   else
-    LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32
+    random_alnum 32
   fi
 }
 
@@ -84,7 +113,9 @@ generate_masterkey() {
 # letter, one lowercase letter, one digit and one symbol. Prefixing a random
 # base with "Aa1!" guarantees all four classes are present.
 generate_zitadel_password() {
-  printf 'Aa1!%s' "$(generate_secret 20)"
+  local base
+  base="$(generate_secret 32)" || return 1
+  printf 'Aa1!%s' "$base"
 }
 
 # urlencode percent-encodes its argument (RFC 3986), used for
@@ -321,7 +352,9 @@ migrate_existing_env() {
     migrated=true
   fi
   if ! grep -q "^HOUSEHOLD_POSTGRES_PASSWORD=" "$env_file"; then
-    echo "HOUSEHOLD_POSTGRES_PASSWORD=$(generate_secret 24)" >> "$env_file"
+    local household_pw
+    household_pw="$(generate_secret 32)"
+    echo "HOUSEHOLD_POSTGRES_PASSWORD=${household_pw}" >> "$env_file"
     migrated=true
   fi
   # An empty value or the .env.example placeholder counts as missing.
@@ -591,21 +624,21 @@ log_info "Generating cryptographically secure secrets..."
 # Generate Secrets
 ZITADEL_MASTERKEY="$(generate_masterkey)"
 ZITADEL_ADMIN_PW="$(generate_zitadel_password)"
-POSTGRES_IAM_PW="$(generate_secret 24)"
-S3_PW="$(generate_secret 24)"
-DASHBOARD_PW="$(generate_secret 24)"
-HOUSEHOLD_PW="$(generate_secret 24)"
+POSTGRES_IAM_PW="$(generate_secret 32)"
+S3_PW="$(generate_secret 32)"
+DASHBOARD_PW="$(generate_secret 32)"
+HOUSEHOLD_PW="$(generate_secret 32)"
 INTERNAL_TOKEN="$(generate_secret 64)"
-PANTRY_PW="$(generate_secret 24)"
-SHOPPING_PW="$(generate_secret 24)"
-MAINTENANCE_PW="$(generate_secret 24)"
-CHORES_PW="$(generate_secret 24)"
-BUDGET_PW="$(generate_secret 24)"
-CHAT_PW="$(generate_secret 24)"
+PANTRY_PW="$(generate_secret 32)"
+SHOPPING_PW="$(generate_secret 32)"
+MAINTENANCE_PW="$(generate_secret 32)"
+CHORES_PW="$(generate_secret 32)"
+BUDGET_PW="$(generate_secret 32)"
+CHAT_PW="$(generate_secret 32)"
 CHAT_ENC_KEY="$(generate_base64_32)"
-WORKOUT_PW="$(generate_secret 24)"
-LIBRARY_PW="$(generate_secret 24)"
-GRAFANA_PW="$(generate_secret 24)"
+WORKOUT_PW="$(generate_secret 32)"
+LIBRARY_PW="$(generate_secret 32)"
+GRAFANA_PW="$(generate_secret 32)"
 
 # Build .env from template with variable replacement
 sed \
