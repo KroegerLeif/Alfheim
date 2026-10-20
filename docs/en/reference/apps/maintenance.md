@@ -52,7 +52,7 @@ Source: [`apps/maintenance/`](https://github.com/KroegerLeif/Alfheim/tree/main/a
 All routes and MCP tools use `require_household` from `backend_shared`; households are UUIDs owned by `core/household`. There is no local `household` table any more.
 
 - `GET /api/v1/households` is deprecated and returns only the current household.
-- A database created with integer household ids makes the backend refuse to start (`LegacyHouseholdSchemaError`). See [Troubleshooting](../../how-to/troubleshooting.md#symptom-5-maintenance-backend-fails-with-legacyhouseholdschemaerror) for the one-time reset.
+- A database created with integer household ids is converted at startup: Alembic revision `0002` moves the old tables, with their rows, into the `legacy_maintenance` schema and creates empty UUID-household tables. See [Troubleshooting](../../how-to/troubleshooting.md#symptom-5-old-maintenance-data-is-missing-after-the-update).
 - Calls to budget and shopping forward the caller's bearer token and `X-Household-ID`.
 
 ---
@@ -96,9 +96,9 @@ they read `get_mcp_household_context()`.
 
 ## ⚠️ Known Issues & Open Follow-Ups
 
-- **`LegacyHouseholdSchemaError` on upgrade**: a database created before the switch to UUID
-  households refuses to start `maintenance-backend`. This is a one-time, expected data reset — see
-  [Troubleshooting](../../how-to/troubleshooting.md#symptom-5-maintenance-backend-fails-with-legacyhouseholdschemaerror)
+- **Old devices missing after upgrade**: a database created before the switch to UUID households is
+  converted at startup; the old rows are kept in the `legacy_maintenance` schema but not served — see
+  [Troubleshooting](../../how-to/troubleshooting.md#symptom-5-old-maintenance-data-is-missing-after-the-update)
   and [Known Issues](../../explanation/known-issues.md).
 - **Devices and steps cannot be edited or deleted** (#505): the API only has `GET`/`POST` for devices and no step endpoints.
 - **Reference photos and manuals are not supported** (#503, #509): the UI is hidden, there is no storage.
