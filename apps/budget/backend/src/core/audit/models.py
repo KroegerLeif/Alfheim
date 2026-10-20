@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, DateTime
 from sqlmodel import Field, SQLModel
 
 
@@ -23,7 +23,7 @@ class AuditLog(SQLModel, table=True):
     new_values: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
-        index=True,
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
     )
 
 

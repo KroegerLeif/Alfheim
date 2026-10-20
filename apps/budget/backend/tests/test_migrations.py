@@ -10,6 +10,7 @@ disposable database (its public schema is dropped and recreated), e.g.:
 import asyncio
 import os
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -22,6 +23,8 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
+from src.core.audit.models import AuditLog
 from src.core.migrations import alembic_config, load_models, run_migrations
 
 POSTGRES_URL = os.getenv("ALFHEIM_MIGRATION_TEST_DATABASE_URL")
@@ -32,6 +35,13 @@ requires_postgres = pytest.mark.skipif(
 
 # Other test modules register throwaway tables on the shared metadata; only the service's own tables count here.
 APP_TABLES = {"accounts", "audit_logs", "plans", "plan_categories", "pots", "transactions"}
+
+
+NAIVE_TIMESTAMP_COLUMNS = [
+    (table, column)
+    for table in ("accounts", "plans", "plan_categories", "pots", "transactions")
+    for column in ("created_at", "updated_at")
+] + [("audit_logs", "timestamp")]
 
 
 def _is_app_object(obj: object, name: str | None, type_: str, reflected: bool, compare_to: object) -> bool:
@@ -169,12 +179,19 @@ async def test_postgres_legacy_database_is_upgraded_to_the_current_schema(postgr
             await connection.execute(
                 text(f"ALTER TABLE transactions ADD CONSTRAINT {name} FOREIGN KEY ({column}) REFERENCES {table} (id)")
             )
+        # Timestamps were created as `timestamp without time zone`.
+        for table, column in NAIVE_TIMESTAMP_COLUMNS:
+            await connection.execute(text(f'ALTER TABLE {table} ALTER COLUMN "{column}" TYPE timestamp'))
         assert await connection.run_sync(_schema_diff) != []
     await _create_account(postgres_engine)
 
     await run_migrations(postgres_engine)
 
     assert await _account_names(postgres_engine) == ["Main"]
+    async with postgres_engine.connect() as connection:
+        stored = (await connection.execute(text("SELECT created_at FROM accounts"))).scalar_one()
+    assert stored.tzinfo is not None
+    assert stored.replace(tzinfo=None) == datetime(2026, 1, 1)  # the naive value was kept as UTC
     async with postgres_engine.connect() as connection:
         assert await connection.run_sync(_schema_diff) == []
 
@@ -186,3 +203,23 @@ async def test_concurrent_startups_serialize_on_the_advisory_lock(postgres_engin
     assert await _current_revision(postgres_engine) == _head_revision()
     async with postgres_engine.connect() as connection:
         assert await connection.run_sync(_schema_diff) == []
+
+
+@requires_postgres
+async def test_postgres_orm_inserts_accept_timezone_aware_timestamps(postgres_engine: AsyncEngine):
+    """Regression: aware ``datetime.now(UTC)`` defaults were rejected by asyncpg on `timestamp` columns."""
+    from src.features.accounts.models import Account, AccountType
+
+    await run_migrations(postgres_engine)
+
+    async with AsyncSession(postgres_engine) as session:
+        session.add(Account(name="ORM", account_type=AccountType.CHECKING, household_id=uuid4()))
+        session.add(AuditLog(action="create", entity_name="Account"))
+        await session.commit()
+
+    async with postgres_engine.connect() as connection:
+        created = (await connection.execute(text("SELECT created_at FROM accounts"))).scalar_one()
+        logged = (await connection.execute(text("SELECT timestamp FROM audit_logs"))).scalars().all()
+    assert created.tzinfo is not None and abs(datetime.now(UTC) - created).total_seconds() < 60
+    assert len(logged) >= 1  # the explicit entry, plus the one the audit hook writes for the account
+    assert all(value.tzinfo is not None for value in logged)
