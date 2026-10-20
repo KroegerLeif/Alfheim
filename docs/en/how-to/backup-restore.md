@@ -61,7 +61,7 @@ Notes:
 
 - The dump runs without a TTY and uses `POSTGRES_USER` from `.env`, so a non-default database user works.
 - The RustFS volume is read while the stack keeps running, through a short-lived `alpine` container. For an exactly consistent snapshot of uploads and database, run the backup during a quiet period.
-- The first media backup pulls the `alpine:3.20` image.
+- The first media backup pulls the `alpine:3.24` image.
 
 ---
 

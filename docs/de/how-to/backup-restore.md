@@ -61,7 +61,7 @@ Hinweise:
 
 - Der Dump läuft ohne TTY und nutzt `POSTGRES_USER` aus der `.env`; ein abweichender Datenbankbenutzer funktioniert also.
 - Das RustFS-Volume wird bei laufendem Stack über einen kurzlebigen `alpine`-Container gelesen. Für einen exakt konsistenten Stand von Uploads und Datenbank das Backup in einer ruhigen Phase ausführen.
-- Das erste Medien-Backup lädt das Image `alpine:3.20`.
+- Das erste Medien-Backup lädt das Image `alpine:3.24`.
 
 ---
 
