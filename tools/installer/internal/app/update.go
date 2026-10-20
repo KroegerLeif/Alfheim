@@ -161,6 +161,12 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	}
 	warnPlainHTTPInstall(u.Stderr, existing)
 
+	envWarnings, err := repairEnvFile(u.Stdout, layout, existing, u.now(), detectDockerSocketGID)
+	if err != nil {
+		return u.rollbackError(backupDir, previousTag, layout, err)
+	}
+	printWarnings(u.Stdout, envWarnings)
+
 	caddyfileChanged, err := u.rerenderCaddyfile(layout, existing, target)
 	if err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)

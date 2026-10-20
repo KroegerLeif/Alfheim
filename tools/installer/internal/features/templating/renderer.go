@@ -27,6 +27,9 @@ type Model struct {
 	TLS        tls.Config
 	Secrets    map[string]string
 	Version    string
+	// DockerSocketGID is the numeric group id owning the host's Docker
+	// socket (DOCKER_SOCKET_GID). Empty when it could not be detected.
+	DockerSocketGID string
 	// Generated is injected rather than read from the clock, so that golden
 	// file comparisons stay deterministic.
 	Generated time.Time

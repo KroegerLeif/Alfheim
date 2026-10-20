@@ -15,7 +15,17 @@ Das lokale Grafana-Konto `admin` (`GRAFANA_ADMIN_USER` und
 `GRAFANA_ADMIN_PASSWORD` in `.env`) ist davon nicht betroffen; damit kannst du
 dir jederzeit wieder Zugriff verschaffen.
 
-## Rolle anlegen (einmalig)
+## Automatische Einrichtung
+
+`alfheim-setup` legt bei der Installation und bei jedem `alfheim-setup update`
+die Projektrolle `alfheim_operator` im Projekt **Alfheim** an, schaltet im
+Projekt die Rollen-Assertion ein und weist die Rolle dem initialen
+Administrator zu (dem Nutzer `ZITADEL_ADMIN_USER`). Bei einer bestehenden
+Installation führt ein Fehler dabei nur zu einer Warnung, nie zu einem
+abgebrochenen Update. Die folgenden manuellen Schritte brauchst du nur, wenn
+diese Warnung erscheint oder um weiteren Nutzern Zugriff zu geben.
+
+## Rolle anlegen (manuell, nur falls nötig)
 
 1. Öffne die Zitadel-Konsole unter `https://<ZITADEL_EXTERNALDOMAIN>/ui/console`
    und melde dich als Instanz-Admin an (`ZITADEL_ADMIN_USER` in `.env`).

@@ -68,10 +68,11 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `S3_ENDPOINT` | `http://rustfs:9000` | S3-compatible object storage endpoint (used by Go chat backend) |
 | `S3_PUBLIC_URL` | `https://alfheim.loegien.de/storage` | Public URL prefix for accessing stored objects in the browser |
 | `S3_BUCKET_NAME` | `budget-receipts` | Default bucket for budget receipt uploads |
-| `S3_ACCESS_KEY` | `minioadmin` | S3 access key ID (RustFS credentials) |
-| `S3_SECRET_KEY` | `minioadmin` | S3 secret access key (RustFS credentials) |
+| `S3_ACCESS_KEY` | `minioadmin` | S3 access key ID. RustFS only knows its root account, so this must equal `S3_ROOT_USER` |
+| `S3_SECRET_KEY` | `minioadmin` | S3 secret access key. Must equal `S3_ROOT_PASSWORD` (the installer mirrors them) |
 | `S3_ROOT_USER` | `minioadmin` | RustFS root user (initial admin) |
 | `S3_ROOT_PASSWORD` | `minioadmin` | RustFS root password |
+| `DOCKER_SOCKET_GID` | `999` | Numeric group id owning `/var/run/docker.sock` on the host (`stat -c %g /var/run/docker.sock`); `alfheim-setup` detects it on install and adds it on update when missing |
 
 ---
 

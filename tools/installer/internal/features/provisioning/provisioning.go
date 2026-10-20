@@ -68,7 +68,31 @@ type Client interface {
 	// effect. Alfheim accounts are created by the operator (and invited
 	// household members), never by a stranger reaching the login page.
 	EnsureRegistrationDisabled(ctx context.Context) error
+	// EnsureRoleAssertion makes Zitadel add the user's project roles to the
+	// tokens issued for applications of projectID, which Grafana's role
+	// mapping reads.
+	EnsureRoleAssertion(ctx context.Context, projectID string) error
+	// EnsureProjectRole creates role on projectID if it does not exist yet.
+	EnsureProjectRole(ctx context.Context, projectID string, role RoleSpec) error
+	// GrantProjectRole gives the organisation user with the given user name
+	// the role roleKey on projectID, keeping any role the user already holds
+	// there.
+	GrantProjectRole(ctx context.Context, projectID, userName, roleKey string) error
 }
+
+// OperatorRoleKey is the Zitadel project role compose.prod.yaml's Grafana
+// role mapping turns into the Grafana Admin role.
+const OperatorRoleKey = "alfheim_operator"
+
+// RoleSpec declares one project role.
+type RoleSpec struct {
+	Key         string
+	DisplayName string
+	Group       string
+}
+
+// OperatorRole is the role that grants access to Grafana.
+var OperatorRole = RoleSpec{Key: OperatorRoleKey, DisplayName: "Alfheim operator", Group: "operations"}
 
 // Input is everything Provision needs to compute the desired state. It is
 // pure data so orchestrator/run.go and scripts/up.sh's `provision` subcommand
@@ -82,6 +106,10 @@ type Input struct {
 	// GrafanaApp is the confidential client used for Grafana's generic OAuth
 	// integration.
 	GrafanaApp AppSpec
+	// OperatorUserName is the Zitadel user name of the installation's initial
+	// administrator, who is granted OperatorRole. Empty skips the grant (the
+	// role itself is still created).
+	OperatorUserName string
 }
 
 // Result carries the ids Provision resolved, in the shape orchestrator/run.go
@@ -159,6 +187,15 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		warnings = append(warnings, RegistrationWarning(err))
 	}
 
+	// Same policy as above: fatal on a fresh install, a warning on an
+	// existing one.
+	if err := ensureOperatorAccess(ctx, c, projectID, in.OperatorUserName); err != nil {
+		if !isExistingInstall(existing) {
+			return Result{}, fmt.Errorf("provisioning: grant Grafana operator access: %w", err)
+		}
+		warnings = append(warnings, OperatorAccessWarning(err))
+	}
+
 	return Result{
 		Warnings:        warnings,
 		ProjectID:       projectID,
@@ -166,6 +203,25 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		GrafanaClientID: grafanaCreds.ClientID,
 		GrafanaSecret:   grafanaCreds.ClientSecret,
 	}, nil
+}
+
+// ensureOperatorAccess reconciles everything Grafana's role mapping needs:
+// role assertion on the project, the alfheim_operator role, and its grant to
+// the initial administrator.
+func ensureOperatorAccess(ctx context.Context, c Client, projectID, userName string) error {
+	if err := c.EnsureRoleAssertion(ctx, projectID); err != nil {
+		return fmt.Errorf("enable role assertion: %w", err)
+	}
+	if err := c.EnsureProjectRole(ctx, projectID, OperatorRole); err != nil {
+		return fmt.Errorf("create role %q: %w", OperatorRole.Key, err)
+	}
+	if userName == "" {
+		return nil
+	}
+	if err := c.GrantProjectRole(ctx, projectID, userName, OperatorRole.Key); err != nil {
+		return fmt.Errorf("grant role %q to %q: %w", OperatorRole.Key, userName, err)
+	}
+	return nil
 }
 
 // BuildInput assembles the Input for the Alfheim stack from the rendered
@@ -223,4 +279,15 @@ func RegistrationWarning(cause error) string {
 		"    2. Organization -> Settings -> Login behavior and security -> uncheck \"User registration allowed\"\n"+
 		"       (only if the organization has its own login policy).\n"+
 		"  Re-run alfheim-setup update (or provision) with a PAT that has IAM_OWNER rights to apply it automatically.", cause)
+}
+
+// OperatorAccessWarning is the operator-facing message for a Grafana operator
+// role that could not be created or granted, including the manual steps.
+func OperatorAccessWarning(cause error) string {
+	return fmt.Sprintf("WARNING: the Zitadel role %q could not be set up: %v\n"+
+		"  Without it nobody can sign in to Grafana through Zitadel (the local Grafana admin still works). Fix it manually:\n"+
+		"    1. Zitadel console -> Projects -> Alfheim -> Roles -> New: key %q.\n"+
+		"    2. Projects -> Alfheim -> Authorizations -> New: select your user and tick the role.\n"+
+		"  See docs/en/how-to/grafana-access.md. Re-run alfheim-setup update to retry automatically.",
+		OperatorRoleKey, cause, OperatorRoleKey)
 }
