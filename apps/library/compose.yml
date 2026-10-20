@@ -6,6 +6,7 @@ services:
     container_name: library-backend
     restart: always
     environment:
+      - ENVIRONMENT=development
       - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}

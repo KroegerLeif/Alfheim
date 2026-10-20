@@ -9,6 +9,7 @@ services:
       - path: .env
         required: false
     environment:
+      - ENVIRONMENT=development
       - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://api.alfheim.loegien.localhost/auth}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}

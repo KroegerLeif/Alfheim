@@ -12,6 +12,14 @@
 
 name: alfheim-prod
 
+# Bounded json-file logs on every service so a chatty container cannot fill the
+# host disk (the default driver keeps unbounded logs).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # ----------------------------------------------------------------------------
   # 1. INGRESS GATEWAY & REVERSE PROXY
@@ -19,12 +27,15 @@ services:
   caddy:
     # Custom build: the stock caddy image ships no ACME DNS-01 provider
     # modules, which the Hetzner, Cloudflare and deSEC TLS strategies require.
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/caddy:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/caddy:${IMAGE_TAG:?IMAGE_TAG must be set}
     build:
       context: ./infrastructure/caddy
       dockerfile: Dockerfile
     container_name: alfheim_caddy
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "80:80"
       - "443:443"
@@ -76,6 +87,9 @@ services:
     image: postgres:16-alpine
     container_name: alfheim_postgres_core
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
@@ -167,6 +181,9 @@ services:
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     command: >-
       start-from-init
       --masterkey ${ZITADEL_MASTERKEY:?ZITADEL_MASTERKEY must be set}
@@ -237,6 +254,9 @@ services:
     image: rustfs/rustfs:1.0.0-rc.6
     container_name: alfheim_rustfs
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     # No `command:` override -- the image entrypoint starts the server using
     # RUSTFS_VOLUMES (baked in as /data). Passing MinIO's `server /data` makes
     # RustFS read `server` as an additional volume path.
@@ -271,6 +291,9 @@ services:
     image: victoriametrics/victoria-metrics:v1.99.0
     container_name: victoriametrics
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     command:
       - "-retentionPeriod=14d"
       - "-storageDataPath=/victoria-metrics-data"
@@ -298,6 +321,9 @@ services:
     image: victoriametrics/victoria-logs:v0.25.0-victorialogs
     container_name: victorialogs
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     command:
       - "-retentionPeriod=7d"
       - "-storageDataPath=/victoria-logs-data"
@@ -325,6 +351,9 @@ services:
     image: otel/opentelemetry-collector-contrib:0.100.0
     container_name: otel-collector
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./infrastructure/telemetry/collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
@@ -351,6 +380,9 @@ services:
     image: timberio/vector:0.39.0-alpine
     container_name: vector-shipper
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     command: ["--config", "/etc/vector/vector.toml"]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -376,9 +408,12 @@ services:
           memory: 256m
           cpus: 0.25
   grafana:
-    image: grafana/grafana:11.0.0
+    image: grafana/grafana:12.4.12
     container_name: alfheim_grafana
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
@@ -390,7 +425,9 @@ services:
       - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
       - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=${GRAFANA_OIDC_CLIENT_ID:?GRAFANA_OIDC_CLIENT_ID must be set}
       - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_CLIENT_SECRET:?GRAFANA_OIDC_CLIENT_SECRET must be set}
-      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid email profile
+      # The project-roles scope makes Zitadel assert the user's project roles
+      # in the userinfo response, which role_attribute_path below evaluates.
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid email profile urn:zitadel:iam:org:project:roles
       # Zitadel resolves the instance from the Host header, not from how it
       # was dialled: going straight to zitadel:8080 sends "Host: zitadel:8080",
       # which matches no instance (Instance not found / 404 on token
@@ -404,7 +441,11 @@ services:
       # rendered once by env.tmpl (Go's url.QueryEscape) instead of hardcoding
       # grafana.loegien.de here (issue #452, fact G).
       - GF_AUTH_GENERIC_OAUTH_SIGNOUT_REDIRECT_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}/oidc/v1/end_session?post_logout_redirect_uri=${GRAFANA_SIGNOUT_REDIRECT_URL:?GRAFANA_SIGNOUT_REDIRECT_URL must be set}
-      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT=false
+      # Only holders of the Zitadel project role `alfheim_operator` get in (as
+      # Grafana Admin). Strict mode denies the login for everyone else instead of
+      # falling back to a default role. See docs/en/how-to/grafana-access.md.
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(keys("urn:zitadel:iam:org:project:roles" || `{}`), 'alfheim_operator') && 'Admin' || ''
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT=true
       - GF_AUTH_GENERIC_OAUTH_USE_REFRESH_TOKEN=true
       # Token/userinfo calls go through the issuer, which --tls internal serves
       # with the installer's private root CA. Grafana ignores an empty value.
@@ -435,9 +476,12 @@ services:
   # 4. CONTROL PLANE: DASHBOARD SERVICE
   # ----------------------------------------------------------------------------
   dashboard-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: dashboard-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PORT=8080
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
@@ -473,9 +517,12 @@ services:
           memory: 256m
           cpus: 0.5
   dashboard-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: dashboard-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       dashboard-backend:
         condition: service_healthy
@@ -509,9 +556,12 @@ services:
   # 4b. CORE: HOUSEHOLD & ROLES SERVICE (core/household)
   # ----------------------------------------------------------------------------
   household-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: household-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PORT=8080
       - DATABASE_URL=${HOUSEHOLD_DATABASE_URL:-postgres://${HOUSEHOLD_POSTGRES_USER:-household_user}:${HOUSEHOLD_POSTGRES_PASSWORD:?HOUSEHOLD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${HOUSEHOLD_POSTGRES_DB:-alfheim_household}?sslmode=disable}
@@ -550,9 +600,12 @@ services:
           memory: 256m
           cpus: 0.5
   household-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: household-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       household-backend:
         condition: service_healthy
@@ -587,9 +640,12 @@ services:
   # 5. CHAT ASSISTANT SERVICE
   # ----------------------------------------------------------------------------
   chat-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chat-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -609,6 +665,8 @@ services:
       - CHAT_ENCRYPTION_KEY=${CHAT_ENCRYPTION_KEY:?CHAT_ENCRYPTION_KEY must be set}
       - CHAT_ENCRYPTION_KEY_ID=${CHAT_ENCRYPTION_KEY_ID:-v1}
       - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
+      # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).
+      - CHAT_ALLOWED_LLM_HOSTS=${CHAT_ALLOWED_LLM_HOSTS:-host.docker.internal}
     volumes:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
@@ -639,9 +697,12 @@ services:
           memory: 512m
           cpus: 0.5
   chat-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chat-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       chat-backend:
         condition: service_healthy
@@ -675,10 +736,15 @@ services:
   # 6. PANTRY MANAGEMENT SERVICE
   # ----------------------------------------------------------------------------
   pantry-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: pantry-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
@@ -723,9 +789,12 @@ services:
           memory: 256m
           cpus: 0.5
   pantry-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: pantry-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       pantry-backend:
         condition: service_healthy
@@ -759,10 +828,15 @@ services:
   # 7. SHOPPING LIST SERVICE
   # ----------------------------------------------------------------------------
   shopping-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: shopping-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -808,9 +882,12 @@ services:
           memory: 256m
           cpus: 0.5
   shopping-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: shopping-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       shopping-backend:
         condition: service_healthy
@@ -844,10 +921,15 @@ services:
   # 8. MAINTENANCE & DEVICES SERVICE
   # ----------------------------------------------------------------------------
   maintenance-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: maintenance-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
@@ -892,9 +974,12 @@ services:
           memory: 256m
           cpus: 0.5
   maintenance-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: maintenance-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       maintenance-backend:
         condition: service_healthy
@@ -928,10 +1013,15 @@ services:
   # 9. HOUSEHOLD CHORES SERVICE
   # ----------------------------------------------------------------------------
   chores-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chores-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
@@ -976,9 +1066,12 @@ services:
           memory: 256m
           cpus: 0.5
   chores-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chores-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       chores-backend:
         condition: service_healthy
@@ -1012,10 +1105,15 @@ services:
   # 10. BUDGET & FINANCE SERVICE
   # ----------------------------------------------------------------------------
   budget-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: budget-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
@@ -1064,9 +1162,12 @@ services:
           memory: 256m
           cpus: 0.5
   budget-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: budget-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       budget-backend:
         condition: service_healthy
@@ -1101,10 +1202,15 @@ services:
   # 11. WORKOUT TRACKING SERVICE
   # ----------------------------------------------------------------------------
   workout-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: workout-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
@@ -1149,9 +1255,12 @@ services:
           memory: 256m
           cpus: 0.5
   workout-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: workout-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       workout-backend:
         condition: service_healthy
@@ -1163,7 +1272,7 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_CLIENT_ID=${ALFHEIM_WEB_CLIENT_ID:?ALFHEIM_WEB_CLIENT_ID must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}
-      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/workout
+      - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/workout/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/workout/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
       interval: 10s
@@ -1185,10 +1294,15 @@ services:
   # 12. MEDIA LIBRARY SERVICE
   # ----------------------------------------------------------------------------
   library-backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: library-backend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
@@ -1203,6 +1317,10 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=library-backend
+      # Manual PDFs are stored in RustFS. ENVIRONMENT=production makes the
+      # shared storage settings refuse to fall back to the default credentials.
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:?S3_ACCESS_KEY must be set}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY must be set}
     volumes:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
@@ -1233,9 +1351,12 @@ services:
           memory: 256m
           cpus: 0.5
   library-frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-frontend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: library-frontend
     restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       library-backend:
         condition: service_healthy
