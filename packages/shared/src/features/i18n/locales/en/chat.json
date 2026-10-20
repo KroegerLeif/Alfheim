@@ -74,6 +74,8 @@
     "placeholderBaseUrl": "http://ollama:11434 or https://api.openai.com/v1",
     "placeholderModelIdentifier": "e.g. llama3.1:8b, gemma2:9b, gpt-4o",
     "placeholderDisplayName": "e.g. Gemma 2 9B or Local Llama",
+    "baseUrlChangeDropsKey": "Changing the URL removes the stored API key. Enter a new key to keep using one.",
+    "bootstrapReadOnlyNote": "Managed by the server environment (CHAT_BOOTSTRAP_*). It can be used here but only an administrator can change it.",
     "placeholderApiKeyKeep": "(Leave unchanged)",
     "placeholderApiKeyOptional": "sk-... (optional for Ollama)",
     "attachmentAlt": "Attachment",

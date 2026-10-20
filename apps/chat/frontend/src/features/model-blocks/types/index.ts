@@ -35,6 +35,7 @@ export interface UpdateModelBlockRequest {
   model_identifier?: string;
   base_url?: string;
   api_key?: string;
+  clear_api_key?: boolean;
   visibility?: ModelBlockVisibility;
 }
 
