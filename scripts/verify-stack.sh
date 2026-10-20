@@ -239,6 +239,36 @@ fi
 echo ""
 
 # ------------------------------------------------------------------------------
+# 7. The gateway sets its baseline security headers and hides the server
+# banner. /livez is answered by Caddy itself, so this checks the gateway's own
+# response headers rather than an upstream's.
+# ------------------------------------------------------------------------------
+log_info "Checking gateway security headers..."
+headers="$(curl -sI ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/livez" 2>/dev/null | tr -d '\r' || true)"
+for header in "X-Content-Type-Options: nosniff" "Referrer-Policy:" "X-Frame-Options:" "Permissions-Policy:"; do
+  if grep -qi "^${header}" <<<"${headers}"; then
+    log_success "${header%%:*} is set"
+  else
+    fail "${header%%:*} is missing from ${BASE_URL}/livez"
+  fi
+done
+if grep -qi '^Server:' <<<"${headers}"; then
+  fail "the Server header is exposed on ${BASE_URL}/livez"
+else
+  log_success "Server header is removed"
+fi
+# Only the installer-generated Caddyfile (compose.prod.yaml) emits HSTS; the
+# dev Caddyfile serves plain HTTP and deliberately leaves it out.
+if [[ "${COMPOSE_FILE_NAME}" == "compose.prod.yaml" && "${BASE_URL}" == https://* ]]; then
+  if grep -qi '^Strict-Transport-Security:' <<<"${headers}"; then
+    log_success "Strict-Transport-Security is set"
+  else
+    fail "Strict-Transport-Security is missing on an HTTPS gateway"
+  fi
+fi
+echo ""
+
+# ------------------------------------------------------------------------------
 # Summary
 # ------------------------------------------------------------------------------
 if [[ "${ERRORS}" -eq 0 ]]; then

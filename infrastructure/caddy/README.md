@@ -1,6 +1,6 @@
 # Caddy Reverse Proxy & API Gateway (`infrastructure/caddy/`)
 
-The `infrastructure/caddy` module provides the central entry-point reverse proxy and API gateway for the Alfheim monorepo. It manages MFE subpath routing, API gateway mapping, locale redirects, CORS handling, and SSL/TLS termination.
+The `infrastructure/caddy` module provides the central entry-point reverse proxy and API gateway for the Alfheim monorepo. It manages MFE subpath routing, API gateway mapping, response security headers, and SSL/TLS termination.
 
 ---
 
@@ -22,7 +22,8 @@ graph TD
 ## 🌐 Ingress Routing Rules
 
 ### 1. MFE Base Path Proxies (`alfheim.loegien.localhost` & `alfheim.loegien.de`)
-- Base path redirects: e.g. `/pantry` -> `/pantry/en`, `/chores` -> `/chores/de`, `/budget` -> `/budget/en`.
+- No locale redirects: bare paths such as `/pantry` reach the app, whose next-intl middleware picks the locale (`NEXT_LOCALE` cookie first).
+- Every site block imports the `security_headers` snippet (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, report-only CSP, `Server` removed). See the [ingress matrix](../../docs/en/reference/ingress-matrix.md).
 - Microfrontend routes:
   - `/pantry*` -> `pantry-frontend:3000`
   - `/shopping*` -> `shopping-frontend:3010`
@@ -32,12 +33,11 @@ graph TD
   - `/budget*` -> `budget-frontend:3000`
   - `/workout*` -> `workout-frontend:3000`
   - `/chat*` -> `chat-frontend:3000`
-  - `/household*` -> `household-frontend:3000` (no locale redirect)
+  - `/household*` -> `household-frontend:3000`
   - `/` (Catch-all) -> `dashboard-frontend:3000`
 
 ### 2. Central API Gateway (`api.alfheim.loegien.localhost` & `api.alfheim.loegien.de`)
-- Preflight CORS handler for `GET, POST, PUT, PATCH, DELETE, OPTIONS` requests.
-- Authorization header and `X-Household-ID` propagation.
+- No CORS headers: every frontend calls the API through its own origin.
 - Service endpoints:
   - `auth.*` host -> `zitadel:8080` (Dedicated host; Zitadel does not support sub-path hosting)
   - `/storage*` -> `rustfs:9000` (S3 object storage endpoint & presigned URLs)

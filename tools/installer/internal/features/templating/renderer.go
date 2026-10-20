@@ -170,20 +170,35 @@ func EnvQuote(value string) (string, error) {
 type APIRoute struct {
 	Slug     string
 	Upstream string
+	// FrontendPort is the port the app's Next.js frontend listens on.
+	FrontendPort int
+	// Direct is true when the backend itself serves /api/v1/<slug>/..., so
+	// the gateway forwards that path unchanged. Otherwise the backend serves
+	// /api/v1/... and the gateway strips the slug.
+	Direct bool
+	// BackendPrefix is what /<slug>/api/v1/... is rewritten to before it is
+	// proxied: /api/v1 for most apps, /api/v1/<slug> for apps whose routers
+	// are mounted under their slug.
+	BackendPrefix string
 }
 
 // apiRoutes mirrors the Tier-2 application services defined in
-// compose.prod.yaml. Both the API proxy rules and the frontend handlers are
-// generated from this one list so the two can never drift apart.
+// compose.prod.yaml and the routing in infrastructure/caddy/Caddyfile. Both
+// the API proxy rules and the frontend handlers are generated from this one
+// list so the two can never drift apart.
 var apiRoutes = []APIRoute{
-	{Slug: "pantry", Upstream: "pantry-backend:8000"},
-	{Slug: "shopping", Upstream: "shopping-backend:8000"},
-	{Slug: "maintenance", Upstream: "maintenance-backend:8000"},
-	{Slug: "chores", Upstream: "chores-backend:8000"},
-	{Slug: "budget", Upstream: "budget-backend:8000"},
-	{Slug: "workout", Upstream: "workout-backend:8000"},
-	{Slug: "library", Upstream: "library-backend:8080"},
-	{Slug: "chat", Upstream: "chat-backend:8080"},
+	{Slug: "pantry", Upstream: "pantry-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
+	// The shopping backend serves /api/v1/shopping-lists, /api/v1/shopping/items
+	// and /api/v1/shopping-history itself, so /api/v1/shopping* is passed through
+	// while /shopping/api/v1/... maps onto /api/v1/.... Its frontend listens on
+	// 3010 (PORT in compose.prod.yaml).
+	{Slug: "shopping", Upstream: "shopping-backend:8000", FrontendPort: 3010, Direct: true, BackendPrefix: "/api/v1"},
+	{Slug: "maintenance", Upstream: "maintenance-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
+	{Slug: "chores", Upstream: "chores-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chores"},
+	{Slug: "budget", Upstream: "budget-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
+	{Slug: "workout", Upstream: "workout-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
+	{Slug: "library", Upstream: "library-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/library"},
+	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat"},
 }
 
 // APIRoutes exposes the application route table to the templates.
