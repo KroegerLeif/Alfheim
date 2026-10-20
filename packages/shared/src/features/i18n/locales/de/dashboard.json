@@ -22,7 +22,7 @@
     "telemetry_subtitle": "Live OpenTelemetry / VictoriaStack Metrik-Stream",
     "telemetry_syncing": "SYNCHRONISATION...",
     "telemetry_procs_fallback": "PROCS FALLBACK",
-    "telemetry_live_stream": "LIVE STREAM",
+    "telemetry_live_stream": "LIVE-DATENSTROM",
     "cpu_load": "CPU LAST",
     "high_load": "HOHE LAST",
     "normal_load": "NORMAL",
