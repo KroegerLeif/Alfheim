@@ -13,6 +13,9 @@ type fakeClient struct {
 	apps     map[string]Credentials
 	calls    []string
 	failNext error
+	// registrationDisabled counts EnsureRegistrationDisabled calls.
+	registrationDisabled int
+	registrationErr      error
 }
 
 func newFakeClient() *fakeClient {
@@ -50,6 +53,32 @@ func (f *fakeClient) EnsureOIDCApp(_ context.Context, projectID string, spec App
 	}
 	f.apps[spec.Name] = creds
 	return creds, nil
+}
+
+func (f *fakeClient) EnsureRegistrationDisabled(_ context.Context) error {
+	f.calls = append(f.calls, "EnsureRegistrationDisabled")
+	f.registrationDisabled++
+	return f.registrationErr
+}
+
+func TestProvision_DisablesRegistrationOnEveryRun(t *testing.T) {
+	c := newFakeClient()
+	for i := 0; i < 2; i++ {
+		if _, err := Provision(context.Background(), c, testInput(), nil); err != nil {
+			t.Fatalf("Provision() run %d error = %v", i, err)
+		}
+	}
+	if c.registrationDisabled != 2 {
+		t.Errorf("EnsureRegistrationDisabled calls = %d, want one per Provision run", c.registrationDisabled)
+	}
+}
+
+func TestProvision_FailsWhenRegistrationCannotBeDisabled(t *testing.T) {
+	c := newFakeClient()
+	c.registrationErr = errors.New("forbidden")
+	if _, err := Provision(context.Background(), c, testInput(), nil); err == nil {
+		t.Fatal("Provision() must fail when self-registration stays enabled")
+	}
 }
 
 func testInput() Input {

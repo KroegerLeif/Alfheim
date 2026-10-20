@@ -62,6 +62,11 @@ type Client interface {
 	// EnsureOIDCApp reconciles one OIDC application inside projectID and
 	// returns its current credentials.
 	EnsureOIDCApp(ctx context.Context, projectID string, spec AppSpec) (Credentials, error)
+	// EnsureRegistrationDisabled turns self-registration off on the login
+	// policy that applies to the installation's users and verifies it took
+	// effect. Alfheim accounts are created by the operator (and invited
+	// household members), never by a stranger reaching the login page.
+	EnsureRegistrationDisabled(ctx context.Context) error
 }
 
 // Input is everything Provision needs to compute the desired state. It is
@@ -132,6 +137,13 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 	grafanaCreds, err := c.EnsureOIDCApp(ctx, projectID, grafanaSpec)
 	if err != nil {
 		return Result{}, fmt.Errorf("provisioning: ensure app %q: %w", grafanaSpec.Name, err)
+	}
+
+	// Reached on every run (fresh install and update), so an instance that
+	// predates this step, or whose policy was re-enabled by hand, is
+	// corrected again.
+	if err := c.EnsureRegistrationDisabled(ctx); err != nil {
+		return Result{}, fmt.Errorf("provisioning: disable self-registration: %w", err)
 	}
 
 	return Result{

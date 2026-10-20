@@ -243,8 +243,12 @@ func TestDefaultProvisioner_Provision_PersistsPATToEnv(t *testing.T) {
 
 	var devModes []any
 	var redirects []string
+	policy := newLoginPolicyStub()
 	addr := startSecureZitadel(t, layout, "auth.example.com", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			if policy.handle(w, r) {
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			switch {
 			case strings.HasSuffix(r.URL.Path, "/projects/_search"):
@@ -272,6 +276,10 @@ func TestDefaultProvisioner_Provision_PersistsPATToEnv(t *testing.T) {
 	on := onboarding.Config{AuthHost: "auth.example.com", BaseURL: "https://alfheim.example.com", Secure: true}
 	if _, err := p.Provision(context.Background(), layout, on, map[string]string{}); err != nil {
 		t.Fatalf("Provision() error = %v", err)
+	}
+
+	if policy.registrationOpen() {
+		t.Error("self-registration is still enabled after Provision")
 	}
 
 	vars, err := envfile.ParseFile(layout.EnvFile())
