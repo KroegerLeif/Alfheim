@@ -8,7 +8,7 @@ from src.features.plans.schemas import PlanCreate, PlanDayCreate, PlanExerciseCr
 from src.features.plans.services.plan_crud_service import PlanCrudService
 
 
-def _nested_plan_payload() -> PlanCreate:
+def _nested_plan_payload(exercise_id: uuid.UUID) -> PlanCreate:
     return PlanCreate(
         name="Push Pull Legs",
         is_shared=False,
@@ -17,7 +17,7 @@ def _nested_plan_payload() -> PlanCreate:
                 label="Push",
                 exercises=[
                     PlanExerciseCreate(
-                        exercise_id=uuid.uuid4(),
+                        exercise_id=exercise_id,
                         sets=[
                             PlanSetCreate(
                                 target_reps=5, target_weight_type=TargetWeightType.ABSOLUTE, target_weight_kg=80.0
@@ -31,11 +31,13 @@ def _nested_plan_payload() -> PlanCreate:
     )
 
 
-async def test_create_plan_persists_nested_structure(db_session: AsyncSession):
+async def test_create_plan_persists_nested_structure(db_session: AsyncSession, make_exercise):
     home_id = uuid.uuid4()
     user_id = uuid.uuid4()
 
-    plan = await PlanCrudService.create_plan(db_session, _nested_plan_payload(), home_id, user_id)
+    plan = await PlanCrudService.create_plan(
+        db_session, _nested_plan_payload(await make_exercise(home_id, user_id)), home_id, user_id
+    )
 
     assert plan.home_id == home_id
     assert plan.owner_user_id == user_id
@@ -45,7 +47,10 @@ async def test_create_plan_persists_nested_structure(db_session: AsyncSession):
     assert len(plan.days[0].exercises[0].sets) == 2
 
 
-async def test_create_plan_rejects_invalid_weight_field_combo(db_session: AsyncSession):
+async def test_create_plan_rejects_invalid_weight_field_combo(db_session: AsyncSession, make_exercise):
+    home_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    exercise_id = await make_exercise(home_id, user_id)
     payload = PlanCreate(
         name="Bad Plan",
         days=[
@@ -53,7 +58,7 @@ async def test_create_plan_rejects_invalid_weight_field_combo(db_session: AsyncS
                 label="Day 1",
                 exercises=[
                     PlanExerciseCreate(
-                        exercise_id=uuid.uuid4(),
+                        exercise_id=exercise_id,
                         sets=[PlanSetCreate(target_weight_type=TargetWeightType.ABSOLUTE, target_weight_kg=None)],
                     )
                 ],
@@ -61,7 +66,7 @@ async def test_create_plan_rejects_invalid_weight_field_combo(db_session: AsyncS
         ],
     )
     with pytest.raises(PlanValidationError):
-        await PlanCrudService.create_plan(db_session, payload, uuid.uuid4(), uuid.uuid4())
+        await PlanCrudService.create_plan(db_session, payload, home_id, user_id)
 
 
 async def test_shared_plan_visible_to_other_household_member(db_session: AsyncSession):
@@ -108,15 +113,16 @@ async def test_only_owner_can_update_shared_plan(db_session: AsyncSession):
     assert result.name == "Renamed"
 
 
-async def test_update_plan_with_nested_days(db_session: AsyncSession):
+async def test_update_plan_with_nested_days(db_session: AsyncSession, make_exercise):
     from src.features.plans.schemas import PlanUpdate
 
     home_id = uuid.uuid4()
     owner_id = uuid.uuid4()
+    exercise_id = await make_exercise(home_id, owner_id)
 
     plan = await PlanCrudService.create_plan(
         db_session,
-        _nested_plan_payload(),
+        _nested_plan_payload(exercise_id),
         home_id,
         owner_id,
     )
@@ -128,7 +134,7 @@ async def test_update_plan_with_nested_days(db_session: AsyncSession):
             label="Pull",
             exercises=[
                 PlanExerciseCreate(
-                    exercise_id=uuid.uuid4(),
+                    exercise_id=exercise_id,
                     sets=[
                         PlanSetCreate(target_reps=10, target_weight_type=TargetWeightType.DEFAULT),
                         PlanSetCreate(target_reps=12, target_weight_type=TargetWeightType.DEFAULT),
@@ -172,12 +178,12 @@ async def test_add_and_delete_day(db_session: AsyncSession):
     assert deleted is True
 
 
-async def test_add_update_and_delete_exercise_and_set(db_session: AsyncSession):
+async def test_add_update_and_delete_exercise_and_set(db_session: AsyncSession, make_exercise):
     from src.features.plans.schemas import PlanSetUpdate
 
     home_id = uuid.uuid4()
     user_id = uuid.uuid4()
-    exercise_id = uuid.uuid4()
+    exercise_id = await make_exercise(home_id, user_id)
     plan = await PlanCrudService.create_plan(db_session, PlanCreate(name="Empty Plan"), home_id, user_id)
     day = await PlanCrudService.add_day(db_session, plan.id, home_id, user_id, PlanDayCreate(label="Push"))
     assert day is not None
