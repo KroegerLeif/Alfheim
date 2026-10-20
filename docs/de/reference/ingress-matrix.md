@@ -37,21 +37,23 @@ Die Tabellen unten beschreiben den Entwicklungs-Stack (`scripts/up.sh`), der die
 
 ## Frontend-Domain-Routing (`alfheim.loegien.localhost`)
 
-| Öffentlicher URL-Pfad | Ziel-Container | Container-Port | BasePath-Redirect / Anmerkungen |
+| Öffentlicher URL-Pfad | Ziel-Container | Container-Port | Anmerkungen |
 | :--- | :--- | :--- | :--- |
 | `http://alfheim.loegien.localhost/` | `dashboard-frontend` | `3000` | Dashboard-Landesseite der Plattform |
-| `http://alfheim.loegien.localhost/pantry` | `pantry-frontend` | `3000` | Leitet nacktes `/pantry` zu `/pantry/en` um |
-| `http://alfheim.loegien.localhost/budget` | `budget-frontend` | `3000` | Leitet nacktes `/budget` zu `/budget/en` um |
-| `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `3000` | Leitet nacktes `/chores` zu `/chores/de` um |
-| `http://alfheim.loegien.localhost/workout` | `workout-frontend` | `3000` | Leitet nacktes `/workout` zu `/workout/de` um |
-| `http://alfheim.loegien.localhost/library` | `library-frontend` | `3000` | Leitet nacktes `/library` zu `/library/en` um |
-| `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `3000`| Leitet nacktes `/maintenance` zu `/maintenance/en` um |
-| `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `3010` | Leitet nacktes `/shopping` zu `/shopping/en` um |
-| `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `3000` | Leitet nacktes `/chat` zu `/chat/de` um |
+| `http://alfheim.loegien.localhost/pantry` | `pantry-frontend` | `3000` | Nacktes `/pantry` leitet die App selbst auf die Sprache um (next-intl) |
+| `http://alfheim.loegien.localhost/budget` | `budget-frontend` | `3000` | Nacktes `/budget` leitet die App selbst auf die Sprache um (next-intl) |
+| `http://alfheim.loegien.localhost/chores` | `chores-frontend` | `3000` | Nacktes `/chores` leitet die App selbst auf die Sprache um (next-intl) |
+| `http://alfheim.loegien.localhost/workout` | `workout-frontend` | `3000` | Nacktes `/workout` leitet die App selbst auf die Sprache um (next-intl) |
+| `http://alfheim.loegien.localhost/library` | `library-frontend` | `3000` | Nacktes `/library` leitet die App selbst auf die Sprache um (next-intl) |
+| `http://alfheim.loegien.localhost/maintenance`| `maintenance-frontend`| `3000`| Nacktes `/maintenance` leitet die App selbst auf die Sprache um (next-intl) |
+| `http://alfheim.loegien.localhost/shopping` | `shopping-frontend` | `3010` | Nacktes `/shopping` leitet die App selbst auf die Sprache um (next-intl) |
+| `http://alfheim.loegien.localhost/chat` | `chat-frontend` | `3000` | Nacktes `/chat` leitet die App selbst auf die Sprache um (next-intl) |
 | `http://alfheim.loegien.localhost/grafana` | `grafana` | `3000` | Zitadel-SSO-Beobachtungs-Dashboard |
-| `http://alfheim.loegien.localhost/household` | `household-frontend` | `3000` | basePath `/household`, keine Sprach-Weiterleitung |
+| `http://alfheim.loegien.localhost/household` | `household-frontend` | `3000` | basePath `/household`, kein Sprachpräfix |
 | `http://alfheim.loegien.localhost/api/v1/households`, `/api/v1/profile` | `household-backend` | `8080` | Pfad bleibt erhalten; hat Vorrang vor dem Dashboard-Catch-all `/api/v1/*` |
 | `http://alfheim.loegien.localhost/internal/` | — | — | `404`: Service-zu-Service-Endpunkte werden nie geroutet (ebenso auf `api.*`) |
+
+Das Gateway routet nur: Es setzt keine Sprach-Weiterleitungen. Jede Next.js-App führt die next-intl-Middleware aus, die ein nacktes `/<app>` auf die Sprache aus dem `NEXT_LOCALE`-Cookie, danach `Accept-Language`, danach den App-Standard (`de` bei Chores und Workout, sonst `en`) umleitet.
 
 ---
 
@@ -102,3 +104,25 @@ Die Caddyfile, die `alfheim-setup` rendert (`tools/installer/internal/features/t
 | `https://auth.loegien.de/internal/*` | _(keiner)_ | — | `respond 404`, zusätzliche Absicherung auf dem IAM-Host |
 
 Caddy fasst alle `handle`- und `handle_path`-Blöcke einer Site in eine sich gegenseitig ausschließende Gruppe zusammen und sortiert sie nach Pfadlänge, die längste zuerst. `/api/v1/households*` und `/api/v1/profile*` sind länger als die allgemeine Dashboard-Route `/api/v1*` und gewinnen daher immer. Kein App-Slug ist ein Präfix von `households` oder `profile`, also kann auch keine `/api/v1/<slug>*`-Regel sie treffen. Alle Pfade, die keine andere Regel trifft, bedient weiterhin das Dashboard-Frontend.
+
+---
+
+## Sicherheits-Header der Antworten
+
+Jeder Site-Block (App-Host, `auth.*`-Host und im Dev-Stack der `api.*`-Host) importiert ein gemeinsames `security_headers`-Snippet. Jedes Feld nutzt das `?`-Präfix von Caddy: Ein Header, den der Upstream bereits sendet (Zitadel, Grafana), bleibt erhalten, nur fehlende werden ergänzt.
+
+| Header | Wert | Zweck |
+| :--- | :--- | :--- |
+| `X-Content-Type-Options` | `nosniff` | Schaltet MIME-Sniffing ab |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Kein Pfad und keine Query an fremde Origins |
+| `X-Frame-Options`, `Content-Security-Policy` | `SAMEORIGIN`, `frame-ancestors 'self'` | Clickjacking-Schutz; der PDF-Viewer der Bibliothek bettet eine gleich-originäre `/storage`-URL ein |
+| `Permissions-Policy` | Kamera, Mikrofon, Standort, Zahlung, USB deaktiviert | Keine Alfheim-App braucht sie |
+| `Content-Security-Policy-Report-Only` | Same-Origin-Basis plus `auth.*`-Host in `connect-src` | Nur Report-Only: Next.js erzeugt Inline-Bootstrap-Skripte, ein erzwungenes `script-src` braucht zuerst Nonces. Verstöße erscheinen in der Browser-Konsole. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Nur bei installer-generierten HTTPS-Deployments; der Dev-Stack läuft über reines HTTP |
+| `Server` | entfernt | Verbirgt das Proxy-Banner |
+
+Der Dev-Host `api.*` setzt keine CORS-Header. Jedes Frontend ruft die API über seine eigene Origin auf (`NEXT_PUBLIC_API_URL` wird aus `ALFHEIM_BASE_URL` abgeleitet), Browser stellen dort also keine Cross-Origin-Anfragen. `./scripts/verify-stack.sh` prüft diese Header auf einem laufenden Stack.
+
+## Routentabelle des Installers
+
+Installer-Template und Dev-Caddyfile routen identisch. `/api/v1/<slug>*` wird bei Pantry, Maintenance, Budget und Workout auf `/api/v1/...` gekürzt und bei Shopping, Chores, Library und Chat unverändert durchgereicht, weil deren Backends diesen Pfad selbst bedienen. `/<slug>/api/v1*` funktioniert immer ebenfalls: Es wird auf `/api/v1` umgeschrieben, bei Chores, Library und Chat auf `/api/v1/<slug>`. Jeden anderen `/api/v1/*`-Pfad erhält das Dashboard-Backend unverändert. Das Shopping-Frontend lauscht auf Port `3010`, alle anderen Frontends auf `3000`.
