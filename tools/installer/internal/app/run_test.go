@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -82,7 +83,7 @@ func (s *stubProvisioner) Provision(
 	if s.err != nil {
 		return provisioning.Result{}, s.err
 	}
-	if s.result != (provisioning.Result{}) {
+	if !reflect.DeepEqual(s.result, provisioning.Result{}) {
 		return s.result, nil
 	}
 	return provisioning.Result{

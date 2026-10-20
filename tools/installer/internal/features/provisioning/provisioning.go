@@ -12,6 +12,7 @@ package provisioning
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // AppType selects how an OIDC application authenticates.
@@ -62,6 +63,11 @@ type Client interface {
 	// EnsureOIDCApp reconciles one OIDC application inside projectID and
 	// returns its current credentials.
 	EnsureOIDCApp(ctx context.Context, projectID string, spec AppSpec) (Credentials, error)
+	// EnsureRegistrationDisabled turns self-registration off on the login
+	// policy that applies to the installation's users and verifies it took
+	// effect. Alfheim accounts are created by the operator (and invited
+	// household members), never by a stranger reaching the login page.
+	EnsureRegistrationDisabled(ctx context.Context) error
 }
 
 // Input is everything Provision needs to compute the desired state. It is
@@ -85,6 +91,10 @@ type Result struct {
 	WebClientID     string
 	GrafanaClientID string
 	GrafanaSecret   string
+	// Warnings are non-fatal findings the operator must still see, such as
+	// self-registration that could not be switched off on an existing
+	// installation.
+	Warnings []string
 }
 
 // knownPlaceholderSecrets are values that must never be treated as a real,
@@ -134,7 +144,23 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		return Result{}, fmt.Errorf("provisioning: ensure app %q: %w", grafanaSpec.Name, err)
 	}
 
+	// Reached on every run (fresh install and update), so an instance that
+	// predates this step, or whose policy was re-enabled by hand, is
+	// corrected again.
+	//
+	// On a fresh install a failure aborts. On an existing installation it
+	// must never brick the update (the bootstrap PAT may lack the rights),
+	// so it becomes a warning with the manual steps instead.
+	var warnings []string
+	if err := c.EnsureRegistrationDisabled(ctx); err != nil {
+		if !isExistingInstall(existing) {
+			return Result{}, fmt.Errorf("provisioning: disable self-registration: %w", err)
+		}
+		warnings = append(warnings, RegistrationWarning(err))
+	}
+
 	return Result{
+		Warnings:        warnings,
 		ProjectID:       projectID,
 		WebClientID:     webCreds.ClientID,
 		GrafanaClientID: grafanaCreds.ClientID,
@@ -178,4 +204,23 @@ func BuildInput(projectName, baseURL string, devMode bool, appSlugs []string) In
 var AppSlugs = []string{
 	"pantry", "shopping", "chores", "maintenance",
 	"budget", "chat", "workout", "library", "household",
+}
+
+// isExistingInstall reports whether existing (a parsed .env) already carries
+// a provisioned web client, which a fresh install's .env never does: it holds
+// empty or the __PROVISIONED__ placeholder until the first provisioning run.
+func isExistingInstall(existing map[string]string) bool {
+	id := strings.TrimSpace(existing["ALFHEIM_WEB_CLIENT_ID"])
+	return id != "" && id != "__PROVISIONED__"
+}
+
+// RegistrationWarning is the operator-facing message for a login policy that
+// could not be locked down, including the manual steps.
+func RegistrationWarning(cause error) string {
+	return fmt.Sprintf("WARNING: Zitadel self-registration may still be ENABLED: %v\n"+
+		"  Anyone who can reach the login page may be able to register an account. Disable it manually:\n"+
+		"    1. Zitadel console -> Default settings -> Login behavior and security -> uncheck \"User registration allowed\".\n"+
+		"    2. Organization -> Settings -> Login behavior and security -> uncheck \"User registration allowed\"\n"+
+		"       (only if the organization has its own login policy).\n"+
+		"  Re-run alfheim-setup update (or provision) with a PAT that has IAM_OWNER rights to apply it automatically.", cause)
 }

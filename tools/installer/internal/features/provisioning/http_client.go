@@ -379,3 +379,122 @@ func (c *HTTPClient) EnsureOIDCApp(ctx context.Context, projectID string, spec A
 	}
 	return Credentials{ClientID: clientID, ClientSecret: generated.ClientSecret}, nil
 }
+
+// loginPolicyFields are the settings the Zitadel login policy update
+// endpoints accept. A PUT replaces the whole policy (an omitted field falls
+// back to its zero value), so EnsureRegistrationDisabled copies exactly
+// these from the current policy and changes only allowRegister. Read-only
+// fields such as isDefault and details are deliberately not sent back.
+var loginPolicyFields = []string{
+	"allowUsernamePassword", "allowRegister", "allowExternalIdp", "forceMfa",
+	"passwordlessType", "hidePasswordReset", "ignoreUnknownUsernames",
+	"defaultRedirectUri", "passwordCheckLifetime", "externalLoginCheckLifetime",
+	"mfaInitSkipLifetime", "secondFactorCheckLifetime", "multiFactorCheckLifetime",
+	"allowDomainDiscovery", "disableLoginWithEmail", "disableLoginWithPhone",
+	"forceMfaLocalOnly",
+}
+
+const (
+	// instanceLoginPolicyPath is the Admin API login policy every
+	// organisation without its own custom policy inherits.
+	instanceLoginPolicyPath = "/admin/v1/policies/login"
+	// orgLoginPolicyPath is the Management API login policy of the
+	// organisation the bootstrap PAT belongs to, which is where the
+	// installation's users live.
+	orgLoginPolicyPath = "/management/v1/policies/login"
+)
+
+// loginPolicy is one decoded login policy response.
+type loginPolicy struct {
+	fields    map[string]any
+	isDefault bool
+}
+
+func (p loginPolicy) allowRegister() bool {
+	v, _ := p.fields["allowRegister"].(bool)
+	return v
+}
+
+func (c *HTTPClient) getLoginPolicy(ctx context.Context, path string) (loginPolicy, error) {
+	respBody, err := c.request(ctx, http.MethodGet, path, nil, "")
+	if err != nil {
+		return loginPolicy{}, err
+	}
+	var decoded struct {
+		Policy map[string]any `json:"policy"`
+	}
+	if err := json.Unmarshal(respBody, &decoded); err != nil {
+		return loginPolicy{}, fmt.Errorf("provisioning: decode login policy response from %s: %w", path, err)
+	}
+	if decoded.Policy == nil {
+		return loginPolicy{}, fmt.Errorf("provisioning: %s returned no login policy", path)
+	}
+	isDefault, _ := decoded.Policy["isDefault"].(bool)
+	return loginPolicy{fields: decoded.Policy, isDefault: isDefault}, nil
+}
+
+// disableRegistration reads the policy at path and, unless self-registration
+// is already off, writes it back with allowRegister=false and every other
+// setting unchanged. It returns the policy as read before the change.
+func (c *HTTPClient) disableRegistration(ctx context.Context, path string) (loginPolicy, error) {
+	current, err := c.getLoginPolicy(ctx, path)
+	if err != nil {
+		return loginPolicy{}, err
+	}
+	if !current.allowRegister() {
+		return current, nil
+	}
+	body := make(map[string]any, len(loginPolicyFields))
+	for _, key := range loginPolicyFields {
+		if v, ok := current.fields[key]; ok {
+			body[key] = v
+		}
+	}
+	body["allowRegister"] = false
+	if _, err := c.request(ctx, http.MethodPut, path, body, ""); err != nil {
+		return loginPolicy{}, err
+	}
+	return current, nil
+}
+
+// EnsureRegistrationDisabled implements Client.
+//
+// Two policies can show a "Register" link on the login page: the instance
+// default (Admin API), which Zitadel ships with allowRegister=true, and a
+// custom policy on the organisation (Management API) if one was ever set,
+// which overrides the default. The instance default is always corrected; the
+// organisation policy is corrected only when it is a custom one, because
+// writing to an inherited one would turn it into a custom copy that stops
+// following the instance. Both are read back afterwards, because a policy
+// that silently stayed open must fail the install, not pass it.
+func (c *HTTPClient) EnsureRegistrationDisabled(ctx context.Context) error {
+	if _, err := c.disableRegistration(ctx, instanceLoginPolicyPath); err != nil {
+		return fmt.Errorf("instance login policy: %w", err)
+	}
+
+	org, err := c.getLoginPolicy(ctx, orgLoginPolicyPath)
+	if err != nil {
+		return fmt.Errorf("organisation login policy: %w", err)
+	}
+	if !org.isDefault {
+		if _, err := c.disableRegistration(ctx, orgLoginPolicyPath); err != nil {
+			return fmt.Errorf("organisation login policy: %w", err)
+		}
+	}
+
+	instance, err := c.getLoginPolicy(ctx, instanceLoginPolicyPath)
+	if err != nil {
+		return fmt.Errorf("verify instance login policy: %w", err)
+	}
+	if instance.allowRegister() {
+		return errors.New("verify instance login policy: allowRegister is still true after the update")
+	}
+	effective, err := c.getLoginPolicy(ctx, orgLoginPolicyPath)
+	if err != nil {
+		return fmt.Errorf("verify organisation login policy: %w", err)
+	}
+	if effective.allowRegister() {
+		return errors.New("verify organisation login policy: allowRegister is still true after the update")
+	}
+	return nil
+}

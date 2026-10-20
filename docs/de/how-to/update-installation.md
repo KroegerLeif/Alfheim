@@ -103,6 +103,15 @@ das Postgres-Init-Skript und `vector.toml` durch die Kopien des Ziel-Releases,
 setzt `IMAGE_TAG` in der `.env` und hängt ein Secret an, das ein neueres
 Release benötigt, aber in der `.env` noch fehlt (bestehende Werte werden nie rotiert).
 
+Das Caddyfile ist kein Release-Asset, sondern wird vom Installer erzeugt.
+`update` rendert es aus der in der `.env` gespeicherten Konfiguration neu
+(Hosts, Schema, `ALFHEIM_TLS_STRATEGY`, `ACME_EMAIL`), sodass Ingress-Korrekturen
+wie neue Sicherheits-Header oder Routen auch bestehende Installationen
+erreichen. Das bisherige Caddyfile ist Teil der Sicherung. Eine Installation,
+deren `.env` kein `ALFHEIM_TLS_STRATEGY` enthält (eine ältere Klartext-HTTP-Installation),
+behält ihr Caddyfile und erhält eine Warnung; dort `alfheim-setup --reconfigure`
+ausführen.
+
 ---
 
 ## Was tatsächlich passiert
@@ -115,15 +124,30 @@ Release benötigt, aber in der `.env` noch fehlt (bestehende Werte werden nie ro
    gegen dessen `SHA256SUMS`.
 4. Sichert die aktuellen Stack-Dateien in ein Verzeichnis mit Zeitstempel
    (`.alfheim-backups/<UTC-Zeitstempel>/`), bevor irgendetwas ersetzt wird.
-5. Ersetzt `compose.prod.yaml` und die weiteren Stack-Dateien und setzt
-   `IMAGE_TAG` in der `.env`.
+5. Ersetzt `compose.prod.yaml` und die weiteren Stack-Dateien, setzt
+   `IMAGE_TAG` in der `.env` und rendert das Caddyfile aus der gespeicherten
+   Konfiguration neu.
 6. Hängt jedes Secret an, das ein neueres Release benötigt und das in der
    `.env` fehlt.
 7. Gleicht das Zitadel-Projekt und die OIDC-Clients erneut ab (idempotent —
-   fügt eine fehlende Redirect-URI hinzu, ändert nichts bereits Passendes).
+   fügt eine fehlende Redirect-URI hinzu, ändert nichts bereits Passendes) und
+   stellt sicher, dass die Selbstregistrierung in der Zitadel-Login-Policy
+   deaktiviert ist. Konten legt der Betreiber an, nie ein Besucher der
+   Login-Seite. Dafür dient das in der `.env` als `ZITADEL_BOOTSTRAP_PAT`
+   gespeicherte Bootstrap-PAT. Bei einer bestehenden Installation bricht
+   dieser Schritt das Update nie ab: fehlen dem PAT die Rechte oder lässt sich
+   die Policy nicht ändern oder verifizieren, läuft das Update weiter und gibt
+   eine deutliche Warnung aus (erneut in der Abschlusszusammenfassung), dass
+   die Selbstregistrierung noch aktiv sein kann. Dann in der Zitadel-Konsole
+   von Hand deaktivieren: **Default settings → Login behavior and security →
+   „User registration allowed" abwählen**, ebenso in den Login-Einstellungen
+   der Organisation, falls diese eine eigene Policy hat. Eine Neuinstallation
+   schlägt stattdessen fehl.
 8. Stellt sicher, dass jede Dienst-Datenbank existiert (erneuter Lauf des
    idempotenten Postgres-Init-Skripts).
 9. `docker compose pull`, gefolgt von `docker compose up -d --remove-orphans`.
+   Unterscheidet sich das neu gerenderte Caddyfile vom bisherigen, wird auch
+   Caddy neu gestartet, da er ein geändertes Caddyfile nicht selbst nachlädt.
 10. Führt [`scripts/verify-stack.sh`](#das-ergebnis-überprüfen) gegen den
     neu gestarteten Stack aus und gibt eine Zusammenfassung aus.
 

@@ -138,7 +138,8 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 		return fmt.Errorf("alfheim-setup update: %w", err)
 	}
 
-	backupDir, err := updater.Backup(layout.Root, assets.StackAssets, u.now())
+	backupList := append(append([]assets.Asset{}, assets.StackAssets...), assets.GeneratedAssets...)
+	backupDir, err := updater.Backup(layout.Root, backupList, u.now())
 	if err != nil {
 		return fmt.Errorf("alfheim-setup update: back up the previous stack files: %w", err)
 	}
@@ -160,6 +161,11 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	}
 	warnPlainHTTPInstall(u.Stderr, existing)
 
+	caddyfileChanged, err := u.rerenderCaddyfile(layout, existing, target)
+	if err != nil {
+		return u.rollbackError(backupDir, previousTag, layout, err)
+	}
+
 	if err := backfillSecrets(u.Stdout, layout, existing); err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
@@ -168,7 +174,8 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	if err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
-	if err := provisionZitadel(ctx, u.Stdout, u.provisioner(), layout, on); err != nil {
+	warnings, err := provisionZitadel(ctx, u.Stdout, u.provisioner(), layout, on)
+	if err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
 
@@ -179,6 +186,13 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	if err := orch.UpdateAndRestart(ctx); err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
+	// Caddy bind-mounts the Caddyfile and runs with its admin API off, so
+	// `up -d` alone never reloads a re-rendered one.
+	if caddyfileChanged {
+		if err := orch.RestartIngress(ctx); err != nil {
+			return u.rollbackError(backupDir, previousTag, layout, err)
+		}
+	}
 
 	if err := u.runVerify(ctx, layout); err != nil {
 		return u.rollbackError(backupDir, previousTag, layout,
@@ -188,6 +202,7 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	fmt.Fprintf(u.Stdout, "\nAlfheim was updated to %s.\n"+
 		"  Previous stack files were backed up to %s.\n",
 		target, backupDir)
+	printWarnings(u.Stdout, warnings)
 	return nil
 }
 

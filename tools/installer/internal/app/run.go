@@ -405,7 +405,8 @@ func (a *App) runBootstrap(
 		}
 	}
 
-	if err := a.provision(ctx, layout, model.Onboarding); err != nil {
+	warnings, err := a.provision(ctx, layout, model.Onboarding)
+	if err != nil {
 		return err
 	}
 
@@ -417,13 +418,14 @@ func (a *App) runBootstrap(
 	}
 
 	a.printSummary(model)
+	printWarnings(a.Stdout, warnings)
 	return nil
 }
 
 // provision reconciles the Zitadel project and OIDC applications and writes
 // the results back into .env, from where docker compose's automatic .env
 // loading feeds them to every consumer started in the next phase.
-func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.Config) error {
+func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.Config) ([]string, error) {
 	return provisionZitadel(ctx, a.Stdout, a.provisioner(), layout, on)
 }
 
@@ -433,17 +435,17 @@ func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.
 // the same way.
 func provisionZitadel(
 	ctx context.Context, stdout io.Writer, provisioner Provisioner, layout paths.Layout, on onboarding.Config,
-) error {
+) ([]string, error) {
 	fmt.Fprintln(stdout, "Provisioning Zitadel OIDC clients …")
 
 	existing, err := envfile.ParseFile(layout.EnvFile())
 	if err != nil {
-		return fmt.Errorf("alfheim-setup: read .env before provisioning: %w", err)
+		return nil, fmt.Errorf("alfheim-setup: read .env before provisioning: %w", err)
 	}
 
 	result, err := provisioner.Provision(ctx, layout, on, existing)
 	if err != nil {
-		return fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
+		return nil, fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
 	}
 
 	if err := envfile.Update(layout.EnvFile(), map[string]string{
@@ -453,10 +455,20 @@ func provisionZitadel(
 		"GRAFANA_OIDC_CLIENT_ID":     result.GrafanaClientID,
 		"GRAFANA_OIDC_CLIENT_SECRET": result.GrafanaSecret,
 	}); err != nil {
-		return fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
+		return nil, fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
 	}
 	fmt.Fprintln(stdout, "Zitadel OIDC clients are provisioned.")
-	return nil
+	printWarnings(stdout, result.Warnings)
+	return result.Warnings, nil
+}
+
+// printWarnings writes each warning as its own prominent block. It is used
+// both right where the problem occurs and again in the final summary, so a
+// long run does not bury it.
+func printWarnings(w io.Writer, warnings []string) {
+	for _, msg := range warnings {
+		fmt.Fprintf(w, "\n!! %s\n", msg)
+	}
 }
 
 // preflightDNS checks the DNS provider token against the hosts Caddy must
@@ -556,7 +568,7 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 	if err := a.backfillSecrets(layout, existing); err != nil {
 		return err
 	}
-	if err := a.provision(ctx, layout, on); err != nil {
+	if _, err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}
 

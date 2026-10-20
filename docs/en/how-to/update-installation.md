@@ -99,6 +99,14 @@ Postgres init script and `vector.toml` with the target release's copies, sets
 `IMAGE_TAG` in `.env`, and appends a secret a newer release introduced but
 `.env` still lacks (existing values are never rotated).
 
+The Caddyfile is not a release asset: the installer renders it. `update`
+re-renders it from the configuration stored in `.env` (hosts, scheme,
+`ALFHEIM_TLS_STRATEGY`, `ACME_EMAIL`), so ingress fixes such as new security
+headers or routes reach existing installations. The previous Caddyfile is part
+of the backup. An installation whose `.env` has no `ALFHEIM_TLS_STRATEGY` (a
+legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
+`alfheim-setup --reconfigure` there.
+
 ---
 
 ## What actually happens
@@ -110,14 +118,27 @@ Postgres init script and `vector.toml` with the target release's copies, sets
    `SHA256SUMS`.
 4. Backs up the current stack files to a timestamped directory
    (`.alfheim-backups/<UTC timestamp>/`) before replacing anything.
-5. Replaces `compose.prod.yaml` and the other stack files, and sets
-   `IMAGE_TAG` in `.env`.
+5. Replaces `compose.prod.yaml` and the other stack files, sets
+   `IMAGE_TAG` in `.env`, and re-renders the Caddyfile from the stored
+   configuration.
 6. Appends any secret a newer release requires and `.env` lacks.
 7. Re-reconciles the Zitadel project and OIDC clients (idempotent — adds a
-   missing redirect URI, changes nothing that already matches).
+   missing redirect URI, changes nothing that already matches) and makes sure
+   self-registration is disabled on the Zitadel login policy. Accounts are
+   created by the operator, never by a visitor of the login page. This uses
+   the bootstrap PAT stored in `.env` as `ZITADEL_BOOTSTRAP_PAT`. On an
+   existing installation this step never aborts the update: if the PAT lacks
+   the rights, or the policy cannot be changed or verified, the update
+   continues and prints a prominent warning (again in the final summary) that
+   self-registration may still be enabled. Then disable it by hand in the
+   Zitadel console: **Default settings → Login behavior and security → uncheck
+   "User registration allowed"**, and the same setting under the organization's
+   own login behavior if it has a custom policy. A fresh install fails instead.
 8. Ensures every service database exists (re-runs the idempotent Postgres
    init script).
 9. `docker compose pull` followed by `docker compose up -d --remove-orphans`.
+   If the re-rendered Caddyfile differs from the previous one, Caddy is
+   restarted too, because it never reloads a changed Caddyfile on its own.
 10. Runs [`scripts/verify-stack.sh`](#verifying-the-result) against the
     restarted stack and prints a summary.
 

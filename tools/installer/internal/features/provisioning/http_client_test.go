@@ -401,3 +401,154 @@ func TestHTTPClient_DefaultHTTPClientIsUsable(t *testing.T) {
 		t.Errorf("baseDelay() = %v, want 500ms", c.baseDelay())
 	}
 }
+
+// loginPolicyServer is a stateful fake of the two Zitadel login policy
+// endpoints, recording every write.
+type loginPolicyServer struct {
+	instance map[string]any
+	org      map[string]any
+	puts     []string
+	putBody  map[string]map[string]any
+	// stickyRegister makes the instance PUT a no-op, simulating a policy
+	// that silently stays open.
+	stickyRegister bool
+}
+
+func newLoginPolicyServer(instanceRegister bool, orgCustom bool, orgRegister bool) *loginPolicyServer {
+	return &loginPolicyServer{
+		instance: map[string]any{
+			"isDefault": true, "allowUsernamePassword": true, "allowRegister": instanceRegister,
+			"allowExternalIdp": true, "forceMfa": true, "passwordCheckLifetime": "864000s",
+			"defaultRedirectUri": "https://x/",
+		},
+		org: map[string]any{
+			"isDefault": !orgCustom, "allowUsernamePassword": true, "allowRegister": orgRegister,
+			"hidePasswordReset": true,
+		},
+		putBody: map[string]map[string]any{},
+	}
+}
+
+func (s *loginPolicyServer) handler(t *testing.T) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var state *map[string]any
+		switch r.URL.Path {
+		case "/admin/v1/policies/login":
+			state = &s.instance
+		case "/management/v1/policies/login":
+			state = &s.org
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		switch r.Method {
+		case http.MethodGet:
+			// An org without a custom policy reports the instance's values.
+			if r.URL.Path == "/management/v1/policies/login" && s.org["isDefault"] == true {
+				view := map[string]any{}
+				for k, v := range s.instance {
+					view[k] = v
+				}
+				writeJSON(w, 200, map[string]any{"policy": view})
+				return
+			}
+			writeJSON(w, 200, map[string]any{"policy": *state})
+		case http.MethodPut:
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatal(err)
+			}
+			s.puts = append(s.puts, r.URL.Path)
+			s.putBody[r.URL.Path] = body
+			if r.URL.Path == "/admin/v1/policies/login" && s.stickyRegister {
+				writeJSON(w, 200, map[string]any{})
+				return
+			}
+			updated := map[string]any{"isDefault": (*state)["isDefault"]}
+			for k, v := range body {
+				updated[k] = v
+			}
+			*state = updated
+			writeJSON(w, 200, map[string]any{})
+		default:
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+	}
+}
+
+func TestHTTPClient_EnsureRegistrationDisabled_UpdatesInstanceKeepingOtherFields(t *testing.T) {
+	s := newLoginPolicyServer(true, false, true)
+	c, _ := newTestClient(t, s.handler(t))
+
+	if err := c.EnsureRegistrationDisabled(context.Background()); err != nil {
+		t.Fatalf("EnsureRegistrationDisabled() error = %v", err)
+	}
+	if len(s.puts) != 1 || s.puts[0] != "/admin/v1/policies/login" {
+		t.Fatalf("PUTs = %v, want exactly the instance policy (org policy is inherited)", s.puts)
+	}
+	body := s.putBody["/admin/v1/policies/login"]
+	if body["allowRegister"] != false {
+		t.Errorf("allowRegister = %v, want false", body["allowRegister"])
+	}
+	for k, want := range map[string]any{
+		"allowUsernamePassword": true, "allowExternalIdp": true, "forceMfa": true,
+		"passwordCheckLifetime": "864000s", "defaultRedirectUri": "https://x/",
+	} {
+		if body[k] != want {
+			t.Errorf("PUT body %s = %v, want %v (unchanged)", k, body[k], want)
+		}
+	}
+	if _, leaked := body["isDefault"]; leaked {
+		t.Error("PUT body must not carry the read-only isDefault field")
+	}
+}
+
+func TestHTTPClient_EnsureRegistrationDisabled_UpdatesCustomOrgPolicy(t *testing.T) {
+	s := newLoginPolicyServer(false, true, true)
+	c, _ := newTestClient(t, s.handler(t))
+
+	if err := c.EnsureRegistrationDisabled(context.Background()); err != nil {
+		t.Fatalf("EnsureRegistrationDisabled() error = %v", err)
+	}
+	if len(s.puts) != 1 || s.puts[0] != "/management/v1/policies/login" {
+		t.Fatalf("PUTs = %v, want only the custom org policy", s.puts)
+	}
+	body := s.putBody["/management/v1/policies/login"]
+	if body["allowRegister"] != false || body["hidePasswordReset"] != true {
+		t.Errorf("org PUT body = %v, want allowRegister=false and other fields kept", body)
+	}
+}
+
+func TestHTTPClient_EnsureRegistrationDisabled_IsIdempotent(t *testing.T) {
+	s := newLoginPolicyServer(true, false, true)
+	c, _ := newTestClient(t, s.handler(t))
+
+	for i := 0; i < 2; i++ {
+		if err := c.EnsureRegistrationDisabled(context.Background()); err != nil {
+			t.Fatalf("run %d: %v", i, err)
+		}
+	}
+	if len(s.puts) != 1 {
+		t.Errorf("PUTs = %v, want the second run to write nothing", s.puts)
+	}
+}
+
+func TestHTTPClient_EnsureRegistrationDisabled_FailsWhenStillOpen(t *testing.T) {
+	s := newLoginPolicyServer(true, false, true)
+	s.stickyRegister = true
+	c, _ := newTestClient(t, s.handler(t))
+
+	err := c.EnsureRegistrationDisabled(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "still true") {
+		t.Fatalf("EnsureRegistrationDisabled() error = %v, want the verification failure", err)
+	}
+}
+
+func TestHTTPClient_EnsureRegistrationDisabled_ReportsForbidden(t *testing.T) {
+	c, _ := newTestClient(t, func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 403, map[string]any{"message": "no permission"})
+	})
+	err := c.EnsureRegistrationDisabled(context.Background())
+	if !IsUnauthorized(err) {
+		t.Fatalf("error = %v, want it to wrap an unauthorized API error", err)
+	}
+}

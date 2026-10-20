@@ -42,6 +42,14 @@ var StackAssets = []Asset{
 	{Name: "verify-stack.sh", Dest: "scripts/verify-stack.sh", Mode: 0o755},
 }
 
+// GeneratedAssets are installation files the installer renders itself from
+// its embedded templates instead of fetching them from a release. `alfheim-setup
+// update` re-renders them from the stored configuration and backs them up
+// together with StackAssets. They are never part of the release checksums.
+var GeneratedAssets = []Asset{
+	{Name: "Caddyfile", Dest: "infrastructure/caddy/Caddyfile", Mode: 0o644},
+}
+
 // BinaryAssetName renders the release asset name for the alfheim-setup
 // binary built for a given GOARCH, matching install.sh's ASSET variable and
 // release.yml's `-o "alfheim-setup_linux_${{ matrix.goarch }}"` build step.

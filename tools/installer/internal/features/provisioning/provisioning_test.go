@@ -3,6 +3,8 @@ package provisioning
 import (
 	"context"
 	"errors"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -13,6 +15,9 @@ type fakeClient struct {
 	apps     map[string]Credentials
 	calls    []string
 	failNext error
+	// registrationDisabled counts EnsureRegistrationDisabled calls.
+	registrationDisabled int
+	registrationErr      error
 }
 
 func newFakeClient() *fakeClient {
@@ -52,6 +57,49 @@ func (f *fakeClient) EnsureOIDCApp(_ context.Context, projectID string, spec App
 	return creds, nil
 }
 
+func (f *fakeClient) EnsureRegistrationDisabled(_ context.Context) error {
+	f.calls = append(f.calls, "EnsureRegistrationDisabled")
+	f.registrationDisabled++
+	return f.registrationErr
+}
+
+func TestProvision_DisablesRegistrationOnEveryRun(t *testing.T) {
+	c := newFakeClient()
+	for i := 0; i < 2; i++ {
+		if _, err := Provision(context.Background(), c, testInput(), nil); err != nil {
+			t.Fatalf("Provision() run %d error = %v", i, err)
+		}
+	}
+	if c.registrationDisabled != 2 {
+		t.Errorf("EnsureRegistrationDisabled calls = %d, want one per Provision run", c.registrationDisabled)
+	}
+}
+
+func TestProvision_FreshInstallFailsWhenRegistrationCannotBeDisabled(t *testing.T) {
+	c := newFakeClient()
+	c.registrationErr = errors.New("forbidden")
+	if _, err := Provision(context.Background(), c, testInput(), map[string]string{"ALFHEIM_WEB_CLIENT_ID": "__PROVISIONED__"}); err == nil {
+		t.Fatal("Provision() must fail a fresh install when self-registration stays enabled")
+	}
+}
+
+func TestProvision_ExistingInstallWarnsInsteadOfFailing(t *testing.T) {
+	c := newFakeClient()
+	c.registrationErr = errors.New("forbidden")
+	res, err := Provision(context.Background(), c, testInput(), map[string]string{"ALFHEIM_WEB_CLIENT_ID": "existing-client"})
+	if err != nil {
+		t.Fatalf("Provision() must not fail an existing install: %v", err)
+	}
+	if res.ProjectID == "" || len(res.Warnings) != 1 {
+		t.Fatalf("Result = %+v, want provisioned ids and exactly one warning", res)
+	}
+	for _, want := range []string{"may still be ENABLED", "forbidden", "Default settings", "User registration allowed"} {
+		if !strings.Contains(res.Warnings[0], want) {
+			t.Errorf("warning %q does not contain %q", res.Warnings[0], want)
+		}
+	}
+}
+
 func testInput() Input {
 	return BuildInput("Alfheim", "https://alfheim.example.com", false, AppSlugs)
 }
@@ -87,7 +135,7 @@ func TestProvision_IsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first != second {
+	if !reflect.DeepEqual(first, second) {
 		t.Errorf("Provision() changed on a second run: %+v vs %+v", first, second)
 	}
 }
