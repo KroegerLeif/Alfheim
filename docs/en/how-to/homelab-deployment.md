@@ -132,7 +132,7 @@ The installer runs the same three phases as above and starts the whole stack. Ev
 docker compose -f compose.prod.yaml ps
 ```
 
-Every service reports `running`, and those with a healthcheck report `healthy`. The generated `.env` holds all configuration and credentials; change domain or TLS settings with `alfheim-setup --reconfigure` rather than by hand, so the Caddyfile and Zitadel clients stay consistent.
+Every service reports `running`, and those with a healthcheck report `healthy`. The generated `.env` holds all configuration and credentials; change domain or TLS settings with `alfheim-setup --reconfigure` ([Change the domain](./change-domain.md)) rather than by hand, so the Caddyfile and Zitadel clients stay consistent.
 
 ---
 

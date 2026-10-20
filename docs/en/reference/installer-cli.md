@@ -123,9 +123,9 @@ The mode is detected from the installation directory, not chosen by a flag.
 
 | Detected state | Mode | Behaviour |
 | :--- | :--- | :--- |
-| No `.env`, no `.alfheim.installed` | **install** | Full wizard, secret generation, two-phase boot. |
-| Either file present | **update** | Pull images and restart. No wizard. Existing secrets are never changed; a secret a newer release requires and `.env` lacks is generated and appended. Missing service databases are created by re-running `init-multiple-dbs.sh`. |
-| Either file present, plus `--reconfigure` | **reconfigure** | Wizard re-runs; existing secrets are preserved. |
+| No `.alfheim.installed` | **install** | Full wizard, two-phase boot. A `.env` left by an unfinished run is reused, so its secrets are kept. With a DNS-01 strategy the token is checked first, and Zitadel is configured only once Caddy serves valid certificates. |
+| `.alfheim.installed` present | **update** | Pull images and restart. No wizard. Existing secrets are never changed; a secret a newer release requires and `.env` lacks is generated and appended. Missing service databases are created by re-running `init-multiple-dbs.sh`. |
+| `.alfheim.installed` present, plus `--reconfigure` | **reconfigure** | Wizard re-runs; existing secrets are preserved. Also the way to change the domain: [Change the domain](../how-to/change-domain.md). |
 
 > **Why secrets are never rotated.** Regenerating `ZITADEL_MASTERKEY` on a
 > configured instance makes its database permanently unreadable. Every value

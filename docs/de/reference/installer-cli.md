@@ -107,9 +107,9 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 
 | Erkannter Zustand | Modus | Verhalten |
 | :--- | :--- | :--- |
-| Keine `.env`, keine `.alfheim.installed` | **install** | Volständiger Assistent, Secret-Generierung, mehrstufiger Boot. |
-| Eines der beiden Files vorhanden | **update** | Pull-Images und Neustart. Kein Assistent. Bestehende Secrets werden nie geändert; ein Secret, das ein neueres Release braucht und in der `.env` fehlt, wird erzeugt und angehängt. Fehlende Dienst-Datenbanken legt ein erneuter Lauf von `init-multiple-dbs.sh` an. |
-| Eines der Dateien vorhanden, plus `--reconfigure` | **reconfigure** | Assistent läuft erneut; bestehende Secrets werden beibehalten. |
+| Keine `.alfheim.installed` | **install** | Vollständiger Assistent, mehrstufiger Boot. Eine `.env` aus einem abgebrochenen Lauf wird wiederverwendet, ihre Secrets bleiben erhalten. Bei einer DNS-01-Strategie wird zuerst der Token geprüft, und Zitadel wird erst eingerichtet, wenn Caddy gültige Zertifikate ausliefert. |
+| `.alfheim.installed` vorhanden | **update** | Pull-Images und Neustart. Kein Assistent. Bestehende Secrets werden nie geändert; ein Secret, das ein neueres Release braucht und in der `.env` fehlt, wird erzeugt und angehängt. Fehlende Dienst-Datenbanken legt ein erneuter Lauf von `init-multiple-dbs.sh` an. |
+| `.alfheim.installed` vorhanden, plus `--reconfigure` | **reconfigure** | Assistent läuft erneut; bestehende Secrets werden beibehalten. So wird auch die Domain gewechselt: [Domain wechseln](../how-to/change-domain.md). |
 
 > **Warum Secrets niemals rotiert werden.** Die Neugenerierung von `ZITADEL_MASTERKEY` auf einer konfigurierten Instanz macht ihre Datenbank permanent unlesbar. Jeder bereits in `.env` vorhandene Wert wird weitergeleitet; nur genuinely fehlende werden generiert.
 
