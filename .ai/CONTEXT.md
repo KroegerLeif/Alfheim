@@ -398,10 +398,10 @@ All backends validate bearer tokens issued by Zitadel using OIDC discovery. The 
 
 ## 🗄️ Database Schema Invariants (Chat Service — `apps/chat/backend`, Go)
 
-> **Status**: Phase 0-6. Backend skeleton, migrations, JWT auth (issuer + audience), `/api/v1/chat/health`, the `internal/shared/llm` provider abstraction (**Ollama and OpenAI-compatible implemented**; Anthropic still returns a clear "not implemented yet" error), the `model-blocks` feature (CRUD, AES-256-GCM key encryption, ownership/sharing rules, on-demand health checks, ENV bootstrap seeding), the `conversations` feature (CRUD for conversations/messages, the `GET .../stream` SSE endpoint, and a full multi-round MCP tool-calling loop), the `mcpservers` registry feature (seeded from `CHAT_MCP_SERVERS`, admin enable/disable), `internal/shared/mcp` (a from-scratch Streamable HTTP client for the Fach-Apps' FastMCP servers), and `attachments` / `internal/shared/storage` (S3/RustFS storage client, idempotent bucket check, multipart upload, tenant-isolated object keys, and `image_refs` metadata persistence). Next.js 16 frontend (`apps/chat/frontend`) with conversation list, SSE chat streaming view, `ChatInput` file picker, `AttachmentPreview` staging component, and `MessageItem` attachment rendering. Not yet wired into `compose.yaml`, `scripts/up.sh`, or the Caddyfile.
+> **Status**: Phase 0-6. Backend skeleton, migrations, JWT auth (issuer + audience), `/api/v1/chat/health`, the `internal/shared/llm` provider abstraction (**Ollama and OpenAI-compatible implemented**; Anthropic still returns a clear "not implemented yet" error), the `model-blocks` feature (CRUD, AES-256-GCM key encryption, ownership/sharing rules, on-demand health checks, ENV bootstrap seeding), the `conversations` feature (CRUD for conversations/messages, the `GET .../stream` SSE endpoint, and a full multi-round MCP tool-calling loop), the `mcpservers` registry feature (seeded from `CHAT_MCP_SERVERS`, admin enable/disable), `internal/shared/mcp` (a from-scratch Streamable HTTP client for the Fach-Apps' FastMCP servers), and `attachments` / `internal/shared/storage` (S3/RustFS storage client, idempotent bucket check, multipart upload, tenant-isolated object keys, and `image_refs` metadata persistence). Next.js 16 frontend (`apps/chat/frontend`) with conversation list, SSE chat streaming view, `ChatInput` file picker, `AttachmentPreview` staging component, and `MessageItem` attachment rendering. Wired into `compose.yaml`, `compose.prod.yaml`, `scripts/up.sh` and the Caddyfile (`/chat`, `/api/v1/chat`). Bootstrap model blocks are read-only for API users, outbound LLM URLs go through `internal/shared/netguard` (`CHAT_ALLOWED_LLM_HOSTS`), and the MCP registry is gated on the `alfheim_operator` role.
 
 ### Table: `model_blocks`
-* **`id`** (UUID, PK), **`owner_user_id`** (Keycloak sub), **`household_id`** (NULLABLE — NULL means private)
+* **`id`** (UUID, PK), **`owner_user_id`** (Zitadel `sub`), **`household_id`** (NULLABLE — NULL means private)
 * **`visibility`** (`private` | `shared`) — shared blocks are usable by household members but only editable by the owner
 * **`provider_type`** (`ollama` | `openai_compatible`, `anthropic` planned), **`base_url`**, **`model_identifier`**
 * **`api_key_encrypted`** (AES-256-GCM ciphertext, BYTEA, NULLABLE), **`api_key_key_id`** (default `v1`, enables future key rotation)
@@ -470,8 +470,9 @@ with `core/household` by `require_household`, matching Pantry/Chores.
 2. **403 vs 404**: an `X-Household-ID` the caller is not a member of is rejected at the auth-dependency
    layer with `403 household_forbidden` (see `backend_shared.household`); a resource that exists but isn't visible to
    the caller's household/user returns 404 at the resource layer.
-3. **No Alembic**: schema is managed via `SQLModel.metadata.create_all()`, matching every other
-   app in this monorepo.
+3. **Alembic migrations**: every Python backend runs `alembic upgrade head` at startup under a
+   Postgres advisory lock (`run_migrations`); `create_all` is no longer used in production. See
+   `docs/en/explanation/schema-migrations.md`.
 
 ---
 

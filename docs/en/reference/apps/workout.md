@@ -44,7 +44,7 @@ Source: [`apps/workout/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 | `OIDC_ISSUER_URL` | `http://auth.alfheim.loegien.localhost` | Public OIDC issuer; the JWKS URI is resolved from its discovery document |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
-| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/workout` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
+| `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/workout/api/v1` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
 
 ---
 

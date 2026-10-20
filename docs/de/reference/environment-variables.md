@@ -72,7 +72,7 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `S3_SECRET_KEY` | `minioadmin` | S3-geheimer Zugangsschlüssel. Muss `S3_ROOT_PASSWORD` entsprechen (der Installer spiegelt beide) |
 | `S3_ROOT_USER` | `minioadmin` | RustFS-Root-Benutzer (Initial-Admin) |
 | `S3_ROOT_PASSWORD` | `minioadmin` | RustFS-Root-Passwort |
-| `DOCKER_SOCKET_GID` | `999` | Numerische Gruppen-ID, der `/var/run/docker.sock` auf dem Host gehört (`stat -c %g /var/run/docker.sock`); `alfheim-setup` erkennt sie bei der Installation und ergänzt sie beim Update, falls sie fehlt |
+| `DOCKER_SOCKET_GID` | erkannt (in Produktion Pflicht) | Numerische Gruppen-ID, der `/var/run/docker.sock` auf dem Host gehört (`stat -c %g /var/run/docker.sock`); `alfheim-setup` erkennt sie bei der Installation und ergänzt sie beim Update, falls sie fehlt |
 
 ---
 
