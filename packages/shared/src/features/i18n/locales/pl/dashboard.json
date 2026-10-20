@@ -13,7 +13,6 @@
     "empty_catalog_internal": "Brak zarejestrowanych mikrousług wewnętrznych. Dodaj jedną, aby rozpocząć.",
     "empty_catalog_external": "Brak skonfigurowanych usług zewnętrznych lub portali.",
     "telemetry_error_toast": "Połączenie z usługą telemetrii nie powiodło się.",
-    "empty_notifications": "Brak powiadomień",
     "authenticated_user": "Uwierzytelniony użytkownik",
     "under_construction_title": "{name} jest w trakcie budowy",
     "under_construction_desc": "Żądana mikrousługa lub portal jest obecnie wdrażany w ramach wydania platformy Alfheim OS.",
