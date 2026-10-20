@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:latest
+    image: caddy:2.11.6
     container_name: alfheim_caddy
     restart: unless-stopped
     ports:

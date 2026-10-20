@@ -6,6 +6,7 @@ services:
     container_name: maintenance-backend
     restart: always
     environment:
+      - ENVIRONMENT=development
       - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}

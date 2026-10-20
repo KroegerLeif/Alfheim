@@ -155,6 +155,7 @@ Sobald die Container `healthy` melden:
    * URL: `https://<deine-domain>/grafana/`
    * Benutzername: `admin`
    * Passwort: siehe `GRAFANA_ADMIN_PASSWORD` in der `.env`.
+   * Zitadel-SSO: nur mit der Projektrolle `alfheim_operator`, siehe [Grafana-Zugriff gewähren](./grafana-access.md).
 
 ---
 
