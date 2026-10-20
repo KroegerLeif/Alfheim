@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type mockRow struct {
@@ -33,6 +34,7 @@ func (m *mockRows) Err() error                                   { return m.err 
 func (m *mockRows) CommandTag() pgconn.CommandTag                { return pgconn.NewCommandTag("") }
 func (m *mockRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
 func (m *mockRows) Conn() *pgx.Conn                              { return nil }
+func (m *mockRows) TypeMap() *pgtype.Map                         { return nil }
 
 func (m *mockRows) Next() bool {
 	if m.err != nil || m.idx >= len(m.items) {
