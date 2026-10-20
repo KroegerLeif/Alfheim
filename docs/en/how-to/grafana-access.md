@@ -14,7 +14,16 @@ The local Grafana `admin` account (`GRAFANA_ADMIN_USER` and
 `GRAFANA_ADMIN_PASSWORD` in `.env`) is unaffected, so you can always sign in
 with it to recover access.
 
-## Create the role (once)
+## Automatic setup
+
+`alfheim-setup` creates the project role `alfheim_operator` on the **Alfheim**
+project on install and on every `alfheim-setup update`, turns on role assertion
+for the project and grants the role to the initial administrator (the user
+`ZITADEL_ADMIN_USER`). On an existing installation a failure here only prints a
+warning and never aborts the update. You only need the manual steps below when
+that warning appears, or to give further users access.
+
+## Create the role (manually, only if needed)
 
 1. Open the Zitadel console at `https://<ZITADEL_EXTERNALDOMAIN>/ui/console`
    and sign in as the instance admin (`ZITADEL_ADMIN_USER` in `.env`).
