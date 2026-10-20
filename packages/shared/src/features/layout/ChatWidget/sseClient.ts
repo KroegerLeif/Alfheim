@@ -19,9 +19,13 @@ export async function readSSEStream(
   url: string,
   token: string | null,
   handlers: StreamHandlers,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  extraHeaders: Record<string, string> = {}
 ): Promise<void> {
-  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {
+    ...extraHeaders,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
   let res: Response;
   try {
     res = await fetch(url, { headers, signal });
