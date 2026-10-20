@@ -27,7 +27,7 @@ Alfheim is a polyglot monorepo containing Python (FastAPI/SQLModel), Go (Dashboa
 
 ## 🐍 2. Python Quality Gates
 
-All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`, `apps/maintenance/backend`, `apps/chores/backend`) are unified under the root `pyproject.toml` UV workspace.
+All Python backend microservices (`apps/*/backend`) and `packages/backend-shared` are unified under the root `pyproject.toml` UV workspace. CI and `verify.sh` sync it with `uv sync --all-packages --all-groups --locked`, so a stale `uv.lock` fails instead of being rewritten.
 
 ### A. Static Analysis & Linting (Ruff)
 - **Tool**: Astral Ruff (Linter & Formatter)
@@ -52,7 +52,7 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
 
 ### C. Test Matrix & Code Coverage (Pytest)
 - **Framework**: `pytest` + `pytest-asyncio` + `pytest-cov` + `aiosqlite`
-- **Target Coverage**: **>= 80% line coverage**
+- **Target Coverage**: **>= 95% line coverage** per app backend (`--cov-fail-under=95`, enforced in CI and `verify.sh`). `packages/backend-shared` runs its suite with coverage reporting but has no threshold yet.
 - **Standards**:
   - Test suites run with in-memory `aiosqlite` (`sqlite+aiosqlite:///:memory:`) using isolated transactions per test.
   - Multi-tenant boundary tests must assert household isolation (`home_id` / `household_id`), zero-trust auth token verification, and the household error codes (`403 household_forbidden`, `400 household_required`, `503 household_service_unavailable`), using `override_membership` from `backend_shared.household.testing`.
@@ -61,26 +61,29 @@ All Python backend microservices (`apps/pantry/backend`, `apps/shopping/backend`
   # Standalone service execution snippet with PYTHONPATH set for module resolution
   PYTHONPATH=. uv run pytest --cov
 
-  # Per-service execution matrix matching ./scripts/verify.sh
-  (cd apps/pantry/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
-  (cd apps/shopping/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
-  (cd apps/maintenance/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
-  (cd apps/chores/backend && PYTHONPATH=. uv run pytest --cov --cov-report=term-missing)
+  # Per-service execution matching ./scripts/verify.sh (repeat for every apps/*/backend)
+  (cd apps/pantry/backend && uv run pytest --cov --cov-report=term-missing --cov-fail-under=95)
+
+  # Shared backend library (no coverage threshold)
+  (cd packages/backend-shared && uv run pytest --cov --cov-report=term-missing)
   ```
 
 ---
 
 ## 🐹 3. Go Quality Gates
 
-The central dashboard backend control plane is located in [`core/dashboard/backend`](../../core/dashboard/backend).
+Go modules: `apps/chat/backend`, `core/dashboard/backend`, `core/household/backend` and `tools/installer`. CI (`go-ci.yml`) and `./scripts/verify.sh --go` run every one of them.
 
 ### A. Testing & Race Detection
 - **Mandatory Command**:
   ```bash
   cd core/dashboard/backend && go test -v -race -cover ./...
+  gofmt -l .      # CI requires empty output
+  go vet ./...
   ```
 - **Requirements**:
   - All tests must pass with the Go race detector (`-race`) enabled without data race violations.
+  - `tools/installer` additionally enforces >= 80% total coverage (`-coverpkg=./internal/...`) and cross-compiles for linux/amd64 and linux/arm64 in CI.
   - Must mock external dependencies (OIDC JWKS, VictoriaLogs, VictoriaMetrics) with graceful fallback.
 
 ### B. Static Analysis (golangci-lint)
@@ -138,7 +141,8 @@ Alfheim microservices expose FastMCP tools for AI agent orchestration:
    - All `.env` files with actual secrets are strictly gitignored (`.gitignore`).
    - Only `.env.example` templates with placeholder dummy values are allowed in version control.
 2. **Pre-Commit Guardrails**:
-   - `detect-private-key` and `check-case-conflict` are enforced automatically via `.pre-commit-config.yaml`.
+   - `check-yaml`, `check-json`, `check-added-large-files`, `check-merge-conflict` and `detect-private-key` are enforced via `.pre-commit-config.yaml`. `verify.sh --security` runs only these check hooks, because the fixer hooks (whitespace, `ruff --fix`, `gofmt -w`) would rewrite files.
+   - CI (`security-scan.yml`) additionally runs gitleaks over the full history, `pip-audit`, `govulncheck` (pinned), `pnpm audit` and Trivy. Locally, `verify.sh --security` runs gitleaks if it is installed.
 3. **Multi-Tenant Zero Trust**:
    - Every API query must filter against the `household_id` returned by `require_household` (Python) or `RequireHousehold` (Go), i.e. an `X-Household-ID` confirmed with the `core/household` membership API. Never trust household or role claims from the JWT.
    - MCP tools never accept `household_id` / `user_id` arguments; they read the request context.
@@ -154,8 +158,31 @@ Before opening a pull request, creating commits, or proposing code modifications
 ./scripts/verify.sh --all
 
 # Run specific gates
-./scripts/verify.sh --python     # Ruff, Ty, Pytest
-./scripts/verify.sh --go         # Go tests & race detector
+./scripts/verify.sh --python     # Ruff, Ty, Pytest (apps + packages/backend-shared)
+./scripts/verify.sh --go         # Go tests & race detector (incl. tools/installer)
 ./scripts/verify.sh --frontend   # TSC & Vitest
-./scripts/verify.sh --security   # Secret scans & Pre-commit
+./scripts/verify.sh --security   # Secret scans & non-mutating pre-commit checks
 ```
+
+---
+
+## 🔁 8. Continuous Integration (`.github/workflows/`)
+
+`ci-required.yml` is the entry point for the stack gates on pull requests (to `main` and `dev`) and pushes to `main`. It detects the changed paths and calls the reusable gates `python-ci.yml`, `go-ci.yml` and `frontend-ci.yml` only for the stacks that changed. Its always-running job `ci-required` passes when every gate that ran succeeded and the others were skipped, so it is the single status check to require in branch protection.
+
+| Workflow | Purpose |
+| --- | --- |
+| `ci-required.yml` | Path filter, stack gates, aggregated `ci-required` check |
+| `python-ci.yml` | Ruff, ty, per-app Pytest with `--cov-fail-under=95`, `packages/backend-shared` Pytest |
+| `go-ci.yml` | gofmt, `go vet`, `go test -race` per module, installer coverage gate and cross-compile |
+| `frontend-ci.yml` | `pnpm check-types`, `pnpm -r test` |
+| `security-scan.yml` | gitleaks, pip-audit, govulncheck, pnpm audit, Trivy (also weekly) |
+| `smoke-test.yml` | Caddy gateway and production core stack startup |
+| `deploy-docs.yml` | Markdown link check and docs build; deploys from `main` |
+| `release.yml` | Tag-triggered release: ancestry check, quality gates, image build, Trivy gate, push, GitHub release |
+
+Workflow rules:
+- Every action is pinned to a full commit SHA with a `# vX.Y.Z` comment; Dependabot (`github-actions`) updates them.
+- Workflows default to `permissions: contents: read`; jobs raise only the scope they need (`packages: write`, `security-events: write`, `contents: write`).
+- Release images are built, scanned with Trivy (fixable CRITICAL/HIGH findings fail the job) and only then pushed. Pre-release tags (any `-rc`, `-beta`, `-alpha` suffix) never receive `latest`.
+- `uv sync` always runs with `--locked` in CI.
