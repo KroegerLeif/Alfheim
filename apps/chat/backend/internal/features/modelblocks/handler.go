@@ -167,7 +167,13 @@ func (h *Handler) Discover(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.DiscoverModels(r.Context(), req)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, "discovery_failed", err.Error())
+		switch {
+		case errors.Is(err, ErrInvalidBaseURL), errors.Is(err, ErrDiscoveryUnsupported):
+			writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		default:
+			// Details are logged by the service; upstream errors must not reach the client.
+			writeError(w, http.StatusBadGateway, "discovery_failed", ErrDiscoveryFailed.Error())
+		}
 		return
 	}
 
@@ -179,9 +185,12 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		writeError(w, http.StatusNotFound, "not_found", "model block not found")
+	case errors.Is(err, ErrBootstrapReadOnly):
+		writeError(w, http.StatusForbidden, "bootstrap_read_only", err.Error())
 	case errors.Is(err, ErrForbidden):
 		writeError(w, http.StatusForbidden, "forbidden", err.Error())
-	case errors.Is(err, ErrMissingHouseholdID), errors.Is(err, ErrInvalidVisibility), errors.Is(err, ErrInvalidProviderType):
+	case errors.Is(err, ErrMissingHouseholdID), errors.Is(err, ErrInvalidVisibility), errors.Is(err, ErrInvalidProviderType),
+		errors.Is(err, ErrInvalidBaseURL), errors.Is(err, ErrAPIKeyRequiredForBaseURLChange):
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 	case errors.Is(err, ErrEncryptionKeyMissing):
 		writeError(w, http.StatusUnprocessableEntity, "encryption_unavailable", err.Error())

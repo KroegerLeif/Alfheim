@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -40,12 +40,12 @@ type OllamaProvider struct {
 }
 
 // NewOllamaProvider constructs a Provider backed by an Ollama server.
-func NewOllamaProvider(baseURL, model, apiKey string) *OllamaProvider {
+func NewOllamaProvider(baseURL, model, apiKey string, opts ...ProviderOption) *OllamaProvider {
 	return &OllamaProvider{
 		baseURL:    NormalizeOllamaBaseURL(baseURL),
 		model:      model,
 		apiKey:     apiKey,
-		httpClient: &http.Client{},
+		httpClient: resolveHTTPClient(opts),
 	}
 }
 
@@ -121,13 +121,17 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, req ChatRequest) (<-cha
 
 	resp, err := p.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to reach ollama server: %w", err)
+		slog.Warn("ollama chat request failed", slog.String("error", err.Error()))
+		return nil, ErrUpstreamUnreachable
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
+		// The upstream body is attacker-influenced and may expose internal data, so it is
+		// only logged, never returned to the caller.
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return nil, fmt.Errorf("Ollama error (%d) for model %q: %s", resp.StatusCode, p.model, bytes.TrimSpace(respBody))
+		slog.Warn("ollama returned an error status", slog.Int("status", resp.StatusCode), slog.String("body", string(bytes.TrimSpace(respBody))))
+		return nil, &UpstreamStatusError{Status: resp.StatusCode}
 	}
 
 	out := make(chan StreamChunk)
@@ -154,12 +158,14 @@ func (p *OllamaProvider) streamResponse(body io.ReadCloser, out chan<- StreamChu
 
 		var parsed ollamaChatStreamLine
 		if err := json.Unmarshal(line, &parsed); err != nil {
-			out <- StreamChunk{Done: true, Err: fmt.Errorf("failed to parse ollama stream line: %w", err)}
+			slog.Warn("failed to parse ollama stream line", slog.String("error", err.Error()))
+			out <- StreamChunk{Done: true, Err: ErrUpstreamStream}
 			return
 		}
 
 		if parsed.Error != "" {
-			out <- StreamChunk{Done: true, Err: errors.New(parsed.Error)}
+			slog.Warn("ollama reported a stream error", slog.String("error", parsed.Error))
+			out <- StreamChunk{Done: true, Err: ErrUpstreamStream}
 			return
 		}
 
@@ -192,7 +198,8 @@ func (p *OllamaProvider) streamResponse(body io.ReadCloser, out chan<- StreamChu
 	}
 
 	if err := scanner.Err(); err != nil {
-		out <- StreamChunk{Done: true, Err: fmt.Errorf("failed to read ollama response stream: %w", err)}
+		slog.Warn("failed to read ollama response stream", slog.String("error", err.Error()))
+		out <- StreamChunk{Done: true, Err: ErrUpstreamStream}
 		return
 	}
 
@@ -218,7 +225,7 @@ func (p *OllamaProvider) HealthCheck(ctx context.Context) HealthResult {
 	endpoint := strings.TrimRight(p.baseURL, "/") + "/api/tags"
 	httpReq, err := http.NewRequestWithContext(checkCtx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return HealthResult{Status: HealthStatusUnknown, Detail: fmt.Sprintf("failed to construct health check request: %v", err)}
+		return HealthResult{Status: HealthStatusUnknown, Detail: "invalid endpoint url"}
 	}
 	if p.apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+p.apiKey)
@@ -226,7 +233,8 @@ func (p *OllamaProvider) HealthCheck(ctx context.Context) HealthResult {
 
 	resp, err := p.httpClient.Do(httpReq)
 	if err != nil {
-		return HealthResult{Status: HealthStatusUnreachable, Detail: err.Error()}
+		slog.Warn("ollama health check request failed", slog.String("error", err.Error()))
+		return HealthResult{Status: HealthStatusUnreachable, Detail: "endpoint could not be reached"}
 	}
 	defer resp.Body.Close()
 
@@ -236,7 +244,7 @@ func (p *OllamaProvider) HealthCheck(ctx context.Context) HealthResult {
 	case resp.StatusCode >= 200 && resp.StatusCode < 300:
 		var tags ollamaTagsResponse
 		if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
-			return HealthResult{Status: HealthStatusUnknown, Detail: fmt.Sprintf("received success status but failed to parse response: %v", err)}
+			return HealthResult{Status: HealthStatusUnknown, Detail: "received success status but the response could not be parsed"}
 		}
 		return HealthResult{Status: HealthStatusOK}
 	default:

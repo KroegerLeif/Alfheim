@@ -185,7 +185,9 @@ func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID,
 
 	provider, policy, err := s.modelBlocks.ResolveProvider(ctx, userID, householdID, *c.ModelBlockID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrModelBlockUnavailable, err)
+		// The cause can name internal hosts or key-handling details; keep it in the log only.
+		s.log.Warn("failed to resolve model block provider", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
+		return nil, ErrModelBlockUnavailable
 	}
 
 	tools, toolServers := buildToolDefinitions(ctx, s.mcpServers, s.mcpPool, policy.AllowedMCPApps, s.log)

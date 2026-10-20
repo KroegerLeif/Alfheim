@@ -98,9 +98,20 @@ Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` b
 | `CHAT_ENCRYPTION_KEY` | _(leer)_ | AES-256-GCM-Schlüssel (Base64-codiert) zum Verschlüsseln gespeicherter LLM-API-Schlüssel und Anmeldedaten |
 | `CHAT_ENCRYPTION_KEY_ID` | `v1` | Versions-ID für den Verschlüsselungsschlüssel (für Schlüsselrotation verwendet) |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp` | Kommagetrennte MCP-Server-Definitionen für den Chat-Assistenten |
+| `CHAT_ALLOWED_LLM_HOSTS` | `host.docker.internal` | Kommagetrennte Hostnamen, IPs und CIDR-Bereiche, auf die Basis-URLs von Modellblöcken trotz privater Adresse zeigen dürfen (siehe unten) |
 | `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Interne URL für Shopping-List-Dienst zum Erreichen der Speisekammer-Inventar-API |
 | `GOOGLE_BOOKS_API_KEY` | _(leer)_ | Google Books API-Schlüssel für Bibliotheks-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
 | `TMDB_API_KEY` | _(leer)_ | The Movie Database API-Schlüssel für Bibliotheks-Medien-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
+
+### Chat: ausgehende Modell-Endpunkte
+
+Basis-URLs von Modellblöcken sind Benutzereingaben. Das Chat-Backend verbindet sich daher nur mit `http`/`https`-URLs, deren Host ausschließlich auf öffentliche Adressen auflöst. Loopback, Link-Local (auch die Cloud-Metadaten-Adresse `169.254.169.254`), unspezifizierte, Multicast-, private (RFC 1918, `fc00::/7`), Carrier-Grade-NAT-Adressen (`100.64.0.0/10`) und ähnliche Bereiche werden beim Anlegen und Ändern eines Blocks, bei der Modellsuche und erneut beim Verbindungsaufbau abgelehnt (das verhindert DNS-Rebinding). Weiterleitungen werden nie verfolgt, Fehlerantworten der Gegenstelle werden nur serverseitig protokolliert.
+
+`CHAT_ALLOWED_LLM_HOSTS` nennt die privaten Ziele, die du zulässt. Einträge sind Hostnamen (z. B. `host.docker.internal`), IP-Adressen oder CIDR-Bereiche (z. B. `192.168.1.0/24`), durch Kommas getrennt. Ohne Wert gilt `host.docker.internal`, sodass das dokumentierte Setup mit Ollama auf dem Docker-Host weiter funktioniert. Ein ungültiger Wert wird protokolliert und wie eine leere Liste behandelt (nichts Privates erlaubt).
+
+**Migration:** Läuft Ollama auf einem anderen Rechner im LAN (z. B. `http://192.168.1.50:11434` oder `http://gpu-box.lan:11434`), funktionieren bestehende Modellblöcke dorthin erst wieder, wenn du den Host oder Bereich ergänzt, z. B. `CHAT_ALLOWED_LLM_HOSTS=host.docker.internal,192.168.1.50` oder `CHAT_ALLOWED_LLM_HOSTS=host.docker.internal,gpu-box.lan`, und das Chat-Backend neu startest. Die Variable ersetzt den Standardwert, `host.docker.internal` muss also in der Liste bleiben, falls du ihn weiter brauchst.
+
+Bootstrap-Modellblöcke (aus `CHAT_BOOTSTRAP_*`) werden von der Server-Umgebung verwaltet und sind für alle API-Nutzer schreibgeschützt: Sie lassen sich weder bearbeiten noch löschen, aber jeder Nutzer kann sie auswählen und eine Statusprüfung auslösen. Die Bootstrap-URL unterliegt beim Verbindungsaufbau derselben Allowlist. Wer bei einem anderen Block die `base_url` ändert, muss einen neuen `api_key` angeben (oder `clear_api_key`), denn der gespeicherte Schlüssel wird nie an einen anderen Endpunkt gesendet.
 
 ---
 
