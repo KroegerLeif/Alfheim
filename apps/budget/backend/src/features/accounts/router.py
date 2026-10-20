@@ -25,7 +25,8 @@ def get_account_service(
     return AccountService(repository)
 
 
-@router.post("/", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=AccountRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_account(
     account_in: AccountCreate,
     ctx: HouseholdContext = Depends(require_household),
@@ -39,7 +40,8 @@ async def create_account(
     return AccountRead.model_validate(account)
 
 
-@router.get("/", response_model=list[AccountRead])
+@router.get("", response_model=list[AccountRead])
+@router.get("/", response_model=list[AccountRead], include_in_schema=False)
 async def list_accounts(
     include_inactive: bool = Query(default=False),
     ctx: HouseholdContext = Depends(require_household),

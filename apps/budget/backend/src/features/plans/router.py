@@ -24,7 +24,8 @@ def get_plan_service(
     return PlanService(session)
 
 
-@router.post("/", response_model=PlanRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PlanRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PlanRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_plan(
     plan_in: PlanCreate,
     ctx: HouseholdContext = Depends(require_household),
@@ -37,7 +38,8 @@ async def create_plan(
     )
 
 
-@router.get("/", response_model=list[PlanRead])
+@router.get("", response_model=list[PlanRead])
+@router.get("/", response_model=list[PlanRead], include_in_schema=False)
 async def list_plans(
     include_inactive: bool = Query(default=False),
     ctx: HouseholdContext = Depends(require_household),

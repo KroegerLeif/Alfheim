@@ -54,7 +54,9 @@ class PotService:
         letting the request fail with an unhandled foreign-key violation.
         """
         pot = await self.get_pot(pot_id=pot_id, household_id=household_id)
-        referencing_count = await self.repository.count_referencing_transactions(pot_id=pot_id)
+        referencing_count = await self.repository.count_referencing_transactions(
+            pot_id=pot_id, household_id=household_id
+        )
         if referencing_count > 0:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

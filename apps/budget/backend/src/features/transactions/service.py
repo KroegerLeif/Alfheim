@@ -30,12 +30,45 @@ class TransactionService:
         self.repository = repository
         self.storage_service = storage_service or S3StorageService()
 
+    async def _ensure_references_in_household(
+        self,
+        household_id: UUID,
+        account_id: UUID | None,
+        pot_id: UUID | None,
+        plan_id: UUID | None,
+        category_id: UUID | None,
+    ) -> None:
+        """Raise 404 unless every supplied account/pot/plan/category belongs to the household.
+
+        Missing and foreign ids yield the same response so callers cannot probe other households.
+        """
+        found = await self.repository.references_exist(
+            household_id=household_id,
+            account_id=account_id,
+            pot_id=pot_id,
+            plan_id=plan_id,
+            category_id=category_id,
+        )
+        for name, exists in found.items():
+            if not exists:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"{name.capitalize()} not found",
+                )
+
     async def create_transaction(
         self,
         household_id: UUID,
         transaction_in: TransactionCreate,
     ) -> Transaction:
         """Create a new manual transaction for the specified household."""
+        await self._ensure_references_in_household(
+            household_id,
+            transaction_in.account_id,
+            transaction_in.pot_id,
+            transaction_in.plan_id,
+            transaction_in.category_id,
+        )
         return await self.repository.create(
             household_id=household_id,
             transaction_in=transaction_in,
@@ -48,6 +81,13 @@ class TransactionService:
         quick_add_in: QuickAddTransactionCreate,
     ) -> Transaction:
         """Quickly add a transaction with minimal required fields."""
+        await self._ensure_references_in_household(
+            household_id,
+            quick_add_in.account_id,
+            quick_add_in.pot_id,
+            quick_add_in.plan_id,
+            quick_add_in.category_id,
+        )
         return await self.repository.create(
             household_id=household_id,
             transaction_in=quick_add_in,
@@ -116,6 +156,14 @@ class TransactionService:
             transaction_id=transaction_id,
             household_id=household_id,
         )
+        changes = transaction_update.model_dump(exclude_unset=True)
+        await self._ensure_references_in_household(
+            household_id,
+            changes.get("account_id"),
+            changes.get("pot_id"),
+            changes.get("plan_id"),
+            changes.get("category_id"),
+        )
         return await self.repository.update(
             transaction=transaction,
             transaction_update=transaction_update,
@@ -176,7 +224,7 @@ class TransactionService:
         ocr_data = self._parse_ocr_payload(raw_text=raw_text, object_key=object_key)
         suggested_tx: TransactionCreate | None = None
 
-        if ocr_data.total_amount is not None:
+        if ocr_data.total_amount is not None and ocr_data.total_amount > 0:
             suggested_tx = TransactionCreate(
                 description=ocr_data.vendor_name or "Receipt Purchase",
                 amount=ocr_data.total_amount,

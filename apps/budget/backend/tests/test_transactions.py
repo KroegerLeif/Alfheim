@@ -1,5 +1,4 @@
 from decimal import Decimal
-from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -83,8 +82,14 @@ async def test_tenant_isolation_and_filtering(client: AsyncClient):
     headers_a = create_auth_headers()
     headers_b = create_auth_headers()
 
-    acc_id = str(uuid4())
-    pot_id = str(uuid4())
+    acc_resp = await client.post(
+        "/api/v1/accounts/", headers=headers_a, json={"name": "A Checking", "account_type": "CHECKING"}
+    )
+    assert acc_resp.status_code == 201
+    acc_id = acc_resp.json()["id"]
+    pot_resp = await client.post("/api/v1/pots/", headers=headers_a, json={"name": "A Pot", "priority": 1})
+    assert pot_resp.status_code == 201
+    pot_id = pot_resp.json()["id"]
 
     # Create 2 transactions for Household A (1 with account_id and pot_id)
     resp_a1 = await client.post(
