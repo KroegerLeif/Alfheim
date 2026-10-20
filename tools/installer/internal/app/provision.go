@@ -84,6 +84,7 @@ func (p *DefaultProvisioner) Provision(
 		HTTP:    httpClient,
 	}
 	in := provisioning.BuildInput(defaultProjectName, on.BaseURL, !on.Secure, provisioning.AppSlugs)
+	in.OperatorUserName = operatorUserName(on, existing)
 	result, err := provisioning.Provision(ctx, client, in, existing)
 	if err != nil {
 		if provisioning.IsUnauthorized(err) {
@@ -95,6 +96,15 @@ func (p *DefaultProvisioner) Provision(
 		return provisioning.Result{}, err
 	}
 	return result, nil
+}
+
+// operatorUserName is the user name of the human administrator Zitadel
+// created with the first instance, who becomes the Grafana operator. .env
+// holds it as ZITADEL_ADMIN_USER (ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME
+// only references that variable); the admin e-mail is the fallback because
+// the template sets both to the same address.
+func operatorUserName(on onboarding.Config, existing map[string]string) string {
+	return firstNonEmpty(existing["ZITADEL_ADMIN_USER"], existing["ZITADEL_ADMIN_EMAIL"], on.AdminEmail)
 }
 
 // defaultProjectName is the Zitadel project every OIDC application lives

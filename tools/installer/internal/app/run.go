@@ -291,6 +291,8 @@ func (a *App) renderConfiguration(
 		Secrets:    secrets,
 		Version:    orUnknown(a.Build.Version),
 		Generated:  a.now(),
+		// A value from an earlier run wins: it may have been set by hand.
+		DockerSocketGID: a.dockerSocketGID(existing),
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {
@@ -328,6 +330,22 @@ func (a *App) renderConfiguration(
 
 	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\n", target.EnvFile(), target.Caddyfile())
 	return model, target, nil
+}
+
+// dockerSocketGID returns DOCKER_SOCKET_GID for a render: the value already
+// in .env, else the detected owner group of the Docker socket. A failed
+// detection leaves it empty (compose then reports the unset variable) and is
+// reported as a warning.
+func (a *App) dockerSocketGID(existing map[string]string) string {
+	if gid := strings.TrimSpace(existing[dockerSocketGIDKey]); gid != "" {
+		return gid
+	}
+	gid, err := detectDockerSocketGID()
+	if err != nil {
+		fmt.Fprintf(a.Stderr, "Warning: could not detect the Docker socket group id: %v\n"+
+			"  Set %s in .env to the output of: stat -c %%g %s\n", err, dockerSocketGIDKey, system.DockerSocketPath)
+	}
+	return gid
 }
 
 // provisionedEnvKeys are the values internal/features/provisioning writes

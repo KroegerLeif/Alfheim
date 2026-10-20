@@ -1,6 +1,7 @@
 package templating
 
 import (
+	"bytes"
 	"flag"
 	"os"
 	"path/filepath"
@@ -64,6 +65,8 @@ func model(t *testing.T, preset onboarding.PresetID, tlsCfg tls.Config) Model {
 		Secrets:    stableSecrets(),
 		Version:    "v0.0.0-test",
 		Generated:  fixedTime,
+
+		DockerSocketGID: "998",
 	}
 }
 
@@ -163,6 +166,44 @@ func TestRenderGoldenFiles(t *testing.T) {
 			assertGolden(t, filepath.Join("testdata", "golden", tc.name, "env.golden"), env)
 			assertGolden(t, filepath.Join("testdata", "golden", tc.name, "Caddyfile.golden"), caddy)
 		})
+	}
+}
+
+// TestRenderEnvStorageMatchesRustFS guards the S3 wiring: RustFS only knows
+// its root account, so the credentials the applications use must equal it,
+// and the endpoint must name the `rustfs` compose service (no `minio` service
+// exists).
+func TestRenderEnvStorageMatchesRustFS(t *testing.T) {
+	secrets, err := security.GenerateAll(security.NewGenerator(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := model(t, onboarding.PresetLocalhost, tls.Config{Strategy: tls.StrategyInternal})
+	m.Secrets = secrets
+
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rendered, err := r.RenderEnv(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	env, err := envfile.Parse(bytes.NewReader(rendered))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if env["S3_ACCESS_KEY"] != env["S3_ROOT_USER"] {
+		t.Errorf("S3_ACCESS_KEY = %q, want the root user %q", env["S3_ACCESS_KEY"], env["S3_ROOT_USER"])
+	}
+	if env["S3_SECRET_KEY"] == "" || env["S3_SECRET_KEY"] != env["S3_ROOT_PASSWORD"] {
+		t.Error("S3_SECRET_KEY must equal S3_ROOT_PASSWORD")
+	}
+	for _, key := range []string{"S3_ENDPOINT", "S3_ENDPOINT_URL"} {
+		if env[key] != "http://rustfs:9000" {
+			t.Errorf("%s = %q, want http://rustfs:9000", key, env[key])
+		}
 	}
 }
 

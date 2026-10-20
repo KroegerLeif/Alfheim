@@ -28,6 +28,9 @@ func newLoginPolicyStub() *loginPolicyStub { return &loginPolicyStub{registerOpe
 
 // handle answers a login policy request and reports whether it did.
 func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
+	if handleOperatorAccess(w, r) {
+		return true
+	}
 	if r.URL.Path != "/admin/v1/policies/login" && r.URL.Path != "/management/v1/policies/login" {
 		return false
 	}
@@ -45,6 +48,30 @@ func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
 	_ = json.NewEncoder(w).Encode(map[string]any{"policy": map[string]any{
 		"allowRegister": l.registerOpen, "isDefault": true,
 	}})
+	return true
+}
+
+// handleOperatorAccess answers the project role and grant calls that
+// provisioning makes for the Grafana operator role, with a project that has
+// role assertion on and a user that already holds the role.
+func handleOperatorAccess(w http.ResponseWriter, r *http.Request) bool {
+	var resp map[string]any
+	switch {
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/management/v1/projects/proj-"):
+		resp = map[string]any{"project": map[string]any{"name": "Alfheim", "projectRoleAssertion": true}}
+	case strings.HasSuffix(r.URL.Path, "/roles/_search"):
+		resp = map[string]any{"result": []map[string]any{{"key": "alfheim_operator"}}}
+	case r.URL.Path == "/management/v1/users/_search":
+		resp = map[string]any{"result": []map[string]any{{"id": "user-1", "userName": "admin@example.com"}}}
+	case r.URL.Path == "/management/v1/users/grants/_search":
+		resp = map[string]any{"result": []map[string]any{
+			{"id": "grant-1", "userId": "user-1", "projectId": "proj-1", "roleKeys": []string{"alfheim_operator"}},
+		}}
+	default:
+		return false
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
 	return true
 }
 
