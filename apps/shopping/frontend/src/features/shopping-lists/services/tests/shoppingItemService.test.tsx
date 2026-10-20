@@ -1,7 +1,7 @@
 import React from 'react'
 import { renderHook, act, waitFor, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { http, HttpResponse, delay } from 'msw'
+import { http, HttpResponse } from 'msw'
 import { useAddShoppingItem, useUpdateShoppingItem, useDeleteShoppingItem, isPendingItem } from '../shoppingItemService'
 import { shoppingKeys } from '../shoppingListService'
 import { createQueryWrapper, createTestQueryClient } from '@/tests/utils'
@@ -41,9 +41,15 @@ function setup() {
 
 describe('useAddShoppingItem', () => {
   it('marks the optimistic item as pending until the server confirms it, then swaps in the real item', async () => {
+    // The server answers only once the test lets it, so the optimistic state stays observable no
+    // matter how slowly the machine polls (a fixed delay raced with waitFor under CPU load).
+    let confirm!: () => void
+    const confirmed = new Promise<void>((resolve) => {
+      confirm = resolve
+    })
     server.use(
       http.post('*/api/v1/shopping-lists/:id/items', async () => {
-        await delay(50)
+        await confirmed
         return HttpResponse.json(makeItem({ id: SERVER_ID, list_id: LIST_ID, name: 'Bread' }), { status: 201 })
       })
     )
@@ -61,6 +67,7 @@ describe('useAddShoppingItem', () => {
     expect(optimistic.id.startsWith('temp-')).toBe(true)
     expect(isPendingItem(items()[1])).toBe(false)
 
+    confirm()
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     await waitFor(() => expect(items().some((item) => item.id === SERVER_ID)).toBe(true))
     expect(items().some(isPendingItem)).toBe(false)
