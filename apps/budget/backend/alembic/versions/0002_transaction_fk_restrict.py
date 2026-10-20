@@ -27,14 +27,16 @@ _RESTRICTED_REFERENCES = (("account_id", "accounts"), ("pot_id", "pots"))
 
 def _set_delete_rule(column: str, referred_table: str, ondelete: str | None) -> None:
     """Make transactions.<column> reference <referred_table>.id with the given delete rule."""
+    # PostgreSQL's default name for the unnamed foreign keys that create_all and the baseline emit.
+    constraint_name = f"transactions_{column}_fkey"
     for foreign_key in sa.inspect(op.get_bind()).get_foreign_keys("transactions"):
         if foreign_key["constrained_columns"] != [column]:
             continue
         if (foreign_key.get("options") or {}).get("ondelete") == ondelete:
             return
-        op.drop_constraint(foreign_key["name"], "transactions", type_="foreignkey")
+        op.drop_constraint(foreign_key["name"] or constraint_name, "transactions", type_="foreignkey")
     op.create_foreign_key(
-        f"transactions_{column}_fkey",
+        constraint_name,
         "transactions",
         referred_table,
         [column],

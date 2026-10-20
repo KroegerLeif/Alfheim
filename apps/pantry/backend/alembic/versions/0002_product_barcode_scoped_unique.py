@@ -12,6 +12,7 @@ this shape, so every step checks the current state first and the revision is a n
 """
 
 from collections.abc import Sequence
+from typing import Any
 
 import sqlalchemy as sa
 from alembic import op
@@ -23,7 +24,7 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def _product_indexes() -> dict[str, dict]:
+def _product_indexes() -> dict[str | None, Any]:
     return {index["name"]: index for index in sa.inspect(op.get_bind()).get_indexes("products")}
 
 

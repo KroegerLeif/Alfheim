@@ -66,8 +66,10 @@ def upgrade() -> None:
     )
 
     # Recreate the current tables exactly as the baseline defines them.
-    baseline = ScriptDirectory.from_config(op.get_context().config).get_revision("0001")
-    baseline.module.upgrade()
+    config = op.get_context().config
+    if config is None:
+        raise RuntimeError("Revision 0002 needs the Alembic configuration to locate the baseline revision.")
+    ScriptDirectory.from_config(config).get_revision("0001").module.upgrade()
 
 
 def downgrade() -> None:

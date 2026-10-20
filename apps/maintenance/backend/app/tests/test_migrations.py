@@ -110,6 +110,7 @@ async def postgres_engine() -> AsyncGenerator[AsyncEngine, None]:
     assert POSTGRES_URL
     engine = create_async_engine(POSTGRES_URL)
     async with engine.begin() as connection:
+        await connection.execute(text("DROP SCHEMA IF EXISTS legacy_maintenance CASCADE"))
         await connection.execute(text("DROP SCHEMA public CASCADE"))
         await connection.execute(text("CREATE SCHEMA public"))
     yield engine
