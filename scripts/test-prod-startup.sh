@@ -37,6 +37,8 @@ stage_step()  { echo -e "\n${BOLD}${CYAN}━━━ Stage $1: $2 ━━━${RESET
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${REPO_ROOT}/compose.prod.yaml"
+# shellcheck source=lib/docker-socket-gid.sh
+source "${SCRIPT_DIR}/lib/docker-socket-gid.sh"
 
 KEEP_CONTAINERS=false
 TIMEOUT=180
@@ -226,6 +228,12 @@ stage_step "1/4" "Preflight Configuration & Mount Path Verification"
 
 log_info "Ensuring environment file exists and legacy variables are migrated..."
 "${REPO_ROOT}/scripts/init-env.sh" --auto
+
+# compose.prod.yaml requires DOCKER_SOCKET_GID for the socket proxy.
+if ! ensure_docker_socket_gid "${REPO_ROOT}/.env"; then
+  log_error "DOCKER_SOCKET_GID is missing from .env and the host docker group id could not be detected."
+  exit 1
+fi
 
 log_info "Validating compose syntax with 'docker compose config'..."
 docker compose -f "${COMPOSE_FILE}" config --quiet

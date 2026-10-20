@@ -89,6 +89,8 @@ BUILD_FLAG=""
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=lib/docker-socket-gid.sh
+source "${SCRIPT_DIR}/lib/docker-socket-gid.sh"
 COMPOSE_FILE="${REPO_ROOT}/compose.yaml"
 
 cd "${REPO_ROOT}"
@@ -369,6 +371,12 @@ step "STAGE 1 · IAM Core, S3 Storage & Ingress Gateway  (postgres-core · zitad
 
 if [[ ! -f ".env" ]]; then
   fail "No .env in ${REPO_ROOT}. Generate one first: ./scripts/init-env.sh --auto"
+fi
+
+# compose.prod.yaml needs the host docker group id for the socket proxy.
+# .env written by an older init-env.sh may not have it yet.
+if ! ensure_docker_socket_gid ".env"; then
+  fail "DOCKER_SOCKET_GID is missing from .env and the host docker group id could not be detected."
 fi
 
 # Browser-facing base URL for the "live at" banners and the summary; follows

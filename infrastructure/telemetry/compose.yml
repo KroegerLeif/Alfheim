@@ -89,6 +89,48 @@ services:
       victorialogs:
         condition: service_healthy
 
+  # Read-only Docker API gateway for Vector (same allowlist as compose.prod.yaml).
+  # Vector never mounts docker.sock directly.
+  docker-socket-proxy:
+    image: wollomatic/socket-proxy:1.13.1
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+    # Container group must match the group that owns the host docker socket.
+    user: "65534:${DOCKER_SOCKET_GID:-0}"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    command:
+      - "-loglevel=info"
+      - "-listenip=0.0.0.0"
+      - "-allowfrom=vector-shipper"
+      - "-allowhealthcheck"
+      - '-allowGET=(/v[0-9.]+)?/(_ping|version|info|events|containers/json|containers/[^/]+/(json|logs))'
+      - "-watchdoginterval=10"
+      - "-stoponwatchdog"
+      - "-shutdowngracetime=5"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "./healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
+    networks:
+      - docker-proxy-net
+
   vector:
     image: timberio/vector:0.39.0-alpine
     container_name: vector-shipper
@@ -100,7 +142,6 @@ services:
         max-file: "3"
     command: ["--config", "/etc/vector/vector.toml"]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./vector/vector.toml:/etc/vector/vector.toml:ro
     deploy:
       resources:
@@ -109,6 +150,7 @@ services:
           memory: 256M
     networks:
       - observability-internal
+      - docker-proxy-net
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
       interval: 5s
@@ -118,6 +160,8 @@ services:
     depends_on:
       otel-collector:
         condition: service_started
+      docker-socket-proxy:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:12.4.12
@@ -189,3 +233,8 @@ networks:
   gateway-net:
     name: gateway-net
     external: true
+  # Private link between Vector and its Docker socket proxy only.
+  docker-proxy-net:
+    name: docker-proxy-net
+    driver: bridge
+    internal: true
