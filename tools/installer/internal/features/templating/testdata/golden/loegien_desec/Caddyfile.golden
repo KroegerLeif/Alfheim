@@ -11,9 +11,20 @@
 	# drives DNS-01 issuance. The API token is read from the environment, so
 	# this file never contains a credential.
 	email ops@loegien.de
-	# The desec module only accepts its token as a block subdirective.
-	acme_dns desec {
-		token {env.DESEC_TOKEN}
+	# deSEC needs up to a minute to publish a record on every nameserver,
+	# and enforces a 3600 s minimum TTL. If Let's Encrypt validates before
+	# the challenge record is everywhere, its resolver caches the stale
+	# answer for an hour and every retry in that hour fails too. So wait
+	# before asking for validation, and confirm propagation against
+	# deSEC's own nameservers rather than a caching resolver. The desec
+	# module only accepts its token as a block subdirective.
+	cert_issuer acme {
+		dns desec {
+			token {env.DESEC_TOKEN}
+		}
+		propagation_delay 90s
+		propagation_timeout 10m
+		resolvers ns1.desec.io ns2.desec.org
 	}
 	# Certificate management stays on, but Caddy's own blanket HTTP->HTTPS
 	# redirect is disabled: without this, any site here that manages a TLS

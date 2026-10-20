@@ -105,15 +105,17 @@ func newTestApp(t *testing.T, opts *Options, rec runner.Runner, wiz Wizard) (*Ap
 	t.Helper()
 	var stdout, stderr bytes.Buffer
 	return &App{
-		Options:     opts,
-		Build:       BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
-		Runner:      rec,
-		Wizard:      wiz,
-		Stdout:      &stdout,
-		Stderr:      &stderr,
-		Now:         func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
-		Inspector:   readyHost(),
-		Provisioner: &stubProvisioner{},
+		Options:      opts,
+		Build:        BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
+		Runner:       rec,
+		Wizard:       wiz,
+		Stdout:       &stdout,
+		Stderr:       &stderr,
+		Now:          func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
+		Inspector:    readyHost(),
+		Provisioner:  &stubProvisioner{},
+		DNSPreflight: &stubPreflight{},
+		CertWaiter:   &stubCertWaiter{},
 		// Simulate running as root, like a fresh install on a Proxmox LXC,
 		// so tests do not depend on the test runner's real uid or on being
 		// able to chown anything.

@@ -18,9 +18,20 @@
 	email {{ $tls.ACMEEmail }}
 {{- end }}
 {{- if eq $tls.Strategy.String "desec" }}
-	# The desec module only accepts its token as a block subdirective.
-	acme_dns desec {
-		token {env.{{ $tls.Strategy.TokenEnvVar }}}
+	# deSEC needs up to a minute to publish a record on every nameserver,
+	# and enforces a 3600 s minimum TTL. If Let's Encrypt validates before
+	# the challenge record is everywhere, its resolver caches the stale
+	# answer for an hour and every retry in that hour fails too. So wait
+	# before asking for validation, and confirm propagation against
+	# deSEC's own nameservers rather than a caching resolver. The desec
+	# module only accepts its token as a block subdirective.
+	cert_issuer acme {
+		dns desec {
+			token {env.{{ $tls.Strategy.TokenEnvVar }}}
+		}
+		propagation_delay 90s
+		propagation_timeout 10m
+		resolvers ns1.desec.io ns2.desec.org
 	}
 {{- else }}
 	acme_dns {{ $tls.Strategy.DNSProvider }} {env.{{ $tls.Strategy.TokenEnvVar }}}
