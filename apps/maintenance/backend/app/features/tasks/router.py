@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import HouseholdContext, get_authorization, require_household
+from app.core.permissions import require_writer
 from app.features.devices.exceptions import DeviceNotFoundError
 from app.features.devices.schemas import MaintenanceStepRead, ServiceHistoryEventDetailRead, ServiceHistoryEventRead
 from app.features.tasks.exceptions import InvalidStepError, StepNotFoundError
@@ -28,7 +29,7 @@ router = APIRouter(prefix="/api/v1", tags=["tasks"])
 async def submit_maintenance(
     payload: MaintenanceSubmission,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
     authorization: str | None = Depends(get_authorization),
 ):
     """Log a new service history event for the authenticated user's household.
@@ -67,7 +68,7 @@ async def update_task_state(
     step_id: int = Path(..., description="The MaintenanceStep primary key"),
     payload: TaskStateUpdate = Body(...),
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Persist lightweight step updates from ScheduledView accordion.
 

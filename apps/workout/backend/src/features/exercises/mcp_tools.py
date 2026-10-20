@@ -1,7 +1,9 @@
 import uuid
 
 from backend_shared.mcp_middleware import get_mcp_household_context
+from fastmcp.exceptions import ToolError
 from src.core.database import async_session_factory
+from src.core.permissions import ensure_mcp_catalog_write
 from src.features.exercises.models import ExerciseScope, MuscleGroup
 from src.features.exercises.schemas import ExerciseCreate, ExerciseUpdate, UserExercisePreferenceUpsert
 from src.features.exercises.service import ExerciseService
@@ -85,6 +87,7 @@ async def create_exercise(
             instructions=instructions,
             scope=ExerciseScope(scope),
         )
+        ensure_mcp_catalog_write(payload.scope)
         async with async_session_factory() as session:
             exercise = await ExerciseService.create_exercise(
                 session=session,
@@ -93,6 +96,8 @@ async def create_exercise(
                 user_id=user_uuid,
             )
             return f"Success: Created exercise '{exercise.name}' with ID {exercise.id}."
+    except ToolError:
+        raise
     except ValueError as e:
         return f"Error: Failed to create exercise: {str(e)}"
     except Exception as e:
@@ -137,6 +142,14 @@ async def update_exercise(
             is_active=is_active,
         )
         async with async_session_factory() as session:
+            existing = await ExerciseService.get_exercise(
+                session=session,
+                exercise_id=ex_uuid,
+                home_id=home_uuid,
+                user_id=user_uuid,
+            )
+            if existing:
+                ensure_mcp_catalog_write(existing.scope)
             exercise = await ExerciseService.update_exercise(
                 session=session,
                 exercise_id=ex_uuid,
@@ -147,6 +160,8 @@ async def update_exercise(
             if not exercise:
                 return f"Exercise with ID {exercise_id} not found or not authorized."
             return f"Success: Updated exercise {exercise.id} (Name: '{exercise.name}')."
+    except ToolError:
+        raise
     except ValueError as e:
         return f"Error: Update failed: {str(e)}"
     except Exception as e:
@@ -166,6 +181,14 @@ async def delete_exercise(exercise_id: str) -> str:
         user_uuid = context.user_id
         ex_uuid = uuid.UUID(exercise_id)
         async with async_session_factory() as session:
+            existing = await ExerciseService.get_exercise(
+                session=session,
+                exercise_id=ex_uuid,
+                home_id=home_uuid,
+                user_id=user_uuid,
+            )
+            if existing:
+                ensure_mcp_catalog_write(existing.scope, destructive=True)
             deleted = await ExerciseService.delete_exercise(
                 session=session,
                 exercise_id=ex_uuid,
@@ -175,6 +198,8 @@ async def delete_exercise(exercise_id: str) -> str:
             if not deleted:
                 return f"Exercise with ID {exercise_id} not found or not authorized."
             return f"Success: Deleted exercise {exercise_id}."
+    except ToolError:
+        raise
     except ValueError as e:
         return f"Error: Deletion failed: {str(e)}"
     except Exception as e:

@@ -4,6 +4,7 @@ from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import ensure_catalog_write
 from src.features.equipment.schemas import EquipmentCreate, EquipmentRead, EquipmentUpdate
 from src.features.equipment.service import EquipmentService
 
@@ -16,7 +17,8 @@ async def create_equipment(
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Create a new household- or user-scoped equipment entry."""
+    """Create a new household- or user-scoped equipment entry (household entries need MEMBER or higher)."""
+    ensure_catalog_write(context, payload.scope)
     return await EquipmentService.create_equipment(
         session=session,
         payload=payload,
@@ -69,7 +71,18 @@ async def update_equipment(
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Partially update an equipment entry the caller owns. System entries cannot be modified."""
+    """Partially update an equipment entry the caller owns. System entries cannot be modified.
+
+    Household entries need MEMBER or higher; personal entries are open to every role.
+    """
+    existing = await EquipmentService.get_equipment(
+        session=session,
+        equipment_id=id,
+        home_id=context.household_id,
+        user_id=context.user_id,
+    )
+    if existing:
+        ensure_catalog_write(context, existing.scope)
     equipment = await EquipmentService.update_equipment(
         session=session,
         equipment_id=id,
@@ -88,7 +101,18 @@ async def delete_equipment(
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Delete an equipment entry the caller owns. System entries cannot be deleted."""
+    """Delete an equipment entry the caller owns. System entries cannot be deleted.
+
+    Household entries need ADMIN or OWNER; personal entries are open to every role.
+    """
+    existing = await EquipmentService.get_equipment(
+        session=session,
+        equipment_id=id,
+        home_id=context.household_id,
+        user_id=context.user_id,
+    )
+    if existing:
+        ensure_catalog_write(context, existing.scope, destructive=True)
     deleted = await EquipmentService.delete_equipment(
         session=session,
         equipment_id=id,

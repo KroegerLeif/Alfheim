@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import HouseholdContext, get_authorization, require_household
+from app.core.permissions import require_writer
 from app.features.devices.exceptions import DeviceNotFoundError
 from app.features.maintenance.exceptions import MaintenanceError, WizardValidationError
 from app.features.maintenance.schemas import (
@@ -31,7 +32,7 @@ router = APIRouter(prefix="/api/v1", tags=["maintenance"])
 async def submit_wizard_session(
     payload: WizardSessionPayload,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
     authorization: str | None = Depends(get_authorization),
 ) -> WizardSessionResult:
     """Commit a full maintenance wizard session atomically for a device of the current household."""

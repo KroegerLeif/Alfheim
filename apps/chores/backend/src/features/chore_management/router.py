@@ -5,6 +5,7 @@ from backend_shared.household import HouseholdContext, MembershipLookup, get_mem
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import require_admin, require_writer
 from src.features.chore_management.schemas import (
     ChoreAssignRequest,
     ChoreInstanceRead,
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/api/v1/chores", tags=["chores"])
 async def create_chore_template(
     payload: ChoreTemplateCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Create a new chore template blueprint."""
     return await ChoreService.create_chore_template(
@@ -93,7 +94,7 @@ async def update_chore_template(
     id: uuid.UUID,
     payload: ChoreTemplateUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Partially update an existing chore template."""
     return await ChoreService.update_chore_template(
@@ -108,7 +109,7 @@ async def update_chore_template(
 async def delete_chore_template(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_admin),
 ):
     """Delete a chore template from the household."""
     await ChoreService.delete_chore_template(
@@ -137,7 +138,7 @@ async def assign_chore_instance(
     id: uuid.UUID,
     payload: ChoreAssignRequest,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
     membership: MembershipLookup = Depends(get_membership_lookup),
 ):
     """Assign a chore instance to a household member.
@@ -172,7 +173,7 @@ async def assign_chore_instance(
 async def claim_chore_instance(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Claim an unassigned chore instance for the caller, or release the caller's own claim.
 
@@ -191,7 +192,7 @@ async def claim_chore_instance(
 async def complete_chore_instance(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Mark a chore instance as completed.
 

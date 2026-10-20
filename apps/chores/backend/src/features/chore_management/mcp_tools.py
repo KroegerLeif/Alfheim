@@ -6,6 +6,7 @@ from backend_shared.household import derive_user_id
 from backend_shared.mcp_middleware import get_mcp_household_context
 from sqlmodel import select
 from src.core.database import async_session_factory
+from src.core.permissions import mcp_requires_role
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
 from src.features.chore_management.schemas import ChoreAssignRequest
 from src.features.chore_management.service import ChoreService
@@ -55,6 +56,7 @@ async def get_daily_chores_overview() -> str:
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def complete_chore_by_name(chore_name: str) -> str:
     """Complete a pending chore instance by searching for its template name.
 
@@ -113,6 +115,7 @@ async def complete_chore_by_name(chore_name: str) -> str:
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def assign_chore(chore_instance_id: str, assignee_user_id: str) -> str:
     """Assign a scheduled chore instance to a household member.
 

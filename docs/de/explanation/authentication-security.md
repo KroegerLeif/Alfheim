@@ -100,6 +100,8 @@ Python-Backends setzen die Schritte 1–4 mit `backend_shared.household.require_
 
 Der Body ist immer `{"detail": {"code": "...", "message": "..."}}`.
 
+**Rollenmatrix der Python-Apps:** `GUEST` darf nur lesen. Jede ändernde Route und jedes MCP-Tool verlangt mindestens `MEMBER`. Das Löschen gemeinsamer Strukturen verlangt `ADMIN` oder `OWNER`: Budget-Konten, -Töpfe und -Pläne; Library-Anbieter und -Standorte; Pantry-Standorte und -Kategorien; Haushaltsaufgaben-Vorlagen; haushaltsweite Workout-Geräte und -Übungen. Persönliche Ressourcen bleiben für jede Rolle offen, weil sie nur die eigenen Daten des Aufrufers betreffen: Workout-Pläne, -Sitzungen, -Favoriten, -Präferenzen und Katalog-Einträge mit `scope=user` sowie die persönliche Einkaufsliste. MCP-Tools wenden dieselbe Regel auf die Rolle des Aufrufers an und weisen einen abgelehnten Aufruf mit einem Tool-Fehler zurück, der `household_role_forbidden` enthält. Frontends sollten die passenden Schaltflächen für `GUEST` (und die Lösch-Schaltflächen für `MEMBER`) ausblenden, durchgesetzt wird die Regel aber im Backend.
+
 **Caching:** Antworten werden pro Prozess gecacht, geschlüsselt nach Haushalt und Benutzer: Mitglieder 30 s, Nicht-Mitglieder 5 s. Fehler werden nie gecacht. Das Entfernen eines Mitglieds wirkt daher innerhalb von 30 s, ohne dass sich der Benutzer neu anmeldet.
 
 **Service-zu-Service-Aufrufe:** Ruft eine App eine andere auf (etwa Shopping → Pantry, Maintenance → Budget), leitet sie das Bearer-Token des Aufrufers und `X-Household-ID` weiter. Die Ziel-App autorisiert den Aufrufer selbst; es gibt keine Service-Identität, die die Mitgliedschaftsprüfung umgeht.

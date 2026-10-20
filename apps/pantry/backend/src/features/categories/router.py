@@ -4,6 +4,7 @@ from backend_shared.household import HouseholdContext, require_household
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import require_admin, require_writer
 from src.features.categories import (
     CategoryCreate,
     CategoryRead,
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
 async def create_category(
     payload: CategoryCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Create a new custom product category."""
     return await CategoryService.create_category(
@@ -72,7 +73,7 @@ async def update_category(
     id: uuid.UUID,
     payload: CategoryUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Partially update an existing custom category."""
     category = await CategoryService.update_category(
@@ -97,7 +98,7 @@ async def update_category(
 async def delete_category(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_admin),
 ):
     """Delete a custom category.
 

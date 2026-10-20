@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Request, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
 from src.features.shopping_lists.clients.household_client import fetch_my_households
+from src.features.shopping_lists.permissions import require_list_writer, require_writer
 from src.features.shopping_lists.schemas import (
     HouseholdRead,
     PushItemPayload,
@@ -49,7 +50,7 @@ async def get_my_households(
 async def create_list(
     payload: ShoppingListCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Create a new shopping list scoped to the current user's household context."""
     return await ShoppingListService.create_list(
@@ -93,7 +94,7 @@ async def get_lists(
 async def reorder_lists(
     payload: ReorderListsPayload,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Update display position indices for multiple user-defined shopping lists in bulk."""
     await ShoppingListService.reorder_lists(
@@ -130,7 +131,7 @@ async def get_list(
 async def delete_list(
     list_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_list_writer),
 ):
     """Delete a shopping list along with all its nested checklist items."""
     await ShoppingListService.delete_list(
@@ -151,7 +152,7 @@ async def add_item(
     list_id: uuid.UUID,
     payload: ShoppingItemCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_list_writer),
 ):
     """Add a new custom/manual item to the specified shopping list."""
     return await ShoppingListService.add_item(
@@ -173,7 +174,7 @@ async def update_item(
     item_id: uuid.UUID,
     payload: ShoppingItemUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_list_writer),
 ):
     """Update properties (quantity, unit, completion check-off state) of a shopping item."""
     return await ShoppingListService.update_item(
@@ -195,7 +196,7 @@ async def delete_item(
     list_id: uuid.UUID,
     item_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_list_writer),
 ):
     """Remove a specific item from the shopping list."""
     await ShoppingListService.delete_item(
@@ -216,7 +217,7 @@ async def auto_import_low_stock(
     list_id: uuid.UUID,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_list_writer),
 ):
     """Fetch low-stock catalog alerts from Pantry and merge them as auto-generated items."""
     token = request.headers.get("Authorization")
@@ -239,7 +240,7 @@ async def sync_to_pantry(
     request: Request,
     payload: SyncToPantryRequest | None = None,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_list_writer),
 ):
     """Sync completed items on the list in bulk to Pantry stock and record purchase frequencies.
 
@@ -266,7 +267,7 @@ async def sync_to_pantry(
 async def push_shopping_item(
     payload: PushItemPayload,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Internal inter-service API allowing Pantry or external callers to push out-of-stock items directly to the household shopping list."""
     return await ShoppingListService.push_item(
