@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { useHouseholdCan } from "@alfheim/shared";
 import { Device } from "@/shared/types";
 import { Info, Wrench } from "lucide-react";
 import { useDeviceLabels } from "../hooks/useDeviceLabels";
@@ -14,6 +15,7 @@ interface OverviewTabProps {
 
 export function OverviewTab({ device, onStartMaintenance, onClose }: OverviewTabProps) {
   const t = useTranslations("maintenance");
+  const canWrite = useHouseholdCan("write");
   const { statusLabel } = useDeviceLabels();
 
   return (
@@ -67,7 +69,7 @@ export function OverviewTab({ device, onStartMaintenance, onClose }: OverviewTab
         </div>
       </div>
 
-      {onStartMaintenance && (
+      {onStartMaintenance && canWrite && (
         <button
           type="button"
           onClick={() => {

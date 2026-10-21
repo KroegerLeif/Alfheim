@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { ShoppingCart, Download, Send, Trash2, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/core/utils";
 import { useTranslations } from "next-intl";
+import { PermissionHint, useHouseholdPermission } from "@alfheim/shared";
 import { useCart } from "../hooks/useCart";
 import { useSendToShopping } from "../hooks/useSendToShopping";
 import { buildCartCsv } from "../utils/csv";
@@ -14,6 +15,7 @@ const SENT_FLASH_MS = 2000;
 
 export function ShoppingView() {
   const t = useTranslations("maintenance");
+  const write = useHouseholdPermission("write");
   const { cart, replace, remove, clear } = useCart();
   const sendMutation = useSendToShopping();
   const [showSent, setShowSent] = useState(false);
@@ -124,29 +126,31 @@ export function ShoppingView() {
           </ul>
 
           <div className="pt-4 border-t border-[var(--border-subtle)] flex justify-end">
-            <button
-              type="button"
-              onClick={handleSendToShoppingApp}
-              disabled={isSending || showSent}
-              className={cn(
-                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg disabled:cursor-not-allowed",
-                showSent
-                  ? "bg-emerald-500 text-black shadow-emerald-500/10"
-                  : "bg-[var(--primary-main)] hover:opacity-90 text-black shadow-[var(--primary-main)]/10"
-              )}
-            >
-              {isSending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {t("shopping.sending")}
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  {t("shopping.sendToShoppingApp")}
-                </>
-              )}
-            </button>
+            <PermissionHint hint={write.hint}>
+              <button
+                type="button"
+                onClick={handleSendToShoppingApp}
+                disabled={isSending || showSent || !write.allowed}
+                className={cn(
+                  "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg disabled:cursor-not-allowed",
+                  showSent
+                    ? "bg-emerald-500 text-black shadow-emerald-500/10"
+                    : "bg-[var(--primary-main)] hover:opacity-90 text-black shadow-[var(--primary-main)]/10"
+                )}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t("shopping.sending")}
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    {t("shopping.sendToShoppingApp")}
+                  </>
+                )}
+              </button>
+            </PermissionHint>
           </div>
         </div>
       )}
