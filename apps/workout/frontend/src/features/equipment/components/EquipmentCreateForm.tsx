@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button, Card, CardContent, Field, Input, Select, useTranslation } from "@alfheim/shared";
 import { Loader2, Plus } from "lucide-react";
 import { describeError } from "@/core/errors";
+import { useCatalogScopes } from "@/core/catalogPermissions";
 import { useCreateEquipment } from "../hooks/useEquipment";
 import type { EquipmentScope } from "../types";
 
@@ -16,14 +17,16 @@ export function EquipmentCreateForm({ onSuccess, onCancel }: EquipmentCreateForm
   const { t } = useTranslation();
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("");
-  const [scope, setScope] = React.useState<Exclude<EquipmentScope, "system">>("household");
+  const allowedScopes = useCatalogScopes();
+  const [scope, setScope] = React.useState<Exclude<EquipmentScope, "system">>(allowedScopes[0]);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const createMutation = useCreateEquipment();
 
+  // Guests may only add personal entries.
   const scopeOptions = [
     { value: "household", label: t("workout.scopeHousehold") },
     { value: "user", label: t("workout.scopeUser") },
-  ];
+  ].filter((option) => (allowedScopes as string[]).includes(option.value));
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();

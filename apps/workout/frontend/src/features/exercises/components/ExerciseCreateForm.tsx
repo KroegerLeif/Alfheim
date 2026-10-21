@@ -13,6 +13,7 @@ import {
 } from "@alfheim/shared";
 import { Loader2, Plus } from "lucide-react";
 import { describeError } from "@/core/errors";
+import { useCatalogScopes } from "@/core/catalogPermissions";
 import { useCreateExercise } from "../hooks/useExercises";
 import type { ExerciseScope, MuscleGroup } from "../types";
 import { MUSCLE_GROUP_LABEL_KEYS } from "../types";
@@ -29,7 +30,8 @@ export function ExerciseCreateForm({ onSuccess, onCancel }: ExerciseCreateFormPr
   const [name, setName] = React.useState("");
   const [primaryMuscle, setPrimaryMuscle] = React.useState<MuscleGroup>("chest");
   const [instructions, setInstructions] = React.useState("");
-  const [scope, setScope] = React.useState<Exclude<ExerciseScope, "system">>("household");
+  const allowedScopes = useCatalogScopes();
+  const [scope, setScope] = React.useState<Exclude<ExerciseScope, "system">>(allowedScopes[0]);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const createMutation = useCreateExercise();
 
@@ -38,10 +40,11 @@ export function ExerciseCreateForm({ onSuccess, onCancel }: ExerciseCreateFormPr
     label: t(MUSCLE_GROUP_LABEL_KEYS[muscle]),
   }));
 
+  // Guests may only add personal entries.
   const scopeOptions = [
     { value: "household", label: t("workout.scopeHousehold") },
     { value: "user", label: t("workout.scopeUser") },
-  ];
+  ].filter((option) => (allowedScopes as string[]).includes(option.value));
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
