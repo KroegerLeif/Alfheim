@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { Plus, Minus } from "lucide-react";
 import { useInventoryState, useLowStockItems, useExpirationSummary } from "@/features/inventory/services/inventoryService";
@@ -21,6 +21,7 @@ import { ShoppingSyncPanel } from "./ShoppingSyncPanel";
  */
 export function DashboardView() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
 
   const { data: statesData, isLoading: isLoadingStates, isError: isStatesError } = useInventoryState();
   const states = statesData ?? [];
@@ -70,29 +71,31 @@ export function DashboardView() {
       />
 
       {/* Quick Stock IN / OUT action row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono">
-        <button type="button" onClick={() => { setModalMode("in"); setIsModalOpen(true); }}
-          className="border-2 border-[var(--border-subtle)] bg-[var(--surface-card)] h-32 px-8 flex items-center justify-between text-left hover:border-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-all duration-200 cursor-pointer group rounded-lg shadow-sm">
-          <div>
-            <div className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-[var(--primary-main)]">{t("pantry.quickTransaction")}</div>
-            <h2 className="text-2xl sm:text-4xl font-black uppercase mt-1 text-[var(--text-main)]">{t("pantry.stockIn")}</h2>
-          </div>
-          <div className="h-14 w-14 border border-[var(--border-subtle)] flex items-center justify-center bg-[var(--surface-canvas)] group-hover:border-[var(--primary-main)] group-hover:bg-[var(--primary-main)]/10 transition-colors rounded-lg">
-            <Plus className="h-6 w-6 text-[var(--text-main)] group-hover:text-[var(--primary-main)]" />
-          </div>
-        </button>
+      {canWrite && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono">
+          <button type="button" onClick={() => { setModalMode("in"); setIsModalOpen(true); }}
+            className="border-2 border-[var(--border-subtle)] bg-[var(--surface-card)] h-32 px-8 flex items-center justify-between text-left hover:border-[var(--primary-main)] hover:bg-[var(--surface-elevated)] transition-all duration-200 cursor-pointer group rounded-lg shadow-sm">
+            <div>
+              <div className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-[var(--primary-main)]">{t("pantry.quickTransaction")}</div>
+              <h2 className="text-2xl sm:text-4xl font-black uppercase mt-1 text-[var(--text-main)]">{t("pantry.stockIn")}</h2>
+            </div>
+            <div className="h-14 w-14 border border-[var(--border-subtle)] flex items-center justify-center bg-[var(--surface-canvas)] group-hover:border-[var(--primary-main)] group-hover:bg-[var(--primary-main)]/10 transition-colors rounded-lg">
+              <Plus className="h-6 w-6 text-[var(--text-main)] group-hover:text-[var(--primary-main)]" />
+            </div>
+          </button>
 
-        <button type="button" onClick={() => { setModalMode("out"); setIsModalOpen(true); }}
-          className="border-2 border-[var(--border-subtle)] bg-[var(--surface-card)] h-32 px-8 flex items-center justify-between text-left hover:border-red-500 hover:bg-red-950/10 transition-all duration-200 cursor-pointer group rounded-lg shadow-sm">
-          <div>
-            <div className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-red-400">{t("pantry.quickTransaction")}</div>
-            <h2 className="text-2xl sm:text-4xl font-black uppercase mt-1 text-[var(--text-main)]">{t("pantry.stockOut")}</h2>
-          </div>
-          <div className="h-14 w-14 border border-[var(--border-subtle)] flex items-center justify-center bg-[var(--surface-canvas)] group-hover:border-red-500 group-hover:bg-red-950/20 transition-colors rounded-lg">
-            <Minus className="h-6 w-6 text-[var(--text-main)] group-hover:text-red-400" />
-          </div>
-        </button>
-      </div>
+          <button type="button" onClick={() => { setModalMode("out"); setIsModalOpen(true); }}
+            className="border-2 border-[var(--border-subtle)] bg-[var(--surface-card)] h-32 px-8 flex items-center justify-between text-left hover:border-red-500 hover:bg-red-950/10 transition-all duration-200 cursor-pointer group rounded-lg shadow-sm">
+            <div>
+              <div className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-red-400">{t("pantry.quickTransaction")}</div>
+              <h2 className="text-2xl sm:text-4xl font-black uppercase mt-1 text-[var(--text-main)]">{t("pantry.stockOut")}</h2>
+            </div>
+            <div className="h-14 w-14 border border-[var(--border-subtle)] flex items-center justify-center bg-[var(--surface-canvas)] group-hover:border-red-500 group-hover:bg-red-950/20 transition-colors rounded-lg">
+              <Minus className="h-6 w-6 text-[var(--text-main)] group-hover:text-red-400" />
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Alerts + Shopping sync */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 font-mono">
