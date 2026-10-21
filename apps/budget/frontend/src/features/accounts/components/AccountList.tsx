@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MoneyDisplay, useTranslation } from "@alfheim/shared";
+import { MoneyDisplay, PermissionHint, useHouseholdCan, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { Account } from "@/features/budget/types";
 import { accountTypeLabel } from "../accountTypes";
 import { CreditCard, Landmark, LineChart, Building, Plus, Trash2, Edit2 } from "lucide-react";
@@ -29,14 +29,10 @@ const getAccountIcon = (type: string) => {
   }
 };
 
-export function AccountList({
-  accounts,
-  loading,
-  onAddAccount,
-  onEditAccount,
-  onDeleteAccount,
-}: AccountListProps) {
+export function AccountList({ accounts, loading, onAddAccount, onEditAccount, onDeleteAccount }: AccountListProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
 
   if (loading) {
     return (
@@ -52,15 +48,17 @@ export function AccountList({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-[var(--text-main)]">{t("budget.accounts.listTitle")}</h3>
-        <button
-          type="button"
-          onClick={onAddAccount}
-          aria-label={t("budget.accounts.addNewAccountLabel")}
-          className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium flex items-center gap-1.5 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t("budget.accounts.newAccount")}</span>
-        </button>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={onAddAccount}
+            aria-label={t("budget.accounts.addNewAccountLabel")}
+            className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium flex items-center gap-1.5 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t("budget.accounts.newAccount")}</span>
+          </button>
+        )}
       </div>
 
       {accounts.length === 0 ? (
@@ -90,24 +88,29 @@ export function AccountList({
 
               <div className="flex items-center gap-3 shrink-0">
                 <MoneyDisplay amount={acc.balance} currency={acc.currency} size="md" className="font-bold" />
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => onEditAccount(acc)}
-                    aria-label={t("budget.accounts.editLabel", { name: acc.name })}
-                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-canvas)] hover:text-[var(--text-main)]"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteAccount(acc.id)}
-                    aria-label={t("budget.accounts.deleteLabel", { name: acc.name })}
-                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {canWrite && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onEditAccount(acc)}
+                      aria-label={t("budget.accounts.editLabel", { name: acc.name })}
+                      className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-canvas)] hover:text-[var(--text-main)]"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <PermissionHint hint={remove.hint}>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteAccount(acc.id)}
+                        disabled={!remove.allowed}
+                        aria-label={t("budget.accounts.deleteLabel", { name: acc.name })}
+                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </PermissionHint>
+                  </div>
+                )}
               </div>
             </div>
           ))}

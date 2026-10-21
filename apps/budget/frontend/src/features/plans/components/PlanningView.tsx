@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useHouseholdCan } from "@alfheim/shared";
 import { Plan, PlanSummaryResponse } from "@/features/budget/types";
 import { PlanOverview } from "./PlanOverview";
 import { CategoryTree } from "./CategoryTree";
@@ -29,6 +30,7 @@ export function PlanningView({
   onAddSubcategory,
   onDeleteCategory,
 }: PlanningViewProps) {
+  const canWrite = useHouseholdCan("write");
   return (
     <div className="space-y-6">
       <PlanOverview
@@ -42,8 +44,8 @@ export function PlanningView({
       />
       <CategoryTree
         categories={summary?.categories ?? []}
-        onAddSubcategory={onAddSubcategory}
-        onDeleteCategory={onDeleteCategory}
+        onAddSubcategory={canWrite ? onAddSubcategory : undefined}
+        onDeleteCategory={canWrite ? onDeleteCategory : undefined}
       />
     </div>
   );

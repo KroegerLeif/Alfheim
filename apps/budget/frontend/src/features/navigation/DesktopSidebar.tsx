@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import {
   LayoutDashboard,
   Calendar,
@@ -52,6 +52,7 @@ export function DesktopSidebar({
   onTabChange,
 }: DesktopSidebarProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
 
   return (
     <aside
@@ -64,30 +65,28 @@ export function DesktopSidebar({
           <Wallet className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="font-bold text-base text-[var(--text-main)] leading-tight">
-            {t("budget.title")}
-          </h2>
+          <h2 className="font-bold text-base text-[var(--text-main)] leading-tight">{t("budget.title")}</h2>
           <span className="text-[11px] text-[var(--text-muted)]">{t("budget.navigation.brand")}</span>
         </div>
       </div>
 
       {/* Quick-Add Button */}
-      <button
-        type="button"
-        onClick={onQuickAdd}
-        aria-label={t("budget.transactions.quickAdd")}
-        className="w-full py-2.5 px-4 mb-6 rounded-lg bg-[var(--primary-main)] text-white font-medium flex items-center justify-center gap-2 shadow-md hover:opacity-95 active:scale-[0.98] transition-all"
-      >
-        <Plus className="w-5 h-5" />
-        <span>{t("budget.navigation.quickAdd")}</span>
-      </button>
+      {canWrite && (
+        <button
+          type="button"
+          onClick={onQuickAdd}
+          aria-label={t("budget.transactions.quickAdd")}
+          className="w-full py-2.5 px-4 mb-6 rounded-lg bg-[var(--primary-main)] text-white font-medium flex items-center justify-center gap-2 shadow-md hover:opacity-95 active:scale-[0.98] transition-all"
+        >
+          <Plus className="w-5 h-5" />
+          <span>{t("budget.navigation.quickAdd")}</span>
+        </button>
+      )}
 
       {/* Navigation Links */}
       <nav aria-label={t("budget.navigation.navLabel")} className="flex-1 space-y-1">
         {NAV_ITEMS.map((item) => {
-          const isActive =
-            currentPath === item.href ||
-            (item.href !== "/" && currentPath.startsWith(item.href));
+          const isActive = currentPath === item.href || (item.href !== "/" && currentPath.startsWith(item.href));
           const Icon = item.icon;
 
           return (

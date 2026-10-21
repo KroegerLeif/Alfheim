@@ -15,7 +15,7 @@ export function createQueryWrapper() {
   );
 }
 
-export function createTestWrapper() {
+export function createTestWrapper(role = "OWNER") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -25,7 +25,7 @@ export function createTestWrapper() {
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <StaticHouseholdProvider householdId="hh-1">
+      <StaticHouseholdProvider householdId="hh-1" value={{ role }}>
         <QueryClientProvider client={queryClient}>
           <LanguageProvider defaultLanguage="en">
             {children}
@@ -38,7 +38,8 @@ export function createTestWrapper() {
 
 export function renderWithProviders(
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
+  options?: Omit<RenderOptions, "wrapper"> & { role?: string }
 ) {
-  return rtlRender(ui, { wrapper: createTestWrapper(), ...options });
+  const { role, ...renderOptions } = options ?? {};
+  return rtlRender(ui, { wrapper: createTestWrapper(role), ...renderOptions });
 }

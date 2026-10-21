@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { BucketMeter, MoneyDisplay, useTranslation } from "@alfheim/shared";
+import {
+  BucketMeter,
+  MoneyDisplay,
+  PermissionHint,
+  useHouseholdCan,
+  useHouseholdPermission,
+  useTranslation,
+} from "@alfheim/shared";
 import { Pot, SinkingFundCalculationResponse } from "@/features/budget/types";
 import { potsApi } from "../api/potsApi";
 import { Edit2, Trash2, Calendar, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
@@ -14,6 +21,8 @@ export interface PotCardProps {
 
 export function PotCard({ pot, onEdit, onDelete }: PotCardProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
   const [calc, setCalc] = useState<SinkingFundCalculationResponse | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
   const [calcError, setCalcError] = useState<string | null>(null);
@@ -53,22 +62,29 @@ export function PotCard({ pot, onEdit, onDelete }: PotCardProps) {
           >
             <RefreshCw className={`w-4 h-4 ${calcLoading ? "animate-spin" : ""}`} />
           </button>
-          <button
-            type="button"
-            onClick={() => onEdit(pot)}
-            aria-label={t("budget.pots.editLabel", { name: pot.name })}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-canvas)] hover:text-[var(--text-main)]"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(pot.id)}
-            aria-label={t("budget.pots.deleteLabel", { name: pot.name })}
-            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => onEdit(pot)}
+              aria-label={t("budget.pots.editLabel", { name: pot.name })}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-canvas)] hover:text-[var(--text-main)]"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
+          {canWrite && (
+            <PermissionHint hint={remove.hint}>
+              <button
+                type="button"
+                onClick={() => onDelete(pot.id)}
+                disabled={!remove.allowed}
+                aria-label={t("budget.pots.deleteLabel", { name: pot.name })}
+                className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </PermissionHint>
+          )}
         </div>
       </div>
 
