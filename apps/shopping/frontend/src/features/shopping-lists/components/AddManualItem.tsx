@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
 import { DEFAULT_UNIT } from "../utils/units";
 import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
+import { useHouseholdPermission } from "@alfheim/shared";
+import { useCanEditList } from "../hooks/useCanEditList";
 import { cn } from "@/lib/utils";
 
 interface AddManualItemProps {
@@ -27,6 +29,8 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   const effectiveListId = listId || (lists.length > 0 ? lists[0].id : "");
 
   const addItem = useAddShoppingItem(effectiveListId);
+  const canEdit = useCanEditList(lists.find((l) => l.id === effectiveListId));
+  const { hint } = useHouseholdPermission("write");
 
   const handleIncrement = () => {
     const current = parseFloat(qty) || 0;
@@ -60,6 +64,14 @@ export function AddManualItem({ listId }: AddManualItemProps) {
   };
 
   const isInvalid = !name.trim() || addItem.isPending;
+
+  if (!canEdit) {
+    return (
+      <p role="note" className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 shrink-0 text-xs text-[var(--text-muted)]">
+        {hint}
+      </p>
+    );
+  }
 
   return (
     <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 relative shrink-0 select-none">

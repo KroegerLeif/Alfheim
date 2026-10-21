@@ -2,6 +2,7 @@
 
 import { GripVertical, ShoppingCart, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useHouseholdCan } from "@alfheim/shared";
 import { cn } from "@/lib/utils";
 
 interface SidebarCustomItemProps {
@@ -34,13 +35,15 @@ export function SidebarCustomItem({
   isPendingDelete = false,
 }: SidebarCustomItemProps) {
   const tChecklist = useTranslations("Checklist");
+  // Custom lists are shared: reordering and deleting them needs MEMBER or higher.
+  const canWrite = useHouseholdCan("write");
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
+      draggable={canWrite}
+      onDragStart={canWrite ? onDragStart : undefined}
+      onDragOver={canWrite ? onDragOver : undefined}
+      onDrop={canWrite ? onDrop : undefined}
       onDragEnd={onDragEnd}
       onClick={onSelect}
       className={cn(
@@ -75,21 +78,23 @@ export function SidebarCustomItem({
         {completedCount}/{totalCount}
       </span>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (confirm(tChecklist("deleteListConfirm", { name }))) {
-            onDelete();
-          }
-        }}
-        disabled={isPendingDelete}
-        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-red-400 transition-opacity cursor-pointer disabled:opacity-40"
-        title={tChecklist("deleteList")}
-        aria-label={tChecklist("deleteList")}
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {canWrite && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(tChecklist("deleteListConfirm", { name }))) {
+              onDelete();
+            }
+          }}
+          disabled={isPendingDelete}
+          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-red-400 transition-opacity cursor-pointer disabled:opacity-40"
+          title={tChecklist("deleteList")}
+          aria-label={tChecklist("deleteList")}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }

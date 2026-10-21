@@ -14,24 +14,27 @@ interface ItemRowProps {
   onToggle: () => void;
   onDelete: () => void;
   isOptimistic?: boolean;
+  /** Renders the row without toggle and delete (guest on a shared list). */
+  readOnly?: boolean;
 }
 
 /**
  * Renders an interactive, touch-optimized row in the checklist.
  */
-export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: ItemRowProps) {
+export function ItemRow({ item, onToggle, onDelete, isOptimistic = false, readOnly = false }: ItemRowProps) {
   const t = useTranslations("Checklist");
   const tUnits = useTranslations("Units");
   const [hovered, setHovered] = useState(false);
+  const interactive = !isOptimistic && !readOnly;
 
   return (
     <div
-      onClick={isOptimistic ? undefined : onToggle}
-      onMouseEnter={() => !isOptimistic && setHovered(true)}
+      onClick={interactive ? onToggle : undefined}
+      onMouseEnter={() => interactive && setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
         "grid grid-cols-[22px_minmax(0,1fr)_auto_24px] items-center gap-3 px-3 py-2.5 rounded-xl",
-        isOptimistic ? "cursor-progress" : "cursor-pointer",
+        isOptimistic ? "cursor-progress" : readOnly ? "cursor-default" : "cursor-pointer",
         "transition-all duration-200 border border-transparent select-none",
         item.is_completed ? "opacity-50 glass-inset" : "glass-card hover:glass-active",
         hovered && !item.is_completed && "border-blue-500/20 shadow-xs"
@@ -41,7 +44,7 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
       <GlassCheckbox
         checked={item.is_completed}
         onChange={onToggle}
-        disabled={isOptimistic}
+        disabled={!interactive}
       />
 
       {/* Item details */}
@@ -86,7 +89,7 @@ export function ItemRow({ item, onToggle, onDelete, isOptimistic = false }: Item
 
       {/* Actions container (hover triggers delete button) */}
       <div className="w-5 h-5 flex items-center justify-center shrink-0">
-        {!isOptimistic && (hovered || item.is_completed) && (
+        {interactive && (hovered || item.is_completed) && (
           <button
             type="button"
             onClick={(e) => {

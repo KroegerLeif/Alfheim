@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useHouseholdCan } from "@alfheim/shared";
 import { QuickTile } from "./QuickTile";
 import { useShoppingHistory, useDeleteHistoryEntry } from "../services/shoppingHistoryService";
 
@@ -17,6 +18,8 @@ export function QuickAddGrid({ onAdd, disabled = false }: QuickAddGridProps) {
   const { data, isLoading } = useShoppingHistory();
   const history = data ?? [];
   const removeEntry = useDeleteHistoryEntry();
+  // The quick-selection history is shared household data.
+  const canWrite = useHouseholdCan("write");
 
   if (isLoading) {
     return (
@@ -48,7 +51,7 @@ export function QuickAddGrid({ onAdd, disabled = false }: QuickAddGridProps) {
                 label={item.name}
                 iconTag={item.icon_tag ?? null}
                 onAdd={() => onAdd(item.name, item.unit)}
-                onRemove={() => removeEntry.mutate(item.id)}
+                onRemove={canWrite ? () => removeEntry.mutate(item.id) : undefined}
                 removeLabel={t("removeEntry", { name: item.name })}
                 removeDisabled={removeEntry.isPending}
                 disabled={disabled}
