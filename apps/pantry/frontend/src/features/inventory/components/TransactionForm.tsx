@@ -29,7 +29,7 @@ export function TransactionForm({ mode, selectedProduct, onSuccess }: Transactio
   const locations = locationsData ?? [];
   const createTransactionMut = useCreateTransaction();
 
-  const [selectedLocationId, setSelectedLocationId] = React.useState("");
+  const [pickedLocationId, setSelectedLocationId] = React.useState("");
   const [quantity, setQuantity] = React.useState(1);
   const [unit, setUnit] = React.useState(selectedProduct.base_unit || "piece");
   const [batchCode, setBatchCode] = React.useState("");
@@ -37,15 +37,11 @@ export function TransactionForm({ mode, selectedProduct, onSuccess }: Transactio
   const [notes, setNotes] = React.useState("");
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  // Auto-select the backlog system location on mount
-  React.useEffect(() => {
-    if (locations.length > 0 && !selectedLocationId) {
-      const systemBacklog =
-        locations.find((loc) => loc.is_system && loc.name.toLowerCase() === "backlog") ??
-        locations[0];
-      setSelectedLocationId(systemBacklog.id);
-    }
-  }, [locations, selectedLocationId]);
+  // Until the user picks one, default to the backlog system location (or the first one).
+  const defaultLocationId = (
+    locations.find((loc) => loc.is_system && loc.name.toLowerCase() === "backlog") ?? locations[0]
+  )?.id;
+  const selectedLocationId = pickedLocationId || defaultLocationId || "";
 
   const adjustQuantity = (delta: number) =>
     setQuantity((prev) => Math.max(0.1, parseFloat((prev + delta).toFixed(2))));

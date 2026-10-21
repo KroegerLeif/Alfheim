@@ -1,6 +1,10 @@
 import { http, HttpResponse } from 'msw'
 import type { PlanRead } from '@/features/plans/types'
 
+/** Loosely typed JSON request body; tests only read the fields they care about. */
+type JsonValue = string | number | boolean | null | undefined | JsonValue[] | { [key: string]: JsonValue }
+type RequestBody = Record<string, JsonValue>
+
 export const mockEquipment = [
   {
     id: 'equip-1',
@@ -165,7 +169,7 @@ export const handlers = [
   }),
 
   http.post(/\/equipment$/, async ({ request }) => {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     return HttpResponse.json(
       {
         id: 'equip-new',
@@ -184,7 +188,7 @@ export const handlers = [
 
   http.patch(/\/equipment\/([^\/]+)$/, async ({ params, request }) => {
     const id = params[0] as string
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     const found = mockEquipment.find((entry) => entry.id === id) ?? mockEquipment[0]
     return HttpResponse.json({ ...found, ...body, id })
   }),
@@ -205,7 +209,7 @@ export const handlers = [
   }),
 
   http.post(/\/exercises$/, async ({ request }) => {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     return HttpResponse.json(
       {
         id: 'ex-new',
@@ -240,7 +244,7 @@ export const handlers = [
 
   http.put(/\/exercises\/([^\/]+)\/preference$/, async ({ params, request }) => {
     const id = params[0] as string
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     return HttpResponse.json({
       ...mockExercisePreference,
       id: 'pref-new',
@@ -274,7 +278,7 @@ export const handlers = [
 
   http.patch(/\/exercises\/([^\/]+)$/, async ({ params, request }) => {
     const id = params[0] as string
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     const found = mockExercises.find((exercise) => exercise.id === id) ?? mockExercises[0]
     return HttpResponse.json({ ...found, ...body, id })
   }),
@@ -315,7 +319,7 @@ export const handlers = [
   }),
 
   http.post(/\/plans$/, async ({ request }) => {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     return HttpResponse.json(
       {
         id: 'plan-new',
@@ -335,7 +339,7 @@ export const handlers = [
 
   http.patch(/\/plans\/([^/]+)$/, async ({ params, request }) => {
     const id = params[0] as string
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     const found = mockPlans.find((p) => p.id === id) ?? mockPlans[0]
     return HttpResponse.json({ ...found, ...body, id })
   }),

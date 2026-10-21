@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@alfheim/shared';
 import { ColorPicker } from './ColorPicker';
 import { SavedThemePresets } from './SavedThemePresets';
+import { useCustomPresets } from '../useCustomPresets';
 
 export interface CustomColorPalette {
   primary: string;
@@ -30,40 +31,8 @@ interface CustomThemeBuilderProps {
 
 export function CustomThemeBuilder({ customColors, setCustomColors, resolvedMode }: CustomThemeBuilderProps) {
   const { t } = useTranslation();
-  const [presets, setPresets] = useState<CustomPreset[]>([]);
+  const [presets, savePresets] = useCustomPresets();
   const [presetError, setPresetError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('alfheim_custom_presets');
-        if (saved) {
-          setPresets(JSON.parse(saved));
-        } else {
-          const defaults: CustomPreset[] = [
-            {
-              id: 'preset-cyberpunk',
-              name: 'Neon Cyberpunk',
-              colors: {
-                dark: { primary: '#ec4899', canvas: '#090d16', accent: '#00f0ff' },
-                light: { primary: '#ec4899', canvas: '#fff0f6', accent: '#00f0ff' }
-              }
-            },
-            {
-              id: 'preset-minty',
-              name: 'Minty Fresh',
-              colors: {
-                dark: { primary: '#10b981', canvas: '#061c15', accent: '#10b981' },
-                light: { primary: '#059669', canvas: '#f0fdf4', accent: '#059669' }
-              }
-            }
-          ];
-          setPresets(defaults);
-          localStorage.setItem('alfheim_custom_presets', JSON.stringify(defaults));
-        }
-      } catch {}
-    }
-  }, []);
 
   const handleSavePreset = (name: string) => {
     if (!name.trim()) {
@@ -79,15 +48,13 @@ export function CustomThemeBuilder({ customColors, setCustomColors, resolvedMode
     };
 
     const updated = [...presets, newPreset];
-    setPresets(updated);
-    localStorage.setItem('alfheim_custom_presets', JSON.stringify(updated));
+    savePresets(updated);
     setPresetError(null);
   };
 
   const handleDeletePreset = (id: string) => {
     const updated = presets.filter(p => p.id !== id);
-    setPresets(updated);
-    localStorage.setItem('alfheim_custom_presets', JSON.stringify(updated));
+    savePresets(updated);
   };
 
   const handleColorChange = (key: 'primary' | 'canvas' | 'accent', value: string) => {

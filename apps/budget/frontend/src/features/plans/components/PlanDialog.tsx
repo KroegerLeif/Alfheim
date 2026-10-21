@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { Plan, PlanCreate, PlanType } from "@/features/budget/types";
 import { FormError } from "@/components/shared/FormError";
@@ -14,7 +14,12 @@ export interface PlanDialogProps {
   onSubmit: (data: PlanCreate) => Promise<void>;
 }
 
-export function PlanDialog({
+export function PlanDialog(props: PlanDialogProps) {
+  if (!props.open) return null;
+  return <PlanDialogForm key={props.plan?.id ?? "new"} {...props} />;
+}
+
+function PlanDialogForm({
   open,
   plan,
   defaultType = "MONTHLY",
@@ -22,33 +27,13 @@ export function PlanDialog({
   onSubmit,
 }: PlanDialogProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [planType, setPlanType] = useState<PlanType>(defaultType);
-  const [totalBudget, setTotalBudget] = useState("0.00");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [name, setName] = useState(plan?.name ?? "");
+  const [description, setDescription] = useState(plan?.description || "");
+  const [planType, setPlanType] = useState<PlanType>(plan?.plan_type ?? defaultType);
+  const [totalBudget, setTotalBudget] = useState(plan ? plan.total_budget.toString() : "0.00");
+  const [startDate, setStartDate] = useState(plan?.start_date || "");
+  const [endDate, setEndDate] = useState(plan?.end_date || "");
   const { submitting, error, run } = useFormSubmit(open);
-
-  useEffect(() => {
-    if (plan) {
-      setName(plan.name);
-      setDescription(plan.description || "");
-      setPlanType(plan.plan_type);
-      setTotalBudget(plan.total_budget.toString());
-      setStartDate(plan.start_date || "");
-      setEndDate(plan.end_date || "");
-    } else {
-      setName("");
-      setDescription("");
-      setPlanType(defaultType);
-      setTotalBudget("0.00");
-      setStartDate("");
-      setEndDate("");
-    }
-  }, [plan, defaultType, open]);
-
-  if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

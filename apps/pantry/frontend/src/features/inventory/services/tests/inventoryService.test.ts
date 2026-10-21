@@ -1,3 +1,4 @@
+import type { ResponsePromise } from 'ky'
 import { renderHook, waitFor } from '@testing-library/react'
 import {
   useInventoryState,
@@ -29,7 +30,7 @@ describe('Inventory Hooks Service', () => {
     const mockJson = vi.fn().mockResolvedValue(mockData)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as any)
+    } as unknown as ResponsePromise)
 
     const { result } = renderHook(() => useInventoryState('p1', 'l1'), {
       wrapper: createQueryWrapper(),
@@ -49,7 +50,7 @@ describe('Inventory Hooks Service', () => {
     const mockJson = vi.fn().mockResolvedValue(mockData)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as any)
+    } as unknown as ResponsePromise)
 
     const { result } = renderHook(() => useLowStockItems(), {
       wrapper: createQueryWrapper(),
@@ -69,7 +70,7 @@ describe('Inventory Hooks Service', () => {
     const mockJson = vi.fn().mockResolvedValue(mockData)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as any)
+    } as unknown as ResponsePromise)
 
     const { result } = renderHook(() => useExpirationSummary(), {
       wrapper: createQueryWrapper(),
@@ -84,7 +85,7 @@ describe('Inventory Hooks Service', () => {
     const mockJson = vi.fn().mockResolvedValue(mockTx)
     vi.mocked(pantryClient.post).mockReturnValue({
       json: mockJson,
-    } as any)
+    } as unknown as ResponsePromise)
 
     const { result } = renderHook(() => useCreateTransaction(), {
       wrapper: createQueryWrapper(),
@@ -110,7 +111,7 @@ describe('Inventory Hooks Service', () => {
     const mockJson = vi.fn().mockResolvedValue(mockData)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as any)
+    } as unknown as ResponsePromise)
 
     const { result } = renderHook(() => useLedgerHistory('p1', 'l1', 10, 0), {
       wrapper: createQueryWrapper(),

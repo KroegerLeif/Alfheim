@@ -1,5 +1,9 @@
 import { http, HttpResponse } from 'msw'
 
+/** Loosely typed JSON request body; tests only read the fields they care about. */
+type JsonValue = string | number | boolean | null | undefined | JsonValue[] | { [key: string]: JsonValue }
+type RequestBody = Record<string, JsonValue>
+
 const VALID_UUID_LIST_1 = '11111111-1111-4111-a111-111111111111'
 const VALID_UUID_LIST_2 = '22222222-2222-4222-a222-222222222222'
 const VALID_UUID_LIST_NEW = '66666666-6666-4666-a666-666666666666'
@@ -100,7 +104,7 @@ export const handlers = [
   }),
 
   http.post('*/api/v1/shopping-lists', async ({ request }) => {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     return HttpResponse.json({
       id: VALID_UUID_LIST_NEW,
       home_id: VALID_UUID_HOME,
@@ -130,7 +134,7 @@ export const handlers = [
   }),
 
   http.post('*/api/v1/products', async ({ request }) => {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RequestBody
     return HttpResponse.json({
       id: PANTRY_PRODUCT_ID,
       name: body.name || 'Product',

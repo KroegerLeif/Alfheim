@@ -1,11 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { flushQueue, type FlushResult } from "../flush";
 import { countPending, enqueueSet, type EnqueueInput } from "../queue";
 import { isIndexedDbAvailable } from "../db";
 import type { PendingSet, SyncQueueState } from "../types";
+
+function subscribeOnline(onChange: () => void): () => void {
+  window.addEventListener("online", onChange);
+  window.addEventListener("offline", onChange);
+  return () => {
+    window.removeEventListener("online", onChange);
+    window.removeEventListener("offline", onChange);
+  };
+}
 
 /** Background retry cadence while entries remain queued. */
 const RETRY_INTERVAL_MS = 30_000;
@@ -37,7 +46,7 @@ export function useSyncQueue(options: UseSyncQueueOptions = {}): UseSyncQueueRes
   const [pendingCount, setPendingCount] = useState(0);
   const [activeFlushes, setActiveFlushes] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(true);
+  const isOnline = useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
   const [droppedKeys, setDroppedKeys] = useState<string[]>([]);
   const onDroppedRef = useRef(options.onDropped);
 
@@ -97,28 +106,31 @@ export function useSyncQueue(options: UseSyncQueueOptions = {}): UseSyncQueueRes
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    setIsOnline(navigator.onLine);
-    void refreshCount();
+    // Read the initial count in a promise callback rather than synchronously in the effect.
+    let cancelled = false;
+    if (isIndexedDbAvailable()) {
+      countPending()
+        .then((count) => {
+          if (!cancelled) setPendingCount(count);
+        })
+        .catch(() => {
+          // A blocked or unavailable store must not break the UI.
+        });
+    }
 
-    const handleOnline = () => {
-      setIsOnline(true);
-      void flushNow();
-    };
-    const handleOffline = () => setIsOnline(false);
-
+    const handleOnline = () => void flushNow();
     window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
 
     const interval = setInterval(() => {
       if (navigator.onLine) void flushNow();
     }, RETRY_INTERVAL_MS);
 
     return () => {
+      cancelled = true;
       window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
       clearInterval(interval);
     };
-  }, [flushNow, refreshCount]);
+  }, [flushNow]);
 
   return {
     pendingCount,

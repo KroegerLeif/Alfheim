@@ -17,6 +17,22 @@ export interface BerserkerCursor {
   setIndex: number;
 }
 
+/** First exercise with an unfinished set, and that set; empty when the session is not active. */
+function findCursor(
+  exercises: SessionExerciseRead[],
+  isActive: boolean,
+  isSetDone: (exercise: SessionExerciseRead, set: SessionSetRead) => boolean
+): BerserkerCursor {
+  const none: BerserkerCursor = { exercise: null, set: null, setIndex: -1 };
+  if (!isActive) return none;
+  for (const exercise of exercises) {
+    const sets = exercise.sets ?? [];
+    const index = sets.findIndex((set) => !isSetDone(exercise, set));
+    if (index !== -1) return { exercise, set: sets[index], setIndex: index };
+  }
+  return none;
+}
+
 /** Thrown by `finishSession` when sets are still waiting to reach the server. */
 export class PendingSetsError extends Error {
   readonly count: number;
@@ -94,17 +110,7 @@ export function useBerserkerSession(sessionId: string) {
   );
 
   /** First exercise with an unfinished set, and that set. */
-  const cursor: BerserkerCursor = useMemo(() => {
-    if (!isActive) return { exercise: null, set: null, setIndex: -1 };
-    for (const exercise of exercises) {
-      const sets = exercise.sets ?? [];
-      const index = sets.findIndex((set) => !isSetDone(exercise, set));
-      if (index !== -1) {
-        return { exercise, set: sets[index], setIndex: index };
-      }
-    }
-    return { exercise: null, set: null, setIndex: -1 };
-  }, [exercises, isActive, isSetDone]);
+  const cursor = useMemo(() => findCursor(exercises, isActive, isSetDone), [exercises, isActive, isSetDone]);
 
   const isSessionFinished = isActive && exercises.length > 0 && cursor.set === null;
 

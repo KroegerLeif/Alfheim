@@ -1,3 +1,4 @@
+import type { KyResponse, ResponsePromise } from 'ky'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useLocations, useCreateLocation, useUpdateLocation, useDeleteLocation } from '../locationService'
 import { createQueryWrapper } from '@/tests/utils'
@@ -28,7 +29,7 @@ describe('Location Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockLocations)
       vi.mocked(pantryClient.get).mockReturnValue({
         json: mockJson,
-      } as any)
+      } as unknown as ResponsePromise)
 
       const { result } = renderHook(() => useLocations(), {
         wrapper: createQueryWrapper(),
@@ -48,7 +49,7 @@ describe('Location Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockLocRead)
       vi.mocked(pantryClient.post).mockReturnValue({
         json: mockJson,
-      } as any)
+      } as unknown as ResponsePromise)
 
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
@@ -71,7 +72,7 @@ describe('Location Service Hooks', () => {
   describe('useUpdateLocation', () => {
     it('patches the location and refreshes locations and inventory', async () => {
       const updated = { id: 'l1', name: 'Cellar', description: null }
-      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue(updated) } as any)
+      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue(updated) } as unknown as ResponsePromise)
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
       const { result } = renderHook(() => useUpdateLocation(), { wrapper: createQueryWrapper() })
@@ -87,7 +88,7 @@ describe('Location Service Hooks', () => {
 
   describe('useDeleteLocation', () => {
     it('deletes the location and refreshes the list', async () => {
-      vi.mocked(pantryClient.delete).mockResolvedValue({} as any)
+      vi.mocked(pantryClient.delete).mockResolvedValue({} as KyResponse)
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
       const { result } = renderHook(() => useDeleteLocation(), { wrapper: createQueryWrapper() })

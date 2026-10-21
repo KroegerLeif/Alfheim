@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { Account, AccountCreate, AccountType } from "@/features/budget/types";
 import { FormError } from "@/components/shared/FormError";
@@ -13,29 +13,18 @@ export interface AccountDialogProps {
   onSubmit: (data: AccountCreate) => Promise<void>;
 }
 
-export function AccountDialog({ open, account, onClose, onSubmit }: AccountDialogProps) {
+export function AccountDialog(props: AccountDialogProps) {
+  if (!props.open) return null;
+  return <AccountDialogForm key={props.account?.id ?? "new"} {...props} />;
+}
+
+function AccountDialogForm({ open, account, onClose, onSubmit }: AccountDialogProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState("");
-  const [accountType, setAccountType] = useState<AccountType>("CHECKING");
-  const [balance, setBalance] = useState("0.00");
-  const [currency, setCurrency] = useState("EUR");
+  const [name, setName] = useState(account?.name ?? "");
+  const [accountType, setAccountType] = useState<AccountType>(account?.account_type ?? "CHECKING");
+  const [balance, setBalance] = useState(account ? account.balance.toString() : "0.00");
+  const [currency, setCurrency] = useState(account?.currency ?? "EUR");
   const { submitting, error, run } = useFormSubmit(open);
-
-  useEffect(() => {
-    if (account) {
-      setName(account.name);
-      setAccountType(account.account_type);
-      setBalance(account.balance.toString());
-      setCurrency(account.currency);
-    } else {
-      setName("");
-      setAccountType("CHECKING");
-      setBalance("0.00");
-      setCurrency("EUR");
-    }
-  }, [account, open]);
-
-  if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

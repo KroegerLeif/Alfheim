@@ -13,11 +13,6 @@ const eslintConfig = defineConfig([
       "jsx-a11y/alt-text": "warn",
     },
   },
-  {
-    rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
-    },
-  },
   // Test doubles legitimately use require() inside vi.mock factories and anonymous wrapper components.
   {
     files: ["src/tests/**", "**/*.test.{ts,tsx}"],
