@@ -1,6 +1,6 @@
 module alfheim/installer
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/charmbracelet/huh v1.0.0
