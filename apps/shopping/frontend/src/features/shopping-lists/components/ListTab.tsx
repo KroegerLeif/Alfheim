@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { User, Home, GripVertical, Trash2 } from "lucide-react";
+import { useHouseholdCan } from "@alfheim/shared";
 import { cn } from "@/lib/utils";
 import type { ShoppingList } from "../types";
 
@@ -38,6 +39,9 @@ export function ListTab({
 }: ListTabProps) {
   const tNav = useTranslations("Navigation");
   const tChecklist = useTranslations("Checklist");
+  // Unprotected tabs are shared custom lists: reordering and deleting them needs MEMBER or higher.
+  const canWrite = useHouseholdCan("write");
+  const movable = !isProtected && canWrite;
 
   const label = list.is_personal
     ? username && username !== "User"
@@ -49,10 +53,10 @@ export function ListTab({
 
   return (
     <div
-      draggable={!isProtected}
-      onDragStart={(e) => !isProtected && onDragStart(e)}
-      onDragOver={(e) => !isProtected && onDragOver(e)}
-      onDrop={(e) => !isProtected && onDrop(e)}
+      draggable={movable}
+      onDragStart={(e) => movable && onDragStart(e)}
+      onDragOver={(e) => movable && onDragOver(e)}
+      onDrop={(e) => movable && onDrop(e)}
       onDragEnd={onDragEnd}
       className={cn(
         "flex items-center gap-1 shrink-0 transition-all duration-200",
@@ -107,7 +111,7 @@ export function ListTab({
         </span>
       </button>
 
-      {canDelete && (
+      {canDelete && canWrite && (
         <button
           type="button"
           onClick={(e) => {

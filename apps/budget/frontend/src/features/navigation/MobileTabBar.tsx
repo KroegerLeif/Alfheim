@@ -2,17 +2,10 @@
 
 import React, { useState } from "react";
 import { LayoutDashboard, Calendar, Plus, PiggyBank } from "lucide-react";
-import { useTranslation } from "@alfheim/shared";
+import { PermissionHint, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { MobileMoreButton, MobileMorePanel, isMoreTab } from "./MobileMoreMenu";
 
-export type TabKey =
-  | "dashboard"
-  | "planning"
-  | "pots"
-  | "accounts"
-  | "transactions"
-  | "sankey"
-  | "analytics";
+export type TabKey = "dashboard" | "planning" | "pots" | "accounts" | "transactions" | "sankey" | "analytics";
 export type PlanType = "monthly" | "event";
 
 export interface MobileTabBarProps {
@@ -36,6 +29,7 @@ export function MobileTabBar({
   onTabChange,
 }: MobileTabBarProps) {
   const { t } = useTranslation();
+  const write = useHouseholdPermission("write");
   const [moreOpen, setMoreOpen] = useState(false);
 
   const selectTab = (tab: TabKey) => {
@@ -72,9 +66,7 @@ export function MobileTabBar({
         {/* 2. Planning tab with a monthly / event segmented control */}
         <div
           className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors duration-200 ${
-            activeTab === "planning"
-              ? "text-[var(--primary-main)] font-semibold"
-              : "text-[var(--text-muted)]"
+            activeTab === "planning" ? "text-[var(--primary-main)] font-semibold" : "text-[var(--text-muted)]"
           }`}
         >
           {activeTab === "planning" && (
@@ -128,14 +120,17 @@ export function MobileTabBar({
 
         {/* 3. Quick-Add (+) Button */}
         <div className="flex flex-col items-center justify-center flex-1 h-full py-1">
-          <button
-            type="button"
-            onClick={onQuickAdd}
-            aria-label={t("budget.transactions.quickAdd")}
-            className="w-10 h-10 rounded-full bg-[var(--primary-main)] text-white flex items-center justify-center shadow-md hover:opacity-90 active:scale-95 transition-all"
-          >
-            <Plus className="w-6 h-6" />
-          </button>
+          <PermissionHint hint={write.hint}>
+            <button
+              type="button"
+              onClick={onQuickAdd}
+              disabled={!write.allowed}
+              aria-label={t("budget.transactions.quickAdd")}
+              className="w-10 h-10 rounded-full bg-[var(--primary-main)] text-white flex items-center justify-center shadow-md hover:opacity-90 active:scale-95 transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Plus className="w-6 h-6" />
+            </button>
+          </PermissionHint>
         </div>
 
         {/* 4. Pots Tab */}
@@ -157,11 +152,7 @@ export function MobileTabBar({
         </button>
 
         {/* 5. More menu: views without a bottom tab */}
-        <MobileMoreButton
-          active={isMoreTab(activeTab)}
-          open={moreOpen}
-          onToggle={() => setMoreOpen((open) => !open)}
-        />
+        <MobileMoreButton active={isMoreTab(activeTab)} open={moreOpen} onToggle={() => setMoreOpen((open) => !open)} />
       </nav>
     </>
   );

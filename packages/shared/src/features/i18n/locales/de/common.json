@@ -286,6 +286,11 @@
       "unavailable_title": "Haushaltsdienst nicht erreichbar",
       "unavailable_desc": "Deine Haushalte konnten gerade nicht geladen werden. Bitte versuche es gleich noch einmal.",
       "retry": "Erneut versuchen"
+    },
+    "roles": {
+      "write_forbidden": "Gäste können die Daten dieses Haushalts ansehen, aber nicht ändern.",
+      "admin_delete_forbidden": "Nur Admins und Eigentümer des Haushalts können das löschen.",
+      "guest_notice": "Du bist Gast in diesem Haushalt: Du kannst gemeinsame Daten ansehen, aber nicht ändern."
     }
   },
   "settings": {

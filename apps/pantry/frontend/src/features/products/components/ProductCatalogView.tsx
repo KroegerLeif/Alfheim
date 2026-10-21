@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { useProducts, useSearchProducts } from "../services/productService";
 import { useCategories } from "@/features/categories/services/categoryService";
 import { Search } from "lucide-react";
@@ -18,6 +18,7 @@ import { ErrorBanner } from "@/components/shared/ErrorBanner";
  */
 export function ProductCatalogView() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
 
@@ -62,7 +63,7 @@ export function ProductCatalogView() {
 
       {/* Right: Create form and category management */}
       <div className="lg:col-span-1 bg-[var(--surface-elevated)] overflow-y-auto min-w-0">
-        <ProductCreateForm />
+        {canWrite && <ProductCreateForm />}
         <CategoryManager />
       </div>
     </div>

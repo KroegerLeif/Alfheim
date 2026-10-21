@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button, useTranslation } from "@alfheim/shared";
+import { Button, useHouseholdCan, useTranslation } from "@alfheim/shared";
 import {
   CatalogFilterBar,
   CatalogGrid,
@@ -13,6 +13,7 @@ import { ItemDialog } from "@/features/item-dialog";
 
 export default function CatalogPage() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const {
     category,
     setCategory,
@@ -61,9 +62,11 @@ export default function CatalogPage() {
           </p>
         </div>
 
-        <Button type="button" variant="default" size="sm" onClick={handleOpenAddDialog}>
-          + {t("library.catalog.addItem")}
-        </Button>
+        {canWrite && (
+          <Button type="button" variant="default" size="sm" onClick={handleOpenAddDialog}>
+            + {t("library.catalog.addItem")}
+          </Button>
+        )}
       </div>
 
       <CatalogFilterBar

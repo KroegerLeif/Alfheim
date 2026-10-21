@@ -8,6 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  PermissionHint,
+  useHouseholdPermission,
   useTranslation,
 } from "@alfheim/shared";
 import { LocationItem, MediaItem } from "@/features/catalog/types";
@@ -52,6 +54,7 @@ export function ItemDialog({
   onSuccess,
 }: ItemDialogProps) {
   const { t } = useTranslation();
+  const write = useHouseholdPermission("write");
   const [formData, setFormData] = useState<ItemFormData>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,12 +121,15 @@ export function ItemDialog({
           {!item && <MetadataLookupSection onAutoFill={handleFormChange} />}
 
           <form id="item-form" onSubmit={handleSubmit}>
-            <ItemFormFields
-              formData={formData}
-              onChange={handleFormChange}
-              locations={locations}
-              providers={providers}
-            />
+            {/* Guests open the dialog read-only: they can view the item and its manual. */}
+            <fieldset disabled={!write.allowed} className="min-w-0">
+              <ItemFormFields
+                formData={formData}
+                onChange={handleFormChange}
+                locations={locations}
+                providers={providers}
+              />
+            </fieldset>
           </form>
 
           {item && (formData.media_type === "GAME" || item.manual_s3_key) && (
@@ -152,14 +158,16 @@ export function ItemDialog({
           >
             {t("library.itemDialog.cancel")}
           </Button>
-          <Button
-            type="submit"
-            form="item-form"
-            size="sm"
-            disabled={isSubmitting || !formData.title.trim()}
-          >
-            {isSubmitting ? t("common.saving") : t("library.itemDialog.save")}
-          </Button>
+          <PermissionHint hint={write.hint}>
+            <Button
+              type="submit"
+              form="item-form"
+              size="sm"
+              disabled={isSubmitting || !formData.title.trim() || !write.allowed}
+            >
+              {isSubmitting ? t("common.saving") : t("library.itemDialog.save")}
+            </Button>
+          </PermissionHint>
         </DialogFooter>
       </DialogContent>
     </Dialog>

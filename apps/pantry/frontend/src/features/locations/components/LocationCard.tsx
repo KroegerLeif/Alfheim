@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@alfheim/shared";
+import { PermissionHint, useHouseholdCan, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { MapPin, Clock, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { LocationRead } from "@/features/locations/types";
@@ -21,6 +21,8 @@ interface LocationCardProps {
  */
 export function LocationCard({ location, expiredCount, knappCount }: LocationCardProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
   const deleteLocationMut = useDeleteLocation();
   const [isEditing, setIsEditing] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -59,18 +61,20 @@ export function LocationCard({ location, expiredCount, knappCount }: LocationCar
             )}
           </>
         )}
-        {!location.is_system && (
+        {!location.is_system && canWrite && (
           <div className="ml-auto flex items-center gap-1.5">
             <button type="button" onClick={() => setIsEditing(true)}
               className="p-1.5 rounded border border-[var(--border-subtle)] hover:border-[var(--primary-main)] transition-colors cursor-pointer"
               aria-label={`${t("pantry.edit.location")}: ${location.name}`} title={t("pantry.edit.location")}>
               <Pencil className="h-3.5 w-3.5" />
             </button>
-            <button type="button" onClick={() => setIsDeleting(true)}
-              className="p-1.5 rounded border border-[var(--border-subtle)] hover:border-red-500 hover:text-red-400 transition-colors cursor-pointer"
-              aria-label={`${t("pantry.delete.location")}: ${location.name}`} title={t("pantry.delete.location")}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <PermissionHint hint={remove.hint}>
+              <button type="button" onClick={() => setIsDeleting(true)} disabled={!remove.allowed}
+                className="p-1.5 rounded border border-[var(--border-subtle)] hover:border-red-500 hover:text-red-400 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={`${t("pantry.delete.location")}: ${location.name}`} title={remove.allowed ? t("pantry.delete.location") : undefined}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </PermissionHint>
           </div>
         )}
       </div>

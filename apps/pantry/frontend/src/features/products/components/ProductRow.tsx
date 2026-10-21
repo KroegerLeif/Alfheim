@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AlfiAvatar, useTranslation } from "@alfheim/shared";
+import { AlfiAvatar, useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { Pencil, Trash2 } from "lucide-react";
 import { usePantryChat } from "@/core/chatContext";
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
@@ -25,6 +25,7 @@ const ICON_BUTTON =
  */
 export function ProductRow({ product, category }: ProductRowProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const { openChat } = usePantryChat();
   const deleteProductMut = useDeleteProduct();
   const [isEditing, setIsEditing] = React.useState(false);
@@ -50,7 +51,7 @@ export function ProductRow({ product, category }: ProductRowProps) {
       </div>
 
       <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
-        {!product.is_global && (
+        {!product.is_global && canWrite && (
           <>
             <button type="button" onClick={() => setIsEditing(true)} className={ICON_BUTTON}
               aria-label={`${t("pantry.edit.product")}: ${product.name}`} title={t("pantry.edit.product")}>

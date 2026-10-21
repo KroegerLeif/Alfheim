@@ -5,6 +5,7 @@ import { CloudOff, Lock, HousePlus, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../i18n/utils/useTranslation';
 import { HouseholdProvider, useActiveHousehold } from './HouseholdProvider';
 import { HOUSEHOLD_APP_URLS, isHouseholdAccessError } from './householdStore';
+import { HouseholdReadOnlyNotice } from './householdPermissions';
 
 export interface HouseholdGateProps {
   children: React.ReactNode;
@@ -113,7 +114,12 @@ function GateContent({ children, loadingFallback }: HouseholdGateProps) {
 
   // Keyed by household: switching remounts the content so effect-based fetches
   // and local state never carry over from the previous household.
-  return <React.Fragment key={householdId ?? 'none'}>{children}</React.Fragment>;
+  return (
+    <React.Fragment key={householdId ?? 'none'}>
+      <HouseholdReadOnlyNotice />
+      {children}
+    </React.Fragment>
+  );
 }
 
 /**
@@ -121,7 +127,8 @@ function GateContent({ children, loadingFallback }: HouseholdGateProps) {
  * them when the active household changes). Otherwise it
  * explains what is missing: no membership (link to household onboarding),
  * household rejected by the backend (switch or onboard), or core/household
- * unavailable (retry).
+ * unavailable (retry). Read-only (GUEST) members see a short notice above
+ * the content.
  */
 export function HouseholdGate(props: HouseholdGateProps) {
   return (

@@ -8,6 +8,8 @@ type Language = "de" | "en" | "pl";
 
 interface ProviderOptions {
   language?: Language;
+  /** Caller's role in the active household (default OWNER). */
+  role?: string;
 }
 
 export function createQueryClient(): QueryClient {
@@ -17,13 +19,17 @@ export function createQueryClient(): QueryClient {
 }
 
 /** Wrapper with the real dictionaries, a query client and an active household. */
-export function createWrapper({ language = "en" }: ProviderOptions = {}) {
+export function createWrapper({ language = "en", role = "OWNER" }: ProviderOptions = {}) {
   const queryClient = createQueryClient();
-  const Household = StaticHouseholdProvider as React.FC<{ householdId: string; children?: ReactNode }>;
+  const Household = StaticHouseholdProvider as React.FC<{
+    householdId: string;
+    value?: { role: string };
+    children?: ReactNode;
+  }>;
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <LanguageProvider defaultLanguage={language}>
-        <Household householdId="hh-1">
+        <Household householdId="hh-1" value={{ role }}>
           <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </Household>
       </LanguageProvider>
@@ -34,9 +40,9 @@ export function createWrapper({ language = "en" }: ProviderOptions = {}) {
 
 export function renderWithProviders(
   ui: ReactElement,
-  { language, ...options }: ProviderOptions & Omit<RenderOptions, "wrapper"> = {}
+  { language, role, ...options }: ProviderOptions & Omit<RenderOptions, "wrapper"> = {}
 ) {
-  return render(ui, { wrapper: createWrapper({ language }), ...options });
+  return render(ui, { wrapper: createWrapper({ language, role }), ...options });
 }
 
 /** Build the error ky throws for a non-2xx response, with an optional JSON body. */

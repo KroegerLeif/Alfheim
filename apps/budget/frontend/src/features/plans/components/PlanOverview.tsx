@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MoneyDisplay, useTranslation } from "@alfheim/shared";
+import { MoneyDisplay, PermissionHint, useHouseholdCan, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { Plan, PlanSummaryResponse } from "@/features/budget/types";
 import { Plus, Trash2, Edit2 } from "lucide-react";
 
@@ -25,6 +25,8 @@ export function PlanOverview({
   onAddCategory,
 }: PlanOverviewProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
 
   if (loading) {
     return <div className="h-40 rounded-2xl bg-[var(--surface-card)] animate-pulse" />;
@@ -34,14 +36,16 @@ export function PlanOverview({
     return (
       <div className="p-8 text-center rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] space-y-3">
         <p className="text-sm text-[var(--text-muted)]">{t("budget.plans.noActivePlan")}</p>
-        <button
-          type="button"
-          onClick={onAddPlan}
-          className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium inline-flex items-center gap-1.5"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t("budget.plans.createNewPlan")}</span>
-        </button>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={onAddPlan}
+            className="px-4 py-2 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium inline-flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t("budget.plans.createNewPlan")}</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -67,32 +71,37 @@ export function PlanOverview({
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onAddCategory}
-            className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium flex items-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t("budget.plans.addCategory")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onEditPlan(plan)}
-            aria-label={t("budget.plans.editLabel", { name: plan.name })}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-canvas)]"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDeletePlan(plan.id)}
-            aria-label={t("budget.plans.deleteLabel", { name: plan.name })}
-            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        {canWrite && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onAddCategory}
+              className="px-3 py-1.5 rounded-lg bg-[var(--primary-main)] text-white text-xs font-medium flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t("budget.plans.addCategory")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onEditPlan(plan)}
+              aria-label={t("budget.plans.editLabel", { name: plan.name })}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-canvas)]"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <PermissionHint hint={remove.hint}>
+              <button
+                type="button"
+                onClick={() => onDeletePlan(plan.id)}
+                disabled={!remove.allowed}
+                aria-label={t("budget.plans.deleteLabel", { name: plan.name })}
+                className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </PermissionHint>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">

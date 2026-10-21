@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { PermissionHint, useHouseholdPermission } from "@alfheim/shared";
 import { Device } from "@/shared/types";
 import { CATEGORY_ICONS } from "@/shared/data";
 import { cn } from "@/core/utils";
@@ -23,6 +24,7 @@ export function DeviceMaintenanceList({
   onStartMaintenance,
 }: DeviceMaintenanceListProps) {
   const t = useTranslations("maintenance");
+  const write = useHouseholdPermission("write");
   const formatDate = useFormatDate();
   const list = filteredDevices ?? [];
 
@@ -121,14 +123,17 @@ export function DeviceMaintenanceList({
                     <Eye className="h-3.5 w-3.5" />
                     {t("maintenanceWork.detailsBtn")}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => onStartMaintenance(device)}
-                    className="px-4 py-2 rounded-xl bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[var(--primary-main)]/10"
-                  >
-                    <Play className="h-3.5 w-3.5 fill-black" />
-                    {t("maintenanceWork.startBtn")}
-                  </button>
+                  <PermissionHint hint={write.hint}>
+                    <button
+                      type="button"
+                      onClick={() => onStartMaintenance(device)}
+                      disabled={!write.allowed}
+                      className="px-4 py-2 rounded-xl bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[var(--primary-main)]/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Play className="h-3.5 w-3.5 fill-black" />
+                      {t("maintenanceWork.startBtn")}
+                    </button>
+                  </PermissionHint>
                 </div>
               </div>
             );

@@ -13,6 +13,7 @@ import {
 } from "../services/shoppingListService";
 import type { ShoppingItem } from "../types";
 import { getCategoryKeyForItem } from "../utils/category";
+import { useCanEditList } from "../hooks/useCanEditList";
 
 interface ChecklistContainerProps {
   listId: string;
@@ -31,6 +32,7 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
   const { data: list, isLoading, isError } = useShoppingListDetails(listId);
   const toggleItem = useUpdateShoppingItem(listId);
   const deleteItem = useDeleteShoppingItem(listId);
+  const canEdit = useCanEditList(list);
 
   if (isError) {
     return (
@@ -93,6 +95,7 @@ export function ChecklistContainer({ listId }: ChecklistContainerProps) {
       onToggle={() => toggleItem.mutate({ itemId: item.id, payload: { is_completed: !item.is_completed } })}
       onDelete={() => deleteItem.mutate(item.id)}
       isOptimistic={isPendingItem(item)}
+      readOnly={!canEdit}
     />
   );
 

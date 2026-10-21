@@ -6,7 +6,7 @@ import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
-import { useAuth } from "@alfheim/shared";
+import { useAuth, useHouseholdCan } from "@alfheim/shared";
 import { Home, User } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ export function Sidebar() {
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const { activeListId, setActiveListId } = useActiveList();
   const { user } = useAuth();
+  const canWrite = useHouseholdCan("write");
 
   const { data: listsData, isLoading } = useShoppingLists();
   const lists = useMemo(() => listsData ?? [], [listsData]);
@@ -185,7 +186,7 @@ export function Sidebar() {
                 />
               ))}
 
-            <CreateListForm onSave={(name) => createList.mutate({ name }, { onSuccess: (l) => setActiveListId(l.id) })} isPending={createList.isPending} />
+            {canWrite && <CreateListForm onSave={(name) => createList.mutate({ name }, { onSuccess: (l) => setActiveListId(l.id) })} isPending={createList.isPending} />}
           </div>
         </div>
       </aside>

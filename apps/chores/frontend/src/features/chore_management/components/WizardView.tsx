@@ -1,10 +1,11 @@
 "use client";
 
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { WizardSteps } from "./WizardSteps";
 
 export function WizardView() {
   const { t } = useTranslation();
+  const write = useHouseholdPermission("write");
 
   return (
     <div className="space-y-6">
@@ -18,7 +19,13 @@ export function WizardView() {
         </p>
       </div>
 
-      <WizardSteps />
+      {write.allowed ? (
+        <WizardSteps />
+      ) : (
+        <p role="note" className="text-center text-sm text-[var(--text-muted)]">
+          {write.hint}
+        </p>
+      )}
     </div>
   );
 }

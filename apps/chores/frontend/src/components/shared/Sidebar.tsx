@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "@/navigation";
-import { useTranslation, Sidebar as SharedSidebar } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation, Sidebar as SharedSidebar } from "@alfheim/shared";
 import {
   LayoutDashboard,
   LayoutGrid,
@@ -13,6 +13,7 @@ import { useTodayChores } from "@/features/chore_management/services/choresServi
 export function Sidebar() {
   const { t } = useTranslation();
   const pathname = usePathname();
+  const canWrite = useHouseholdCan("write");
   const { data: todayChores = [] } = useTodayChores();
   const pendingCount = (todayChores ?? []).filter(c => c.status !== "completed").length;
 
@@ -32,11 +33,15 @@ export function Sidebar() {
       label: t("chores.insights"),
       icon: <Goal className="h-4 w-4 shrink-0" />,
     },
-    {
-      href: "/wizard",
-      label: t("chores.wizard"),
-      icon: <PlusCircle className="h-4 w-4 shrink-0" />,
-    },
+    ...(canWrite
+      ? [
+          {
+            href: "/wizard",
+            label: t("chores.wizard"),
+            icon: <PlusCircle className="h-4 w-4 shrink-0" />,
+          },
+        ]
+      : []),
   ];
 
   return (

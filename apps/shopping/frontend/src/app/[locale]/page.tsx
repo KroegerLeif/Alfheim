@@ -17,6 +17,7 @@ import {
 } from "@/features/shopping-lists/services/shoppingListService";
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
 import { useActiveHousehold, useAuth } from "@alfheim/shared";
+import { useCanEditList } from "@/features/shopping-lists/hooks/useCanEditList";
 import { cn } from "@/lib/utils";
 import { useErrorNotifier } from "@/lib/useErrorNotifier";
 
@@ -69,6 +70,7 @@ export default function ShoppingDashboard() {
 
   const items = listDetails?.items ?? [];
   const activeList = lists.find((l) => l.id === resolvedListId);
+  const canEditList = useCanEditList(activeList);
 
   const handleQuickAdd = (name: string, unit: string) => {
     if (!resolvedListId) return;
@@ -149,7 +151,7 @@ export default function ShoppingDashboard() {
           {(!isMobile || mobileView === "add") && (
             <div className="flex flex-col gap-3.5 min-h-0">
               <AddManualItem listId={resolvedListId || ""} />
-              <QuickAddGrid onAdd={handleQuickAdd} disabled={!resolvedListId || addItem.isPending} />
+              <QuickAddGrid onAdd={handleQuickAdd} disabled={!resolvedListId || addItem.isPending || !canEditList} />
               <div className="glass-inset rounded-xl p-3 flex items-center gap-3 shrink-0 select-none">
                 <PantryBadge />
                 <p className="font-sans text-[11px] text-muted-foreground/70 leading-tight">{t("pantryLegend")}</p>
