@@ -56,6 +56,7 @@ Der Proxy hält den Socket und leitet nur die GET-Endpunkte weiter, die die `doc
 Wesentliche Funktionen:
 * **Zusammenführung mehrzeiliger Stacktraces:** Fasst mehrzeilige Python-Tracebacks und Go-Panic-Traces (`\tat`, `\tgoroutine`) zu einem logischen Log-Ereignis zusammen.
 * **Feld-Normalisierung:** Vereinheitlicht heterogene Log-Felder (`msg` → `message`) und Schweregrade (`WARN` / `WARNING` → `warn`, `ERROR` → `error`).
+* **Ingestion:** Schickt die Batches direkt an die JSON-Lines-API von VictoriaLogs (`/insert/jsonline`), mit `service_name` (dem Containernamen) als Stream-Feld. Der Weg führt nicht über den OTel Collector, dessen Endpunkt `/v1/logs` nur OTLP-Payloads annimmt.
 * **Health-Endpunkt:** Stellt interne Diagnose-Healthchecks unter `http://127.0.0.1:8686/health` bereit.
 
 ---

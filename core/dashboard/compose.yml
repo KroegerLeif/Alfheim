@@ -21,6 +21,8 @@ services:
     networks:
       - gateway-net
       - core-net
+      # The operator telemetry endpoints query VictoriaMetrics and VictoriaLogs.
+      - observability-internal
 
   dashboard-frontend:
     build:
@@ -61,4 +63,7 @@ networks:
     external: true
   core-net:
     name: core-net
+    external: true
+  observability-internal:
+    name: observability-internal
     external: true

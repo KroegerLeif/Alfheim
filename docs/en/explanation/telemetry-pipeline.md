@@ -56,6 +56,7 @@ The proxy holds the socket and forwards only the GET endpoints the `docker_logs`
 Key Vector features:
 * **Multiline Stack Trace Aggregation:** Merges multiline Python tracebacks and Go panic traces (`\tat`, `\tgoroutine`) into single logical log events.
 * **Field Normalization:** Maps heterogeneous log fields (`msg` $\rightarrow$ `message`) and standardizes severity levels (`WARN` / `WARNING` $\rightarrow$ `warn`, `ERROR` $\rightarrow$ `error`).
+* **Ingestion:** Ships batches straight to VictoriaLogs' JSON lines API (`/insert/jsonline`), with `service_name` (the container name) as the stream field. It does not go through the OTel Collector, whose `/v1/logs` endpoint only accepts OTLP payloads.
 * **Health Endpoint:** Exposes internal diagnostic health checks on `http://127.0.0.1:8686/health`.
 
 ---

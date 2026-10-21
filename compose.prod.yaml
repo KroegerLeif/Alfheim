@@ -439,7 +439,7 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      otel-collector:
+      victorialogs:
         condition: service_started
       docker-socket-proxy:
         condition: service_healthy
@@ -555,6 +555,8 @@ services:
     networks:
       - gateway-net
       - core-net
+      # The operator telemetry endpoints query VictoriaMetrics and VictoriaLogs.
+      - observability-internal
 
     deploy:
       resources:

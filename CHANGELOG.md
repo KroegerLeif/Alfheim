@@ -142,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `KEYCLOAK_*` environment variable names. `scripts/init-env.sh` migrates them in place for one release; after that, only the `OIDC_*` names are read.
 
 ### Fixed
+- No container log ever reached VictoriaLogs in a production install: Vector posted its own event JSON to the OTel Collector's OTLP `/v1/logs` endpoint, which rejected every batch with 400. Vector now ships straight to VictoriaLogs' JSON lines API. The dashboard backend also joins `observability-internal`, so the operator telemetry endpoints reach VictoriaMetrics and VictoriaLogs instead of reporting "victoriametrics is unreachable" and falling back to built-in sample log lines.
 - Frontends now respect the household role matrix from #689: `@alfheim/shared` adds `useHouseholdCan`, `useHouseholdPermission`, `PermissionHint` and a read-only notice for `GUEST` in `HouseholdGate`. Every app hides create, edit, delete and move controls on shared data for `GUEST` and shows the ADMIN-only deletes disabled with a localized tooltip for `MEMBER`. Personal resources (shopping Personal List, workout `scope=user` entries, plans and sessions) stay editable for every role.
 - Workout frontend called `/api/v1/api/v1/...` and got 404 on every request; `NEXT_PUBLIC_API_URL` is now `${ALFHEIM_BASE_URL}/workout/api/v1` (#682).
 - Budget list and create calls were redirected (307) to a URL without the `/api/v1/budget` prefix; collection routes now answer with and without a trailing slash (#675).
