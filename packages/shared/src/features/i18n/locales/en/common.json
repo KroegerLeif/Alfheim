@@ -286,6 +286,11 @@
       "unavailable_title": "Household service unavailable",
       "unavailable_desc": "Your households could not be loaded right now. Please try again in a moment.",
       "retry": "Try again"
+    },
+    "roles": {
+      "write_forbidden": "Guests can view this household's data but cannot change it.",
+      "admin_delete_forbidden": "Only household admins and owners can delete this.",
+      "guest_notice": "You have guest access to this household: you can view shared data but not change it."
     }
   },
   "settings": {

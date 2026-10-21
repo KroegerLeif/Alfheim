@@ -118,4 +118,13 @@ describe('HouseholdGate', () => {
     renderGate(makeValue({ error: 'household_role_forbidden' }))
     expect(screen.getByText('scoped content')).toBeInTheDocument()
   })
+
+  it('shows the read-only notice above the content for a GUEST only', () => {
+    const { unmount } = renderGate(makeValue({ role: 'GUEST' }))
+    expect(screen.getByTestId('household-read-only-notice')).toBeInTheDocument()
+    expect(screen.getByText('scoped content')).toBeInTheDocument()
+    unmount()
+    renderGate(makeValue())
+    expect(screen.queryByTestId('household-read-only-notice')).toBeNull()
+  })
 })
