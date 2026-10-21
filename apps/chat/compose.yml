@@ -20,6 +20,8 @@ services:
       - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:-dev-internal-token-change-me}
       - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
       - S3_PUBLIC_URL=${S3_PUBLIC_URL:-http://api.alfheim.loegien.localhost/storage}
       - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
       # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).

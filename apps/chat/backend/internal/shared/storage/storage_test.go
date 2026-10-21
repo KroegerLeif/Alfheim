@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 
@@ -193,6 +194,27 @@ func TestStorageClientOperations(t *testing.T) {
 		}
 		if !deleteCalled {
 			t.Errorf("expected deleteObject to be called")
+		}
+	})
+
+	t.Run("Upload buffers an unseekable body", func(t *testing.T) {
+		var got []byte
+		mock := &mockS3API{
+			putObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+				if _, ok := params.Body.(io.ReadSeeker); !ok {
+					t.Errorf("expected a seekable body, got %T", params.Body)
+				}
+				got, _ = io.ReadAll(params.Body)
+				return &s3.PutObjectOutput{}, nil
+			},
+		}
+		client := NewWithAPI(mock, cfg)
+		body := io.MultiReader(bytes.NewReader([]byte("head")), bytes.NewReader([]byte("-tail")))
+		if err := client.Upload(context.Background(), "key", body, 9, "image/png"); err != nil {
+			t.Fatalf("Upload failed: %v", err)
+		}
+		if string(got) != "head-tail" {
+			t.Errorf("uploaded %q, want %q", got, "head-tail")
 		}
 	})
 
