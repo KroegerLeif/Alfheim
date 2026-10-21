@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChoreTemplateRead } from "../types";
 import { useDeleteChoreTemplate } from "../services/choresService";
 import { Award, RefreshCw, Trash2, Calendar, Check, X, History } from "lucide-react";
-import { useTranslation } from "@alfheim/shared";
+import { PermissionHint, useHouseholdCan, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { TaskTimelineModal } from "./TaskTimelineModal";
 import { ErrorNotice } from "@/components/shared/ErrorNotice";
 import { errorMessage } from "@/core/errors";
@@ -16,6 +16,8 @@ interface TaskCardProps {
 export function TaskCard({ template }: TaskCardProps) {
   const { t } = useTranslation();
   const deleteMutation = useDeleteChoreTemplate();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
 
@@ -46,7 +48,7 @@ export function TaskCard({ template }: TaskCardProps) {
               >
                 <History className="h-4 w-4" />
               </button>
-              {showConfirmDelete ? (
+              {!canWrite ? null : showConfirmDelete ? (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={handleDelete}
@@ -67,14 +69,17 @@ export function TaskCard({ template }: TaskCardProps) {
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowConfirmDelete(true)}
-                  className="text-[var(--text-muted)] hover:text-red-500 cursor-pointer p-1 transition-colors"
-                  title={t("chores.deleteTemplate")}
-                  aria-label={t("chores.deleteTemplate")}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <PermissionHint hint={remove.hint}>
+                  <button
+                    onClick={() => setShowConfirmDelete(true)}
+                    disabled={!remove.allowed}
+                    className="text-[var(--text-muted)] hover:text-red-500 cursor-pointer p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                    title={remove.allowed ? t("chores.deleteTemplate") : undefined}
+                    aria-label={t("chores.deleteTemplate")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </PermissionHint>
               )}
             </div>
           </div>
