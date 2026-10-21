@@ -108,14 +108,19 @@ if [[ -z "${ISSUER_URL}" ]]; then
   exit 2
 fi
 
-# Expanded as ${CURL_INSECURE[@]+...} below: bash 3.2 (macOS) treats an empty
+# Expanded as ${CURL_TLS[@]+...} below: bash 3.2 (macOS) treats an empty
 # array as unbound under `set -u`.
-CURL_INSECURE=()
+CURL_TLS=()
+# The installer's --tls internal strategy signs with a root CA it generates
+# into infrastructure/ca. The host's trust store does not hold it, so verify
+# against that file; `alfheim-setup update` and `restore` run this script on
+# the server itself and would otherwise fail every HTTPS check below.
+INTERNAL_CA_FILE="${DIR}/infrastructure/ca/alfheim-root-ca.crt"
 if [[ "${VERIFY_STACK_INSECURE:-0}" == "1" ]]; then
-  # The installer's --tls internal strategy signs with a locally generated
-  # root CA; a caller that has not imported it can set this to skip
-  # certificate verification rather than fail every HTTPS check below.
-  CURL_INSECURE=(--insecure)
+  # A caller can still skip certificate verification altogether.
+  CURL_TLS=(--insecure)
+elif [[ "$(env_value ALFHEIM_TLS_STRATEGY)" == "internal" && -f "${INTERNAL_CA_FILE}" ]]; then
+  CURL_TLS=(--cacert "${INTERNAL_CA_FILE}")
 fi
 
 ERRORS=0
@@ -156,7 +161,7 @@ echo ""
 # 2. Caddy's own healthcheck.
 # ------------------------------------------------------------------------------
 log_info "Checking Caddy /livez..."
-livez="$(curl -fsSL ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/livez" 2>/dev/null || echo "FAILED")"
+livez="$(curl -fsSL ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}/livez" 2>/dev/null || echo "FAILED")"
 if [[ "${livez}" == "OK" ]]; then
   log_success "/livez responded OK"
 else
@@ -168,7 +173,7 @@ echo ""
 # 3. OIDC discovery names the configured issuer.
 # ------------------------------------------------------------------------------
 log_info "Checking OIDC discovery..."
-discovery="$(curl -fsSL ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${ISSUER_URL}/.well-known/openid-configuration" 2>/dev/null || echo "")"
+discovery="$(curl -fsSL ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${ISSUER_URL}/.well-known/openid-configuration" 2>/dev/null || echo "")"
 if [[ -z "${discovery}" ]]; then
   fail "could not fetch ${ISSUER_URL}/.well-known/openid-configuration"
 else
@@ -201,7 +206,7 @@ ROUTES=(
   "/grafana"
 )
 for route in "${ROUTES[@]}"; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}${route}" 2>/dev/null || echo "000")"
+  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}${route}" 2>/dev/null || true)"
   if [[ "${code}" =~ ^[0-9]+$ ]] && [[ "${code}" -ge 200 ]] && [[ "${code}" -lt 500 ]]; then
     log_success "${route} -> ${code}"
   else
@@ -215,7 +220,7 @@ echo ""
 # ------------------------------------------------------------------------------
 log_info "Checking /internal/* is blocked at the edge..."
 for route in "/internal" "/internal/whatever"; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}${route}" 2>/dev/null || echo "000")"
+  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}${route}" 2>/dev/null || true)"
   if [[ "${code}" == "404" ]]; then
     log_success "${route} -> 404"
   else
@@ -230,7 +235,7 @@ echo ""
 # answered 405 by the router before authentication runs.
 # ------------------------------------------------------------------------------
 log_info "Checking the household API requires authentication..."
-code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/api/v1/households/me" 2>/dev/null || echo "000")"
+code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}/api/v1/households/me" 2>/dev/null || true)"
 if [[ "${code}" == "401" ]]; then
   log_success "/api/v1/households/me -> 401 without a token"
 else
@@ -244,7 +249,7 @@ echo ""
 # response headers rather than an upstream's.
 # ------------------------------------------------------------------------------
 log_info "Checking gateway security headers..."
-headers="$(curl -sI ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/livez" 2>/dev/null | tr -d '\r' || true)"
+headers="$(curl -sI ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}/livez" 2>/dev/null | tr -d '\r' || true)"
 for header in "X-Content-Type-Options: nosniff" "Referrer-Policy:" "X-Frame-Options:" "Permissions-Policy:"; do
   if grep -qi "^${header}" <<<"${headers}"; then
     log_success "${header%%:*} is set"
