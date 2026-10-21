@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, useTranslation } from "@alfheim/shared";
+import { Button, useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { readApiError } from "@/core/apiError";
 import { useProviders } from "../hooks/useProviders";
 import { ProviderCard } from "./ProviderCard";
@@ -8,6 +8,7 @@ import { ProviderCreatePayload, ProviderSubscription } from "../types";
 
 export function ProviderList() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const {
     providers,
     isLoading,
@@ -79,13 +80,15 @@ export function ProviderList() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="gap-2"
-        >
-          <span>+</span> {t("library.providers.addProvider")}
-        </Button>
+        {canWrite && (
+          <Button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="gap-2"
+          >
+            <span>+</span> {t("library.providers.addProvider")}
+          </Button>
+        )}
       </div>
 
       {actionError && (
@@ -100,14 +103,16 @@ export function ProviderList() {
       {providers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] p-12 text-center text-[var(--text-muted)] space-y-3">
           <p>{t("library.providers.noProviders")}</p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            {t("library.providers.addProvider")}
-          </Button>
+          {canWrite && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              {t("library.providers.addProvider")}
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

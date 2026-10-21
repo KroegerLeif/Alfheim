@@ -1,6 +1,6 @@
 import React from "react";
 import { MapPin } from "lucide-react";
-import { Button, useTranslation } from "@alfheim/shared";
+import { Button, useHouseholdCan, useTranslation } from "@alfheim/shared";
 import type { LocationNode } from "../types";
 import { LocationTreeNodeItem } from "./LocationTreeNodeItem";
 
@@ -22,6 +22,7 @@ export function LocationTreeView({
   onDeleteLocation,
 }: LocationTreeViewProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
 
   if (isLoading) {
     return (
@@ -48,9 +49,11 @@ export function LocationTreeView({
         <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1 mb-4">
           {t("library.locations.subtitle")}
         </p>
-        <Button type="button" onClick={onAddRootLocation}>
-          + {t("library.locations.addLocation")}
-        </Button>
+        {canWrite && (
+          <Button type="button" onClick={onAddRootLocation}>
+            + {t("library.locations.addLocation")}
+          </Button>
+        )}
       </div>
     );
   }
@@ -61,9 +64,11 @@ export function LocationTreeView({
         <h2 className="text-lg font-bold text-[var(--text-main)]">
           {t("library.locations.title")}
         </h2>
-        <Button type="button" onClick={onAddRootLocation} size="sm">
-          + {t("library.locations.addLocation")}
-        </Button>
+        {canWrite && (
+          <Button type="button" onClick={onAddRootLocation} size="sm">
+            + {t("library.locations.addLocation")}
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col space-y-2">

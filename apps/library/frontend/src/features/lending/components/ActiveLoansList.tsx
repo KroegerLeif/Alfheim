@@ -1,6 +1,6 @@
 import React from "react";
 import { Calendar, Clock, User } from "lucide-react";
-import { Badge, Button, useTranslation } from "@alfheim/shared";
+import { Badge, Button, useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { formatDate } from "@/core/formatDate";
 import { LendingRecord } from "../types";
 import { LendingLoadError } from "./LendingLoadError";
@@ -19,6 +19,7 @@ export function ActiveLoansList({
   onReturnItem,
 }: ActiveLoansListProps) {
   const { t, language } = useTranslation();
+  const canWrite = useHouseholdCan("write");
 
   if (isError) {
     return <LendingLoadError />;
@@ -99,17 +100,19 @@ export function ActiveLoansList({
               )}
             </div>
 
-            <div className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full text-xs"
-                onClick={() => onReturnItem(record)}
-              >
-                {t("library.lending.markReturned")}
-              </Button>
-            </div>
+            {canWrite && (
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => onReturnItem(record)}
+                >
+                  {t("library.lending.markReturned")}
+                </Button>
+              </div>
+            )}
           </div>
         );
       })}

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BookOpen, Check } from "lucide-react";
-import { Button, useTranslation } from "@alfheim/shared";
+import { Button, useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { useManual } from "../hooks/useManual";
 import { ManualSectionProps } from "../types";
 import { ManualUploadButton } from "./ManualUploadButton";
@@ -19,6 +19,7 @@ export function ManualSection({
   onManualUpdated,
 }: ManualSectionProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const {
@@ -76,12 +77,14 @@ export function ManualSection({
           </Button>
         )}
 
-        <ManualUploadButton
-          onFileSelect={uploadManual}
-          isUploading={isUploading}
-        />
+        {canWrite && (
+          <ManualUploadButton
+            onFileSelect={uploadManual}
+            isUploading={isUploading}
+          />
+        )}
 
-        {hasManual && (
+        {hasManual && canWrite && (
           <Button
             type="button"
             variant="outline"

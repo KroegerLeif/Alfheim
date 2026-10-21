@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
-import { Badge, Button, useTranslation } from "@alfheim/shared";
+import { Badge, Button, PermissionHint, useHouseholdCan, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import type { LocationNode } from "../types";
 
 interface LocationTreeNodeItemProps {
@@ -19,6 +19,8 @@ export function LocationTreeNodeItem({
   onDelete,
 }: LocationTreeNodeItemProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
   const [isExpanded, setIsExpanded] = useState(true);
   const children = node.children ?? [];
   const hasChildren = children.length > 0;
@@ -69,38 +71,43 @@ export function LocationTreeNodeItem({
           </div>
         </div>
 
-        <div className="ml-2 flex shrink-0 items-center space-x-1 opacity-90 group-hover:opacity-100">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => onAddChild(node.id)}
-            aria-label={t("library.locations.addLocation")}
-            className="text-xs"
-          >
-            +<span className="hidden sm:inline">&nbsp;{t("library.locations.addLocation")}</span>
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => onEdit(node)}
-            aria-label={t("library.locations.editAria", { name: node.name })}
-            className="text-xs"
-          >
-            <Pencil className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => onDelete(node)}
-            aria-label={t("library.locations.deleteAria", { name: node.name })}
-            className="text-xs text-red-400 hover:text-red-300"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
+        {canWrite && (
+          <div className="ml-2 flex shrink-0 items-center space-x-1 opacity-90 group-hover:opacity-100">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => onAddChild(node.id)}
+              aria-label={t("library.locations.addLocation")}
+              className="text-xs"
+            >
+              +<span className="hidden sm:inline">&nbsp;{t("library.locations.addLocation")}</span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => onEdit(node)}
+              aria-label={t("library.locations.editAria", { name: node.name })}
+              className="text-xs"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <PermissionHint hint={remove.hint}>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => onDelete(node)}
+                disabled={!remove.allowed}
+                aria-label={t("library.locations.deleteAria", { name: node.name })}
+                className="text-xs text-red-400 hover:text-red-300"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </PermissionHint>
+          </div>
+        )}
       </div>
 
       {hasChildren && isExpanded && (
