@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useTranslation, getRequestErrorMessage } from "@alfheim/shared";
 
 /**
  * Tracks the submit state of a dialog form. A failed request keeps the dialog open and exposes a
@@ -29,7 +29,7 @@ export function useFormSubmit(open: boolean) {
         await action();
         return true;
       } catch (err) {
-        setError(err instanceof Error && err.message ? err.message : t("budget.errors.requestFailed"));
+        setError(err instanceof Error && getRequestErrorMessage(err) ? getRequestErrorMessage(err) : t("budget.errors.requestFailed"));
         return false;
       } finally {
         setSubmitting(false);

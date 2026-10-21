@@ -1,3 +1,4 @@
+import { getRequestErrorMessage } from "@alfheim/shared";
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -82,7 +83,7 @@ export function useSyncQueue(options: UseSyncQueueOptions = {}): UseSyncQueueRes
       }
       return result;
     } catch (err) {
-      setLastError(err instanceof Error ? err.message : String(err));
+      setLastError(getRequestErrorMessage(err));
       return null;
     } finally {
       setActiveFlushes((count) => count - 1);

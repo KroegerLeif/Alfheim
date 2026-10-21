@@ -21,7 +21,7 @@ export class ApiError extends Error {
 }
 
 /**
- * Normalize NEXT_PUBLIC_API_URL into a ky prefixUrl.
+ * Normalize NEXT_PUBLIC_API_URL into a ky prefix.
  *
  * The Caddy gateway strips the `/workout` prefix and the backend mounts every
  * router at `/api/v1/...`, so the configured URL ends in `/api/v1`. That tail is
@@ -71,7 +71,7 @@ const handleResponseError = async (response: Response) => {
 };
 
 export const workoutClient = ky.create({
-  prefixUrl: BASE_URL,
+  prefix: BASE_URL,
   timeout: 10000,
   retry: 0,
   headers: {
@@ -79,7 +79,7 @@ export const workoutClient = ky.create({
   },
   hooks: {
     beforeRequest: [
-      (request) => {
+      ({ request }) => {
         if (typeof window !== "undefined") {
           const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
           if (token) {
@@ -90,7 +90,7 @@ export const workoutClient = ky.create({
       },
     ],
     afterResponse: [
-      async (request, options, response) => {
+      async ({ request, options, response }) => {
         // Refresh once on 401 and replay, so a token that expired mid-workout
         // does not surface as a failed set log.
         if (response.status === 401 && typeof window !== "undefined") {

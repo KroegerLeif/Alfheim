@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { subscribeHouseholdErrors } from '@alfheim/shared'
+import { isNetworkError } from 'ky'
+import { getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { LEGACY_ACCESS_TOKEN_KEY } from '@alfheim/shared'
 import { maintenanceClient, shoppingClient } from '../api'
 import { createDevice, getDevices } from '@/features/devices/api/devicesApi'
@@ -130,5 +131,29 @@ describe('shoppingClient', () => {
       status: 403,
       code: 'household_role_forbidden',
     })
+  })
+})
+
+describe('maintenanceClient network failures', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects with a NetworkError instead of a normalized API error', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await maintenanceClient.get('devices', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(isNetworkError(error)).toBe(true)
+    expect(error).not.toHaveProperty('status')
+    expect(error).not.toHaveProperty('code')
+  })
+
+  it('keeps the browser message for text shown to the user', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await maintenanceClient.get('devices', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

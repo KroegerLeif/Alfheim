@@ -1,7 +1,8 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { householdHeaders, subscribeHouseholdErrors } from '@alfheim/shared'
+import { isNetworkError } from 'ky'
+import { getRequestErrorMessage, householdHeaders, subscribeHouseholdErrors } from '@alfheim/shared'
 import { shoppingClient, pantryClient } from '../api'
 import { ShoppingErrorBanner } from '@/features/shopping-lists/components/ShoppingErrorBanner'
 
@@ -85,5 +86,29 @@ describe('ShoppingErrorBanner', () => {
     expect(screen.getByText('Failed to Load Shopping Lists')).toBeInTheDocument()
     screen.getByRole('button', { name: 'Retry' }).click()
     expect(refetch).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('shoppingClient network failures', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects with a NetworkError instead of a normalized API error', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await shoppingClient.get('api/v1/shopping-lists', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(isNetworkError(error)).toBe(true)
+    expect(error).not.toHaveProperty('status')
+    expect(error).not.toHaveProperty('code')
+  })
+
+  it('keeps the browser message for text shown to the user', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await shoppingClient.get('api/v1/shopping-lists', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

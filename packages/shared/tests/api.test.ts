@@ -3,6 +3,7 @@ import {
   ApiClient,
   createApiClient,
   createTraceparentHook,
+  getRequestErrorMessage,
   fetchWithTrace,
   generateW3CTraceparent,
   withTraceparentHeaders,
@@ -56,7 +57,7 @@ describe('Traceparent Header Helpers & Interceptors', () => {
     const request = new Request('https://api.example.com/data', {
       headers: { Accept: 'application/json' },
     });
-    hook(request);
+    hook({ request });
     expect(request.headers.get('traceparent')).toMatch(TRACEPARENT_REGEX);
   });
 
@@ -66,7 +67,7 @@ describe('Traceparent Header Helpers & Interceptors', () => {
     const request = new Request('https://api.example.com/data', {
       headers: { Traceparent: customTraceparent },
     });
-    hook(request);
+    hook({ request });
     expect(request.headers.get('traceparent')).toBe(customTraceparent);
   });
 });
@@ -147,5 +148,23 @@ describe('Centralized ApiClient Class', () => {
     const [, options] = mockFetch.mock.calls[0];
     const headers = new Headers(options.headers);
     expect(headers.get('traceparent')).toBe(existingTraceparent);
+  });
+});
+
+describe('getRequestErrorMessage', () => {
+  it('returns the browser message of a wrapped network error', () => {
+    const error = new Error('Request failed due to a network error: GET https://x/api', {
+      cause: new TypeError('Failed to fetch'),
+    });
+    error.name = 'NetworkError';
+    expect(getRequestErrorMessage(error)).toBe('Failed to fetch');
+  });
+
+  it('returns the message of any other error', () => {
+    expect(getRequestErrorMessage(new Error('boom'))).toBe('boom');
+  });
+
+  it('stringifies non-error values', () => {
+    expect(getRequestErrorMessage('plain')).toBe('plain');
   });
 });

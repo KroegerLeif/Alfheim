@@ -6,7 +6,7 @@ import { useRouter } from "@/navigation";
 import { ClipboardList, Award, RefreshCw, ArrowRight, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { WizardStepContent } from "./WizardStepContent";
-import { useTranslation } from "@alfheim/shared";
+import { useTranslation, getRequestErrorMessage } from "@alfheim/shared";
 
 export function WizardSteps() {
   const { t } = useTranslation();
@@ -84,7 +84,7 @@ export function WizardSteps() {
           router.push("/board");
         },
         onError: (err) => {
-          setSubmitError(`${t("chores.creationFailed")}: ${err.message}`);
+          setSubmitError(`${t("chores.creationFailed")}: ${getRequestErrorMessage(err)}`);
         },
       }
     );

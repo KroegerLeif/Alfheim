@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { subscribeHouseholdErrors } from '@alfheim/shared'
+import { isNetworkError } from 'ky'
+import { getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { libraryClient } from '../api'
 
 function jsonResponse(status: number, body: unknown) {
@@ -42,5 +43,29 @@ describe('libraryClient household context', () => {
     await expect(libraryClient.get('api/v1/library/items').json()).rejects.toBeTruthy()
     expect(listener).toHaveBeenCalledWith({ code: 'household_required', householdId: null })
     unsubscribe()
+  })
+})
+
+describe('libraryClient network failures', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects with a NetworkError instead of a normalized API error', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await libraryClient.get('api/v1/library/items', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(isNetworkError(error)).toBe(true)
+    expect(error).not.toHaveProperty('status')
+    expect(error).not.toHaveProperty('code')
+  })
+
+  it('keeps the browser message for text shown to the user', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await libraryClient.get('api/v1/library/items', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

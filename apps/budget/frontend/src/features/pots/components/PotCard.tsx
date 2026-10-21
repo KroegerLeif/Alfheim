@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import {
   BucketMeter,
+  getRequestErrorMessage,
   MoneyDisplay,
   PermissionHint,
   useHouseholdCan,
@@ -34,7 +35,7 @@ export function PotCard({ pot, onEdit, onDelete }: PotCardProps) {
       setCalc(await potsApi.calculateSinkingFundGap(pot.id));
     } catch (err) {
       setCalc(null);
-      setCalcError(err instanceof Error && err.message ? err.message : t("budget.errors.requestFailed"));
+      setCalcError(err instanceof Error && getRequestErrorMessage(err) ? getRequestErrorMessage(err) : t("budget.errors.requestFailed"));
     } finally {
       setCalcLoading(false);
     }

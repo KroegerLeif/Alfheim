@@ -20,16 +20,13 @@ export async function readApiError(error: unknown): Promise<ApiErrorInfo> {
   }
 
   const info: ApiErrorInfo = { status: error.response.status, code: null, itemCount: null };
-  try {
-    const body: unknown = await error.response.clone().json();
-    const detail = (body as { detail?: unknown } | null)?.detail;
-    if (detail && typeof detail === "object") {
-      const { code, item_count: itemCount } = detail as { code?: unknown; item_count?: unknown };
-      info.code = typeof code === "string" ? code : null;
-      info.itemCount = typeof itemCount === "number" ? itemCount : null;
-    }
-  } catch {
-    // The body is not JSON (for example a proxy error page); the status alone is still useful.
+  // ky consumes the response body into `error.data` (parsed JSON for JSON responses).
+  const detail = (error.data as { detail?: unknown } | null | undefined)?.detail;
+  // A non-JSON body (for example a proxy error page) arrives as text; the status alone is still useful.
+  if (detail && typeof detail === "object") {
+    const { code, item_count: itemCount } = detail as { code?: unknown; item_count?: unknown };
+    info.code = typeof code === "string" ? code : null;
+    info.itemCount = typeof itemCount === "number" ? itemCount : null;
   }
   return info;
 }

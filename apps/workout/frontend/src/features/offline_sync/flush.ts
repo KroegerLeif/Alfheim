@@ -1,3 +1,4 @@
+import { getRequestErrorMessage } from "@alfheim/shared";
 import { ApiError } from "@/core/api";
 import { syncSets } from "./api/syncApi";
 import { isIndexedDbAvailable } from "./db";
@@ -65,7 +66,7 @@ async function drainQueue(): Promise<FlushResult> {
       }
       // Transport-level failure: nothing in this batch reached the server, so
       // count one attempt against every key and retry on the next flush.
-      error = error ?? (err instanceof Error ? err.message : String(err));
+      error = error ?? getRequestErrorMessage(err);
       droppedKeys.push(...(await recordFailedAttempt(keys)));
     }
   }

@@ -2,7 +2,7 @@ import React, { ReactElement, ReactNode } from "react";
 import { render, RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LanguageProvider, StaticHouseholdProvider } from "@alfheim/shared";
-import { HTTPError, type NormalizedOptions } from "ky";
+import { HTTPError, NetworkError, type NormalizedOptions } from "ky";
 
 type Language = "de" | "en" | "pl";
 
@@ -47,9 +47,14 @@ export function renderWithProviders(
 
 /** Build the error ky throws for a non-2xx response, with an optional JSON body. */
 export function makeHttpError(status: number, body?: unknown): HTTPError {
-  const response = new Response(body === undefined ? null : JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-  return new HTTPError(response, new Request("http://localhost/api"), {} as NormalizedOptions);
+  const response = new Response(null, { status });
+  const error = new HTTPError(response, new Request("http://localhost/api"), {} as NormalizedOptions);
+  // ky parses the response body into `data` before it throws.
+  error.data = body as HTTPError["data"];
+  return error;
+}
+
+/** Builds the error ky throws when `fetch` fails without a response (offline, DNS, refused). */
+export function makeNetworkError(): NetworkError {
+  return new NetworkError(new Request("http://localhost/api"), { cause: new TypeError("Failed to fetch") });
 }

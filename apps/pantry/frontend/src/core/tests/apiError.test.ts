@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { describeApiError, readApiError } from '../apiError'
-import { makeHttpError } from '@/tests/utils'
+import { makeHttpError, makeNetworkError } from '@/tests/utils'
 
 const t = (key: string, params?: Record<string, string | number>) =>
   `${key}${params ? JSON.stringify(params) : ''}`
@@ -35,6 +35,10 @@ describe('readApiError', () => {
     expect(await readApiError(makeHttpError(502))).toEqual({ status: 502, code: null, itemCount: null, detail: null })
   })
 
+  it('reports no status for a ky NetworkError', async () => {
+    expect(await readApiError(makeNetworkError())).toEqual({ status: null, code: null, itemCount: null, detail: null })
+  })
+
   it('reports no status for errors without a response', async () => {
     expect(await readApiError(new TypeError('Failed to fetch'))).toEqual({
       status: null, code: null, itemCount: null, detail: null,
@@ -59,6 +63,10 @@ describe('describeApiError', () => {
 
   it('adds the unreachable hint when no response arrived', async () => {
     expect(await describeApiError(new TypeError('Failed to fetch'), t, 'fallback')).toBe('fallback pantry.errors.unreachable')
+  })
+
+  it('adds the unreachable hint for a ky NetworkError', async () => {
+    expect(await describeApiError(makeNetworkError(), t, 'fallback')).toBe('fallback pantry.errors.unreachable')
   })
 
   it('ignores an unmapped code and falls back', async () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useTranslation, getRequestErrorMessage } from "@alfheim/shared";
 import { DesktopSidebar, MobileTabBar, type TabKey } from "@/features/navigation";
 import { useBudgetData } from "@/features/dashboard/useBudgetData";
 import { DashboardOverview } from "@/features/dashboard/DashboardOverview";
@@ -33,7 +33,7 @@ export default function BudgetHomePage() {
       await action();
       reload();
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getRequestErrorMessage(err);
       setActionError(message || t("budget.errors.requestFailed"));
     }
   };
