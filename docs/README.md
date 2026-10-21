@@ -65,6 +65,7 @@ source with a translation notice, so untranslated paths never 404.
 * [Secrets Hardening](./en/how-to/secrets-hardening.md) — Generating, storing and rotating secrets; verifying no development fallback reaches production.
 * [Backup, Restore & Data Migration](./en/how-to/backup-restore.md) — `alfheim-setup backup` / `restore`, scheduled backups and restore drills.
 * [Update an Installation](./en/how-to/update-installation.md) — One-command release updates with `alfheim-setup update`.
+* [Verify a Release End to End](./en/how-to/verify-release.md) — Checklist for a release candidate: fresh install, backup, update, restore, upgrade from the previous tag.
 * [Grafana and Operator Access](./en/how-to/grafana-access.md) — The `alfheim_operator` role for Grafana, telemetry and the MCP registry.
 * [Get a Dev Test Access Token](./en/how-to/dev-test-token.md) — Minting a working Zitadel token to call the APIs locally.
 * [Platform Troubleshooting & Operations](./en/how-to/troubleshooting.md) — Container boot races, migration locks, and gateway errors.
