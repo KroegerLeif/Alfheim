@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [v0.3.0] - 2026-10-22
+
+Release from the October 2026 project review: tenant isolation and role matrix across all apps, real Alembic migrations, backup and restore, the `alfheim_operator` role, a hardened gateway, CI and release pipeline, multi-arch images (linux/amd64 and linux/arm64), and fixes found by an end-to-end installer verification. Upgrading from v0.2.2 with `alfheim-setup update` takes a backup first, migrates every database and repairs `.env` (S3 endpoints, `DOCKER_SOCKET_GID`, new secrets).
+
 ### Added
 - How-to `verify-release.md` (EN and DE): the end-to-end checklist for a release candidate on a disposable stack (fresh install, operator access, uploads, backup, update, wipe and restore, upgrade from the previous tag).
 - `alfheim-setup backup` and `alfheim-setup restore` (#690): one verified archive with a `pg_dumpall` (no TTY, `POSTGRES_USER` from `.env`), the RustFS media, `.env`, the Zitadel machinekey, the CA and Caddy PKI and the stack files, plus a SHA-256 manifest; retention keeps the newest N. `alfheim-setup update` takes a database and secrets backup before it changes anything and aborts if that fails (`--skip-backup` to override). The backup guide (EN and DE) is rewritten around the new commands.
