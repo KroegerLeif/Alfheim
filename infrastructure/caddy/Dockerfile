@@ -9,9 +9,13 @@
 # See docs/decisions/0004-standalone-go-tui-installer.md.
 # ==============================================================================
 
-FROM caddy:2.10-builder-alpine AS builder
+FROM --platform=$BUILDPLATFORM caddy:2.10-builder-alpine AS builder
 
-RUN xcaddy build \
+# Cross-compile natively on the build host instead of emulating the target.
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --with github.com/caddy-dns/hetzner \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/caddy-dns/desec

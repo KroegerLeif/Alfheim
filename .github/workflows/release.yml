@@ -294,22 +294,37 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       # Build into the local Docker daemon first so the image can be scanned
-      # before anything is pushed to the registry.
-      - name: Build Container Image for Scanning
+      # before anything is pushed to the registry. `load: true` cannot hold a
+      # multi-platform result, so each platform is built, loaded and scanned on
+      # its own; the multi-arch manifest is only pushed once both gates pass.
+      - name: Build Container Image for Scanning (linux/amd64)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
           load: true
           push: false
-          tags: scan/${{ matrix.name }}:${{ github.sha }}
+          tags: scan/${{ matrix.name }}:${{ github.sha }}-amd64
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Build Container Image for Scanning (linux/arm64)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/arm64
+          load: true
+          push: false
+          tags: scan/${{ matrix.name }}:${{ github.sha }}-arm64
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
       - name: Scan Container Image (SARIF Report)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: scan/${{ matrix.name }}:${{ github.sha }}
+          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-amd64
           format: 'sarif'
           output: '${{ matrix.name }}-trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -325,20 +340,32 @@ jobs:
 
       # Gate: fixable CRITICAL/HIGH findings block the push, so a vulnerable
       # image never reaches the registry or the `latest` tag.
-      - name: Fail on Fixable Critical/High Vulnerabilities
+      - name: Fail on Fixable Critical/High Vulnerabilities (linux/amd64)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: scan/${{ matrix.name }}:${{ github.sha }}
+          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-amd64
           format: 'table'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           exit-code: '1'
 
-      - name: Push Container Image
+      - name: Fail on Fixable Critical/High Vulnerabilities (linux/arm64)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-arm64
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '1'
+
+      # Layers come from the cache populated by the scan builds above, so this
+      # only assembles and pushes the multi-arch manifest.
+      - name: Push Multi-Arch Container Image
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.tags.outputs.list }}
           cache-from: type=gha,scope=${{ matrix.name }}
