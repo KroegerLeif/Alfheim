@@ -374,6 +374,18 @@ migrate_existing_env() {
     migrated=true
     log_warn "Generated missing ALFHEIM_INTERNAL_TOKEN in $(basename "$env_file")"
   fi
+  # Signs the short-lived chat attachment download URLs; compose.prod.yaml requires it.
+  if ! grep -qE "^CHAT_ATTACHMENT_URL_SECRET=.+" "$env_file"; then
+    local attachment_secret
+    attachment_secret="$(generate_secret 64)"
+    if grep -q "^CHAT_ATTACHMENT_URL_SECRET=" "$env_file"; then
+      sed -i.bak -e "s|^CHAT_ATTACHMENT_URL_SECRET=.*|CHAT_ATTACHMENT_URL_SECRET=${attachment_secret}|" "$env_file" && rm -f "${env_file}.bak"
+    else
+      echo "CHAT_ATTACHMENT_URL_SECRET=${attachment_secret}" >> "$env_file"
+    fi
+    migrated=true
+    log_warn "Generated missing CHAT_ATTACHMENT_URL_SECRET in $(basename "$env_file")"
+  fi
 
   # 6. Rename legacy identity-provider variables (issue #358).
   #    ADR 0003 replaced Keycloak with Zitadel; the variable names followed in
@@ -642,6 +654,7 @@ S3_PW="$(generate_secret 32)"
 DASHBOARD_PW="$(generate_secret 32)"
 HOUSEHOLD_PW="$(generate_secret 32)"
 INTERNAL_TOKEN="$(generate_secret 64)"
+CHAT_ATTACHMENT_URL_SECRET="$(generate_secret 64)"
 PANTRY_PW="$(generate_secret 32)"
 SHOPPING_PW="$(generate_secret 32)"
 MAINTENANCE_PW="$(generate_secret 32)"
@@ -671,6 +684,7 @@ sed \
   -e "s|^DASHBOARD_POSTGRES_PASSWORD=.*|DASHBOARD_POSTGRES_PASSWORD=${DASHBOARD_PW}|" \
   -e "s|^HOUSEHOLD_POSTGRES_PASSWORD=.*|HOUSEHOLD_POSTGRES_PASSWORD=${HOUSEHOLD_PW}|" \
   -e "s|^ALFHEIM_INTERNAL_TOKEN=.*|ALFHEIM_INTERNAL_TOKEN=${INTERNAL_TOKEN}|" \
+  -e "s|^CHAT_ATTACHMENT_URL_SECRET=.*|CHAT_ATTACHMENT_URL_SECRET=${CHAT_ATTACHMENT_URL_SECRET}|" \
   -e "s|^PANTRY_POSTGRES_PASSWORD=.*|PANTRY_POSTGRES_PASSWORD=${PANTRY_PW}|" \
   -e "s|^SHOPPING_POSTGRES_PASSWORD=.*|SHOPPING_POSTGRES_PASSWORD=${SHOPPING_PW}|" \
   -e "s|^MAINTENANCE_POSTGRES_PASSWORD=.*|MAINTENANCE_POSTGRES_PASSWORD=${MAINTENANCE_PW}|" \
@@ -736,6 +750,9 @@ if ! grep -q '^HOUSEHOLD_POSTGRES_PASSWORD=' "$OUTPUT_FILE"; then
 fi
 if ! grep -q '^ALFHEIM_INTERNAL_TOKEN=' "$OUTPUT_FILE"; then
   printf "ALFHEIM_INTERNAL_TOKEN=%s\n" "${INTERNAL_TOKEN}" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^CHAT_ATTACHMENT_URL_SECRET=' "$OUTPUT_FILE"; then
+  printf "CHAT_ATTACHMENT_URL_SECRET=%s\n" "${CHAT_ATTACHMENT_URL_SECRET}" >> "$OUTPUT_FILE"
 fi
 
 # Host docker group id for the socket proxy in compose.prod.yaml. The template
