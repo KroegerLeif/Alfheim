@@ -19,8 +19,7 @@ description: "Checklist for testing a release candidate on a disposable, product
 
 ## Prepare a disposable host
 
-- A Linux VM or spare machine with Docker. Use an amd64 host until the images
-  are published for arm64 as well.
+- A Linux VM or spare machine with Docker (amd64 or arm64).
 - Tag a pre-release from `dev`, for example `v0.3.0-rc.1`. The release workflow
   builds the images and the installer assets for it, and `install.sh` never
   picks a pre-release automatically, so no operator receives it by accident.
