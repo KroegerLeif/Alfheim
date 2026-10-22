@@ -27,7 +27,7 @@
     "high_load": "HOHE LAST",
     "normal_load": "NORMAL",
     "memory_ram": "SPEICHER (RAM)",
-    "network_io": "NETZWERK I/O",
+    "disk_usage": "DATENTRÄGER (ROOT)",
     "traffic_mode": "Traffic-Modus",
     "optimal": "Optimal",
     "uptime": "BETRIEBSZEIT",
@@ -94,6 +94,8 @@
       }
     },
     "logs_unavailable": "Live-Log-Stream nicht verfügbar. Neuer Versuch...",
+    "logs_store_unreachable": "Log-Speicher nicht erreichbar. Log-Einträge können derzeit nicht angezeigt werden.",
+    "logs_empty": "Noch keine Log-Einträge.",
     "service_fallback_name": "Dienst"
   }
 }

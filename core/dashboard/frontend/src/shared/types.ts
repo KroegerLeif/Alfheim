@@ -72,10 +72,10 @@ export interface TelemetryMetrics {
   memory_percent?: number;
   memory_used_gb?: number;
   memory_total_gb?: number;
-  network_rx_mbps?: number;
-  network_tx_mbps?: number;
-  uptime_seconds: number;
-  active_containers?: number;
+  disk_percent?: number;
+  disk_used_gb?: number;
+  disk_total_gb?: number;
+  uptime_seconds?: number;
 }
 
 export interface TelemetryLogEntry {
@@ -86,7 +86,14 @@ export interface TelemetryLogEntry {
   message: string;
 }
 
+/**
+ * `available: false` means the log store could not be queried (`reason` says
+ * why); `available: true` with an empty `logs` array means it holds no entries
+ * yet. The two must be rendered differently.
+ */
 export interface TelemetryLogsResponse {
+  available: boolean;
+  reason?: string;
   logs: TelemetryLogEntry[];
   total: number;
 }

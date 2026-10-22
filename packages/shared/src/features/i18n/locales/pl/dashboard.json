@@ -27,7 +27,7 @@
     "high_load": "WYSOKIE OBCIĄŻENIE",
     "normal_load": "NORMALNIE",
     "memory_ram": "PAMIĘĆ (RAM)",
-    "network_io": "SIEĆ I/O",
+    "disk_usage": "DYSK (ROOT)",
     "traffic_mode": "Tryb ruchu",
     "optimal": "Optymalny",
     "uptime": "CZAS DZIAŁANIA",
@@ -94,6 +94,8 @@
       }
     },
     "logs_unavailable": "Strumień logów na żywo niedostępny. Ponawianie...",
+    "logs_store_unreachable": "Magazyn logów nieosiągalny. Wpisy logów nie mogą być teraz wyświetlone.",
+    "logs_empty": "Brak wpisów logów.",
     "service_fallback_name": "Usługa"
   }
 }

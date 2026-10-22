@@ -18,11 +18,40 @@ describe('SystemShellLogs', () => {
         HttpResponse.json({
           logs: [{ id: 'l1', timestamp: '10:00:00.000', level: 'INFO', service: 'dashboard-go', message: 'GET /api/v1/user/preferences 200 OK (4ms)' }],
           total: 1,
+          available: true,
         })
       )
     )
     renderWithProviders(<SystemShellLogs />)
     expect(await screen.findByText(/user\/preferences 200 OK/)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['en', 'Log store unreachable. Log entries cannot be shown right now.'],
+    ['de', 'Log-Speicher nicht erreichbar. Log-Einträge können derzeit nicht angezeigt werden.'],
+    ['pl', 'Magazyn logów nieosiągalny. Wpisy logów nie mogą być teraz wyświetlone.'],
+  ] as const)('says the log store is unreachable in %s and shows no fabricated entries', async (language, message) => {
+    server.use(
+      http.get('*api/v1/telemetry/logs', () =>
+        HttpResponse.json({ available: false, reason: 'unreachable', logs: [], total: 0 })
+      )
+    )
+    renderWithProviders(<SystemShellLogs />, undefined, language)
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+    expect(screen.queryByText(/\[\d{2}:\d{2}:\d{2}\.\d{3}\]/)).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['en', 'No log entries yet.'],
+    ['de', 'Noch keine Log-Einträge.'],
+    ['pl', 'Brak wpisów logów.'],
+  ] as const)('says there are no entries yet in %s when the log store is reachable but empty', async (language, message) => {
+    server.use(
+      http.get('*api/v1/telemetry/logs', () => HttpResponse.json({ available: true, logs: [], total: 0 }))
+    )
+    renderWithProviders(<SystemShellLogs />, undefined, language)
+    expect(await screen.findByRole('status')).toHaveTextContent(message)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 

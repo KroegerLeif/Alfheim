@@ -16,7 +16,10 @@ function mergeServerLogs(prev: LogEntry[], serverLogs: LogEntry[] | undefined): 
 
 export function SystemShellLogs() {
   const { t } = useTranslation();
-  const { data: serverLogs, isError: logsUnavailable } = useTelemetryLogs();
+  const { data: logsResponse, isError: logsRequestFailed } = useTelemetryLogs();
+  const serverLogs = logsResponse?.logs;
+  const logStoreUnreachable = logsResponse?.available === false;
+  const logStoreEmpty = logsResponse?.available === true && logsResponse.logs.length === 0;
   const [logs, setLogs] = useState<LogEntry[]>(() => mergeServerLogs([], serverLogs));
   const [syncedServerLogs, setSyncedServerLogs] = useState(serverLogs);
   const [commandInput, setCommandInput] = useState('');
@@ -150,9 +153,19 @@ export function SystemShellLogs() {
         </div>
       </div>
 
-      {logsUnavailable && (
+      {logsRequestFailed && (
         <div role="alert" className="px-4 py-1.5 text-[10px] font-mono text-amber-300 bg-amber-500/10 border-t border-amber-500/30">
           {t('dashboard.logs_unavailable')}
+        </div>
+      )}
+      {logStoreUnreachable && (
+        <div role="alert" className="px-4 py-1.5 text-[10px] font-mono text-amber-300 bg-amber-500/10 border-t border-amber-500/30">
+          {t('dashboard.logs_store_unreachable')}
+        </div>
+      )}
+      {logStoreEmpty && (
+        <div role="status" className="px-4 py-1.5 text-[10px] font-mono text-[var(--text-muted)] bg-[var(--surface-elevated)] border-t border-[var(--border-subtle)]">
+          {t('dashboard.logs_empty')}
         </div>
       )}
 

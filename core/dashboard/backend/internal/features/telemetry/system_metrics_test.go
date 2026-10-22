@@ -26,11 +26,8 @@ func TestUnavailableMetrics(t *testing.T) {
 	if metrics.Message != "victoriametrics is unreachable" {
 		t.Errorf("expected message to be preserved, got %q", metrics.Message)
 	}
-	if metrics.CPUPercent != nil || metrics.MemoryPercent != nil || metrics.NetworkRxMbps != nil || metrics.NetworkTxMbps != nil || metrics.ActiveContainers != nil {
+	if metrics.CPUPercent != nil || metrics.MemoryPercent != nil || metrics.DiskPercent != nil || metrics.UptimeSeconds != nil {
 		t.Errorf("expected all numeric fields to be nil in the unavailable state, got %+v", metrics)
-	}
-	if metrics.UptimeSeconds < 0 {
-		t.Errorf("expected non-negative uptime, got %d", metrics.UptimeSeconds)
 	}
 }
 

@@ -298,8 +298,10 @@ services:
       - "-retentionPeriod=14d"
       - "-storageDataPath=/victoria-metrics-data"
       - "-httpListenAddr=:8428"
+      - "-promscrape.config=/etc/victoriametrics/scrape.yml"
     volumes:
       - victoriametrics_data:/victoria-metrics-data
+      - ./infrastructure/telemetry/victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
       interval: 5s
@@ -317,6 +319,51 @@ services:
         reservations:
           memory: 512m
           cpus: 0.5
+  # Host metrics for the dashboard's system health widget. VictoriaMetrics
+  # scrapes it (infrastructure/telemetry/victoriametrics/scrape.yml). The host
+  # root is mounted read-only; only the collectors behind the widget (CPU,
+  # memory, root filesystem, boot time) are enabled. The netdev collector is
+  # off on purpose: in a bridge-networked container it would report the
+  # container's own interface, not the host's. No ports are published.
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    container_name: node-exporter
+    restart: unless-stopped
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host"
+      - "--collector.disable-defaults"
+      - "--collector.cpu"
+      - "--collector.meminfo"
+      - "--collector.filesystem"
+      - "--collector.stat"
+      - "--web.listen-address=:9100"
+    volumes:
+      - /:/host:ro,rslave
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 -O /dev/null http://127.0.0.1:9100/metrics || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - observability-internal
+
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: 0.10
+        reservations:
+          memory: 64m
+          cpus: 0.10
   victorialogs:
     image: victoriametrics/victoria-logs:v0.25.0-victorialogs
     container_name: victorialogs
