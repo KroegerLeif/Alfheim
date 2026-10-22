@@ -1,6 +1,6 @@
-import { getRequestErrorMessage } from "@alfheim/shared";
 "use client";
 
+import { getRequestErrorMessage } from "@alfheim/shared";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { flushQueue, type FlushResult } from "../flush";
