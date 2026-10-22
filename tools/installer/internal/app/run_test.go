@@ -246,6 +246,9 @@ func TestUpdateBackfillsNewSecretsAndEnsuresDatabases(t *testing.T) {
 	if vars["HOUSEHOLD_POSTGRES_PASSWORD"] == "" {
 		t.Error("HOUSEHOLD_POSTGRES_PASSWORD was not generated")
 	}
+	if len(vars["CHAT_ATTACHMENT_URL_SECRET"]) != 64 {
+		t.Errorf("CHAT_ATTACHMENT_URL_SECRET = %q, want a backfilled 64 character value", vars["CHAT_ATTACHMENT_URL_SECRET"])
+	}
 	if !strings.Contains(stdout.String(), "ALFHEIM_INTERNAL_TOKEN") {
 		t.Errorf("stdout = %q, want the generated keys listed", stdout.String())
 	}
@@ -267,6 +270,9 @@ func TestUpdateBackfillsNewSecretsAndEnsuresDatabases(t *testing.T) {
 	again, err := envfile.ParseFile(filepath.Join(root, ".env"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if again["CHAT_ATTACHMENT_URL_SECRET"] != vars["CHAT_ATTACHMENT_URL_SECRET"] {
+		t.Error("a second update must not regenerate CHAT_ATTACHMENT_URL_SECRET")
 	}
 	if again["ALFHEIM_INTERNAL_TOKEN"] != token {
 		t.Error("a second update must not regenerate ALFHEIM_INTERNAL_TOKEN")

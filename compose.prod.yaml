@@ -763,6 +763,8 @@ services:
       - S3_PUBLIC_URL=${S3_PUBLIC_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}/storage}
       - CHAT_ENCRYPTION_KEY=${CHAT_ENCRYPTION_KEY:?CHAT_ENCRYPTION_KEY must be set}
       - CHAT_ENCRYPTION_KEY_ID=${CHAT_ENCRYPTION_KEY_ID:-v1}
+      - CHAT_ATTACHMENT_URL_SECRET=${CHAT_ATTACHMENT_URL_SECRET:?CHAT_ATTACHMENT_URL_SECRET must be set}
+      - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
       - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
       # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).
       - CHAT_ALLOWED_LLM_HOSTS=${CHAT_ALLOWED_LLM_HOSTS:-host.docker.internal}

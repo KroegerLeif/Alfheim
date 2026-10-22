@@ -65,6 +65,10 @@ var Manifest = []Secret{
 	// Application level encryption.
 	{Key: "CHAT_ENCRYPTION_KEY", Kind: KindBase64, Size: 32},
 
+	// HMAC key signing the short-lived tokens in chat attachment download
+	// URLs. 32 random bytes, hex encoded (64 characters).
+	{Key: "CHAT_ATTACHMENT_URL_SECRET", Kind: KindHex, Size: 32},
+
 	// Shared bearer secret for service-to-service calls to the household
 	// backend's /internal/* API, which Caddy never routes. 32 random bytes,
 	// hex encoded (64 characters), so it is safe in a header and a dotenv.
