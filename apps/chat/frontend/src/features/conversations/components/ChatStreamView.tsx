@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useAlfiChatLifecycle, useTranslation } from "@alfheim/shared";
 import {
   useConversations,
@@ -45,7 +45,17 @@ export function ChatStreamView({
     newConversationModelId: newConversationModel?.id,
     onConversationCreated,
   });
-  const { data: messages, isLoading, isError } = useMessages(chat.activeId);
+  const { data: messages, isLoading, isError, refetch } = useMessages(chat.activeId);
+
+  // Attachment URLs are signed and short-lived. When one fails to load, refetch the
+  // history once per conversation to obtain fresh URLs; a second failure is final.
+  const refreshedConversationRef = useRef<string | null>(null);
+  const activeId = chat.activeId;
+  const refreshAttachments = useCallback(() => {
+    if (!activeId || refreshedConversationRef.current === activeId) return;
+    refreshedConversationRef.current = activeId;
+    void refetch();
+  }, [activeId, refetch]);
   const [isTyping, setIsTyping] = useState(false);
 
   const hasStreamError = chat.failure !== null && chat.failure.stage !== "stopped";
@@ -101,6 +111,7 @@ export function ChatStreamView({
             isStreaming={chat.isStreaming}
             streamingText={chat.streamingText}
             liveToolCalls={chat.liveToolCalls}
+            onAttachmentError={refreshAttachments}
           />
           <FailureNotice failure={chat.failure} onRetry={chat.retry} />
         </div>

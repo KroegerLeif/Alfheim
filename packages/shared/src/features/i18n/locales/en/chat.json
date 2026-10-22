@@ -79,6 +79,7 @@
     "placeholderApiKeyKeep": "(Leave unchanged)",
     "placeholderApiKeyOptional": "sk-... (optional for Ollama)",
     "attachmentAlt": "Attachment",
+    "attachmentUnavailable": "Attachment unavailable. Reload the conversation to try again.",
     "sendError": "Failed to send the message",
     "newConversationModel": "Model for new conversations",
     "conversationModel": "Model of this conversation",

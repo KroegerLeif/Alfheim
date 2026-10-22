@@ -79,6 +79,7 @@
     "placeholderApiKeyKeep": "(Unverändert lassen)",
     "placeholderApiKeyOptional": "sk-... (optional für Ollama)",
     "attachmentAlt": "Anhang",
+    "attachmentUnavailable": "Anhang nicht verfügbar. Lade die Unterhaltung neu, um es erneut zu versuchen.",
     "sendError": "Die Nachricht konnte nicht gesendet werden",
     "newConversationModel": "Modell für neue Unterhaltungen",
     "conversationModel": "Modell dieser Unterhaltung",

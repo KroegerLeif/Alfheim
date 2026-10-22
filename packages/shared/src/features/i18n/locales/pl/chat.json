@@ -79,6 +79,7 @@
     "placeholderApiKeyKeep": "(Pozostaw bez zmian)",
     "placeholderApiKeyOptional": "sk-... (opcjonalne dla Ollama)",
     "attachmentAlt": "Załącznik",
+    "attachmentUnavailable": "Załącznik niedostępny. Odśwież rozmowę, aby spróbować ponownie.",
     "sendError": "Nie udało się wysłać wiadomości",
     "newConversationModel": "Model dla nowych konwersacji",
     "conversationModel": "Model tej konwersacji",
