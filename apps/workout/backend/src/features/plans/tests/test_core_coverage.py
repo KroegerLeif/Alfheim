@@ -27,7 +27,7 @@ def test_jwks_url_uses_cached_discovery(monkeypatch):
         return "http://auth.example.com/oauth/v2/keys"
 
     monkeypatch.setattr(oidc_discovery, "get_jwks_uri", fake_get_jwks_uri)
-    s = Settings(OIDC_ISSUER_URL="http://auth.example.com", OIDC_JWKS_URL="")
+    s = Settings(OIDC_ISSUER_URL="http://auth.example.com", OIDC_JWKS_URL="")  # gitleaks:allow
     assert s.jwks_url == "http://auth.example.com/oauth/v2/keys"
     assert calls == ["http://auth.example.com"]
 
