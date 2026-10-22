@@ -19,8 +19,7 @@ description: "Checkliste, um einen Release-Kandidaten vor dem Wechsel von dev na
 
 ## Wegwerf-Host vorbereiten
 
-- Eine Linux-VM oder ein freier Rechner mit Docker. Nimm einen amd64-Host, bis
-  die Images auch für arm64 veröffentlicht werden.
+- Eine Linux-VM oder ein freier Rechner mit Docker (amd64 oder arm64).
 - Setze einen Pre-Release-Tag auf `dev`, zum Beispiel `v0.3.0-rc.1`. Der
   Release-Workflow baut dafür die Images und die Installer-Assets, und
   `install.sh` wählt ein Pre-Release nie automatisch aus, also bekommt es kein
