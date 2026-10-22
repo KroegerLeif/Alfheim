@@ -2,6 +2,7 @@
 package config
 
 import (
+	"crypto/rand"
 	"fmt"
 	"os"
 	"strconv"
@@ -21,6 +22,7 @@ type Config struct {
 	Encryption     EncryptionConfig
 	Bootstrap      BootstrapConfig
 	Storage        StorageConfig
+	Attachments    AttachmentsConfig
 	Household      HouseholdConfig
 	MCPServersSpec string
 }
@@ -78,7 +80,22 @@ type StorageConfig struct {
 	BucketName string
 	UseSSL     bool
 	Region     string
-	PublicURL  string
+}
+
+// MinAttachmentURLSecretBytes is the minimum length of CHAT_ATTACHMENT_URL_SECRET.
+const MinAttachmentURLSecretBytes = 32
+
+// AttachmentsConfig configures the signed download URLs handed out for chat attachments.
+type AttachmentsConfig struct {
+	// URLSecret is the HMAC key from CHAT_ATTACHMENT_URL_SECRET. Required in
+	// production; elsewhere an empty value yields a random per-process key, so
+	// issued URLs stop working on restart instead of relying on a known default.
+	URLSecret []byte
+	// URLTTL is how long an issued download URL stays valid.
+	URLTTL time.Duration
+	// PublicBaseURL is the gateway origin (ALFHEIM_BASE_URL) prefixed to download
+	// URLs; empty yields origin-relative URLs.
+	PublicBaseURL string
 }
 
 // Load fetches configurations from environment variables with sensible defaults.
@@ -104,12 +121,6 @@ func Load() (*Config, error) {
 	s3BucketName := getEnv("S3_BUCKET_NAME", "alfheim-assets")
 	s3UseSSL := getEnvAsBool("S3_USE_SSL", false)
 	s3Region := getEnv("S3_REGION", "us-east-1")
-
-	defaultS3PublicURL := "http://api.alfheim.loegien.localhost/storage"
-	if baseURL := getEnv("ALFHEIM_BASE_URL", ""); baseURL != "" {
-		defaultS3PublicURL = fmt.Sprintf("%s/storage", strings.TrimRight(baseURL, "/"))
-	}
-	s3PublicURL := getEnv("S3_PUBLIC_URL", defaultS3PublicURL)
 
 	// Parse CORS allowed origins from environment variable
 	corsOriginsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://alfheim.loegien.localhost,http://api.alfheim.loegien.localhost")
@@ -154,7 +165,6 @@ func Load() (*Config, error) {
 			BucketName: s3BucketName,
 			UseSSL:     s3UseSSL,
 			Region:     s3Region,
-			PublicURL:  s3PublicURL,
 		},
 		Household: HouseholdConfig{
 			InternalURL:   strings.TrimRight(getEnv("HOUSEHOLD_INTERNAL_URL", "http://household-backend:8080"), "/"),
@@ -167,6 +177,19 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")
 	}
 
+	attachmentSecret, err := loadAttachmentURLSecret(env)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Attachments = AttachmentsConfig{
+		URLSecret:     attachmentSecret,
+		URLTTL:        time.Duration(getEnvAsInt32("CHAT_ATTACHMENT_URL_TTL_MINUTES", 15)) * time.Minute,
+		PublicBaseURL: strings.TrimRight(getEnv("ALFHEIM_BASE_URL", ""), "/"),
+	}
+	if cfg.Attachments.URLTTL <= 0 {
+		return nil, fmt.Errorf("CHAT_ATTACHMENT_URL_TTL_MINUTES must be positive")
+	}
+
 	if encryptionKeyB64 != "" {
 		key, err := crypto.DecodeKey(encryptionKeyB64)
 		if err != nil {
@@ -176,6 +199,26 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// loadAttachmentURLSecret reads CHAT_ATTACHMENT_URL_SECRET. Production refuses to
+// start without it; a value that is set must always be long enough.
+func loadAttachmentURLSecret(environment string) ([]byte, error) {
+	raw := getEnv("CHAT_ATTACHMENT_URL_SECRET", "")
+	if raw == "" {
+		if strings.EqualFold(environment, "production") {
+			return nil, fmt.Errorf("CHAT_ATTACHMENT_URL_SECRET is required in production")
+		}
+		secret := make([]byte, MinAttachmentURLSecretBytes)
+		if _, err := rand.Read(secret); err != nil {
+			return nil, fmt.Errorf("failed to generate an ephemeral attachment URL secret: %w", err)
+		}
+		return secret, nil
+	}
+	if len(raw) < MinAttachmentURLSecretBytes {
+		return nil, fmt.Errorf("CHAT_ATTACHMENT_URL_SECRET must be at least %d bytes", MinAttachmentURLSecretBytes)
+	}
+	return []byte(raw), nil
 }
 
 func getEnv(key, fallback string) string {

@@ -11,6 +11,12 @@ var (
 	ErrEmptyFile = errors.New("uploaded file is empty")
 	// ErrAttachmentNotFound indicates that the requested attachment ID does not exist in the database.
 	ErrAttachmentNotFound = errors.New("attachment not found")
+	// ErrHouseholdRequired indicates an upload without a verified household scope.
+	ErrHouseholdRequired = errors.New("a household context is required to upload attachments")
+	// ErrInvalidToken indicates a download token that is malformed, forged, expired or issued for another attachment.
+	ErrInvalidToken = errors.New("invalid or expired attachment token")
+	// ErrMembershipUnavailable indicates household membership could not be verified; callers fail closed.
+	ErrMembershipUnavailable = errors.New("household membership could not be verified")
 	// ErrForbidden indicates that the authenticated user lacks permission to access or modify this attachment.
 	ErrForbidden = errors.New("forbidden: access to attachment denied")
 )

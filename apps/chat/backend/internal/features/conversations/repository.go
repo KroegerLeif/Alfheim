@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"alfheim/chat/internal/shared/db"
-	"alfheim/chat/internal/shared/storage"
 )
 
 // Repository defines data access operations for conversations and messages.
@@ -29,17 +28,16 @@ type Repository interface {
 }
 
 type repository struct {
-	db      db.DBTX
-	storage storage.Client
+	db db.DBTX
 }
 
 // NewRepository initializes a PostgreSQL-backed conversations repository.
-func NewRepository(pool *pgxpool.Pool, storageClient storage.Client) Repository {
-	return &repository{db: pool, storage: storageClient}
+func NewRepository(pool *pgxpool.Pool) Repository {
+	return &repository{db: pool}
 }
 
-func newRepositoryWithDB(dbtx db.DBTX, storageClient storage.Client) Repository {
-	return &repository{db: dbtx, storage: storageClient}
+func newRepositoryWithDB(dbtx db.DBTX) Repository {
+	return &repository{db: dbtx}
 }
 
 const conversationColumns = `
@@ -217,9 +215,6 @@ func (r *repository) ListMessages(ctx context.Context, conversationID string) ([
 			for attRows.Next() {
 				var a MessageAttachment
 				if err := attRows.Scan(&a.ID, &a.MessageID, &a.StorageKey, &a.MimeType, &a.SizeBytes, &a.CreatedAt); err == nil {
-					if r.storage != nil {
-						a.URL = r.storage.GetPublicURL(a.StorageKey)
-					}
 					if a.MessageID != nil {
 						if parent, exists := messageIndex[*a.MessageID]; exists {
 							parent.Attachments = append(parent.Attachments, a)

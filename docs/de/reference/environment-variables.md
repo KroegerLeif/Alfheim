@@ -98,6 +98,8 @@ Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` b
 | `{SERVICE}_DATABASE_URL` | _(konstruiert)_ | Explizite PostgreSQL-Verbindungszeichenkette für einen Dienst (z.B. `DASHBOARD_DATABASE_URL`, `PANTRY_DATABASE_URL`); wenn leer, konstruieren Dienste sie aus `{SERVICE}_POSTGRES_*`-Variablen |
 | `CHAT_ENCRYPTION_KEY` | _(leer)_ | AES-256-GCM-Schlüssel (Base64-codiert) zum Verschlüsseln gespeicherter LLM-API-Schlüssel und Anmeldedaten |
 | `CHAT_ENCRYPTION_KEY_ID` | `v1` | Versions-ID für den Verschlüsselungsschlüssel (für Schlüsselrotation verwendet) |
+| `CHAT_ATTACHMENT_URL_SECRET` | _(leer)_ | HMAC-Schlüssel (mindestens 32 Byte), der Download-URLs für Chat-Anhänge signiert. In Produktion erforderlich; wird vom Installer erzeugt |
+| `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lebensdauer einer signierten Download-URL für Chat-Anhänge |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp` | Kommagetrennte MCP-Server-Definitionen für den Chat-Assistenten |
 | `CHAT_ALLOWED_LLM_HOSTS` | `host.docker.internal` | Kommagetrennte Hostnamen, IPs und CIDR-Bereiche, auf die Basis-URLs von Modellblöcken trotz privater Adresse zeigen dürfen (siehe unten) |
 | `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Interne URL für Shopping-List-Dienst zum Erreichen der Speisekammer-Inventar-API |
