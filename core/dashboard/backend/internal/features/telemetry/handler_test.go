@@ -162,6 +162,34 @@ func TestTelemetryHandler_GetLogs(t *testing.T) {
 			t.Errorf("expected status 200, got %d", rec.Code)
 		}
 	})
+
+	t.Run("returns 200 OK with explicit unavailable state", func(t *testing.T) {
+		svc := &mockTelemetryService{
+			getLogsFn: func(ctx context.Context) (*telemetry.LogsResponse, error) {
+				return &telemetry.LogsResponse{Available: false, Reason: telemetry.LogsUnreachableReason, Logs: []telemetry.LogEntry{}}, nil
+			},
+		}
+		h := telemetry.NewHandler(svc)
+		r := chi.NewRouter()
+		h.RegisterRoutes(r, mockAuthMW(true))
+
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/telemetry/logs", nil))
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", rec.Code)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode body: %v", err)
+		}
+		if body["available"] != false || body["reason"] != "unreachable" {
+			t.Errorf("expected available=false reason=unreachable, got %v", body)
+		}
+		if logs, ok := body["logs"].([]interface{}); !ok || len(logs) != 0 {
+			t.Errorf("expected an empty logs array, got %v", body["logs"])
+		}
+	})
 }
 
 func TestTelemetryHandler_RequiresOperator(t *testing.T) {

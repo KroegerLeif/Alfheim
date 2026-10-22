@@ -74,7 +74,8 @@ Nutze diesen Weg, wenn du jede Datei prüfen willst, bevor etwas läuft, oder ke
 ```bash
 mkdir -p ~/alfheim && cd ~/alfheim
 mkdir -p infrastructure/ca infrastructure/caddy/pki \
-         infrastructure/telemetry/collector infrastructure/telemetry/vector infrastructure/postgres
+         infrastructure/telemetry/collector infrastructure/telemetry/vector \
+         infrastructure/telemetry/victoriametrics infrastructure/postgres
 ```
 
 Werden `infrastructure/ca` und `infrastructure/caddy/pki` vorab angelegt, erzeugt Docker diese Bind-Mount-Quellen nicht mit root als Besitzer.
@@ -91,6 +92,7 @@ curl -fsSLO "${BASE}/compose.prod.yaml"
 curl -fsSLO "${BASE}/otelcol-config.yaml"
 curl -fsSLO "${BASE}/init-multiple-dbs.sh"
 curl -fsSLO "${BASE}/vector.toml"
+curl -fsSLO "${BASE}/victoriametrics-scrape.yml"
 
 sha256sum --check --ignore-missing SHA256SUMS
 ```
@@ -100,6 +102,7 @@ Jede Datei muss `OK` melden. Dann die Dateien dorthin verschieben, wo `compose.p
 ```bash
 mv otelcol-config.yaml infrastructure/telemetry/collector/config.yaml
 mv vector.toml infrastructure/telemetry/vector/vector.toml
+mv victoriametrics-scrape.yml infrastructure/telemetry/victoriametrics/scrape.yml
 mv init-multiple-dbs.sh infrastructure/postgres/init-multiple-dbs.sh
 chmod +x infrastructure/postgres/init-multiple-dbs.sh "alfheim-setup_linux_${ARCH}"
 ```

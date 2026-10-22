@@ -76,6 +76,19 @@ Verteiltes Request-Tracing über Microservice-Grenzen hinweg nutzt die W3C-`trac
 * **VictoriaMetrics (`:8428`)**: Performante, speicherschonende Zeitreihendatenbank für System- und Anwendungsmetriken.
 * **VictoriaLogs (`:9428`)**: Effiziente Log-Datenbank für die von Vector gesammelten strukturierten JSON-Logs.
 
+### Host-Metriken (node-exporter)
+
+`prom/node-exporter` läuft neben VictoriaMetrics im Netzwerk `observability-internal` und veröffentlicht keine Ports. Er bindet das Host-Root schreibgeschützt ein (`/:/host:ro,rslave`) und aktiviert nur die Collector hinter dem Dashboard-Widget: CPU, Arbeitsspeicher, Root-Dateisystem und Boot-Zeit. VictoriaMetrics fragt ihn alle 15 Sekunden über `-promscrape.config` ab; die Konfiguration liegt in `infrastructure/telemetry/victoriametrics/scrape.yml` (als Release-Asset `victoriametrics-scrape.yml` veröffentlicht, daher aktualisiert sie `alfheim-setup update` mit).
+
+Der Netzwerk-Collector ist bewusst deaktiviert: node-exporter läuft in einem Container mit Bridge-Netzwerk und würde die Schnittstelle des Containers statt der des Hosts melden.
+
+### Telemetrie-Endpunkte für Operatoren
+
+Das Dashboard-Backend liefert `GET /api/v1/telemetry/metrics` und `GET /api/v1/telemetry/logs` nur an Operatoren. Keiner der Endpunkte erfindet Daten:
+
+* **Metriken:** `available: false` bedeutet, dass VictoriaMetrics nicht erreichbar ist. `available: true` mit fehlenden Feldern bedeutet, dass es antwortet, aber noch keine Messwerte dafür hat (zum Beispiel direkt nach dem Start, vor dem ersten Scrape). Das Widget zeigt CPU, Arbeitsspeicher, Root-Datenträger-Auslastung und Host-Betriebszeit aus den node-exporter-Serien.
+* **Logs:** `available: false` mit `reason: "unreachable"` bedeutet, dass VictoriaLogs nicht abgefragt werden kann. `available: true` mit leerem `logs`-Array bedeutet, dass es erreichbar ist, aber noch keine Einträge enthält. Die Einträge tragen ihre gespeicherten Zeitstempel.
+
 ---
 
 ## Visualisierung (Grafana)

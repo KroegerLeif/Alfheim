@@ -39,6 +39,7 @@ var StackAssets = []Asset{
 	{Name: "otelcol-config.yaml", Dest: "infrastructure/telemetry/collector/config.yaml", Mode: 0o644},
 	{Name: "init-multiple-dbs.sh", Dest: "infrastructure/postgres/init-multiple-dbs.sh", Mode: 0o755},
 	{Name: "vector.toml", Dest: "infrastructure/telemetry/vector/vector.toml", Mode: 0o644},
+	{Name: "victoriametrics-scrape.yml", Dest: "infrastructure/telemetry/victoriametrics/scrape.yml", Mode: 0o644},
 	{Name: "verify-stack.sh", Dest: "scripts/verify-stack.sh", Mode: 0o755},
 }
 

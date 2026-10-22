@@ -19,6 +19,8 @@ infrastructure/telemetry/
 │   └── config.yaml                      # OTel Collector receivers, processors, exporters
 ├── vector/
 │   └── vector.toml                      # Vector Docker log extraction & OTLP forwarding
+├── victoriametrics/
+│   └── scrape.yml                       # Scrape config: VictoriaMetrics pulls node-exporter host metrics
 ├── grafana/
 │   ├── grafana.ini                      # Server subpath & Zitadel generic OAuth settings
 │   └── provisioning/

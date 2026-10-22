@@ -5,7 +5,6 @@ import {
   UserPreferences,
   CreateUserLinkRequest,
   TelemetryMetrics,
-  TelemetryLogEntry,
   TelemetryLogsResponse,
   UserCapabilities,
 } from './types';
@@ -57,9 +56,8 @@ export async function fetchTelemetryMetrics(): Promise<TelemetryMetrics> {
   }
 }
 
-export async function fetchTelemetryLogs(): Promise<TelemetryLogEntry[]> {
-  const res = await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
-  return res.logs ?? [];
+export async function fetchTelemetryLogs(): Promise<TelemetryLogsResponse> {
+  return await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
 }
 
 /* Capabilities API */

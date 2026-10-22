@@ -7,23 +7,28 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 )
 
-// PromQL queries for standard node-exporter-style metrics. These are real
-// queries against VictoriaMetrics -- when the configured VictoriaMetrics
-// instance has no host-level exporter feeding it (the common case for this
-// stack today, which only ingests OTel application metrics), each query
-// legitimately returns an empty result vector and the corresponding
-// MetricsResponse field is left nil rather than being invented locally.
+// PromQL queries against the node-exporter series that VictoriaMetrics scrapes
+// (see infrastructure/telemetry/victoriametrics/scrape.yml). Each query
+// legitimately returns an empty result vector until the first scrape has
+// landed, and the corresponding MetricsResponse field is then left nil rather
+// than being invented locally. Network throughput is deliberately absent:
+// node-exporter runs in a bridge-networked container, so its netdev collector
+// would report the container's own interface, not the host's.
 const (
-	cpuUsagePercentQuery  = `100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)`
-	memTotalBytesQuery    = `node_memory_MemTotal_bytes`
-	memAvailableBytes     = `node_memory_MemAvailable_bytes`
-	netRxBytesPerSecQuery = `sum(rate(node_network_receive_bytes_total{device!="lo"}[5m]))`
-	netTxBytesPerSecQuery = `sum(rate(node_network_transmit_bytes_total{device!="lo"}[5m]))`
-	activeTargetsQuery    = `count(up == 1)`
+	// livenessQuery needs no stored series; it only proves VictoriaMetrics
+	// answers queries.
+	livenessQuery        = `vector(1)`
+	cpuUsagePercentQuery = `100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)`
+	memTotalBytesQuery   = `max(node_memory_MemTotal_bytes)`
+	memAvailableBytes    = `max(node_memory_MemAvailable_bytes)`
+	diskTotalBytesQuery  = `max(node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"})`
+	diskAvailBytesQuery  = `max(node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"})`
+	uptimeSecondsQuery   = `time() - max(node_boot_time_seconds)`
 )
+
+const bytesPerGB = 1024 * 1024 * 1024
 
 type vmQueryResponse struct {
 	Status string `json:"status"`
@@ -88,50 +93,58 @@ func (s *service) instantQuery(ctx context.Context, promQL string) (value float6
 func (s *service) queryVictoriaMetrics(ctx context.Context) (*MetricsResponse, error) {
 	// Liveness check: confirms VictoriaMetrics is reachable and answering
 	// queries before trusting any of its data.
-	if _, _, err := s.instantQuery(ctx, activeTargetsQuery); err != nil {
+	if _, _, err := s.instantQuery(ctx, livenessQuery); err != nil {
 		return nil, err
 	}
 
-	resp := &MetricsResponse{
-		Available:     true,
-		UptimeSeconds: int64(time.Since(s.startTime).Seconds()),
-	}
+	resp := &MetricsResponse{Available: true}
 
 	if v, ok, _ := s.instantQuery(ctx, cpuUsagePercentQuery); ok {
 		resp.CPUPercent = floatPtr(roundFloat(clamp(v, 0, 100), 1))
 	}
 
-	var memTotalGB *float64
-	if v, ok, _ := s.instantQuery(ctx, memTotalBytesQuery); ok {
-		gb := roundFloat(v/1024/1024/1024, 1)
-		memTotalGB = &gb
-		resp.MemoryTotalGB = memTotalGB
+	memTotal, memAvail := s.usage(ctx, memTotalBytesQuery, memAvailableBytes)
+	if memTotal != nil {
+		resp.MemoryTotalGB = floatPtr(roundFloat(*memTotal/bytesPerGB, 1))
 	}
-	if v, ok, _ := s.instantQuery(ctx, memAvailableBytes); ok && memTotalGB != nil {
-		availGB := v / 1024 / 1024 / 1024
-		usedGB := roundFloat(*memTotalGB-availGB, 1)
-		resp.MemoryUsedGB = floatPtr(usedGB)
-		if *memTotalGB > 0 {
-			resp.MemoryPercent = floatPtr(roundFloat(clamp(usedGB/(*memTotalGB)*100, 0, 100), 1))
-		}
+	if memTotal != nil && memAvail != nil && *memTotal > 0 {
+		used := *memTotal - *memAvail
+		resp.MemoryUsedGB = floatPtr(roundFloat(used/bytesPerGB, 1))
+		resp.MemoryPercent = floatPtr(roundFloat(clamp(used / *memTotal * 100, 0, 100), 1))
 	}
 
-	if v, ok, _ := s.instantQuery(ctx, netRxBytesPerSecQuery); ok {
-		resp.NetworkRxMbps = floatPtr(roundFloat(v*8/1_000_000, 1))
+	diskTotal, diskAvail := s.usage(ctx, diskTotalBytesQuery, diskAvailBytesQuery)
+	if diskTotal != nil {
+		resp.DiskTotalGB = floatPtr(roundFloat(*diskTotal/bytesPerGB, 1))
 	}
-	if v, ok, _ := s.instantQuery(ctx, netTxBytesPerSecQuery); ok {
-		resp.NetworkTxMbps = floatPtr(roundFloat(v*8/1_000_000, 1))
-	}
-	if v, ok, _ := s.instantQuery(ctx, activeTargetsQuery); ok {
-		n := int(v)
-		resp.ActiveContainers = &n
+	if diskTotal != nil && diskAvail != nil && *diskTotal > 0 {
+		used := *diskTotal - *diskAvail
+		resp.DiskUsedGB = floatPtr(roundFloat(used/bytesPerGB, 1))
+		resp.DiskPercent = floatPtr(roundFloat(clamp(used / *diskTotal * 100, 0, 100), 1))
 	}
 
-	if resp.CPUPercent == nil && resp.MemoryPercent == nil && resp.NetworkRxMbps == nil && resp.NetworkTxMbps == nil {
+	if v, ok, _ := s.instantQuery(ctx, uptimeSecondsQuery); ok && v >= 0 {
+		uptime := int64(v)
+		resp.UptimeSeconds = &uptime
+	}
+
+	if resp.CPUPercent == nil && resp.MemoryPercent == nil && resp.DiskPercent == nil && resp.UptimeSeconds == nil {
 		resp.Message = "victoriametrics is reachable but has no host-level metrics available yet"
 	}
 
 	return resp, nil
+}
+
+// usage runs a total/available query pair and returns whichever values
+// VictoriaMetrics had data for (nil otherwise).
+func (s *service) usage(ctx context.Context, totalQuery, availQuery string) (total, avail *float64) {
+	if v, ok, _ := s.instantQuery(ctx, totalQuery); ok {
+		total = &v
+	}
+	if v, ok, _ := s.instantQuery(ctx, availQuery); ok {
+		avail = &v
+	}
+	return total, avail
 }
 
 func floatPtr(v float64) *float64 {
