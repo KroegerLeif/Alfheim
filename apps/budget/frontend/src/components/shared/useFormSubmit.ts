@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "@alfheim/shared";
 
 /**
@@ -13,9 +13,12 @@ export function useFormSubmit(open: boolean) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Reset the error when the dialog opens or closes (state adjusted during render, not in an effect).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     setError(null);
-  }, [open]);
+  }
 
   /** Runs `action`; resolves to `true` on success and `false` when it failed. */
   const run = useCallback(

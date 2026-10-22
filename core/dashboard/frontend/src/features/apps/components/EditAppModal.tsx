@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation, Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
 import { PRESET_ICON_NAMES } from '../presetIcons';
 import { useUpdateUserLink, useDeleteUserLink } from '../queries';
@@ -15,29 +15,22 @@ interface EditAppModalProps {
 }
 
 export function EditAppModal({ app, isOpen, onClose, onSuccess }: EditAppModalProps) {
+  if (!isOpen || !app) return null;
+  // Keyed by the link so the form fields start from the app being edited every time.
+  return <EditAppForm key={app.id} app={app} isOpen={isOpen} onClose={onClose} onSuccess={onSuccess} />;
+}
+
+function EditAppForm({ app, isOpen, onClose, onSuccess }: EditAppModalProps & { app: AppItem }) {
   const { t } = useTranslation();
   const updateLinkMutation = useUpdateUserLink();
   const deleteLinkMutation = useDeleteUserLink();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [url, setUrl] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('link');
+  const [title, setTitle] = useState(app.title || app.name || '');
+  const [description, setDescription] = useState(app.description || '');
+  const [url, setUrl] = useState(app.url || app.app_url || '');
+  const [selectedIcon, setSelectedIcon] = useState(app.icon || app.icon_url || 'link');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  useEffect(() => {
-    if (app) {
-      setTitle(app.title || app.name || '');
-      setDescription(app.description || '');
-      setUrl(app.url || app.app_url || '');
-      setSelectedIcon(app.icon || app.icon_url || 'link');
-      setErrorMessage(null);
-      setConfirmDelete(false);
-    }
-  }, [app]);
-
-  if (!isOpen || !app) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

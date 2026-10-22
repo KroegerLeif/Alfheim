@@ -1,3 +1,4 @@
+import type { KyResponse, ResponsePromise } from 'ky'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '../categoryService'
 import { createQueryWrapper } from '@/tests/utils'
@@ -24,7 +25,7 @@ describe('useCategories Hook', () => {
     const mockJson = vi.fn().mockResolvedValue(mockCategories)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as any)
+    } as unknown as ResponsePromise)
 
     const { result } = renderHook(() => useCategories(), {
       wrapper: createQueryWrapper(),
@@ -45,7 +46,7 @@ describe('useCategories Hook', () => {
     const mockJson = vi.fn().mockRejectedValue(apiError)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as any)
+    } as unknown as ResponsePromise)
 
     const { result } = renderHook(() => useCategories(), {
       wrapper: createQueryWrapper(),
@@ -56,9 +57,9 @@ describe('useCategories Hook', () => {
   })
 
   it('creates, renames and deletes categories and refreshes the list each time', async () => {
-    vi.mocked(pantryClient.post).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Baking' }) } as any)
-    vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Bakery' }) } as any)
-    vi.mocked(pantryClient.delete).mockResolvedValue({} as any)
+    vi.mocked(pantryClient.post).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Baking' }) } as unknown as ResponsePromise)
+    vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Bakery' }) } as unknown as ResponsePromise)
+    vi.mocked(pantryClient.delete).mockResolvedValue({} as KyResponse)
     const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
     const create = renderHook(() => useCreateCategory(), { wrapper: createQueryWrapper() })

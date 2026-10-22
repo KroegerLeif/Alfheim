@@ -1,3 +1,4 @@
+import type { PropsWithChildren } from 'react'
 import '@testing-library/jest-dom'
 import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import * as matchers from 'vitest-axe/matchers'
@@ -66,7 +67,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => 'en',
-  Link: ({ children, ...props }: any) => {
+  Link: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) => {
     const React = require('react')
     return React.createElement('a', props, children)
   },

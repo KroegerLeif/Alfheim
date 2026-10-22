@@ -13,18 +13,6 @@ const eslintConfig = defineConfig([
       "jsx-a11y/alt-text": "warn",
     },
   },
-  // React Compiler rules shipped with eslint-config-next 16.4 as errors; the existing effects predate
-  // them, so they only warn until each one is reworked.
-  {
-    rules: {
-      "react-hooks/set-state-in-effect": "warn",
-    },
-  },
-  {
-    rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
-    },
-  },
   // Test doubles legitimately use require() inside vi.mock factories and anonymous wrapper components.
   {
     files: ["src/tests/**", "**/*.test.{ts,tsx}"],

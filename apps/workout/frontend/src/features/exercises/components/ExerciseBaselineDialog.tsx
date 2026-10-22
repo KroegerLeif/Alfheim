@@ -30,20 +30,25 @@ interface ExerciseBaselineDialogProps {
  */
 export function ExerciseBaselineDialog({ exercise, open, onOpenChange }: ExerciseBaselineDialogProps) {
   const { t } = useTranslation();
-  const [weight, setWeight] = React.useState("");
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-
   const preferenceQuery = useExercisePreference(exercise?.id ?? "");
   const upsertMutation = useUpsertExercisePreference();
 
-  React.useEffect(() => {
+  const savedWeight = (data: typeof preferenceQuery.data) => {
+    const current = data?.default_target_weight_kg;
+    return current !== undefined && current !== null ? String(current) : "";
+  };
+  const [weight, setWeight] = React.useState(open ? savedWeight(preferenceQuery.data) : "");
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  // Show the saved baseline whenever the dialog opens or the saved value changes (adjusted during render).
+  const [synced, setSynced] = React.useState({ open, data: preferenceQuery.data });
+  if (synced.open !== open || synced.data !== preferenceQuery.data) {
+    setSynced({ open, data: preferenceQuery.data });
     if (open) {
-      const current = preferenceQuery.data?.default_target_weight_kg;
-      setWeight(current !== undefined && current !== null ? String(current) : "");
+      setWeight(savedWeight(preferenceQuery.data));
       setErrorMessage(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, preferenceQuery.data]);
+  }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();

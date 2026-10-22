@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useNow } from "@/core/useNow";
 import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { Plus, Minus } from "lucide-react";
@@ -41,19 +42,21 @@ export function DashboardView() {
   const lowStockCount = lowStockItems.length;
   const untrackedCount = expirationSummary?.untracked?.length ?? 0;
 
+  const now = useNow();
+
   // Compile sorted alert feed: expired items first, then items expiring within 14 days
   const alertFeed = React.useMemo(() => {
     const expiredFeed = (expirationSummary?.expired ?? []).map((item) => ({ ...item, severity: "high" as const }));
     const warningFeed = (expirationSummary?.valid ?? [])
       .filter((item) => {
         if (!item.expiration_date) return false;
-        const diffDays = Math.ceil((new Date(item.expiration_date).getTime() - Date.now()) / 86_400_000);
+        const diffDays = Math.ceil((new Date(item.expiration_date).getTime() - now) / 86_400_000);
         return diffDays >= 0 && diffDays <= 14;
       })
       .map((item) => ({ ...item, severity: "medium" as const }))
       .sort((a, b) => new Date(a.expiration_date!).getTime() - new Date(b.expiration_date!).getTime());
     return [...expiredFeed, ...warningFeed];
-  }, [expirationSummary]);
+  }, [expirationSummary, now]);
 
   return (
     <div className="flex-1 p-6 md:p-12 space-y-10 max-w-7xl mx-auto w-full select-none text-[var(--text-main)]">

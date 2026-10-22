@@ -2,6 +2,7 @@
 
 import { useTranslation, useHouseholdCan, Button, TableRow, TableCell, AlfiAvatar } from "@alfheim/shared";
 import { formatDate } from "@/core/format";
+import { useNow } from "@/core/useNow";
 import { Plus, Minus, AlertTriangle } from "lucide-react";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
 import { usePantryChat } from "@/core/chatContext";
@@ -20,6 +21,7 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
   const { t, language } = useTranslation();
   const canWrite = useHouseholdCan("write");
   const { openChat } = usePantryChat();
+  const now = useNow();
 
   const product = state.product;
   const location = state.location;
@@ -27,7 +29,7 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
   if (!product || !location) return null;
 
   const isExpired = state.expiration_date
-    ? new Date(state.expiration_date).getTime() < Date.now()
+    ? new Date(state.expiration_date).getTime() < now
     : false;
   const isEmpty = state.quantity <= 0;
   const isLowStock = !isEmpty && state.quantity < (product.minimum_stock ?? 0);

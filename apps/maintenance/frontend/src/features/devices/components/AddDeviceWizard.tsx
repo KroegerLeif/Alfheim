@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { CreateDevicePayload, CreateStepPayload } from "@/shared/types";
 import { CATEGORIES } from "@/shared/data";
 import { useLayout } from "@/shared/layout/LayoutContext";
@@ -38,18 +38,9 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
   const [deviceStatus, setDeviceStatus] = useState<string>("active");
   const [intervalMonths, setIntervalMonths] = useState<number>(12);
   const [notes, setNotes] = useState("");
-  const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>(
-    householdId ?? households[0]?.id ?? ""
-  );
-
-  // Synchronize selection dynamically once households load or layout changes
-  useEffect(() => {
-    if (householdId !== null && householdId !== undefined) {
-      setSelectedHouseholdId(householdId);
-    } else if (households.length > 0) {
-      setSelectedHouseholdId(households[0].id);
-    }
-  }, [householdId, households]);
+  // An explicit pick wins; until then follow the layout household, then the first loaded one.
+  const [chosenHouseholdId, setSelectedHouseholdId] = useState<string | null>(null);
+  const selectedHouseholdId = chosenHouseholdId ?? householdId ?? households[0]?.id ?? "";
 
   // Dynamic steps array — starts with one empty step
   const [steps, setSteps] = useState<CreateStepPayload[]>([{ ...EMPTY_STEP }]);
