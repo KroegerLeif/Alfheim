@@ -154,7 +154,7 @@ func TestRepository_Conversations(t *testing.T) {
 				return pgconn.NewCommandTag("INSERT 0 1"), nil
 			},
 		}
-		repo := newRepositoryWithDB(dbtxOK, nil)
+		repo := newRepositoryWithDB(dbtxOK)
 		c := &Conversation{ID: "c1", OwnerUserID: "u1"}
 		if err := repo.CreateConversation(ctx, c); err != nil {
 			t.Fatalf("unexpected CreateConversation error: %v", err)
@@ -165,7 +165,7 @@ func TestRepository_Conversations(t *testing.T) {
 				return pgconn.NewCommandTag("DELETE 1"), nil
 			},
 		}
-		repoDel := newRepositoryWithDB(dbtxDel, nil)
+		repoDel := newRepositoryWithDB(dbtxDel)
 		if err := repoDel.DeleteConversation(ctx, "c1"); err != nil {
 			t.Fatalf("unexpected DeleteConversation error: %v", err)
 		}
@@ -177,7 +177,7 @@ func TestRepository_Conversations(t *testing.T) {
 				return &mockRow{scanFunc: func(dest ...any) error { return pgx.ErrNoRows }}
 			},
 		}
-		repoNF := newRepositoryWithDB(dbtxNF, nil)
+		repoNF := newRepositoryWithDB(dbtxNF)
 		if _, err := repoNF.GetConversationByID(ctx, "c999"); !errors.Is(err, ErrNotFound) {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}
@@ -196,7 +196,7 @@ func TestRepository_Conversations(t *testing.T) {
 				}}
 			},
 		}
-		repoOK := newRepositoryWithDB(dbtxOK, nil)
+		repoOK := newRepositoryWithDB(dbtxOK)
 		c, err := repoOK.GetConversationByID(ctx, "c1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -212,7 +212,7 @@ func TestRepository_Conversations(t *testing.T) {
 				return nil, errors.New("err")
 			},
 		}
-		repoErr := newRepositoryWithDB(dbtxErr, nil)
+		repoErr := newRepositoryWithDB(dbtxErr)
 		if _, err := repoErr.ListConversationsByOwner(ctx, "u1", "hh-1"); err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -227,7 +227,7 @@ func TestRepository_Conversations(t *testing.T) {
 				}, nil
 			},
 		}
-		repoOK := newRepositoryWithDB(dbtxOK, nil)
+		repoOK := newRepositoryWithDB(dbtxOK)
 		list, err := repoOK.ListConversationsByOwner(ctx, "u1", "hh-1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -252,7 +252,7 @@ func TestRepository_Messages(t *testing.T) {
 				return mtx, nil
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 
 		m := &Message{ID: "m1", ConversationID: "c1", Content: "Hello"}
 		if err := repo.CreateMessage(ctx, m, "att-1"); err != nil {
@@ -276,7 +276,7 @@ func TestRepository_Messages(t *testing.T) {
 				return pgconn.NewCommandTag("INSERT 0 1"), nil
 			},
 		}
-		repo := newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil }}, nil)
+		repo := newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil }})
 
 		m := &Message{ID: "m1", ConversationID: "c1", Content: "Hello"}
 		if err := repo.CreateMessage(ctx, m, "att-1", "att-2", "att-1"); err != nil {
@@ -304,7 +304,7 @@ func TestRepository_Messages(t *testing.T) {
 				return pgconn.NewCommandTag("INSERT 0 1"), nil
 			},
 		}
-		repo := newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil }}, nil)
+		repo := newRepositoryWithDB(&mockDBTX{beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil }})
 
 		err := repo.CreateMessage(ctx, &Message{ID: "m1", ConversationID: "c1"}, "someone-elses-att")
 		if !errors.Is(err, ErrAttachmentUnavailable) {
@@ -318,7 +318,7 @@ func TestRepository_Messages(t *testing.T) {
 				return nil, errors.New("query err")
 			},
 		}
-		repoErr := newRepositoryWithDB(dbtxErr, nil)
+		repoErr := newRepositoryWithDB(dbtxErr)
 		if _, err := repoErr.ListMessages(ctx, "c1"); err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -333,7 +333,7 @@ func TestRepository_Messages(t *testing.T) {
 				}, nil
 			},
 		}
-		repoOK := newRepositoryWithDB(dbtxOK, nil)
+		repoOK := newRepositoryWithDB(dbtxOK)
 		msgs, err := repoOK.ListMessages(ctx, "c1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -345,7 +345,7 @@ func TestRepository_Messages(t *testing.T) {
 }
 
 func TestNewRepository(t *testing.T) {
-	repo := NewRepository(nil, nil)
+	repo := NewRepository(nil)
 	if repo == nil {
 		t.Fatal("expected non-nil repository")
 	}
@@ -360,7 +360,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return pgconn.NewCommandTag(""), errors.New("insert error")
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		err := repo.CreateConversation(ctx, &Conversation{ID: "c1"})
 		if err == nil {
 			t.Fatal("expected error, got nil")
@@ -373,7 +373,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return &mockRow{scanFunc: func(dest ...any) error { return errors.New("scan error") }}
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		_, err := repo.GetConversationByID(ctx, "c1")
 		if err == nil {
 			t.Fatal("expected error, got nil")
@@ -389,7 +389,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return &mockRows{err: errors.New("iteration error")}, nil
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		_, err := repo.ListConversationsByOwner(ctx, "u1", "hh-1")
 		if err == nil {
 			t.Fatal("expected error, got nil")
@@ -402,7 +402,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return pgconn.NewCommandTag(""), errors.New("delete error")
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		if err := repo.DeleteConversation(ctx, "c1"); err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -414,7 +414,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return pgconn.NewCommandTag("DELETE 0"), nil
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		if err := repo.DeleteConversation(ctx, "c1"); !errors.Is(err, ErrNotFound) {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}
@@ -426,7 +426,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return nil, errors.New("begin error")
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		if err := repo.CreateMessage(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -441,7 +441,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 		dbtx := &mockDBTX{
 			beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil },
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		if err := repo.CreateMessage(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -453,7 +453,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return &mockRows{err: errors.New("iteration error")}, nil
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		_, err := repo.ListMessages(ctx, "c1")
 		if err == nil {
 			t.Fatal("expected error, got nil")
@@ -466,7 +466,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 				return nil, errors.New("begin error")
 			},
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		if err := repo.AppendMessageAndTouchConversation(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -481,7 +481,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 		dbtx := &mockDBTX{
 			beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil },
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		if err := repo.AppendMessageAndTouchConversation(ctx, &Message{ID: "m1", ConversationID: "c1"}); err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -501,7 +501,7 @@ func TestRepository_ErrorBranches(t *testing.T) {
 		dbtx := &mockDBTX{
 			beginFunc: func(ctx context.Context) (pgx.Tx, error) { return mtx, nil },
 		}
-		repo := newRepositoryWithDB(dbtx, nil)
+		repo := newRepositoryWithDB(dbtx)
 		if err := repo.AppendMessageAndTouchConversation(ctx, &Message{ID: "m1", ConversationID: "c1"}); !errors.Is(err, ErrNotFound) {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}

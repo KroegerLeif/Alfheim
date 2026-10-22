@@ -15,6 +15,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 	"github.com/google/uuid"
 
@@ -26,13 +27,26 @@ type Client interface {
 	EnsureBucketExists(ctx context.Context) error
 	Upload(ctx context.Context, key string, body io.Reader, size int64, contentType string) error
 	Delete(ctx context.Context, key string) error
-	GetPublicURL(key string) string
+	// Download opens the object for reading; the caller must close the body.
+	// A missing object yields an error satisfying errors.Is(err, ErrObjectNotFound).
+	Download(ctx context.Context, key string) (*Object, error)
+}
+
+// ErrObjectNotFound reports that the requested key does not exist in the bucket.
+var ErrObjectNotFound = errors.New("storage object not found")
+
+// Object is a stored object opened for streaming.
+type Object struct {
+	Body        io.ReadCloser
+	ContentType string
+	Size        int64
 }
 
 // S3API abstracts the raw AWS SDK s3.Client calls for easy unit testing with mocks.
 type S3API interface {
 	HeadBucket(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error)
 	CreateBucket(ctx context.Context, params *s3.CreateBucketInput, optFns ...func(*s3.Options)) (*s3.CreateBucketOutput, error)
+	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
 }
@@ -159,11 +173,25 @@ func (c *s3Client) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-// GetPublicURL returns the public HTTP gateway URL for accessing the object.
-func (c *s3Client) GetPublicURL(key string) string {
-	baseURL := strings.TrimRight(c.cfg.PublicURL, "/")
-	cleanKey := strings.TrimLeft(key, "/")
-	return fmt.Sprintf("%s/%s", baseURL, cleanKey)
+// Download opens an object from the configured S3 bucket for streaming.
+func (c *s3Client) Download(ctx context.Context, key string) (*Object, error) {
+	out, err := c.api.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.cfg.BucketName),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		var noKey *types.NoSuchKey
+		var apiErr smithy.APIError
+		if errors.As(err, &noKey) || (errors.As(err, &apiErr) && (apiErr.ErrorCode() == "NoSuchKey" || apiErr.ErrorCode() == "NotFound")) {
+			return nil, fmt.Errorf("%w: %q", ErrObjectNotFound, key)
+		}
+		return nil, fmt.Errorf("failed to download object %q from s3: %w", key, err)
+	}
+	return &Object{
+		Body:        out.Body,
+		ContentType: aws.ToString(out.ContentType),
+		Size:        aws.ToInt64(out.ContentLength),
+	}, nil
 }
 
 // GenerateChatObjectKey constructs a tenant-isolated storage key matching Alfheim conventions.

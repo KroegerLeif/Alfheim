@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 
 	"alfheim/chat/config"
@@ -21,6 +22,14 @@ type mockS3API struct {
 	createBucketFunc func(ctx context.Context, params *s3.CreateBucketInput, optFns ...func(*s3.Options)) (*s3.CreateBucketOutput, error)
 	putObjectFunc    func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 	deleteObjectFunc func(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+	getObjectFunc    func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+}
+
+func (m *mockS3API) GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+	if m.getObjectFunc != nil {
+		return m.getObjectFunc(ctx, params, optFns...)
+	}
+	return &s3.GetObjectOutput{Body: io.NopCloser(strings.NewReader(""))}, nil
 }
 
 func (m *mockS3API) HeadBucket(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
@@ -108,16 +117,54 @@ func TestKeyGenerationAndSanitization(t *testing.T) {
 func TestStorageClientOperations(t *testing.T) {
 	cfg := config.StorageConfig{
 		BucketName: "alfheim-assets",
-		PublicURL:  "http://api.alfheim.loegien.localhost/storage",
 	}
 
-	t.Run("GetPublicURL", func(t *testing.T) {
-		mock := &mockS3API{}
-		client := NewWithAPI(mock, cfg)
-		url := client.GetPublicURL("households/123/chat/abc_pic.png")
-		expected := "http://api.alfheim.loegien.localhost/storage/households/123/chat/abc_pic.png"
-		if url != expected {
-			t.Errorf("GetPublicURL = %q, expected %q", url, expected)
+	t.Run("Download streams the object from the configured bucket", func(t *testing.T) {
+		mock := &mockS3API{
+			getObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+				if *params.Bucket != "alfheim-assets" || *params.Key != "households/123/chat/abc_pic.png" {
+					t.Errorf("unexpected bucket/key: %s/%s", *params.Bucket, *params.Key)
+				}
+				return &s3.GetObjectOutput{
+					Body:          io.NopCloser(strings.NewReader("png-bytes")),
+					ContentType:   aws.String("image/png"),
+					ContentLength: aws.Int64(9),
+				}, nil
+			},
+		}
+		obj, err := NewWithAPI(mock, cfg).Download(context.Background(), "households/123/chat/abc_pic.png")
+		if err != nil {
+			t.Fatalf("Download error: %v", err)
+		}
+		defer obj.Body.Close()
+		data, _ := io.ReadAll(obj.Body)
+		if string(data) != "png-bytes" || obj.ContentType != "image/png" || obj.Size != 9 {
+			t.Errorf("object = %q %q %d", data, obj.ContentType, obj.Size)
+		}
+	})
+
+	t.Run("Download maps a missing key to ErrObjectNotFound", func(t *testing.T) {
+		for _, err := range []error{&types.NoSuchKey{}, &mockSmithyAPIError{code: "NotFound", message: "gone"}} {
+			mock := &mockS3API{
+				getObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+					return nil, err
+				},
+			}
+			if _, got := NewWithAPI(mock, cfg).Download(context.Background(), "k"); !errors.Is(got, ErrObjectNotFound) {
+				t.Errorf("Download error = %v, want ErrObjectNotFound", got)
+			}
+		}
+	})
+
+	t.Run("Download surfaces other storage errors", func(t *testing.T) {
+		mock := &mockS3API{
+			getObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+				return nil, errors.New("connection refused")
+			},
+		}
+		_, err := NewWithAPI(mock, cfg).Download(context.Background(), "k")
+		if err == nil || errors.Is(err, ErrObjectNotFound) {
+			t.Errorf("Download error = %v, want a non-not-found error", err)
 		}
 	})
 
