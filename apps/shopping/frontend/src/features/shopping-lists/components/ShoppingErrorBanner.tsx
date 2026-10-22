@@ -1,6 +1,6 @@
-import { getRequestErrorMessage } from "@alfheim/shared";
 "use client";
 
+import { getRequestErrorMessage } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { ShoppingCart } from "lucide-react";
 import { ApiError } from "@/lib/api";

@@ -1,6 +1,6 @@
-import { getRequestErrorMessage } from "@alfheim/shared";
 "use client";
 
+import { getRequestErrorMessage } from "@alfheim/shared";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
