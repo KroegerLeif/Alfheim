@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { NetworkError } from "ky";
 import { ApiError } from "../api";
 import { describeError } from "../errors";
 
@@ -22,6 +23,11 @@ describe("describeError", () => {
   it("does not leak raw network error text", () => {
     expect(describeError(new TypeError("Failed to fetch"), t, "workout.saveFailed")).toBe("[workout.saveFailed]");
     expect(describeError(undefined, t, "workout.saveFailed")).toBe("[workout.saveFailed]");
+  });
+
+  it("does not leak the request URL of a ky NetworkError", () => {
+    const error = new NetworkError(new Request("http://localhost/api/v1/plans"), { cause: new TypeError("Failed to fetch") });
+    expect(describeError(error, t, "workout.saveFailed")).toBe("[workout.saveFailed]");
   });
 
   it("falls back for an unknown code with a message", () => {

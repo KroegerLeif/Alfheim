@@ -36,18 +36,18 @@ export async function readApiError(error: unknown): Promise<ApiErrorInfo> {
   }
 
   const info: ApiErrorInfo = { status: error.response.status, code: null, itemCount: null, detail: null };
-  try {
-    const body: unknown = await error.response.clone().json();
+  // ky consumes the response body into `error.data`: parsed JSON for JSON responses, otherwise text
+  // (for example a proxy error page), where only the status is useful.
+  const body = error.data;
+  if (body && typeof body === "object") {
     const parsed = parseApiErrorBody(body);
-    const rawDetail = (body as { detail?: unknown } | null)?.detail;
+    const rawDetail = (body as { detail?: unknown }).detail;
     info.code = parsed.code;
     info.detail = parsed.message ?? validationMessages(rawDetail);
     if (rawDetail && typeof rawDetail === "object" && !Array.isArray(rawDetail)) {
       const count = (rawDetail as { item_count?: unknown }).item_count;
       info.itemCount = typeof count === "number" ? count : null;
     }
-  } catch {
-    // The body is not JSON (for example a proxy error page); the status alone is still useful.
   }
   if (info.detail && info.detail.length > MAX_DETAIL_LENGTH) {
     info.detail = `${info.detail.slice(0, MAX_DETAIL_LENGTH)}…`;

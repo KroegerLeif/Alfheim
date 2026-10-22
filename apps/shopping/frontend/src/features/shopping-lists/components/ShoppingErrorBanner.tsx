@@ -1,3 +1,4 @@
+import { getRequestErrorMessage } from "@alfheim/shared";
 "use client";
 
 import { useTranslations } from "next-intl";
@@ -45,7 +46,7 @@ export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingError
             : isForbidden
             ? errT("forbiddenDesc")
             : listsErrObj instanceof Error
-            ? listsErrObj.message
+            ? getRequestErrorMessage(listsErrObj)
             : errT("fetchFailedDesc")}
         </p>
         <div className="flex gap-2 justify-center">

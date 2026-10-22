@@ -31,14 +31,14 @@ const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "/pantry/api/v1");
 /** Creates a ky client that carries the bearer token and household headers and handles 401 refresh. */
 const createApiClient = (prefixUrl: string) =>
   ky.create({
-    prefixUrl,
+    prefix: prefixUrl,
     timeout: 10000,
     headers: {
       "Content-Type": "application/json",
     },
     hooks: {
       beforeRequest: [
-        (request) => {
+        ({ request }) => {
           if (typeof window !== "undefined") {
             const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
             if (token) {
@@ -49,7 +49,7 @@ const createApiClient = (prefixUrl: string) =>
         },
       ],
       afterResponse: [
-        async (request, options, response) => {
+        async ({ request, options, response }) => {
           if (response.status === 401 && typeof window !== "undefined") {
             const oidcBridge = window.__alfheim_oidc__;
             if (oidcBridge && typeof oidcBridge.refresh === "function") {

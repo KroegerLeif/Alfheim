@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { subscribeHouseholdErrors } from '@alfheim/shared'
+import { isNetworkError } from 'ky'
+import { getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { choresClient } from '../api'
 
 function jsonResponse(status: number, body: unknown) {
@@ -53,5 +54,29 @@ describe('choresClient household context', () => {
     fetchSpy.mockImplementation(async () => new Response('<html>bad gateway</html>', { status: 502 }))
     const error = await choresClient.get('templates').json().catch((err: unknown) => err)
     expect(error).toMatchObject({ status: 502, message: '' })
+  })
+})
+
+describe('choresClient network failures', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects with a NetworkError instead of a normalized API error', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await choresClient.get('templates', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(isNetworkError(error)).toBe(true)
+    expect(error).not.toHaveProperty('status')
+    expect(error).not.toHaveProperty('code')
+  })
+
+  it('keeps the browser message for text shown to the user', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await choresClient.get('templates', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

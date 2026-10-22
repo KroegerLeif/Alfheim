@@ -1,3 +1,4 @@
+import { getRequestErrorMessage } from "@alfheim/shared";
 "use client";
 
 import { useState } from "react";
@@ -44,7 +45,7 @@ export function EinlagernItemRow({
       await action();
       onDone();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(getRequestErrorMessage(err));
     }
   };
 
