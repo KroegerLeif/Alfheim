@@ -21,6 +21,7 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://rustfs:9000}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-budget-receipts}
+      - S3_PUBLIC_URL=${S3_PUBLIC_URL:-${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}/storage}
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true

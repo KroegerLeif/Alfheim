@@ -4,6 +4,7 @@ import logging
 import os
 
 import aioboto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -74,14 +75,32 @@ class S3StorageService:
         self.settings = settings or StorageSettings()
         self.session = aioboto3.Session()
 
-    def _get_client(self):
+    def _get_client(self, config: Config | None = None):
         return self.session.client(
             "s3",
             endpoint_url=self.settings.S3_ENDPOINT_URL,
             aws_access_key_id=self.settings.S3_ACCESS_KEY,
             aws_secret_access_key=self.settings.S3_SECRET_KEY,
             region_name=self.settings.S3_REGION,
+            config=config,
         )
+
+    def _get_presign_client(self):
+        # Query-string (SigV2) signatures cover the bucket and key but not the host, so a URL signed
+        # against the internal endpoint stays valid when _to_public_url moves it to the gateway.
+        return self._get_client(Config(signature_version="s3"))
+
+    def _to_public_url(self, url: str) -> str:
+        """Point a URL signed for the internal endpoint at S3_PUBLIC_URL, which browsers can reach.
+
+        The ingress gateway strips the public prefix (``/storage``) before proxying to RustFS, so the
+        bucket and key path the signature covers arrive unchanged.
+        """
+        internal = self.settings.S3_ENDPOINT_URL.rstrip("/")
+        public = self.settings.S3_PUBLIC_URL.rstrip("/")
+        if public and url.startswith(internal + "/"):
+            return public + url[len(internal) :]
+        return url
 
     async def ensure_bucket_exists(self) -> None:
         """Verify that the target S3 bucket exists, creating it if absent."""
@@ -108,25 +127,25 @@ class S3StorageService:
     async def generate_presigned_upload_url(
         self, object_key: str, expires_in: int = 3600, content_type: str | None = None
     ) -> str:
-        """Generate a presigned PUT URL allowing direct client asset upload to RustFS/S3."""
+        """Generate a presigned PUT URL allowing direct browser upload to RustFS/S3 via S3_PUBLIC_URL."""
         params = {"Bucket": self.settings.S3_BUCKET_NAME, "Key": object_key}
         if content_type:
             params["ContentType"] = content_type
 
-        async with self._get_client() as s3_client:
+        async with self._get_presign_client() as s3_client:
             url: str = await s3_client.generate_presigned_url(
                 "put_object",
                 Params=params,
                 ExpiresIn=expires_in,
             )
-            return url
+            return self._to_public_url(url)
 
     async def generate_presigned_download_url(self, object_key: str, expires_in: int = 3600) -> str:
-        """Generate a presigned GET URL allowing client asset download from RustFS/S3."""
-        async with self._get_client() as s3_client:
+        """Generate a presigned GET URL allowing browser download from RustFS/S3 via S3_PUBLIC_URL."""
+        async with self._get_presign_client() as s3_client:
             url: str = await s3_client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": self.settings.S3_BUCKET_NAME, "Key": object_key},
                 ExpiresIn=expires_in,
             )
-            return url
+            return self._to_public_url(url)

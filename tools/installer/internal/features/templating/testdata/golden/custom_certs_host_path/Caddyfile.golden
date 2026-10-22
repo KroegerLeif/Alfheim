@@ -176,6 +176,14 @@ https://alfheim.example.com {
 		reverse_proxy dashboard-backend:8080
 	}
 
+	# RustFS object storage (S3_PUBLIC_URL). Browsers PUT and GET presigned
+	# URLs here (budget receipts, library manuals); handle_path strips /storage
+	# so the signed bucket/key path reaches RustFS unchanged. Objects stay
+	# private: RustFS rejects any request without a valid signature.
+	handle_path /storage* {
+		reverse_proxy rustfs:9000
+	}
+
 	# Observability.
 	handle /grafana* {
 		reverse_proxy grafana:3000

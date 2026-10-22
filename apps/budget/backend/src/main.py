@@ -1,8 +1,10 @@
+import logging
 from contextlib import asynccontextmanager
 
 from backend_shared import setup_telemetry, shutdown_telemetry
 from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import mount_mcp
+from backend_shared.storage import S3StorageService
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.audit import AuditRepository  # noqa: F401 - imported to trigger register_audit_hooks at module load
@@ -13,6 +15,8 @@ from src.features.plans import router as plans_router
 from src.features.pots import router as pots_router
 from src.features.transactions import router as transactions_router
 from src.mcp.server import discover_and_import_mcp_tools, mcp
+
+logger = logging.getLogger(__name__)
 
 # Discover and register FastMCP tools
 discover_and_import_mcp_tools()
@@ -27,6 +31,11 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for database initialization, FastMCP server, and telemetry cleanup."""
     # Initialize DB tables on application startup
     await init_db()
+    # Receipts are uploaded straight from the browser with presigned URLs, which cannot create the bucket.
+    try:
+        await S3StorageService().ensure_bucket_exists()
+    except Exception:
+        logger.warning("Receipt bucket check failed; receipt uploads fail until it exists", exc_info=True)
 
     try:
         # Run the MCP app's own lifespan: it starts the Streamable HTTP session manager.

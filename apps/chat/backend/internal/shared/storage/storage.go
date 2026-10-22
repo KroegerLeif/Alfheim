@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -118,6 +119,17 @@ func (c *s3Client) EnsureBucketExists(ctx context.Context) error {
 
 // Upload writes a payload to the configured S3 bucket with specified metadata.
 func (c *s3Client) Upload(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
+	// Over plain HTTP (the in-cluster RustFS endpoint) the SDK hashes the
+	// payload itself and rejects a body it cannot seek. Attachments are size
+	// capped by the handler, so buffering one is cheap.
+	if _, seekable := body.(io.ReadSeeker); !seekable {
+		data, err := io.ReadAll(body)
+		if err != nil {
+			return fmt.Errorf("failed to read object %q for upload: %w", key, err)
+		}
+		body = bytes.NewReader(data)
+	}
+
 	input := &s3.PutObjectInput{
 		Bucket:        aws.String(c.cfg.BucketName),
 		Key:           aws.String(key),
