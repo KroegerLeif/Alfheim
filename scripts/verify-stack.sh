@@ -20,6 +20,9 @@
 #   ./scripts/verify-stack.sh --dir /srv/alfheim     # verify an install elsewhere
 #   ./scripts/verify-stack.sh --compose-file NAME    # force compose.yaml or compose.prod.yaml
 #
+# Services still in their healthcheck start period are waited for, up to
+# VERIFY_STACK_WAIT_SECONDS (default 300), before the health check judges them.
+#
 # Exit codes: 0 every check passed, 1 one or more checks failed, 2 usage error.
 # ==============================================================================
 
@@ -135,7 +138,24 @@ echo ""
 # 1. Every Compose service is healthy, or running with no healthcheck.
 # ------------------------------------------------------------------------------
 log_info "Checking Compose service health..."
-services="$(docker compose -f "${COMPOSE_FILE}" ps --format '{{.Service}}\t{{.State}}\t{{.Health}}' 2>/dev/null || true)"
+compose_services() {
+  docker compose -f "${COMPOSE_FILE}" ps --format '{{.Service}}\t{{.State}}\t{{.Health}}' 2>/dev/null || true
+}
+# Right after `alfheim-setup update` or `restore` restarts the stack, services
+# are still inside their healthcheck start period (up to 180s for the app
+# frontends) and report "starting". Wait for them to settle before judging,
+# so a stack that is about to be healthy is not reported as failed.
+WAIT_SECONDS="${VERIFY_STACK_WAIT_SECONDS:-300}"
+waited=0
+services="$(compose_services)"
+while grep -q $'\tstarting$' <<< "${services}" && (( waited < WAIT_SECONDS )); do
+  if (( waited == 0 )); then
+    log_info "Waiting up to ${WAIT_SECONDS}s for services still starting: $(awk -F'\t' '$3 == "starting" {printf "%s ", $1}' <<< "${services}")"
+  fi
+  sleep 5
+  waited=$((waited + 5))
+  services="$(compose_services)"
+done
 if [[ -z "${services}" ]]; then
   fail "docker compose ps returned no services; is the stack running?"
 else
