@@ -36,6 +36,7 @@ Either writes a `.env` with mode `0600` containing:
 | `ZITADEL_MASTERKEY` | Encrypts Zitadel's data at rest. Exactly 32 characters. |
 | `ZITADEL_ADMIN_PASSWORD` | Initial IAM administrator |
 | `CHAT_ENCRYPTION_KEY` | 32-byte base64 key securing LLM API keys at rest with AES-256-GCM |
+| `CHAT_ATTACHMENT_URL_SECRET` | 32-byte hex HMAC key signing chat attachment download URLs. Rotating it only invalidates URLs issued before, which the UI refetches |
 | `S3_SECRET_KEY` | RustFS object storage |
 | `GRAFANA_ADMIN_PASSWORD` | Observability UI |
 | `HETZNER_API_TOKEN` / `CLOUDFLARE_API_TOKEN` | ACME DNS-01, only when that TLS strategy is chosen |
