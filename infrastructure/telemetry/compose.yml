@@ -207,7 +207,7 @@ services:
         condition: service_healthy
 
   grafana:
-    image: grafana/grafana:12.4.12
+    image: grafana/grafana:13.2.4
     container_name: alfheim_grafana
     restart: unless-stopped
     logging:
