@@ -1,7 +1,8 @@
 "use client";
 
-import { useTranslation, Button, TableRow, TableCell, AlfiAvatar } from "@alfheim/shared";
+import { useTranslation, useHouseholdCan, Button, TableRow, TableCell, AlfiAvatar } from "@alfheim/shared";
 import { formatDate } from "@/core/format";
+import { useNow } from "@/core/useNow";
 import { Plus, Minus, AlertTriangle } from "lucide-react";
 import { InventoryStateReadWithRelations } from "@/features/inventory/types";
 import { usePantryChat } from "@/core/chatContext";
@@ -18,7 +19,9 @@ interface InventoryTableRowProps {
  */
 export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowProps) {
   const { t, language } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const { openChat } = usePantryChat();
+  const now = useNow();
 
   const product = state.product;
   const location = state.location;
@@ -26,7 +29,7 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
   if (!product || !location) return null;
 
   const isExpired = state.expiration_date
-    ? new Date(state.expiration_date).getTime() < Date.now()
+    ? new Date(state.expiration_date).getTime() < now
     : false;
   const isEmpty = state.quantity <= 0;
   const isLowStock = !isEmpty && state.quantity < (product.minimum_stock ?? 0);
@@ -92,14 +95,18 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
           >
             <AlfiAvatar status="idle" size="sm" />
           </Button>
-          <Button onClick={() => onQuickAction("in")} variant="outline" size="sm"
-            className="h-8 text-[10px] px-2.5 font-black uppercase tracking-wider text-emerald-400 border-emerald-800/40 bg-emerald-950/20 hover:bg-emerald-900/40 cursor-pointer">
-            <Plus className="h-3 w-3 mr-0.5" />{t("pantry.actionIn")}
-          </Button>
-          <Button onClick={() => onQuickAction("out")} variant="outline" size="sm"
-            className="h-8 text-[10px] px-2.5 font-black uppercase tracking-wider text-red-400 border-red-800/40 bg-red-950/20 hover:bg-red-900/40 cursor-pointer">
-            <Minus className="h-3 w-3 mr-0.5" />{t("pantry.actionOut")}
-          </Button>
+          {canWrite && (
+            <>
+              <Button onClick={() => onQuickAction("in")} variant="outline" size="sm"
+                className="h-8 text-[10px] px-2.5 font-black uppercase tracking-wider text-emerald-400 border-emerald-800/40 bg-emerald-950/20 hover:bg-emerald-900/40 cursor-pointer">
+                <Plus className="h-3 w-3 mr-0.5" />{t("pantry.actionIn")}
+              </Button>
+              <Button onClick={() => onQuickAction("out")} variant="outline" size="sm"
+                className="h-8 text-[10px] px-2.5 font-black uppercase tracking-wider text-red-400 border-red-800/40 bg-red-950/20 hover:bg-red-900/40 cursor-pointer">
+                <Minus className="h-3 w-3 mr-0.5" />{t("pantry.actionOut")}
+              </Button>
+            </>
+          )}
         </div>
       </TableCell>
     </TableRow>

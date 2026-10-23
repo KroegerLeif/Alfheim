@@ -12,8 +12,8 @@ function StatTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatUptime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return '--';
+function formatUptime(seconds: number | undefined): string {
+  if (seconds === undefined || !Number.isFinite(seconds) || seconds < 0) return '--';
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -23,10 +23,10 @@ function formatUptime(seconds: number): string {
 }
 
 /**
- * Renders live CPU/RAM/network telemetry from GET /api/v1/telemetry/metrics.
+ * Renders live host CPU/RAM/disk/uptime telemetry from GET /api/v1/telemetry/metrics.
  * The backend only reports values it actually sourced from VictoriaMetrics --
  * when metrics are unavailable (VictoriaMetrics unreachable, or reachable but
- * without host-level exporters configured), this widget shows an explicit
+ * node-exporter has not delivered samples yet), this widget shows an explicit
  * "unavailable" state instead of guessing or rendering zeros.
  */
 export function MetricsWidget() {
@@ -37,8 +37,8 @@ export function MetricsWidget() {
     !!metrics?.available &&
     (metrics.cpu_percent !== undefined ||
       metrics.memory_percent !== undefined ||
-      metrics.network_rx_mbps !== undefined ||
-      metrics.network_tx_mbps !== undefined);
+      metrics.disk_percent !== undefined ||
+      metrics.uptime_seconds !== undefined);
 
   return (
     <div className="col-span-12 p-6 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)]">
@@ -77,10 +77,10 @@ export function MetricsWidget() {
             }
           />
           <StatTile
-            label={t('dashboard.network_io')}
+            label={t('dashboard.disk_usage')}
             value={
-              metrics.network_rx_mbps !== undefined && metrics.network_tx_mbps !== undefined
-                ? `↓${metrics.network_rx_mbps} / ↑${metrics.network_tx_mbps} Mbps`
+              metrics.disk_used_gb !== undefined && metrics.disk_total_gb !== undefined
+                ? `${metrics.disk_used_gb} / ${metrics.disk_total_gb} GB`
                 : '--'
             }
           />

@@ -1,9 +1,10 @@
 "use client";
 
-import { Badge, Button, Card, CardContent, useTranslation } from "@alfheim/shared";
+import { Badge, Button, Card, CardContent, PermissionHint, useTranslation } from "@alfheim/shared";
 import { Trash2 } from "lucide-react";
 import type { EquipmentRead, EquipmentScope } from "../types";
 import { isEditableEquipment } from "../types";
+import { useCatalogDelete } from "@/core/catalogPermissions";
 
 const SCOPE_LABEL_KEYS: Record<EquipmentScope, string> = {
   system: "workout.scopeSystem",
@@ -20,6 +21,7 @@ interface EquipmentCardProps {
 export function EquipmentCard({ equipment, onDelete, isDeleting = false }: EquipmentCardProps) {
   const { t } = useTranslation();
   const editable = isEditableEquipment(equipment);
+  const remove = useCatalogDelete(equipment.scope);
 
   return (
     <Card>
@@ -40,17 +42,19 @@ export function EquipmentCard({ equipment, onDelete, isDeleting = false }: Equip
           </div>
         </div>
 
-        {editable && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            aria-label={`${t("workout.delete")} ${equipment.name}`}
-            disabled={isDeleting}
-            onClick={() => onDelete(equipment)}
-          >
-            <Trash2 aria-hidden="true" />
-          </Button>
+        {editable && remove.visible && (
+          <PermissionHint hint={remove.hint} className="inline-flex shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label={`${t("workout.delete")} ${equipment.name}`}
+              disabled={isDeleting || !remove.allowed}
+              onClick={() => onDelete(equipment)}
+            >
+              <Trash2 aria-hidden="true" />
+            </Button>
+          </PermissionHint>
         )}
       </CardContent>
     </Card>

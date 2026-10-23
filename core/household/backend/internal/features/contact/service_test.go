@@ -52,8 +52,8 @@ func (m *mockRepository) UpdateCategory(ctx context.Context, cat *contact.Contac
 	return contact.ErrCategoryNotFound
 }
 
-func (m *mockRepository) DeleteCategory(ctx context.Context, id string) error {
-	if _, ok := m.categories[id]; ok {
+func (m *mockRepository) DeleteCategory(ctx context.Context, householdID, id string) error {
+	if c, ok := m.categories[id]; ok && c.HouseholdID == householdID {
 		delete(m.categories, id)
 		return nil
 	}
@@ -90,8 +90,8 @@ func (m *mockRepository) UpdateContact(ctx context.Context, c *contact.Contact) 
 	return contact.ErrContactNotFound
 }
 
-func (m *mockRepository) DeleteContact(ctx context.Context, id string) error {
-	if _, ok := m.contacts[id]; ok {
+func (m *mockRepository) DeleteContact(ctx context.Context, householdID, id string) error {
+	if c, ok := m.contacts[id]; ok && c.HouseholdID == householdID {
 		delete(m.contacts, id)
 		return nil
 	}

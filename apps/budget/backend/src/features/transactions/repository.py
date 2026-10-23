@@ -5,6 +5,9 @@ from uuid import UUID
 
 from sqlmodel import desc, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.features.accounts.models import Account
+from src.features.plans.models import Plan, PlanCategory
+from src.features.pots.models import Pot
 from src.features.transactions.balances import (
     apply_transaction_effect,
     reverse_transaction_effect,
@@ -49,6 +52,29 @@ class TransactionRepository:
         await self.session.commit()
         await self.session.refresh(transaction)
         return transaction
+
+    async def references_exist(
+        self,
+        household_id: UUID,
+        account_id: UUID | None = None,
+        pot_id: UUID | None = None,
+        plan_id: UUID | None = None,
+        category_id: UUID | None = None,
+    ) -> dict[str, bool]:
+        """Report, per supplied reference, whether it exists inside the given household."""
+        checks = {
+            "account": (Account, account_id),
+            "pot": (Pot, pot_id),
+            "plan": (Plan, plan_id),
+            "category": (PlanCategory, category_id),
+        }
+        found: dict[str, bool] = {}
+        for name, (model, ref_id) in checks.items():
+            if ref_id is None:
+                continue
+            statement = select(model.id).where(model.id == ref_id, model.household_id == household_id)
+            found[name] = (await self.session.exec(statement)).first() is not None
+        return found
 
     async def get_by_id(self, transaction_id: UUID, household_id: UUID) -> Transaction | None:
         """Get a Transaction by ID filtered strictly by household_id."""

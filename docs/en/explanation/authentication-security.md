@@ -14,6 +14,7 @@ sidebar:
 - [Separation of Concerns: AuthN vs AuthZ](#separation-of-concerns-authn-vs-authz)
 - [Authentication Flow (Generic OIDC PKCE)](#authentication-flow-generic-oidc-pkce)
 - [JWT Token Claims & User Identity](#jwt-token-claims--user-identity)
+- [Installation Operators (`alfheim_operator`)](#installation-operators-alfheim_operator)
 - [Multi-Tenancy Isolation (`X-Household-ID`)](#multi-tenancy-isolation-x-household-id)
 - [FastMCP AI Agent Tenant Safety](#fastmcp-ai-agent-tenant-safety)
 - [Frontend Household Context](#frontend-household-context)
@@ -70,6 +71,24 @@ Zitadel issues standardized OIDC identity tokens:
 
 ---
 
+## Installation Operators (`alfheim_operator`)
+
+Household roles (`owner`, `admin`, `member`, `guest`) only apply inside one household, and any user can create a household and become its owner. They therefore never protect resources that belong to the whole installation. Those resources are gated on the Zitadel project role `alfheim_operator` instead:
+
+| Resource | Operator | Everyone else |
+| --- | --- | --- |
+| Dashboard system metrics and logs (`/api/v1/telemetry/*`) | allowed | `403 operator_required`; the widgets are replaced by a short note |
+| Chat MCP registry: enable or disable a server (`PATCH /api/v1/chat/mcp-servers/{id}`) | allowed | `403 operator_required` |
+| Chat MCP registry: diagnostics (`GET /api/v1/chat/mcp-servers/diagnostics`) | allowed | `403 operator_required` |
+| Chat MCP registry: list (`GET /api/v1/chat/mcp-servers`) | full entries including the internal endpoint URL | id, app slug and enabled state only |
+| Grafana | `Admin` | denied |
+
+The Go backends read the role from the validated access token. Zitadel puts it into the claim `urn:zitadel:iam:org:project:roles` (and the project-scoped `urn:zitadel:iam:org:project:<projectId>:roles`), an object keyed by role key. A claim of any other shape grants nothing. This needs access token role assertion on the OIDC application and JWT access tokens, which `alfheim-setup` configures on install and on every update. The dashboard frontend asks `GET /api/v1/user/capabilities` (`{"operator": true|false}`) only to hide controls; the backends enforce the role on every request.
+
+`alfheim-setup` grants the role to the initial administrator. To grant it to further users, see [Grant Grafana access](../how-to/grafana-access.md); the same role covers Grafana, system telemetry and the MCP registry. A user needs a fresh token (sign out and in) after the role was granted.
+
+---
+
 ## Multi-Tenancy Isolation (`X-Household-ID`)
 
 `X-Household-ID` only *selects* a household. It grants nothing on its own: every household-scoped backend confirms the caller's membership with `core/household` before it serves the request.
@@ -99,6 +118,8 @@ Python backends implement steps 1–4 with `backend_shared.household.require_hou
 | `503` | `household_service_unavailable` | The membership API is unreachable, timed out, returned 5xx, rejected the internal token, or the token is not configured. Requests never fail open |
 
 The body is always `{"detail": {"code": "...", "message": "..."}}`.
+
+**Role matrix of the Python apps:** `GUEST` is read-only. Every state-changing route and MCP tool requires `MEMBER` or higher. Deleting shared structures requires `ADMIN` or `OWNER`: budget accounts, pots and plans; library providers and locations; pantry locations and categories; chore templates; household-scoped workout equipment and exercises. Personal resources stay open to every role, because they only ever touch the caller's own data: workout plans, sessions, favorites, preferences and `scope=user` catalog entries, and the shopping Personal List. MCP tools apply the same rule to the caller's role and reject a denied call with a tool error that carries `household_role_forbidden`. The frontends mirror the matrix with `useHouseholdCan` / `useHouseholdPermission` from `@alfheim/shared`: they hide write controls on shared data for `GUEST` (who also sees a read-only notice), and show the admin-only deletes disabled with a tooltip for `MEMBER`. The backend stays the enforcement point.
 
 **Caching:** answers are cached per process, keyed by household and user: members for 30 s, non-members for 5 s. Errors are never cached. Removing a member therefore takes effect within 30 s, without the user signing in again.
 

@@ -11,6 +11,10 @@ import {
 } from './types';
 import { getResolvedToken, readSSEStream, sanitizeApiUrl } from './sseClient';
 import { useTranslation } from '../../i18n/utils/useTranslation';
+import { householdHeaders } from '../../household/householdStore';
+
+/** Error whose message is already user-facing (translated); never shown raw. */
+class ChatApiError extends Error {}
 
 export interface UseChatStreamOptions {
   authToken?: string;
@@ -24,6 +28,7 @@ export function useChatStream({
   authToken,
   apiBaseUrl,
   context,
+  householdId,
   isOpen,
 }: UseChatStreamOptions) {
   const { t } = useTranslation();
@@ -39,10 +44,13 @@ export function useChatStream({
   const token = getResolvedToken(authToken);
   const hasAuth = Boolean(token);
 
-  const authHeaders = useCallback((): HeadersInit => {
+  const authHeaders = useCallback((): Record<string, string> => {
     const t = getResolvedToken(authToken);
-    return t ? { Authorization: `Bearer ${t}` } : {};
-  }, [authToken]);
+    return {
+      ...householdHeaders(householdId),
+      ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    };
+  }, [authToken, householdId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -74,7 +82,7 @@ export function useChatStream({
         title: context?.sourceApp ? `ALFI (${context.sourceApp})` : 'ALFI Chat',
       }),
     });
-    if (!res.ok) throw new Error(`Failed to initialize conversation (${res.status})`);
+    if (!res.ok) throw new ChatApiError(t('Chat.createError'));
     const created: ConversationResponse = await res.json();
     setConversationId(created.id);
     return created.id;
@@ -88,7 +96,7 @@ export function useChatStream({
       headers: authHeaders(),
       body: formData,
     });
-    if (!res.ok) throw new Error('File upload failed');
+    if (!res.ok) throw new ChatApiError(t('Chat.uploadError'));
     return res.json();
   };
 
@@ -115,7 +123,7 @@ export function useChatStream({
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ content: userMsg.content, attachment_ids: attIds }),
       });
-      if (!postRes.ok) throw new Error(`Failed to send message (${postRes.status})`);
+      if (!postRes.ok) throw new ChatApiError(t('Chat.sendError'));
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -152,17 +160,18 @@ export function useChatStream({
             setCurrentToolCall(null);
             setStatus('idle');
           },
-          onError: (errMsg) => {
-            setError(errMsg);
+          onError: () => {
+            setError(t('Chat.streamError'));
             setStreamingText('');
             setCurrentToolCall(null);
             setStatus('idle');
           },
         },
-        controller.signal
+        controller.signal,
+        householdHeaders(householdId)
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('Chat.sendError'));
+      setError(err instanceof ChatApiError ? err.message : t('Chat.networkError'));
       setStatus('idle');
     }
   };

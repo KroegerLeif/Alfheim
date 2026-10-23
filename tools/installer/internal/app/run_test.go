@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -82,7 +83,7 @@ func (s *stubProvisioner) Provision(
 	if s.err != nil {
 		return provisioning.Result{}, s.err
 	}
-	if s.result != (provisioning.Result{}) {
+	if !reflect.DeepEqual(s.result, provisioning.Result{}) {
 		return s.result, nil
 	}
 	return provisioning.Result{
@@ -105,15 +106,17 @@ func newTestApp(t *testing.T, opts *Options, rec runner.Runner, wiz Wizard) (*Ap
 	t.Helper()
 	var stdout, stderr bytes.Buffer
 	return &App{
-		Options:     opts,
-		Build:       BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
-		Runner:      rec,
-		Wizard:      wiz,
-		Stdout:      &stdout,
-		Stderr:      &stderr,
-		Now:         func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
-		Inspector:   readyHost(),
-		Provisioner: &stubProvisioner{},
+		Options:      opts,
+		Build:        BuildInfo{Version: "v1.0.0-test", Commit: "abc123", Date: "2026-03-01"},
+		Runner:       rec,
+		Wizard:       wiz,
+		Stdout:       &stdout,
+		Stderr:       &stderr,
+		Now:          func() time.Time { return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) },
+		Inspector:    readyHost(),
+		Provisioner:  &stubProvisioner{},
+		DNSPreflight: &stubPreflight{},
+		CertWaiter:   &stubCertWaiter{},
 		// Simulate running as root, like a fresh install on a Proxmox LXC,
 		// so tests do not depend on the test runner's real uid or on being
 		// able to chown anything.
@@ -243,6 +246,9 @@ func TestUpdateBackfillsNewSecretsAndEnsuresDatabases(t *testing.T) {
 	if vars["HOUSEHOLD_POSTGRES_PASSWORD"] == "" {
 		t.Error("HOUSEHOLD_POSTGRES_PASSWORD was not generated")
 	}
+	if len(vars["CHAT_ATTACHMENT_URL_SECRET"]) != 64 {
+		t.Errorf("CHAT_ATTACHMENT_URL_SECRET = %q, want a backfilled 64 character value", vars["CHAT_ATTACHMENT_URL_SECRET"])
+	}
 	if !strings.Contains(stdout.String(), "ALFHEIM_INTERNAL_TOKEN") {
 		t.Errorf("stdout = %q, want the generated keys listed", stdout.String())
 	}
@@ -264,6 +270,9 @@ func TestUpdateBackfillsNewSecretsAndEnsuresDatabases(t *testing.T) {
 	again, err := envfile.ParseFile(filepath.Join(root, ".env"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if again["CHAT_ATTACHMENT_URL_SECRET"] != vars["CHAT_ATTACHMENT_URL_SECRET"] {
+		t.Error("a second update must not regenerate CHAT_ATTACHMENT_URL_SECRET")
 	}
 	if again["ALFHEIM_INTERNAL_TOKEN"] != token {
 		t.Error("a second update must not regenerate ALFHEIM_INTERNAL_TOKEN")

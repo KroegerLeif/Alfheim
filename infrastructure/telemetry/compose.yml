@@ -3,7 +3,7 @@
 
 services:
   victoriametrics:
-    image: victoriametrics/victoria-metrics:latest
+    image: victoriametrics/victoria-metrics:v1.152.0
     container_name: victoriametrics
     restart: unless-stopped
     logging:
@@ -12,13 +12,15 @@ services:
         max-size: "20m"
         max-file: "3"
     ports:
-      - "8428:8428"
+      - "127.0.0.1:8428:8428"
     command:
       - "-retentionPeriod=14d"
       - "-storageDataPath=/victoria-metrics-data"
       - "-httpListenAddr=:8428"
+      - "-promscrape.config=/etc/victoriametrics/scrape.yml"
     volumes:
       - victoriametrics_data:/victoria-metrics-data
+      - ./victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     deploy:
       resources:
         limits:
@@ -33,6 +35,47 @@ services:
       retries: 5
       start_period: 10s
 
+  # Host metrics scraped by VictoriaMetrics (same setup as compose.prod.yaml).
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    container_name: node-exporter
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host"
+      - "--collector.disable-defaults"
+      - "--collector.cpu"
+      - "--collector.meminfo"
+      - "--collector.filesystem"
+      - "--collector.stat"
+      - "--web.listen-address=:9100"
+    volumes:
+      - /:/host:ro,rslave
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
+    networks:
+      - observability-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 -O /dev/null http://127.0.0.1:9100/metrics || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   victorialogs:
     image: victoriametrics/victoria-logs:v1.36.0
     container_name: victorialogs
@@ -43,7 +86,7 @@ services:
         max-size: "20m"
         max-file: "3"
     ports:
-      - "9428:9428"
+      - "127.0.0.1:9428:9428"
     command:
       - "-retentionPeriod=7d"
       - "-storageDataPath=/victoria-logs-data"
@@ -89,6 +132,48 @@ services:
       victorialogs:
         condition: service_healthy
 
+  # Read-only Docker API gateway for Vector (same allowlist as compose.prod.yaml).
+  # Vector never mounts docker.sock directly.
+  docker-socket-proxy:
+    image: wollomatic/socket-proxy:1.13.1
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+    # Container group must match the group that owns the host docker socket.
+    user: "65534:${DOCKER_SOCKET_GID:-0}"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    command:
+      - "-loglevel=info"
+      - "-listenip=0.0.0.0"
+      - "-allowfrom=vector-shipper"
+      - "-allowhealthcheck"
+      - '-allowGET=(/v[0-9.]+)?/(_ping|version|info|events|containers/json|containers/[^/]+/(json|logs))'
+      - "-watchdoginterval=10"
+      - "-stoponwatchdog"
+      - "-shutdowngracetime=5"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "./healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
+    networks:
+      - docker-proxy-net
+
   vector:
     image: timberio/vector:0.39.0-alpine
     container_name: vector-shipper
@@ -100,7 +185,6 @@ services:
         max-file: "3"
     command: ["--config", "/etc/vector/vector.toml"]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./vector/vector.toml:/etc/vector/vector.toml:ro
     deploy:
       resources:
@@ -109,6 +193,7 @@ services:
           memory: 256M
     networks:
       - observability-internal
+      - docker-proxy-net
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
       interval: 5s
@@ -116,11 +201,13 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      otel-collector:
+      victorialogs:
         condition: service_started
+      docker-socket-proxy:
+        condition: service_healthy
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.4.12
     container_name: alfheim_grafana
     restart: unless-stopped
     logging:
@@ -189,3 +276,8 @@ networks:
   gateway-net:
     name: gateway-net
     external: true
+  # Private link between Vector and its Docker socket proxy only.
+  docker-proxy-net:
+    name: docker-proxy-net
+    driver: bridge
+    internal: true

@@ -25,11 +25,44 @@
 }
 
 # =============================================================================
+# Security headers, imported by every site block below.
+#
+# The "?" prefix only sets a header the upstream did not already send, so
+# Zitadel and Grafana keep the headers they ship themselves.
+#
+# X-Frame-Options / frame-ancestors: no Alfheim app frames another one, and
+# neither Zitadel's login UI nor Grafana is embedded anywhere. The only iframe
+# (the library PDF viewer) loads a same-origin /storage URL, so SAMEORIGIN is
+# the tightest value that does not break it.
+#
+# Content-Security-Policy-Report-Only documents the intended baseline but is
+# NOT enforced yet: Next.js emits inline bootstrap scripts, so enforcing
+# script-src without nonces would break every frontend. Violations show up in
+# the browser console; tighten the policy and promote it to an enforced header
+# once the frontends use nonces. connect-src lists the auth host because the
+# browser talks to Zitadel's OIDC endpoints directly.
+# =============================================================================
+(security_headers) {
+	header {
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "SAMEORIGIN"
+		?Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		?Content-Security-Policy "frame-ancestors 'self'"
+		?Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://auth.loegien.de; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}
+
+# =============================================================================
 # 0. IDENTITY PROVIDER DOMAIN (Zitadel OIDC)
 # Zitadel is served on its own dedicated host; it does not support sub-path
 # hosting. The issuer therefore is the bare origin of this domain.
 # =============================================================================
 https://auth.loegien.de {
+
+	import security_headers
 
 	# Defense in depth: /internal/* is the service-to-service API authenticated
 	# by ALFHEIM_INTERNAL_TOKEN and must never be reachable from outside.
@@ -57,6 +90,8 @@ http://auth.loegien.de {
 # =============================================================================
 https://alfheim.loegien.de {
 
+	import security_headers
+
 	# Dedicated ingress healthcheck endpoint, isolated from downstream services.
 	handle /livez {
 		respond "OK" 200
@@ -68,23 +103,9 @@ https://alfheim.loegien.de {
 		respond 404
 	}
 
-	# Exact locale redirects for bare base paths.
-	redir /pantry /pantry/en 302
-	redir /pantry/ /pantry/en 302
-	redir /shopping /shopping/en 302
-	redir /shopping/ /shopping/en 302
-	redir /maintenance /maintenance/en 302
-	redir /maintenance/ /maintenance/en 302
-	redir /chores /chores/de 302
-	redir /chores/ /chores/de 302
-	redir /library /library/en 302
-	redir /library/ /library/en 302
-	redir /workout /workout/de 302
-	redir /workout/ /workout/de 302
-	redir /chat /chat/de 302
-	redir /chat/ /chat/de 302
-	redir /budget /budget/en 302
-	redir /budget/ /budget/en 302
+	# Bare app paths (/pantry, /chores, ...) are not redirected here: each
+	# Next.js app's next-intl middleware owns locale selection (NEXT_LOCALE
+	# cookie, Accept-Language, default locale); the gateway only routes.
 
 	# API gateway proxies on the frontend domain, so browsers can issue
 	# relative /api/v1/... calls without a CORS preflight.
@@ -109,8 +130,7 @@ https://alfheim.loegien.de {
 		rewrite * /api/v1{path}
 		reverse_proxy pantry-backend:8000
 	}
-	handle_path /api/v1/shopping* {
-		rewrite * /api/v1{path}
+	handle /api/v1/shopping* {
 		reverse_proxy shopping-backend:8000
 	}
 	handle_path /shopping/api/v1* {
@@ -125,12 +145,11 @@ https://alfheim.loegien.de {
 		rewrite * /api/v1{path}
 		reverse_proxy maintenance-backend:8000
 	}
-	handle_path /api/v1/chores* {
-		rewrite * /api/v1{path}
+	handle /api/v1/chores* {
 		reverse_proxy chores-backend:8000
 	}
 	handle_path /chores/api/v1* {
-		rewrite * /api/v1{path}
+		rewrite * /api/v1/chores{path}
 		reverse_proxy chores-backend:8000
 	}
 	handle_path /api/v1/budget* {
@@ -149,27 +168,32 @@ https://alfheim.loegien.de {
 		rewrite * /api/v1{path}
 		reverse_proxy workout-backend:8000
 	}
-	handle_path /api/v1/library* {
-		rewrite * /api/v1{path}
-		reverse_proxy library-backend:8080
+	handle /api/v1/library* {
+		reverse_proxy library-backend:8000
 	}
 	handle_path /library/api/v1* {
-		rewrite * /api/v1{path}
-		reverse_proxy library-backend:8080
+		rewrite * /api/v1/library{path}
+		reverse_proxy library-backend:8000
 	}
-	handle_path /api/v1/chat* {
-		rewrite * /api/v1{path}
+	handle /api/v1/chat* {
 		reverse_proxy chat-backend:8080
 	}
 	handle_path /chat/api/v1* {
-		rewrite * /api/v1{path}
+		rewrite * /api/v1/chat{path}
 		reverse_proxy chat-backend:8080
 	}
 
-	# Central dashboard control plane.
-	handle_path /api/v1* {
-		rewrite * /api/v1{path}
+	# Central dashboard control plane (path preserved).
+	handle /api/v1/* {
 		reverse_proxy dashboard-backend:8080
+	}
+
+	# RustFS object storage (S3_PUBLIC_URL). Browsers PUT and GET presigned
+	# URLs here (budget receipts, library manuals); handle_path strips /storage
+	# so the signed bucket/key path reaches RustFS unchanged. Objects stay
+	# private: RustFS rejects any request without a valid signature.
+	handle_path /storage* {
+		reverse_proxy rustfs:9000
 	}
 
 	# Observability.
@@ -187,7 +211,7 @@ https://alfheim.loegien.de {
 		reverse_proxy pantry-frontend:3000
 	}
 	handle /shopping* {
-		reverse_proxy shopping-frontend:3000
+		reverse_proxy shopping-frontend:3010
 	}
 	handle /maintenance* {
 		reverse_proxy maintenance-frontend:3000

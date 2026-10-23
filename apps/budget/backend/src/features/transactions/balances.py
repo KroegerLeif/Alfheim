@@ -59,20 +59,27 @@ async def apply_balance_deltas(
     pot_id: UUID | None,
     account_delta: Decimal,
     pot_delta: Decimal,
+    household_id: UUID,
 ) -> None:
     """Atomically adjust Account.balance / Pot.current_amount by the given deltas.
 
     Each adjustment is a single `UPDATE ... SET col = col + :delta` statement executed within
     the caller's current DB transaction, so it is applied atomically alongside the ledger
     write (insert/update/delete) that triggered it, and is safe under concurrent writers.
+    Both statements are scoped to `household_id`, so a stray id can never touch another
+    household's account or pot.
     """
     if account_id is not None and account_delta != Decimal("0.00"):
         await session.exec(
-            update(Account).where(col(Account.id) == account_id).values(balance=Account.balance + account_delta)
+            update(Account)
+            .where(col(Account.id) == account_id, col(Account.household_id) == household_id)
+            .values(balance=Account.balance + account_delta)
         )
     if pot_id is not None and pot_delta != Decimal("0.00"):
         await session.exec(
-            update(Pot).where(col(Pot.id) == pot_id).values(current_amount=Pot.current_amount + pot_delta)
+            update(Pot)
+            .where(col(Pot.id) == pot_id, col(Pot.household_id) == household_id)
+            .values(current_amount=Pot.current_amount + pot_delta)
         )
 
 
@@ -85,6 +92,7 @@ async def apply_transaction_effect(session: AsyncSession, transaction: Transacti
         pot_id=transaction.pot_id,
         account_delta=account_delta,
         pot_delta=pot_delta,
+        household_id=transaction.household_id,
     )
 
 
@@ -97,4 +105,5 @@ async def reverse_transaction_effect(session: AsyncSession, transaction: Transac
         pot_id=transaction.pot_id,
         account_delta=-account_delta,
         pot_delta=-pot_delta,
+        household_id=transaction.household_id,
     )

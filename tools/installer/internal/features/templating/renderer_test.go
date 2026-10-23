@@ -1,6 +1,7 @@
 package templating
 
 import (
+	"bytes"
 	"flag"
 	"os"
 	"path/filepath"
@@ -64,6 +65,8 @@ func model(t *testing.T, preset onboarding.PresetID, tlsCfg tls.Config) Model {
 		Secrets:    stableSecrets(),
 		Version:    "v0.0.0-test",
 		Generated:  fixedTime,
+
+		DockerSocketGID: "998",
 	}
 }
 
@@ -163,6 +166,44 @@ func TestRenderGoldenFiles(t *testing.T) {
 			assertGolden(t, filepath.Join("testdata", "golden", tc.name, "env.golden"), env)
 			assertGolden(t, filepath.Join("testdata", "golden", tc.name, "Caddyfile.golden"), caddy)
 		})
+	}
+}
+
+// TestRenderEnvStorageMatchesRustFS guards the S3 wiring: RustFS only knows
+// its root account, so the credentials the applications use must equal it,
+// and the endpoint must name the `rustfs` compose service (no `minio` service
+// exists).
+func TestRenderEnvStorageMatchesRustFS(t *testing.T) {
+	secrets, err := security.GenerateAll(security.NewGenerator(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := model(t, onboarding.PresetLocalhost, tls.Config{Strategy: tls.StrategyInternal})
+	m.Secrets = secrets
+
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rendered, err := r.RenderEnv(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	env, err := envfile.Parse(bytes.NewReader(rendered))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if env["S3_ACCESS_KEY"] != env["S3_ROOT_USER"] {
+		t.Errorf("S3_ACCESS_KEY = %q, want the root user %q", env["S3_ACCESS_KEY"], env["S3_ROOT_USER"])
+	}
+	if env["S3_SECRET_KEY"] == "" || env["S3_SECRET_KEY"] != env["S3_ROOT_PASSWORD"] {
+		t.Error("S3_SECRET_KEY must equal S3_ROOT_PASSWORD")
+	}
+	for _, key := range []string{"S3_ENDPOINT", "S3_ENDPOINT_URL"} {
+		if env[key] != "http://rustfs:9000" {
+			t.Errorf("%s = %q, want http://rustfs:9000", key, env[key])
+		}
 	}
 }
 
@@ -482,5 +523,91 @@ func TestRenderedExtraCAFileContract(t *testing.T) {
 				t.Errorf("the %s Caddyfile must serve HTTPS with an explicit HTTP redirect", s.ID)
 			}
 		})
+	}
+}
+
+// TestRenderedCaddyfileSecurityHeaders pins the gateway hardening contract:
+// every site block imports the shared header snippet, HSTS is only emitted
+// when the install actually serves HTTPS, and the snippet never overrides
+// headers an upstream (Zitadel, Grafana) already sends.
+func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range tls.Strategies {
+		t.Run(string(s.ID), func(t *testing.T) {
+			m := model(t, onboarding.PresetCustom, tls.Config{Strategy: s.ID, APIToken: "tok"})
+			out, err := r.RenderCaddyfile(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			caddy := string(out)
+
+			if got := strings.Count(caddy, "\timport security_headers\n"); got != 2 {
+				t.Errorf("security_headers is imported %d times, want 2 (auth host and app host)", got)
+			}
+			for _, want := range []string{
+				"?X-Content-Type-Options \"nosniff\"",
+				"?Referrer-Policy \"strict-origin-when-cross-origin\"",
+				"?X-Frame-Options \"SAMEORIGIN\"",
+				"?Permissions-Policy ",
+				"?Content-Security-Policy \"frame-ancestors 'self'\"",
+				"?Content-Security-Policy-Report-Only ",
+				"-Server\n",
+			} {
+				if !strings.Contains(caddy, want) {
+					t.Errorf("the %s Caddyfile lacks %q", s.ID, want)
+				}
+			}
+			if strings.Contains(caddy, "\n\t\tContent-Security-Policy ") {
+				t.Error("the enforced CSP must use the ? prefix so upstream policies win")
+			}
+
+			hasHSTS := strings.Contains(caddy, "Strict-Transport-Security \"max-age=31536000; includeSubDomains\"")
+			if hasHSTS != m.Onboarding.Secure {
+				t.Errorf("HSTS present = %t, but Secure = %t", hasHSTS, m.Onboarding.Secure)
+			}
+		})
+	}
+}
+
+// TestRenderedCaddyfileRouting pins the API routing contract shared with
+// infrastructure/caddy/Caddyfile (issue #650): the gateway only routes, so
+// there are no locale redirects, shopping/chores/library/chat are forwarded
+// unchanged on /api/v1/<slug>, and the dashboard catch-all keeps the path.
+func TestRenderedCaddyfileRouting(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
+	out, err := r.RenderCaddyfile(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caddy := string(out)
+
+	if strings.Contains(caddy, "redir /") {
+		t.Error("the gateway must not redirect bare app paths; next-intl owns locale selection")
+	}
+	for _, want := range []string{
+		"\thandle /api/v1/shopping* {\n\t\treverse_proxy shopping-backend:8000\n",
+		"\thandle_path /shopping/api/v1* {\n\t\trewrite * /api/v1{path}\n",
+		"\thandle /api/v1/chores* {\n\t\treverse_proxy chores-backend:8000\n",
+		"\thandle_path /chores/api/v1* {\n\t\trewrite * /api/v1/chores{path}\n",
+		"\thandle /api/v1/library* {\n\t\treverse_proxy library-backend:8000\n",
+		"\thandle_path /library/api/v1* {\n\t\trewrite * /api/v1/library{path}\n",
+		"\thandle /api/v1/chat* {\n\t\treverse_proxy chat-backend:8080\n",
+		"\thandle_path /chat/api/v1* {\n\t\trewrite * /api/v1/chat{path}\n",
+		"\thandle_path /api/v1/pantry* {\n\t\trewrite * /api/v1{path}\n",
+		"\thandle_path /api/v1/budget* {\n\t\trewrite * /api/v1{path}\n",
+		"\thandle /api/v1/* {\n\t\treverse_proxy dashboard-backend:8080\n",
+		"\thandle /shopping* {\n\t\treverse_proxy shopping-frontend:3010\n",
+		"\thandle /pantry* {\n\t\treverse_proxy pantry-frontend:3000\n",
+	} {
+		if !strings.Contains(caddy, want) {
+			t.Errorf("the Caddyfile lacks %q", want)
+		}
 	}
 }

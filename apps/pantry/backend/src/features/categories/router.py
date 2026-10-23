@@ -1,9 +1,10 @@
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import require_admin, require_writer
 from src.features.categories import (
     CategoryCreate,
     CategoryRead,
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/v1/categories", tags=["categories"])
 async def create_category(
     payload: CategoryCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Create a new custom product category."""
     return await CategoryService.create_category(
@@ -32,8 +33,8 @@ async def create_category(
 @router.get("", response_model=list[CategoryRead])
 async def list_categories(
     name: str | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
@@ -72,7 +73,7 @@ async def update_category(
     id: uuid.UUID,
     payload: CategoryUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Partially update an existing custom category."""
     category = await CategoryService.update_category(
@@ -97,7 +98,7 @@ async def update_category(
 async def delete_category(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_admin),
 ):
     """Delete a custom category.
 

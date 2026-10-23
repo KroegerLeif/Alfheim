@@ -8,10 +8,10 @@
 # Usage:
 #   ./scripts/verify.sh          # Runs all verification gates (--all)
 #   ./scripts/verify.sh --all    # Runs Python, Go, Frontend, Security, and Smoke tests
-#   ./scripts/verify.sh --python # Runs Ruff, Ty, and Pytest test matrix
-#   ./scripts/verify.sh --go     # Runs Go tests and race detectors
+#   ./scripts/verify.sh --python # Runs Ruff, Ty, and Pytest (apps and packages/backend-shared)
+#   ./scripts/verify.sh --go     # Runs Go tests and race detectors (incl. tools/installer)
 #   ./scripts/verify.sh --frontend # Runs TSC typecheck and Vitest test suites
-#   ./scripts/verify.sh --security # Runs secret leakage & hardcoding scans
+#   ./scripts/verify.sh --security # Runs secret leakage scans and non-mutating pre-commit checks
 #   ./scripts/verify.sh --smoke  # Runs production compose startup smoke test (--prod-startup)
 # ==============================================================================
 
@@ -120,7 +120,7 @@ if [[ "$RUN_PYTHON" == true ]]; then
     log_banner "1. Python Verification (Ruff, Ty, Pytest Matrix)"
 
     log_section "Workspace Environment Synchronization"
-    if uv sync --all-packages --all-groups; then
+    if uv sync --all-packages --all-groups --locked; then
         log_success "Workspace environment synchronized across all packages & dependency groups"
     else
         log_fail "Failed to synchronize uv workspace"
@@ -168,6 +168,16 @@ if [[ "$RUN_PYTHON" == true ]]; then
             ERRORS=$((ERRORS + 1))
         fi
     done
+
+    # packages/backend-shared holds the auth and household-membership code every
+    # backend depends on; CI runs its suite too (python-ci.yml, shared-tests).
+    echo -e "\n${BOLD}--> Running tests in packages/backend-shared...${NC}"
+    if (cd "$ROOT_DIR/packages/backend-shared" && uv run pytest --cov --cov-report=term-missing); then
+        log_success "Pytest suite for packages/backend-shared passed"
+    else
+        log_fail "Pytest suite for packages/backend-shared failed"
+        ERRORS=$((ERRORS + 1))
+    fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -185,7 +195,7 @@ if [[ "$RUN_GO" == true ]]; then
             if [[ -f "$service_dir/go.mod" ]]; then
                 GO_SERVICES+=("$service_dir")
             fi
-        done < <(find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort)
+        done < <({ find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort; echo tools/installer; })
 
         for service in "${GO_SERVICES[@]}"; do
             log_section "Go Backend Unit & Integration Tests ($service)"
@@ -218,8 +228,12 @@ if [[ "$RUN_FRONTEND" == true ]]; then
     log_banner "3. Frontend Verification (TypeScript & Vitest)"
 
     if command -v pnpm >/dev/null 2>&1; then
-        log_section "TypeScript Type Checking (tsc --noEmit across workspace)"
-        if pnpm -r exec tsc --noEmit; then
+        # Mirrors the root `check-types` script. The docs portal is an Astro project: a bare
+        # `tsc --noEmit` fails there because `astro:content` types only exist after `astro sync`,
+        # so it runs its own `astro check`. --no-bail reports every failing package, not just the first.
+        log_section "TypeScript Type Checking (tsc --noEmit across workspace, astro check for the docs portal)"
+        if pnpm -r --no-bail --filter '!@alfheim/docs-portal' exec tsc --noEmit \
+            && pnpm --filter @alfheim/docs-portal run check-types; then
             log_success "TypeScript type checking passed across all frontends & packages"
         else
             log_fail "TypeScript type checking failed"
@@ -237,7 +251,7 @@ if [[ "$RUN_FRONTEND" == true ]]; then
         vitest_max_workers="${VITEST_MAX_WORKERS:-$(( cpu_count / frontend_concurrency > 0 ? cpu_count / frontend_concurrency : 1 ))}"
 
         log_section "Vitest Test Suites (${frontend_concurrency} packages at a time, ${vitest_max_workers} workers each)"
-        if VITEST_MAX_WORKERS="$vitest_max_workers" pnpm -r --workspace-concurrency="$frontend_concurrency" test; then
+        if VITEST_MAX_WORKERS="$vitest_max_workers" pnpm -r --no-bail --workspace-concurrency="$frontend_concurrency" test; then
             log_success "Vitest suites passed"
         else
             log_fail "Vitest suites failed"
@@ -275,12 +289,35 @@ if [[ "$RUN_SECURITY" == true ]]; then
         log_success "No live .env files are tracked in Git"
     fi
 
-    log_section "Pre-commit Hook Validation"
-    if uv run pre-commit run --all-files; then
-        log_success "Pre-commit hooks validation passed"
-    else
-        log_fail "Pre-commit hooks failed"
+    # Only the check-type hooks run here. The full pre-commit set also contains
+    # fixers (end-of-file-fixer, trailing-whitespace, ruff --fix, gofmt -w) that
+    # rewrite files, which a verification run must never do. Formatting is
+    # covered read-only by the Python (ruff format --check) and Go gates.
+    log_section "Pre-commit Check Hooks (non-mutating)"
+    PRECOMMIT_CHECK_HOOKS=(check-yaml check-json check-added-large-files check-merge-conflict detect-private-key)
+    PRECOMMIT_FAILED=false
+    for hook in "${PRECOMMIT_CHECK_HOOKS[@]}"; do
+        if ! uv run pre-commit run "$hook" --all-files; then
+            PRECOMMIT_FAILED=true
+        fi
+    done
+    if [[ "$PRECOMMIT_FAILED" == true ]]; then
+        log_fail "Pre-commit check hooks failed"
         ERRORS=$((ERRORS + 1))
+    else
+        log_success "Pre-commit check hooks passed"
+    fi
+
+    log_section "Secret Scan (gitleaks)"
+    if command -v gitleaks >/dev/null 2>&1; then
+        if gitleaks detect --source . --no-banner --redact; then
+            log_success "gitleaks found no secrets in the repository history"
+        else
+            log_fail "gitleaks reported potential secrets"
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        log_warn "gitleaks is not installed; skipping (CI runs it in security-scan.yml)."
     fi
 fi
 

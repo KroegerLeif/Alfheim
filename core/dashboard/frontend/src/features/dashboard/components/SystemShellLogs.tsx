@@ -5,10 +5,23 @@ import { useTranslation } from '@alfheim/shared';
 import { useTelemetryLogs } from '../queries';
 import { SystemShellLogsOutput, LogEntry } from './SystemShellLogsOutput';
 
+/** Server logs followed by the shell's own entries, de-duplicated by id and capped at the newest 50. */
+function mergeServerLogs(prev: LogEntry[], serverLogs: LogEntry[] | undefined): LogEntry[] {
+  if (!serverLogs || serverLogs.length === 0) return prev;
+  const userCmds = prev.filter((l) => l.service === 'shell' || l.service === 'system' || l.service === 'network');
+  const combined = [...serverLogs, ...userCmds];
+  const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
+  return unique.slice(-50);
+}
+
 export function SystemShellLogs() {
   const { t } = useTranslation();
-  const { data: serverLogs, isError: logsUnavailable } = useTelemetryLogs();
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const { data: logsResponse, isError: logsRequestFailed } = useTelemetryLogs();
+  const serverLogs = logsResponse?.logs;
+  const logStoreUnreachable = logsResponse?.available === false;
+  const logStoreEmpty = logsResponse?.available === true && logsResponse.logs.length === 0;
+  const [logs, setLogs] = useState<LogEntry[]>(() => mergeServerLogs([], serverLogs));
+  const [syncedServerLogs, setSyncedServerLogs] = useState(serverLogs);
   const [commandInput, setCommandInput] = useState('');
   const [, setCommandHistory] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -17,16 +30,11 @@ export function SystemShellLogs() {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  useEffect(() => {
-    if (serverLogs && serverLogs.length > 0) {
-      setLogs((prev) => {
-        const userCmds = prev.filter((l) => l.service === 'shell' || l.service === 'system' || l.service === 'network');
-        const combined = [...serverLogs, ...userCmds];
-        const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
-        return unique.slice(-50);
-      });
-    }
-  }, [serverLogs]);
+  // Merge fresh server logs into the shell output (adjusted during render, not in an effect).
+  if (serverLogs !== syncedServerLogs) {
+    setSyncedServerLogs(serverLogs);
+    setLogs((prev) => mergeServerLogs(prev, serverLogs));
+  }
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,9 +153,19 @@ export function SystemShellLogs() {
         </div>
       </div>
 
-      {logsUnavailable && (
+      {logsRequestFailed && (
         <div role="alert" className="px-4 py-1.5 text-[10px] font-mono text-amber-300 bg-amber-500/10 border-t border-amber-500/30">
           {t('dashboard.logs_unavailable')}
+        </div>
+      )}
+      {logStoreUnreachable && (
+        <div role="alert" className="px-4 py-1.5 text-[10px] font-mono text-amber-300 bg-amber-500/10 border-t border-amber-500/30">
+          {t('dashboard.logs_store_unreachable')}
+        </div>
+      )}
+      {logStoreEmpty && (
+        <div role="status" className="px-4 py-1.5 text-[10px] font-mono text-[var(--text-muted)] bg-[var(--surface-elevated)] border-t border-[var(--border-subtle)]">
+          {t('dashboard.logs_empty')}
         </div>
       )}
 

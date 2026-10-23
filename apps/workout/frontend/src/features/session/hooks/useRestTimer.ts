@@ -27,15 +27,13 @@ export function useRestTimer(onComplete?: () => void): RestTimerState {
   }, [onComplete]);
 
   useEffect(() => {
-    if (deadline === null) {
-      setSecondsRemaining(null);
-      return;
-    }
+    if (deadline === null) return;
 
     const tick = () => {
       const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       setSecondsRemaining(remaining);
       if (remaining === 0) {
+        setSecondsRemaining(null);
         setDeadline(null);
         onCompleteRef.current?.();
       }
@@ -48,10 +46,14 @@ export function useRestTimer(onComplete?: () => void): RestTimerState {
 
   const start = useCallback((seconds: number) => {
     const safeSeconds = Math.max(0, Math.floor(seconds));
+    setSecondsRemaining(safeSeconds === 0 ? null : safeSeconds);
     setDeadline(safeSeconds === 0 ? null : Date.now() + safeSeconds * 1000);
   }, []);
 
-  const skip = useCallback(() => setDeadline(null), []);
+  const skip = useCallback(() => {
+    setSecondsRemaining(null);
+    setDeadline(null);
+  }, []);
 
   return {
     secondsRemaining,

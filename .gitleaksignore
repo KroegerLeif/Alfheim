@@ -1,0 +1,2 @@
+# False positive: an empty OIDC_JWKS_URL test value flagged by the generic-api-key rule.
+6018022c056bb3632a91a7adb3dd7f831c9c6bc2:apps/workout/backend/src/features/plans/tests/test_core_coverage.py:generic-api-key:30

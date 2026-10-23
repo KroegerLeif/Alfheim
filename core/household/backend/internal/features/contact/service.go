@@ -117,7 +117,7 @@ func (s *service) DeleteCategory(ctx context.Context, requesterID, householdID, 
 	if cat.HouseholdID != householdID {
 		return household.ErrUnauthorizedHouseholdAccess
 	}
-	return s.repo.DeleteCategory(ctx, catID)
+	return s.repo.DeleteCategory(ctx, householdID, catID)
 }
 
 func (s *service) CreateContact(ctx context.Context, requesterID, householdID string, req CreateContactRequest) (*Contact, error) {
@@ -226,5 +226,5 @@ func (s *service) DeleteContact(ctx context.Context, requesterID, householdID, c
 	if c.HouseholdID != householdID {
 		return household.ErrUnauthorizedHouseholdAccess
 	}
-	return s.repo.DeleteContact(ctx, contactID)
+	return s.repo.DeleteContact(ctx, householdID, contactID)
 }

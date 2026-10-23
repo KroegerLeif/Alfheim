@@ -52,7 +52,7 @@ Quelle: [`apps/maintenance/`](https://github.com/KroegerLeif/Alfheim/tree/main/a
 Alle Routen und MCP-Tools nutzen `require_household` aus `backend_shared`; Haushalte sind UUIDs, die `core/household` gehören. Eine lokale Tabelle `household` gibt es nicht mehr.
 
 - `GET /api/v1/households` ist veraltet und liefert nur den aktuellen Haushalt.
-- Mit einer Datenbank mit ganzzahligen Haushalts-IDs verweigert das Backend den Start (`LegacyHouseholdSchemaError`). Den einmaligen Reset beschreibt die [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-maintenance-backend-scheitert-mit-legacyhouseholdschemaerror).
+- Eine Datenbank mit ganzzahligen Haushalts-IDs wird beim Start umgestellt: Alembic-Revision `0002` verschiebt die alten Tabellen samt Zeilen in das Schema `legacy_maintenance` und legt leere Tabellen mit UUID-Haushalten an. Siehe [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-alte-maintenance-daten-fehlen-nach-dem-update).
 - Aufrufe an Budget und Shopping leiten das Bearer-Token des Aufrufers und `X-Household-ID` weiter.
 
 ---
@@ -93,7 +93,7 @@ Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`, `@m
 
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
-- **`LegacyHouseholdSchemaError` beim Upgrade**: Eine Datenbank, die vor der Umstellung auf UUID-Haushalte angelegt wurde, verweigert `maintenance-backend` den Start. Das ist ein einmaliger, erwarteter Daten-Reset – siehe [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-maintenance-backend-scheitert-mit-legacyhouseholdschemaerror) und [Bekannte Probleme](../../explanation/known-issues.md).
+- **Alte Geräte fehlen nach dem Upgrade**: Eine Datenbank, die vor der Umstellung auf UUID-Haushalte angelegt wurde, wird beim Start umgestellt; die alten Zeilen bleiben im Schema `legacy_maintenance`, werden aber nicht mehr ausgeliefert – siehe [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-alte-maintenance-daten-fehlen-nach-dem-update) und [Bekannte Probleme](../../explanation/known-issues.md).
 - **Geräte und Schritte lassen sich nicht bearbeiten oder löschen** (#505): Die API hat für Geräte nur `GET`/`POST` und keine Schritt-Endpunkte.
 - **Referenzfotos und Handbücher werden nicht unterstützt** (#503, #509): Die Oberfläche ist ausgeblendet, es gibt keinen Speicher.
 - **Ein gespeicherter Schritt-Kommentar ersetzt die Ablaufbeschreibung des Schritts und lässt sich nicht löschen** (#620).

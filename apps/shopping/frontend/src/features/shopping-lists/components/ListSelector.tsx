@@ -7,7 +7,7 @@ import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,
 } from "../services/shoppingListService";
-import { useAuth } from "@alfheim/shared";
+import { useAuth, useHouseholdCan } from "@alfheim/shared";
 import type { ShoppingList } from "../types";
 import { ListTab } from "./ListTab";
 import { ListCreateForm } from "./ListCreateForm";
@@ -34,6 +34,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
   const deleteList = useDeleteShoppingList();
   const reorderLists = useReorderShoppingLists();
   const { user } = useAuth();
+  const canWrite = useHouseholdCan("write");
   const { data: householdsData } = useHouseholds();
   const households = useMemo(() => householdsData ?? [], [householdsData]);
 
@@ -146,7 +147,7 @@ export function ListSelector({ activeListId, onSelect }: ListSelectorProps) {
             );
           })}
 
-          {isCreating ? (
+          {!canWrite ? null : isCreating ? (
             <ListCreateForm
               newListName={newListName} setNewListName={setNewListName}
               onCreate={handleCreate} onCancel={handleCancel} isPending={createList.isPending}

@@ -52,8 +52,8 @@ export async function fetchHouseholdInvites(id: string): Promise<InviteCodeRespo
   return Array.isArray(data) ? data : [];
 }
 
-export async function revokeHouseholdInvite(id: string, token: string): Promise<void> {
-  await api.delete(`${hh(id)}/invites/${encodeURIComponent(token)}`);
+export async function revokeHouseholdInvite(id: string, inviteId: string): Promise<void> {
+  await api.delete(`${hh(id)}/invites/${encodeURIComponent(inviteId)}`);
 }
 
 export async function joinHousehold(payload: JoinHouseholdRequest): Promise<Household> {

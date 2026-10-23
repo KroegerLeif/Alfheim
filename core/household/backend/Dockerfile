@@ -1,5 +1,9 @@
 # Build stage
-FROM golang:1.26-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine AS builder
+
+# Cross-compile natively on the build host instead of emulating the target.
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -14,10 +18,10 @@ RUN go mod download
 COPY . .
 
 # Build binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o household-backend ./cmd/server
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o household-backend ./cmd/server
 
 # Production stage
-FROM alpine:3.20 AS runner
+FROM alpine:3.24 AS runner
 
 WORKDIR /app
 

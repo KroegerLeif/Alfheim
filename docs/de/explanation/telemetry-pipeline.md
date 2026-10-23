@@ -49,11 +49,14 @@ Alfheim setzt unter `infrastructure/telemetry` auf eine einheitliche Telemetrie-
 
 ## Log-Sammlung & Normalisierung (Vector)
 
-Vector (`infrastructure/telemetry/vector/vector.toml`) sammelt Container-Logs direkt vom Docker-Socket.
+Vector (`infrastructure/telemetry/vector/vector.toml`) sammelt Container-Logs über einen schreibgeschützten Docker-Socket-Proxy (`docker-socket-proxy`, `wollomatic/socket-proxy`). Vector bindet `/var/run/docker.sock` nie selbst ein, weil Zugriff auf die Docker-API einem Root-Zugriff auf dem Host entspricht, auch wenn der Socket `:ro` gemountet ist.
+
+Der Proxy hält den Socket und leitet nur die GET-Endpunkte weiter, die die `docker_logs`-Quelle benötigt (Version, Ping, Info, Events, Container-Liste, Inspect und Logs). Alle anderen Anfragen werden abgelehnt, einschließlich aller POST/PUT/DELETE-Aufrufe und des Datei-Archiv-Endpunkts von Containern. Der Proxy hängt am rein internen Netzwerk `docker-proxy-net`, das nur Vector erreichen kann und keine Route aus dem Host hinaus hat.
 
 Wesentliche Funktionen:
 * **Zusammenführung mehrzeiliger Stacktraces:** Fasst mehrzeilige Python-Tracebacks und Go-Panic-Traces (`\tat`, `\tgoroutine`) zu einem logischen Log-Ereignis zusammen.
 * **Feld-Normalisierung:** Vereinheitlicht heterogene Log-Felder (`msg` → `message`) und Schweregrade (`WARN` / `WARNING` → `warn`, `ERROR` → `error`).
+* **Ingestion:** Schickt die Batches direkt an die JSON-Lines-API von VictoriaLogs (`/insert/jsonline`), mit `service_name` (dem Containernamen) als Stream-Feld. Der Weg führt nicht über den OTel Collector, dessen Endpunkt `/v1/logs` nur OTLP-Payloads annimmt.
 * **Health-Endpunkt:** Stellt interne Diagnose-Healthchecks unter `http://127.0.0.1:8686/health` bereit.
 
 ---
@@ -72,6 +75,19 @@ Verteiltes Request-Tracing über Microservice-Grenzen hinweg nutzt die W3C-`trac
 
 * **VictoriaMetrics (`:8428`)**: Performante, speicherschonende Zeitreihendatenbank für System- und Anwendungsmetriken.
 * **VictoriaLogs (`:9428`)**: Effiziente Log-Datenbank für die von Vector gesammelten strukturierten JSON-Logs.
+
+### Host-Metriken (node-exporter)
+
+`prom/node-exporter` läuft neben VictoriaMetrics im Netzwerk `observability-internal` und veröffentlicht keine Ports. Er bindet das Host-Root schreibgeschützt ein (`/:/host:ro,rslave`) und aktiviert nur die Collector hinter dem Dashboard-Widget: CPU, Arbeitsspeicher, Root-Dateisystem und Boot-Zeit. VictoriaMetrics fragt ihn alle 15 Sekunden über `-promscrape.config` ab; die Konfiguration liegt in `infrastructure/telemetry/victoriametrics/scrape.yml` (als Release-Asset `victoriametrics-scrape.yml` veröffentlicht, daher aktualisiert sie `alfheim-setup update` mit).
+
+Der Netzwerk-Collector ist bewusst deaktiviert: node-exporter läuft in einem Container mit Bridge-Netzwerk und würde die Schnittstelle des Containers statt der des Hosts melden.
+
+### Telemetrie-Endpunkte für Operatoren
+
+Das Dashboard-Backend liefert `GET /api/v1/telemetry/metrics` und `GET /api/v1/telemetry/logs` nur an Operatoren. Keiner der Endpunkte erfindet Daten:
+
+* **Metriken:** `available: false` bedeutet, dass VictoriaMetrics nicht erreichbar ist. `available: true` mit fehlenden Feldern bedeutet, dass es antwortet, aber noch keine Messwerte dafür hat (zum Beispiel direkt nach dem Start, vor dem ersten Scrape). Das Widget zeigt CPU, Arbeitsspeicher, Root-Datenträger-Auslastung und Host-Betriebszeit aus den node-exporter-Serien.
+* **Logs:** `available: false` mit `reason: "unreachable"` bedeutet, dass VictoriaLogs nicht abgefragt werden kann. `available: true` mit leerem `logs`-Array bedeutet, dass es erreichbar ist, aber noch keine Einträge enthält. Die Einträge tragen ihre gespeicherten Zeitstempel.
 
 ---
 

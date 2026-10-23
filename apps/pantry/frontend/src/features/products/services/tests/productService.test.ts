@@ -1,3 +1,4 @@
+import type { KyResponse, ResponsePromise } from 'ky'
 import { renderHook, waitFor } from '@testing-library/react'
 import {
   useSearchProducts, useProductByBarcode, useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, productKeys,
@@ -27,7 +28,7 @@ describe('Product Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockProducts)
       vi.mocked(pantryClient.get).mockReturnValue({
         json: mockJson,
-      } as any)
+      } as unknown as ResponsePromise)
 
       const { result } = renderHook(() => useSearchProducts('Apple'), {
         wrapper: createQueryWrapper(),
@@ -55,7 +56,7 @@ describe('Product Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockProduct)
       vi.mocked(pantryClient.get).mockReturnValue({
         json: mockJson,
-      } as any)
+      } as unknown as ResponsePromise)
 
       const { result } = renderHook(() => useProductByBarcode('456'), {
         wrapper: createQueryWrapper(),
@@ -77,7 +78,7 @@ describe('Product Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockProducts)
       vi.mocked(pantryClient.get).mockReturnValue({
         json: mockJson,
-      } as any)
+      } as unknown as ResponsePromise)
 
       const { result } = renderHook(() => useProducts(), {
         wrapper: createQueryWrapper(),
@@ -97,7 +98,7 @@ describe('Product Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockProductRead)
       vi.mocked(pantryClient.post).mockReturnValue({
         json: mockJson,
-      } as any)
+      } as unknown as ResponsePromise)
 
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
@@ -120,7 +121,7 @@ describe('Product Service Hooks', () => {
   describe('useUpdateProduct', () => {
     it('patches the product and refreshes products and inventory', async () => {
       const payload = { name: 'Oat Milk', minimum_stock: 3 }
-      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'p1', ...payload }) } as any)
+      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'p1', ...payload }) } as unknown as ResponsePromise)
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
       const { result } = renderHook(() => useUpdateProduct(), { wrapper: createQueryWrapper() })
@@ -136,7 +137,7 @@ describe('Product Service Hooks', () => {
 
   describe('useDeleteProduct', () => {
     it('deletes the product and refreshes the catalog', async () => {
-      vi.mocked(pantryClient.delete).mockResolvedValue({} as any)
+      vi.mocked(pantryClient.delete).mockResolvedValue({} as KyResponse)
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
       const { result } = renderHook(() => useDeleteProduct(), { wrapper: createQueryWrapper() })

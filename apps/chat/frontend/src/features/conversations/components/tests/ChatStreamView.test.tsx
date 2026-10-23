@@ -78,7 +78,7 @@ describe("ChatStreamView", () => {
               storage_key: "users/u1/chat/img.png",
               mime_type: "image/png",
               size_bytes: 1024,
-              url: "http://localhost/storage/users/u1/chat/img.png",
+              url: "http://localhost/api/v1/chat/attachments/att-1/content?token=t1",
             },
           ],
           created_at: "",
@@ -94,7 +94,51 @@ describe("ChatStreamView", () => {
     expect(screen.getByText("Check this photo")).toBeInTheDocument();
     expect(screen.getByText("Looks good!")).toBeInTheDocument();
     const img = screen.getByRole("img", { name: "Attachment" });
-    expect(img).toHaveAttribute("src", "http://localhost/storage/users/u1/chat/img.png");
+    expect(img).toHaveAttribute("src", "http://localhost/api/v1/chat/attachments/att-1/content?token=t1");
+  });
+
+  describe("expired attachment URLs", () => {
+    const withAttachment = (token: string) => ({
+      data: [
+        {
+          id: "m1",
+          conversation_id: "c1",
+          role: "user",
+          content: "Check this photo",
+          attachments: [
+            {
+              id: "att-1",
+              storage_key: "k",
+              mime_type: "image/png",
+              size_bytes: 1,
+              url: `http://localhost/api/v1/chat/attachments/att-1/content?token=${token}`,
+            },
+          ],
+          created_at: "",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+
+    it("refetches the messages once when an attachment fails to load", () => {
+      const refetch = vi.fn();
+      ;(useMessages as Mock).mockReturnValue({ ...withAttachment("t1"), refetch });
+      const { rerender } = render(<ChatStreamView conversationId="c1" />, { wrapper: createQueryWrapper() });
+
+      fireEvent.error(screen.getByRole("img", { name: "Attachment" }));
+      expect(refetch).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("img", { name: "Attachment unavailable. Reload the conversation to try again." })).toBeInTheDocument();
+
+      // The refetch hands out a fresh URL, which is tried again; failing again is final.
+      ;(useMessages as Mock).mockReturnValue({ ...withAttachment("t2"), refetch })
+      rerender(<ChatStreamView conversationId="c1" />)
+      const retried = screen.getByRole("img", { name: "Attachment" });
+      expect(retried).toHaveAttribute("src", expect.stringContaining("token=t2"));
+      fireEvent.error(retried);
+      expect(refetch).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Attachment unavailable. Reload the conversation to try again.")).toBeInTheDocument();
+    });
   });
 
   it("shows the open conversation's own model, not the sidebar choice for new conversations", () => {

@@ -6,7 +6,7 @@ import { useRouter } from "@/navigation";
 import { ClipboardList, Award, RefreshCw, ArrowRight, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { WizardStepContent } from "./WizardStepContent";
-import { useTranslation } from "@alfheim/shared";
+import { useTranslation, getRequestErrorMessage } from "@alfheim/shared";
 
 export function WizardSteps() {
   const { t } = useTranslation();
@@ -35,7 +35,7 @@ export function WizardSteps() {
     if (currentStep === 1) {
       const result = z.string().min(1, t("chores.nameRequired")).safeParse(name);
       if (!result.success) {
-        setErrors({ name: result.error.errors[0].message });
+        setErrors({ name: result.error.issues[0].message });
         return;
       }
       setErrors({});
@@ -61,7 +61,7 @@ export function WizardSteps() {
 
     if (!parseResult.success) {
       const fieldErrors: Record<string, string> = {};
-      parseResult.error.errors.forEach((err) => {
+      parseResult.error.issues.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0].toString()] = err.message;
         }
@@ -84,7 +84,7 @@ export function WizardSteps() {
           router.push("/board");
         },
         onError: (err) => {
-          setSubmitError(`${t("chores.creationFailed")}: ${err.message}`);
+          setSubmitError(`${t("chores.creationFailed")}: ${getRequestErrorMessage(err)}`);
         },
       }
     );

@@ -4,6 +4,7 @@ from enum import Enum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
+from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
 
@@ -36,7 +37,7 @@ class TransactionBase(SQLModel):
     """Base SQLModel fields for Transaction entity."""
 
     description: str = Field(index=True)
-    amount: Decimal = Field(decimal_places=2, max_digits=18)
+    amount: Decimal = Field(gt=0, decimal_places=2, max_digits=18)
     currency: str = Field(default="EUR", max_length=3)
     transaction_type: TransactionType = Field(default=TransactionType.EXPENSE, index=True)
     transaction_date: date = Field(default_factory=date.today)
@@ -55,8 +56,12 @@ class Transaction(TransactionBase, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     household_id: UUID = Field(index=True, nullable=False)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
 
 
 class TransactionCreate(TransactionBase):
@@ -69,7 +74,7 @@ class QuickAddTransactionCreate(BaseModel):
     """Pydantic model for quick-add transaction creation request."""
 
     description: str
-    amount: Decimal
+    amount: Decimal = Field(gt=0)
     transaction_type: TransactionType = TransactionType.EXPENSE
     currency: str = "EUR"
     transaction_date: date | None = None
@@ -84,7 +89,7 @@ class TransactionUpdate(BaseModel):
     """Pydantic model for updating transaction details."""
 
     description: str | None = None
-    amount: Decimal | None = None
+    amount: Decimal | None = Field(default=None, gt=0)
     currency: str | None = None
     transaction_type: TransactionType | None = None
     transaction_date: date | None = None

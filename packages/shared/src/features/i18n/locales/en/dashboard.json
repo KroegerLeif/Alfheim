@@ -13,7 +13,6 @@
     "empty_catalog_internal": "No internal micro-services registered. Add one to get started.",
     "empty_catalog_external": "No external services or portals configured.",
     "telemetry_error_toast": "Telemetry service connection failed.",
-    "empty_notifications": "No notifications",
     "authenticated_user": "Authenticated User",
     "under_construction_title": "{name} is Under Construction",
     "under_construction_desc": "The requested microservice or portal is currently being deployed and configured as part of the Alfheim OS platform release.",
@@ -28,13 +27,15 @@
     "high_load": "HIGH LOAD",
     "normal_load": "NORMAL",
     "memory_ram": "MEMORY (RAM)",
-    "network_io": "NETWORK I/O",
+    "disk_usage": "DISK (ROOT)",
     "traffic_mode": "Traffic Mode",
     "optimal": "Optimal",
     "uptime": "UPTIME",
     "containers_online": "{count} Containers Online",
     "expand_telemetry": "Expand Telemetry View",
     "collapse_telemetry": "Collapse Telemetry View",
+    "operator_only_title": "Operator access required",
+    "operator_only_desc": "System metrics and logs cover the whole installation and are only shown to operators. Ask an administrator to grant you the alfheim_operator role.",
     "telemetry_unavailable": "METRICS UNAVAILABLE",
     "telemetry_unavailable_desc": "No live system metrics are available right now. VictoriaMetrics may be unreachable or has no host-level exporters configured.",
     "shell_title": "live-telemetry-feed",
@@ -93,6 +94,8 @@
       }
     },
     "logs_unavailable": "Live log stream unavailable. Retrying...",
+    "logs_store_unreachable": "Log store unreachable. Log entries cannot be shown right now.",
+    "logs_empty": "No log entries yet.",
     "service_fallback_name": "Service"
   }
 }

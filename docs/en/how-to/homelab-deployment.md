@@ -74,7 +74,8 @@ Use this when you want to inspect every file before anything runs, or cannot pip
 ```bash
 mkdir -p ~/alfheim && cd ~/alfheim
 mkdir -p infrastructure/ca infrastructure/caddy/pki \
-         infrastructure/telemetry/collector infrastructure/telemetry/vector infrastructure/postgres
+         infrastructure/telemetry/collector infrastructure/telemetry/vector \
+         infrastructure/telemetry/victoriametrics infrastructure/postgres
 ```
 
 Creating `infrastructure/ca` and `infrastructure/caddy/pki` up front keeps Docker from creating these bind-mount sources owned by root.
@@ -91,6 +92,7 @@ curl -fsSLO "${BASE}/compose.prod.yaml"
 curl -fsSLO "${BASE}/otelcol-config.yaml"
 curl -fsSLO "${BASE}/init-multiple-dbs.sh"
 curl -fsSLO "${BASE}/vector.toml"
+curl -fsSLO "${BASE}/victoriametrics-scrape.yml"
 
 sha256sum --check --ignore-missing SHA256SUMS
 ```
@@ -100,6 +102,7 @@ Every file must report `OK`. Then move the assets to where `compose.prod.yaml` e
 ```bash
 mv otelcol-config.yaml infrastructure/telemetry/collector/config.yaml
 mv vector.toml infrastructure/telemetry/vector/vector.toml
+mv victoriametrics-scrape.yml infrastructure/telemetry/victoriametrics/scrape.yml
 mv init-multiple-dbs.sh infrastructure/postgres/init-multiple-dbs.sh
 chmod +x infrastructure/postgres/init-multiple-dbs.sh "alfheim-setup_linux_${ARCH}"
 ```
@@ -132,7 +135,7 @@ The installer runs the same three phases as above and starts the whole stack. Ev
 docker compose -f compose.prod.yaml ps
 ```
 
-Every service reports `running`, and those with a healthcheck report `healthy`. The generated `.env` holds all configuration and credentials; change domain or TLS settings with `alfheim-setup --reconfigure` rather than by hand, so the Caddyfile and Zitadel clients stay consistent.
+Every service reports `running`, and those with a healthcheck report `healthy`. The generated `.env` holds all configuration and credentials; change domain or TLS settings with `alfheim-setup --reconfigure` ([Change the domain](./change-domain.md)) rather than by hand, so the Caddyfile and Zitadel clients stay consistent.
 
 ---
 
@@ -155,6 +158,7 @@ Once the containers report `healthy`:
    * URL: `https://<your-domain>/grafana/`
    * Username: `admin`
    * Password: See `GRAFANA_ADMIN_PASSWORD` in your `.env` file.
+   * Zitadel SSO: only with the project role `alfheim_operator`, see [Grant Grafana access](./grafana-access.md).
 
 ---
 

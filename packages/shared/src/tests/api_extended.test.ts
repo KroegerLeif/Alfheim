@@ -40,7 +40,7 @@ describe('ApiClient Extended Tests', () => {
   it('createTraceparentHook sets traceparent header on Request object', () => {
     const hook = createTraceparentHook()
     const req = new Request('https://example.com/api')
-    hook(req)
+    hook({ request: req })
     expect(req.headers.has('traceparent')).toBe(true)
   })
 

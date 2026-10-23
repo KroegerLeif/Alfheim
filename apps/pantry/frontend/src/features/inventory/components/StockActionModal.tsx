@@ -34,7 +34,7 @@ interface StockActionModalProps {
 export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = null }: StockActionModalProps) {
   const { t } = useTranslation();
   const [productQuery, setProductQuery] = React.useState("");
-  const [selectedProduct, setSelectedProduct] = React.useState<ProductRead | null>(null);
+  const [selectedProduct, setSelectedProduct] = React.useState<ProductRead | null>(isOpen ? preselectedProduct : null);
   const [barcodeInput, setBarcodeInput] = React.useState("");
   const [scanError, setScanError] = React.useState("");
   const [isCreatingProduct, setIsCreatingProduct] = React.useState(false);
@@ -42,8 +42,10 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
   const { data: searchResultsData, isLoading: isSearchingProducts } = useSearchProducts(productQuery);
   const searchResults = searchResultsData ?? [];
 
-  // Reset state when modal opens or closes
-  React.useEffect(() => {
+  // Reset state when the modal opens or closes (adjusted during render, not in an effect).
+  const [synced, setSynced] = React.useState({ isOpen, preselectedProduct });
+  if (synced.isOpen !== isOpen || synced.preselectedProduct !== preselectedProduct) {
+    setSynced({ isOpen, preselectedProduct });
     if (isOpen) {
       if (preselectedProduct) setSelectedProduct(preselectedProduct);
     } else {
@@ -53,7 +55,7 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
       setScanError("");
       setIsCreatingProduct(false);
     }
-  }, [isOpen, preselectedProduct]);
+  }
 
   const handleBarcodeSearch = async (e: React.FormEvent) => {
     e.preventDefault();

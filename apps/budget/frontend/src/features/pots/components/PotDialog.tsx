@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { OverflowTarget, Pot, PotCreate } from "@/features/budget/types";
 import { FormError } from "@/components/shared/FormError";
@@ -13,38 +13,21 @@ export interface PotDialogProps {
   onSubmit: (data: PotCreate) => Promise<void>;
 }
 
-export function PotDialog({ open, pot, onClose, onSubmit }: PotDialogProps) {
+export function PotDialog(props: PotDialogProps) {
+  if (!props.open) return null;
+  return <PotDialogForm key={props.pot?.id ?? "new"} {...props} />;
+}
+
+function PotDialogForm({ open, pot, onClose, onSubmit }: PotDialogProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState("");
-  const [priority, setPriority] = useState(1);
-  const [targetAmount, setTargetAmount] = useState("");
-  const [currentAmount, setCurrentAmount] = useState("0.00");
-  const [monthlyContribution, setMonthlyContribution] = useState("0.00");
-  const [targetDate, setTargetDate] = useState("");
-  const [overflowTarget, setOverflowTarget] = useState<OverflowTarget>("CASCADE");
+  const [name, setName] = useState(pot?.name ?? "");
+  const [priority, setPriority] = useState(pot?.priority ?? 1);
+  const [targetAmount, setTargetAmount] = useState(pot?.target_amount ? pot.target_amount.toString() : "");
+  const [currentAmount, setCurrentAmount] = useState(pot ? pot.current_amount.toString() : "0.00");
+  const [monthlyContribution, setMonthlyContribution] = useState(pot ? pot.monthly_contribution.toString() : "0.00");
+  const [targetDate, setTargetDate] = useState(pot?.target_date || "");
+  const [overflowTarget, setOverflowTarget] = useState<OverflowTarget>(pot?.overflow_target ?? "CASCADE");
   const { submitting, error, run } = useFormSubmit(open);
-
-  useEffect(() => {
-    if (pot) {
-      setName(pot.name);
-      setPriority(pot.priority);
-      setTargetAmount(pot.target_amount ? pot.target_amount.toString() : "");
-      setCurrentAmount(pot.current_amount.toString());
-      setMonthlyContribution(pot.monthly_contribution.toString());
-      setTargetDate(pot.target_date || "");
-      setOverflowTarget(pot.overflow_target);
-    } else {
-      setName("");
-      setPriority(1);
-      setTargetAmount("");
-      setCurrentAmount("0.00");
-      setMonthlyContribution("0.00");
-      setTargetDate("");
-      setOverflowTarget("CASCADE");
-    }
-  }, [pot, open]);
-
-  if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

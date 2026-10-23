@@ -23,6 +23,14 @@ type Command struct {
 	// Stdout, when non-nil, receives the streamed standard output of the
 	// process. It is used to forward Docker progress into the TUI log pane.
 	Stdout io.Writer
+	// Stdin, when non-nil, is connected to the process's standard input.
+	// Restore uses it to stream a SQL dump or a tar archive into a container
+	// without staging it in memory.
+	Stdin io.Reader
+	// StreamOnly makes the runner forward standard output to Stdout without
+	// also buffering it into Result.Stdout. It is required for commands whose
+	// output can be gigabytes (a database dump, a volume tarball).
+	StreamOnly bool
 }
 
 // String renders the command in shell-like form. It is the canonical key used

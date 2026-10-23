@@ -6,11 +6,12 @@ import { FilterBar } from "./FilterBar";
 import { Plus, Layers } from "lucide-react";
 import { Link } from "@/navigation";
 import { useState } from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { ErrorNotice } from "@/components/shared/ErrorNotice";
 
 export function BoardView() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const { data: templates = [], isLoading, isError } = useChoreTemplates();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -40,13 +41,15 @@ export function BoardView() {
         </div>
 
         {/* Create Task Button */}
-        <Link
-          href="/wizard"
-          className="flex items-center gap-1.5 px-4 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_12px_var(--accent-glow)] cursor-pointer"
-        >
-          <Plus className="h-4 w-4 shrink-0" />
-          <span>{t("chores.createTask")}</span>
-        </Link>
+        {canWrite && (
+          <Link
+            href="/wizard"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_12px_var(--accent-glow)] cursor-pointer"
+          >
+            <Plus className="h-4 w-4 shrink-0" />
+            <span>{t("chores.createTask")}</span>
+          </Link>
+        )}
       </div>
 
       {/* Filter Options */}
@@ -75,7 +78,7 @@ export function BoardView() {
               ? t("chores.noBlueprintsFoundSub")
               : t("chores.noTasksConfiguredSub")}
           </p>
-          {!searchQuery && (
+          {!searchQuery && canWrite && (
             <Link
               href="/wizard"
               className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[var(--primary-main)] text-black border border-[var(--primary-main)] hover:bg-blue-600 font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_12px_var(--accent-glow)] cursor-pointer"

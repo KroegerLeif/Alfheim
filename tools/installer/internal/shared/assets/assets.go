@@ -39,7 +39,16 @@ var StackAssets = []Asset{
 	{Name: "otelcol-config.yaml", Dest: "infrastructure/telemetry/collector/config.yaml", Mode: 0o644},
 	{Name: "init-multiple-dbs.sh", Dest: "infrastructure/postgres/init-multiple-dbs.sh", Mode: 0o755},
 	{Name: "vector.toml", Dest: "infrastructure/telemetry/vector/vector.toml", Mode: 0o644},
+	{Name: "victoriametrics-scrape.yml", Dest: "infrastructure/telemetry/victoriametrics/scrape.yml", Mode: 0o644},
 	{Name: "verify-stack.sh", Dest: "scripts/verify-stack.sh", Mode: 0o755},
+}
+
+// GeneratedAssets are installation files the installer renders itself from
+// its embedded templates instead of fetching them from a release. `alfheim-setup
+// update` re-renders them from the stored configuration and backs them up
+// together with StackAssets. They are never part of the release checksums.
+var GeneratedAssets = []Asset{
+	{Name: "Caddyfile", Dest: "infrastructure/caddy/Caddyfile", Mode: 0o644},
 }
 
 // BinaryAssetName renders the release asset name for the alfheim-setup

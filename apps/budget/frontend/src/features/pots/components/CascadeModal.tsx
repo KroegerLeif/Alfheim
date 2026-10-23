@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { MoneyDisplay, Dialog, DialogContent, DialogTitle, useTranslation } from "@alfheim/shared";
 import { CascadeAllocationResponse } from "@/features/budget/types";
 import { FormError } from "@/components/shared/FormError";
@@ -14,20 +14,16 @@ export interface CascadeModalProps {
   onSuccess: () => void;
 }
 
-export function CascadeModal({ open, onClose, onSuccess }: CascadeModalProps) {
+export function CascadeModal(props: CascadeModalProps) {
+  if (!props.open) return null;
+  return <CascadeModalContent {...props} />;
+}
+
+function CascadeModalContent({ open, onClose, onSuccess }: CascadeModalProps) {
   const { t } = useTranslation();
   const [amount, setAmount] = useState("");
   const { submitting, error, run } = useFormSubmit(open);
   const [result, setResult] = useState<CascadeAllocationResponse | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setResult(null);
-      setAmount("");
-    }
-  }, [open]);
-
-  if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

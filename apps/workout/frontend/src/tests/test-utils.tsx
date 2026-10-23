@@ -31,13 +31,13 @@ export function renderWithI18n(
 
 export function renderWithProviders(
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'> & { language?: Language }
+  options?: Omit<RenderOptions, 'wrapper'> & { language?: Language; role?: string }
 ) {
-  const { language = 'en', ...renderOptions } = options ?? {}
+  const { language = 'en', role = 'OWNER', ...renderOptions } = options ?? {}
   const testQueryClient = createTestQueryClient()
   return render(
     <LanguageProvider defaultLanguage={language}>
-      <StaticHouseholdProvider householdId="hh-1">
+      <StaticHouseholdProvider householdId="hh-1" value={{ role }}>
         <QueryClientProvider client={testQueryClient}>
           {ui}
         </QueryClientProvider>

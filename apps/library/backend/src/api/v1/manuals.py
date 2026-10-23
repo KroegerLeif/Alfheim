@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from src.api.dependencies import get_current_household_id
+from src.api.permissions import get_writer_household_id
 from src.db.database import get_db_session
 from src.db.models import Item
 from src.schemas.manuals import ManualUploadResponse, ManualUrlResponse
@@ -50,7 +51,7 @@ async def _get_item_or_404(
 async def upload_manual(
     item_id: uuid.UUID,
     file: UploadFile = File(...),
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
     storage_service: ManualStorageService = Depends(get_manual_storage_service),
 ) -> Any:
@@ -126,7 +127,7 @@ async def get_manual_presigned_url(
 )
 async def delete_manual(
     item_id: uuid.UUID,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
     storage_service: ManualStorageService = Depends(get_manual_storage_service),
 ) -> None:

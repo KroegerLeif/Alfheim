@@ -5,8 +5,8 @@ import {
   UserPreferences,
   CreateUserLinkRequest,
   TelemetryMetrics,
-  TelemetryLogEntry,
   TelemetryLogsResponse,
+  UserCapabilities,
 } from './types';
 
 /* 3-Tier Dashboard & Apps API */
@@ -56,7 +56,11 @@ export async function fetchTelemetryMetrics(): Promise<TelemetryMetrics> {
   }
 }
 
-export async function fetchTelemetryLogs(): Promise<TelemetryLogEntry[]> {
-  const res = await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
-  return res.logs ?? [];
+export async function fetchTelemetryLogs(): Promise<TelemetryLogsResponse> {
+  return await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
+}
+
+/* Capabilities API */
+export async function fetchUserCapabilities(): Promise<UserCapabilities> {
+  return await api.get('api/v1/user/capabilities').json<UserCapabilities>();
 }

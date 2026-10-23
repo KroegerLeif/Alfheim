@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useCallback, useState } from "react";
+import { useTranslation, getRequestErrorMessage } from "@alfheim/shared";
 
 /**
  * Tracks the submit state of a dialog form. A failed request keeps the dialog open and exposes a
@@ -13,9 +13,12 @@ export function useFormSubmit(open: boolean) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Reset the error when the dialog opens or closes (state adjusted during render, not in an effect).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     setError(null);
-  }, [open]);
+  }
 
   /** Runs `action`; resolves to `true` on success and `false` when it failed. */
   const run = useCallback(
@@ -26,7 +29,7 @@ export function useFormSubmit(open: boolean) {
         await action();
         return true;
       } catch (err) {
-        setError(err instanceof Error && err.message ? err.message : t("budget.errors.requestFailed"));
+        setError(err instanceof Error && getRequestErrorMessage(err) ? getRequestErrorMessage(err) : t("budget.errors.requestFailed"));
         return false;
       } finally {
         setSubmitting(false);

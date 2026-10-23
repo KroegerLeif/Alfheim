@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { NetWorthCard, AccountList } from "@/features/accounts";
 import { PotCard } from "@/features/pots";
 import { TransactionLedger } from "@/features/transactions";
@@ -40,6 +40,7 @@ export function DashboardOverview({
   onDeleteTransaction,
 }: DashboardOverviewProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
 
   return (
     <div className="space-y-6">
@@ -62,14 +63,16 @@ export function DashboardOverview({
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold text-[var(--text-main)]">{t("budget.pots.sectionTitle")}</h3>
-          <button
-            type="button"
-            onClick={onOpenCascadeModal}
-            className="px-3 py-1.5 rounded-lg bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--primary-main)] flex items-center gap-1.5 hover:bg-[var(--surface-canvas)]"
-          >
-            <GitMerge className="w-4 h-4 text-[var(--primary-main)]" />
-            <span>{t("budget.pots.cascadeSurplus")}</span>
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={onOpenCascadeModal}
+              className="px-3 py-1.5 rounded-lg bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--primary-main)] flex items-center gap-1.5 hover:bg-[var(--surface-canvas)]"
+            >
+              <GitMerge className="w-4 h-4 text-[var(--primary-main)]" />
+              <span>{t("budget.pots.cascadeSurplus")}</span>
+            </button>
+          )}
         </div>
         {pots.length === 0 ? (
           <div className="p-6 text-center rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)]">

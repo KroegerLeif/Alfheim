@@ -136,5 +136,6 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 
 	fmt.Fprintf(stdout, "Zitadel OIDC clients are provisioned.\n  GRAFANA_OIDC_CLIENT_ID=%s\n",
 		result.GrafanaClientID)
+	printWarnings(stderr, result.Warnings)
 	return ExitOK
 }

@@ -43,6 +43,8 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgres://chat_user:postgres@postgres-core:5432/alfheim_chat?sslmode=disable` | PostgreSQL connection string |
 | `CHAT_ENCRYPTION_KEY` | *(Generated 32-byte base64 key)* | AES-256-GCM key for encrypting LLM API keys |
+| `CHAT_ATTACHMENT_URL_SECRET` | *(generated secret, at least 32 bytes)* | HMAC key signing attachment download URLs. Required in production (compose refuses to start without it); the installer generates it and backfills it on update. Without it outside production, a random key is used per process |
+| `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lifetime of a signed attachment download URL |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
@@ -67,6 +69,8 @@ Every chat API route runs `middleware.RequireHousehold` after JWT validation: `X
   - Every tool call outcome is stored as a `tool` message whose `tool_calls` holds `{"tool_call_id", "tool_name", "is_error"}`; transport failures are stored with a generic text, never the internal endpoint URL. History replay sends the id as `tool_call_id`. The UI shows tool calls as collapsed entries (name and status; arguments and result on expand, credential-like argument keys, bearer tokens and JWTs masked).
 - `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption. Only `ollama` and `openai_compatible` can run; the UI offers only these two (#632).
 - `attachments`: File attachment uploads backed by RustFS S3 object storage. Each upload records its uploader (`image_refs.owner_user_id`); reading an attachment by ID returns `404` to anyone else, and a message can only link unlinked attachments owned by the conversation owner (otherwise `400`). Attachments uploaded before this ownership column existed have no owner and can no longer be read by ID or linked.
+  - The bucket stays private and the API never returns storage URLs. Every `url` (upload response, `GET /attachments/{id}`, message `attachments`) is `GET /api/v1/chat/attachments/{id}/content?token=…` on the gateway (`ALFHEIM_BASE_URL`), minted fresh on each read. The token is an HMAC-SHA256 over attachment, user and household with an expiry (15 minutes by default), so `<img>` can load it without a bearer header. The endpoint also accepts a normal bearer token with `X-Household-ID`.
+  - A token request re-checks that the user is still a member of the household and that the uploader owns the attachment and the object lives in the household's storage namespace. Invalid or expired token: `401`; user no longer a member: `403`; other user's attachment or missing object: `404`; membership service unreachable: `503`. Responses carry the stored image type, `Content-Disposition: inline` for images (`attachment` otherwise), `X-Content-Type-Options: nosniff`, a sandboxing `Content-Security-Policy` and `Cache-Control: private`. The UI refetches the conversation once when an image fails to load and then shows an "Attachment unavailable" notice.
 - `mcpservers`: FastMCP server connection definitions and dynamic tool discovery.
 
 ---

@@ -44,6 +44,9 @@ RUN addgroup -S -g 10001 appgroup \
 COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appgroup /app/apps/workout/backend/src /app/src
 COPY --from=builder --chown=appuser:appgroup /app/apps/workout/backend/main.py /app/main.py
+# Startup migrations (src/core/migrations.py) read these relative to /app.
+COPY --from=builder --chown=appuser:appgroup /app/apps/workout/backend/alembic.ini /app/alembic.ini
+COPY --from=builder --chown=appuser:appgroup /app/apps/workout/backend/alembic /app/alembic
 
 # Inject virtualenv into system PATH
 ENV PATH="/app/.venv/bin:$PATH"

@@ -8,17 +8,87 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
 )
 
+// loginPolicyStub fakes the instance login policy endpoint, which starts out
+// with self-registration enabled like a fresh Zitadel, and the organisation
+// policy that inherits it.
+type loginPolicyStub struct {
+	mu           sync.Mutex
+	registerOpen bool
+	puts         int
+}
+
+func newLoginPolicyStub() *loginPolicyStub { return &loginPolicyStub{registerOpen: true} }
+
+// handle answers a login policy request and reports whether it did.
+func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
+	if handleOperatorAccess(w, r) {
+		return true
+	}
+	if r.URL.Path != "/admin/v1/policies/login" && r.URL.Path != "/management/v1/policies/login" {
+		return false
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method == http.MethodPut && r.URL.Path == "/admin/v1/policies/login" {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		l.registerOpen, _ = body["allowRegister"].(bool)
+		l.puts++
+		_ = json.NewEncoder(w).Encode(map[string]any{})
+		return true
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{"policy": map[string]any{
+		"allowRegister": l.registerOpen, "isDefault": true,
+	}})
+	return true
+}
+
+// handleOperatorAccess answers the project role and grant calls that
+// provisioning makes for the Grafana operator role, with a project that has
+// role assertion on and a user that already holds the role.
+func handleOperatorAccess(w http.ResponseWriter, r *http.Request) bool {
+	var resp map[string]any
+	switch {
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/management/v1/projects/proj-"):
+		resp = map[string]any{"project": map[string]any{"name": "Alfheim", "projectRoleAssertion": true}}
+	case strings.HasSuffix(r.URL.Path, "/roles/_search"):
+		resp = map[string]any{"result": []map[string]any{{"key": "alfheim_operator"}}}
+	case r.URL.Path == "/management/v1/users/_search":
+		resp = map[string]any{"result": []map[string]any{{"id": "user-1", "userName": "admin@example.com"}}}
+	case r.URL.Path == "/management/v1/users/grants/_search":
+		resp = map[string]any{"result": []map[string]any{
+			{"id": "grant-1", "userId": "user-1", "projectId": "proj-1", "roleKeys": []string{"alfheim_operator"}},
+		}}
+	default:
+		return false
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+	return true
+}
+
+func (l *loginPolicyStub) registrationOpen() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.registerOpen
+}
+
 // zitadelStub answers just enough of the Management API for RunProvision to
 // reconcile a project and two OIDC applications from scratch.
-func zitadelStub(t *testing.T) http.Handler {
+func zitadelStub(t *testing.T, policy *loginPolicyStub) http.Handler {
 	t.Helper()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if policy.handle(w, r) {
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/projects/_search"):
@@ -47,7 +117,8 @@ func zitadelStub(t *testing.T) http.Handler {
 // trusting the generated root found next to the .env without any flag.
 func TestRunProvision_Succeeds(t *testing.T) {
 	dir := t.TempDir()
-	addr := startSecureZitadel(t, paths.Layout{Root: dir}, "auth.example.com", zitadelStub(t))
+	policy := newLoginPolicyStub()
+	addr := startSecureZitadel(t, paths.Layout{Root: dir}, "auth.example.com", zitadelStub(t, policy))
 
 	envPath := writeProvisionEnv(t, dir, "true")
 	patPath := filepath.Join(dir, "pat.txt")
@@ -63,12 +134,16 @@ func TestRunProvision_Succeeds(t *testing.T) {
 		t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
 	}
 	assertProvisionedEnv(t, envPath)
+	if policy.registrationOpen() {
+		t.Error("self-registration is still enabled after RunProvision")
+	}
 }
 
 // TestRunProvision_LegacyInsecureEnv keeps a plain-HTTP .env provisionable
 // through --zitadel-url.
 func TestRunProvision_LegacyInsecureEnv(t *testing.T) {
-	srv := httptest.NewServer(zitadelStub(t))
+	policy := newLoginPolicyStub()
+	srv := httptest.NewServer(zitadelStub(t, policy))
 	defer srv.Close()
 
 	dir := t.TempDir()
@@ -86,6 +161,9 @@ func TestRunProvision_LegacyInsecureEnv(t *testing.T) {
 		t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
 	}
 	assertProvisionedEnv(t, envPath)
+	if policy.registrationOpen() {
+		t.Error("self-registration is still enabled after RunProvision")
+	}
 }
 
 func TestRunProvision_BadCAFile(t *testing.T) {

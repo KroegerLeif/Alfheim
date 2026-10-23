@@ -33,8 +33,8 @@ interface QuickTileProps {
   label: string;
   iconTag: string | null;
   onAdd: () => void;
-  /** Removes the entry from the frequently bought grid. */
-  onRemove: () => void;
+  /** Removes the entry from the frequently bought grid; without it no remove button is shown. */
+  onRemove?: () => void;
   /** Localized accessible name of the remove button. */
   removeLabel: string;
   disabled?: boolean;
@@ -84,20 +84,22 @@ export function QuickTile({
         </span>
       </button>
 
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={removeDisabled}
-        aria-label={removeLabel}
-        title={removeLabel}
-        className={cn(
-          "absolute top-1 right-1 z-10 w-5 h-5 flex items-center justify-center rounded-md cursor-pointer",
-          "bg-[var(--surface-card)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10",
-          "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity disabled:opacity-40"
-        )}
-      >
-        <X className="h-3 w-3" />
-      </button>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={removeDisabled}
+          aria-label={removeLabel}
+          title={removeLabel}
+          className={cn(
+            "absolute top-1 right-1 z-10 w-5 h-5 flex items-center justify-center rounded-md cursor-pointer",
+            "bg-[var(--surface-card)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10",
+            "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity disabled:opacity-40"
+          )}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }

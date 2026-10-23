@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useTranslation } from "@alfheim/shared";
-import { DesktopSidebar, MobileTabBar } from "@/features/navigation";
+import { useTranslation, getRequestErrorMessage } from "@alfheim/shared";
+import { DesktopSidebar, MobileTabBar, type TabKey } from "@/features/navigation";
 import { useBudgetData } from "@/features/dashboard/useBudgetData";
 import { DashboardOverview } from "@/features/dashboard/DashboardOverview";
 import { BudgetDialogContainer } from "@/features/dashboard/BudgetDialogContainer";
@@ -33,7 +33,7 @@ export default function BudgetHomePage() {
       await action();
       reload();
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getRequestErrorMessage(err);
       setActionError(message || t("budget.errors.requestFailed"));
     }
   };
@@ -52,10 +52,19 @@ export default function BudgetHomePage() {
 
   const cashflow = useMemo(() => computeCashflow(transactions, plans, pots), [transactions, plans, pots]);
 
-  const getMobileActiveTab = () => {
-    if (activeTab === "/planning") return "planning";
-    if (activeTab === "/pots") return "pots";
-    return "dashboard";
+  // Views are switched through state (see DesktopSidebar/MobileTabBar), so each tab key maps to a path.
+  const TAB_PATHS: Record<TabKey, string> = {
+    dashboard: "/",
+    accounts: "/accounts",
+    planning: "/planning",
+    pots: "/pots",
+    transactions: "/transactions",
+    sankey: "/sankey",
+    analytics: "/analytics",
+  };
+  const getMobileActiveTab = (): TabKey => {
+    const match = (Object.keys(TAB_PATHS) as TabKey[]).find((key) => TAB_PATHS[key] === activeTab);
+    return match ?? "dashboard";
   };
 
   return (
@@ -183,7 +192,7 @@ export default function BudgetHomePage() {
         activeTab={getMobileActiveTab()}
         planningMode={planningMode}
         onPlanningModeChange={setPlanningMode}
-        onTabChange={(tab) => setActiveTab(tab === "planning" ? "/planning" : tab === "pots" ? "/pots" : "/")}
+        onTabChange={(tab) => setActiveTab(TAB_PATHS[tab])}
         onQuickAdd={() => setQuickAddOpen(true)}
       />
     </div>

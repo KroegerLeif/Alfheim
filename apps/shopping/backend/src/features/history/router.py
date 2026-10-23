@@ -7,6 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
 from src.features.history.schemas import ShoppingHistoryRead
 from src.features.history.service import ShoppingHistoryService
+from src.features.shopping_lists.permissions import require_writer
 
 router = APIRouter(prefix="/api/v1/shopping-history", tags=["shopping-history"])
 
@@ -35,7 +36,7 @@ async def get_history(
 async def delete_history_item(
     history_id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Delete an item from the quick-selection search history logs."""
     success = await ShoppingHistoryService.delete_history_item(

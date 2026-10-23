@@ -12,6 +12,7 @@ package provisioning
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // AppType selects how an OIDC application authenticates.
@@ -62,7 +63,36 @@ type Client interface {
 	// EnsureOIDCApp reconciles one OIDC application inside projectID and
 	// returns its current credentials.
 	EnsureOIDCApp(ctx context.Context, projectID string, spec AppSpec) (Credentials, error)
+	// EnsureRegistrationDisabled turns self-registration off on the login
+	// policy that applies to the installation's users and verifies it took
+	// effect. Alfheim accounts are created by the operator (and invited
+	// household members), never by a stranger reaching the login page.
+	EnsureRegistrationDisabled(ctx context.Context) error
+	// EnsureRoleAssertion makes Zitadel add the user's project roles to the
+	// tokens issued for applications of projectID, which Grafana's role
+	// mapping reads.
+	EnsureRoleAssertion(ctx context.Context, projectID string) error
+	// EnsureProjectRole creates role on projectID if it does not exist yet.
+	EnsureProjectRole(ctx context.Context, projectID string, role RoleSpec) error
+	// GrantProjectRole gives the organisation user with the given user name
+	// the role roleKey on projectID, keeping any role the user already holds
+	// there.
+	GrantProjectRole(ctx context.Context, projectID, userName, roleKey string) error
 }
+
+// OperatorRoleKey is the Zitadel project role compose.prod.yaml's Grafana
+// role mapping turns into the Grafana Admin role.
+const OperatorRoleKey = "alfheim_operator"
+
+// RoleSpec declares one project role.
+type RoleSpec struct {
+	Key         string
+	DisplayName string
+	Group       string
+}
+
+// OperatorRole is the role that grants access to Grafana.
+var OperatorRole = RoleSpec{Key: OperatorRoleKey, DisplayName: "Alfheim operator", Group: "operations"}
 
 // Input is everything Provision needs to compute the desired state. It is
 // pure data so orchestrator/run.go and scripts/up.sh's `provision` subcommand
@@ -76,6 +106,10 @@ type Input struct {
 	// GrafanaApp is the confidential client used for Grafana's generic OAuth
 	// integration.
 	GrafanaApp AppSpec
+	// OperatorUserName is the Zitadel user name of the installation's initial
+	// administrator, who is granted OperatorRole. Empty skips the grant (the
+	// role itself is still created).
+	OperatorUserName string
 }
 
 // Result carries the ids Provision resolved, in the shape orchestrator/run.go
@@ -85,6 +119,10 @@ type Result struct {
 	WebClientID     string
 	GrafanaClientID string
 	GrafanaSecret   string
+	// Warnings are non-fatal findings the operator must still see, such as
+	// self-registration that could not be switched off on an existing
+	// installation.
+	Warnings []string
 }
 
 // knownPlaceholderSecrets are values that must never be treated as a real,
@@ -134,12 +172,56 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		return Result{}, fmt.Errorf("provisioning: ensure app %q: %w", grafanaSpec.Name, err)
 	}
 
+	// Reached on every run (fresh install and update), so an instance that
+	// predates this step, or whose policy was re-enabled by hand, is
+	// corrected again.
+	//
+	// On a fresh install a failure aborts. On an existing installation it
+	// must never brick the update (the bootstrap PAT may lack the rights),
+	// so it becomes a warning with the manual steps instead.
+	var warnings []string
+	if err := c.EnsureRegistrationDisabled(ctx); err != nil {
+		if !isExistingInstall(existing) {
+			return Result{}, fmt.Errorf("provisioning: disable self-registration: %w", err)
+		}
+		warnings = append(warnings, RegistrationWarning(err))
+	}
+
+	// Same policy as above: fatal on a fresh install, a warning on an
+	// existing one.
+	if err := ensureOperatorAccess(ctx, c, projectID, in.OperatorUserName); err != nil {
+		if !isExistingInstall(existing) {
+			return Result{}, fmt.Errorf("provisioning: grant Grafana operator access: %w", err)
+		}
+		warnings = append(warnings, OperatorAccessWarning(err))
+	}
+
 	return Result{
+		Warnings:        warnings,
 		ProjectID:       projectID,
 		WebClientID:     webCreds.ClientID,
 		GrafanaClientID: grafanaCreds.ClientID,
 		GrafanaSecret:   grafanaCreds.ClientSecret,
 	}, nil
+}
+
+// ensureOperatorAccess reconciles everything Grafana's role mapping needs:
+// role assertion on the project, the alfheim_operator role, and its grant to
+// the initial administrator.
+func ensureOperatorAccess(ctx context.Context, c Client, projectID, userName string) error {
+	if err := c.EnsureRoleAssertion(ctx, projectID); err != nil {
+		return fmt.Errorf("enable role assertion: %w", err)
+	}
+	if err := c.EnsureProjectRole(ctx, projectID, OperatorRole); err != nil {
+		return fmt.Errorf("create role %q: %w", OperatorRole.Key, err)
+	}
+	if userName == "" {
+		return nil
+	}
+	if err := c.GrantProjectRole(ctx, projectID, userName, OperatorRole.Key); err != nil {
+		return fmt.Errorf("grant role %q to %q: %w", OperatorRole.Key, userName, err)
+	}
+	return nil
 }
 
 // BuildInput assembles the Input for the Alfheim stack from the rendered
@@ -178,4 +260,34 @@ func BuildInput(projectName, baseURL string, devMode bool, appSlugs []string) In
 var AppSlugs = []string{
 	"pantry", "shopping", "chores", "maintenance",
 	"budget", "chat", "workout", "library", "household",
+}
+
+// isExistingInstall reports whether existing (a parsed .env) already carries
+// a provisioned web client, which a fresh install's .env never does: it holds
+// empty or the __PROVISIONED__ placeholder until the first provisioning run.
+func isExistingInstall(existing map[string]string) bool {
+	id := strings.TrimSpace(existing["ALFHEIM_WEB_CLIENT_ID"])
+	return id != "" && id != "__PROVISIONED__"
+}
+
+// RegistrationWarning is the operator-facing message for a login policy that
+// could not be locked down, including the manual steps.
+func RegistrationWarning(cause error) string {
+	return fmt.Sprintf("WARNING: Zitadel self-registration may still be ENABLED: %v\n"+
+		"  Anyone who can reach the login page may be able to register an account. Disable it manually:\n"+
+		"    1. Zitadel console -> Default settings -> Login behavior and security -> uncheck \"User registration allowed\".\n"+
+		"    2. Organization -> Settings -> Login behavior and security -> uncheck \"User registration allowed\"\n"+
+		"       (only if the organization has its own login policy).\n"+
+		"  Re-run alfheim-setup update (or provision) with a PAT that has IAM_OWNER rights to apply it automatically.", cause)
+}
+
+// OperatorAccessWarning is the operator-facing message for a Grafana operator
+// role that could not be created or granted, including the manual steps.
+func OperatorAccessWarning(cause error) string {
+	return fmt.Sprintf("WARNING: the Zitadel role %q could not be set up: %v\n"+
+		"  Without it nobody can sign in to Grafana through Zitadel (the local Grafana admin still works). Fix it manually:\n"+
+		"    1. Zitadel console -> Projects -> Alfheim -> Roles -> New: key %q.\n"+
+		"    2. Projects -> Alfheim -> Authorizations -> New: select your user and tick the role.\n"+
+		"  See docs/en/how-to/grafana-access.md. Re-run alfheim-setup update to retry automatically.",
+		OperatorRoleKey, cause, OperatorRoleKey)
 }

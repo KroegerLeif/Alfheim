@@ -14,10 +14,12 @@ interface MessageListProps {
   isStreaming: boolean;
   streamingText: string;
   liveToolCalls: ToolCallView[];
+  /** An attachment image failed to load, usually because its signed URL expired. */
+  onAttachmentError?: () => void;
 }
 
 /** Stored history (with tool calls attached to their turn) plus the reply streaming in. */
-export function MessageList({ messages, isLoading, isError, isStreaming, streamingText, liveToolCalls }: MessageListProps) {
+export function MessageList({ messages, isLoading, isError, isStreaming, streamingText, liveToolCalls, onAttachmentError }: MessageListProps) {
   const { t } = useTranslation();
   const endRef = useRef<HTMLDivElement | null>(null);
   const timeline = useMemo(() => buildTimeline(messages ?? []), [messages]);
@@ -33,7 +35,7 @@ export function MessageList({ messages, isLoading, isError, isStreaming, streami
 
       {timeline.map((item) =>
         item.kind === "message" ? (
-          <MessageItem key={item.message.id} message={item.message} />
+          <MessageItem key={item.message.id} message={item.message} onAttachmentError={onAttachmentError} />
         ) : (
           <ToolCallGroup key={item.id} calls={item.calls} />
         )

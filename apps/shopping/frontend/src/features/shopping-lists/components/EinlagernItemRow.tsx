@@ -1,5 +1,6 @@
 "use client";
 
+import { getRequestErrorMessage } from "@alfheim/shared";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,7 @@ export function EinlagernItemRow({
       await action();
       onDone();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(getRequestErrorMessage(err));
     }
   };
 

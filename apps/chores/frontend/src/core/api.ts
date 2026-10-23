@@ -51,14 +51,14 @@ const handleResponseError = async (response: Response) => {
 };
 
 export const choresClient = ky.create({
-  prefixUrl: BASE_URL,
+  prefix: BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
   hooks: {
     beforeRequest: [
-      (request) => {
+      ({ request }) => {
         if (typeof window !== "undefined") {
           const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
           if (token) {
@@ -69,7 +69,7 @@ export const choresClient = ky.create({
       },
     ],
     afterResponse: [
-      async (request, options, response) => {
+      async ({ request, options, response }) => {
         if (response.status === 401 && typeof window !== "undefined") {
           const oidcBridge = window.__alfheim_oidc__;
           if (oidcBridge && typeof oidcBridge.refresh === "function") {

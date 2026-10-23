@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTheme, useTranslation } from '@alfheim/shared';
 import { useDashboardApps, useUpdateUserPreferences } from '@/features/apps';
 import { ThemePickerWidget } from '@/features/dashboard/components/ThemePickerWidget';
@@ -13,14 +13,15 @@ export default function SettingsPage() {
   const { data: dashboard } = useDashboardApps();
   const updatePrefsMutation = useUpdateUserPreferences();
 
-  const [hiddenAppIds, setHiddenAppIds] = useState<string[]>([]);
+  const [hiddenAppIds, setHiddenAppIds] = useState<string[]>(dashboard?.preferences?.hidden_app_ids ?? []);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (dashboard?.preferences?.hidden_app_ids) {
-      setHiddenAppIds(dashboard.preferences.hidden_app_ids);
-    }
-  }, [dashboard]);
+  // Follow the server's preferences whenever they are reloaded (adjusted during render, not in an effect).
+  const [syncedDashboard, setSyncedDashboard] = useState(dashboard);
+  if (dashboard !== syncedDashboard) {
+    setSyncedDashboard(dashboard);
+    if (dashboard?.preferences?.hidden_app_ids) setHiddenAppIds(dashboard.preferences.hidden_app_ids);
+  }
 
   const handleToggleCoreApp = (appId: string) => {
     const isCurrentlyHidden = hiddenAppIds.includes(appId);

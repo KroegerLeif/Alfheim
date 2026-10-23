@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Button, useTranslation } from "@alfheim/shared";
+import { Badge, Button, PermissionHint, useHouseholdCan, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { ProviderSubscription } from "../types";
 
 interface ProviderCardProps {
@@ -14,6 +14,8 @@ export function ProviderCard({
   onDelete,
 }: ProviderCardProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -56,29 +58,34 @@ export function ProviderCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
-        <Button
-          type="button"
-          variant={provider.is_active ? "outline" : "default"}
-          size="sm"
-          onClick={() => onToggleActive(provider.id, provider.is_active)}
-          className="text-xs"
-        >
-          {provider.is_active
-            ? t("library.providers.deactivate")
-            : t("library.providers.activate")}
-        </Button>
+      {canWrite && (
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
+          <Button
+            type="button"
+            variant={provider.is_active ? "outline" : "default"}
+            size="sm"
+            onClick={() => onToggleActive(provider.id, provider.is_active)}
+            className="text-xs"
+          >
+            {provider.is_active
+              ? t("library.providers.deactivate")
+              : t("library.providers.activate")}
+          </Button>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(provider)}
-          className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
-        >
-          {t("library.providers.delete")}
-        </Button>
-      </div>
+          <PermissionHint hint={remove.hint}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(provider)}
+              disabled={!remove.allowed}
+              className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            >
+              {t("library.providers.delete")}
+            </Button>
+          </PermissionHint>
+        </div>
+      )}
     </div>
   );
 }

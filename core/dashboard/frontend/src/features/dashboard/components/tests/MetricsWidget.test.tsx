@@ -16,10 +16,10 @@ describe('MetricsWidget', () => {
           memory_percent: 50,
           memory_used_gb: 8,
           memory_total_gb: 16,
-          network_rx_mbps: 12.3,
-          network_tx_mbps: 4.5,
-          uptime_seconds: 3661,
-          active_containers: 6,
+          disk_percent: 75,
+          disk_used_gb: 375,
+          disk_total_gb: 500,
+          uptime_seconds: 93784,
         })
       )
     )
@@ -28,6 +28,8 @@ describe('MetricsWidget', () => {
 
     await waitFor(() => expect(screen.getByText('42.5%')).toBeInTheDocument())
     expect(screen.getByText('8 / 16 GB')).toBeInTheDocument()
+    expect(screen.getByText('375 / 500 GB')).toBeInTheDocument()
+    expect(screen.getByText('1d 2h')).toBeInTheDocument()
     expect(screen.getByText('LIVE STREAM')).toBeInTheDocument()
   })
 
@@ -37,7 +39,6 @@ describe('MetricsWidget', () => {
         HttpResponse.json({
           available: false,
           message: 'victoriametrics is unreachable',
-          uptime_seconds: 10,
         })
       )
     )
@@ -55,7 +56,6 @@ describe('MetricsWidget', () => {
         HttpResponse.json({
           available: true,
           message: 'victoriametrics is reachable but has no host-level metrics available yet',
-          uptime_seconds: 10,
         })
       )
     )

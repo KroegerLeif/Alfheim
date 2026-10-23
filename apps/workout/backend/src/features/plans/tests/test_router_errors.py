@@ -185,11 +185,11 @@ async def test_plan_crud_service_integrity_errors(db_session: AsyncSession):
             )
 
 
-async def test_plan_crud_service_sets_and_subresources(db_session: AsyncSession):
+async def test_plan_crud_service_sets_and_subresources(db_session: AsyncSession, make_exercise):
     """Verify set operations and sub-resource deletions on plans."""
     home_id = uuid.uuid4()
     user_id = uuid.uuid4()
-    ex_id = uuid.uuid4()
+    ex_id = await make_exercise(home_id, user_id)
 
     plan = await PlanCrudService.create_plan(
         db_session,

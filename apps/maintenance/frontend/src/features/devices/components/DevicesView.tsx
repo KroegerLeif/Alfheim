@@ -7,6 +7,7 @@ import { AddDeviceWizard } from "./AddDeviceWizard";
 import { DeviceCard } from "./DeviceCard";
 import { Info, Loader2, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useHouseholdCan } from "@alfheim/shared";
 import { useHouseholds, useDevices } from "../hooks/useDevices";
 import { groupDevicesByHousehold } from "../utils";
 
@@ -16,6 +17,7 @@ interface DevicesViewProps {
 
 export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const t = useTranslations("maintenance");
+  const canWrite = useHouseholdCan("write");
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showWizard, setShowWizard] = useState(false);
 
@@ -52,14 +54,16 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
         <span className="text-xs font-black uppercase tracking-widest text-[var(--primary-main)]">
           {t("deviceInventory.tagline")}
         </span>
-        <button
-          type="button"
-          onClick={() => setShowWizard(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider rounded-xl border border-transparent transition-all shadow-md shadow-[var(--primary-main)]/10 cursor-pointer shrink-0"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {t("deviceInventory.addDevice")}
-        </button>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={() => setShowWizard(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--primary-main)] hover:opacity-90 text-black text-xs font-black uppercase tracking-wider rounded-xl border border-transparent transition-all shadow-md shadow-[var(--primary-main)]/10 cursor-pointer shrink-0"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t("deviceInventory.addDevice")}
+          </button>
+        )}
       </div>
 
       {groupedDevices.length === 0 ? (
@@ -108,7 +112,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
       )}
 
       {/* Register Device Wizard Overlay */}
-      {showWizard && <AddDeviceWizard onClose={() => setShowWizard(false)} />}
+      {showWizard && canWrite && <AddDeviceWizard onClose={() => setShowWizard(false)} />}
     </div>
   );
 }

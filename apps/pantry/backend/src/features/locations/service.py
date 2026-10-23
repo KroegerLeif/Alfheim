@@ -1,3 +1,4 @@
+import logging
 import uuid
 from collections.abc import Sequence
 
@@ -7,6 +8,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.errors import CODE_LOCATION_IN_USE, ResourceInUseError
 from src.features.inventory.models import InventoryLedger, InventoryState
 from src.features.locations.models import Location, LocationCreate, LocationUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class LocationService:
@@ -32,7 +35,8 @@ class LocationService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Failed to create location: {e}") from e
+            logger.warning("Integrity error creating location '%s'", payload.name, exc_info=e)
+            raise ValueError("Location could not be created because it conflicts with an existing location.") from e
         await session.refresh(location)
         return location
 
@@ -92,7 +96,8 @@ class LocationService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Failed to update location: {e}") from e
+            logger.warning("Integrity error updating location '%s'", location_id, exc_info=e)
+            raise ValueError("Location could not be updated because it conflicts with an existing location.") from e
         await session.refresh(location)
         return location
 
@@ -139,5 +144,6 @@ class LocationService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Failed to delete location: {e}") from e
+            logger.warning("Integrity error deleting location '%s'", location_id, exc_info=e)
+            raise ValueError("Location could not be deleted because it is still referenced.") from e
         return True

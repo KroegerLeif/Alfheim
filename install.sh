@@ -250,6 +250,7 @@ if [[ ! -f compose.prod.yaml ]]; then
   fetch_stack_asset init-multiple-dbs.sh infrastructure/postgres/init-multiple-dbs.sh
   chmod +x infrastructure/postgres/init-multiple-dbs.sh
   fetch_stack_asset vector.toml infrastructure/telemetry/vector/vector.toml
+  fetch_stack_asset victoriametrics-scrape.yml infrastructure/telemetry/victoriametrics/scrape.yml
   # alfheim-setup update itself re-fetches and verifies this on every later
   # release; shipping it on a fresh install too means it works right away
   # without waiting for the first update.

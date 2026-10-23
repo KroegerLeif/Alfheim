@@ -1,5 +1,6 @@
 "use client";
 
+import { getRequestErrorMessage } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { ShoppingCart } from "lucide-react";
 import { ApiError } from "@/lib/api";
@@ -45,7 +46,7 @@ export function ShoppingErrorBanner({ listsErrObj, refetchLists }: ShoppingError
             : isForbidden
             ? errT("forbiddenDesc")
             : listsErrObj instanceof Error
-            ? listsErrObj.message
+            ? getRequestErrorMessage(listsErrObj)
             : errT("fetchFailedDesc")}
         </p>
         <div className="flex gap-2 justify-center">

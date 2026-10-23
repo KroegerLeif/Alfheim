@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
 )
@@ -28,20 +27,33 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
 		r.Get("/api/v1/chat/mcp-servers", h.List)
-		r.Get("/api/v1/chat/mcp-servers/diagnostics", h.Diagnostics)
-		r.Patch("/api/v1/chat/mcp-servers/{id}", h.SetEnabled)
+		r.With(middleware.RequireOperator).Get("/api/v1/chat/mcp-servers/diagnostics", h.Diagnostics)
+		r.With(middleware.RequireOperator).Patch("/api/v1/chat/mcp-servers/{id}", h.SetEnabled)
 	})
 }
 
+// List returns the registry. The registry is global to the installation, so
+// only operators see internal endpoint URLs and timestamps; every other user
+// gets the non-sensitive summary (id, app slug, enabled state).
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	servers, err := h.service.List(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_server_error", "failed to list mcp servers")
 		return
 	}
+	if !middleware.IsOperator(r.Context()) {
+		summaries := make([]SummaryDTO, 0, len(servers))
+		for _, s := range servers {
+			summaries = append(summaries, ToSummary(s))
+		}
+		writeJSON(w, http.StatusOK, summaries)
+		return
+	}
 	writeJSON(w, http.StatusOK, servers)
 }
 
+// Diagnostics probes every registered MCP server. Operator-only: the report
+// contains internal endpoint URLs and error details.
 func (h *Handler) Diagnostics(w http.ResponseWriter, r *http.Request) {
 	// Probe the MCP servers as the calling user, since they authorize every request.
 	ctx := r.Context()
@@ -59,19 +71,10 @@ func (h *Handler) Diagnostics(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, diags)
 }
 
+// SetEnabled toggles a registry entry. Operator-only.
 func (h *Handler) SetEnabled(w http.ResponseWriter, r *http.Request) {
 	// The registry is global to the installation, so toggling it is reserved for
-	// household owners/admins rather than every authenticated user.
-	hc, err := middleware.GetHousehold(r.Context())
-	if err != nil {
-		middleware.WriteHouseholdError(w, http.StatusBadRequest, middleware.CodeHouseholdRequired, "X-Household-ID header is required")
-		return
-	}
-	if hc.Role != householdclient.RoleOwner && hc.Role != householdclient.RoleAdmin {
-		middleware.WriteHouseholdError(w, http.StatusForbidden, middleware.CodeHouseholdRoleForbidden, "only household owners or admins may change the mcp server registry")
-		return
-	}
-
+	// operators (route-level RequireOperator); household roles do not apply.
 	id := chi.URLParam(r, "id")
 
 	var req SetEnabledRequest

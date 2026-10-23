@@ -103,25 +103,15 @@ Haushaltsbezogene Backends bestätigen jede `X-Household-ID` bei der Haushalts-A
   ```
   Sicherstellen, dass `household-backend` healthy ist und jedes Backend dasselbe `ALFHEIM_INTERNAL_TOKEN` wie `household-backend` erhält (alle kommen aus der Wurzel-`.env`). `HOUSEHOLD_INTERNAL_URL` muss aus dem aufrufenden Container auflösbar sein (Standard `http://household-backend:8080`). Die Frontends zeigen einen Hinweis zum erneuten Versuch; nach der Wiederherstellung neu laden.
 
-### Symptom 5: `maintenance-backend` scheitert mit `LegacyHouseholdSchemaError`
-* **Ursache:** Die Maintenance-Datenbank wurde angelegt, bevor Haushalts-IDs zu UUIDs wurden. Das Schema entsteht über `SQLModel.metadata.create_all`, das bestehende Spalten nicht ändern kann, daher verweigert das Backend den Start, statt ganzzahlige und UUID-Haushalte zu mischen.
-* **Lösung:** Die alten Tabellen einmal löschen. Vorhandene Maintenance-Daten gehen verloren; andere Apps sind nicht betroffen. Beim Start werden die Tabellen mit UUID-Haushalten neu angelegt.
+### Symptom 5: Alte Maintenance-Daten fehlen nach dem Update
+* **Ursache:** Die Maintenance-Datenbank wurde angelegt, bevor Haushalts-IDs zu UUIDs wurden (ganzzahliges `device.household_id` plus lokale Tabelle `household`). Ganzzahlige IDs lassen sich nicht den UUID-Haushalten aus `core/household` zuordnen. Beim ersten Start nach dem Update verschiebt die Start-Migration (Revision `0002`) die vier alten Tabellen daher in das PostgreSQL-Schema `legacy_maintenance` und legt leere aktuelle Tabellen an. Es wird nichts gelöscht, die alten Zeilen werden aber nicht mehr ausgeliefert.
+* **Lösung:** Für den Betrieb des Dienstes ist nichts nötig. Um alte Geräte zurückzuholen, im Schema `legacy_maintenance` nachsehen und sie in der App neu anlegen oder per SQL übernehmen, sobald klar ist, zu welchem Haushalt sie gehören:
 
-  Entwicklung (`compose.yaml`):
+  ```bash
+  docker compose exec postgres-core sh -c 'psql -U "$POSTGRES_USER" -d alfheim_maintenance -c "SELECT id, name, household_id FROM legacy_maintenance.device;"'
+  ```
 
-   ```bash
-   docker compose stop maintenance-backend
-   docker compose exec postgres-core sh -c 'psql -U "$POSTGRES_USER" -d alfheim_maintenance -c "DROP TABLE IF EXISTS servicehistoryevent, maintenancestep, device, household CASCADE;"'
-   docker compose up -d --build maintenance-backend
-   ```
-
-  Produktion (`compose.prod.yaml`; bei angepasstem `MAINTENANCE_POSTGRES_DB` diesen Namen verwenden):
-
-   ```bash
-   docker compose -f compose.prod.yaml stop maintenance-backend
-   docker compose -f compose.prod.yaml exec postgres-core sh -c 'psql -U "$POSTGRES_USER" -d "${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}" -c "DROP TABLE IF EXISTS servicehistoryevent, maintenancestep, device, household CASCADE;"'
-   docker compose -f compose.prod.yaml up -d maintenance-backend
-   ```
+  Werden die Daten nicht mehr gebraucht, mit `DROP SCHEMA legacy_maintenance CASCADE;` entfernen. Siehe [Schema-Migrationen](../explanation/schema-migrations.md).
 
 ---
 

@@ -82,8 +82,15 @@ class PotRepository:
         await self.session.delete(pot)
         await self.session.commit()
 
-    async def count_referencing_transactions(self, pot_id: UUID) -> int:
+    async def count_referencing_transactions(self, pot_id: UUID, household_id: UUID) -> int:
         """Count transactions that still reference this pot (used to guard deletion)."""
-        statement = select(func.count()).select_from(Transaction).where(Transaction.pot_id == pot_id)
+        statement = (
+            select(func.count())
+            .select_from(Transaction)
+            .where(
+                Transaction.pot_id == pot_id,
+                Transaction.household_id == household_id,
+            )
+        )
         result = await self.session.exec(statement)
         return int(result.one())

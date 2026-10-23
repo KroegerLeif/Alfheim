@@ -1,0 +1,14 @@
+# infrastructure/telemetry/victoriametrics/scrape.yml
+# Prometheus-style scrape config for VictoriaMetrics (-promscrape.config).
+# VictoriaMetrics pulls host metrics from node-exporter over the internal
+# observability-internal network; the dashboard's /api/v1/telemetry/metrics
+# endpoint queries these series (node_cpu_seconds_total, node_memory_*,
+# node_filesystem_*, node_boot_time_seconds).
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]

@@ -74,7 +74,7 @@ func run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth, cfg.InternalToken, cfg.CORS.AllowedOrigins)
+	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.InternalToken, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -135,7 +135,12 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, internalToken string, allowedOrigins []string) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, authMw func(http.Handler) http.Handler, internalToken string, allowedOrigins []string) http.Handler {
+	// An unauthenticated API must never be served: refuse to build the router.
+	if authMw == nil {
+		panic("household-backend: auth middleware is required to build the router")
+	}
+
 	// Initialize Repositories
 	var pool = dbClient.Pool
 	profileRepo := profile.NewRepository(pool)
@@ -158,6 +163,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.CORSWithOrigins(allowedOrigins))
 	r.Use(middleware.RequestLogger(log))
+	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes))
 
 	// Health Check Endpoints
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -182,13 +188,6 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	// OIDC JWT validation only. Household authorization happens per request
 	// against household_members, keyed by the household id in the URL path;
 	// X-Household-ID / X-Household-Role headers are ignored.
-	authMw := func(next http.Handler) http.Handler {
-		if auth == nil {
-			return next
-		}
-		return auth.AuthenticateMiddleware(next)
-	}
-
 	// Register Feature Domain Routes
 	profileHandler.RegisterRoutes(r, authMw)
 	householdHandler.RegisterRoutes(r, authMw)

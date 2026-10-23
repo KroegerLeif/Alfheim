@@ -18,6 +18,7 @@ import (
 
 	"alfheim/dashboard/config"
 	"alfheim/dashboard/internal/features/apps"
+	"alfheim/dashboard/internal/features/capabilities"
 	"alfheim/dashboard/internal/features/telemetry"
 	"alfheim/dashboard/internal/shared/db"
 	"alfheim/dashboard/internal/shared/logger"
@@ -72,7 +73,7 @@ func run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
+	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -133,7 +134,12 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authenticator, stackAppsPath string, allowedOrigins []string) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string) http.Handler {
+	// An unauthenticated API must never be served: refuse to build the router.
+	if jwtMw == nil {
+		panic("dashboard-backend: auth middleware is required to build the router")
+	}
+
 	// Initialize Repositories
 	var pool = dbClient.Pool
 	appsRepo := apps.NewRepository(pool)
@@ -148,12 +154,14 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 	// Initialize Handlers
 	appsHandler := apps.NewHandler(appsService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
+	capabilitiesHandler := capabilities.NewHandler()
 
 	// Router Setup
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.CORSWithOrigins(allowedOrigins))
 	r.Use(middleware.RequestLogger(log))
+	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes))
 
 	// Health Check Endpoints
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -184,15 +192,13 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, auth *middleware.Authent
 		profileMw = middleware.EnsureUserProfile(pool, log)
 	}
 	authMw := func(next http.Handler) http.Handler {
-		if auth == nil {
-			return profileMw(next)
-		}
-		return auth.AuthenticateMiddleware(profileMw(next))
+		return jwtMw(profileMw(next))
 	}
 
 	// Register Feature Domain Routes
 	appsHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
+	capabilitiesHandler.RegisterRoutes(r, authMw)
 
 	return r
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { useLocations } from "../services/locationService";
 import { useInventoryState, useLowStockItems } from "@/features/inventory/services/inventoryService";
 import { Button } from "@alfheim/shared";
@@ -18,6 +18,7 @@ import { LocationCreateForm } from "./LocationCreateForm";
  */
 export function LocationsGridView() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
 
@@ -57,13 +58,15 @@ export function LocationsGridView() {
           <h1 className="text-2xl sm:text-4xl font-heading font-black tracking-wide leading-none select-none text-[var(--text-main)]">{t("pantry.locationsTitle")}</h1>
           <p className="uppercase tracking-widest text-[10px] text-[var(--text-muted)] mt-2 font-mono">{t("pantry.locationsSub")}</p>
         </div>
-        <Button type="button" id="toggle-create-location" onClick={() => setIsFormOpen(!isFormOpen)} variant="outline"
-          className="py-6 px-6 font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--surface-card)] text-[var(--primary-main)] hover:bg-[var(--primary-main)] hover:text-black cursor-pointer select-none transition-all h-12 flex items-center justify-center gap-2 self-start rounded-lg">
-          {isFormOpen ? <><Minus className="h-4 w-4" />{t("pantry.createBtnClose")}</> : <><Plus className="h-4 w-4" />{t("pantry.createBtn")}</>}
-        </Button>
+        {canWrite && (
+          <Button type="button" id="toggle-create-location" onClick={() => setIsFormOpen(!isFormOpen)} variant="outline"
+            className="py-6 px-6 font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--surface-card)] text-[var(--primary-main)] hover:bg-[var(--primary-main)] hover:text-black cursor-pointer select-none transition-all h-12 flex items-center justify-center gap-2 self-start rounded-lg">
+            {isFormOpen ? <><Minus className="h-4 w-4" />{t("pantry.createBtnClose")}</> : <><Plus className="h-4 w-4" />{t("pantry.createBtn")}</>}
+          </Button>
+        )}
       </div>
 
-      {isFormOpen && (
+      {isFormOpen && canWrite && (
         <LocationCreateForm
           onSuccess={handleCreateSuccess}
           onCancel={() => setIsFormOpen(false)}

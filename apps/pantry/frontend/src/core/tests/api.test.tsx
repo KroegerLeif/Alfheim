@@ -1,8 +1,9 @@
 import React from 'react'
 import { renderHook } from '@testing-library/react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { isNetworkError } from 'ky'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { StaticHouseholdProvider, subscribeHouseholdErrors } from '@alfheim/shared'
+import { StaticHouseholdProvider, getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { pantryClient, shoppingClient } from '../api'
 import { useLowStockItems } from '@/features/inventory/services/inventoryService'
 
@@ -60,5 +61,29 @@ describe('pantryClient household context', () => {
     const request = fetchSpy.mock.calls[0][0] as Request
     expect(new URL(request.url).pathname).toBe('/shopping/api/v1/shopping/items')
     expect(request.headers.get('X-Household-ID')).toBe('hh-42')
+  })
+})
+
+describe('pantryClient network failures', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects with a NetworkError instead of a normalized API error', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await pantryClient.get('api/v1/products', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(isNetworkError(error)).toBe(true)
+    expect(error).not.toHaveProperty('status')
+    expect(error).not.toHaveProperty('code')
+  })
+
+  it('keeps the browser message for text shown to the user', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await pantryClient.get('api/v1/products', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

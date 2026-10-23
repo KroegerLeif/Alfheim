@@ -91,7 +91,11 @@ export function ModelBlockCard({ model, onEdit, onDelete }: ModelBlockCardProps)
           <span>{t("Chat.checkHealth")}</span>
         </button>
 
-        {model.is_owner && (
+        {model.is_bootstrap && (
+          <p className="text-[11px] text-[var(--text-muted)] min-w-0">{t("Chat.bootstrapReadOnlyNote")}</p>
+        )}
+
+        {model.is_owner && !model.is_bootstrap && (
           <div className="flex items-center gap-1.5">
             <button
               type="button"

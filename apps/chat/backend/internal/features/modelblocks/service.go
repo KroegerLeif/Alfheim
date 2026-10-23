@@ -3,8 +3,8 @@ package modelblocks
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -14,7 +14,11 @@ import (
 
 	"alfheim/chat/internal/shared/crypto"
 	"alfheim/chat/internal/shared/llm"
+	"alfheim/chat/internal/shared/netguard"
 )
+
+// maxDiscoverResponseBytes bounds the model list read from a discovery endpoint.
+const maxDiscoverResponseBytes = 1 << 20
 
 // bootstrapStateKey identifies the one-time ENV-seeded bootstrap model block in the
 // bootstrap_state tracking table. Bumping this would allow re-seeding under a new
@@ -22,7 +26,7 @@ import (
 const bootstrapStateKey = "model_block_bootstrap_v1"
 
 // bootstrapOwnerUserID marks a model block as system-seeded rather than personally
-// owned. See ModelBlock.CanModify for how this interacts with edit permissions.
+// owned. Such blocks are read-only for API users, see ModelBlock.CanModify.
 const bootstrapOwnerUserID = "system"
 
 // BootstrapSeed carries the ENV-configured fallback model, decoupled from the
@@ -65,18 +69,44 @@ type service struct {
 	encryptionKey   []byte
 	encryptionKeyID string
 	log             *slog.Logger
+	// guard validates user-supplied base URLs; httpClient dials only through it.
+	guard      *netguard.Guard
+	httpClient *http.Client
 }
 
 // NewService creates a model block service instance. encryptionKey may be nil/empty
 // if CHAT_ENCRYPTION_KEY is not configured; attempting to store an API key in that
 // case fails with ErrEncryptionKeyMissing rather than silently storing plaintext.
+//
+// Outbound provider URLs are restricted by the guard built from CHAT_ALLOWED_LLM_HOSTS.
 func NewService(repo Repository, encryptionKey []byte, encryptionKeyID string, log *slog.Logger) Service {
+	return NewServiceWithGuard(repo, encryptionKey, encryptionKeyID, log, netguard.FromEnv())
+}
+
+// NewServiceWithGuard is NewService with an explicit outbound destination guard.
+func NewServiceWithGuard(repo Repository, encryptionKey []byte, encryptionKeyID string, log *slog.Logger, guard *netguard.Guard) Service {
 	return &service{
 		repo:            repo,
 		encryptionKey:   encryptionKey,
 		encryptionKeyID: encryptionKeyID,
 		log:             log,
+		guard:           guard,
+		httpClient:      guard.NewHTTPClient(),
 	}
+}
+
+// validateBaseURL rejects base URLs that are not permitted outbound destinations. The
+// cause is logged; callers get the generic ErrInvalidBaseURL so the response cannot be
+// used to map internal hosts.
+func (s *service) validateBaseURL(ctx context.Context, baseURL *string) error {
+	if baseURL == nil || strings.TrimSpace(*baseURL) == "" {
+		return nil
+	}
+	if err := s.guard.ValidateURL(ctx, *baseURL); err != nil {
+		s.log.Warn("rejected model block base url", slog.String("base_url", *baseURL), slog.String("error", err.Error()))
+		return ErrInvalidBaseURL
+	}
+	return nil
 }
 
 func (s *service) List(ctx context.Context, userID, householdID string) ([]ResponseDTO, error) {
@@ -139,6 +169,9 @@ func (s *service) Create(ctx context.Context, userID, householdID string, req Cr
 			baseURL = &normalized
 		}
 	}
+	if err := s.validateBaseURL(ctx, baseURL); err != nil {
+		return ResponseDTO{}, err
+	}
 
 	m := &ModelBlock{
 		ID:              uuid.NewString(),
@@ -168,6 +201,9 @@ func (s *service) Update(ctx context.Context, userID, householdID, id string, re
 	if err != nil {
 		return ResponseDTO{}, err
 	}
+	if m.IsBootstrap {
+		return ResponseDTO{}, ErrBootstrapReadOnly
+	}
 	if !m.CanModify(userID) {
 		return ResponseDTO{}, ErrForbidden
 	}
@@ -175,18 +211,31 @@ func (s *service) Update(ctx context.Context, userID, householdID, id string, re
 	if req.DisplayName != nil {
 		m.DisplayName = *req.DisplayName
 	}
+	baseURLChanged := false
 	if req.BaseURL != nil {
+		next := req.BaseURL
 		if m.ProviderType == llm.ProviderTypeOllama || m.ProviderType == "ollama" {
 			if strings.TrimSpace(*req.BaseURL) == "" {
 				defaultURL := llm.DefaultOllamaBaseURL
-				m.BaseURL = &defaultURL
+				next = &defaultURL
 			} else {
 				normalized := llm.NormalizeOllamaBaseURL(*req.BaseURL)
-				m.BaseURL = &normalized
+				next = &normalized
 			}
-		} else {
-			m.BaseURL = req.BaseURL
 		}
+		baseURLChanged = !sameBaseURL(m.BaseURL, next)
+		if baseURLChanged {
+			if err := s.validateBaseURL(ctx, next); err != nil {
+				return ResponseDTO{}, err
+			}
+			// The stored key was issued for the previous endpoint. Sending it to a
+			// different host would disclose it, so the caller must replace or drop it.
+			newKeySupplied := req.APIKey != nil && *req.APIKey != ""
+			if m.HasAPIKey() && !newKeySupplied && !req.ClearAPIKey {
+				return ResponseDTO{}, ErrAPIKeyRequiredForBaseURLChange
+			}
+		}
+		m.BaseURL = next
 	}
 	if req.ModelIdentifier != nil {
 		m.ModelIdentifier = *req.ModelIdentifier
@@ -235,6 +284,9 @@ func (s *service) Delete(ctx context.Context, userID, id string) error {
 	m, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	if m.IsBootstrap {
+		return ErrBootstrapReadOnly
 	}
 	if !m.CanModify(userID) {
 		return ErrForbidden
@@ -308,7 +360,7 @@ func (s *service) buildProvider(m *ModelBlock) (llm.Provider, error) {
 		baseURL = llm.DefaultOllamaBaseURL
 	}
 
-	return llm.NewProvider(m.ProviderType, baseURL, m.ModelIdentifier, apiKey)
+	return llm.NewProvider(m.ProviderType, baseURL, m.ModelIdentifier, apiKey, llm.WithHTTPClient(s.httpClient))
 }
 
 // runProviderHealthCheck delegates to the configured llm.Provider. Decryption or
@@ -318,7 +370,8 @@ func (s *service) buildProvider(m *ModelBlock) (llm.Provider, error) {
 func (s *service) runProviderHealthCheck(ctx context.Context, m *ModelBlock) llm.HealthResult {
 	provider, err := s.buildProvider(m)
 	if err != nil {
-		return llm.HealthResult{Status: llm.HealthStatusUnknown, Detail: err.Error()}
+		s.log.Warn("failed to build provider for health check", slog.String("id", m.ID), slog.String("error", err.Error()))
+		return llm.HealthResult{Status: llm.HealthStatusUnknown, Detail: "model block configuration could not be loaded"}
 	}
 	return provider.HealthCheck(ctx)
 }
@@ -440,26 +493,31 @@ func (s *service) DiscoverModels(ctx context.Context, req DiscoverRequest) (Disc
 	if providerType == "" {
 		providerType = llm.ProviderTypeOllama
 	}
+	if providerType != llm.ProviderTypeOllama {
+		return DiscoverResponse{Models: []string{}}, ErrDiscoveryUnsupported
+	}
 
-	baseURL := "http://host.docker.internal:11434"
+	baseURL := llm.DefaultOllamaBaseURL
 	if req.BaseURL != nil && strings.TrimSpace(*req.BaseURL) != "" {
 		baseURL = strings.TrimSpace(*req.BaseURL)
 	}
 	baseURL = strings.TrimRight(baseURL, "/")
-
-	if providerType == llm.ProviderTypeOllama || providerType == "ollama" {
-		models, err := fetchOllamaModels(ctx, baseURL, req.APIKey)
-		if err != nil {
-			s.log.Warn("failed to discover ollama models", slog.String("base_url", baseURL), slog.String("error", err.Error()))
-			return DiscoverResponse{Models: []string{}}, err
-		}
-		return DiscoverResponse{Models: models}, nil
+	if err := s.validateBaseURL(ctx, &baseURL); err != nil {
+		return DiscoverResponse{Models: []string{}}, err
 	}
 
-	return DiscoverResponse{Models: []string{}}, fmt.Errorf("auto-discovery is currently only supported for provider 'ollama'")
+	models, err := s.fetchOllamaModels(ctx, baseURL, req.APIKey)
+	if err != nil {
+		s.log.Warn("failed to discover ollama models", slog.String("base_url", baseURL), slog.String("error", err.Error()))
+		return DiscoverResponse{Models: []string{}}, ErrDiscoveryFailed
+	}
+	return DiscoverResponse{Models: models}, nil
 }
 
-func fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]string, error) {
+// fetchOllamaModels lists models via /api/tags. It uses the guarded client, so the
+// destination is re-checked at dial time and redirects are never followed. Errors may
+// contain upstream details and must only be logged, never returned to clients.
+func (s *service) fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]string, error) {
 	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -471,18 +529,14 @@ func fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]s
 		httpReq.Header.Set("Authorization", "Bearer "+*apiKey)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(httpReq)
+	resp, err := s.httpClient.Do(httpReq)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) || (checkCtx.Err() != nil && errors.Is(checkCtx.Err(), context.DeadlineExceeded)) {
-			return nil, fmt.Errorf("connection to ollama at %s timed out after 5s", baseURL)
-		}
-		return nil, fmt.Errorf("failed to connect to ollama at %s: %w", baseURL, err)
+		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("ollama /api/tags at %s returned status %d", baseURL, resp.StatusCode)
+		return nil, fmt.Errorf("/api/tags returned status %d", resp.StatusCode)
 	}
 
 	var tags struct {
@@ -492,8 +546,8 @@ func fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]s
 		} `json:"models"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
-		return nil, fmt.Errorf("failed to parse ollama tags response from %s: %w", baseURL, err)
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxDiscoverResponseBytes)).Decode(&tags); err != nil {
+		return nil, fmt.Errorf("failed to parse tags response: %w", err)
 	}
 
 	result := make([]string, 0, len(tags.Models))
@@ -507,6 +561,18 @@ func fetchOllamaModels(ctx context.Context, baseURL string, apiKey *string) ([]s
 		}
 	}
 	return result, nil
+}
+
+// sameBaseURL reports whether two optional base URLs address the same endpoint,
+// ignoring case and trailing slashes.
+func sameBaseURL(a, b *string) bool {
+	norm := func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return strings.ToLower(strings.TrimRight(strings.TrimSpace(*p), "/"))
+	}
+	return norm(a) == norm(b)
 }
 
 func nonEmptyPtr(s string) *string {

@@ -29,14 +29,21 @@ import time
 import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, Literal, Protocol, get_args
 from urllib.parse import quote, urlparse
 
+import anyio.to_thread
 import httpx
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
-from backend_shared.dependencies import decode_oidc_token, is_mock_auth_allowed
+from backend_shared.dependencies import (
+    INVALID_TOKEN_DETAIL,
+    decode_oidc_token,
+    is_explicit_dev_or_test_environment,
+    is_mock_auth_allowed,
+)
 from backend_shared.tls import ExtraCAError, get_oidc_ssl_context
 
 logger = logging.getLogger(__name__)
@@ -47,6 +54,10 @@ HOUSEHOLD_ROLES: frozenset[str] = frozenset(get_args(HouseholdRole))
 HOUSEHOLD_HEADER = "X-Household-ID"
 HOUSEHOLD_INTERNAL_URL_ENV = "HOUSEHOLD_INTERNAL_URL"
 INTERNAL_TOKEN_ENV = "ALFHEIM_INTERNAL_TOKEN"
+#: Minimum length of the shared internal token outside explicit development/test environments.
+MIN_INTERNAL_TOKEN_LENGTH = 32
+#: Placeholder tokens shipped in compose defaults and ``.env.example``; never acceptable outside development/test.
+INSECURE_INTERNAL_TOKENS = frozenset({"dev-internal-token-change-me", "change-me-internal-token"})
 DEFAULT_HOUSEHOLD_INTERNAL_URL = "http://household-backend:8080"
 
 POSITIVE_CACHE_TTL_SECONDS = 30.0
@@ -170,6 +181,16 @@ class HouseholdMembershipClient:
         """Return the internal token, raising :class:`HouseholdConfigError` if it is missing outside tests."""
         token = (self._token if self._token is not None else os.getenv(INTERNAL_TOKEN_ENV, "")).strip()
         if token:
+            if not is_explicit_dev_or_test_environment():
+                if token in INSECURE_INTERNAL_TOKENS:
+                    raise HouseholdConfigError(
+                        f"{INTERNAL_TOKEN_ENV} is set to a well-known placeholder value; generate a random secret."
+                    )
+                if len(token) < MIN_INTERNAL_TOKEN_LENGTH:
+                    raise HouseholdConfigError(
+                        f"{INTERNAL_TOKEN_ENV} must be at least {MIN_INTERNAL_TOKEN_LENGTH} characters "
+                        "unless ENVIRONMENT is explicitly development or test."
+                    )
             return token
         if _is_test_context():
             return None
@@ -336,7 +357,9 @@ def authenticate(authorization: str | None, settings: Any = None) -> dict[str, A
     try:
         payload = decode_oidc_token(parts[1], settings=settings)
     except HTTPException as e:
-        raise _unauthenticated(str(e.detail))
+        # decode_oidc_token already logged the specifics; only a generic detail may reach the client.
+        logger.debug("Token validation rejected with HTTP %s", e.status_code)
+        raise _unauthenticated(INVALID_TOKEN_DETAIL)
     if not isinstance(payload.get("sub"), str) or not payload["sub"]:
         raise _unauthenticated("missing sub claim in token")
     return payload
@@ -364,7 +387,8 @@ async def resolve_household_context(
     lookup: MembershipLookup | None = None,
 ) -> HouseholdContext:
     """Authenticate the caller and confirm their membership. Raises :class:`HouseholdAuthError`."""
-    payload = authenticate(authorization, settings=settings)
+    # Token validation can block on OIDC discovery / JWKS fetches, so it must not run on the event loop.
+    payload = await anyio.to_thread.run_sync(partial(authenticate, authorization, settings=settings))
     household_id = parse_household_header(household_header)
     sub: str = payload["sub"]
 

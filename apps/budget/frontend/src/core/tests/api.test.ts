@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { subscribeHouseholdErrors } from '@alfheim/shared'
+import { isNetworkError } from 'ky'
+import { getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { budgetClient } from '../api'
 
 function jsonResponse(status: number, body: unknown) {
@@ -54,5 +55,29 @@ describe('budgetClient household context', () => {
     const error = await budgetClient.get('api/v1/accounts').json().catch((err: unknown) => err)
     expect(error).toMatchObject({ status: 502, message: '' })
     expect((error as Error).message).not.toContain('budget.')
+  })
+})
+
+describe('budgetClient network failures', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects with a NetworkError instead of a normalized API error', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await budgetClient.get('api/v1/accounts', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(isNetworkError(error)).toBe(true)
+    expect(error).not.toHaveProperty('status')
+    expect(error).not.toHaveProperty('code')
+  })
+
+  it('keeps the browser message for text shown to the user', async () => {
+    localStorage.setItem('alfheim_active_household_id', 'hh-7')
+    const error = await budgetClient.get('api/v1/accounts', { retry: 0 }).json().catch((err: unknown) => err)
+    expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

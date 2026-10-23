@@ -50,7 +50,9 @@ class AccountService:
         letting the request fail with an unhandled foreign-key violation.
         """
         account = await self.get_account(account_id=account_id, household_id=household_id)
-        referencing_count = await self.repository.count_referencing_transactions(account_id=account_id)
+        referencing_count = await self.repository.count_referencing_transactions(
+            account_id=account_id, household_id=household_id
+        )
         if referencing_count > 0:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

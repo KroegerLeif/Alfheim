@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from src.api.dependencies import get_current_household_id
+from src.api.permissions import get_writer_household_id
 from src.db.database import get_db_session
 from src.db.models import Item, LendingStatus, Location, MediaType, ProviderSubscription
 from src.schemas.items import (
@@ -85,7 +86,7 @@ async def _validate_provider_ownership(
 )
 async def create_item(
     payload: ItemCreate,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> Any:
     """Create a new media item in the active household library."""
@@ -172,7 +173,7 @@ async def get_item(
 async def update_item(
     item_id: uuid.UUID,
     payload: ItemUpdate,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> Any:
     """Update details of a media item."""
@@ -202,7 +203,7 @@ async def update_item(
 )
 async def delete_item(
     item_id: uuid.UUID,
-    household_id: uuid.UUID = Depends(get_current_household_id),
+    household_id: uuid.UUID = Depends(get_writer_household_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
     """Delete a media item from the library."""

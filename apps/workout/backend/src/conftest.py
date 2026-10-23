@@ -1,4 +1,5 @@
-from collections.abc import AsyncGenerator, Callable, Generator
+import uuid
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 
 import pytest
 import pytest_asyncio
@@ -20,8 +21,12 @@ from src.features.equipment.models import Equipment  # noqa: F401
 from src.features.exercises.models import (  # noqa: F401
     Exercise,
     ExerciseFavorite,
+    ExerciseScope,
+    MuscleGroup,
     UserExercisePreference,
 )
+from src.features.exercises.schemas import ExerciseCreate
+from src.features.exercises.service import ExerciseService
 from src.features.plans.models import Plan, PlanDay, PlanExercise, PlanSet  # noqa: F401
 
 # Import all models to register them on SQLModel.metadata
@@ -132,3 +137,42 @@ async def client(db_session: AsyncSession, membership: StaticMembershipLookup) -
     async with AsyncClient(transport=transport, base_url="http://test", headers=_auth_headers()) as ac:
         yield ac
     app.dependency_overrides.pop(get_db_session, None)
+
+
+@pytest_asyncio.fixture
+async def make_api_exercise(client: AsyncClient) -> Callable[..., Awaitable[str]]:
+    """Factory creating a real exercise via the API and returning its id (default: household scope)."""
+
+    async def _make(
+        headers: dict[str, str] | None = None, name: str = "Test Exercise", scope: str = "household"
+    ) -> str:
+        response = await client.post(
+            "/api/v1/exercises",
+            json={"name": name, "primary_muscle": "quads", "scope": scope},
+            headers=headers,
+        )
+        assert response.status_code == 201, response.text
+        return response.json()["id"]
+
+    return _make
+
+
+@pytest_asyncio.fixture
+async def make_exercise(db_session: AsyncSession) -> Callable[..., Awaitable[uuid.UUID]]:
+    """Factory creating a real exercise through the service layer and returning its id."""
+
+    async def _make(
+        home_id: uuid.UUID,
+        user_id: uuid.UUID,
+        name: str = "Test Exercise",
+        scope: ExerciseScope = ExerciseScope.HOUSEHOLD,
+    ) -> uuid.UUID:
+        exercise = await ExerciseService.create_exercise(
+            db_session,
+            ExerciseCreate(name=name, primary_muscle=MuscleGroup.QUADS, scope=scope),
+            home_id,
+            user_id,
+        )
+        return exercise.id
+
+    return _make

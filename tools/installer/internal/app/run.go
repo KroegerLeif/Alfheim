@@ -71,6 +71,20 @@ type App struct {
 	// before the Edge & Identity phase starts Zitadel. Injectable for tests;
 	// when its fields are nil, the real os.Geteuid/os.Chown/os.Stat are used.
 	MachineKeyPreparer MachineKeyPreparer
+	// DNSPreflight verifies the DNS provider token before any container
+	// starts. Injectable for tests, which must not call a real DNS API. When
+	// nil, tls.DNSPreflight is used.
+	DNSPreflight tls.Preflight
+	// CertWaiter blocks until Caddy serves a valid certificate for the DNS-01
+	// strategies, before Zitadel is provisioned through it. Injectable for
+	// tests, which have no Caddy on 127.0.0.1:443. When nil, tls.CertWaiter
+	// is used.
+	CertWaiter CertWaiter
+}
+
+// CertWaiter waits until every host has a valid certificate.
+type CertWaiter interface {
+	Wait(ctx context.Context, hosts []string) error
 }
 
 // Run performs the installation and returns a process exit code.
@@ -119,6 +133,12 @@ func (a *App) execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := a.preflightDNS(ctx, on, tlsCfg); err != nil {
+		return err
+	}
+	// Also covers a re-run over an install that stopped half way, which is
+	// still ModeInstall but already has an .env with the earlier hosts.
+	a.reportDomainChange(layout, on)
 
 	model, target, err := a.renderConfiguration(layout, on, tlsCfg)
 	if err != nil {
@@ -271,6 +291,8 @@ func (a *App) renderConfiguration(
 		Secrets:    secrets,
 		Version:    orUnknown(a.Build.Version),
 		Generated:  a.now(),
+		// A value from an earlier run wins: it may have been set by hand.
+		DockerSocketGID: a.dockerSocketGID(existing),
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {
@@ -308,6 +330,22 @@ func (a *App) renderConfiguration(
 
 	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\n", target.EnvFile(), target.Caddyfile())
 	return model, target, nil
+}
+
+// dockerSocketGID returns DOCKER_SOCKET_GID for a render: the value already
+// in .env, else the detected owner group of the Docker socket. A failed
+// detection leaves it empty (compose then reports the unset variable) and is
+// reported as a warning.
+func (a *App) dockerSocketGID(existing map[string]string) string {
+	if gid := strings.TrimSpace(existing[dockerSocketGIDKey]); gid != "" {
+		return gid
+	}
+	gid, err := detectDockerSocketGID()
+	if err != nil {
+		fmt.Fprintf(a.Stderr, "Warning: could not detect the Docker socket group id: %v\n"+
+			"  Set %s in .env to the output of: stat -c %%g %s\n", err, dockerSocketGIDKey, system.DockerSocketPath)
+	}
+	return gid
 }
 
 // provisionedEnvKeys are the values internal/features/provisioning writes
@@ -374,7 +412,19 @@ func (a *App) runBootstrap(
 		}
 	}
 
-	if err := a.provision(ctx, layout, model.Onboarding); err != nil {
+	// Provisioning reaches Zitadel through Caddy over HTTPS. With a DNS-01
+	// strategy the certificate is only issued after Caddy has started, so
+	// wait for it here: a failed challenge then reads as one, not as a TLS
+	// error from the Zitadel API.
+	if model.TLS.Strategy.UsesDNSChallenge() {
+		fmt.Fprintln(a.Stdout, "Phase: Certificates")
+		if err := a.certWaiter().Wait(ctx, ingressHosts(model.Onboarding)); err != nil {
+			return err
+		}
+	}
+
+	warnings, err := a.provision(ctx, layout, model.Onboarding)
+	if err != nil {
 		return err
 	}
 
@@ -386,13 +436,14 @@ func (a *App) runBootstrap(
 	}
 
 	a.printSummary(model)
+	printWarnings(a.Stdout, warnings)
 	return nil
 }
 
 // provision reconciles the Zitadel project and OIDC applications and writes
 // the results back into .env, from where docker compose's automatic .env
 // loading feeds them to every consumer started in the next phase.
-func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.Config) error {
+func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.Config) ([]string, error) {
 	return provisionZitadel(ctx, a.Stdout, a.provisioner(), layout, on)
 }
 
@@ -402,17 +453,17 @@ func (a *App) provision(ctx context.Context, layout paths.Layout, on onboarding.
 // the same way.
 func provisionZitadel(
 	ctx context.Context, stdout io.Writer, provisioner Provisioner, layout paths.Layout, on onboarding.Config,
-) error {
+) ([]string, error) {
 	fmt.Fprintln(stdout, "Provisioning Zitadel OIDC clients …")
 
 	existing, err := envfile.ParseFile(layout.EnvFile())
 	if err != nil {
-		return fmt.Errorf("alfheim-setup: read .env before provisioning: %w", err)
+		return nil, fmt.Errorf("alfheim-setup: read .env before provisioning: %w", err)
 	}
 
 	result, err := provisioner.Provision(ctx, layout, on, existing)
 	if err != nil {
-		return fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
+		return nil, fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
 	}
 
 	if err := envfile.Update(layout.EnvFile(), map[string]string{
@@ -422,10 +473,75 @@ func provisionZitadel(
 		"GRAFANA_OIDC_CLIENT_ID":     result.GrafanaClientID,
 		"GRAFANA_OIDC_CLIENT_SECRET": result.GrafanaSecret,
 	}); err != nil {
-		return fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
+		return nil, fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
 	}
 	fmt.Fprintln(stdout, "Zitadel OIDC clients are provisioned.")
-	return nil
+	printWarnings(stdout, result.Warnings)
+	return result.Warnings, nil
+}
+
+// printWarnings writes each warning as its own prominent block. It is used
+// both right where the problem occurs and again in the final summary, so a
+// long run does not bury it.
+func printWarnings(w io.Writer, warnings []string) {
+	for _, msg := range warnings {
+		fmt.Fprintf(w, "\n!! %s\n", msg)
+	}
+}
+
+// preflightDNS checks the DNS provider token against the hosts Caddy must
+// certify. A dry run skips it, since it only renders configuration.
+func (a *App) preflightDNS(ctx context.Context, on onboarding.Config, tlsCfg tls.Config) error {
+	if a.Options.DryRun || !tlsCfg.Strategy.UsesDNSChallenge() {
+		return nil
+	}
+	preflight := a.DNSPreflight
+	if preflight == nil {
+		preflight = tls.DNSPreflight{}
+	}
+	warnings, err := preflight.Check(ctx, tlsCfg, ingressHosts(on))
+	for _, w := range warnings {
+		fmt.Fprintf(a.Stderr, "Warning: %s\n", w)
+	}
+	return err
+}
+
+// reportDomainChange tells the operator what a changed auth or app host
+// means for the running installation. Zitadel itself moves its instance to
+// the new external domain on its next start (its "config_change" setup
+// step), and provisioning below re-registers every redirect URI.
+func (a *App) reportDomainChange(layout paths.Layout, on onboarding.Config) {
+	previous, err := envfile.ParseFile(layout.EnvFile())
+	if err != nil {
+		return
+	}
+	oldAuth := previous["ZITADEL_EXTERNALDOMAIN"]
+	oldApp := previous["ALFHEIM_HOST"]
+	if (oldAuth == "" || oldAuth == on.AuthHost) && (oldApp == "" || oldApp == on.AppHost) {
+		return
+	}
+	fmt.Fprintf(a.Stdout, "Domain change: %s / %s -> %s / %s\n"+
+		"  Zitadel adopts the new auth host on restart, OIDC redirect URIs are re-registered,\n"+
+		"  and Caddy obtains certificates for the new hosts. Secrets and data are kept.\n"+
+		"  Point DNS for both new hosts at this server before continuing.\n\n",
+		orDefault(oldApp, "?"), orDefault(oldAuth, "?"), on.AppHost, on.AuthHost)
+}
+
+// ingressHosts are the hosts Caddy serves and therefore must certify.
+func ingressHosts(on onboarding.Config) []string {
+	hosts := []string{on.AuthHost}
+	if on.AppHost != "" && on.AppHost != on.AuthHost {
+		hosts = append(hosts, on.AppHost)
+	}
+	return hosts
+}
+
+// certWaiter returns the configured CertWaiter, defaulting to the real one.
+func (a *App) certWaiter() CertWaiter {
+	if a.CertWaiter != nil {
+		return a.CertWaiter
+	}
+	return tls.CertWaiter{Out: a.Stdout}
 }
 
 // provisioner returns the configured Provisioner, defaulting to the real one.
@@ -470,7 +586,7 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 	if err := a.backfillSecrets(layout, existing); err != nil {
 		return err
 	}
-	if err := a.provision(ctx, layout, on); err != nil {
+	if _, err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}
 

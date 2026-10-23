@@ -1,9 +1,10 @@
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import require_writer
 from src.features.products import (
     ProductCreate,
     ProductNutritionRead,
@@ -22,7 +23,7 @@ off_client = OpenFoodFactsClient()
 async def create_product(
     payload: ProductCreate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Create a new product blueprint."""
     return await ProductService.create_product(
@@ -38,8 +39,8 @@ async def list_products(
     name: str | None = None,
     barcode: str | None = None,
     category_id: uuid.UUID | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
@@ -107,7 +108,7 @@ async def update_product(
     id: uuid.UUID,
     payload: ProductUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Partially update an existing product blueprint.
 
@@ -135,7 +136,7 @@ async def update_product(
 async def delete_product(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Delete a custom product blueprint.
 
@@ -179,7 +180,7 @@ async def update_product_nutrition(
     id: uuid.UUID,
     payload: ProductNutritionUpdate,
     session: AsyncSession = Depends(get_db_session),
-    context: HouseholdContext = Depends(require_household),
+    context: HouseholdContext = Depends(require_writer),
 ):
     """Update or add nutritional details of a custom product blueprint.
 

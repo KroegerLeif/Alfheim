@@ -14,6 +14,7 @@ sidebar:
 - [Trennung der Zuständigkeiten: AuthN vs. AuthZ](#trennung-der-zuständigkeiten-authn-vs-authz)
 - [Authentifizierungsablauf (generisches OIDC PKCE)](#authentifizierungsablauf-generisches-oidc-pkce)
 - [JWT-Claims & Nutzeridentität](#jwt-claims--nutzeridentität)
+- [Installations-Operatoren (`alfheim_operator`)](#installations-operatoren-alfheim_operator)
 - [Mandantentrennung (`X-Household-ID`)](#mandantentrennung-x-household-id)
 - [Mandantensicherheit der FastMCP-KI-Agenten](#mandantensicherheit-der-fastmcp-ki-agenten)
 - [Haushaltskontext im Frontend](#haushaltskontext-im-frontend)
@@ -70,6 +71,24 @@ Zitadel stellt standardisierte OIDC-Identitäts-Tokens aus:
 
 ---
 
+## Installations-Operatoren (`alfheim_operator`)
+
+Haushaltsrollen (`owner`, `admin`, `member`, `guest`) gelten nur innerhalb eines Haushalts, und jeder Nutzer kann einen Haushalt anlegen und dessen Owner werden. Sie schützen daher nie Ressourcen, die zur gesamten Installation gehören. Diese Ressourcen sind stattdessen an die Zitadel-Projektrolle `alfheim_operator` gebunden:
+
+| Ressource | Operator | Alle anderen |
+| --- | --- | --- |
+| Dashboard-Systemmetriken und -Logs (`/api/v1/telemetry/*`) | erlaubt | `403 operator_required`; die Widgets werden durch einen kurzen Hinweis ersetzt |
+| Chat-MCP-Registry: Server aktivieren oder deaktivieren (`PATCH /api/v1/chat/mcp-servers/{id}`) | erlaubt | `403 operator_required` |
+| Chat-MCP-Registry: Diagnose (`GET /api/v1/chat/mcp-servers/diagnostics`) | erlaubt | `403 operator_required` |
+| Chat-MCP-Registry: Liste (`GET /api/v1/chat/mcp-servers`) | vollständige Einträge samt interner Endpoint-URL | nur ID, App-Slug und Aktiv-Status |
+| Grafana | `Admin` | abgewiesen |
+
+Die Go-Backends lesen die Rolle aus dem validierten Access-Token. Zitadel legt sie im Claim `urn:zitadel:iam:org:project:roles` ab (sowie im projektbezogenen `urn:zitadel:iam:org:project:<projectId>:roles`), einem nach Rollen-Key geschlüsselten Objekt. Ein Claim anderer Form gewährt nichts. Voraussetzung sind Access-Token-Role-Assertion an der OIDC-Anwendung und JWT-Access-Tokens, was `alfheim-setup` bei Installation und bei jedem Update einrichtet. Das Dashboard-Frontend fragt `GET /api/v1/user/capabilities` (`{"operator": true|false}`) nur ab, um Bedienelemente auszublenden; die Backends erzwingen die Rolle bei jeder Anfrage.
+
+`alfheim-setup` vergibt die Rolle an den initialen Administrator. Weitere Nutzer berechtigst du wie unter [Grafana-Zugriff gewähren](../how-to/grafana-access.md) beschrieben; dieselbe Rolle deckt Grafana, System-Telemetrie und die MCP-Registry ab. Nach der Vergabe braucht der Nutzer ein frisches Token (ab- und wieder anmelden).
+
+---
+
 ## Mandantentrennung (`X-Household-ID`)
 
 `X-Household-ID` *wählt* nur einen Haushalt aus. Der Header allein gewährt nichts: Jedes haushaltsbezogene Backend bestätigt die Mitgliedschaft des Aufrufers bei `core/household`, bevor es die Anfrage bedient.
@@ -99,6 +118,8 @@ Python-Backends setzen die Schritte 1–4 mit `backend_shared.household.require_
 | `503` | `household_service_unavailable` | Die Mitgliedschafts-API ist nicht erreichbar, lief in einen Timeout, antwortete mit 5xx, hat das interne Token abgelehnt, oder das Token ist nicht konfiguriert. Anfragen schlagen nie offen fehl |
 
 Der Body ist immer `{"detail": {"code": "...", "message": "..."}}`.
+
+**Rollenmatrix der Python-Apps:** `GUEST` darf nur lesen. Jede ändernde Route und jedes MCP-Tool verlangt mindestens `MEMBER`. Das Löschen gemeinsamer Strukturen verlangt `ADMIN` oder `OWNER`: Budget-Konten, -Töpfe und -Pläne; Library-Anbieter und -Standorte; Pantry-Standorte und -Kategorien; Haushaltsaufgaben-Vorlagen; haushaltsweite Workout-Geräte und -Übungen. Persönliche Ressourcen bleiben für jede Rolle offen, weil sie nur die eigenen Daten des Aufrufers betreffen: Workout-Pläne, -Sitzungen, -Favoriten, -Präferenzen und Katalog-Einträge mit `scope=user` sowie die persönliche Einkaufsliste. MCP-Tools wenden dieselbe Regel auf die Rolle des Aufrufers an und weisen einen abgelehnten Aufruf mit einem Tool-Fehler zurück, der `household_role_forbidden` enthält. Die Frontends bilden die Matrix mit `useHouseholdCan` / `useHouseholdPermission` aus `@alfheim/shared` ab: Für `GUEST` blenden sie Schreib-Bedienelemente für gemeinsame Daten aus (und zeigen einen Hinweis auf den Lesezugriff), für `MEMBER` zeigen sie die Admin-Löschaktionen deaktiviert mit Tooltip. Durchgesetzt wird die Regel weiterhin im Backend.
 
 **Caching:** Antworten werden pro Prozess gecacht, geschlüsselt nach Haushalt und Benutzer: Mitglieder 30 s, Nicht-Mitglieder 5 s. Fehler werden nie gecacht. Das Entfernen eines Mitglieds wirkt daher innerhalb von 30 s, ohne dass sich der Benutzer neu anmeldet.
 

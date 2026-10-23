@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readApiError } from "../apiError";
-import { makeHttpError } from "@/tests/renderWithProviders";
+import { makeHttpError, makeNetworkError } from "@/tests/renderWithProviders";
 
 describe("readApiError", () => {
   it("reads the stable code and item count from the detail object", async () => {
@@ -18,6 +18,10 @@ describe("readApiError", () => {
   it("keeps the status when the body is not JSON", async () => {
     const info = await readApiError(makeHttpError(502));
     expect(info).toEqual({ status: 502, code: null, itemCount: null });
+  });
+
+  it("reports no status for a ky NetworkError", async () => {
+    expect(await readApiError(makeNetworkError())).toEqual({ status: null, code: null, itemCount: null });
   });
 
   it("reports no status for errors that never produced a response", async () => {

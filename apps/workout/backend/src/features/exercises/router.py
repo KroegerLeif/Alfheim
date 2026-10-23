@@ -1,9 +1,10 @@
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.core.permissions import ensure_catalog_write
 from src.features.exercises.models import MuscleGroup
 from src.features.exercises.schemas import (
     ExerciseCreate,
@@ -24,7 +25,8 @@ async def create_exercise(
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Create a new household- or user-scoped exercise entry."""
+    """Create a new household- or user-scoped exercise entry (household entries need MEMBER or higher)."""
+    ensure_catalog_write(context, payload.scope)
     return await ExerciseService.create_exercise(
         session=session,
         payload=payload,
@@ -37,8 +39,8 @@ async def create_exercise(
 async def list_exercises(
     primary_muscle: MuscleGroup | None = None,
     is_active: bool | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
@@ -96,7 +98,18 @@ async def update_exercise(
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Partially update an exercise entry the caller owns. System entries cannot be modified."""
+    """Partially update an exercise entry the caller owns. System entries cannot be modified.
+
+    Household entries need MEMBER or higher; personal entries are open to every role.
+    """
+    existing = await ExerciseService.get_exercise(
+        session=session,
+        exercise_id=id,
+        home_id=context.household_id,
+        user_id=context.user_id,
+    )
+    if existing:
+        ensure_catalog_write(context, existing.scope)
     exercise = await ExerciseService.update_exercise(
         session=session,
         exercise_id=id,
@@ -115,7 +128,18 @@ async def delete_exercise(
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
 ):
-    """Delete an exercise entry the caller owns. System entries cannot be deleted."""
+    """Delete an exercise entry the caller owns. System entries cannot be deleted.
+
+    Household entries need ADMIN or OWNER; personal entries are open to every role.
+    """
+    existing = await ExerciseService.get_exercise(
+        session=session,
+        exercise_id=id,
+        home_id=context.household_id,
+        user_id=context.user_id,
+    )
+    if existing:
+        ensure_catalog_write(context, existing.scope, destructive=True)
     deleted = await ExerciseService.delete_exercise(
         session=session,
         exercise_id=id,

@@ -1,4 +1,4 @@
-import ky from "ky";
+import ky, { type AfterResponseState, type BeforeRequestState } from "ky";
 import {
   resolveApiUrl,
   resolveFrontendUrl,
@@ -69,7 +69,7 @@ const handleResponseError = async (response: Response) => {
   } as ApiError;
 };
 
-const beforeRequestHook = (request: Request) => {
+const beforeRequestHook = ({ request }: BeforeRequestState) => {
   if (typeof window !== "undefined") {
     const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
     if (token) {
@@ -83,11 +83,7 @@ const beforeRequestHook = (request: Request) => {
  * Retries a request once through the OIDC refresh bridge after a 401, otherwise
  * normalizes the error via handleResponseError.
  */
-const afterResponseHook = async (
-  request: Request,
-  options: Parameters<typeof ky>[1],
-  response: Response
-) => {
+const afterResponseHook = async ({ request, options, response }: AfterResponseState) => {
   if (response.status === 401 && typeof window !== "undefined") {
     const oidcBridge = window.__alfheim_oidc__;
     if (oidcBridge && typeof oidcBridge.refresh === "function") {
@@ -110,7 +106,7 @@ const afterResponseHook = async (
 
 // --- Shopping Backend API Client ---
 export const shoppingClient = ky.create({
-  prefixUrl: SHOPPING_API_URL,
+  prefix: SHOPPING_API_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -123,7 +119,7 @@ export const shoppingClient = ky.create({
 
 // --- Pantry Backend API Client ---
 export const pantryClient = ky.create({
-  prefixUrl: PANTRY_API_URL,
+  prefix: PANTRY_API_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

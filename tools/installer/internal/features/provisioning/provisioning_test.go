@@ -3,6 +3,8 @@ package provisioning
 import (
 	"context"
 	"errors"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -13,6 +15,11 @@ type fakeClient struct {
 	apps     map[string]Credentials
 	calls    []string
 	failNext error
+	// registrationDisabled counts EnsureRegistrationDisabled calls.
+	registrationDisabled int
+	registrationErr      error
+	// operatorErr fails EnsureRoleAssertion, the first operator-access step.
+	operatorErr error
 }
 
 func newFakeClient() *fakeClient {
@@ -52,6 +59,102 @@ func (f *fakeClient) EnsureOIDCApp(_ context.Context, projectID string, spec App
 	return creds, nil
 }
 
+func (f *fakeClient) EnsureRegistrationDisabled(_ context.Context) error {
+	f.calls = append(f.calls, "EnsureRegistrationDisabled")
+	f.registrationDisabled++
+	return f.registrationErr
+}
+
+func (f *fakeClient) EnsureRoleAssertion(_ context.Context, projectID string) error {
+	f.calls = append(f.calls, "EnsureRoleAssertion:"+projectID)
+	return f.operatorErr
+}
+
+func (f *fakeClient) EnsureProjectRole(_ context.Context, projectID string, role RoleSpec) error {
+	f.calls = append(f.calls, "EnsureProjectRole:"+projectID+":"+role.Key)
+	return nil
+}
+
+func (f *fakeClient) GrantProjectRole(_ context.Context, projectID, userName, roleKey string) error {
+	f.calls = append(f.calls, "GrantProjectRole:"+projectID+":"+userName+":"+roleKey)
+	return nil
+}
+
+func TestProvision_ReconcilesOperatorAccess(t *testing.T) {
+	c := newFakeClient()
+	in := testInput()
+	in.OperatorUserName = "ops@example.com"
+	if _, err := Provision(context.Background(), c, in, nil); err != nil {
+		t.Fatalf("Provision() error = %v", err)
+	}
+	want := []string{
+		"EnsureRoleAssertion:project-Alfheim",
+		"EnsureProjectRole:project-Alfheim:alfheim_operator",
+		"GrantProjectRole:project-Alfheim:ops@example.com:alfheim_operator",
+	}
+	got := strings.Join(c.calls, "|")
+	for _, w := range want {
+		if !strings.Contains(got, w) {
+			t.Errorf("missing call %q in %v", w, c.calls)
+		}
+	}
+}
+
+func TestProvision_OperatorAccessFailureIsFatalOnFreshInstallWarningOnExisting(t *testing.T) {
+	c := newFakeClient()
+	c.operatorErr = errors.New("forbidden")
+	if _, err := Provision(context.Background(), c, testInput(), nil); err == nil {
+		t.Error("fresh install: want an error")
+	}
+
+	c = newFakeClient()
+	c.operatorErr = errors.New("forbidden")
+	res, err := Provision(context.Background(), c, testInput(), map[string]string{"ALFHEIM_WEB_CLIENT_ID": "client-1"})
+	if err != nil {
+		t.Fatalf("existing install: error = %v, want a warning only", err)
+	}
+	if len(res.Warnings) != 1 || !strings.Contains(res.Warnings[0], "alfheim_operator") {
+		t.Errorf("warnings = %v", res.Warnings)
+	}
+}
+
+func TestProvision_DisablesRegistrationOnEveryRun(t *testing.T) {
+	c := newFakeClient()
+	for i := 0; i < 2; i++ {
+		if _, err := Provision(context.Background(), c, testInput(), nil); err != nil {
+			t.Fatalf("Provision() run %d error = %v", i, err)
+		}
+	}
+	if c.registrationDisabled != 2 {
+		t.Errorf("EnsureRegistrationDisabled calls = %d, want one per Provision run", c.registrationDisabled)
+	}
+}
+
+func TestProvision_FreshInstallFailsWhenRegistrationCannotBeDisabled(t *testing.T) {
+	c := newFakeClient()
+	c.registrationErr = errors.New("forbidden")
+	if _, err := Provision(context.Background(), c, testInput(), map[string]string{"ALFHEIM_WEB_CLIENT_ID": "__PROVISIONED__"}); err == nil {
+		t.Fatal("Provision() must fail a fresh install when self-registration stays enabled")
+	}
+}
+
+func TestProvision_ExistingInstallWarnsInsteadOfFailing(t *testing.T) {
+	c := newFakeClient()
+	c.registrationErr = errors.New("forbidden")
+	res, err := Provision(context.Background(), c, testInput(), map[string]string{"ALFHEIM_WEB_CLIENT_ID": "existing-client"})
+	if err != nil {
+		t.Fatalf("Provision() must not fail an existing install: %v", err)
+	}
+	if res.ProjectID == "" || len(res.Warnings) != 1 {
+		t.Fatalf("Result = %+v, want provisioned ids and exactly one warning", res)
+	}
+	for _, want := range []string{"may still be ENABLED", "forbidden", "Default settings", "User registration allowed"} {
+		if !strings.Contains(res.Warnings[0], want) {
+			t.Errorf("warning %q does not contain %q", res.Warnings[0], want)
+		}
+	}
+}
+
 func testInput() Input {
 	return BuildInput("Alfheim", "https://alfheim.example.com", false, AppSlugs)
 }
@@ -87,7 +190,7 @@ func TestProvision_IsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first != second {
+	if !reflect.DeepEqual(first, second) {
 		t.Errorf("Provision() changed on a second run: %+v vs %+v", first, second)
 	}
 }

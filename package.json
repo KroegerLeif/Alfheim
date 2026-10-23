@@ -1,7 +1,7 @@
 {
   "name": "alfheim",
   "private": true,
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@10.34.6",
   "scripts": {
     "check-types": "pnpm -r --filter=!@alfheim/docs-portal exec tsc --noEmit && pnpm --filter @alfheim/docs-portal run check-types",
     "lint": "pnpm -r --if-present run lint",
@@ -12,7 +12,7 @@
   },
   "pnpm": {
     "overrides": {
-      "next": ">=16.3.6",
+      "next": "^16.3.6",
       "devalue": ">=5.9.3",
       "brace-expansion@<2": "^1.1.21",
       "brace-expansion@>=2.0.0 <3": "^2.1.7",

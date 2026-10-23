@@ -23,12 +23,14 @@ async def test_workout_plans_household_tenant_isolation(client: AsyncClient, mem
     assert get_res.status_code == 404
 
 
-async def test_workout_plans_nested_set_idor_via_guessed_child_id(client: AsyncClient, member_headers):
+async def test_workout_plans_nested_set_idor_via_guessed_child_id(
+    client: AsyncClient, member_headers, make_api_exercise
+):
     """Household B must not reach household A's nested PlanSet even with a guessed/known child ID."""
     home_a = str(uuid.uuid4())
     home_b = str(uuid.uuid4())
-    exercise_id = str(uuid.uuid4())
     headers_a = member_headers(home_a)
+    exercise_id = await make_api_exercise(headers=headers_a)
     headers_b = member_headers(home_b)
 
     plan_res = await client.post("/api/v1/plans", json={"name": "Secret Plan"}, headers=headers_a)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@alfheim/shared';
 import {
   useDashboardApps,
@@ -10,8 +10,7 @@ import {
   StackAppsSection,
   UserAppsSection,
 } from '@/features/apps';
-import { SystemShellLogs } from '@/features/dashboard/components/SystemShellLogs';
-import { MetricsWidget } from '@/features/dashboard/components/MetricsWidget';
+import { OperatorTelemetry } from '@/features/dashboard/components/OperatorTelemetry';
 import { AppItem } from '@/shared/types';
 
 /**
@@ -30,12 +29,12 @@ export default function DashboardPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Trigger graceful error toast on API load failure
-  useEffect(() => {
-    if (isError) {
-      setToastMessage(t('dashboard.error_load_catalog'));
-    }
-  }, [isError, t]);
+  // Trigger graceful error toast on API load failure (adjusted during render, not in an effect)
+  const [wasError, setWasError] = useState(false);
+  if (isError !== wasError) {
+    setWasError(isError);
+    if (isError) setToastMessage(t('dashboard.error_load_catalog'));
+  }
 
   const openAddModal = () => {
     setIsAddModalOpen(true);
@@ -69,11 +68,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Live System Health Telemetry (CPU/RAM/Network from VictoriaMetrics) */}
-      <MetricsWidget />
-
-      {/* Live System Shell / Terminal Log Feed */}
-      <SystemShellLogs />
+      {/* Operator-only: live system metrics (VictoriaMetrics) and the log shell */}
+      <OperatorTelemetry />
 
       {/* TIER 1: CORE APPLICATIONS */}
       <CoreAppsSection

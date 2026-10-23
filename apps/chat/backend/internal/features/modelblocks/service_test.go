@@ -8,12 +8,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"testing"
 	"time"
 
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/crypto"
 	"alfheim/chat/internal/shared/llm"
+	"alfheim/chat/internal/shared/netguard"
 )
 
 // fakeRepository is an in-memory Repository double used to unit-test the service
@@ -103,9 +105,35 @@ func testEncryptionKey() []byte {
 	return key
 }
 
+// stubResolver maps host names to a single fixed address.
+type stubResolver map[string]string
+
+func (r stubResolver) LookupNetIP(_ context.Context, _, host string) ([]netip.Addr, error) {
+	ip, ok := r[host]
+	if !ok {
+		return nil, errors.New("no such host")
+	}
+	return []netip.Addr{netip.MustParseAddr(ip)}, nil
+}
+
+// testGuard allows loopback so httptest servers stay reachable; every other
+// non-public range remains blocked.
+func testGuard() *netguard.Guard {
+	g, err := netguard.NewWithResolver("127.0.0.0/8,host.docker.internal,ollama,my-ollama", stubResolver{
+		"host.docker.internal": "172.17.0.1",
+		"ollama":               "10.0.0.5",
+		"my-ollama":            "10.0.0.6",
+		"api.openai.com":       "104.18.0.1",
+	})
+	if err != nil {
+		panic(err)
+	}
+	return g
+}
+
 func newTestService(repo modelblocks.Repository) modelblocks.Service {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return modelblocks.NewService(repo, testEncryptionKey(), "v1", log)
+	return modelblocks.NewServiceWithGuard(repo, testEncryptionKey(), "v1", log, testGuard())
 }
 
 func TestService_CreateAndList(t *testing.T) {
@@ -509,7 +537,7 @@ func TestService_EnsureBootstrap(t *testing.T) {
 func TestService_EncryptionKeyMissing(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repo := newFakeRepository()
-	svc := modelblocks.NewService(repo, nil, "", log)
+	svc := modelblocks.NewServiceWithGuard(repo, nil, "", log, testGuard())
 	ctx := context.Background()
 
 	apiKey := "sk-test"
@@ -542,7 +570,7 @@ func TestService_DiscoverModels(t *testing.T) {
 
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repo := newFakeRepository()
-	svc := modelblocks.NewService(repo, nil, "", log)
+	svc := modelblocks.NewServiceWithGuard(repo, nil, "", log, testGuard())
 	ctx := context.Background()
 
 	t.Run("successful discovery", func(t *testing.T) {
@@ -703,7 +731,7 @@ func TestService_Update_AllBranches(t *testing.T) {
 	})
 
 	t.Run("update encryption error when key missing", func(t *testing.T) {
-		noKeySvc := modelblocks.NewService(repo, nil, "", slog.New(slog.NewTextHandler(io.Discard, nil)))
+		noKeySvc := modelblocks.NewServiceWithGuard(repo, nil, "", slog.New(slog.NewTextHandler(io.Discard, nil)), testGuard())
 		key := "sk-fail"
 		_, err := noKeySvc.Update(ctx, "user-1", "", created.ID, modelblocks.UpdateRequest{
 			APIKey: &key,
@@ -919,7 +947,7 @@ func TestService_DecryptAndBuildProvider_EdgeCases(t *testing.T) {
 
 	t.Run("decryptAPIKey when encryption key is missing", func(t *testing.T) {
 		repo := newFakeRepository()
-		noKeySvc := modelblocks.NewService(repo, nil, "", slog.New(slog.NewTextHandler(io.Discard, nil)))
+		noKeySvc := modelblocks.NewServiceWithGuard(repo, nil, "", slog.New(slog.NewTextHandler(io.Discard, nil)), testGuard())
 		mb := &modelblocks.ModelBlock{
 			ID:              "encrypted-no-key",
 			OwnerUserID:     "u1",

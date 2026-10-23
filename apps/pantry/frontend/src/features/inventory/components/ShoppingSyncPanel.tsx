@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslation } from "@alfheim/shared";
-import { Button } from "@alfheim/shared";
+import { Button, PermissionHint, useHouseholdPermission } from "@alfheim/shared";
 import { Send, Loader2, RotateCw } from "lucide-react";
 import { pushLowStockToShopping } from "@/features/inventory/services/shoppingExport";
 import { LowStockItem } from "@/features/inventory/types";
@@ -19,6 +19,7 @@ interface ShoppingSyncPanelProps {
  */
 export function ShoppingSyncPanel({ isLoading, lowStockItems }: ShoppingSyncPanelProps) {
   const { t } = useTranslation();
+  const write = useHouseholdPermission("write");
   const [isExporting, setIsExporting] = React.useState(false);
   const [outcome, setOutcome] = React.useState<{ sentCount: number; failed: LowStockItem[] } | null>(null);
 
@@ -75,16 +76,18 @@ export function ShoppingSyncPanel({ isLoading, lowStockItems }: ShoppingSyncPane
 
       <div className="pt-6 space-y-3">
         {outcome && <ShoppingExportNotice sentCount={outcome.sentCount} failed={outcome.failed} />}
-        <Button type="button" onClick={handleExport} disabled={isExporting || lowStockItems.length === 0} variant="outline"
-          className="w-full py-6 text-xs font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--surface-elevated)] text-[var(--primary-main)] hover:bg-[var(--primary-main)] hover:text-black cursor-pointer select-none transition-all flex items-center justify-center gap-2 rounded-lg">
-          {isExporting ? (
-            <><Loader2 className="h-4 w-4 animate-spin" />{t("pantry.exportingLogistics")}</>
-          ) : hasFailures ? (
-            <><RotateCw className="h-4 w-4" />{t("pantry.export.retryFailed")}</>
-          ) : (
-            <><Send className="h-4 w-4" />{t("pantry.exportList")}</>
-          )}
-        </Button>
+        <PermissionHint hint={write.hint} className="block">
+          <Button type="button" onClick={handleExport} disabled={isExporting || lowStockItems.length === 0 || !write.allowed} variant="outline"
+            className="w-full py-6 text-xs font-black tracking-widest border-2 border-[var(--border-accent)] bg-[var(--surface-elevated)] text-[var(--primary-main)] hover:bg-[var(--primary-main)] hover:text-black cursor-pointer select-none transition-all flex items-center justify-center gap-2 rounded-lg">
+            {isExporting ? (
+              <><Loader2 className="h-4 w-4 animate-spin" />{t("pantry.exportingLogistics")}</>
+            ) : hasFailures ? (
+              <><RotateCw className="h-4 w-4" />{t("pantry.export.retryFailed")}</>
+            ) : (
+              <><Send className="h-4 w-4" />{t("pantry.exportList")}</>
+            )}
+          </Button>
+        </PermissionHint>
       </div>
     </div>
   );

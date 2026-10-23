@@ -10,18 +10,23 @@ import { StatusBanner } from './StatusBanner';
 
 interface InviteListProps {
   householdId: string;
-  /** Opens the QR / share modal for an invite. */
+  /** Opens the QR / share modal for a freshly created invite (the only time its token is known). */
   onShowInvite: (invite: InviteCodeResponse) => void;
 }
 
 const INVITE_ROLES = ['MEMBER', 'ADMIN', 'GUEST'] as const;
+
+/** Short display form of the invite id (the redeem token is never listed). */
+function shortId(invite: InviteCodeResponse): string {
+  return invite.id.slice(0, 8);
+}
 
 function isExpired(invite: InviteCodeResponse): boolean {
   return new Date(invite.expires_at).getTime() < Date.now();
 }
 
 /**
- * Lists a household's active invites with revoke + QR actions and lets
+ * Lists a household's active invites with revoke actions and lets
  * OWNER/ADMIN generate new invites for a chosen role. Only rendered for
  * callers allowed to manage invites.
  */
@@ -33,10 +38,10 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
   const [role, setRole] = useState<(typeof INVITE_ROLES)[number]>('MEMBER');
   const [status, setStatus] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
 
-  const handleRevoke = (token: string) => {
+  const handleRevoke = (inviteId: string) => {
     if (!confirm(t('household_app.invites.confirm_revoke'))) return;
     setStatus(null);
-    revokeMutation.mutate(token, {
+    revokeMutation.mutate(inviteId, {
       onSuccess: () => setStatus({ kind: 'success', text: t('household_app.invites.revoked') }),
       onError: (err) => setStatus({ kind: 'error', text: describeApiError(err, t, 'invite') }),
     });
@@ -88,6 +93,7 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
 
       {status && <StatusBanner kind={status.kind}>{status.text}</StatusBanner>}
       {error && <StatusBanner kind="error">{describeApiError(error, t)}</StatusBanner>}
+      <p className="text-[10px] font-mono text-[var(--text-muted)]">{t('household_app.invites.shown_once_hint')}</p>
 
       {isLoading ? (
         <div className="h-12 rounded-xl bg-[var(--surface-elevated)] animate-pulse" />
@@ -97,11 +103,11 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
             const expired = isExpired(invite);
             return (
               <li
-                key={invite.token}
+                key={invite.id}
                 className="p-3 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
               >
                 <div className="min-w-0 space-y-0.5">
-                  <div className="font-mono font-bold text-[var(--primary-main)] truncate">{invite.token}</div>
+                  <div className="font-mono font-bold text-[var(--primary-main)] truncate" title={invite.id}>{shortId(invite)}</div>
                   <div className="text-[10px] font-mono text-[var(--text-muted)] flex flex-wrap gap-x-3">
                     <span>{roleLabel(invite.role, t)}</span>
                     <span>{t('household_app.invites.uses', { uses: invite.uses ?? 0, max: invite.max_uses })}</span>
@@ -115,16 +121,9 @@ export function InviteList({ householdId, onShowInvite }: InviteListProps) {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
-                    onClick={() => onShowInvite(invite)}
-                    className="px-2 py-1 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-main)] cursor-pointer"
-                  >
-                    {t('household_app.invites.show_qr')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRevoke(invite.token)}
+                    onClick={() => handleRevoke(invite.id)}
                     disabled={revokeMutation.isPending}
-                    aria-label={t('household_app.invites.revoke_label', { token: invite.token })}
+                    aria-label={t('household_app.invites.revoke_label', { token: shortId(invite) })}
                     className="px-2 py-1 rounded bg-[var(--surface-canvas)] border border-[var(--border-subtle)] text-[10px] font-mono text-red-400 hover:border-red-400/40 cursor-pointer disabled:opacity-50"
                   >
                     {t('household_app.invites.revoke')}

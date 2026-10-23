@@ -16,6 +16,10 @@
 
 set -euo pipefail
 
+# Everything this script creates (the .env with all generated secrets) must be
+# readable by the owner only, from the moment it exists.
+umask 077
+
 # ------------------------------------------------------------------------------
 # Terminal Formatting & UI Utilities
 # ------------------------------------------------------------------------------
@@ -50,16 +54,45 @@ if [[ ! -f "$TEMPLATE_FILE" ]]; then
   fi
 fi
 
+# DOCKER_SOCKET_GID detection shared with up.sh and test-prod-startup.sh.
+# shellcheck source=lib/docker-socket-gid.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/docker-socket-gid.sh"
+
 # ------------------------------------------------------------------------------
 # Cryptographic Random Generators
 # ------------------------------------------------------------------------------
+# Minimum length of every generated secret, in characters.
+readonly MIN_SECRET_LENGTH=32
+
+# random_alnum prints exactly <length> random characters from [a-zA-Z0-9] read
+# from /dev/urandom. It fails (instead of falling back to anything guessable)
+# when the system cannot supply them.
+random_alnum() {
+  local length="$1" out
+  # base64 of 3x the bytes always holds >= length alphanumerics after the
+  # '+', '/' and '=' characters are dropped; the pipeline is not truncated by
+  # head, so no SIGPIPE can make pipefail report a spurious failure.
+  out="$(head -c "$((length * 3))" /dev/urandom | base64 | LC_ALL=C tr -dc 'a-zA-Z0-9')" || true
+  if (( ${#out} < length )); then
+    log_error "Could not read ${length} random characters from /dev/urandom."
+    return 1
+  fi
+  printf '%s' "${out:0:length}"
+}
+
+# generate_secret prints a random alphanumeric secret of at least
+# MIN_SECRET_LENGTH characters (shorter requests are raised to the minimum).
 generate_secret() {
-  local length="${1:-24}"
+  local length="${1:-$MIN_SECRET_LENGTH}"
+  if (( length < MIN_SECRET_LENGTH )); then
+    length="$MIN_SECRET_LENGTH"
+  fi
   if command -v openssl >/dev/null 2>&1; then
-    openssl rand -hex "$((length / 2))"
+    local out
+    out="$(openssl rand -hex "$(((length + 1) / 2))")" || return 1
+    printf '%s' "${out:0:length}"
   else
-    # POSIX /dev/urandom fallback
-    LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c "$length" || echo "alfheim_$(date +%s)"
+    random_alnum "$length"
   fi
 }
 
@@ -76,7 +109,7 @@ generate_masterkey() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 16
   else
-    LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32
+    random_alnum 32
   fi
 }
 
@@ -84,7 +117,9 @@ generate_masterkey() {
 # letter, one lowercase letter, one digit and one symbol. Prefixing a random
 # base with "Aa1!" guarantees all four classes are present.
 generate_zitadel_password() {
-  printf 'Aa1!%s' "$(generate_secret 20)"
+  local base
+  base="$(generate_secret 32)" || return 1
+  printf 'Aa1!%s' "$base"
 }
 
 # urlencode percent-encodes its argument (RFC 3986), used for
@@ -321,7 +356,9 @@ migrate_existing_env() {
     migrated=true
   fi
   if ! grep -q "^HOUSEHOLD_POSTGRES_PASSWORD=" "$env_file"; then
-    echo "HOUSEHOLD_POSTGRES_PASSWORD=$(generate_secret 24)" >> "$env_file"
+    local household_pw
+    household_pw="$(generate_secret 32)"
+    echo "HOUSEHOLD_POSTGRES_PASSWORD=${household_pw}" >> "$env_file"
     migrated=true
   fi
   # An empty value or the .env.example placeholder counts as missing.
@@ -336,6 +373,18 @@ migrate_existing_env() {
     fi
     migrated=true
     log_warn "Generated missing ALFHEIM_INTERNAL_TOKEN in $(basename "$env_file")"
+  fi
+  # Signs the short-lived chat attachment download URLs; compose.prod.yaml requires it.
+  if ! grep -qE "^CHAT_ATTACHMENT_URL_SECRET=.+" "$env_file"; then
+    local attachment_secret
+    attachment_secret="$(generate_secret 64)"
+    if grep -q "^CHAT_ATTACHMENT_URL_SECRET=" "$env_file"; then
+      sed -i.bak -e "s|^CHAT_ATTACHMENT_URL_SECRET=.*|CHAT_ATTACHMENT_URL_SECRET=${attachment_secret}|" "$env_file" && rm -f "${env_file}.bak"
+    else
+      echo "CHAT_ATTACHMENT_URL_SECRET=${attachment_secret}" >> "$env_file"
+    fi
+    migrated=true
+    log_warn "Generated missing CHAT_ATTACHMENT_URL_SECRET in $(basename "$env_file")"
   fi
 
   # 6. Rename legacy identity-provider variables (issue #358).
@@ -380,6 +429,15 @@ migrate_existing_env() {
     sed -E -i.bak -e "/${api_url_re}/d" "$env_file" && rm -f "${env_file}.bak"
     migrated=true
     log_warn "Dropped obsolete NEXT_PUBLIC_*_API_URL entries (now derived from ALFHEIM_BASE_URL) in $(basename "$env_file")"
+  fi
+
+  # 6. Host docker group id for the socket proxy in compose.prod.yaml. Older
+  #    .env files predate it; a value that already exists is never changed.
+  if ! grep -qE '^DOCKER_SOCKET_GID=[0-9]+[[:space:]]*$' "$env_file"; then
+    if ! ensure_docker_socket_gid "$env_file"; then
+      exit 1
+    fi
+    log_success "Set DOCKER_SOCKET_GID in $(basename "$env_file") from the host docker socket."
   fi
 
   if [[ "$migrated" == true ]]; then
@@ -591,21 +649,22 @@ log_info "Generating cryptographically secure secrets..."
 # Generate Secrets
 ZITADEL_MASTERKEY="$(generate_masterkey)"
 ZITADEL_ADMIN_PW="$(generate_zitadel_password)"
-POSTGRES_IAM_PW="$(generate_secret 24)"
-S3_PW="$(generate_secret 24)"
-DASHBOARD_PW="$(generate_secret 24)"
-HOUSEHOLD_PW="$(generate_secret 24)"
+POSTGRES_IAM_PW="$(generate_secret 32)"
+S3_PW="$(generate_secret 32)"
+DASHBOARD_PW="$(generate_secret 32)"
+HOUSEHOLD_PW="$(generate_secret 32)"
 INTERNAL_TOKEN="$(generate_secret 64)"
-PANTRY_PW="$(generate_secret 24)"
-SHOPPING_PW="$(generate_secret 24)"
-MAINTENANCE_PW="$(generate_secret 24)"
-CHORES_PW="$(generate_secret 24)"
-BUDGET_PW="$(generate_secret 24)"
-CHAT_PW="$(generate_secret 24)"
+CHAT_ATTACHMENT_URL_SECRET="$(generate_secret 64)"
+PANTRY_PW="$(generate_secret 32)"
+SHOPPING_PW="$(generate_secret 32)"
+MAINTENANCE_PW="$(generate_secret 32)"
+CHORES_PW="$(generate_secret 32)"
+BUDGET_PW="$(generate_secret 32)"
+CHAT_PW="$(generate_secret 32)"
 CHAT_ENC_KEY="$(generate_base64_32)"
-WORKOUT_PW="$(generate_secret 24)"
-LIBRARY_PW="$(generate_secret 24)"
-GRAFANA_PW="$(generate_secret 24)"
+WORKOUT_PW="$(generate_secret 32)"
+LIBRARY_PW="$(generate_secret 32)"
+GRAFANA_PW="$(generate_secret 32)"
 
 # Build .env from template with variable replacement
 sed \
@@ -625,6 +684,7 @@ sed \
   -e "s|^DASHBOARD_POSTGRES_PASSWORD=.*|DASHBOARD_POSTGRES_PASSWORD=${DASHBOARD_PW}|" \
   -e "s|^HOUSEHOLD_POSTGRES_PASSWORD=.*|HOUSEHOLD_POSTGRES_PASSWORD=${HOUSEHOLD_PW}|" \
   -e "s|^ALFHEIM_INTERNAL_TOKEN=.*|ALFHEIM_INTERNAL_TOKEN=${INTERNAL_TOKEN}|" \
+  -e "s|^CHAT_ATTACHMENT_URL_SECRET=.*|CHAT_ATTACHMENT_URL_SECRET=${CHAT_ATTACHMENT_URL_SECRET}|" \
   -e "s|^PANTRY_POSTGRES_PASSWORD=.*|PANTRY_POSTGRES_PASSWORD=${PANTRY_PW}|" \
   -e "s|^SHOPPING_POSTGRES_PASSWORD=.*|SHOPPING_POSTGRES_PASSWORD=${SHOPPING_PW}|" \
   -e "s|^MAINTENANCE_POSTGRES_PASSWORD=.*|MAINTENANCE_POSTGRES_PASSWORD=${MAINTENANCE_PW}|" \
@@ -690,6 +750,17 @@ if ! grep -q '^HOUSEHOLD_POSTGRES_PASSWORD=' "$OUTPUT_FILE"; then
 fi
 if ! grep -q '^ALFHEIM_INTERNAL_TOKEN=' "$OUTPUT_FILE"; then
   printf "ALFHEIM_INTERNAL_TOKEN=%s\n" "${INTERNAL_TOKEN}" >> "$OUTPUT_FILE"
+fi
+if ! grep -q '^CHAT_ATTACHMENT_URL_SECRET=' "$OUTPUT_FILE"; then
+  printf "CHAT_ATTACHMENT_URL_SECRET=%s\n" "${CHAT_ATTACHMENT_URL_SECRET}" >> "$OUTPUT_FILE"
+fi
+
+# Host docker group id for the socket proxy in compose.prod.yaml. The template
+# ships a generic placeholder (999) that is not host specific, so it is dropped
+# and the detected id is written instead.
+sed -i.bak -e '/^DOCKER_SOCKET_GID=/d' "$OUTPUT_FILE" && rm -f "${OUTPUT_FILE}.bak"
+if ! ensure_docker_socket_gid "$OUTPUT_FILE"; then
+  exit 1
 fi
 
 # Restrict file permissions to current user only (0600)

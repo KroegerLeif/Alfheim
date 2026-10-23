@@ -33,7 +33,7 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `DOMAIN` | `loegien.de` | Root-Domain für alle Dienste |
 | `IMAGE_REGISTRY` | `ghcr.io` | Container-Image-Registry |
 | `IMAGE_REPO` | `kroegerleif/alfheim` | Container-Image-Repository |
-| `IMAGE_TAG` | `latest` | Container-Image-Tag |
+| `IMAGE_TAG` | _(erforderlich)_ | Container-Image-Tag. `compose.prod.yaml` startet ohne ihn nicht; der Installer schreibt ihn immer (Standard: die eigene Release-Version des Installers, `latest` bei einem Entwicklungs-Build) |
 | `CADDY_TLS_DIRECTIVE` | _(leer)_ | Optional Caddy-TLS-Override (`tls internal` für lokal signiertes HTTPS; leer lassen für Auto-HTTPS) |
 | `ALFHEIM_EXTRA_CA_FILE` | _(leer)_ | Pfad im Container zu einem PEM-Bundle zusätzlicher Root-CAs, denen serverseitige OIDC-Clients (Python-Backends, Go-Backends von Dashboard und Chat, Grafana über `GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) **zusätzlich** zu den System-Roots vertrauen. Der Installer setzt `/etc/alfheim/ca/alfheim-root-ca.crt` für die TLS-Strategie `internal` (Host-Verzeichnis `infrastructure/ca/`, schreibgeschützt eingebunden) und lässt ihn sonst leer. Eine unlesbare oder Nicht-PEM-Datei wird als Fehler mit dem Pfad gemeldet, nie stillschweigend ignoriert |
 
@@ -68,10 +68,11 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `S3_ENDPOINT` | `http://rustfs:9000` | S3-kompatibler Objektspeicher-Endpunkt (verwendet von Go-Chat-Backend) |
 | `S3_PUBLIC_URL` | `https://alfheim.loegien.de/storage` | Öffentliches URL-Präfix für den Zugriff auf gespeicherte Objekte im Browser |
 | `S3_BUCKET_NAME` | `budget-receipts` | Standard-Bucket für Budget-Quittungs-Uploads |
-| `S3_ACCESS_KEY` | `minioadmin` | S3-Zugangsschlüssel-ID (RustFS-Anmeldedaten) |
-| `S3_SECRET_KEY` | `minioadmin` | S3-geheimer Zugangsschlüssel (RustFS-Anmeldedaten) |
+| `S3_ACCESS_KEY` | `minioadmin` | S3-Zugangsschlüssel-ID. RustFS kennt nur sein Root-Konto, daher muss der Wert `S3_ROOT_USER` entsprechen |
+| `S3_SECRET_KEY` | `minioadmin` | S3-geheimer Zugangsschlüssel. Muss `S3_ROOT_PASSWORD` entsprechen (der Installer spiegelt beide) |
 | `S3_ROOT_USER` | `minioadmin` | RustFS-Root-Benutzer (Initial-Admin) |
 | `S3_ROOT_PASSWORD` | `minioadmin` | RustFS-Root-Passwort |
+| `DOCKER_SOCKET_GID` | erkannt (in Produktion Pflicht) | Numerische Gruppen-ID, der `/var/run/docker.sock` auf dem Host gehört (`stat -c %g /var/run/docker.sock`); `alfheim-setup` erkennt sie bei der Installation und ergänzt sie beim Update, falls sie fehlt |
 
 ---
 
@@ -86,6 +87,8 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `GRAFANA_OIDC_CLIENT_ID` | `alfheim-grafana` | Zitadel-OIDC-Client-ID für Grafana-SSO |
 | `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel-OIDC-Client-Secret für Grafana-SSO (gesetzt von `alfheim-setup provision` / dem Provisioning-Schritt des Installers) |
 
+Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` beschränkt; alle anderen werden abgewiesen. Der lokale `admin`-Login funktioniert weiterhin. Siehe [Grafana-Zugriff gewähren](../how-to/grafana-access.md).
+
 ---
 
 ## Microservice-Backend-Variablen
@@ -95,10 +98,23 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `{SERVICE}_DATABASE_URL` | _(konstruiert)_ | Explizite PostgreSQL-Verbindungszeichenkette für einen Dienst (z.B. `DASHBOARD_DATABASE_URL`, `PANTRY_DATABASE_URL`); wenn leer, konstruieren Dienste sie aus `{SERVICE}_POSTGRES_*`-Variablen |
 | `CHAT_ENCRYPTION_KEY` | _(leer)_ | AES-256-GCM-Schlüssel (Base64-codiert) zum Verschlüsseln gespeicherter LLM-API-Schlüssel und Anmeldedaten |
 | `CHAT_ENCRYPTION_KEY_ID` | `v1` | Versions-ID für den Verschlüsselungsschlüssel (für Schlüsselrotation verwendet) |
+| `CHAT_ATTACHMENT_URL_SECRET` | _(leer)_ | HMAC-Schlüssel (mindestens 32 Byte), der Download-URLs für Chat-Anhänge signiert. In Produktion erforderlich; wird vom Installer erzeugt |
+| `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lebensdauer einer signierten Download-URL für Chat-Anhänge |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp` | Kommagetrennte MCP-Server-Definitionen für den Chat-Assistenten |
+| `CHAT_ALLOWED_LLM_HOSTS` | `host.docker.internal` | Kommagetrennte Hostnamen, IPs und CIDR-Bereiche, auf die Basis-URLs von Modellblöcken trotz privater Adresse zeigen dürfen (siehe unten) |
 | `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Interne URL für Shopping-List-Dienst zum Erreichen der Speisekammer-Inventar-API |
 | `GOOGLE_BOOKS_API_KEY` | _(leer)_ | Google Books API-Schlüssel für Bibliotheks-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
 | `TMDB_API_KEY` | _(leer)_ | The Movie Database API-Schlüssel für Bibliotheks-Medien-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
+
+### Chat: ausgehende Modell-Endpunkte
+
+Basis-URLs von Modellblöcken sind Benutzereingaben. Das Chat-Backend verbindet sich daher nur mit `http`/`https`-URLs, deren Host ausschließlich auf öffentliche Adressen auflöst. Loopback, Link-Local (auch die Cloud-Metadaten-Adresse `169.254.169.254`), unspezifizierte, Multicast-, private (RFC 1918, `fc00::/7`), Carrier-Grade-NAT-Adressen (`100.64.0.0/10`) und ähnliche Bereiche werden beim Anlegen und Ändern eines Blocks, bei der Modellsuche und erneut beim Verbindungsaufbau abgelehnt (das verhindert DNS-Rebinding). Weiterleitungen werden nie verfolgt, Fehlerantworten der Gegenstelle werden nur serverseitig protokolliert.
+
+`CHAT_ALLOWED_LLM_HOSTS` nennt die privaten Ziele, die du zulässt. Einträge sind Hostnamen (z. B. `host.docker.internal`), IP-Adressen oder CIDR-Bereiche (z. B. `192.168.1.0/24`), durch Kommas getrennt. Ohne Wert gilt `host.docker.internal`, sodass das dokumentierte Setup mit Ollama auf dem Docker-Host weiter funktioniert. Ein ungültiger Wert wird protokolliert und wie eine leere Liste behandelt (nichts Privates erlaubt).
+
+**Migration:** Läuft Ollama auf einem anderen Rechner im LAN (z. B. `http://192.168.1.50:11434` oder `http://gpu-box.lan:11434`), funktionieren bestehende Modellblöcke dorthin erst wieder, wenn du den Host oder Bereich ergänzt, z. B. `CHAT_ALLOWED_LLM_HOSTS=host.docker.internal,192.168.1.50` oder `CHAT_ALLOWED_LLM_HOSTS=host.docker.internal,gpu-box.lan`, und das Chat-Backend neu startest. Die Variable ersetzt den Standardwert, `host.docker.internal` muss also in der Liste bleiben, falls du ihn weiter brauchst.
+
+Bootstrap-Modellblöcke (aus `CHAT_BOOTSTRAP_*`) werden von der Server-Umgebung verwaltet und sind für alle API-Nutzer schreibgeschützt: Sie lassen sich weder bearbeiten noch löschen, aber jeder Nutzer kann sie auswählen und eine Statusprüfung auslösen. Die Bootstrap-URL unterliegt beim Verbindungsaufbau derselben Allowlist. Wer bei einem anderen Block die `base_url` ändert, muss einen neuen `api_key` angeben (oder `clear_api_key`), denn der gespeicherte Schlüssel wird nie an einen anderen Endpunkt gesendet.
 
 ---
 
@@ -134,7 +150,8 @@ Abgeleitete `NEXT_PUBLIC_API_URL` pro Frontend:
 | `dashboard-frontend`, `household-frontend` | `${ALFHEIM_BASE_URL}/api/v1` |
 | `pantry-frontend` | `${ALFHEIM_BASE_URL}/pantry/api/v1` |
 | `shopping-frontend` | `${ALFHEIM_BASE_URL}/shopping/api/v1` |
-| `chores-frontend`, `budget-frontend`, `chat-frontend`, `maintenance-frontend`, `workout-frontend`, `library-frontend` | `${ALFHEIM_BASE_URL}/api/v1/<app>` |
+| `workout-frontend` | `${ALFHEIM_BASE_URL}/workout/api/v1` |
+| `chores-frontend`, `budget-frontend`, `chat-frontend`, `maintenance-frontend`, `library-frontend` | `${ALFHEIM_BASE_URL}/api/v1/<app>` |
 
 Im Entwicklungs-Stack liest `household-frontend` stattdessen `NEXT_PUBLIC_HOUSEHOLD_API_URL` (Standard `http://api.alfheim.loegien.localhost/api/v1`).
 

@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.exercises.models import Exercise, UserExercisePreference
+from src.features.exercises.service import ExerciseService
 from src.features.plans.models import Plan, PlanDay
 from src.features.plans.services.weight_engine_service import resolve_target_weight
 from src.features.session.exceptions import SessionValidationError
@@ -75,7 +76,14 @@ async def start_session(
         preferences_by_exercise: dict[uuid.UUID, UserExercisePreference] = {}
         if exercise_ids:
             ex_result = await session.exec(select(Exercise).where(col(Exercise.id).in_(exercise_ids)))
-            exercises_by_id = {e.id: e for e in ex_result.all()}
+            # Only clone exercises that are visible to the caller or to the plan owner (a shared plan
+            # may legitimately reference the owner's private exercises); anything else is skipped like
+            # a deleted exercise instead of leaking another tenant's exercise data.
+            visible_ids = await ExerciseService.visible_exercise_ids(session, exercise_ids, home_id, user_id)
+            visible_ids |= await ExerciseService.visible_exercise_ids(
+                session, exercise_ids, home_id, plan.owner_user_id
+            )
+            exercises_by_id = {e.id: e for e in ex_result.all() if e.id in visible_ids}
 
             pref_result = await session.exec(
                 select(UserExercisePreference).where(

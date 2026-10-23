@@ -22,11 +22,12 @@ import (
 // full assets.StackAssets list, keyed by release asset name.
 func updateAssetContents(newTag string) map[string]string {
 	return map[string]string{
-		"compose.prod.yaml":    "services: {} # " + newTag + "\n",
-		"otelcol-config.yaml":  "# otel " + newTag + "\n",
-		"init-multiple-dbs.sh": "#!/bin/bash\n# init " + newTag + "\n",
-		"vector.toml":          "# vector " + newTag + "\n",
-		"verify-stack.sh":      "#!/bin/bash\nexit 0\n",
+		"compose.prod.yaml":          "services: {} # " + newTag + "\n",
+		"otelcol-config.yaml":        "# otel " + newTag + "\n",
+		"init-multiple-dbs.sh":       "#!/bin/bash\n# init " + newTag + "\n",
+		"vector.toml":                "# vector " + newTag + "\n",
+		"victoriametrics-scrape.yml": "# scrape " + newTag + "\n",
+		"verify-stack.sh":            "#!/bin/bash\nexit 0\n",
 	}
 }
 
@@ -116,7 +117,7 @@ func newTestUpdateApp(dir string, opts *UpdateOptions, srv *httptest.Server) (*U
 	return &UpdateApp{
 		Options:     opts,
 		Build:       BuildInfo{Version: "v1.0.0-test"},
-		Runner:      healthyDocker(),
+		Runner:      newBackupDocker(),
 		Stdout:      &stdout,
 		Stderr:      &stderr,
 		Provisioner: &stubProvisioner{},
@@ -170,6 +171,16 @@ func TestUpdateApp_Succeeds(t *testing.T) {
 	}
 	if string(composeContent) != bodies["compose.prod.yaml"] {
 		t.Errorf("compose.prod.yaml = %q, want the fetched v1.1.0 content", string(composeContent))
+	}
+
+	// The VictoriaMetrics scrape config that compose.prod.yaml bind-mounts is
+	// fetched into place, so an updated stack can scrape node-exporter.
+	scrapeContent, err := os.ReadFile(filepath.Join(dir, "infrastructure", "telemetry", "victoriametrics", "scrape.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(scrapeContent) != bodies["victoriametrics-scrape.yml"] {
+		t.Errorf("scrape.yml = %q, want the fetched v1.1.0 content", string(scrapeContent))
 	}
 
 	// A backup of the pre-update compose file exists.

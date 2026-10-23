@@ -40,12 +40,12 @@
       "role_label": "Rolle für neue Einladung",
       "revoke": "Widerrufen",
       "revoke_label": "Einladung {token} widerrufen",
+      "shown_once_hint": "Ein Einladungslink wird nur einmal direkt nach dem Erstellen angezeigt. Bei Verlust die Einladung widerrufen und neu erstellen.",
       "confirm_revoke": "Diese Einladung widerrufen? Code und QR-Code funktionieren dann sofort nicht mehr.",
       "revoked": "Einladung widerrufen.",
       "uses": "{uses}/{max} Nutzungen",
       "expires": "Läuft ab {time}",
       "expired": "Abgelaufen",
-      "show_qr": "QR anzeigen",
       "qr_label": "QR-Code zum Beitreten des Haushalts",
       "join_link": "Beitrittslink",
       "copy_link": "Link kopieren"

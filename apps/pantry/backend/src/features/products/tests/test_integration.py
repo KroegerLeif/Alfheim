@@ -73,12 +73,11 @@ async def test_create_personal_product(client: AsyncClient):
 
 
 async def test_create_duplicate_barcode_clash(client: AsyncClient):
-    """Verify barcode uniqueness is globally enforced."""
-    payload = {
-        "name": "Duplicate Oatly",
-        "barcode": "7394376615967",
-        "base_unit": "ml",
-    }
+    """Verify barcode uniqueness is enforced within the household."""
+    payload = {"name": "Dup Local", "barcode": "4000000000017", "base_unit": "ml"}
+    first = await client.post("/api/v1/products", json=payload)
+    assert first.status_code == 201
+    assert first.json()["is_global"] is False
     response = await client.post("/api/v1/products", json=payload)
     assert response.status_code == 400
     assert "already exists" in response.json()["detail"]

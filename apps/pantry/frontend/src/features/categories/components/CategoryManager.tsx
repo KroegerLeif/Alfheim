@@ -1,16 +1,17 @@
 "use client";
 
-import { useTranslation } from "@alfheim/shared";
+import { useHouseholdCan, useTranslation } from "@alfheim/shared";
 import { useCategories } from "../services/categoryService";
 import { CategoryCreateForm } from "./CategoryCreateForm";
 import { CategoryRow } from "./CategoryRow";
 
 /**
  * CategoryManager
- * Lists the categories visible to the household and lets users add, rename and delete custom ones.
+ * Lists the categories visible to the household and lets writers add, rename and delete custom ones.
  */
 export function CategoryManager() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const { data } = useCategories();
   const categories = data ?? [];
 
@@ -20,7 +21,7 @@ export function CategoryManager() {
         <h2 className="text-xl font-heading font-black tracking-wide border-b border-[var(--border-subtle)] pb-3 text-[var(--text-main)]">
           {t("pantry.categoriesTitle")}
         </h2>
-        <CategoryCreateForm />
+        {canWrite && <CategoryCreateForm />}
         {categories.length === 0 ? (
           <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest">{t("pantry.noCategories")}</p>
         ) : (

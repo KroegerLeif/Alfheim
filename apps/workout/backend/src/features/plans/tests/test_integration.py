@@ -1,5 +1,3 @@
-import uuid
-
 from httpx import AsyncClient
 
 
@@ -23,8 +21,8 @@ async def test_list_plans(client: AsyncClient):
     assert len(res.json()) == 2
 
 
-async def test_add_day_exercise_and_set(client: AsyncClient):
-    exercise_id = str(uuid.uuid4())
+async def test_add_day_exercise_and_set(client: AsyncClient, make_api_exercise):
+    exercise_id = await make_api_exercise()
     create_res = await client.post("/api/v1/plans", json={"name": "Split"})
     plan_id = create_res.json()["id"]
 
@@ -46,8 +44,8 @@ async def test_add_day_exercise_and_set(client: AsyncClient):
     assert set_res.json()["target_weight_kg"] == 100.0
 
 
-async def test_add_set_with_invalid_weight_combo_returns_400(client: AsyncClient):
-    exercise_id = str(uuid.uuid4())
+async def test_add_set_with_invalid_weight_combo_returns_400(client: AsyncClient, make_api_exercise):
+    exercise_id = await make_api_exercise()
     create_res = await client.post("/api/v1/plans", json={"name": "Bad Plan"})
     plan_id = create_res.json()["id"]
     day_res = await client.post(f"/api/v1/plans/{plan_id}/days", json={"label": "Day 1"})
@@ -64,8 +62,8 @@ async def test_add_set_with_invalid_weight_combo_returns_400(client: AsyncClient
     assert set_res.status_code == 400
 
 
-async def test_resolve_day_returns_resolved_weights(client: AsyncClient):
-    exercise_id = str(uuid.uuid4())
+async def test_resolve_day_returns_resolved_weights(client: AsyncClient, make_api_exercise):
+    exercise_id = await make_api_exercise()
     create_res = await client.post("/api/v1/plans", json={"name": "Resolved Plan"})
     plan_id = create_res.json()["id"]
     day_res = await client.post(f"/api/v1/plans/{plan_id}/days", json={"label": "Day 1"})
@@ -85,8 +83,8 @@ async def test_resolve_day_returns_resolved_weights(client: AsyncClient):
     assert data["exercises"][0]["sets"][0]["resolved_weight_kg"] == 100.0
 
 
-async def test_update_set_and_delete_exercise_and_day(client: AsyncClient):
-    exercise_id = str(uuid.uuid4())
+async def test_update_set_and_delete_exercise_and_day(client: AsyncClient, make_api_exercise):
+    exercise_id = await make_api_exercise()
     create_res = await client.post("/api/v1/plans", json={"name": "Full Lifecycle"})
     plan_id = create_res.json()["id"]
     day_res = await client.post(f"/api/v1/plans/{plan_id}/days", json={"label": "Day 1"})

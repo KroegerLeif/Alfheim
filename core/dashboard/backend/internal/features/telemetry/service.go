@@ -20,7 +20,6 @@ type service struct {
 	vlURL      string
 	httpClient *http.Client
 	log        *slog.Logger
-	startTime  time.Time
 }
 
 // NewService creates a new telemetry service configured for VictoriaMetrics and VictoriaLogs.
@@ -44,8 +43,7 @@ func NewService(endpoint string, log *slog.Logger) Service {
 		httpClient: &http.Client{
 			Timeout: 3 * time.Second,
 		},
-		log:       log,
-		startTime: time.Now(),
+		log: log,
 	}
 }
 
@@ -68,15 +66,16 @@ func (s *service) GetMetrics(ctx context.Context) (*MetricsResponse, error) {
 }
 
 func (s *service) GetLogs(ctx context.Context) (*LogsResponse, error) {
-	// Attempt query to VictoriaLogs LogSQL service
+	// Query VictoriaLogs. This never falls back to fabricated entries: an
+	// unreachable VictoriaLogs is reported explicitly, and an empty result is
+	// reported as an available-but-empty feed.
 	logs, err := s.queryVictoriaLogs(ctx)
-	if err == nil && logs != nil && len(logs.Logs) > 0 {
-		return logs, nil
+	if err != nil {
+		s.log.Debug("victorialogs unreachable, returning explicit unavailable logs state",
+			slog.String("vl_url", s.vlURL),
+			slog.String("error", err.Error()),
+		)
+		return &LogsResponse{Available: false, Reason: LogsUnreachableReason, Logs: []LogEntry{}}, nil
 	}
-
-	// Fallback to control plane system logs
-	s.log.Debug("victoriastack log query endpoint unavailable, generating system logs fallback",
-		slog.String("vl_url", s.vlURL),
-	)
-	return s.getLocalSystemLogs(), nil
+	return logs, nil
 }

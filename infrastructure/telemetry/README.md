@@ -4,7 +4,8 @@ This directory defines the central observability platform for Alfheim, replacing
 * **`otel-collector`**: Unified OpenTelemetry Collector Contrib ingestion endpoint (`:4317` gRPC / `:4318` HTTP).
 * **`victoriametrics`**: High-performance time-series database for Prometheus & OTLP metrics (`:8428`).
 * **`victorialogs`**: High-compression log database with LogSQL support (`:9428`).
-* **`vector`**: Docker socket log harvester normalizing JSON logs and shipping OTLP payloads to `otel-collector`.
+* **`docker-socket-proxy`**: Read-only allowlist proxy (`wollomatic/socket-proxy`) in front of the Docker socket. Only the GET endpoints Vector needs are reachable, and only from `vector-shipper` on the internal `docker-proxy-net`. Requires `DOCKER_SOCKET_GID` (the host docker group id, `getent group docker | cut -d: -f3`) so the non-root proxy can open the socket.
+* **`vector`**: Log harvester normalizing JSON logs and shipping OTLP payloads to `otel-collector`. It reads Docker logs through `docker-socket-proxy` (`docker_host = "tcp://docker-socket-proxy:2375"`), never through the raw socket.
 * **`grafana`**: Visualization dashboard provisioned with pre-configured datasources and Zitadel OIDC SSO (`:3000`).
 
 ---
@@ -18,6 +19,8 @@ infrastructure/telemetry/
 │   └── config.yaml                      # OTel Collector receivers, processors, exporters
 ├── vector/
 │   └── vector.toml                      # Vector Docker log extraction & OTLP forwarding
+├── victoriametrics/
+│   └── scrape.yml                       # Scrape config: VictoriaMetrics pulls node-exporter host metrics
 ├── grafana/
 │   ├── grafana.ini                      # Server subpath & Zitadel generic OAuth settings
 │   └── provisioning/

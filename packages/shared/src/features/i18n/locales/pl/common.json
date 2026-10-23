@@ -29,7 +29,6 @@
     "role": "Rola",
     "launch": "Uruchom",
     "open_portal": "Otwórz portal",
-    "search_placeholder": "Szukaj w systemie, urządzeniach, regułach...",
     "edit": "Edytuj",
     "delete": "Usuń",
     "select_icon": "Wybierz ikonę",
@@ -287,6 +286,11 @@
       "unavailable_title": "Usługa gospodarstw niedostępna",
       "unavailable_desc": "Nie udało się teraz wczytać Twoich gospodarstw. Spróbuj ponownie za chwilę.",
       "retry": "Spróbuj ponownie"
+    },
+    "roles": {
+      "write_forbidden": "Goście mogą przeglądać dane tego gospodarstwa, ale nie mogą ich zmieniać.",
+      "admin_delete_forbidden": "Tylko administratorzy i właściciele gospodarstwa mogą to usunąć.",
+      "guest_notice": "Masz dostęp gościa do tego gospodarstwa: możesz przeglądać wspólne dane, ale nie możesz ich zmieniać."
     }
   },
   "settings": {

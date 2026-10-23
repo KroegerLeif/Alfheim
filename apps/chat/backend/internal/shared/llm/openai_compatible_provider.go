@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -24,12 +25,12 @@ type OpenAICompatibleProvider struct {
 
 // NewOpenAICompatibleProvider constructs a Provider backed by an OpenAI-compatible
 // /v1/chat/completions endpoint. apiKey may be empty for backends that need no auth.
-func NewOpenAICompatibleProvider(baseURL, model, apiKey string) *OpenAICompatibleProvider {
+func NewOpenAICompatibleProvider(baseURL, model, apiKey string, opts ...ProviderOption) *OpenAICompatibleProvider {
 	return &OpenAICompatibleProvider{
 		baseURL:    baseURL,
 		model:      model,
 		apiKey:     apiKey,
-		httpClient: &http.Client{},
+		httpClient: resolveHTTPClient(opts),
 	}
 }
 
@@ -140,13 +141,17 @@ func (p *OpenAICompatibleProvider) ChatStream(ctx context.Context, req ChatReque
 
 	resp, err := p.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to reach openai-compatible server: %w", err)
+		slog.Warn("openai-compatible chat request failed", slog.String("error", err.Error()))
+		return nil, ErrUpstreamUnreachable
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
+		// The upstream body is attacker-influenced and may expose internal data, so it is
+		// only logged, never returned to the caller.
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return nil, fmt.Errorf("openai-compatible chat request failed with status %d: %s", resp.StatusCode, string(respBody))
+		slog.Warn("openai-compatible endpoint returned an error status", slog.Int("status", resp.StatusCode), slog.String("body", string(respBody)))
+		return nil, &UpstreamStatusError{Status: resp.StatusCode}
 	}
 
 	out := make(chan StreamChunk)
@@ -215,7 +220,8 @@ func (p *OpenAICompatibleProvider) streamResponse(body io.ReadCloser, out chan<-
 
 		var chunk openAIStreamChunk
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			out <- StreamChunk{Done: true, Err: fmt.Errorf("failed to parse openai-compatible stream chunk: %w", err)}
+			slog.Warn("failed to parse openai-compatible stream chunk", slog.String("error", err.Error()))
+			out <- StreamChunk{Done: true, Err: ErrUpstreamStream}
 			return
 		}
 
@@ -259,7 +265,8 @@ func (p *OpenAICompatibleProvider) streamResponse(body io.ReadCloser, out chan<-
 	}
 
 	if err := scanner.Err(); err != nil {
-		out <- StreamChunk{Done: true, Err: fmt.Errorf("failed to read openai-compatible response stream: %w", err)}
+		slog.Warn("failed to read openai-compatible response stream", slog.String("error", err.Error()))
+		out <- StreamChunk{Done: true, Err: ErrUpstreamStream}
 		return
 	}
 
@@ -285,7 +292,7 @@ func (p *OpenAICompatibleProvider) HealthCheck(ctx context.Context) HealthResult
 
 	httpReq, err := http.NewRequestWithContext(checkCtx, http.MethodGet, p.baseURL+"/v1/models", nil)
 	if err != nil {
-		return HealthResult{Status: HealthStatusUnknown, Detail: fmt.Sprintf("failed to construct health check request: %v", err)}
+		return HealthResult{Status: HealthStatusUnknown, Detail: "invalid endpoint url"}
 	}
 	if p.apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+p.apiKey)
@@ -293,7 +300,8 @@ func (p *OpenAICompatibleProvider) HealthCheck(ctx context.Context) HealthResult
 
 	resp, err := p.httpClient.Do(httpReq)
 	if err != nil {
-		return HealthResult{Status: HealthStatusUnreachable, Detail: err.Error()}
+		slog.Warn("openai-compatible health check request failed", slog.String("error", err.Error()))
+		return HealthResult{Status: HealthStatusUnreachable, Detail: "endpoint could not be reached"}
 	}
 	defer resp.Body.Close()
 
@@ -303,7 +311,7 @@ func (p *OpenAICompatibleProvider) HealthCheck(ctx context.Context) HealthResult
 	case resp.StatusCode >= 200 && resp.StatusCode < 300:
 		var models openAIModelsResponse
 		if err := json.NewDecoder(resp.Body).Decode(&models); err != nil {
-			return HealthResult{Status: HealthStatusUnknown, Detail: fmt.Sprintf("received success status but failed to parse response: %v", err)}
+			return HealthResult{Status: HealthStatusUnknown, Detail: "received success status but the response could not be parsed"}
 		}
 		return HealthResult{Status: HealthStatusOK}
 	default:

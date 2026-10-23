@@ -123,9 +123,9 @@ The mode is detected from the installation directory, not chosen by a flag.
 
 | Detected state | Mode | Behaviour |
 | :--- | :--- | :--- |
-| No `.env`, no `.alfheim.installed` | **install** | Full wizard, secret generation, two-phase boot. |
-| Either file present | **update** | Pull images and restart. No wizard. Existing secrets are never changed; a secret a newer release requires and `.env` lacks is generated and appended. Missing service databases are created by re-running `init-multiple-dbs.sh`. |
-| Either file present, plus `--reconfigure` | **reconfigure** | Wizard re-runs; existing secrets are preserved. |
+| No `.alfheim.installed` | **install** | Full wizard, two-phase boot. A `.env` left by an unfinished run is reused, so its secrets are kept. With a DNS-01 strategy the token is checked first, and Zitadel is configured only once Caddy serves valid certificates. |
+| `.alfheim.installed` present | **update** | Pull images and restart. No wizard. Existing secrets are never changed; a secret a newer release requires and `.env` lacks is generated and appended. Missing service databases are created by re-running `init-multiple-dbs.sh`. |
+| `.alfheim.installed` present, plus `--reconfigure` | **reconfigure** | Wizard re-runs; existing secrets are preserved. Also the way to change the domain: [Change the domain](../how-to/change-domain.md). |
 
 > **Why secrets are never rotated.** Regenerating `ZITADEL_MASTERKEY` on a
 > configured instance makes its database permanently unreadable. Every value
@@ -148,6 +148,38 @@ It requires an existing installation (an `.env` present) and never runs the
 wizard, rotates a secret, or touches the root CA, the Zitadel machinekey/PAT,
 or a Docker volume. Full walkthrough, one-liner and rollback:
 [Update an installation](../how-to/update-installation.md).
+
+`update` first takes a database and secrets backup (see below) and aborts if
+it fails. Pass `--skip-backup` to update without one.
+
+---
+
+## The `backup` subcommand
+
+```
+alfheim-setup backup [--output DIR] [--keep N] [--skip-media] [--install-dir DIR]
+```
+
+Writes one `alfheim-backup-<UTC>.tar.gz` (mode `0600`) holding a `pg_dumpall`
+of every database, the RustFS object storage, `.env`, the Zitadel machinekey,
+the root CA and Caddy PKI, the stack files and a checksummed `manifest.json`.
+The stack must be running. `--output` (or `ALFHEIM_BACKUP_DIR`) defaults to
+`<install-dir>/backups`; `--keep` retains the N newest archives (default 7);
+`--skip-media` leaves out the object storage. The archive contains all secrets
+in plaintext. Details, scheduling and off-site copies:
+[Backup, Restore & Data Migration](../how-to/backup-restore.md).
+
+## The `restore` subcommand
+
+```
+alfheim-setup restore <archive> [--install-dir DIR] [--yes]
+```
+
+Verifies the archive against its manifest, then replaces `.env` and the other
+secrets, drops and recreates every database and role from the dump, refills the
+RustFS storage, starts the stack and runs `scripts/verify-stack.sh`. It asks
+for confirmation unless `--yes` is given. The recommended target is a fresh
+host. See [Backup, Restore & Data Migration](../how-to/backup-restore.md).
 
 ---
 

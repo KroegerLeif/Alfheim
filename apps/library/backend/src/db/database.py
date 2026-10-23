@@ -4,20 +4,21 @@ import os
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from src.db.migrations import run_migrations
 
 # Database connection settings
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+asyncpg://library_user:postgres@localhost:5432/alfheim_library",
 )
-DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "t")
+SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() in ("true", "1", "t")
 
 # Create the async engine
 engine = create_async_engine(
     DATABASE_URL,
-    echo=DEBUG,
+    echo=SQL_ECHO,
     future=True,
 )
 
@@ -36,11 +37,5 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize database tables by creating all registered SQLModel models."""
-    from src.db.migrations import run_search_index_migrations
-    from src.db.models import Item, LendingRecord, Location, ProviderSubscription  # noqa: F401
-
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-
-    await run_search_index_migrations(engine)
+    """Bring the database schema to the latest Alembic revision (see ``src.db.migrations``)."""
+    await run_migrations(engine)

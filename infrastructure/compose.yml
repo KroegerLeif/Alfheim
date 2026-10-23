@@ -127,7 +127,7 @@ services:
   # Errors.Instance.Domain.AlreadyExists). Runs as root inside the Docker VM,
   # so it needs no sudo on the host and works the same on macOS and Linux.
   zitadel-machinekey-init:
-    image: alpine:3.20
+    image: alpine:3.24
     container_name: alfheim_zitadel_machinekey_init
     user: "0:0"
     restart: "no"
@@ -137,12 +137,12 @@ services:
     network_mode: none
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31.4
     container_name: alfheim_mailpit
     restart: unless-stopped
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
     networks:
       - infra-net
       - gateway-net

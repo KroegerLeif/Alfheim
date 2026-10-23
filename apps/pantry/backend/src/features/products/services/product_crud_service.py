@@ -1,3 +1,4 @@
+import logging
 import uuid
 from collections.abc import Sequence
 
@@ -12,6 +13,8 @@ from src.features.products.schemas import (
     ProductNutritionCreate,
     ProductUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ProductCrudService:
@@ -41,8 +44,10 @@ class ProductCrudService:
     ) -> Product:
         """Create a new product blueprint.
 
-        Enforces global barcode uniqueness and writes both product and nutrition
-        profile in a single ACID transaction.
+        Products are household-local unless ``is_global`` is set by a trusted ingest path (the
+        Open Food Facts import). A barcode never promotes a product to the shared catalog; it must
+        only be unique within the owning scope (the household, or the global catalog).
+        Product and nutrition profile are written in a single ACID transaction.
         """
         if payload is None:
             if name is None or base_unit is None:
@@ -73,14 +78,15 @@ class ProductCrudService:
                 nutrition=nutrition_payload,
             )
 
-        # 1. Barcode uniqueness pre-check & global promotion logic
+        # 1. Barcode uniqueness pre-check within the owning scope (household or global catalog)
         if payload.barcode and len(payload.barcode.strip()) > 0:
-            barcode_stmt = select(Product).where(Product.barcode == payload.barcode)
+            barcode_stmt = select(Product).where(
+                Product.barcode == payload.barcode,
+                Product.is_global if is_global else Product.home_id == home_id,
+            )
             barcode_res = await session.exec(barcode_stmt)
             if barcode_res.first():
                 raise ValueError(f"Product with barcode '{payload.barcode}' already exists.")
-            # Products with valid barcodes are promoted globally to prevent collisions
-            is_global = True
 
         # 2. Category boundary check
         if payload.category_id:
@@ -130,7 +136,8 @@ class ProductCrudService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Integrity error creating product '{payload.name}': {e}") from e
+            logger.warning("Integrity error creating product '%s'", payload.name, exc_info=e)
+            raise ValueError("Product could not be created because it conflicts with an existing product.") from e
 
         await session.refresh(product)
         return product
@@ -219,17 +226,19 @@ class ProductCrudService:
         else:
             update_data = payload.model_dump(exclude_unset=True)
 
-        # Barcode uniqueness pre-check on update & global promotion logic
+        # Barcode uniqueness pre-check on update, scoped to the owning household.
+        # The product stays household-local regardless of its barcode.
         if "barcode" in update_data and update_data["barcode"] != product.barcode:
             barcode_val = update_data["barcode"]
             if isinstance(barcode_val, str) and len(barcode_val.strip()) > 0:
-                clash_stmt = select(Product).where(Product.barcode == barcode_val, Product.id != product.id)
+                clash_stmt = select(Product).where(
+                    Product.barcode == barcode_val,
+                    Product.home_id == home_id,
+                    Product.id != product.id,
+                )
                 clash_res = await session.exec(clash_stmt)
                 if clash_res.first():
                     raise ValueError(f"Product with barcode '{barcode_val}' already exists.")
-                # Adding a valid barcode promotes local product to global
-                product.is_global = True
-                product.home_id = None
 
         # Category boundary check on update
         if "category_id" in update_data and update_data["category_id"] is not None:
@@ -256,7 +265,8 @@ class ProductCrudService:
             await session.commit()
         except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Database error during product update: {e}") from e
+            logger.warning("Integrity error updating product '%s'", prod_uuid, exc_info=e)
+            raise ValueError("Product could not be updated because it conflicts with an existing product.") from e
 
         await session.refresh(product)
         return product
@@ -303,8 +313,9 @@ class ProductCrudService:
         await session.delete(product)
         try:
             await session.commit()
-        except Exception as e:
+        except IntegrityError as e:
             await session.rollback()
-            raise ValueError(f"Database error during product deletion: {e}") from e
+            logger.warning("Integrity error deleting product '%s'", prod_uuid, exc_info=e)
+            raise ValueError("Product could not be deleted because it is still referenced.") from e
 
         return True

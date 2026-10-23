@@ -36,17 +36,37 @@ type Service interface {
 	StreamAssistantReply(ctx context.Context, userID, householdID, conversationID string) (<-chan llm.StreamChunk, error)
 }
 
+// AttachmentURLIssuer mints the download URL clients use to display an attachment.
+// It is defined here (the consumer); *attachmenturl.Signer satisfies it.
+type AttachmentURLIssuer interface {
+	URL(attachmentID, userID, householdID string) (string, error)
+}
+
 type service struct {
 	repo        Repository
 	modelBlocks ModelBlockResolver
 	mcpServers  MCPServerLister
 	mcpPool     MCPClientPool
+	attachments AttachmentURLIssuer
 	log         *slog.Logger
 }
 
 // NewService creates a conversations service instance.
-func NewService(repo Repository, modelBlocks ModelBlockResolver, mcpServers MCPServerLister, mcpPool MCPClientPool, log *slog.Logger) Service {
-	return &service{repo: repo, modelBlocks: modelBlocks, mcpServers: mcpServers, mcpPool: mcpPool, log: log}
+func NewService(repo Repository, modelBlocks ModelBlockResolver, mcpServers MCPServerLister, mcpPool MCPClientPool, attachments AttachmentURLIssuer, log *slog.Logger) Service {
+	return &service{repo: repo, modelBlocks: modelBlocks, mcpServers: mcpServers, mcpPool: mcpPool, attachments: attachments, log: log}
+}
+
+// messageResponse converts m to its DTO, giving every attachment a freshly signed
+// download URL bound to the caller. Storage URLs are never exposed.
+func (s *service) messageResponse(m *Message, userID, householdID string) (MessageResponseDTO, error) {
+	for i := range m.Attachments {
+		url, err := s.attachments.URL(m.Attachments[i].ID, userID, householdID)
+		if err != nil {
+			return MessageResponseDTO{}, fmt.Errorf("failed to sign url for attachment %s: %w", m.Attachments[i].ID, err)
+		}
+		m.Attachments[i].URL = url
+	}
+	return ToMessageResponse(m), nil
 }
 
 func (s *service) ListConversations(ctx context.Context, userID, householdID string) ([]ConversationResponseDTO, error) {
@@ -120,7 +140,11 @@ func (s *service) ListMessages(ctx context.Context, userID, householdID, convers
 	}
 	out := make([]MessageResponseDTO, 0, len(messages))
 	for _, m := range messages {
-		out = append(out, ToMessageResponse(m))
+		dto, err := s.messageResponse(m, userID, householdID)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, dto)
 	}
 	return out, nil
 }
@@ -154,13 +178,13 @@ func (s *service) PostMessage(ctx context.Context, userID, householdID, conversa
 		if err == nil {
 			for _, item := range msgs {
 				if item.ID == m.ID {
-					return ToMessageResponse(item), nil
+					return s.messageResponse(item, userID, householdID)
 				}
 			}
 		}
 	}
 
-	return ToMessageResponse(m), nil
+	return s.messageResponse(m, userID, householdID)
 }
 
 func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID, conversationID string) (<-chan llm.StreamChunk, error) {
@@ -185,7 +209,9 @@ func (s *service) StreamAssistantReply(ctx context.Context, userID, householdID,
 
 	provider, policy, err := s.modelBlocks.ResolveProvider(ctx, userID, householdID, *c.ModelBlockID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrModelBlockUnavailable, err)
+		// The cause can name internal hosts or key-handling details; keep it in the log only.
+		s.log.Warn("failed to resolve model block provider", slog.String("conversation_id", conversationID), slog.String("error", err.Error()))
+		return nil, ErrModelBlockUnavailable
 	}
 
 	tools, toolServers := buildToolDefinitions(ctx, s.mcpServers, s.mcpPool, policy.AllowedMCPApps, s.log)

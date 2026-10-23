@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Button, useTranslation } from "@alfheim/shared";
+import { Button, PermissionHint, useHouseholdCan, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { Check, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { describeApiError } from "@/core/apiError";
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
@@ -23,6 +23,8 @@ const ICON_BUTTON =
  */
 export function CategoryRow({ category }: CategoryRowProps) {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
+  const remove = useHouseholdPermission("adminDelete");
   const updateCategoryMut = useUpdateCategory();
   const deleteCategoryMut = useDeleteCategory();
   const [isEditing, setIsEditing] = React.useState(false);
@@ -68,16 +70,19 @@ export function CategoryRow({ category }: CategoryRowProps) {
             <span className="flex-1 min-w-0 truncate text-xs font-bold uppercase" title={category.name}>{category.name}</span>
             {category.is_global ? (
               <span className="text-[9px] font-bold px-1.5 py-0.5 uppercase rounded bg-[var(--primary-main)] text-black shrink-0">{t("pantry.global")}</span>
-            ) : (
+            ) : canWrite && (
               <>
                 <button type="button" onClick={startEditing} className={ICON_BUTTON}
                   aria-label={`${t("pantry.edit.category")}: ${category.name}`} title={t("pantry.edit.category")}>
                   <Pencil className="h-3 w-3" />
                 </button>
-                <button type="button" onClick={() => setIsDeleting(true)} className={`${ICON_BUTTON} hover:text-red-400`}
-                  aria-label={`${t("pantry.delete.category")}: ${category.name}`} title={t("pantry.delete.category")}>
-                  <Trash2 className="h-3 w-3" />
-                </button>
+                <PermissionHint hint={remove.hint} className="inline-flex shrink-0">
+                  <button type="button" onClick={() => setIsDeleting(true)} disabled={!remove.allowed}
+                    className={`${ICON_BUTTON} hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40`}
+                    aria-label={`${t("pantry.delete.category")}: ${category.name}`} title={remove.allowed ? t("pantry.delete.category") : undefined}>
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </PermissionHint>
               </>
             )}
           </>

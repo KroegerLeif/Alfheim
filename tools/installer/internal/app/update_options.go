@@ -12,7 +12,7 @@ import (
 const updateUsage = `alfheim-setup update - fetch a new release and restart an existing installation
 
 Usage:
-  alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+  alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes] [--skip-backup]
 
 Requires an existing installation (a completed alfheim-setup run) at
 --install-dir; it never runs the configuration wizard, never rotates a
@@ -29,6 +29,10 @@ Flags:
                                              assets from (default:
                                              KroegerLeif/Alfheim).
   --yes                                      Skip the confirmation prompt.
+  --skip-backup                              Do not take the pre-update backup
+                                             (database dump and secrets). By
+                                             default a failed backup aborts the
+                                             update before anything changes.
 
 Exit codes:
   0 success   1 failure   2 usage error
@@ -44,6 +48,8 @@ type UpdateOptions struct {
 	InstallDir string
 	Repo       string
 	Yes        bool
+	// SkipBackup disables the pre-update database and secrets backup.
+	SkipBackup bool
 }
 
 // ParseUpdateOptions parses the `update` subcommand's arguments, falling
@@ -60,6 +66,7 @@ func ParseUpdateOptions(args []string, stderr io.Writer) (*UpdateOptions, error)
 	fs.StringVar(&opts.InstallDir, "install-dir", "", "installation root")
 	fs.StringVar(&opts.Repo, "repo", "", "release repository")
 	fs.BoolVar(&opts.Yes, "yes", false, "skip the confirmation prompt")
+	fs.BoolVar(&opts.SkipBackup, "skip-backup", false, "update without taking a database and secrets backup first")
 
 	if err := fs.Parse(args); err != nil {
 		return nil, fmt.Errorf("alfheim-setup update: %w", err)

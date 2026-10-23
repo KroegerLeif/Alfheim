@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslation } from "@alfheim/shared";
+import { PermissionHint, useHouseholdPermission, useTranslation } from "@alfheim/shared";
 import { ChoreInstanceRead, ChoreTemplateRead } from "../types";
 import { useCompleteChoreInstance, useClaimChoreInstance } from "../services/choresService";
 import { CheckCircle2, Circle, User2, Award, RefreshCw, History } from "lucide-react";
@@ -19,6 +19,7 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
   const { t } = useTranslation();
   const completeMutation = useCompleteChoreInstance();
   const claimMutation = useClaimChoreInstance();
+  const write = useHouseholdPermission("write");
   const [selectedTemplate, setSelectedTemplate] = useState<ChoreTemplateRead | null>(null);
 
   const getTemplate = (templateId: string) => {
@@ -72,16 +73,18 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
               }`}
             >
               <div className="flex items-center gap-3 min-w-0 flex-1 basis-40">
-                <button
-                  onClick={() => handleComplete(chore.id, chore.status)}
-                  disabled={isCompleted}
-                  aria-label={isCompleted ? t("chores.choreCompleted") : t("chores.completeChore")}
-                  className={`shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] rounded transition-transform active:scale-95 ${
-                    isCompleted ? "text-emerald-500" : "text-[var(--text-muted)] hover:text-[var(--primary-main)]"
-                  }`}
-                >
-                  {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-                </button>
+                <PermissionHint hint={write.hint} className="inline-flex shrink-0">
+                  <button
+                    onClick={() => handleComplete(chore.id, chore.status)}
+                    disabled={isCompleted || !write.allowed}
+                    aria-label={isCompleted ? t("chores.choreCompleted") : t("chores.completeChore")}
+                    className={`shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-main)] rounded transition-transform active:scale-95 ${
+                      isCompleted ? "text-emerald-500" : "text-[var(--text-muted)] hover:text-[var(--primary-main)]"
+                    }`}
+                  >
+                    {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+                  </button>
+                </PermissionHint>
                 <div className="min-w-0">
                   <span
                     className={`block truncate text-sm font-semibold tracking-wide ${isCompleted ? "line-through" : ""}`}
@@ -117,20 +120,22 @@ export function ChoresList({ chores = [], templates = [], dueDate }: ChoresListP
                 </div>
 
                 {/* Assignment Avatar Trigger */}
-                <button
-                  onClick={() => handleClaimToggle(chore.id, chore.assigned_to)}
-                  disabled={isCompleted}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-xs border rounded transition-colors ${
-                    chore.assigned_to
-                      ? "border-[var(--primary-main)] bg-[var(--primary-main)]/10 text-[var(--primary-main)]"
-                      : "border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-accent)]"
-                  }`}
-                >
-                  <User2 className="h-3.5 w-3.5" />
-                  <span className="font-mono">
-                    {chore.assigned_to ? t("chores.assigned") : t("chores.claim")}
-                  </span>
-                </button>
+                <PermissionHint hint={write.hint}>
+                  <button
+                    onClick={() => handleClaimToggle(chore.id, chore.assigned_to)}
+                    disabled={isCompleted || !write.allowed}
+                    className={`flex items-center gap-1 px-2.5 py-1 text-xs border rounded transition-colors ${
+                      chore.assigned_to
+                        ? "border-[var(--primary-main)] bg-[var(--primary-main)]/10 text-[var(--primary-main)]"
+                        : "border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-accent)]"
+                    }`}
+                  >
+                    <User2 className="h-3.5 w-3.5" />
+                    <span className="font-mono">
+                      {chore.assigned_to ? t("chores.assigned") : t("chores.claim")}
+                    </span>
+                  </button>
+                </PermissionHint>
               </div>
             </div>
           );

@@ -23,7 +23,7 @@ export function withTraceparentHeaders(headers?: HeadersInit): Headers {
  * that injects a W3C traceparent header if not already set.
  */
 export function createTraceparentHook() {
-  return (request: Request) => {
+  return ({ request }: { request: Request }) => {
     if (!request.headers.has('traceparent')) {
       request.headers.set('traceparent', generateW3CTraceparent());
     }

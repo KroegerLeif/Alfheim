@@ -14,12 +14,12 @@ const (
 // It intentionally takes primitive parameters rather than a model block domain
 // entity, so internal/shared/llm has no dependency on internal/features/modelblocks
 // (features depend on shared, never the reverse).
-func NewProvider(providerType, baseURL, model, apiKey string) (Provider, error) {
+func NewProvider(providerType, baseURL, model, apiKey string, opts ...ProviderOption) (Provider, error) {
 	switch providerType {
 	case ProviderTypeOllama:
-		return NewOllamaProvider(baseURL, model, apiKey), nil
+		return NewOllamaProvider(baseURL, model, apiKey, opts...), nil
 	case ProviderTypeOpenAICompatible:
-		return NewOpenAICompatibleProvider(baseURL, model, apiKey), nil
+		return NewOpenAICompatibleProvider(baseURL, model, apiKey, opts...), nil
 	case ProviderTypeAnthropic:
 		return nil, fmt.Errorf("provider type %q is not implemented yet (planned for a later phase)", providerType)
 	default:

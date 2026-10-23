@@ -20,6 +20,9 @@
 #   ./scripts/verify-stack.sh --dir /srv/alfheim     # verify an install elsewhere
 #   ./scripts/verify-stack.sh --compose-file NAME    # force compose.yaml or compose.prod.yaml
 #
+# Services still in their healthcheck start period are waited for, up to
+# VERIFY_STACK_WAIT_SECONDS (default 300), before the health check judges them.
+#
 # Exit codes: 0 every check passed, 1 one or more checks failed, 2 usage error.
 # ==============================================================================
 
@@ -108,14 +111,19 @@ if [[ -z "${ISSUER_URL}" ]]; then
   exit 2
 fi
 
-# Expanded as ${CURL_INSECURE[@]+...} below: bash 3.2 (macOS) treats an empty
+# Expanded as ${CURL_TLS[@]+...} below: bash 3.2 (macOS) treats an empty
 # array as unbound under `set -u`.
-CURL_INSECURE=()
+CURL_TLS=()
+# The installer's --tls internal strategy signs with a root CA it generates
+# into infrastructure/ca. The host's trust store does not hold it, so verify
+# against that file; `alfheim-setup update` and `restore` run this script on
+# the server itself and would otherwise fail every HTTPS check below.
+INTERNAL_CA_FILE="${DIR}/infrastructure/ca/alfheim-root-ca.crt"
 if [[ "${VERIFY_STACK_INSECURE:-0}" == "1" ]]; then
-  # The installer's --tls internal strategy signs with a locally generated
-  # root CA; a caller that has not imported it can set this to skip
-  # certificate verification rather than fail every HTTPS check below.
-  CURL_INSECURE=(--insecure)
+  # A caller can still skip certificate verification altogether.
+  CURL_TLS=(--insecure)
+elif [[ "$(env_value ALFHEIM_TLS_STRATEGY)" == "internal" && -f "${INTERNAL_CA_FILE}" ]]; then
+  CURL_TLS=(--cacert "${INTERNAL_CA_FILE}")
 fi
 
 ERRORS=0
@@ -130,7 +138,24 @@ echo ""
 # 1. Every Compose service is healthy, or running with no healthcheck.
 # ------------------------------------------------------------------------------
 log_info "Checking Compose service health..."
-services="$(docker compose -f "${COMPOSE_FILE}" ps --format '{{.Service}}\t{{.State}}\t{{.Health}}' 2>/dev/null || true)"
+compose_services() {
+  docker compose -f "${COMPOSE_FILE}" ps --format '{{.Service}}\t{{.State}}\t{{.Health}}' 2>/dev/null || true
+}
+# Right after `alfheim-setup update` or `restore` restarts the stack, services
+# are still inside their healthcheck start period (up to 180s for the app
+# frontends) and report "starting". Wait for them to settle before judging,
+# so a stack that is about to be healthy is not reported as failed.
+WAIT_SECONDS="${VERIFY_STACK_WAIT_SECONDS:-300}"
+waited=0
+services="$(compose_services)"
+while grep -q $'\tstarting$' <<< "${services}" && (( waited < WAIT_SECONDS )); do
+  if (( waited == 0 )); then
+    log_info "Waiting up to ${WAIT_SECONDS}s for services still starting: $(awk -F'\t' '$3 == "starting" {printf "%s ", $1}' <<< "${services}")"
+  fi
+  sleep 5
+  waited=$((waited + 5))
+  services="$(compose_services)"
+done
 if [[ -z "${services}" ]]; then
   fail "docker compose ps returned no services; is the stack running?"
 else
@@ -156,7 +181,7 @@ echo ""
 # 2. Caddy's own healthcheck.
 # ------------------------------------------------------------------------------
 log_info "Checking Caddy /livez..."
-livez="$(curl -fsSL ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/livez" 2>/dev/null || echo "FAILED")"
+livez="$(curl -fsSL ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}/livez" 2>/dev/null || echo "FAILED")"
 if [[ "${livez}" == "OK" ]]; then
   log_success "/livez responded OK"
 else
@@ -168,7 +193,7 @@ echo ""
 # 3. OIDC discovery names the configured issuer.
 # ------------------------------------------------------------------------------
 log_info "Checking OIDC discovery..."
-discovery="$(curl -fsSL ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${ISSUER_URL}/.well-known/openid-configuration" 2>/dev/null || echo "")"
+discovery="$(curl -fsSL ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${ISSUER_URL}/.well-known/openid-configuration" 2>/dev/null || echo "")"
 if [[ -z "${discovery}" ]]; then
   fail "could not fetch ${ISSUER_URL}/.well-known/openid-configuration"
 else
@@ -201,7 +226,7 @@ ROUTES=(
   "/grafana"
 )
 for route in "${ROUTES[@]}"; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}${route}" 2>/dev/null || echo "000")"
+  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}${route}" 2>/dev/null || true)"
   if [[ "${code}" =~ ^[0-9]+$ ]] && [[ "${code}" -ge 200 ]] && [[ "${code}" -lt 500 ]]; then
     log_success "${route} -> ${code}"
   else
@@ -215,7 +240,7 @@ echo ""
 # ------------------------------------------------------------------------------
 log_info "Checking /internal/* is blocked at the edge..."
 for route in "/internal" "/internal/whatever"; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}${route}" 2>/dev/null || echo "000")"
+  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}${route}" 2>/dev/null || true)"
   if [[ "${code}" == "404" ]]; then
     log_success "${route} -> 404"
   else
@@ -230,11 +255,41 @@ echo ""
 # answered 405 by the router before authentication runs.
 # ------------------------------------------------------------------------------
 log_info "Checking the household API requires authentication..."
-code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_INSECURE[@]+"${CURL_INSECURE[@]}"} "${BASE_URL}/api/v1/households/me" 2>/dev/null || echo "000")"
+code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}/api/v1/households/me" 2>/dev/null || true)"
 if [[ "${code}" == "401" ]]; then
   log_success "/api/v1/households/me -> 401 without a token"
 else
   fail "/api/v1/households/me -> ${code}, want 401"
+fi
+echo ""
+
+# ------------------------------------------------------------------------------
+# 7. The gateway sets its baseline security headers and hides the server
+# banner. /livez is answered by Caddy itself, so this checks the gateway's own
+# response headers rather than an upstream's.
+# ------------------------------------------------------------------------------
+log_info "Checking gateway security headers..."
+headers="$(curl -sI ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}/livez" 2>/dev/null | tr -d '\r' || true)"
+for header in "X-Content-Type-Options: nosniff" "Referrer-Policy:" "X-Frame-Options:" "Permissions-Policy:"; do
+  if grep -qi "^${header}" <<<"${headers}"; then
+    log_success "${header%%:*} is set"
+  else
+    fail "${header%%:*} is missing from ${BASE_URL}/livez"
+  fi
+done
+if grep -qi '^Server:' <<<"${headers}"; then
+  fail "the Server header is exposed on ${BASE_URL}/livez"
+else
+  log_success "Server header is removed"
+fi
+# Only the installer-generated Caddyfile (compose.prod.yaml) emits HSTS; the
+# dev Caddyfile serves plain HTTP and deliberately leaves it out.
+if [[ "${COMPOSE_FILE_NAME}" == "compose.prod.yaml" && "${BASE_URL}" == https://* ]]; then
+  if grep -qi '^Strict-Transport-Security:' <<<"${headers}"; then
+    log_success "Strict-Transport-Security is set"
+  else
+    fail "Strict-Transport-Security is missing on an HTTPS gateway"
+  fi
 fi
 echo ""
 

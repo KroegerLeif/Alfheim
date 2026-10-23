@@ -32,7 +32,7 @@ describe("navigation", () => {
   it("renders the bottom bar with a localized label and links", () => {
     renderWithI18n(<WorkoutBottomNav />, "pl");
 
-    expect(screen.getByRole("navigation", { name: "Workout Tracker" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Tracker treningów" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dzisiaj" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Plany" })).toHaveAttribute("href", "/plans");
   });

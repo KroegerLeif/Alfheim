@@ -23,12 +23,12 @@ commands. The binding rules live in [`.ai/`](.ai/INDEX.md) and are not repeated 
 | `docs/` | Diátaxis docs (`en/` is the source of truth, `de/` is translated) |
 | `websites/portal` | Astro Starlight renderer for `docs/` |
 | `infrastructure/caddy` | Ingress gateway; frontends by path, APIs under `/api/v1/<app>` |
-| `deploy/stack-apps.yaml` | Tier-2 app manifest; `status: active \| in_progress \| maintenance` |
+| `deploy/stack-apps.yaml` | External integration links shown on the dashboard (Home Assistant, Plex, Nextcloud); `status: active \| in_progress \| maintenance` |
 
 ## Commands
 
 ```bash
-pnpm install                        # JS workspace (pnpm 9)
+pnpm install                        # JS workspace (pnpm 10)
 uv sync --all-packages --all-groups # Python workspace
 ./scripts/up.sh                     # staged local stack boot (add -b to rebuild images)
 ./scripts/verify.sh --frontend      # tsc --noEmit + Vitest for every frontend

@@ -13,7 +13,6 @@
     "empty_catalog_internal": "Brak zarejestrowanych mikrousług wewnętrznych. Dodaj jedną, aby rozpocząć.",
     "empty_catalog_external": "Brak skonfigurowanych usług zewnętrznych lub portali.",
     "telemetry_error_toast": "Połączenie z usługą telemetrii nie powiodło się.",
-    "empty_notifications": "Brak powiadomień",
     "authenticated_user": "Uwierzytelniony użytkownik",
     "under_construction_title": "{name} jest w trakcie budowy",
     "under_construction_desc": "Żądana mikrousługa lub portal jest obecnie wdrażany w ramach wydania platformy Alfheim OS.",
@@ -28,13 +27,15 @@
     "high_load": "WYSOKIE OBCIĄŻENIE",
     "normal_load": "NORMALNIE",
     "memory_ram": "PAMIĘĆ (RAM)",
-    "network_io": "SIEĆ I/O",
+    "disk_usage": "DYSK (ROOT)",
     "traffic_mode": "Tryb ruchu",
     "optimal": "Optymalny",
     "uptime": "CZAS DZIAŁANIA",
     "containers_online": "{count} Kontenerów Online",
     "expand_telemetry": "Rozwiń widok telemetrii",
     "collapse_telemetry": "Zwiń widok telemetrii",
+    "operator_only_title": "Wymagany dostęp operatora",
+    "operator_only_desc": "Metryki i logi systemowe dotyczą całej instalacji i są widoczne tylko dla operatorów. Poproś administratora o nadanie roli alfheim_operator.",
     "telemetry_unavailable": "METRYKI NIEDOSTĘPNE",
     "telemetry_unavailable_desc": "Obecnie brak dostępnych na żywo metryk systemowych. VictoriaMetrics może być nieosiągalny lub nie skonfigurowano eksporterów na poziomie hosta.",
     "shell_title": "kanał-telemetrii-na-żywo",
@@ -93,6 +94,8 @@
       }
     },
     "logs_unavailable": "Strumień logów na żywo niedostępny. Ponawianie...",
+    "logs_store_unreachable": "Magazyn logów nieosiągalny. Wpisy logów nie mogą być teraz wyświetlone.",
+    "logs_empty": "Brak wpisów logów.",
     "service_fallback_name": "Usługa"
   }
 }

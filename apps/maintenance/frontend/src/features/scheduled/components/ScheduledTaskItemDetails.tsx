@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { PermissionHint, useHouseholdPermission } from "@alfheim/shared";
 import { MaintenanceStep } from "@/shared/types";
 import { useFormatDate } from "@/core/useFormatDate";
 import { FileText, Save, Loader2 } from "lucide-react";
@@ -27,6 +28,7 @@ export function ScheduledTaskItemDetails({
   savedFlash,
 }: ScheduledTaskItemDetailsProps) {
   const t = useTranslations("maintenance");
+  const write = useHouseholdPermission("write");
   const formatDate = useFormatDate();
 
   return (
@@ -62,6 +64,7 @@ export function ScheduledTaskItemDetails({
           id={`step-comment-${step.id}`}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
+          readOnly={!write.allowed}
           placeholder={t("scheduledTasks.commentPlaceholder")}
           className="w-full h-20 p-2.5 bg-[var(--surface-card)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-xs focus:outline-none resize-none transition-all placeholder:text-[var(--text-muted)]/50 font-mono"
         />
@@ -70,26 +73,28 @@ export function ScheduledTaskItemDetails({
             <p role="alert" className="text-[9px] text-red-500 font-mono">{t("scheduledTasks.saveFailed")}</p>
           )}
           {!isError && <span />}
-          <button
-            type="button"
-            onClick={handleSaveComment}
-            disabled={isPending}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all cursor-pointer",
-              savedFlash
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                : isPending
-                ? "bg-[var(--surface-elevated)] text-[var(--text-muted)] border-[var(--border-subtle)] cursor-wait"
-                : "bg-[var(--primary-main)]/10 text-[var(--primary-main)] border-[var(--primary-main)]/30 hover:bg-[var(--primary-main)]/20"
-            )}
-          >
-            {isPending ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Save className="h-3 w-3" />
-            )}
-            {savedFlash ? t("wizard.saved") : t("scheduledTasks.saveComment")}
-          </button>
+          <PermissionHint hint={write.hint}>
+            <button
+              type="button"
+              onClick={handleSaveComment}
+              disabled={isPending || !write.allowed}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-40",
+                savedFlash
+                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                  : isPending
+                  ? "bg-[var(--surface-elevated)] text-[var(--text-muted)] border-[var(--border-subtle)] cursor-wait"
+                  : "bg-[var(--primary-main)]/10 text-[var(--primary-main)] border-[var(--primary-main)]/30 hover:bg-[var(--primary-main)]/20"
+              )}
+            >
+              {isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Save className="h-3 w-3" />
+              )}
+              {savedFlash ? t("wizard.saved") : t("scheduledTasks.saveComment")}
+            </button>
+          </PermissionHint>
         </div>
       </div>
     </div>

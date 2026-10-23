@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from '@alfheim/shared';
 
 interface ColorPickerProps {
@@ -15,7 +15,12 @@ export function ColorPicker({ label, value, onChange, swatches }: ColorPickerPro
   const [inputValue, setInputValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setInputValue(value); }, [value]);
+  // Follow the value when it changes from outside (adjusted during render, not in an effect).
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setInputValue(value);
+  }
 
   const handleHexChange = (val: string) => {
     setInputValue(val);

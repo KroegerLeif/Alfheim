@@ -37,6 +37,7 @@ Beide schreiben eine `.env` mit Modus `0600`, die Folgendes enthält:
 | `ZITADEL_MASTERKEY` | Verschlüsselt Zitadels Daten im Ruhezustand. Exakt 32 Zeichen. |
 | `ZITADEL_ADMIN_PASSWORD` | Initialer IAM-Administrator |
 | `CHAT_ENCRYPTION_KEY` | 32-Byte-Base64-Schlüssel, sichert LLM-API-Schlüssel im Ruhezustand mit AES-256-GCM |
+| `CHAT_ATTACHMENT_URL_SECRET` | 32-Byte-Hex-HMAC-Schlüssel, signiert Download-URLs für Chat-Anhänge. Eine Rotation macht nur zuvor ausgegebene URLs ungültig, die die Oberfläche neu lädt |
 | `S3_SECRET_KEY` | RustFS-Objektspeicher |
 | `GRAFANA_ADMIN_PASSWORD` | Observability-Oberfläche |
 | `HETZNER_API_TOKEN` / `CLOUDFLARE_API_TOKEN` | ACME DNS-01, nur bei dieser TLS-Strategie |

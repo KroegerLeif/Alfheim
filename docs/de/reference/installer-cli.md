@@ -107,9 +107,9 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 
 | Erkannter Zustand | Modus | Verhalten |
 | :--- | :--- | :--- |
-| Keine `.env`, keine `.alfheim.installed` | **install** | Volständiger Assistent, Secret-Generierung, mehrstufiger Boot. |
-| Eines der beiden Files vorhanden | **update** | Pull-Images und Neustart. Kein Assistent. Bestehende Secrets werden nie geändert; ein Secret, das ein neueres Release braucht und in der `.env` fehlt, wird erzeugt und angehängt. Fehlende Dienst-Datenbanken legt ein erneuter Lauf von `init-multiple-dbs.sh` an. |
-| Eines der Dateien vorhanden, plus `--reconfigure` | **reconfigure** | Assistent läuft erneut; bestehende Secrets werden beibehalten. |
+| Keine `.alfheim.installed` | **install** | Vollständiger Assistent, mehrstufiger Boot. Eine `.env` aus einem abgebrochenen Lauf wird wiederverwendet, ihre Secrets bleiben erhalten. Bei einer DNS-01-Strategie wird zuerst der Token geprüft, und Zitadel wird erst eingerichtet, wenn Caddy gültige Zertifikate ausliefert. |
+| `.alfheim.installed` vorhanden | **update** | Pull-Images und Neustart. Kein Assistent. Bestehende Secrets werden nie geändert; ein Secret, das ein neueres Release braucht und in der `.env` fehlt, wird erzeugt und angehängt. Fehlende Dienst-Datenbanken legt ein erneuter Lauf von `init-multiple-dbs.sh` an. |
+| `.alfheim.installed` vorhanden, plus `--reconfigure` | **reconfigure** | Assistent läuft erneut; bestehende Secrets werden beibehalten. So wird auch die Domain gewechselt: [Domain wechseln](../how-to/change-domain.md). |
 
 > **Warum Secrets niemals rotiert werden.** Die Neugenerierung von `ZITADEL_MASTERKEY` auf einer konfigurierten Instanz macht ihre Datenbank permanent unlesbar. Jeder bereits in `.env` vorhandene Wert wird weitergeleitet; nur genuinely fehlende werden generiert.
 
@@ -130,6 +130,41 @@ Installation (eine vorhandene `.env`) und startet nie den Assistenten,
 rotiert nie ein Secret und rührt weder die Root-CA noch den Zitadel-Machinekey/PAT
 noch ein Docker-Volume an. Vollständige Anleitung, Einzeiler und Rollback:
 [Eine Installation aktualisieren](../how-to/update-installation.md).
+
+`update` erstellt zuerst ein Backup von Datenbanken und Secrets (siehe unten)
+und bricht ab, wenn das fehlschlägt. Mit `--skip-backup` wird ohne Backup
+aktualisiert.
+
+---
+
+## Das `backup`-Subkommando
+
+```
+alfheim-setup backup [--output DIR] [--keep N] [--skip-media] [--install-dir DIR]
+```
+
+Schreibt ein Archiv `alfheim-backup-<UTC>.tar.gz` (Modus `0600`) mit einem
+`pg_dumpall` aller Datenbanken, dem RustFS-Objektspeicher, `.env`, dem
+Zitadel-Machinekey, Root-CA und Caddy-PKI, den Stack-Dateien und einem
+`manifest.json` mit Prüfsummen. Der Stack muss laufen. `--output` (oder
+`ALFHEIM_BACKUP_DIR`) ist standardmäßig `<install-dir>/backups`; `--keep`
+behält die N neuesten Archive (Standard 7); `--skip-media` lässt den
+Objektspeicher weg. Das Archiv enthält alle Secrets im Klartext. Details,
+Zeitplan und Off-Site-Kopien:
+[Backup, Wiederherstellung & Datenmigration](../how-to/backup-restore.md).
+
+## Das `restore`-Subkommando
+
+```
+alfheim-setup restore <Archiv> [--install-dir DIR] [--yes]
+```
+
+Prüft das Archiv gegen sein Manifest, ersetzt dann `.env` und die übrigen
+Secrets, löscht und erstellt alle Datenbanken und Rollen aus dem Dump neu,
+befüllt den RustFS-Speicher neu, startet den Stack und führt
+`scripts/verify-stack.sh` aus. Ohne `--yes` wird nachgefragt. Zielsystem der
+Wahl ist ein frischer Host. Siehe
+[Backup, Wiederherstellung & Datenmigration](../how-to/backup-restore.md).
 
 ---
 

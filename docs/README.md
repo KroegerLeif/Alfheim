@@ -59,11 +59,14 @@ source with a translation notice, so untranslated paths never 404.
 * [Self-Hosting & Installation Guide](./en/how-to/homelab-deployment.md) — Deploying on Linux bare-metal or Proxmox VE.
 * [Wildcard TLS with Hetzner DNS-01](./en/how-to/hetzner-dns-tls.md) — API token and wildcard certificates without inbound port 80.
 * [Wildcard TLS with deSEC DNS-01](./en/how-to/desec-dns-tls.md) — the same for domains hosted on deSEC.
+* [Change the domain](./en/how-to/change-domain.md) — move an installation to new host names with `--reconfigure`.
 * [Use Your Own TLS Certificates](./en/how-to/custom-certificates.md) — Bundled directory versus a custom absolute host path.
 * [Trust the Local Root CA](./en/how-to/trust-local-root-ca.md) — Importing the installer's root CA for the `internal` TLS strategy, or accepting the warning for both hosts.
 * [Secrets Hardening](./en/how-to/secrets-hardening.md) — Generating, storing and rotating secrets; verifying no development fallback reaches production.
-* [Backup, Restore & Data Migration](./en/how-to/backup-restore.md) — PostgreSQL databases, RustFS S3 object storage, and volumes.
+* [Backup, Restore & Data Migration](./en/how-to/backup-restore.md) — `alfheim-setup backup` / `restore`, scheduled backups and restore drills.
 * [Update an Installation](./en/how-to/update-installation.md) — One-command release updates with `alfheim-setup update`.
+* [Verify a Release End to End](./en/how-to/verify-release.md) — Checklist for a release candidate: fresh install, backup, update, restore, upgrade from the previous tag.
+* [Grafana and Operator Access](./en/how-to/grafana-access.md) — The `alfheim_operator` role for Grafana, telemetry and the MCP registry.
 * [Get a Dev Test Access Token](./en/how-to/dev-test-token.md) — Minting a working Zitadel token to call the APIs locally.
 * [Platform Troubleshooting & Operations](./en/how-to/troubleshooting.md) — Container boot races, migration locks, and gateway errors.
 
@@ -78,7 +81,8 @@ source with a translation notice, so untranslated paths never 404.
 ### 💡 Explanation (understanding-oriented)
 * [Platform Architecture Overview](./en/explanation/architecture-overview.md) — Multi-zone networks, control plane, container topology.
 * [Feature-Driven Design (FDD) Paradigm](./en/explanation/feature-driven-design.md) — Bounded contexts, the 6-file feature structure, 200 LOC limits.
-* [Authentication & Multi-Tenancy](./en/explanation/authentication-security.md) — Zitadel OIDC, JWT validation, `X-Household-ID` membership checks against `core/household`.
+* [Authentication & Multi-Tenancy](./en/explanation/authentication-security.md) — Zitadel OIDC, JWT validation, `X-Household-ID` membership checks, the household role matrix and the `alfheim_operator` role.
+* [Schema Migrations](./en/explanation/schema-migrations.md) — Alembic migrations at startup, the legacy `create_all` path and the maintenance legacy schema.
 * [VictoriaStack Telemetry Pipeline](./en/explanation/telemetry-pipeline.md) — Vector log aggregation, OTel Collector, W3C traceparent headers.
 * [Known Issues & System Trade-Offs](./en/explanation/known-issues.md) — Accepted costs and their mitigations.
 

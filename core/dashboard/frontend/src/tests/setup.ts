@@ -1,7 +1,14 @@
+import type { PropsWithChildren } from 'react'
 import '@testing-library/jest-dom'
 import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import * as matchers from 'vitest-axe/matchers'
 import { server } from './mocks/server'
+import { configure } from '@testing-library/react'
+
+// findBy*/waitFor poll for 5s instead of 1s. The default 1s is shorter than legitimate latency: a cold first
+// render, or ky retrying a failed GET with backoff (~0.9s), so tests failed once the machine was busy
+// (CI, parallel workspaces). The limit only bounds failures; passing tests are not slowed down.
+configure({ asyncUtilTimeout: 5000 })
 
 expect.extend(matchers)
 
@@ -60,7 +67,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => 'en',
-  Link: ({ children, ...props }: any) => {
+  Link: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) => {
     const React = require('react')
     return React.createElement('a', props, children)
   },

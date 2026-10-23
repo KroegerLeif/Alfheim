@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -44,11 +45,16 @@ func (f *fakeDiagToolCaller) Ping(ctx context.Context) mcp.DiagnosticResult {
 	}
 }
 
-// withScope injects an authenticated caller with the given household role.
+// withScope injects an authenticated, non-operator caller with the given household role.
 func withScope(role householdclient.Role) func(http.Handler) http.Handler {
+	return withCaller(role, false)
+}
+
+// withCaller injects an authenticated caller with the given household role and operator flag.
+func withCaller(role householdclient.Role, operator bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1", AccessToken: "tok-1"})
+			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1", AccessToken: "tok-1", IsOperator: operator})
 			ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: uuid.MustParse("11111111-1111-1111-1111-111111111111"), Role: role, Subject: "user-1"})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -58,11 +64,11 @@ func withScope(role householdclient.Role) func(http.Handler) http.Handler {
 func newTestRouter(svc mcpservers.Service) http.Handler {
 	r := chi.NewRouter()
 	handler := mcpservers.NewHandler(svc, &fakeDiagPool{})
-	handler.RegisterRoutes(r, withScope(householdclient.RoleOwner))
+	handler.RegisterRoutes(r, withCaller(householdclient.RoleMember, true))
 	return r
 }
 
-func TestHandler_SetEnabled_RequiresOwnerOrAdmin(t *testing.T) {
+func TestHandler_Mutations_RequireOperator(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
 	if err := svc.SeedFromEnv(context.Background(), "pantry=http://pantry-backend:8000/mcp"); err != nil {
@@ -71,15 +77,15 @@ func TestHandler_SetEnabled_RequiresOwnerOrAdmin(t *testing.T) {
 	servers, _ := svc.List(context.Background())
 
 	for _, tc := range []struct {
-		name     string
-		mw       func(http.Handler) http.Handler
-		want     int
-		wantCode string
+		name string
+		mw   func(http.Handler) http.Handler
+		want int
 	}{
-		{"member", withScope(householdclient.RoleMember), http.StatusForbidden, middleware.CodeHouseholdRoleForbidden},
-		{"guest", withScope(householdclient.RoleGuest), http.StatusForbidden, middleware.CodeHouseholdRoleForbidden},
-		{"no household context", passthroughMiddleware, http.StatusBadRequest, middleware.CodeHouseholdRequired},
-		{"admin", withScope(householdclient.RoleAdmin), http.StatusOK, ""},
+		{"household owner without operator role", withCaller(householdclient.RoleOwner, false), http.StatusForbidden},
+		{"household admin without operator role", withCaller(householdclient.RoleAdmin, false), http.StatusForbidden},
+		{"member", withCaller(householdclient.RoleMember, false), http.StatusForbidden},
+		{"no household context, no operator role", passthroughMiddleware, http.StatusForbidden},
+		{"operator", withCaller(householdclient.RoleGuest, true), http.StatusOK},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := chi.NewRouter()
@@ -91,21 +97,64 @@ func TestHandler_SetEnabled_RequiresOwnerOrAdmin(t *testing.T) {
 			if rec.Code != tc.want {
 				t.Fatalf("expected %d, got %d: %s", tc.want, rec.Code, rec.Body.String())
 			}
-			if tc.wantCode != "" {
-				var body struct {
-					Detail struct {
-						Code    string `json:"code"`
-						Message string `json:"message"`
-					} `json:"detail"`
+			if tc.want == http.StatusForbidden {
+				var errBody struct {
+					Error string `json:"error"`
 				}
-				if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-					t.Fatalf("failed to decode error body: %v", err)
-				}
-				if body.Detail.Code != tc.wantCode || body.Detail.Message == "" {
-					t.Fatalf("expected household error code %q, got %+v", tc.wantCode, body.Detail)
+				if err := json.Unmarshal(rec.Body.Bytes(), &errBody); err != nil || errBody.Error != "operator_required" {
+					t.Fatalf("expected error code operator_required, got %q (%v)", errBody.Error, err)
 				}
 			}
 		})
+	}
+}
+
+func TestHandler_Diagnostics_RequiresOperator(t *testing.T) {
+	svc := newTestService(newFakeRepository())
+	if err := svc.SeedFromEnv(context.Background(), "pantry=http://pantry-backend:8000/mcp"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	r := chi.NewRouter()
+	mcpservers.NewHandler(svc, &fakeDiagPool{}).RegisterRoutes(r, withCaller(householdclient.RoleOwner, false))
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/chat/mcp-servers/diagnostics", nil))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "pantry-backend") {
+		t.Fatalf("forbidden response leaked an endpoint URL: %s", rec.Body.String())
+	}
+}
+
+func TestHandler_List_RedactsForNonOperators(t *testing.T) {
+	svc := newTestService(newFakeRepository())
+	if err := svc.SeedFromEnv(context.Background(), "pantry=http://pantry-backend:8000/mcp"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	list := func(mw func(http.Handler) http.Handler) string {
+		r := chi.NewRouter()
+		mcpservers.NewHandler(svc, &fakeDiagPool{}).RegisterRoutes(r, mw)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/chat/mcp-servers", nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		return rec.Body.String()
+	}
+
+	member := list(withCaller(householdclient.RoleOwner, false))
+	if strings.Contains(member, "pantry-backend") || strings.Contains(member, "internal_url") {
+		t.Fatalf("non-operator list leaked endpoint details: %s", member)
+	}
+	var summaries []mcpservers.SummaryDTO
+	if err := json.Unmarshal([]byte(member), &summaries); err != nil || len(summaries) != 1 || summaries[0].AppSlug != "pantry" || !summaries[0].Enabled {
+		t.Fatalf("unexpected summary list %s (%v)", member, err)
+	}
+
+	operator := list(withCaller(householdclient.RoleMember, true))
+	if !strings.Contains(operator, "http://pantry-backend:8000/mcp") {
+		t.Fatalf("operator list is missing the endpoint url: %s", operator)
 	}
 }
 
@@ -134,7 +183,7 @@ func TestHandler_Diagnostics_ForwardsCallerCredentials(t *testing.T) {
 	}
 	pool := &credsRecordingPool{}
 	r := chi.NewRouter()
-	mcpservers.NewHandler(svc, pool).RegisterRoutes(r, withScope(householdclient.RoleMember))
+	mcpservers.NewHandler(svc, pool).RegisterRoutes(r, withCaller(householdclient.RoleMember, true))
 
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/chat/mcp-servers/diagnostics", nil))

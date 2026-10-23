@@ -14,6 +14,7 @@ import {
 import { useNotifications } from "@/components/shared/Notifications";
 import type { ShoppingList } from "../types";
 import { ProgressRing } from "./ProgressRing";
+import { useCanEditList } from "../hooks/useCanEditList";
 import type { Household } from "../services/shoppingListService";
 
 interface DashboardHeaderProps {
@@ -38,6 +39,7 @@ export function DashboardHeader({
   isSyncPending,
 }: DashboardHeaderProps) {
   const t = useTranslations("Checklist");
+  const canEdit = useCanEditList(activeList);
   const navT = useTranslations("Navigation");
 
   const { notifyError } = useNotifications();
@@ -143,7 +145,7 @@ export function DashboardHeader({
               <Printer className="h-4 w-4" />
             </button>
 
-            {checkedCount > 0 && (
+            {canEdit && checkedCount > 0 && (
               <button
                 type="button"
                 onClick={onClearCompleted}
@@ -155,7 +157,7 @@ export function DashboardHeader({
             )}
 
             {/* Primary Action Button: Store Einkauf */}
-            {totalCount > 0 && checkedCount > 0 && (
+            {canEdit && totalCount > 0 && checkedCount > 0 && (
               <button
                 type="button"
                 onClick={onSync}

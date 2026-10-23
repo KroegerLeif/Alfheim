@@ -60,15 +60,35 @@ block subdirective:
 {
 	admin off
 	email ops@example.com
-	acme_dns desec {
-		token {env.DESEC_TOKEN}
+	cert_issuer acme {
+		dns desec {
+			token {env.DESEC_TOKEN}
+		}
+		propagation_delay 90s
+		propagation_timeout 10m
+		resolvers ns1.desec.io ns2.desec.org
 	}
 }
 ```
 
+deSEC needs up to a minute to publish a record on all of its nameservers and
+enforces a minimum TTL of 3600 seconds. `propagation_delay` makes Caddy wait
+before it asks Let's Encrypt to validate, and `resolvers` checks propagation
+against deSEC's own nameservers instead of a caching resolver.
+
 The rendered Caddyfile therefore never contains the token itself.
 
+Before any container starts, the installer asks the deSEC API whether the
+token is accepted and whether its account holds the zone for both hosts. A
+rejected token or a missing zone stops the install with a clear message.
+Leftover `_acme-challenge` records from an earlier attempt are reported as a
+warning.
+
 ## Step 4: Watch the first issuance
+
+After starting Caddy, the installer waits up to ten minutes per host for a
+valid certificate (*Phase: Certificates*) before it configures Zitadel. Follow
+the issuance in a second shell:
 
 ```bash
 docker compose -f compose.prod.yaml logs -f caddy
@@ -96,6 +116,29 @@ The issuer should be Let's Encrypt, with a validity window starting today.
 **`missing token`**
 `DESEC_TOKEN` is empty inside the gateway container. Check `.env` and restart
 the gateway with `docker compose -f compose.prod.yaml up -d caddy`.
+
+**Issuance keeps failing, and `_acme-challenge` holds several TXT values**
+An earlier attempt was validated before the record had propagated. Let's
+Encrypt's resolver then caches the stale answer for the record's TTL (3600
+seconds on deSEC), so every retry within that hour fails as well. Stop Caddy,
+delete the leftover records, wait an hour, then start Caddy again:
+
+```bash
+docker compose -f compose.prod.yaml stop caddy
+TOKEN=$(grep '^DESEC_TOKEN=' .env | cut -d= -f2-)
+curl -X DELETE -H "Authorization: Token $TOKEN" \
+  https://desec.io/api/v1/domains/example.com/rrsets/_acme-challenge.auth/TXT/
+# one hour later
+docker compose -f compose.prod.yaml start caddy
+```
+
+Repeat the `DELETE` for the app host's `_acme-challenge` name. Once both
+certificates are issued, re-run `alfheim-setup`; existing secrets are kept.
+
+**The installer stops with `no valid certificate for <host>`**
+The ACME challenge did not complete within ten minutes. The error includes the
+`docker logs` command to see Caddy's reason; the entry above covers the most
+common one.
 
 **Certificate issuance times out**
 deSEC rate-limits record changes and propagates them to its anycast network

@@ -1,3 +1,4 @@
+import type { PropsWithChildren } from 'react'
 import '@testing-library/jest-dom'
 import { configure } from '@testing-library/react'
 // jsdom ships no IndexedDB, which the offline sync queue depends on.
@@ -72,7 +73,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/navigation', async () => {
   const { routerMock } = await import('./mocks/router')
   return {
-    Link: ({ children, ...props }: any) => {
+    Link: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) => {
       const React = require('react')
       return React.createElement('a', props, children)
     },
@@ -90,7 +91,7 @@ vi.mock('@/navigation', async () => {
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => 'en',
-  Link: ({ children, ...props }: any) => {
+  Link: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) => {
     const React = require('react')
     return React.createElement('a', props, children)
   },

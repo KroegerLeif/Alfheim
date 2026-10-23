@@ -46,11 +46,11 @@ export function ChatWidgetInput({
             s.id === item.id ? { ...s, isUploading: false, uploadedId: uploaded.id } : s
           )
         );
-      } catch (err) {
+      } catch {
         setStaged((prev) =>
           prev.map((s) =>
             s.id === item.id
-              ? { ...s, isUploading: false, error: err instanceof Error ? err.message : t('Chat.uploadError') }
+              ? { ...s, isUploading: false, error: t('Chat.uploadError') }
               : s
           )
         );

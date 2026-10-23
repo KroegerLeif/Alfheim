@@ -193,3 +193,14 @@ func TestManifestCoversEveryRepositorySecret(t *testing.T) {
 		}
 	}
 }
+
+func TestAttachmentURLSecretIsGeneratedWithEnoughEntropy(t *testing.T) {
+	got, err := GenerateAll(NewGenerator(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 32 random bytes, hex encoded.
+	if v := got["CHAT_ATTACHMENT_URL_SECRET"]; len(v) != 64 {
+		t.Fatalf("CHAT_ATTACHMENT_URL_SECRET length = %d, want 64", len(v))
+	}
+}

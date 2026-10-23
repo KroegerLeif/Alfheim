@@ -529,3 +529,32 @@ func TestRequestLoggerAndCORS(t *testing.T) {
 		}
 	})
 }
+
+// TestAuthenticateMiddleware_RejectsNonRS256 ensures tokens signed with another
+// algorithm (here HS256 keyed with the public issuer URL) are never accepted.
+func TestAuthenticateMiddleware_RejectsNonRS256(t *testing.T) {
+	_, server := generateJWKSServer(t, "k1")
+	defer server.Close()
+	auth, err := NewAuthenticator(server.URL, "alfheim", slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatalf("failed to create authenticator: %v", err)
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": "attacker", "iss": server.URL, "aud": "alfheim", "exp": time.Now().Add(time.Hour).Unix(),
+	})
+	token.Header["kid"] = "k1"
+	signed, err := token.SignedString([]byte("shared-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	h := auth.AuthenticateMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true }))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+signed)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if called || rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for HS256 token, got %d (handler called: %v)", rec.Code, called)
+	}
+}

@@ -1,6 +1,7 @@
 import uuid
 
 from backend_shared.mcp_middleware import get_mcp_household_context
+from src.core.permissions import mcp_requires_role
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 from src.features.products.service import ProductService
 from src.mcp.server import mcp
@@ -125,6 +126,7 @@ async def get_product_by_barcode(barcode: str) -> str:
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def create_product(
     name: str,
     base_unit: str,
@@ -176,6 +178,7 @@ async def create_product(
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def update_product(
     product_id: str,
     name: str | None = None,
@@ -210,8 +213,7 @@ async def update_product(
             if not prod:
                 return f"Product with ID {product_id} not found or not authorized."
 
-            global_tag = " (now promoted to Global)" if prod.is_global else ""
-            return f"Success: Updated product blueprint {prod.id} (Name: '{prod.name}'){global_tag}."
+            return f"Success: Updated product blueprint {prod.id} (Name: '{prod.name}')."
 
     except ValueError as e:
         return f"Error: Update failed: {str(e)}"
@@ -220,6 +222,7 @@ async def update_product(
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN")
 async def delete_product(product_id: str) -> str:
     """Delete a custom product blueprint."""
     try:
@@ -279,6 +282,7 @@ async def get_product_nutrition(product_id: str) -> str:
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def update_product_nutrition(
     product_id: str,
     calories: float | None = None,

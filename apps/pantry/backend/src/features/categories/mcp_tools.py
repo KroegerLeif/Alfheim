@@ -2,6 +2,7 @@ import uuid
 
 from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
+from src.core.permissions import mcp_requires_role
 from src.features.categories.models import CategoryCreate, CategoryUpdate
 from src.features.categories.service import CategoryService
 from src.mcp.server import mcp
@@ -80,6 +81,7 @@ async def get_category(category_id: str) -> str:
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def create_category(
     name: str,
     description: str | None = None,
@@ -110,6 +112,7 @@ async def create_category(
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN", "MEMBER")
 async def update_category(
     category_id: str,
     name: str | None = None,
@@ -147,6 +150,7 @@ async def update_category(
 
 
 @mcp.tool()
+@mcp_requires_role("OWNER", "ADMIN")
 async def delete_category(category_id: str) -> str:
     """Delete a custom category from the caller's household (resolved from the authenticated session).
 

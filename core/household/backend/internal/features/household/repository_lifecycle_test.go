@@ -135,7 +135,7 @@ func TestRepository_ListActiveInvites(t *testing.T) {
 		return &mockRows{items: [][]any{{"t1", "h1", "u1", "MEMBER", now, 2, 0, now}}}, nil
 	}})
 	list, err := ok.ListActiveInvites(ctx, "h1")
-	if err != nil || len(list) != 1 || list[0].Token != "t1" || list[0].Role != RoleMember {
+	if err != nil || len(list) != 1 || list[0].ID != "t1" || list[0].Token != "" || list[0].Role != RoleMember {
 		t.Errorf("list: %+v, %v", list, err)
 	}
 	empty := newRepositoryWithDB(&mockDBTX{})

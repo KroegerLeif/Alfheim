@@ -66,6 +66,12 @@ func (f *fakeRepository) DeleteConversation(ctx context.Context, id string) erro
 
 func (f *fakeRepository) CreateMessage(ctx context.Context, m *conversations.Message, attachmentIDs ...string) error {
 	m.CreatedAt = time.Now()
+	// Mirror the real repository: linked attachments come back with a raw storage-side URL.
+	for _, id := range attachmentIDs {
+		m.Attachments = append(m.Attachments, conversations.MessageAttachment{
+			ID: id, StorageKey: "households/hh/chat/" + id + ".png", MimeType: "image/png", URL: "https://s3.internal/bucket/" + id,
+		})
+	}
 	f.messages[m.ConversationID] = append(f.messages[m.ConversationID], m)
 	return nil
 }
@@ -178,11 +184,23 @@ func (f *fakeClientPool) Get(endpointURL string) mcp.ToolCaller {
 	return f.byURL[endpointURL]
 }
 
+// fakeURLIssuer records who each attachment URL was issued to.
+type fakeURLIssuer struct {
+	err error
+}
+
+func (f *fakeURLIssuer) URL(attachmentID, userID, householdID string) (string, error) {
+	if f.err != nil {
+		return "", f.err
+	}
+	return "/api/v1/chat/attachments/" + attachmentID + "/content?token=" + userID + "." + householdID, nil
+}
+
 func newTestService(repo conversations.Repository, resolver conversations.ModelBlockResolver) conversations.Service {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	emptyLister := &fakeServerLister{}
 	emptyPool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{}}
-	return conversations.NewService(repo, resolver, emptyLister, emptyPool, log)
+	return conversations.NewService(repo, resolver, emptyLister, emptyPool, &fakeURLIssuer{}, log)
 }
 
 func newTestServiceWithTools(
@@ -192,7 +210,7 @@ func newTestServiceWithTools(
 	pool conversations.MCPClientPool,
 ) conversations.Service {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return conversations.NewService(repo, resolver, lister, pool, log)
+	return conversations.NewService(repo, resolver, lister, pool, &fakeURLIssuer{}, log)
 }
 
 func drainChunks(t *testing.T, ch <-chan llm.StreamChunk, timeout time.Duration) []llm.StreamChunk {
@@ -1205,5 +1223,57 @@ func TestService_ToolLoopStopsWhenRequestContextIsCanceled(t *testing.T) {
 	}
 	if provider.callCount != 1 {
 		t.Fatalf("expected exactly 1 LLM round, got %d", provider.callCount)
+	}
+}
+
+func TestService_AttachmentURLsAreSignedForTheCaller(t *testing.T) {
+	repo := newFakeRepository()
+	svc := newTestService(repo, &fakeResolver{})
+	ctx := context.Background()
+
+	modelBlockID := "mb-1"
+	created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantURL := "/api/v1/chat/attachments/att-1/content?token=user-1." + testHouseholdID
+
+	posted, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "look", AttachmentIDs: []string{"att-1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(posted.Attachments) != 1 || posted.Attachments[0].URL != wantURL {
+		t.Fatalf("posted attachments = %+v, want url %q", posted.Attachments, wantURL)
+	}
+
+	listed, err := svc.ListMessages(ctx, "user-1", testHouseholdID, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listed) != 1 || len(listed[0].Attachments) != 1 || listed[0].Attachments[0].URL != wantURL {
+		t.Fatalf("listed = %+v, want url %q", listed, wantURL)
+	}
+	if strings.Contains(listed[0].Attachments[0].URL, "s3.internal") {
+		t.Error("the storage-side URL must never reach the client")
+	}
+}
+
+func TestService_AttachmentURLSigningFailureFailsTheRead(t *testing.T) {
+	repo := newFakeRepository()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := conversations.NewService(repo, &fakeResolver{}, &fakeServerLister{}, &fakeClientPool{byURL: map[string]mcp.ToolCaller{}}, &fakeURLIssuer{err: errors.New("boom")}, log)
+	ctx := context.Background()
+
+	modelBlockID := "mb-1"
+	created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "x", AttachmentIDs: []string{"att-1"}}); err == nil {
+		t.Fatal("PostMessage() must fail instead of returning an unsigned URL")
+	}
+	if _, err := svc.ListMessages(ctx, "user-1", testHouseholdID, created.ID); err == nil {
+		t.Fatal("ListMessages() must fail instead of returning an unsigned URL")
 	}
 }

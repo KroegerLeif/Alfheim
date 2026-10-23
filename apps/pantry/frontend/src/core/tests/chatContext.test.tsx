@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -80,7 +81,7 @@ describe('Pantry ALFI Chat Integration', () => {
     ];
 
     renderWithProviders(
-      <ProductList products={mockProducts as any} categories={[]} isLoading={false} />
+      <ProductList products={mockProducts as ComponentProps<typeof ProductList>['products']} categories={[]} isLoading={false} />
     );
 
     const askAlfiBtn = screen.getByRole('button', { name: /ALFI Assistent: Hafermilch Barista/i });
@@ -115,7 +116,7 @@ describe('Pantry ALFI Chat Integration', () => {
     renderWithProviders(
       <table>
         <tbody>
-          <InventoryTableRow state={mockState as any} onQuickAction={vi.fn()} />
+          <InventoryTableRow state={mockState as ComponentProps<typeof InventoryTableRow>['state']} onQuickAction={vi.fn()} />
         </tbody>
       </table>
     );

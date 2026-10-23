@@ -22,6 +22,7 @@ import (
 	"alfheim/chat/internal/features/conversations"
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
+	"alfheim/chat/internal/shared/attachmenturl"
 	"alfheim/chat/internal/shared/db"
 	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/logger"
@@ -156,16 +157,20 @@ func run(parentCtx context.Context) error {
 
 	// Attachments Feature (RustFS/S3 file uploads, image references)
 	attachmentsRepo := attachments.NewRepository(dbClient.Pool)
-	attachmentsService := attachments.NewService(attachmentsRepo, storageClient, log)
-	attachmentsHandler := attachments.NewHandler(attachmentsService)
+	urlSigner, err := attachmenturl.NewSigner(cfg.Attachments.URLSecret, cfg.Attachments.URLTTL, cfg.Attachments.PublicBaseURL)
+	if err != nil {
+		return fmt.Errorf("failed to initialize attachment url signer: %w", err)
+	}
+	attachmentsService := attachments.NewService(attachmentsRepo, storageClient, urlSigner, membership, log)
+	attachmentsHandler := attachments.NewHandler(attachmentsService, urlSigner.TTL(), log)
 
 	if err := attachmentsService.EnsureStorageReady(ctx); err != nil {
 		log.Warn("s3 bucket check failed or deferred", slog.String("error", err.Error()))
 	}
 
 	// Conversations Feature (messages, SSE-streamed assistant replies, MCP tool-calling loop)
-	conversationsRepo := conversations.NewRepository(dbClient.Pool, storageClient)
-	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, log)
+	conversationsRepo := conversations.NewRepository(dbClient.Pool)
+	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, urlSigner, log)
 	conversationsHandler := conversations.NewHandler(conversationsService)
 
 	r := buildRouter(log, dbClient, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler, cfg.CORS.AllowedOrigins)
@@ -233,26 +238,32 @@ func buildRouter(
 	attachmentsHandler *attachments.Handler,
 	allowedOrigins []string,
 ) http.Handler {
+	// An unauthenticated API must never be served: refuse to build the router.
+	if authMw == nil {
+		panic("chat-backend: auth middleware is required to build the router")
+	}
+
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.CORSWithOrigins(allowedOrigins))
 	r.Use(middleware.RequestLogger(log))
+	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes, map[string]int64{
+		"/api/v1/chat/attachments": attachments.MaxUploadBodyBytes,
+	}))
 
 	r.Get("/api/v1/chat/health", healthHandler(dbClient))
 
-	if authMw != nil {
-		if modelBlocksHandler != nil {
-			modelBlocksHandler.RegisterRoutes(r, authMw)
-		}
-		if conversationsHandler != nil {
-			conversationsHandler.RegisterRoutes(r, authMw)
-		}
-		if mcpServersHandler != nil {
-			mcpServersHandler.RegisterRoutes(r, authMw)
-		}
-		if attachmentsHandler != nil {
-			attachmentsHandler.RegisterRoutes(r, authMw)
-		}
+	if modelBlocksHandler != nil {
+		modelBlocksHandler.RegisterRoutes(r, authMw)
+	}
+	if conversationsHandler != nil {
+		conversationsHandler.RegisterRoutes(r, authMw)
+	}
+	if mcpServersHandler != nil {
+		mcpServersHandler.RegisterRoutes(r, authMw)
+	}
+	if attachmentsHandler != nil {
+		attachmentsHandler.RegisterRoutes(r, authMw)
 	}
 	return r
 }
