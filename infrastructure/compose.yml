@@ -57,7 +57,7 @@ services:
     stop_grace_period: 10s
 
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v2.66.1
+    image: ghcr.io/zitadel/zitadel:v4.20.0
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
