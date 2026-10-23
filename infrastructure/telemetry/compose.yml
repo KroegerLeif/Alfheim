@@ -3,7 +3,7 @@
 
 services:
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.152.0
+    image: victoriametrics/victoria-metrics:v1.154.1
     container_name: victoriametrics
     restart: unless-stopped
     logging:
@@ -77,7 +77,7 @@ services:
       start_period: 10s
 
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.36.0
+    image: victoriametrics/victoria-logs:v1.53.0
     container_name: victorialogs
     restart: unless-stopped
     logging:
@@ -108,7 +108,7 @@ services:
       start_period: 10s
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.119.0
+    image: otel/opentelemetry-collector-contrib:0.163.1-386
     container_name: otel-collector
     restart: unless-stopped
     logging:
@@ -175,7 +175,7 @@ services:
       - docker-proxy-net
 
   vector:
-    image: timberio/vector:0.39.0-alpine
+    image: timberio/vector:0.60.0-alpine
     container_name: vector-shipper
     restart: unless-stopped
     logging:
