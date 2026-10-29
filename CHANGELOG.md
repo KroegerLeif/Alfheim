@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [v0.3.0] - 2026-10-22
+## [v0.3.1] - 2026-10-29
+
+> `v0.3.0` was tagged on 2026-10-23 but never published: the release pipeline's image vulnerability gate blocked it (certifi, authlib and dnspython in the Python images, npm inside the Node base image, an outdated Caddy build) and an emulated arm64 build hung. v0.3.1 contains everything listed for v0.3.0 plus those fixes; only `dashboard-backend`, `household-backend` and `chat-backend` were pushed as `v0.3.0`.
 
 Release from the October 2026 project review: tenant isolation and role matrix across all apps, real Alembic migrations, backup and restore, the `alfheim_operator` role, a hardened gateway, CI and release pipeline, multi-arch images (linux/amd64 and linux/arm64), and fixes found by an end-to-end installer verification. Upgrading from v0.2.2 with `alfheim-setup update` takes a backup first, migrates every database and repairs `.env` (S3 endpoints, `DOCKER_SOCKET_GID`, new secrets).
 
