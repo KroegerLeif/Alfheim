@@ -4,6 +4,24 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  # Dry run on the release PR: the same tests, builds and Trivy gates, without
+  # publishing anything. Unlike workflow_dispatch, this works before this file
+  # exists on the default branch.
+  pull_request:
+    branches:
+      - main
+  # Manual dry run on any branch (see the verify-release how-to).
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: test, build and scan only. Nothing is pushed, tagged or released.'
+        type: boolean
+        default: true
+
+env:
+  # 'true' for pull requests and manual runs with dry_run enabled, 'false' for
+  # tag pushes, the only event that publishes.
+  DRY_RUN: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
 
 # Least privilege by default; jobs that publish or upload scan results raise
 # exactly the scope they need.
@@ -12,22 +30,37 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  # New pushes to a release PR supersede the running dry run; tag runs never
+  # cancel each other.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check-ancestry:
     name: Verify Release Tag Ancestry on Main
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
+      # Only a tag push may publish. A manual run with dry_run disabled would
+      # push images from an arbitrary branch, so it is refused outright.
+      - name: Refuse Manual Runs Without Dry Run
+        if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
+        run: |
+          echo "Error: releases are created by pushing a v*.*.* tag, not by a manual run."
+          echo "Re-run with dry_run enabled to verify a branch."
+          exit 1
+
       - name: Checkout Repository with Full History
+        if: github.event_name == 'push'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Fetch Main Branch
+        if: github.event_name == 'push'
         run: git fetch origin main:main
 
       - name: Check Branch Ancestry
+        if: github.event_name == 'push'
         run: |
           echo "Verifying if tagged commit ${{ github.sha }} belongs to main history..."
           if ! git merge-base --is-ancestor ${{ github.sha }} main; then
@@ -40,6 +73,7 @@ jobs:
   python-quality:
     name: Python Quality Gate (Ruff & Ty)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,6 +99,7 @@ jobs:
   python-tests:
     name: Pytest & Coverage (${{ matrix.service }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -98,6 +133,7 @@ jobs:
   go-tests:
     name: Go Test Matrix (${{ matrix.service }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -130,6 +166,7 @@ jobs:
   frontend-tests:
     name: Frontend Quality Gate & Vitest Suite
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -152,109 +189,79 @@ jobs:
       - name: Run Vitest Suite Across Workspace
         run: pnpm -r test
 
+  # Single source of truth for the image list. Emits `images` (one entry per
+  # image, used by the manifest job) and `builds` (image x platform with the
+  # native runner of each platform, used by the build job).
+  plan-images:
+    name: Plan Image Build Matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      images: ${{ steps.plan.outputs.images }}
+      builds: ${{ steps.plan.outputs.builds }}
+    steps:
+      - name: Compute Matrices
+        id: plan
+        run: |
+          images=$(cat <<'JSON'
+          [
+                      {"name": "caddy", "context": "infrastructure/caddy", "dockerfile": "infrastructure/caddy/Dockerfile"},
+            {"name": "dashboard-backend", "context": "core/dashboard/backend", "dockerfile": "core/dashboard/backend/Dockerfile"},
+            {"name": "dashboard-frontend", "context": ".", "dockerfile": "core/dashboard/frontend/Dockerfile"},
+            {"name": "household-backend", "context": "core/household/backend", "dockerfile": "core/household/backend/Dockerfile"},
+            {"name": "household-frontend", "context": ".", "dockerfile": "core/household/frontend/Dockerfile"},
+            {"name": "chat-backend", "context": "apps/chat/backend", "dockerfile": "apps/chat/backend/Dockerfile"},
+            {"name": "chat-frontend", "context": ".", "dockerfile": "apps/chat/frontend/Dockerfile"},
+            {"name": "pantry-backend", "context": ".", "dockerfile": "apps/pantry/backend/Dockerfile"},
+            {"name": "pantry-frontend", "context": ".", "dockerfile": "apps/pantry/frontend/Dockerfile"},
+            {"name": "shopping-backend", "context": ".", "dockerfile": "apps/shopping/backend/Dockerfile"},
+            {"name": "shopping-frontend", "context": ".", "dockerfile": "apps/shopping/frontend/Dockerfile"},
+            {"name": "maintenance-backend", "context": ".", "dockerfile": "apps/maintenance/backend/Dockerfile"},
+            {"name": "maintenance-frontend", "context": ".", "dockerfile": "apps/maintenance/frontend/Dockerfile"},
+            {"name": "chores-backend", "context": ".", "dockerfile": "apps/chores/backend/Dockerfile"},
+            {"name": "chores-frontend", "context": ".", "dockerfile": "apps/chores/frontend/Dockerfile"},
+            {"name": "budget-backend", "context": ".", "dockerfile": "apps/budget/backend/Dockerfile"},
+            {"name": "budget-frontend", "context": ".", "dockerfile": "apps/budget/frontend/Dockerfile"},
+            {"name": "workout-backend", "context": ".", "dockerfile": "apps/workout/backend/Dockerfile"},
+            {"name": "workout-frontend", "context": ".", "dockerfile": "apps/workout/frontend/Dockerfile"},
+            {"name": "library-backend", "context": ".", "dockerfile": "apps/library/backend/Dockerfile"},
+            {"name": "library-frontend", "context": ".", "dockerfile": "apps/library/frontend/Dockerfile"}
+          ]
+          JSON
+          )
+          echo "images=$(jq -c . <<<"$images")" >> "$GITHUB_OUTPUT"
+          builds=$(jq -c '[.[] as $i | ("amd64","arm64") as $a | $i + {
+            arch: $a,
+            platform: ("linux/" + $a),
+            runner: (if $a == "arm64" then "ubuntu-24.04-arm" else "ubuntu-24.04" end)
+          }]' <<<"$images")
+          echo "builds=${builds}" >> "$GITHUB_OUTPUT"
+          echo "Planned $(jq length <<<"$builds") image builds."
+
+  # One job per image and platform, each on a runner of that architecture, so
+  # nothing is emulated. Every platform is built, scanned and gated on its own.
+  # A passing build is pushed by digest only (no tag); the manifest job below
+  # is what makes it reachable.
   build-images:
-    name: Build & Push (${{ matrix.name }})
+    name: Build ${{ matrix.name }} (${{ matrix.arch }})
     needs:
       - check-ancestry
       - python-quality
       - python-tests
       - go-tests
       - frontend-tests
-    runs-on: ubuntu-latest
+      - plan-images
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
       security-events: write
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 10
       matrix:
-        include:
-          # Ingress Gateway (custom build with ACME DNS-01 provider modules)
-          - name: caddy
-            context: infrastructure/caddy
-            dockerfile: infrastructure/caddy/Dockerfile
-
-          # Core Platform Services
-          - name: dashboard-backend
-            context: core/dashboard/backend
-            dockerfile: core/dashboard/backend/Dockerfile
-          - name: dashboard-frontend
-            context: .
-            dockerfile: core/dashboard/frontend/Dockerfile
-
-          # Household & Roles Core Service
-          - name: household-backend
-            context: core/household/backend
-            dockerfile: core/household/backend/Dockerfile
-          - name: household-frontend
-            context: .
-            dockerfile: core/household/frontend/Dockerfile
-
-          # Chat Assistant Service
-          - name: chat-backend
-            context: apps/chat/backend
-            dockerfile: apps/chat/backend/Dockerfile
-          - name: chat-frontend
-            context: .
-            dockerfile: apps/chat/frontend/Dockerfile
-
-          # Pantry Management Service
-          - name: pantry-backend
-            context: .
-            dockerfile: apps/pantry/backend/Dockerfile
-          - name: pantry-frontend
-            context: .
-            dockerfile: apps/pantry/frontend/Dockerfile
-
-          # Shopping List Service
-          - name: shopping-backend
-            context: .
-            dockerfile: apps/shopping/backend/Dockerfile
-          - name: shopping-frontend
-            context: .
-            dockerfile: apps/shopping/frontend/Dockerfile
-
-          # Maintenance & Devices Service
-          - name: maintenance-backend
-            context: .
-            dockerfile: apps/maintenance/backend/Dockerfile
-          - name: maintenance-frontend
-            context: .
-            dockerfile: apps/maintenance/frontend/Dockerfile
-
-          # Household Chores Service
-          - name: chores-backend
-            context: .
-            dockerfile: apps/chores/backend/Dockerfile
-          - name: chores-frontend
-            context: .
-            dockerfile: apps/chores/frontend/Dockerfile
-
-          # Budget & Finance Service
-          - name: budget-backend
-            context: .
-            dockerfile: apps/budget/backend/Dockerfile
-          - name: budget-frontend
-            context: .
-            dockerfile: apps/budget/frontend/Dockerfile
-
-          # Workout Tracking Service
-          - name: workout-backend
-            context: .
-            dockerfile: apps/workout/backend/Dockerfile
-          - name: workout-frontend
-            context: .
-            dockerfile: apps/workout/frontend/Dockerfile
-
-          # Media Library Service
-          - name: library-backend
-            context: .
-            dockerfile: apps/library/backend/Dockerfile
-          - name: library-frontend
-            context: .
-            dockerfile: apps/library/frontend/Dockerfile
-
+        include: ${{ fromJSON(needs.plan-images.outputs.builds) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -263,8 +270,124 @@ jobs:
         run: |
           echo "IMAGE_REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: env.DRY_RUN != 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build into the local Docker daemon first so the image can be scanned
+      # before anything is pushed to the registry.
+      - name: Build Container Image for Scanning
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          tags: scan/${{ matrix.name }}:${{ github.sha }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}-${{ matrix.arch }}
+
+      # The SARIF report covers linux/amd64 only; both platforms are built from
+      # the same Dockerfile and both are gated below.
+      - name: Scan Container Image (SARIF Report)
+        if: matrix.arch == 'amd64'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-${{ matrix.arch }}
+          format: 'sarif'
+          output: '${{ matrix.name }}-trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '0'
+
+      # Skipped in a dry run so branch builds never create code scanning
+      # alerts. The gate below still fails the run on the same findings.
+      - name: Upload Trivy Results to GitHub Security Tab
+        if: always() && matrix.arch == 'amd64' && env.DRY_RUN != 'true'
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: '${{ matrix.name }}-trivy-results.sarif'
+          category: 'trivy-image-${{ matrix.name }}'
+
+      # Gate: fixable CRITICAL/HIGH findings block the push, so a vulnerable
+      # image never reaches the registry or the `latest` tag.
+      - name: Fail on Fixable Critical/High Vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-${{ matrix.arch }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '1'
+
+      # Layers come from the cache populated by the scan build above. The image
+      # is pushed by digest without a tag; nothing references it until the
+      # manifest job runs.
+      - name: Push Image by Digest
+        id: push
+        if: env.DRY_RUN != 'true'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
+
+      - name: Export Digest
+        if: env.DRY_RUN != 'true'
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - name: Upload Digest
+        if: env.DRY_RUN != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-${{ matrix.name }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Combines the per-platform digests of each image into one multi-arch
+  # manifest under the final tags. It needs every build job, so no image is
+  # tagged unless all images passed both platform gates. Tag pushes only.
+  merge-manifests:
+    name: Publish Manifest (${{ matrix.name }})
+    if: github.event_name == 'push'
+    needs:
+      - plan-images
+      - build-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan-images.outputs.images) }}
+    steps:
+      - name: Lowercase Repository Name
+        run: |
+          echo "IMAGE_REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Download Digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.name }}-*
+          merge-multiple: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -278,97 +401,31 @@ jobs:
 
       # Pre-releases (any tag with a "-" suffix such as -rc.1, -beta, -alpha)
       # get only their version tag; `latest` always points at a stable release.
-      - name: Compute Image Tags
-        id: tags
+      - name: Create Multi-Arch Manifest
         env:
           REF_NAME: ${{ github.ref_name }}
           IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+        working-directory: ${{ runner.temp }}/digests
         run: |
-          {
-            echo "list<<EOF"
-            echo "${IMAGE}:${REF_NAME}"
-            if [[ "$REF_NAME" != *-* ]]; then
-              echo "${IMAGE}:latest"
-            fi
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          tags=(-t "${IMAGE}:${REF_NAME}")
+          if [[ "$REF_NAME" != *-* ]]; then
+            tags+=(-t "${IMAGE}:latest")
+          fi
+          sources=()
+          for digest in *; do
+            sources+=("${IMAGE}@sha256:${digest}")
+          done
+          if [[ "${#sources[@]}" -ne 2 ]]; then
+            echo "Error: expected 2 platform digests for ${IMAGE}, found ${#sources[@]}."
+            exit 1
+          fi
+          docker buildx imagetools create "${tags[@]}" "${sources[@]}"
 
-      # Build into the local Docker daemon first so the image can be scanned
-      # before anything is pushed to the registry. `load: true` cannot hold a
-      # multi-platform result, so each platform is built, loaded and scanned on
-      # its own; the multi-arch manifest is only pushed once both gates pass.
-      - name: Build Container Image for Scanning (linux/amd64)
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64
-          load: true
-          push: false
-          tags: scan/${{ matrix.name }}:${{ github.sha }}-amd64
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
-
-      - name: Build Container Image for Scanning (linux/arm64)
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/arm64
-          load: true
-          push: false
-          tags: scan/${{ matrix.name }}:${{ github.sha }}-arm64
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
-
-      - name: Scan Container Image (SARIF Report)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-amd64
-          format: 'sarif'
-          output: '${{ matrix.name }}-trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
-          exit-code: '0'
-
-      - name: Upload Trivy Results to GitHub Security Tab
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        if: always()
-        with:
-          sarif_file: '${{ matrix.name }}-trivy-results.sarif'
-          category: 'trivy-image-${{ matrix.name }}'
-
-      # Gate: fixable CRITICAL/HIGH findings block the push, so a vulnerable
-      # image never reaches the registry or the `latest` tag.
-      - name: Fail on Fixable Critical/High Vulnerabilities (linux/amd64)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-amd64
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
-          exit-code: '1'
-
-      - name: Fail on Fixable Critical/High Vulnerabilities (linux/arm64)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: scan/${{ matrix.name }}:${{ github.sha }}-arm64
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
-          exit-code: '1'
-
-      # Layers come from the cache populated by the scan builds above, so this
-      # only assembles and pushes the multi-arch manifest.
-      - name: Push Multi-Arch Container Image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.tags.outputs.list }}
-          cache-from: type=gha,scope=${{ matrix.name }}
+      - name: Inspect Manifest
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+        run: docker buildx imagetools inspect "${IMAGE}:${REF_NAME}"
 
   build-installer:
     name: Build Installer Binaries (${{ matrix.goarch }})
@@ -376,6 +433,7 @@ jobs:
       - check-ancestry
       - go-tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -414,8 +472,10 @@ jobs:
 
   publish-release:
     name: Publish Official GitHub Release
-    needs: [build-images, build-installer]
+    if: github.event_name == 'push'
+    needs: [merge-manifests, build-installer]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
