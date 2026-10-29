@@ -28,7 +28,7 @@ commands. The binding rules live in [`.ai/`](.ai/INDEX.md) and are not repeated 
 ## Commands
 
 ```bash
-pnpm install                        # JS workspace (pnpm 10)
+pnpm install                        # JS workspace (pnpm 11)
 uv sync --all-packages --all-groups # Python workspace
 ./scripts/up.sh                     # staged local stack boot (add -b to rebuild images)
 ./scripts/verify.sh --frontend      # tsc --noEmit + Vitest for every frontend
