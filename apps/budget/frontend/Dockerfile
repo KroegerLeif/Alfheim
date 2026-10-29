@@ -34,6 +34,8 @@ RUN mkdir -p public && pnpm run build
 
 # Stage 3: Runner
 FROM node:22-alpine AS runner
+# The runner only executes node; drop npm/npx/corepack/yarn so their bundled deps do not trip the image scan.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 
 ENV NODE_ENV=production
