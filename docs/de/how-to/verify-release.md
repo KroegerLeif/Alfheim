@@ -8,12 +8,45 @@ description: "Checkliste, um einen Release-Kandidaten vor dem Wechsel von dev na
 ---
 
 ## 📋 Inhaltsverzeichnis
+- [Zuerst den Release-Dry-Run ausführen](#zuerst-den-release-dry-run-ausführen)
 - [Wegwerf-Host vorbereiten](#wegwerf-host-vorbereiten)
 - [1. Neuinstallation](#1-neuinstallation)
 - [2. Beispieldaten und Backup](#2-beispieldaten-und-backup)
 - [3. Update](#3-update)
 - [4. Löschen und wiederherstellen](#4-löschen-und-wiederherstellen)
 - [5. Upgrade vom vorherigen Release](#5-upgrade-vom-vorherigen-release)
+
+---
+
+## Zuerst den Release-Dry-Run ausführen
+
+Bevor du etwas taggst, führst du den Release-Workflow im Dry-Run-Modus auf dem
+Branch aus, den du veröffentlichen willst (meist `dev`):
+
+```bash
+gh workflow run release.yml --ref dev -f dry_run=true
+gh run watch
+```
+
+Ein Dry-Run führt dieselben Qualitäts-Gates aus, baut jedes Image nativ für
+`linux/amd64` (`ubuntu-24.04`) und `linux/arm64` (`ubuntu-24.04-arm`) und wendet
+das Trivy-Gate an (behebbare CRITICAL- und HIGH-Funde lassen den Job
+fehlschlagen). Er überspringt die Tag-Ancestry-Prüfung und veröffentlicht
+nichts: Es wird kein Image gepusht, kein Manifest und kein Tag angelegt, kein
+GitHub-Release erstellt und kein SARIF-Report an Code Scanning gesendet. Manuelle
+Läufe mit `dry_run=false` werden abgelehnt; nur ein Tag-Push `v*.*.*` erzeugt
+ein Release.
+
+Der Lauf ist grün, wenn alle `Build <Image> (<Arch>)`-Jobs bestehen. Erst dann
+pushst du den Tag.
+
+**Schlägt das Trivy-Gate fehl**, öffne das Log des fehlgeschlagenen Jobs, lies
+die Tabelle der Funde und behebe die Ursache auf `dev`: Hebe das verwundbare
+Basis-Image oder die Abhängigkeit an (exakt gepinnt) oder baue neu, damit die
+behobene Schicht des Basis-Images gezogen wird. Führe danach den Dry-Run erneut
+aus. Ein Fund ohne verfügbaren Fix (`ignore-unfixed`) lässt das Gate nie
+fehlschlagen. Tagge nicht, solange ein Dry-Run rot ist; ein Tag-Lauf scheitert
+am selben Gate, nachdem die Tests schon gelaufen sind.
 
 ---
 
