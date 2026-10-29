@@ -20,8 +20,11 @@ description: "Checklist for testing a release candidate on a disposable, product
 
 ## Run the release dry run first
 
-Before you tag anything, run the release workflow in dry-run mode on the branch
-you are about to release (usually `dev`):
+Before you tag anything, the release workflow runs in dry-run mode on the
+branch you are about to release. The release pull request from `dev` to `main`
+starts it automatically, and every new push to that PR cancels the running
+dry run and starts a fresh one. You can also start it by hand on any branch
+(this needs the workflow file to be on `main` already):
 
 ```bash
 gh workflow run release.yml --ref dev -f dry_run=true

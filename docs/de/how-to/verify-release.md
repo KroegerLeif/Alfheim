@@ -20,8 +20,11 @@ description: "Checkliste, um einen Release-Kandidaten vor dem Wechsel von dev na
 
 ## Zuerst den Release-Dry-Run ausführen
 
-Bevor du etwas taggst, führst du den Release-Workflow im Dry-Run-Modus auf dem
-Branch aus, den du veröffentlichen willst (meist `dev`):
+Bevor du etwas taggst, läuft der Release-Workflow im Dry-Run-Modus auf dem
+Branch, den du veröffentlichen willst. Der Release-Pull-Request von `dev` nach
+`main` startet ihn automatisch, und jeder neue Push auf diesen PR bricht den
+laufenden Dry-Run ab und startet einen frischen. Du kannst ihn auch von Hand auf
+jedem Branch starten (dafür muss die Workflow-Datei schon auf `main` liegen):
 
 ```bash
 gh workflow run release.yml --ref dev -f dry_run=true
