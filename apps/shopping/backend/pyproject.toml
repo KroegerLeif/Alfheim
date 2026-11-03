@@ -38,6 +38,7 @@ addopts = "--cov-fail-under=95"
 
 [tool.coverage.run]
 source = ["src"]
+concurrency = ["greenlet", "thread"]
 omit = [
     "**/seeder.py",
     "**/clients/open_food_facts.py",

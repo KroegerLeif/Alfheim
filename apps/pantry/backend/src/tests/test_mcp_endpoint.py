@@ -1,6 +1,6 @@
 """End-to-end MCP transport test: the app lifespan starts the session manager and /mcp serves real JSON-RPC."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, patch
 
@@ -20,7 +20,7 @@ HEADERS = {**AUTH, "X-Household-ID": str(DEFAULT_TEST_HOUSEHOLD_ID)}
 
 
 @asynccontextmanager
-async def mcp_client() -> AsyncIterator[AsyncClient]:
+async def mcp_client() -> AsyncGenerator[AsyncClient]:
     """Run the real application lifespan (DB init stubbed) and talk to the app over ASGI.
 
     A context manager rather than a fixture: the MCP session manager's task group must be

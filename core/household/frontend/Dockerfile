@@ -2,7 +2,7 @@
 FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.34.6 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.5 --activate
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared ./packages/shared
@@ -16,7 +16,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 # Stage 2: Builder
 FROM node:22-alpine AS builder
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.34.6 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.5 --activate
 
 COPY --from=deps /app ./
 COPY core/household/frontend ./core/household/frontend
@@ -37,6 +37,8 @@ RUN pnpm run build
 
 # Stage 3: Runner
 FROM node:22-alpine AS runner
+# The runner only executes node; drop npm/npx/corepack/yarn so their bundled deps do not trip the image scan.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 
 ENV NODE_ENV=production

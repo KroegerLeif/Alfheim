@@ -8,12 +8,46 @@ description: "Checklist for testing a release candidate on a disposable, product
 ---
 
 ## 📋 Table of Contents
+- [Run the release dry run first](#run-the-release-dry-run-first)
 - [Prepare a disposable host](#prepare-a-disposable-host)
 - [1. Fresh install](#1-fresh-install)
 - [2. Sample data and backup](#2-sample-data-and-backup)
 - [3. Update](#3-update)
 - [4. Wipe and restore](#4-wipe-and-restore)
 - [5. Upgrade from the previous release](#5-upgrade-from-the-previous-release)
+
+---
+
+## Run the release dry run first
+
+Before you tag anything, the release workflow runs in dry-run mode on the
+branch you are about to release. The release pull request from `dev` to `main`
+starts it automatically, and every new push to that PR cancels the running
+dry run and starts a fresh one. You can also start it by hand on any branch
+(this needs the workflow file to be on `main` already):
+
+```bash
+gh workflow run release.yml --ref dev -f dry_run=true
+gh run watch
+```
+
+A dry run executes the same quality gates, builds every image natively for
+`linux/amd64` (`ubuntu-24.04`) and `linux/arm64` (`ubuntu-24.04-arm`) and applies
+the Trivy gate (fixable CRITICAL and HIGH findings fail the job). It skips the
+tag ancestry check and publishes nothing: no image is pushed, no manifest or
+tag is created, no GitHub release is made and no SARIF report is uploaded to
+code scanning. Manual runs with `dry_run=false` are refused; only a `v*.*.*`
+tag push releases.
+
+The run is green when every `Build <image> (<arch>)` job passes. Only then
+push the tag.
+
+**If the Trivy gate fails**, open the failed job's log, read the findings table
+and fix the cause on `dev`: bump the vulnerable base image tag or dependency
+(pinned exactly), or rebuild so the base image's fixed layer is pulled. Then
+re-run the dry run. A finding with no fix available (`ignore-unfixed`) never
+fails the gate. Do not tag while a dry run is red; a tag run fails at the same
+gate after the tests have already been spent.
 
 ---
 

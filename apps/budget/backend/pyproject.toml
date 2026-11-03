@@ -37,3 +37,4 @@ addopts = "--cov-fail-under=95"
 
 [tool.coverage.run]
 source = ["src"]
+concurrency = ["greenlet", "thread"]
