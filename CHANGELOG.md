@@ -156,6 +156,7 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 - The `KEYCLOAK_*` environment variable names. `scripts/init-env.sh` migrates them in place for one release; after that, only the `OIDC_*` names are read.
 
 ### Fixed
+- SARIF uploads in `security-scan.yml` and `release.yml` failed with "Resource not accessible by integration" after `codeql-action/upload-sarif` 4.39; the jobs now grant `actions: read`.
 - The shopping and workout frontend images no longer built ("The \"use client\" directive must be placed before other expressions"): the ky 2 migration (#695) had inserted an import above the directive in `ShoppingErrorBanner.tsx`, `EinlagernItemRow.tsx` and `useSyncQueue.ts`.
 - `alfheim-setup update` (and `restore`) could report a failed verification on a healthy stack: `verify-stack.sh` ran while the app frontends were still inside their 180 s healthcheck start period and counted `starting` as a failure. The script now waits for starting services (up to `VERIFY_STACK_WAIT_SECONDS`, default 300) before judging them.
 - Release images are now published for `linux/amd64` and `linux/arm64` (#703). The Go and Caddy Dockerfiles cross-compile for `TARGETARCH` instead of hard-coding `GOARCH=amd64`, and the release workflow scans both platforms with Trivy before it pushes the multi-arch manifest, so `alfheim-setup` no longer fails with "no matching manifest for linux/arm64/v8".
