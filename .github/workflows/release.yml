@@ -254,6 +254,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     permissions:
+      # upload-sarif >= 4.39 reads the workflow run to attribute the analysis.
+      actions: read
       contents: read
       packages: write
       security-events: write

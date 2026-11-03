@@ -140,6 +140,8 @@ jobs:
     name: Trivy Filesystem & Config Scanning
     runs-on: ubuntu-latest
     permissions:
+      # upload-sarif >= 4.39 reads the workflow run to attribute the analysis.
+      actions: read
       contents: read
       security-events: write
     steps:
