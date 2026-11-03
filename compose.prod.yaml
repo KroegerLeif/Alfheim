@@ -177,7 +177,7 @@ services:
           memory: 1g
           cpus: 1
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v2.66.1
+    image: ghcr.io/zitadel/zitadel:v2.71.19
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
@@ -288,7 +288,7 @@ services:
   # 3. OBSERVABILITY & TELEMETRY
   # ----------------------------------------------------------------------------
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.99.0
+    image: victoriametrics/victoria-metrics:v1.155.0
     container_name: victoriametrics
     restart: unless-stopped
     logging: *default-logging
@@ -395,7 +395,7 @@ services:
           memory: 256m
           cpus: 0.25
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.100.0
+    image: otel/opentelemetry-collector-contrib:0.164.0
     container_name: otel-collector
     restart: unless-stopped
     logging: *default-logging
@@ -431,7 +431,7 @@ services:
   # is denied by the default-deny allowlist. It sits on a private internal
   # network that only Vector can reach.
   docker-socket-proxy:
-    image: wollomatic/socket-proxy:1.13.1
+    image: wollomatic/socket-proxy:1.13.2
     container_name: docker-socket-proxy
     restart: unless-stopped
     logging: *default-logging
@@ -470,7 +470,7 @@ services:
           memory: 64m
           cpus: 0.10
   vector:
-    image: timberio/vector:0.39.0-alpine
+    image: timberio/vector:0.61.0-alpine
     container_name: vector-shipper
     restart: unless-stopped
     logging: *default-logging
