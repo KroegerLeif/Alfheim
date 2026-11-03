@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Python dependencies: minor and patch updates across the uv workspace (ruff 0.17, ty 0.0.95, FastAPI, SQLAlchemy 2.1, Pydantic 2.14, OpenTelemetry 1.45); test helpers now annotate context managers with `Generator`/`AsyncGenerator`.
+
 ---
 
 ## [v0.3.1] - 2026-10-29
