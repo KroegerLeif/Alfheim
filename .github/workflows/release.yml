@@ -313,7 +313,9 @@ jobs:
       # Skipped in a dry run so branch builds never create code scanning
       # alerts. The gate below still fails the run on the same findings.
       - name: Upload Trivy Results to GitHub Security Tab
-        if: always() && matrix.arch == 'amd64' && env.DRY_RUN != 'true'
+        # Code scanning needs a public repository (or GitHub Advanced Security);
+        # the Trivy gate below blocks the push either way.
+        if: always() && matrix.arch == 'amd64' && env.DRY_RUN != 'true' && github.event.repository.visibility == 'public'
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: '${{ matrix.name }}-trivy-results.sarif'
