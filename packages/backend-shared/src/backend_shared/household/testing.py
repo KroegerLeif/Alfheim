@@ -14,7 +14,7 @@ or skip authentication entirely with :func:`override_household`.
 
 import json
 import uuid
-from collections.abc import Iterator, Mapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from typing import Any
 from unittest.mock import patch
@@ -104,7 +104,7 @@ def make_test_token(sub: str = DEFAULT_TEST_SUB, **claims: Any) -> str:
 
 
 @contextmanager
-def mcp_household_context(context: HouseholdContext | None = None, **kwargs: Any) -> Iterator[HouseholdContext]:
+def mcp_household_context(context: HouseholdContext | None = None, **kwargs: Any) -> Generator[HouseholdContext]:
     """Set the MCP household context for calling tool functions directly in unit tests."""
     from backend_shared.mcp_middleware import mcp_household_context_var
 
@@ -119,7 +119,7 @@ def mcp_household_context(context: HouseholdContext | None = None, **kwargs: Any
 @contextmanager
 def mcp_membership(
     memberships: Mapping[tuple[uuid.UUID | str, str], HouseholdRole] | None = None,
-) -> Iterator[StaticMembershipLookup]:
+) -> Generator[StaticMembershipLookup]:
     """Make :class:`~backend_shared.mcp_middleware.MCPAuthenticationMiddleware` use ``memberships``.
 
     The MCP middleware sits outside FastAPI's dependency system, so
