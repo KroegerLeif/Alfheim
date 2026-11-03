@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Upgraded `fastmcp` to 3.4.11 to fix GHSA-7xgj-8392-5q4r.
+- Upgraded `joserfc` from 1.7.4 to 1.7.7 to fix CVE-2026-119283 in the Python images.
 
 ---
 
