@@ -1,2 +1,6 @@
 # False positive: an empty OIDC_JWKS_URL test value flagged by the generic-api-key rule.
 6018022c056bb3632a91a7adb3dd7f831c9c6bc2:apps/workout/backend/src/features/plans/tests/test_core_coverage.py:generic-api-key:30
+# False positives: placeholder test fixtures, found by the scheduled full-history scan.
+9db450f06341c5c9b444bb0b07d4ac8e6ca7017e:core/household/frontend/src/features/household/components/tests/InviteQrAndRevoke.test.tsx:generic-api-key:15
+04000f60e103b0a398b830a0f082fc09838f482a:tools/installer/internal/app/internal_tls_test.go:generic-api-key:138
+c89d2c4d5b25ac8fd3fca39c0f9f4b01aa1183ee:tools/installer/internal/app/run_test.go:generic-api-key:277

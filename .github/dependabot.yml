@@ -109,6 +109,10 @@ updates:
     labels:
       - 'area:dependencies'
       - 'area:security'
+    ignore:
+      # eslint-config-next's plugins still declare an eslint ^9 peer; revisit when it supports eslint 10.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
 
   # GitHub Actions
   - package-ecosystem: github-actions
@@ -149,6 +153,10 @@ updates:
     labels:
       - 'area:dependencies'
       - 'area:security'
+    ignore:
+      # Stay on the Node LTS line; moving to the next LTS (24) is a deliberate, tested change.
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
 
   # Image tags referenced from compose files
   - package-ecosystem: docker-compose
@@ -173,3 +181,7 @@ updates:
     labels:
       - 'area:dependencies'
       - 'area:security'
+    ignore:
+      # Zitadel v2 -> v4 is a planned migration (database and login UI changes), not a tag bump.
+      - dependency-name: 'zitadel/zitadel'
+        update-types: ['version-update:semver-major']
