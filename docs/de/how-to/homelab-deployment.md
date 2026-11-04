@@ -194,6 +194,8 @@ docker run --rm \
   alpine tar czf /backup/alfheim-backup-$(date +%Y%m%d).tar.gz /data
 ```
 
+Um die Datenbank oder den Objektspeicher statt in einem benannten Volume auf einer eigenen Platte abzulegen, siehe [Speicher-Layout planen](./storage-layout.md).
+
 ### Plattform stoppen oder zurücksetzen
 ```bash
 # Sauber stoppen

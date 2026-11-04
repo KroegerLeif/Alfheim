@@ -11,7 +11,7 @@ expect.extend(matchers)
 // The monorepo runs every frontend's suite in parallel; give async queries headroom on a loaded machine.
 configure({ asyncUtilTimeout: 5000 })
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => {
   server.resetHandlers()
   localStorage.clear()

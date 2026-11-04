@@ -83,7 +83,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | Grafana-Anmeldung | Admin erhält die Org-Rolle Admin; ein Benutzer ohne die Rolle wird abgewiesen |
 | `GET /api/v1/telemetry/logs` | echte Container-Logs für den Admin, `403 operator_required` für andere |
 | `GET /api/v1/chat/mcp-servers/diagnostics`, `PATCH /api/v1/chat/mcp-servers/{id}` | 200 für den Admin, 403 für andere (die Liste selbst sehen sie gekürzt) |
-| Budget-Beleg: Upload-URL, danach `PUT` aus dem Browser | URL unter `https://<app-host>/storage/`, `PUT` antwortet 200 |
+| Budget-Beleg: Handyfoto an eine Buchung anhängen | Der Browser sendet die Datei an `/api/v1/budget/transactions/receipt` (nie an `/storage/`); das gespeicherte Objekt ist ein kleines WebP |
 | Chat-Anhang hochladen | 201, das Objekt liegt in RustFS |
 
 Prüfe die Zeilen für „andere“ mit einem zweiten Benutzer, dem ein eigener

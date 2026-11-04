@@ -15,7 +15,7 @@ dependencies = [
     "sqlmodel>=0.0.38",
     "uvicorn>=0.39.0",
     "httpx>=0.28.1",
-    "fastmcp>=3.4.1",
+    "fastmcp>=4.1.5",
 ]
 
 [dependency-groups]

@@ -163,13 +163,11 @@ def _current_mcp_request_context() -> HouseholdContext | None:
     variables were copied from the session's *first* request, so the per-request
     ASGI scope is the authoritative source whenever the MCP SDK exposes it.
     """
+    from fastmcp.server.dependencies import get_http_request
+
     try:
-        from mcp.server.lowlevel.server import request_ctx
-    except ImportError:  # pragma: no cover - the MCP SDK is installed wherever MCP tools run
-        return None
-    try:
-        request = request_ctx.get().request
-    except LookupError:
+        request = get_http_request()
+    except RuntimeError:
         return None
     scope = getattr(request, "scope", None)
     context = scope.get(MCP_HOUSEHOLD_SCOPE_KEY) if isinstance(scope, dict) else None

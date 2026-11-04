@@ -10,6 +10,7 @@
 #   ./scripts/test-prod-startup.sh               # Run smoke test and tear down
 #   ./scripts/test-prod-startup.sh --keep        # Keep test containers running
 #   ./scripts/test-prod-startup.sh --timeout 120 # Custom timeout in seconds
+#   ./scripts/test-prod-startup.sh --bind-mounts # Same run, data in host directories
 # ==============================================================================
 
 set -euo pipefail
@@ -41,12 +42,18 @@ COMPOSE_FILE="${REPO_ROOT}/compose.prod.yaml"
 source "${SCRIPT_DIR}/lib/docker-socket-gid.sh"
 
 KEEP_CONTAINERS=false
+BIND_MOUNTS=false
+BIND_ROOT=""
 TIMEOUT=180
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --keep|-k)
       KEEP_CONTAINERS=true
+      shift
+      ;;
+    --bind-mounts)
+      BIND_MOUNTS=true
       shift
       ;;
     --timeout|-t)
@@ -57,6 +64,8 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $0 [OPTIONS]"
       echo "Options:"
       echo "  --keep, -k       Keep containers running after successful test"
+      echo "  --bind-mounts    Store postgres, rustfs and telemetry data in host directories"
+      echo "                   (ALFHEIM_*_DATA_PATH) instead of named volumes"
       echo "  --timeout, -t    Maximum wait timeout in seconds (default: 180)"
       echo "  -h, --help       Show this help message"
       exit 0
@@ -121,10 +130,21 @@ cleanup() {
     log_info "Tearing down core smoke-test containers..."
     docker compose -f "${COMPOSE_FILE}" down -v >/dev/null 2>&1 || true
     log_success "Cleaned up test containers and networks"
+    remove_bind_root
   else
     log_warn "Containers left running (--keep specified)"
   fi
   exit "${exit_code}"
+}
+
+# remove_bind_root deletes the host data directories of a --bind-mounts run.
+# They are owned by container users, so a throwaway root container removes them.
+remove_bind_root() {
+  if [[ -n "${BIND_ROOT}" && -d "${BIND_ROOT}" ]]; then
+    docker run --rm --network none --user 0:0 -v "${BIND_ROOT}:/data" alpine:3.20 \
+      sh -c 'rm -rf /data/* /data/.[!.]* 2>/dev/null || true' >/dev/null 2>&1 || true
+    rmdir "${BIND_ROOT}" 2>/dev/null || true
+  fi
 }
 
 trap cleanup EXIT INT TERM
@@ -214,6 +234,34 @@ prepare_zitadel_machinekey() {
   fi
 }
 
+# prepare_bind_mounts creates the host data directories with the owners the
+# containers run as (what alfheim-setup does) and exports the variables
+# compose.prod.yaml reads. Owners: postgres 70, rustfs 10001, Victoria* root.
+prepare_bind_mounts() {
+  BIND_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/alfheim-bind-XXXXXX")"
+  mkdir -p "${BIND_ROOT}"/{db,objects,metrics,logs}
+  docker run --rm --network none --user 0:0 -v "${BIND_ROOT}:/data" alpine:3.20 sh -c \
+    'chown 70:70 /data/db && chmod 700 /data/db && chown 10001:10001 /data/objects && chmod 700 /data/objects && chown 0:0 /data/metrics /data/logs' \
+    || { log_error "Could not prepare the bind-mount directories under ${BIND_ROOT}"; exit 1; }
+  export ALFHEIM_DB_DATA_PATH="${BIND_ROOT}/db"
+  export ALFHEIM_OBJECT_DATA_PATH="${BIND_ROOT}/objects"
+  export ALFHEIM_METRICS_DATA_PATH="${BIND_ROOT}/metrics"
+  export ALFHEIM_LOGS_DATA_PATH="${BIND_ROOT}/logs"
+  log_success "Bind-mount data directories prepared under ${BIND_ROOT}"
+}
+
+# assert_bind_mount fails unless the container's destination is a bind mount.
+assert_bind_mount() {
+  local container="$1" destination="$2" type
+  type="$(docker inspect --format "{{range .Mounts}}{{if eq .Destination \"${destination}\"}}{{.Type}}{{end}}{{end}}" "${container}")"
+  if [[ "${type}" == "bind" ]]; then
+    log_success "${container}:${destination} is a bind mount"
+  else
+    log_error "${container}:${destination} is mounted as '${type:-nothing}', expected a bind mount"
+    exit 1
+  fi
+}
+
 # ==============================================================================
 # Execution Stages
 # ==============================================================================
@@ -225,6 +273,10 @@ echo -e "${BOLD}${CYAN}=========================================================
 # Stage 1: Static Configuration & Environment Verification
 # ------------------------------------------------------------------------------
 stage_step "1/4" "Preflight Configuration & Mount Path Verification"
+
+if [[ "${BIND_MOUNTS}" == "true" ]]; then
+  prepare_bind_mounts
+fi
 
 log_info "Ensuring environment file exists and legacy variables are migrated..."
 "${REPO_ROOT}/scripts/init-env.sh" --auto
@@ -281,6 +333,13 @@ wait_for_health "alfheim_rustfs" "RustFS Central Storage" 30
 wait_for_health "victoriametrics" "VictoriaMetrics" 30
 wait_for_health "victorialogs" "VictoriaLogs" 30
 wait_for_health "otel-collector" "OpenTelemetry Collector" 30
+
+if [[ "${BIND_MOUNTS}" == "true" ]]; then
+  assert_bind_mount alfheim_postgres_core /var/lib/postgresql/data
+  assert_bind_mount alfheim_rustfs /data
+  assert_bind_mount victoriametrics /victoria-metrics-data
+  assert_bind_mount victorialogs /victoria-logs-data
+fi
 
 prepare_zitadel_machinekey
 log_info "Launching Zitadel Identity Provider (bootstraps first instance on cold start)..."
