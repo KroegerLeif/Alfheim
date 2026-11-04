@@ -200,6 +200,7 @@ Um ein misslungenes Update samt Daten zurückzurollen, führe `alfheim-setup res
 ## Siehe auch
 
 * [Eine Installation aktualisieren](./update-installation.md)
+* [Speicher-Layout planen](./storage-layout.md)
 * [alfheim-setup CLI-Referenz](../reference/installer-cli.md)
 * [Secrets-Härtung](./secrets-hardening.md)
 * [PostgreSQL-Core-Service](../../../infrastructure/postgres/README.md)
