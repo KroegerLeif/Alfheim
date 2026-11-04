@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- CI: the frontend gate now runs `next build` for every Next.js frontend (matrix job `production-build`), so build-only failures such as an import above a `"use client"` directive fail `ci-required` on pull requests (#784).
+
 ---
 
 ## [v0.3.1] - 2026-10-29
