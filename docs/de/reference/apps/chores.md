@@ -109,6 +109,50 @@ Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitg
 
 ---
 
+## 🗄️ Datenmodell-Invarianten
+
+### Tabelle `chore_templates`
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `home_id` | UUID, NOT NULL, indiziert | Aktiver Haushalt |
+| `name` | VARCHAR(150), NOT NULL | |
+| `description` | VARCHAR(500), nullable | |
+| `points` | INTEGER, NOT NULL, Standard `10` | |
+| `is_non_cumulative` | BOOLEAN, NOT NULL, Standard `true` | |
+
+### Tabelle `chore_instances`
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `template_id` | UUID, FK → `chore_templates.id`, NOT NULL | |
+| `home_id` | UUID, NOT NULL, indiziert | |
+| `assigned_to`, `completed_by` | UUID, nullable | |
+| `completed_at` | TIMESTAMPTZ, nullable | |
+| `due_date` | DATE, NOT NULL, indiziert | |
+| `status` | VARCHAR(20), NOT NULL, Standard `pending` | `pending`, `completed` oder `missed` |
+| `points_awarded` | INTEGER, NOT NULL, Standard `0` | |
+
+### Tabelle `household_streaks`
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `home_id` | UUID, NOT NULL, eindeutig, indiziert | |
+| `current_streak`, `longest_streak` | INTEGER, NOT NULL, Standard `0` | |
+| `last_completed_date` | DATE, nullable | |
+
+Invarianten:
+
+1. **Namenseindeutigkeit**: Vorlagennamen sind innerhalb eines Haushalts eindeutig (Index `uq_chore_template_name_per_home`).
+2. **Instanz-Eindeutigkeit**: Eine Vorlage hat pro Datum höchstens eine Instanz (Index `uq_chore_instance_template_per_date`).
+3. **Streak-Integrität**: Die Serie wächst, wenn alle für den Tag geplanten Aufgaben erledigt sind. Jede offene Aufgabe wird als `missed` markiert und die Serie wird beim täglichen Reset auf 0 gesetzt.
+4. **Selbstheilender Reset**: War das System offline, läuft der tägliche Reset rückwirkend beim ersten Zugriff auf die Aufgaben des Haushalts an diesem Tag.
+
+---
+
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.

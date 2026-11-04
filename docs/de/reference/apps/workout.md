@@ -115,6 +115,33 @@ Benutzer des Aufrufers nicht sichtbar ist, liefert `404`.
 
 ---
 
+## 🗄️ Datenmodell-Invarianten
+
+Es gibt keine Tabelle `households`. `home_id` ist die UUID aus dem Header `X-Household-ID`, die `require_household` wie bei Pantry und Chores gegen `core/household` bestätigt.
+
+### Tabellen `equipment`, `exercises`
+
+- Ein Enum `scope` (`system`, `household`, `user`) bestimmt den Geltungsbereich jeder Zeile. `home_id` und `owner_user_id` sind nullable und nur für den passenden Scope gesetzt. Systemzeilen werden beim Test- und Anwendungsstart angelegt und sind über die API schreibgeschützt.
+- `user_exercise_preferences` (eindeutig auf `user_id` + `exercise_id`) enthält das Basisgewicht jedes Nutzers, das die Gewichts-Engine liest. `exercise_favorites` (eindeutig auf `user_id` + `exercise_id`) ist eine reine An/Aus-Zuordnung.
+
+### Tabellen `plans`, `plan_days`, `plan_exercises`, `plan_sets`
+
+- `plans.is_shared` steuert die haushaltsweite Sichtbarkeit. Nur der Eigentümer darf schreiben, auch bei einem geteilten Plan.
+- `plan_sets.target_weight_type` (`absolute`, `default`, `offset`) steuert die relative Gewichts-Engine; siehe `plans/services/weight_engine_service.py::resolve_target_weight`.
+
+### Tabellen `workout_sessions`, `session_exercises`, `session_sets`
+
+- Eine Session ist beim Start ein struktureller Klon des Plans und nie ein Live-Fremdschlüssel auf `plan_exercises` oder `plan_sets`; Änderungen oder Löschen eines Plans schreiben daher nie eine vergangene Session um. `session_sets.target_weight_kg` speichert den aufgelösten Wert der Gewichts-Engine, nicht Typ und Offset.
+- `session_sets` hat einen partiellen Unique-Index auf (`session_exercise_id`, `client_idempotency_key`), wenn der Schlüssel nicht null ist; er trägt den Offline-Sync-Endpunkt `POST /sessions/{id}/sets/sync`. Der Sync füllt die geklonte `session_sets`-Zeile desselben Slots (`set_order`, noch nicht abgeschlossen), statt ein Duplikat einzufügen, und antwortet bei abgeschlossener oder abgebrochener Session mit `409 session_not_active` (das erneute Senden gespeicherter Schlüssel wird weiterhin bestätigt).
+
+### Invarianten
+
+1. **MCP-Mandantentrennung**: MCP-Tools (je Feature und der zusammengesetzte Slice `agent_tools`) haben keine Parameter `household_id` oder `user_id`. Sie lesen beides aus `get_mcp_household_context()` und wenden dieselbe Filterung in der Service-Schicht an wie die REST-Routen.
+2. **403 vs. 404**: Ein `X-Household-ID`, dem der Aufrufer nicht angehört, weist die Auth-Dependency mit `403 household_forbidden` ab (siehe `backend_shared.household`). Eine Ressource, die existiert, aber für Haushalt oder Nutzer des Aufrufers nicht sichtbar ist, liefert auf Ressourcenebene 404.
+3. **Alembic-Migrationen**: Jedes Python-Backend führt beim Start `alembic upgrade head` unter einer Postgres-Advisory-Lock aus (`run_migrations`); `create_all` wird in Produktion nicht verwendet. Siehe [Schema-Migrationen](../../explanation/schema-migrations.md).
+
+---
+
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 - **Offline-Sync spielt gegen den beim Abgleich aktiven Haushalt ab, nicht gegen den beim Loggen.**

@@ -46,7 +46,10 @@ python3 scripts/check-markdown-links.py
 
 - Write all code, comments, docstrings, identifiers, log and error messages and commit messages
   in English.
-- Comment why, not what. Public functions, types and API endpoints get a doc comment.
+- Comment why, not what; no commented-out code. Public functions, types and API endpoints get a
+  doc comment (Go `// Name ...`, Python Google-style docstring, TSDoc in `packages/shared`).
+- Every `TODO` or `FIXME` carries an issue: `TODO(#123): ...`. Open an issue instead of leaving
+  a note for later. Details and enforcement: [code comments](docs/en/reference/conventions/code-comments.md).
 - No stubs: no empty functions or files, no `pass` placeholders, no hardcoded mock returns.
 - Never mask errors: no empty `except`/`catch`, no `// @ts-ignore`, no silently swallowed errors.
 - Organise code by feature (FDD): `features/<domain>/` owns its models, schemas, logic, data
@@ -140,5 +143,8 @@ python3 scripts/check-markdown-links.py
   [environment variables](docs/en/reference/environment-variables.md),
   [app references](docs/en/reference/apps/)
 - [Create a new FDD service](docs/en/tutorials/create-new-fdd-service.md)
-- Stack guides and the detailed quality-gate reference still live in [`.ai/`](.ai/INDEX.md) until
-  they move into nested `AGENTS.md` files and `docs/` (#796, #799).
+- Stack conventions, one canonical page each: [Python and FastAPI](docs/en/reference/conventions/python-fastapi.md),
+  [Go](docs/en/reference/conventions/go.md), [Next.js and Tailwind](docs/en/reference/conventions/nextjs-tailwind.md).
+  Each backend, frontend, shared package and the installer has a nested `AGENTS.md` with its own commands and invariants.
+- [Quality gates](docs/en/reference/quality-gates.md): thresholds, security checks and what each CI
+  workflow does.

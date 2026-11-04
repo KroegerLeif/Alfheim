@@ -36,7 +36,8 @@ class ServiceHistoryEventRead(BaseModel):
 
 class ServiceHistoryEventDetailRead(BaseModel):
     """Extended history event schema that includes denormalised device fields
-    so the frontend /history endpoint never needs a second round-trip."""
+    so the frontend /history endpoint never needs a second round-trip.
+    """
 
     id: int
     date: str
