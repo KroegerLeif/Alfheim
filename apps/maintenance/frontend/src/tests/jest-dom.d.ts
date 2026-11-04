@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-empty-object-type */
 // @testing-library/jest-dom still augments vitest's `Assertion` with one type parameter; vitest 5 declares
 // two (`R`, `T`), so its own augmentation no longer merges. Declare the matchers here until it catches up.
 import type matchers from '@testing-library/jest-dom/matchers'

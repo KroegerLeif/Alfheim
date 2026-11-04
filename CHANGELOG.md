@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Frontend test tooling: vitest 4 → 5, `@vitest/coverage-v8` 4 → 5 and msw 2 → 3 across all workspace packages (#780). msw's `onUnhandledRequest` became `onUnhandledFrame`; `@testing-library/jest-dom` matchers are declared locally (`src/tests/jest-dom.d.ts`) because its vitest typings do not yet match vitest 5's two-parameter `Assertion`. The `asyncUtilTimeout` stabilisation stays.
+- Frontend test tooling: vitest 4 → 5, `@vitest/coverage-v8` 4 → 5 and msw 2 → 3 across all workspace packages (#780). msw's `onUnhandledRequest` became `onUnhandledFrame`; `@testing-library/jest-dom` matchers are declared locally (`src/tests/jest-dom.d.ts`) because its vitest typings do not yet match vitest 5's two-parameter `Assertion`. The `asyncUtilTimeout` stabilisation stays, and every vitest config caps `maxWorkers` at 2 because full parallel `pnpm -r test` runs timed out under vitest 5 with the default.
 
 ---
 
