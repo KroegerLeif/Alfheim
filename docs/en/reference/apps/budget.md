@@ -16,7 +16,7 @@ Source: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 | Fragmented household accounts | Centralized balance tracking (Checking, Savings, Cash, Credit) |
 | Savings goal allocation | Virtual sinking fund pots with percentage/fixed target tracking |
 | Unplanned expenses | Envelope-style monthly & event budget plans |
-| Expense audit trail | Categorized transaction ledger with RustFS S3 receipt image attachments |
+| Expense audit trail | Categorized transaction ledger with receipt attachments (JPEG, PNG, WebP, HEIC, PDF) uploaded through the backend: size-capped, type checked by content, images stripped of metadata, downscaled and stored as WebP under a server-generated key |
 
 ---
 
@@ -43,6 +43,7 @@ Source: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 | `DATABASE_URL` | `postgresql+asyncpg://budget_user:postgres@postgres-core:5432/alfheim_budget` | Async PostgreSQL connection string |
 | `S3_ENDPOINT_URL` | `http://rustfs:9000` | S3-compatible object storage endpoint |
 | `S3_BUCKET_NAME` | `budget-receipts` | S3 bucket for receipt images |
+| `MAX_RECEIPT_UPLOAD_BYTES` | `10485760` | Largest accepted receipt upload (10 MiB); larger files get HTTP 413 |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/budget` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |

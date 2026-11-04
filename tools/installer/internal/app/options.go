@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/tls"
 )
@@ -37,6 +38,10 @@ type Options struct {
 	APIToken    string
 	CertPath    string
 	ImageTag    string
+
+	// DataPaths are host directories for persistent data, keyed by the .env
+	// variable (ALFHEIM_DB_DATA_PATH, ...). Empty keeps the named volume.
+	DataPaths datapaths.Paths
 }
 
 // usage is printed for -h and on a usage error.
@@ -69,6 +74,14 @@ Headless answers (each also readable from the environment):
   --cert-path DIR      ALFHEIM_CERT_PATH      Absolute path holding fullchain.pem and privkey.pem
   --image-tag TAG      ALFHEIM_IMAGE_TAG      Container image tag (default: latest)
 
+Data locations (optional; absolute host paths, default: Docker named volumes).
+The installer creates each directory with the owner its container needs and
+fails if it is not writable. An earlier choice in .env is kept on a re-run.
+  --db-data-path DIR       ALFHEIM_DB_DATA_PATH       PostgreSQL data (owner 70)
+  --object-data-path DIR   ALFHEIM_OBJECT_DATA_PATH   RustFS object storage (owner 10001)
+  --metrics-data-path DIR  ALFHEIM_METRICS_DATA_PATH  VictoriaMetrics data
+  --logs-data-path DIR     ALFHEIM_LOGS_DATA_PATH     VictoriaLogs data
+
 Exit codes:
   0 success   1 failure   2 usage error   130 interrupted
 `
@@ -76,7 +89,7 @@ Exit codes:
 // ParseOptions parses args, falling back to the environment for headless
 // answers. It never calls os.Exit, so the caller decides the exit code.
 func ParseOptions(args []string, stderr io.Writer) (*Options, error) {
-	opts := &Options{}
+	opts := &Options{DataPaths: datapaths.Paths{}}
 
 	fs := flag.NewFlagSet("alfheim-setup", flag.ContinueOnError)
 	fs.SetOutput(stderr)
@@ -96,6 +109,11 @@ func ParseOptions(args []string, stderr io.Writer) (*Options, error) {
 	fs.StringVar(&opts.CertPath, "cert-path", "", "certificate directory")
 	fs.StringVar(&opts.ImageTag, "image-tag", "", "container image tag")
 
+	dataFlags := make(map[string]*string, len(datapaths.Classes))
+	for _, c := range datapaths.Classes {
+		dataFlags[c.Key] = fs.String(c.Flag, "", c.Title+" directory (absolute path)")
+	}
+
 	if err := fs.Parse(args); err != nil {
 		return nil, fmt.Errorf("alfheim-setup: %w", err)
 	}
@@ -104,6 +122,11 @@ func ParseOptions(args []string, stderr io.Writer) (*Options, error) {
 		return nil, fmt.Errorf("alfheim-setup: unexpected argument %q", fs.Arg(0))
 	}
 
+	for _, c := range datapaths.Classes {
+		if v := strings.TrimSpace(*dataFlags[c.Key]); v != "" {
+			opts.DataPaths[c.Key] = v
+		}
+	}
 	opts.applyEnvDefaults()
 
 	if opts.InstallDir == "" {
@@ -134,6 +157,14 @@ func (o *Options) applyEnvDefaults() {
 	for _, f := range fallbacks {
 		if *f.target == "" {
 			*f.target = strings.TrimSpace(os.Getenv(f.env))
+		}
+	}
+
+	for _, c := range datapaths.Classes {
+		if o.DataPaths[c.Key] == "" {
+			if v := strings.TrimSpace(os.Getenv(c.Key)); v != "" {
+				o.DataPaths[c.Key] = v
+			}
 		}
 	}
 

@@ -21,6 +21,14 @@ dependencies = [
     "opentelemetry-instrumentation-sqlalchemy>=0.46b0",
 ]
 
+[project.optional-dependencies]
+# Image uploads (backend_shared.images). Optional so backends without image
+# handling do not carry Pillow in their container images.
+images = [
+    "pillow>=11.0.0",
+    "pillow-heif>=0.21.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

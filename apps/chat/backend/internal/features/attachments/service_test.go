@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"image"
+	"image/color"
+	"image/png"
 	"io"
 	"log/slog"
 	"net/url"
@@ -124,8 +127,16 @@ func (m *mockRepository) LinkImageRefsToMessage(ctx context.Context, messageID s
 	return nil
 }
 
-// Sample valid 8-byte PNG header
-var samplePNG = []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0x00, 0x00, 0x00, 0x0D, 'I', 'H', 'D', 'R'}
+// samplePNG is a small decodable PNG with a transparent pixel, so normalisation keeps it a PNG.
+var samplePNG = func() []byte {
+	img := image.NewNRGBA(image.Rect(0, 0, 4, 4))
+	img.SetNRGBA(1, 1, color.NRGBA{R: 200, A: 255})
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}()
 
 func TestUploadAttachment(t *testing.T) {
 	log := slog.Default()

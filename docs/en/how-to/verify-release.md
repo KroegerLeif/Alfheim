@@ -80,7 +80,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | Grafana sign-in | admin gets org role Admin; a user without the role is rejected |
 | `GET /api/v1/telemetry/logs` | real container logs for the admin, `403 operator_required` for others |
 | `GET /api/v1/chat/mcp-servers/diagnostics`, `PATCH /api/v1/chat/mcp-servers/{id}` | 200 for the admin, 403 for others (the list itself is redacted for them) |
-| Budget receipt: upload URL, then `PUT` from the browser | URL under `https://<app-host>/storage/`, `PUT` answers 200 |
+| Budget receipt: attach a phone photo to a transaction | The browser posts the file to `/api/v1/budget/transactions/receipt` (never to `/storage/`); the stored object is a small WebP |
 | Chat attachment upload | 201, the object exists in RustFS |
 
 Test the "others" rows with a second user who owns a household of their own:
