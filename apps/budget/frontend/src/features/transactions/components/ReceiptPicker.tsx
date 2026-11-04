@@ -27,7 +27,7 @@ export function ReceiptPicker({ file, onChange }: ReceiptPickerProps) {
       <input
         id="transaction-receipt"
         type="file"
-        accept="image/*,application/pdf"
+        accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
         className="sr-only"
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}
       />

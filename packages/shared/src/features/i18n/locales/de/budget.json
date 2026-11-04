@@ -184,7 +184,9 @@
       "deleteLabel": "Transaktion {description} löschen",
       "receiptAttachPrompt": "Beleg anhängen (optional)",
       "amountWithCurrency": "Betrag ({currency})",
-      "receiptUploadFailed": "Beleg-Upload fehlgeschlagen (Status {status})."
+      "receiptUploadFailed": "Beleg-Upload fehlgeschlagen (Status {status}).",
+      "receiptTooLarge": "Der Beleg ist zu groß (maximal 10 MB).",
+      "receiptInvalidType": "Dieser Dateityp wird nicht unterstützt. Verwende JPEG, PNG, WebP, HEIC oder PDF."
     },
     "analytics": {
       "title": "Finanzanalytik & Cashflow",

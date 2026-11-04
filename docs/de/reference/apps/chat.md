@@ -84,6 +84,52 @@ MCP-Sessions werden pro Endpunkt, Haushalt und Nutzer geführt: `ClientPool` wä
 
 ---
 
+## 🗄️ Datenmodell-Invarianten
+
+### Tabelle `model_blocks`
+
+| Spalte | Hinweise |
+| --- | --- |
+| `id` | UUID, PK |
+| `owner_user_id` | Zitadel-`sub` |
+| `household_id` | Nullable; `NULL` bedeutet privat |
+| `visibility` | `private` oder `shared`. Geteilte Blöcke sind für Haushaltsmitglieder nutzbar, aber nur vom Eigentümer bearbeitbar |
+| `provider_type` | `ollama` oder `openai_compatible` (`anthropic` ist geplant) |
+| `base_url`, `model_identifier` | |
+| `api_key_encrypted` | AES-256-GCM-Chiffretext, BYTEA, nullable |
+| `api_key_key_id` | Standard `v1`; ermöglicht Schlüsselrotation |
+| `health_status` | `ok`, `unreachable`, `auth_invalid` oder `unknown`; dazu `health_checked_at` und `health_detail` |
+| `is_bootstrap` | Gesetzt beim idempotenten Upsert aus `CHAT_BOOTSTRAP_*`, der nur beim ersten Start läuft |
+
+### Tabelle `mcp_server_registry`
+
+Wird bei jedem Start aus `CHAT_MCP_SERVERS` befüllt und synchronisiert (`internal/features/mcpservers`) mit `app_slug`, `internal_url` (zum Beispiel `http://pantry-backend:8000/mcp`) und `enabled`. Das erneute Einspielen aktualisiert `internal_url` per `app_slug`, setzt aber nie den `enabled`-Schalter eines Admins zurück. `internal/shared/mcp` ist ein selbst geschriebener Streamable-HTTP-**Client** (Initialize-Handshake, Session-ID, JSON- oder SSE-Bodies) für die FastMCP-Server der anderen Apps; Chat bringt keinen eigenen MCP-Servercode mit.
+
+### Tabellen `conversations`, `messages`, `image_refs`
+
+- `conversations.source_app` und `source_context` halten die Host-App und deren Kontext fest, wenn eine Unterhaltung im eingebetteten Chat-Widget beginnt; in der vollständigen Chat-App sind beide `NULL`.
+- `messages.role` ist `user`, `assistant`, `system` oder `tool`.
+- `image_refs.storage_key` verweist auf ein Objekt in RustFS.
+
+### Invarianten
+
+1. Der Klartext des API-Schlüssels verlässt das Backend nie; Antwort-DTOs enthalten nur `has_api_key: bool`.
+2. Geteilte `model_blocks` sind für Haushaltsmitglieder nutzbar; nur `owner_user_id` darf sie bearbeiten, löschen oder per Health-Check prüfen (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
+3. Bootstrap-Blöcke (`is_bootstrap = true`, `owner_user_id = "system"`) sind die Ausnahme: Jeder authentifizierte Nutzer darf sie sehen und ändern. Der einmalige Seed wird in der separaten Tabelle `bootstrap_state` verfolgt, sodass der gelöschte oder geänderte Seed-Block nach einem Neustart nicht wieder erscheint.
+4. `internal/shared/llm.Provider` wird aus primitiven Parametern (Anbietertyp, Basis-URL, Modell, API-Schlüssel) gebaut, nie aus einem `modelblocks.ModelBlock`; `internal/shared/llm` hängt daher nicht von `internal/features/modelblocks` ab.
+5. Die JWT-Validierung in `internal/shared/middleware/auth.go` prüft Issuer und Audience (`OIDC_AUDIENCE`); das unterscheidet sich bewusst von der reinen Issuer-Prüfung in `core/dashboard/backend`.
+6. Unterhaltungen sind immer persönlich (nur `owner_user_id`). Ein Haushaltsmitglied mit Zugriff auf einen geteilten Modellblock erhält eine eigene, separate Unterhaltung.
+7. `GET /api/v1/chat/conversations/{id}/stream` verlangt, dass die letzte Nachricht eine unbeantwortete `user`-Nachricht ist (sonst `ErrNoPendingUserMessage`). Die fertige Assistentenantwort speichert `AppendMessageAndTouchConversation` (eine Transaktion: Nachricht einfügen und `conversations.updated_at` aktualisieren) mit einem frischen 5-s-Timeout auf `context.Background()`, unabhängig von der HTTP-Anfrage. So geht die Antwort nicht verloren, wenn der Client am Stream-Ende die Verbindung trennt. Ein Stream, der mit einem `Err`-Chunk endet, speichert nichts.
+8. `internal/features/conversations` hängt von `internal/shared/llm` ab und definiert ein eigenes schmales Interface `ModelBlockResolver` (strukturell von `modelblocks.Service` erfüllt), statt `internal/features/modelblocks` zu importieren. Go-Interfaces werden beim Konsumenten definiert.
+9. Der HTTP-Server setzt einen `WriteTimeout` von 10 Minuten (`cmd/server/main.go`), weil der SSE-Endpunkt die Antwort offen hält, solange das Modell antwortet; `ReadTimeout` bleibt bei 15 s.
+10. Das Frontend kann das native `EventSource` nicht nutzen, da es keinen `Authorization`-Header senden kann. `streamAssistantReply` in `apps/chat/frontend/src/lib/api.ts` liest den `text/event-stream`-Body über `fetch()` und einen `ReadableStream`.
+11. Die Tool-Calling-Schleife (`conversations.service.runToolLoop`) leitet jeden Provider-Chunk live weiter (`delta`, `tool_call`), aber nie den `Done`-Chunk einer Zwischenrunde. Nur die letzte Runde (keine weiteren Tool-Aufrufe oder Rundenlimit erreicht) sendet den abschließenden `Done`- oder `Err`-Chunk, der die SSE-Antwort beendet.
+12. `tool_round_limit` (Standard 8) und `allowed_mcp_apps` liegen im `config_json` eines Modellblocks und werden von `modelblocks.parseProviderPolicy` zu `llm.ProviderPolicy` geparst. Der Typ liegt in `internal/shared/llm`, damit beide Features ihn teilen, ohne einander zu importieren.
+13. `conversations` importiert weder `mcpservers` noch den konkreten `*mcp.ClientPool` in der exportierten Signatur von `Service` / `NewService`. Es definiert die Konsumenten-Interfaces `MCPServerLister` und `MCPClientPool` (`toolbridge.go`). `mcp.ClientPool.Get` liefert das Interface `mcp.ToolCaller`, damit Tests einen Fake einsetzen können.
+14. `OpenAICompatibleProvider` (`internal/shared/llm/openai_compatible_provider.go`) erwartet `model_blocks.base_url` **ohne** abschließendes `/v1` (zum Beispiel `https://api.openai.com`) und hängt `/v1/chat/completions` und `/v1/models` selbst an. Gestreamte Tool-Call-Argumente kommen als fragmentierte JSON-String-Deltas pro Index; sie werden pro Index gepuffert und als `StreamChunk{ToolCall: ...}` ausgegeben, sobald `finish_reason == "tool_calls"` ist oder die Verbindung ohne `data: [DONE]`-Frame endet, den manche Anbieter weglassen.
+
+---
+
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 - **Alte Gespräche nach der UUID-Migration**: Migration `000004_household_ids_uuid` wandelt `conversations.household_id` und `model_blocks.household_id` in UUID um; Nicht-UUID-Werte werden zu `NULL`. Gespräche von vor der Haushaltsprüfung sind nicht mehr erreichbar, und geteilte Model-Blocks ohne Haushalt wurden privat. Siehe [Bekannte Probleme](../../explanation/known-issues.md).

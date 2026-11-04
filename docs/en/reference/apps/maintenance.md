@@ -94,6 +94,42 @@ they read `get_mcp_household_context()`.
 
 ---
 
+## 🗄️ Data Model Invariants
+
+### Table `device`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | Integer, PK | |
+| `name`, `model`, `serial`, `category`, `location` | VARCHAR, NOT NULL | |
+| `status` | VARCHAR, NOT NULL | `active`, `maintenance` or `inactive` |
+| `service_interval_months` | INTEGER, nullable | |
+| `household_id` | UUID, NOT NULL, indexed | Households are owned by `core/household`; there is no local `household` table |
+
+### Table `maintenancestep`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | Integer, PK | |
+| `title` | VARCHAR, NOT NULL | |
+| `description` | VARCHAR, nullable | |
+| `recurrence` | INTEGER, NOT NULL | Interval in months |
+| `supply_item`, `supply_needed_date`, `last_completed` | VARCHAR, nullable | |
+| `device_id` | Integer, FK → `device.id` | |
+
+### Table `servicehistoryevent`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | Integer, PK | |
+| `date` | VARCHAR, NOT NULL | |
+| `performer` | VARCHAR, NOT NULL | |
+| `notes` | VARCHAR, nullable | |
+| `completed_steps` | JSON, nullable | List of completed step titles |
+| `device_id` | Integer, FK → `device.id` | |
+
+---
+
 ## ⚠️ Known Issues & Open Follow-Ups
 
 - **Old devices missing after upgrade**: a database created before the switch to UUID households is

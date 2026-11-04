@@ -47,6 +47,7 @@ func (c *Conversation) IsAccessibleTo(userID, householdID string) bool {
 // Role identifies the author of a Message, mirroring llm.Role.
 type Role string
 
+// Message roles. The values match the LLM provider wire format.
 const (
 	RoleUser      Role = "user"
 	RoleAssistant Role = "assistant"

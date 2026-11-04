@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Chat image attachments (#805) are normalised on upload: EXIF orientation applied, all metadata (EXIF/GPS) dropped, longest edge capped at 2048 px, re-encoded as JPEG (PNG when the image has transparency), images above 40 megapixels refused. Pure Go (`golang.org/x/image`), so the chat binary stays CGO-free (+0.4 MB). Stored attachments therefore may differ in type from the uploaded file.
+### Added
+- `backend_shared.images.normalize_image` (#804): applies the EXIF orientation, strips all metadata (EXIF/GPS, ICC, XMP), caps the longest edge (default 2560 px), encodes WebP (alpha kept), accepts JPEG, PNG, WebP and HEIC, and refuses decompression bombs. Pillow and pillow-heif ship as the optional `images` extra of `backend-shared`; `budget-backend` opts in.
+
+### Security
+- Budget receipts (#802) are uploaded to the backend (`POST /api/v1/budget/transactions/receipt`, multipart) instead of straight from the browser to RustFS: capped at `MAX_RECEIPT_UPLOAD_BYTES` (default 10 MiB, HTTP 413), only JPEG, PNG, WebP, HEIC and PDF by content (HTTP 400 otherwise), images normalised to WebP without metadata via `normalize_image`, and stored under a server-generated key. The presigned-PUT endpoint `POST /transactions/receipt/upload-url`, `S3StorageService.generate_presigned_upload_url` and the matching frontend code are removed; new i18n keys `receiptTooLarge` and `receiptInvalidType` exist in en/de/pl.
+- Library manual upload (#803) reads the PDF in chunks up to `MAX_MANUAL_UPLOAD_BYTES` (default 50 MiB, HTTP 413 above it), rejects content that does not start with `%PDF-` (HTTP 400) and stores it under a server-generated object key instead of the client file name; replacing a manual deletes the old object. The reusable `read_bounded_upload` and `generate_object_name` helpers live in `backend_shared.storage`.
+### Security
+- Library manual upload (#803) reads the PDF in chunks up to `MAX_MANUAL_UPLOAD_BYTES` (default 50 MiB, HTTP 413 above it), rejects content that does not start with `%PDF-` (HTTP 400) and stores it under a server-generated object key instead of the client file name; replacing a manual deletes the old object. The reusable `read_bounded_upload` and `generate_object_name` helpers live in `backend_shared.storage`.
+### Changed
+- `postgres-core` stores new TOAST values with LZ4 (`default_toast_compression=lz4`) in the dev and prod stacks (#806). Existing rows keep pglz until rewritten. `scripts/verify-stack.sh` checks the setting.
+- Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
+- Removed the `.ai/` folder (#799). The quality-gate reference moved to `docs/en/reference/quality-gates.md`; the router map, persona workflows and the two-step "APPROVED" gate were dropped. `scripts/check-markdown-links.py` (also run by `verify.sh --security`) now fails if `.ai/` is tracked again.
+- Code comment convention (#798): `docs/en/reference/conventions/code-comments.md`. Ruff `D` rules (Google convention) and the `revive` `exported` rule for Go now run in `verify.sh` and CI, and `verify.sh --security` fails on `TODO`/`FIXME` without an issue reference. Existing Python docstring gaps are baselined in `ruff.toml`.
+- Nested `AGENTS.md` files (#796) for every backend, frontend, `packages/shared`, `packages/backend-shared` and `tools/installer`. Stack conventions now live once in `docs/en/reference/conventions/{python-fastapi,go,nextjs-tailwind}.md`, the shared component and theme blueprints became the how-to [Extend the shared package](docs/en/how-to/extend-shared-package.md), and the new-app scaffolding guide is merged into the FDD tutorial. `.ai/stacks`, `.ai/blueprints` and `.ai/guidelines/new-app-scaffolding.md` are removed.
+- Retired `.ai/CONTEXT.md` (#797): the sprint log is dropped (git history and this changelog hold it), the per-app database invariants for shopping, pantry, maintenance, chores, chat and workout moved into `docs/en/reference/apps/<app>.md` and the German pages, and the `TESTING` and `OTEL_ENABLED` flags joined the environment variable reference.
 
 ---
 
@@ -75,7 +90,11 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 
 - Dashboard launcher tile for the new Tier-1 `core/household` app (slug `household`, path `/household`, icon `home`), visible to every authenticated user.
 
+### Added
+- `scripts/check-compose.py` (#808), run by `verify.sh --security` and the new `compose-guard` workflow: fails if a service in `compose.prod.yaml` lacks bounded logging or a memory limit, or a dev service lacks bounded logging.
+
 ### Changed
+- Every dev compose service now uses the `x-logging` json-file rotation (10 MB x 3) so local disks do not fill up (#808).
 - Python dependencies: minor and patch updates across the uv workspace (ruff 0.17, ty 0.0.95, FastAPI, SQLAlchemy 2.1, Pydantic 2.14, OpenTelemetry 1.45); test helpers now annotate context managers with `Generator`/`AsyncGenerator`. Coverage now measures across greenlet switches (`concurrency = ["greenlet", "thread"]`) in every Python app.
 - Dependabot no longer proposes Node major images (non-LTS lines such as 25), Zitadel major versions or eslint 10; these are deliberate upgrades. Three placeholder test fixtures are recorded in `.gitleaksignore` for the weekly full-history secret scan.
 - The release workflow builds `linux/amd64` and `linux/arm64` images on native runners instead of QEMU, gives every job a timeout and gains a `workflow_dispatch` dry run (`dry_run`, default true) that runs tests, builds and Trivy gates on any branch without publishing anything; see `verify-release.md`.

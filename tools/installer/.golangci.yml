@@ -32,6 +32,8 @@ linters:
       rules:
         - name: exported
           disabled: false
+          # Renaming exported types only to avoid a stutter is churn, not documentation.
+          arguments: ["disableStutteringCheck"]
 
   exclusions:
     rules:
