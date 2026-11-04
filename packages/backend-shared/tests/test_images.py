@@ -74,7 +74,7 @@ def test_png_alpha_is_kept():
     data, _ = normalize_image(buffer.getvalue())
     result = _open(data)
     assert result.mode == "RGBA"
-    assert result.getpixel((10, 10))[3] == 0
+    assert result.getchannel("A").getpixel((10, 10)) == 0
 
 
 def test_palette_png_with_transparency_keeps_alpha():
