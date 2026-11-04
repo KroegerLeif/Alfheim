@@ -300,6 +300,14 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     fi
 
+    log_section "Markdown Links and Retired Paths (.ai/)"
+    if python3 scripts/check-markdown-links.py; then
+        log_success "Markdown links resolve and no retired paths are tracked"
+    else
+        log_fail "Broken Markdown links or retired paths are tracked"
+        ERRORS=$((ERRORS + 1))
+    fi
+
     log_section "Checking for Tracked Sensitive .env Files"
     TRACKED_ENVS=$(git ls-files | grep -E '(^|/)\.env(\.[^/]+)?$' | grep -v '\.example' || true)
     if [[ -n "$TRACKED_ENVS" ]]; then
