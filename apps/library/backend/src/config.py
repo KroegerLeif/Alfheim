@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     GOOGLE_BOOKS_API_KEY: str | None = None
     TMDB_API_KEY: str | None = None
 
+    # Largest accepted game manual PDF upload, in bytes (default 50 MiB)
+    MAX_MANUAL_UPLOAD_BYTES: int = 50 * 1024 * 1024
+
     # Database connection URL (must be an asyncpg URL for async SQLAlchemy)
     DATABASE_URL: str = "postgresql+asyncpg://library_user:postgres@localhost:5432/alfheim_library"
 

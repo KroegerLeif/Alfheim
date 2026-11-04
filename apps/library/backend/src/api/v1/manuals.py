@@ -3,16 +3,20 @@
 import uuid
 from typing import Any
 
+from backend_shared.storage import read_bounded_upload
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from src.api.dependencies import get_current_household_id
 from src.api.permissions import get_writer_household_id
+from src.config import settings
 from src.db.database import get_db_session
 from src.db.models import Item
 from src.schemas.manuals import ManualUploadResponse, ManualUrlResponse
 from src.services.storage import ManualStorageService
+
+PDF_SIGNATURE = b"%PDF-"
 
 router = APIRouter(prefix="/items", tags=["manuals"])
 
@@ -65,17 +69,16 @@ async def upload_manual(
             detail="Only PDF files are allowed for game manuals.",
         )
 
-    content = await file.read()
-    if not content:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Uploaded manual PDF file cannot be empty.",
-        )
+    content = await read_bounded_upload(
+        file,
+        max_bytes=settings.MAX_MANUAL_UPLOAD_BYTES,
+        signatures=(PDF_SIGNATURE,),
+    )
 
+    previous_key = item.manual_s3_key
     s3_key = await storage_service.upload_manual(
         household_id=household_id,
         item_id=item_id,
-        filename=filename,
         content=content,
     )
 
@@ -83,6 +86,10 @@ async def upload_manual(
     session.add(item)
     await session.commit()
     await session.refresh(item)
+
+    # Keys are random, so a replaced manual would otherwise stay in the bucket.
+    if previous_key and previous_key != s3_key:
+        await storage_service.delete_manual(previous_key)
 
     return ManualUploadResponse(
         item_id=item.id,

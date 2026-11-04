@@ -100,12 +100,11 @@ async def test_manual_storage_service_unit():
     h_id = uuid.uuid4()
     item_id = uuid.uuid4()
 
-    # Verify build_manual_object_key appends .pdf if missing
-    key_without_ext = build_manual_object_key(h_id, item_id, "rules")
-    assert key_without_ext.endswith("rules.pdf")
-
-    key_with_ext = build_manual_object_key(h_id, item_id, "rules.PDF")
-    assert key_with_ext.endswith("rules.PDF")
+    # The key is tenant-scoped and ends in a server-generated name
+    key = build_manual_object_key(h_id, item_id)
+    assert key.startswith(f"library/households/{h_id}/manuals/{item_id}/")
+    assert key.endswith(".pdf")
+    assert key != build_manual_object_key(h_id, item_id)
 
     # Mock underlying s3_service
     mock_s3 = MagicMock()
@@ -120,8 +119,8 @@ async def test_manual_storage_service_unit():
     service = ManualStorageService(s3_service=mock_s3)
 
     # upload_manual
-    uploaded_key = await service.upload_manual(h_id, item_id, "rules.pdf", b"bytes")
-    assert "rules.pdf" in uploaded_key
+    uploaded_key = await service.upload_manual(h_id, item_id, b"bytes")
+    assert uploaded_key.endswith(".pdf")
     mock_client.put_object.assert_called_once()
 
     # generate_download_url
