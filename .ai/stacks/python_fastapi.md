@@ -1,6 +1,6 @@
 # Python & FastAPI Architectural Guide (`.ai/stacks/python_fastapi.md`)
 
-> **Note for AI Agents**: Always read [.ai/rules/core.md](../rules/core.md) first.
+> **Note for AI Agents**: Always read [AGENTS.md](../../AGENTS.md) first.
 
 ---
 

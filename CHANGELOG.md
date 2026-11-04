@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
+
 ---
 
 ## [v0.3.1] - 2026-10-29
