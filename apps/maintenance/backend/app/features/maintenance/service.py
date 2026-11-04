@@ -1,6 +1,4 @@
-"""
-Maintenance feature service layer providing orchestration logic for wizard sessions and summary calculations.
-"""
+"""Maintenance feature service layer providing orchestration logic for wizard sessions and summary calculations."""
 
 import datetime
 import logging

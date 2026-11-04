@@ -113,6 +113,33 @@ household/user returns `404`.
 
 ---
 
+## 🗄️ Data Model Invariants
+
+No `households` table exists. `home_id` is the UUID from the `X-Household-ID` header, confirmed with `core/household` by `require_household`, as in Pantry and Chores.
+
+### Tables `equipment`, `exercises`
+
+- A `scope` enum (`system`, `household`, `user`) scopes each row. `home_id` and `owner_user_id` are nullable and set only for the matching scope. System rows are seeded at test and startup time and are read-only through the API.
+- `user_exercise_preferences` (unique on `user_id` + `exercise_id`) holds each user's baseline weight, read by the weight engine. `exercise_favorites` (unique on `user_id` + `exercise_id`) is a plain on/off join.
+
+### Tables `plans`, `plan_days`, `plan_exercises`, `plan_sets`
+
+- `plans.is_shared` controls household-wide visibility. Only the owner may write, even to a shared plan.
+- `plan_sets.target_weight_type` (`absolute`, `default`, `offset`) drives the relative weight engine; see `plans/services/weight_engine_service.py::resolve_target_weight`.
+
+### Tables `workout_sessions`, `session_exercises`, `session_sets`
+
+- A session is a structural clone of the plan at session start, never a live foreign key into `plan_exercises` or `plan_sets`, so editing or deleting a plan never rewrites a past session. `session_sets.target_weight_kg` stores the resolved weight-engine number, not the type and offset.
+- `session_sets` has a partial unique index on (`session_exercise_id`, `client_idempotency_key`) where the key is not null; it backs the offline-sync endpoint `POST /sessions/{id}/sets/sync`. The sync fills the cloned `session_sets` row of the same slot (`set_order`, not yet completed) instead of inserting a duplicate, and answers `409 session_not_active` for a completed or abandoned session (replaying stored keys is still acknowledged).
+
+### Invariants
+
+1. **MCP tenancy**: MCP tools (per feature and the composite `agent_tools` slice) take no `household_id` or `user_id` parameters. They read both from `get_mcp_household_context()` and apply the same service-layer filtering as the REST routes.
+2. **403 vs 404**: an `X-Household-ID` the caller is not a member of is rejected by the auth dependency with `403 household_forbidden` (see `backend_shared.household`). A resource that exists but is not visible to the caller's household or user returns 404 at the resource layer.
+3. **Alembic migrations**: every Python backend runs `alembic upgrade head` at startup under a Postgres advisory lock (`run_migrations`); `create_all` is not used in production. See [Schema migrations](../../explanation/schema-migrations.md).
+
+---
+
 ## ⚠️ Known Issues & Open Follow-Ups
 
 - **Offline sync replays against the household active at flush time, not at log time.** The
