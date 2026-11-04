@@ -12,7 +12,7 @@ expect.extend(matchers)
 // findBy*/waitFor poll for 5s instead of 1s so the suite also passes while the machine is busy (CI, parallel workspaces).
 configure({ asyncUtilTimeout: 5000 })
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'bypass' }))
 afterEach(() => {
   server.resetHandlers()
   setTestLocale('en')
