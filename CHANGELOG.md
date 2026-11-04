@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- fastmcp 3.4 → 4.1 in every Python backend (`>=4.1.5`, #781). `backend_shared.mcp_middleware` now reads the per-request household context through `fastmcp.server.dependencies.get_http_request()` instead of the removed MCP SDK `request_ctx`. The `mcp_requires_role` decorator and `ensure_mcp_role`, duplicated in the chores, pantry and maintenance apps, moved to the new `backend_shared.mcp_permissions`.
+
+### Changed
 - Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
 - Removed the `.ai/` folder (#799). The quality-gate reference moved to `docs/en/reference/quality-gates.md`; the router map, persona workflows and the two-step "APPROVED" gate were dropped. `scripts/check-markdown-links.py` (also run by `verify.sh --security`) now fails if `.ai/` is tracked again.
 - Code comment convention (#798): `docs/en/reference/conventions/code-comments.md`. Ruff `D` rules (Google convention) and the `revive` `exported` rule for Go now run in `verify.sh` and CI, and `verify.sh --security` fails on `TODO`/`FIXME` without an issue reference. Existing Python docstring gaps are baselined in `ruff.toml`.
