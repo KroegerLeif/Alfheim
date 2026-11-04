@@ -80,7 +80,11 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 
 - Dashboard launcher tile for the new Tier-1 `core/household` app (slug `household`, path `/household`, icon `home`), visible to every authenticated user.
 
+### Added
+- `scripts/check-compose.py` (#808), run by `verify.sh --security` and the new `compose-guard` workflow: fails if a service in `compose.prod.yaml` lacks bounded logging or a memory limit, or a dev service lacks bounded logging.
+
 ### Changed
+- Every dev compose service now uses the `x-logging` json-file rotation (10 MB x 3) so local disks do not fill up (#808).
 - Python dependencies: minor and patch updates across the uv workspace (ruff 0.17, ty 0.0.95, FastAPI, SQLAlchemy 2.1, Pydantic 2.14, OpenTelemetry 1.45); test helpers now annotate context managers with `Generator`/`AsyncGenerator`. Coverage now measures across greenlet switches (`concurrency = ["greenlet", "thread"]`) in every Python app.
 - Dependabot no longer proposes Node major images (non-LTS lines such as 25), Zitadel major versions or eslint 10; these are deliberate upgrades. Three placeholder test fixtures are recorded in `.gitleaksignore` for the weekly full-history secret scan.
 - The release workflow builds `linux/amd64` and `linux/arm64` images on native runners instead of QEMU, gives every job a timeout and gains a `workflow_dispatch` dry run (`dry_run`, default true) that runs tests, builds and Trivy gates on any branch without publishing anything; see `verify-release.md`.
