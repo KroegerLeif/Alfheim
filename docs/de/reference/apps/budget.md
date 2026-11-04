@@ -43,6 +43,7 @@ Quelle: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 | `DATABASE_URL` | `postgresql+asyncpg://budget_user:postgres@postgres-core:5432/alfheim_budget` | Async PostgreSQL-Verbindungszeichenkette |
 | `S3_ENDPOINT_URL` | `http://rustfs:9000` | S3-kompatibler Objektspeicher-Endpunkt |
 | `S3_BUCKET_NAME` | `budget-receipts` | S3-Bucket für Quittungs-Uploads |
+| `MAX_RECEIPT_UPLOAD_BYTES` | `10485760` | Größter akzeptierter Beleg-Upload (10 MiB); größere Dateien erhalten HTTP 413 |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Basis-URL der Mitgliedschafts-API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generiertes Secret)* | Gemeinsames Secret, gesendet als `Authorization: Bearer …` bei Mitgliedschaftsprüfungen. Pflicht; ohne es startet das Backend nicht |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/budget` | Browser-API-Basis-URL. Compose leitet sie aus `ALFHEIM_BASE_URL` ab (Build-Argument und Laufzeit-Umgebung) |

@@ -1,3 +1,11 @@
+# Bounded json-file logs so a chatty container cannot fill the local disk
+# during long sessions (the default driver keeps unbounded logs).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   workout-backend:
     build:
@@ -5,6 +13,7 @@ services:
       dockerfile: apps/workout/backend/Dockerfile
     container_name: workout-backend
     restart: always
+    logging: *default-logging
     environment:
       - ENVIRONMENT=development
       - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
@@ -45,6 +54,7 @@ services:
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: workout-frontend
     restart: always
+    logging: *default-logging
     depends_on:
       workout-backend:
         condition: service_healthy

@@ -16,7 +16,7 @@ Source: [`apps/library/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 | Media Tracking | Unified item catalog (books, movies, board games, …) with per-household locations |
 | Borrowing & Lending | Loan tracker for items lent to friends or borrowed from libraries |
 | Metadata Lookup | External lookups by ISBN, BoardGameGeek and TMDB to pre-fill catalog entries |
-| Game Manuals | PDF manual upload, presigned download URLs and deletion, backed by RustFS S3 |
+| Game Manuals | PDF manual upload (chunked read, size limit, `%PDF-` signature check, server-generated object key), presigned download URLs and deletion, backed by RustFS S3 |
 | Streaming Subscriptions | Track which streaming providers the household subscribes to |
 
 > **Note:** Earlier drafts of this page described a reading-progress log and a household

@@ -19,7 +19,7 @@ services:
       - "-httpListenAddr=:8428"
       - "-promscrape.config=/etc/victoriametrics/scrape.yml"
     volumes:
-      - victoriametrics_data:/victoria-metrics-data
+      - ${ALFHEIM_METRICS_DATA_PATH:-victoriametrics_data}:/victoria-metrics-data
       - ./victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     deploy:
       resources:
@@ -92,7 +92,7 @@ services:
       - "-storageDataPath=/victoria-logs-data"
       - "-httpListenAddr=:9428"
     volumes:
-      - victorialogs_data:/victoria-logs-data
+      - ${ALFHEIM_LOGS_DATA_PATH:-victorialogs_data}:/victoria-logs-data
     deploy:
       resources:
         limits:
