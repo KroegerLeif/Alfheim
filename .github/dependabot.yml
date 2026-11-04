@@ -113,6 +113,9 @@ updates:
       # eslint-config-next's plugins still declare an eslint ^9 peer; revisit when it supports eslint 10.
       - dependency-name: 'eslint'
         update-types: ['version-update:semver-major']
+      # Keep @types/node on the runtime major (Node 24 LTS); bump it together with the images.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   # GitHub Actions
   - package-ecosystem: github-actions
@@ -154,7 +157,7 @@ updates:
       - 'area:dependencies'
       - 'area:security'
     ignore:
-      # Stay on the Node LTS line; moving to the next LTS (24) is a deliberate, tested change.
+      # Stay on the Node LTS line; moving to the next LTS is a deliberate, tested change.
       - dependency-name: 'node'
         update-types: ['version-update:semver-major']
 

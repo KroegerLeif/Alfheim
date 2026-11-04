@@ -72,3 +72,6 @@ jobs:
 
       - name: Production Core Stack Smoke Test
         run: ./scripts/test-prod-startup.sh
+
+      - name: Production Core Stack Smoke Test (data in host directories)
+        run: ./scripts/test-prod-startup.sh --bind-mounts

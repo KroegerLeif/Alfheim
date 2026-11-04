@@ -110,18 +110,11 @@ class TransactionRead(TransactionBase):
     updated_at: datetime
 
 
-class PresignedUploadRequest(BaseModel):
-    """Request payload to obtain an S3 presigned upload URL for receipt images."""
+class ReceiptUploadResponse(BaseModel):
+    """Response payload for a stored receipt: the server-generated object key."""
 
-    filename: str
-    content_type: str | None = "image/jpeg"
-
-
-class PresignedUploadResponse(BaseModel):
-    """Response payload containing S3 upload URL and object key."""
-
-    upload_url: str
     object_key: str
+    content_type: str
 
 
 class ReceiptOCRRequest(BaseModel):

@@ -200,6 +200,7 @@ To roll back a bad update including its data, run `alfheim-setup restore` with t
 ## See also
 
 * [Update an installation](./update-installation.md)
+* [Plan the storage layout](./storage-layout.md)
 * [alfheim-setup CLI reference](../reference/installer-cli.md)
 * [Secrets hardening](./secrets-hardening.md)
 * [PostgreSQL Core Service](../../../infrastructure/postgres/README.md)

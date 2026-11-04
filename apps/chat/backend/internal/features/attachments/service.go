@@ -127,9 +127,29 @@ func (s *service) UploadAttachment(
 		resolvedMime = detectedMime
 	}
 
+	// Normalise before storing: orientation applied, metadata (EXIF/GPS) dropped,
+	// longest edge capped. Images also go to the model, so smaller means cheaper.
+	raw, err := readAll(fullReader, MaxAttachmentSizeBytes)
+	if err != nil {
+		if errors.Is(err, ErrFileTooLarge) {
+			return AttachmentResponseDTO{}, err
+		}
+		return AttachmentResponseDTO{}, fmt.Errorf("failed to read file: %w", err)
+	}
+	normalized, normalizedMime, err := normalizeImage(raw)
+	if err != nil {
+		if errors.Is(err, ErrInvalidImage) {
+			return AttachmentResponseDTO{}, err
+		}
+		return AttachmentResponseDTO{}, fmt.Errorf("failed to process image: %w", err)
+	}
+	resolvedMime = normalizedMime
+	size = int64(len(normalized))
+	filename = withImageExtension(filename, normalizedMime)
+
 	storageKey := storage.GenerateChatObjectKey(userID, householdID, filename)
 
-	if err := s.storage.Upload(ctx, storageKey, fullReader, size, resolvedMime); err != nil {
+	if err := s.storage.Upload(ctx, storageKey, bytes.NewReader(normalized), size, resolvedMime); err != nil {
 		s.log.Error("failed to upload attachment to s3", slog.String("key", storageKey), slog.String("error", err.Error()))
 		return AttachmentResponseDTO{}, fmt.Errorf("failed to upload file to storage: %w", err)
 	}
@@ -247,4 +267,17 @@ func filenameFromKey(key string) string {
 		return base[37:]
 	}
 	return base
+}
+
+// withImageExtension makes the stored name's extension match the re-encoded format.
+func withImageExtension(filename, mime string) string {
+	ext := ".jpg"
+	if mime == "image/png" {
+		ext = ".png"
+	}
+	base := path.Base(filename)
+	if base == "." || base == "/" {
+		base = "attachment"
+	}
+	return strings.TrimSuffix(base, path.Ext(base)) + ext
 }

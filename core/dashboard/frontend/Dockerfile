@@ -1,5 +1,5 @@
 # Stage 1: Dependencies
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@11.28.5 --activate
@@ -14,7 +14,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
 # Stage 2: Builder
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@11.28.5 --activate
 
@@ -36,7 +36,7 @@ WORKDIR /app/core/dashboard/frontend
 RUN pnpm run build
 
 # Stage 3: Runner
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 # The runner only executes node; drop npm/npx/corepack/yarn so their bundled deps do not trip the image scan.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app

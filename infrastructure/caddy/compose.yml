@@ -1,8 +1,17 @@
+# Bounded json-file logs so a chatty container cannot fill the local disk
+# during long sessions (the default driver keeps unbounded logs).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   caddy:
     image: caddy:2.11.6
     container_name: alfheim_caddy
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"

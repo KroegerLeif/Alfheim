@@ -611,3 +611,35 @@ func TestRenderedCaddyfileRouting(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderEnvDataPaths(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
+
+	env, err := r.RenderEnv(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"ALFHEIM_DB_DATA_PATH", "ALFHEIM_OBJECT_DATA_PATH", "ALFHEIM_METRICS_DATA_PATH", "ALFHEIM_LOGS_DATA_PATH"} {
+		if !strings.Contains(string(env), "\n"+key+"=\n") {
+			t.Errorf("%s must render empty (named volume) by default", key)
+		}
+	}
+
+	m.DataPaths = map[string]string{
+		"ALFHEIM_DB_DATA_PATH":     "/mnt/db",
+		"ALFHEIM_OBJECT_DATA_PATH": "/mnt/my disk/objects",
+	}
+	env, err = r.RenderEnv(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"\nALFHEIM_DB_DATA_PATH=/mnt/db\n", "\nALFHEIM_OBJECT_DATA_PATH='/mnt/my disk/objects'\n", "\nALFHEIM_LOGS_DATA_PATH=\n"} {
+		if !strings.Contains(string(env), want) {
+			t.Errorf("rendered .env lacks %q", want)
+		}
+	}
+}

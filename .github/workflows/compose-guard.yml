@@ -1,0 +1,49 @@
+name: Compose Guard (logging & memory limits)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'compose.yaml'
+      - 'compose.prod.yaml'
+      - '**/compose.yml'
+      - 'scripts/check-compose.py'
+      - 'scripts/tests/**'
+      - '.github/workflows/compose-guard.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'compose.yaml'
+      - 'compose.prod.yaml'
+      - '**/compose.yml'
+      - 'scripts/check-compose.py'
+      - 'scripts/tests/**'
+      - '.github/workflows/compose-guard.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose-guard:
+    name: Every service has bounded logs and a memory limit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Unit tests
+        run: python3 -m unittest discover scripts/tests
+
+      - name: Production compose (logging and memory limit)
+        run: python3 scripts/check-compose.py compose.prod.yaml
+
+      - name: Development compose (logging)
+        run: python3 scripts/check-compose.py --logging-only compose.yaml

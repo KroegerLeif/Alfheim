@@ -64,6 +64,7 @@ source with a translation notice, so untranslated paths never 404.
 * [Trust the Local Root CA](./en/how-to/trust-local-root-ca.md) — Importing the installer's root CA for the `internal` TLS strategy, or accepting the warning for both hosts.
 * [Secrets Hardening](./en/how-to/secrets-hardening.md) — Generating, storing and rotating secrets; verifying no development fallback reaches production.
 * [Backup, Restore & Data Migration](./en/how-to/backup-restore.md) — `alfheim-setup backup` / `restore`, scheduled backups and restore drills.
+* [Plan the storage layout](./en/how-to/storage-layout.md) — where data lives, growth, separate disks, ZFS and Btrfs settings.
 * [Update an Installation](./en/how-to/update-installation.md) — One-command release updates with `alfheim-setup update`.
 * [Verify a Release End to End](./en/how-to/verify-release.md) — Checklist for a release candidate: fresh install, backup, update, restore, upgrade from the previous tag.
 * [Grafana and Operator Access](./en/how-to/grafana-access.md) — The `alfheim_operator` role for Grafana, telemetry and the MCP registry.
