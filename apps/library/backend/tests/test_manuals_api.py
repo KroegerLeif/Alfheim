@@ -35,8 +35,8 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
 def mock_storage_service():
     """Mock ManualStorageService fixture."""
     service = AsyncMock()
-    service.upload_manual.side_effect = lambda household_id, item_id, filename, content: (
-        f"library/households/{household_id}/manuals/{item_id}/{filename}"
+    service.upload_manual.side_effect = lambda household_id, item_id, content: (
+        f"library/households/{household_id}/manuals/{item_id}/{uuid.uuid4().hex}.pdf"
     )
     service.generate_download_url.side_effect = lambda object_key, expires_in=3600: (
         f"http://localhost:9000/alfheim-assets/{object_key}?token=mocked"
@@ -103,14 +103,16 @@ async def test_upload_and_get_manual_url_and_delete(client: AsyncClient, test_ap
     assert upload_resp.status_code == 201
     upload_data = upload_resp.json()
     assert upload_data["item_id"] == item_id
-    assert "catan_rules.pdf" in upload_data["manual_s3_key"]
+    assert upload_data["filename"] == "catan_rules.pdf"
+    assert "catan_rules" not in upload_data["manual_s3_key"]
+    assert upload_data["manual_s3_key"].endswith(".pdf")
 
     # 3. Retrieve presigned download URL
     url_resp = await client.get(f"/api/v1/library/items/{item_id}/manual/url")
     assert url_resp.status_code == 200
     url_data = url_resp.json()
     assert url_data["item_id"] == item_id
-    assert "catan_rules.pdf" in url_data["download_url"]
+    assert upload_data["manual_s3_key"] in url_data["download_url"]
 
     # 4. Delete manual
     del_resp = await client.delete(f"/api/v1/library/items/{item_id}/manual")
@@ -208,3 +210,61 @@ async def test_get_manual_url_no_manual_uploaded(client: AsyncClient, test_app: 
     url_resp = await client.get(f"/api/v1/library/items/{item_id}/manual/url")
     assert url_resp.status_code == 404
     assert "No manual uploaded" in url_resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_upload_manual_oversized_is_rejected_with_413(
+    client: AsyncClient, test_app: FastAPI, mock_storage_service, monkeypatch
+):
+    """A PDF above the configured limit is refused with 413 and never stored."""
+    from src.config import settings
+
+    monkeypatch.setattr(settings, "MAX_MANUAL_UPLOAD_BYTES", 1024)
+    override_household(test_app, household_id=HOUSEHOLD_1)
+    item_resp = await client.post("/api/v1/library/items", json={"title": "Big", "media_type": "GAME"})
+    item_id = item_resp.json()["id"]
+
+    upload_resp = await client.post(
+        f"/api/v1/library/items/{item_id}/manual",
+        files={"file": ("big.pdf", io.BytesIO(b"%PDF-1.4" + b"0" * 4096), "application/pdf")},
+    )
+    assert upload_resp.status_code == 413
+    mock_storage_service.upload_manual.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_manual_without_pdf_signature_is_rejected_with_400(
+    client: AsyncClient, test_app: FastAPI, mock_storage_service
+):
+    """Content that is not a PDF is refused even when named .pdf and sent as application/pdf."""
+    override_household(test_app, household_id=HOUSEHOLD_1)
+    item_resp = await client.post("/api/v1/library/items", json={"title": "Fake", "media_type": "GAME"})
+    item_id = item_resp.json()["id"]
+
+    upload_resp = await client.post(
+        f"/api/v1/library/items/{item_id}/manual",
+        files={"file": ("rules.pdf", io.BytesIO(b"<html>not a pdf</html>"), "application/pdf")},
+    )
+    assert upload_resp.status_code == 400
+    mock_storage_service.upload_manual.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_replacing_a_manual_deletes_the_previous_object(
+    client: AsyncClient, test_app: FastAPI, mock_storage_service
+):
+    """Keys are random, so a re-upload must remove the superseded object."""
+    override_household(test_app, household_id=HOUSEHOLD_1)
+    item_resp = await client.post("/api/v1/library/items", json={"title": "Twice", "media_type": "GAME"})
+    item_id = item_resp.json()["id"]
+
+    first = await client.post(
+        f"/api/v1/library/items/{item_id}/manual",
+        files={"file": ("a.pdf", io.BytesIO(b"%PDF-1.4 a"), "application/pdf")},
+    )
+    second = await client.post(
+        f"/api/v1/library/items/{item_id}/manual",
+        files={"file": ("b.pdf", io.BytesIO(b"%PDF-1.4 b"), "application/pdf")},
+    )
+    assert first.status_code == second.status_code == 201
+    mock_storage_service.delete_manual.assert_awaited_once_with(first.json()["manual_s3_key"])

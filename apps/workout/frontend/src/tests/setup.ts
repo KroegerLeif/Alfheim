@@ -15,7 +15,7 @@ expect.extend(matchers)
 // The monorepo gate runs every frontend's suite in parallel; give async queries headroom on a busy machine.
 configure({ asyncUtilTimeout: 5000 })
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'bypass' }))
 afterEach(() => {
   server.resetHandlers()
   Object.values(routerMock).forEach((spy) => spy.mockClear())

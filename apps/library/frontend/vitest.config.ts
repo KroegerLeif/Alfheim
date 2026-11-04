@@ -12,6 +12,8 @@ export default defineConfig({
     setupFiles: './src/tests/setup.ts',
     exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
     testTimeout: 15000,
+    // pnpm runs several packages at once; vitest 5 timed out under that load with the default of cores - 1.
+    maxWorkers: 2,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],

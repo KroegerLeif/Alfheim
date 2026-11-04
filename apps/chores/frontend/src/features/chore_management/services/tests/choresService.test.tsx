@@ -135,7 +135,7 @@ describe('choresService Hooks', () => {
       await result.current.mutateAsync('tpl-1')
     })
 
-    expect(result.current.isSuccess).toBe(true)
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
   })
 
   it('useTaskTimeline fetches execution history timeline for template', async () => {

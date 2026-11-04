@@ -184,7 +184,9 @@
       "deleteLabel": "Usuń transakcję {description}",
       "receiptAttachPrompt": "Dołącz paragon (opcjonalnie)",
       "amountWithCurrency": "Kwota ({currency})",
-      "receiptUploadFailed": "Przesyłanie paragonu nie powiodło się (status {status})."
+      "receiptUploadFailed": "Przesyłanie paragonu nie powiodło się (status {status}).",
+      "receiptTooLarge": "Paragon jest za duży (maksymalnie 10 MB).",
+      "receiptInvalidType": "Ten typ pliku nie jest obsługiwany. Użyj JPEG, PNG, WebP, HEIC lub PDF."
     },
     "analytics": {
       "title": "Analityka Finansowa i Przepływy",

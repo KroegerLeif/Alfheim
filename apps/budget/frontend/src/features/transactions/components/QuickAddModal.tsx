@@ -7,7 +7,8 @@ import { FIELD_CLASS, FormField } from "@/components/shared/FormField";
 import { FormError } from "@/components/shared/FormError";
 import { useFormSubmit } from "@/components/shared/useFormSubmit";
 import { accountTypeLabel } from "@/features/accounts/accountTypes";
-import { transactionsApi, ReceiptUploadError } from "../api/transactionsApi";
+import { ApiError } from "@/core/api";
+import { transactionsApi } from "../api/transactionsApi";
 import { ReceiptPicker } from "./ReceiptPicker";
 import { Zap } from "lucide-react";
 
@@ -48,18 +49,21 @@ export function QuickAddModal({
 
   if (!open) return null;
 
-  // Uploads the receipt (if any) to RustFS/S3 first and returns the object key to store on the
-  // transaction. OCR extraction is intentionally not wired up here -- see issue #529.
+  // Uploads the receipt (if any) through the backend first and returns the server-generated
+  // object key to store on the transaction. OCR extraction is intentionally not wired up here --
+  // see issue #529.
   const uploadReceipt = async (file: File): Promise<string> => {
     try {
-      const { upload_url, object_key } = await transactionsApi.getReceiptUploadUrl(
-        file.name,
-        file.type || "image/jpeg"
-      );
-      await transactionsApi.uploadReceiptFile(upload_url, file);
+      const { object_key } = await transactionsApi.uploadReceipt(file);
       return object_key;
     } catch (err) {
-      if (err instanceof ReceiptUploadError) {
+      if (err instanceof ApiError && err.status === 413) {
+        throw new Error(t("budget.transactions.receiptTooLarge"));
+      }
+      if (err instanceof ApiError && err.status === 400) {
+        throw new Error(t("budget.transactions.receiptInvalidType"));
+      }
+      if (err instanceof ApiError && err.status !== undefined) {
         throw new Error(t("budget.transactions.receiptUploadFailed", { status: err.status }));
       }
       throw err;

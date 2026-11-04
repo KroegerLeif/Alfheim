@@ -115,20 +115,18 @@ def test_mcp_household_context_helper():
 
 def test_request_scope_wins_over_stale_contextvar(monkeypatch):
     """Stateful MCP sessions reuse the first request's contextvars; the per-request scope is authoritative."""
-    from mcp.server.lowlevel.server import request_ctx
+    import fastmcp.server.dependencies as fastmcp_dependencies
 
     current = make_household_context(household_id=HOUSEHOLD, role="MEMBER")
     stale: HouseholdContext = make_household_context(role="OWNER")
     fake_request = SimpleNamespace(scope={MCP_HOUSEHOLD_SCOPE_KEY: current})
-    ctx_token = request_ctx.set(SimpleNamespace(request=fake_request))  # ty: ignore[invalid-argument-type]
-    try:
+    with monkeypatch.context() as patch:
+        patch.setattr(fastmcp_dependencies, "get_http_request", lambda: fake_request)
         with mcp_household_context(stale):
             assert get_mcp_household_context() is current
         fake_request.scope = {}
         with mcp_household_context(stale):
             assert get_mcp_household_context() is stale
-    finally:
-        request_ctx.reset(ctx_token)
     assert mcp_middleware._current_mcp_request_context() is None
 
 

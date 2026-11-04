@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"alfheim/installer/internal/features/bootstrap"
+	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/security"
 	"alfheim/installer/internal/features/templating"
@@ -48,6 +49,12 @@ type Wizard interface {
 	Run(on *onboarding.Config, tlsCfg *tls.Config) error
 }
 
+// DataPathsAsker is implemented by wizards that can also ask for the optional
+// data directories. The headless path and test doubles do not need to.
+type DataPathsAsker interface {
+	AskDataPaths(p datapaths.Paths) error
+}
+
 // App is the assembled installer.
 type App struct {
 	Options *Options
@@ -75,6 +82,10 @@ type App struct {
 	// starts. Injectable for tests, which must not call a real DNS API. When
 	// nil, tls.DNSPreflight is used.
 	DNSPreflight tls.Preflight
+	// DataPathPreparer creates and checks the data directories. Injectable for
+	// tests, which must not chown real directories. When nil, the real
+	// filesystem is used.
+	DataPathPreparer *datapaths.Preparer
 	// CertWaiter blocks until Caddy serves a valid certificate for the DNS-01
 	// strategies, before Zitadel is provisioned through it. Injectable for
 	// tests, which have no Caddy on 127.0.0.1:443. When nil, tls.CertWaiter
@@ -136,11 +147,15 @@ func (a *App) execute(ctx context.Context) error {
 	if err := a.preflightDNS(ctx, on, tlsCfg); err != nil {
 		return err
 	}
+	dataPaths, err := a.configureDataPaths(layout)
+	if err != nil {
+		return err
+	}
 	// Also covers a re-run over an install that stopped half way, which is
 	// still ModeInstall but already has an .env with the earlier hosts.
 	a.reportDomainChange(layout, on)
 
-	model, target, err := a.renderConfiguration(layout, on, tlsCfg)
+	model, target, err := a.renderConfiguration(layout, on, tlsCfg, dataPaths)
 	if err != nil {
 		return err
 	}
@@ -151,7 +166,62 @@ func (a *App) execute(ctx context.Context) error {
 		return nil
 	}
 
+	if err := a.prepareDataPaths(dataPaths); err != nil {
+		return err
+	}
+
 	return a.runBootstrap(ctx, layout, model, current)
+}
+
+// configureDataPaths resolves the host directories for persistent data: flags
+// and environment first, then what an earlier run left in .env, and in the
+// interactive wizard whatever the operator answers (pre-filled with those).
+// An empty result keeps every named volume.
+func (a *App) configureDataPaths(layout paths.Layout) (datapaths.Paths, error) {
+	chosen := a.Options.DataPaths.Merge(nil)
+	explicit := len(chosen.Configured()) > 0
+
+	if previous, err := envfile.ParseFile(layout.EnvFile()); err == nil {
+		chosen = chosen.Merge(datapaths.FromEnv(previous))
+	}
+
+	if !a.Options.NonInteractive && !explicit {
+		if asker, ok := a.Wizard.(DataPathsAsker); ok {
+			if err := asker.AskDataPaths(chosen); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if err := chosen.Validate(); err != nil {
+		return nil, err
+	}
+	return chosen, nil
+}
+
+// prepareDataPaths creates the configured host directories with the owner
+// their containers need and refuses to continue if one is unusable.
+func (a *App) prepareDataPaths(dataPaths datapaths.Paths) error {
+	if len(dataPaths.Configured()) == 0 {
+		return nil
+	}
+	warnings, err := a.dataPathPreparer().Prepare(dataPaths)
+	for _, w := range warnings {
+		fmt.Fprintf(a.Stderr, "Warning: %s\n", w)
+	}
+	if err != nil {
+		return err
+	}
+	for _, c := range dataPaths.Configured() {
+		fmt.Fprintf(a.Stdout, "Data directory ready: %s -> %s\n", c.Title, dataPaths[c.Key])
+	}
+	return nil
+}
+
+func (a *App) dataPathPreparer() datapaths.Preparer {
+	if a.DataPathPreparer != nil {
+		return *a.DataPathPreparer
+	}
+	return datapaths.NewPreparer()
 }
 
 // inspector returns the configured host inspector, defaulting to the real one.
@@ -255,7 +325,7 @@ func (a *App) configure(layout paths.Layout) (onboarding.Config, tls.Config, err
 // It returns the layout actually written to, which for a dry run is a
 // temporary directory rather than the installation root.
 func (a *App) renderConfiguration(
-	layout paths.Layout, on onboarding.Config, tlsCfg tls.Config,
+	layout paths.Layout, on onboarding.Config, tlsCfg tls.Config, dataPaths datapaths.Paths,
 ) (templating.Model, paths.Layout, error) {
 	// Carry forward any secret an earlier run generated.
 	existing := map[string]string{}
@@ -293,6 +363,7 @@ func (a *App) renderConfiguration(
 		Generated:  a.now(),
 		// A value from an earlier run wins: it may have been set by hand.
 		DockerSocketGID: a.dockerSocketGID(existing),
+		DataPaths:       dataPaths,
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {

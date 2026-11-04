@@ -55,6 +55,10 @@ Jedes Flag hat ein Umgebungsvariablen-Äquivalent. Das Flag gewinnt, wenn beide 
 | `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN`, `DESEC_TOKEN` | DNS-Provider-Token. Erforderlich für `hetzner`, `cloudflare` und `desec`. |
 | `--cert-path DIR` | `ALFHEIM_CERT_PATH` | Absolutes Verzeichnis mit `fullchain.pem` und `privkey.pem`. Nur für `--tls custom`; weglassen zum Standard `./data/caddy/certs/` nutzen. |
 | `--image-tag TAG` | `ALFHEIM_IMAGE_TAG` | Container-Image-Tag. Standard `latest`. |
+| `--db-data-path DIR` | `ALFHEIM_DB_DATA_PATH` | Absolutes Host-Verzeichnis für die PostgreSQL-Daten. Standard: das benannte Volume `postgres_core_data`. |
+| `--object-data-path DIR` | `ALFHEIM_OBJECT_DATA_PATH` | Absolutes Host-Verzeichnis für den RustFS-Objektspeicher. Standard: das benannte Volume `rustfs_data`. |
+| `--metrics-data-path DIR` | `ALFHEIM_METRICS_DATA_PATH` | Absolutes Host-Verzeichnis für VictoriaMetrics. Standard: das benannte Volume `victoriametrics_data`. |
+| `--logs-data-path DIR` | `ALFHEIM_LOGS_DATA_PATH` | Absolutes Host-Verzeichnis für VictoriaLogs. Standard: das benannte Volume `victorialogs_data`. |
 | — | `ALFHEIM_INSTALL_DIR` | Äquivalent zu `--install-dir`. |
 
 ### Release-Auswahl

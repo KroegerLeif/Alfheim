@@ -4,7 +4,8 @@ import { vi } from "vitest";
 import { AccountDialog } from "../features/accounts";
 import { PotDialog, CascadeModal, potsApi } from "../features/pots";
 import { PlanDialog, CategoryDialog } from "../features/plans";
-import { QuickAddModal, transactionsApi, ReceiptUploadError } from "../features/transactions";
+import { QuickAddModal, transactionsApi } from "../features/transactions";
+import { ApiError } from "../core/api";
 import { longAccount } from "./fixtures";
 
 // A rejected save must keep the dialog open and show the failure inline instead of leaving an
@@ -141,9 +142,12 @@ describe("QuickAddModal", () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ currency: "USD", amount: 4.5, account_id: longAccount.id }));
   });
 
-  it("shows a localized message when the presigned receipt upload is rejected", async () => {
-    vi.spyOn(transactionsApi, "getReceiptUploadUrl").mockResolvedValue({ upload_url: "https://s3.test/put", object_key: "k" });
-    vi.spyOn(transactionsApi, "uploadReceiptFile").mockRejectedValue(new ReceiptUploadError(403));
+  it.each([
+    [413, "Der Beleg ist zu groß (maximal 10 MB)."],
+    [400, "Dieser Dateityp wird nicht unterstützt. Verwende JPEG, PNG, WebP, HEIC oder PDF."],
+    [403, "Beleg-Upload fehlgeschlagen (Status 403)."],
+  ])("shows a localized message when the receipt upload is rejected with status %i", async (status, message) => {
+    vi.spyOn(transactionsApi, "uploadReceipt").mockRejectedValue(new ApiError(status, ""));
     const onSubmit = vi.fn();
     render(<QuickAddModal open onClose={vi.fn()} onSubmit={onSubmit} />);
 
@@ -153,7 +157,7 @@ describe("QuickAddModal", () => {
     fireEvent.change(document.getElementById("transaction-receipt")!, { target: { files: [file] } });
     submitForm(screen.getByLabelText("Betrag (EUR)"));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Beleg-Upload fehlgeschlagen (Status 403).");
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
