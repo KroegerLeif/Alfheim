@@ -202,7 +202,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusServiceUnavailable, "service_unavailable", err.Error())
 	case errors.Is(err, ErrForbidden):
 		writeError(w, http.StatusForbidden, "forbidden", err.Error())
-	case errors.Is(err, ErrInvalidFileType), errors.Is(err, ErrEmptyFile), errors.Is(err, ErrHouseholdRequired):
+	case errors.Is(err, ErrInvalidFileType), errors.Is(err, ErrInvalidImage), errors.Is(err, ErrEmptyFile), errors.Is(err, ErrHouseholdRequired):
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 	case errors.Is(err, ErrFileTooLarge):
 		writeError(w, http.StatusRequestEntityTooLarge, "file_too_large", err.Error())

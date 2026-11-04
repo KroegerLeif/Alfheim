@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/tls"
 )
@@ -24,6 +25,15 @@ func (w *TUIWizard) Run(on *onboarding.Config, tlsCfg *tls.Config) error {
 	}
 	if err := tls.NewForm(tlsCfg).Run(); err != nil {
 		return fmt.Errorf("alfheim-setup: TLS configuration: %w", err)
+	}
+	return nil
+}
+
+// AskDataPaths asks for the optional host directories for persistent data,
+// pre-filled with p. It implements DataPathsAsker.
+func (w *TUIWizard) AskDataPaths(p datapaths.Paths) error {
+	if err := datapaths.RunForm(p); err != nil {
+		return fmt.Errorf("alfheim-setup: data locations: %w", err)
 	}
 	return nil
 }

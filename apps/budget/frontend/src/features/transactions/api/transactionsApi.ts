@@ -6,19 +6,9 @@ import {
   TransactionUpdate,
 } from "@/features/budget/types";
 
-export interface PresignedUploadResponse {
-  upload_url: string;
+export interface ReceiptUploadResponse {
   object_key: string;
-}
-
-/** Raised when the presigned PUT of a receipt file is rejected by object storage. */
-export class ReceiptUploadError extends Error {
-  readonly status: number;
-  constructor(status: number) {
-    super(`Receipt upload failed with status ${status}`);
-    this.name = "ReceiptUploadError";
-    this.status = status;
-  }
+  content_type: string;
 }
 
 export interface TransactionFilterOptions {
@@ -66,28 +56,18 @@ export const transactionsApi = {
   },
 
   /**
-   * Get a presigned RustFS/S3 upload URL for a receipt image. The caller is responsible for
-   * PUT-ing the file bytes to `upload_url`; `object_key` is what should be stored as the
-   * transaction's `receipt_url` afterwards. See issue #529 -- OCR extraction is intentionally
-   * NOT wired up from the frontend yet, because the backend OCR endpoint only returns real data
-   * when the caller supplies pre-extracted `raw_text` (there is no client-side OCR step), and a
-   * "receipt scan" UI that always failed would be worse than not offering it at all.
+   * Upload a receipt (JPEG, PNG, WebP, HEIC or PDF) to the backend, which checks size and content,
+   * normalises images and stores the file under a server-generated key. `object_key` is what
+   * should be stored as the transaction's `receipt_url` afterwards. OCR extraction is
+   * intentionally NOT wired up from the frontend (issue #529): the backend OCR endpoint only
+   * returns real data for caller-supplied `raw_text`.
    */
-  async getReceiptUploadUrl(filename: string, contentType?: string): Promise<PresignedUploadResponse> {
+  async uploadReceipt(file: File): Promise<ReceiptUploadResponse> {
+    const body = new FormData();
+    body.append("file", file);
+    // Larger than the client default: receipts can be up to the backend limit (10 MiB).
     return budgetClient
-      .post("transactions/receipt/upload-url", { json: { filename, content_type: contentType } })
-      .json<PresignedUploadResponse>();
-  },
-
-  /** Upload the receipt file bytes directly to the presigned URL returned by getReceiptUploadUrl. */
-  async uploadReceiptFile(uploadUrl: string, file: File): Promise<void> {
-    const res = await fetch(uploadUrl, {
-      method: "PUT",
-      body: file,
-      headers: file.type ? { "Content-Type": file.type } : undefined,
-    });
-    if (!res.ok) {
-      throw new ReceiptUploadError(res.status);
-    }
+      .post("transactions/receipt", { body, timeout: 60000 })
+      .json<ReceiptUploadResponse>();
   },
 };
