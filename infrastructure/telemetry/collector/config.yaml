@@ -26,14 +26,14 @@ processors:
 
 exporters:
   # Metrics -> VictoriaMetrics (native OTLP metrics ingestion)
-  otlphttp/victoriametrics:
+  otlp_http/victoriametrics:
     endpoint: http://victoriametrics:8428
     metrics_endpoint: http://victoriametrics:8428/opentelemetry/v1/metrics
     compression: gzip
     encoding: proto
 
   # Logs -> VictoriaLogs (native OTLP logs ingestion with stream headers)
-  otlphttp/victorialogs:
+  otlp_http/victorialogs:
     logs_endpoint: http://victorialogs:9428/insert/opentelemetry/v1/logs
     headers:
       VL-Stream-Fields: "service_name,severity,job,environment"
@@ -50,12 +50,12 @@ service:
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlphttp/victoriametrics]
+      exporters: [otlp_http/victoriametrics]
 
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlphttp/victorialogs]
+      exporters: [otlp_http/victorialogs]
 
     traces:
       receivers: [otlp]
@@ -65,5 +65,12 @@ service:
   telemetry:
     logs:
       level: info
+    # Collector self-metrics as a Prometheus endpoint. The pre-0.123 `address` key
+    # was removed; `readers` is the replacement.
     metrics:
-      address: 0.0.0.0:8888
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888

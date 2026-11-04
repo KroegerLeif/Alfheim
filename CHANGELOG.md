@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Telemetry stack upgrade, dev and prod on the same pinned tags (#777, #782): VictoriaMetrics v1.99.0 → v1.154.1, VictoriaLogs v0.25.0 → v1.51.1, OpenTelemetry Collector 0.100.0 → 0.163.2, Vector 0.39.0 → 0.60.0, Grafana 12.4.12 → 13.2.4. VictoriaLogs stays at v1.51.1 because v1.52 and later images contain no shell, which the compose healthcheck and the `up.sh` / `test-prod-startup.sh` wait steps rely on.
+- Collector config: `service.telemetry.metrics.address` (removed upstream) became a `readers` Prometheus pull exporter, and the `otlphttp` exporters were renamed `otlp_http`. The config ships as a release asset, so `alfheim-setup update` replaces it together with the compose file.
+- Upgrade note: Grafana 13 migrates dashboards and folders to unified storage on first start and a downgrade does not undo it. Take `alfheim-setup backup` before updating; to roll back, restore that backup.
+
+### Changed
 - Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
 - Removed the `.ai/` folder (#799). The quality-gate reference moved to `docs/en/reference/quality-gates.md`; the router map, persona workflows and the two-step "APPROVED" gate were dropped. `scripts/check-markdown-links.py` (also run by `verify.sh --security`) now fails if `.ai/` is tracked again.
 - Code comment convention (#798): `docs/en/reference/conventions/code-comments.md`. Ruff `D` rules (Google convention) and the `revive` `exported` rule for Go now run in `verify.sh` and CI, and `verify.sh --security` fails on `TODO`/`FIXME` without an issue reference. Existing Python docstring gaps are baselined in `ruff.toml`.
