@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Node.js 22 → 24 LTS: `node:24-alpine` in every frontend Dockerfile, `node-version: 24` in all workflows, `@types/node` `^24` and the docs portal `engines` (#783). Dependabot ignores major bumps of `@types/node` so it stays on the runtime major.
+
 ---
 
 ## [v0.3.1] - 2026-10-29
