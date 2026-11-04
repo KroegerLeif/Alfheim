@@ -43,7 +43,7 @@ convention = "google"
 "**/seeder.py" = ["T201"]
 
 # Docstring baseline (#798): files that predate the Google-style docstring rules.
-# Do not add entries. Remove a line when its file is documented; the follow-up issue tracks the burn-down.
+# Do not add entries. Remove a line when its file is documented; #823 tracks the burn-down.
 # New files are checked in full.
 "apps/budget/backend/src/core/config.py" = ["D100"]
 "apps/budget/backend/src/core/database.py" = ["D100"]
