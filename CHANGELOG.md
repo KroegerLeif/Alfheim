@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Chat image attachments (#805) are normalised on upload: EXIF orientation applied, all metadata (EXIF/GPS) dropped, longest edge capped at 2048 px, re-encoded as JPEG (PNG when the image has transparency), images above 40 megapixels refused. Pure Go (`golang.org/x/image`), so the chat binary stays CGO-free (+0.4 MB). Stored attachments therefore may differ in type from the uploaded file.
 ### Added
 - `backend_shared.images.normalize_image` (#804): applies the EXIF orientation, strips all metadata (EXIF/GPS, ICC, XMP), caps the longest edge (default 2560 px), encodes WebP (alpha kept), accepts JPEG, PNG, WebP and HEIC, and refuses decompression bombs. Pillow and pillow-heif ship as the optional `images` extra of `backend-shared`; `budget-backend` opts in.
 
