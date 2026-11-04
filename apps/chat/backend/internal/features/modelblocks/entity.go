@@ -19,6 +19,7 @@ const (
 // package does not need to import internal/shared/llm just for the enum values.
 type HealthStatus string
 
+// Health states recorded by the on-demand model block health check.
 const (
 	HealthStatusOK          HealthStatus = "ok"
 	HealthStatusUnreachable HealthStatus = "unreachable"

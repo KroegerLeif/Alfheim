@@ -46,7 +46,8 @@ class WorkoutSessionRead(SQLModel):
 
 class SessionSetSyncItem(SQLModel):
     """One offline-recorded set. client_idempotency_key is required — it is what
-    makes re-POSTing the same batch after a flaky retry safe (see session_sync_service.py)."""
+    makes re-POSTing the same batch after a flaky retry safe (see session_sync_service.py).
+    """
 
     client_idempotency_key: str = Field(min_length=1, max_length=100)
     session_exercise_id: uuid.UUID

@@ -11,6 +11,7 @@ import (
 // Role identifies who authored a chat message.
 type Role string
 
+// Message roles understood by every provider implementation.
 const (
 	RoleUser      Role = "user"
 	RoleAssistant Role = "assistant"

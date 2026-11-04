@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 	})
 }
 
+// List returns the model blocks visible to the caller.
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
@@ -50,6 +51,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, blocks)
 }
 
+// Get returns one model block the caller may see.
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
@@ -68,6 +70,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, block)
 }
 
+// Create stores a new model block owned by the caller.
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
@@ -90,6 +93,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// Update changes a model block; only its owner may do so.
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
@@ -114,6 +118,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, updated)
 }
 
+// Delete removes a model block; only its owner may do so.
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
@@ -131,6 +136,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// TriggerHealthCheck probes the provider of a model block and records the result.
 func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {
@@ -149,6 +155,7 @@ func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// Discover lists the models a provider endpoint offers.
 func (h *Handler) Discover(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.GetUserClaims(r.Context())
 	if err != nil {

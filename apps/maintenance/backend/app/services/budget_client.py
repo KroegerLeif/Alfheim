@@ -1,6 +1,4 @@
-"""
-Budget service client for forwarding maintenance reserve requests to budget backend.
-"""
+"""Budget service client for forwarding maintenance reserve requests to budget backend."""
 
 import logging
 import uuid
