@@ -12,5 +12,3 @@ anything in this folder. The files below are kept only until they are migrated (
   [theme blueprint](blueprints/theme.md)
 - [App audit checklist](workflows/audit.md)
 - [Quality-gate reference](guidelines/quality-gates.md) (CI workflows, coverage, tools)
-
-`CONTEXT.md` is no longer maintained (#797).

@@ -4,7 +4,6 @@ The binding agent rules moved to the root [`AGENTS.md`](../AGENTS.md) (#795). Th
 keeps material that has not been migrated yet:
 
 - `stacks/`, `blueprints/`, `guidelines/`: move into nested `AGENTS.md` files and `docs/` (#796).
-- `CONTEXT.md`: no longer maintained; its data invariants move to `docs/en/reference/apps/` (#797).
 - `workflows/`: triaged and removed together with this folder (#799).
 
 Do not add new files here. Where a file here contradicts `AGENTS.md`, `AGENTS.md` wins.

@@ -93,6 +93,29 @@ Every route depends on `backend_shared.household.require_household`, which confi
 
 ---
 
+## 🗄️ Data Model Invariants
+
+### Table `shopping_lists`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `name` | VARCHAR(255), NOT NULL | |
+| `home_id` | UUID, NOT NULL, indexed | Active household |
+| `owner_id` | UUID, NOT NULL, indexed | Creator and owner |
+| `is_default` | BOOLEAN, NOT NULL, default `false` | Protected household list |
+| `is_personal` | BOOLEAN, NOT NULL, default `false` | Protected personal list |
+| `position` | INTEGER, NOT NULL, default `0` | Display order |
+| `created_at`, `updated_at` | TIMESTAMPTZ, NOT NULL | |
+
+Invariants:
+
+1. At most one row with `is_default = true` per `home_id` (enforced in the service layer).
+2. At most one row with `is_personal = true` per `owner_id` (enforced in the service layer).
+3. The API never deletes a protected list (`is_default` or `is_personal`).
+
+---
+
 ## ⚠️ Known Issues & Open Follow-Ups
 
 - **`GET /api/v1/shopping-lists` has a side effect**: the first call for a given household/user

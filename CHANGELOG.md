@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
+- Retired `.ai/CONTEXT.md` (#797): the sprint log is dropped (git history and this changelog hold it), the per-app database invariants for shopping, pantry, maintenance, chores, chat and workout moved into `docs/en/reference/apps/<app>.md` and the German pages, and the `TESTING` and `OTEL_ENABLED` flags joined the environment variable reference.
 
 ---
 
