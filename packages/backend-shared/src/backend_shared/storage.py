@@ -3,7 +3,7 @@
 import logging
 import os
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Protocol
 
 import aioboto3
@@ -84,14 +84,16 @@ async def read_bounded_upload(
     *,
     max_bytes: int,
     signatures: Sequence[bytes] = (),
+    accept_header: Callable[[bytes], bool] | None = None,
     chunk_size: int = DEFAULT_UPLOAD_CHUNK_SIZE,
 ) -> bytes:
     """Read an uploaded file in chunks, refusing anything above ``max_bytes``.
 
     At most ``max_bytes`` plus one chunk is ever read before the upload is rejected with 413, so a
     huge request never sits fully in memory. An empty upload, or one whose first bytes match none of
-    ``signatures`` (magic numbers such as ``b"%PDF-"``), is rejected with 400; the declared filename
-    and content type are never trusted.
+    ``signatures`` (magic numbers such as ``b"%PDF-"``) or fails ``accept_header`` (for formats whose
+    magic number is not a plain prefix, such as WebP or HEIC), is rejected with 400; the declared
+    filename and content type are never trusted. ``accept_header`` sees the first chunk.
     """
     chunks: list[bytes] = []
     total = 0
@@ -99,7 +101,9 @@ async def read_bounded_upload(
         chunk = await upload.read(chunk_size)
         if not chunk:
             break
-        if not chunks and signatures and not chunk.startswith(tuple(signatures)):
+        if not chunks and (
+            (signatures and not chunk.startswith(tuple(signatures))) or (accept_header and not accept_header(chunk))
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="The uploaded file content does not match the expected file type.",
@@ -180,21 +184,16 @@ class S3StorageService:
                     )
                     raise
 
-    async def generate_presigned_upload_url(
-        self, object_key: str, expires_in: int = 3600, content_type: str | None = None
-    ) -> str:
-        """Generate a presigned PUT URL allowing direct browser upload to RustFS/S3 via S3_PUBLIC_URL."""
-        params = {"Bucket": self.settings.S3_BUCKET_NAME, "Key": object_key}
-        if content_type:
-            params["ContentType"] = content_type
-
-        async with self._get_presign_client() as s3_client:
-            url: str = await s3_client.generate_presigned_url(
-                "put_object",
-                Params=params,
-                ExpiresIn=expires_in,
+    async def put_object(self, object_key: str, body: bytes, content_type: str) -> None:
+        """Store ``body`` under ``object_key`` in the configured bucket."""
+        await self.ensure_bucket_exists()
+        async with self._get_client() as s3_client:
+            await s3_client.put_object(
+                Bucket=self.settings.S3_BUCKET_NAME,
+                Key=object_key,
+                Body=body,
+                ContentType=content_type,
             )
-            return self._to_public_url(url)
 
     async def generate_presigned_download_url(self, object_key: str, expires_in: int = 3600) -> str:
         """Generate a presigned GET URL allowing browser download from RustFS/S3 via S3_PUBLIC_URL."""
