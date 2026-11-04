@@ -1,6 +1,6 @@
 module alfheim/chat
 
-go 1.26.10
+go 1.27.3
 
 require (
 	github.com/MicahParks/keyfunc/v2 v2.1.0

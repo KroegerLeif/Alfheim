@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Go 1.26.10 → 1.27.3 everywhere at once (#778): `go.work`, all four `go.mod` files, the `go-version` pins in `go-ci.yml`, `release.yml` and `security-scan.yml`, the three Go service Dockerfiles and the Caddy `GOTOOLCHAIN` pin, so the images build with the same toolchain CI tests with.
+
 ---
 
 ## [v0.3.1] - 2026-10-29
