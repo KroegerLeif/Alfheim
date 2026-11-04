@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Chat image attachments (#805) are normalised on upload: EXIF orientation applied, all metadata (EXIF/GPS) dropped, longest edge capped at 2048 px, re-encoded as JPEG (PNG when the image has transparency), images above 40 megapixels refused. Pure Go (`golang.org/x/image`), so the chat binary stays CGO-free (+0.4 MB). Stored attachments therefore may differ in type from the uploaded file.
+
 ---
 
 ## [v0.3.1] - 2026-10-29
