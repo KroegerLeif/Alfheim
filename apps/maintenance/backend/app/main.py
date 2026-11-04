@@ -1,6 +1,4 @@
-"""
-Main FastAPI application entry point for the Maintenance OS backend.
-"""
+"""Main FastAPI application entry point for the Maintenance OS backend."""
 
 import importlib
 import pathlib

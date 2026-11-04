@@ -96,6 +96,42 @@ write). Global products with a valid EAN/UPC barcode are shared across household
 
 ---
 
+## 🗄️ Data Model Invariants
+
+### Table `inventory_states` (live stock cache)
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `product_id` | UUID, FK → `products.id` | |
+| `location_id` | UUID, FK → `locations.id` | |
+| `household_id` | UUID, NOT NULL, indexed | |
+| `quantity` | FLOAT, NOT NULL | Current stock level |
+| `batch_code` | VARCHAR, nullable | Lot or batch identifier |
+| `expiration_date` | DATE, nullable | |
+
+### Table `inventory_transactions` (immutable ledger)
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `product_id`, `location_id`, `household_id` | UUID, FK | |
+| `transaction_type` | ENUM | `in`, `out`, `waste`, `reconciliation` |
+| `quantity` | FLOAT, signed | Negative for `out` and `waste` |
+| `unit_input` | VARCHAR | Raw user unit before Pint normalization |
+| `batch_code`, `expiration_date`, `notes` | nullable | |
+| `created_at` | TIMESTAMPTZ, NOT NULL | |
+
+Invariants:
+
+1. Transactions are immutable: they are never updated or deleted.
+2. Products with a valid EAN/UPC barcode are promoted to `is_global = true` (shared across households).
+3. The `Backlog` system location (`is_system = true`) cannot be renamed or deleted.
+4. Pint normalizes units before `quantity` is written to either table.
+5. `SELECT FOR UPDATE` write locks guard `inventory_states` against concurrent write races.
+
+---
+
 ## ⚠️ Known Issues & Open Follow-Ups
 
 No known open issues beyond the general household-authorization items in

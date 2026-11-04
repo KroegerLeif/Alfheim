@@ -1,0 +1,29 @@
+# Shared golangci-lint configuration for the Go modules without their own config
+# (apps/chat, core/dashboard, core/household). tools/installer keeps its stricter
+# .golangci.yml. golangci-lint finds this file by walking up from the module root.
+#
+# Only the doc-comment rule is enabled here: the convention is
+# docs/en/reference/conventions/code-comments.md.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - revive
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+          # Renaming exported types only to avoid a stutter is churn, not documentation.
+          arguments: ["disableStutteringCheck"]
+
+  exclusions:
+    rules:
+      # Test helpers and doubles are not public API.
+      - path: _test\.go
+        linters:
+          - revive

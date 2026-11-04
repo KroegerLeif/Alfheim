@@ -1,5 +1,4 @@
-"""
-Maintenance feature — domain model re-exports.
+"""Maintenance feature — domain model re-exports.
 
 This module intentionally does not define new SQLModel table classes.
 The two core entities (Device, MaintenanceStep, ServiceHistoryEvent) live in

@@ -88,6 +88,29 @@ Jede Route hängt von `backend_shared.household.require_household` ab, das `X-Ho
 
 ---
 
+## 🗄️ Datenmodell-Invarianten
+
+### Tabelle `shopping_lists`
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `name` | VARCHAR(255), NOT NULL | |
+| `home_id` | UUID, NOT NULL, indiziert | Aktiver Haushalt |
+| `owner_id` | UUID, NOT NULL, indiziert | Ersteller und Eigentümer |
+| `is_default` | BOOLEAN, NOT NULL, Standard `false` | Geschützte Haushaltsliste |
+| `is_personal` | BOOLEAN, NOT NULL, Standard `false` | Geschützte persönliche Liste |
+| `position` | INTEGER, NOT NULL, Standard `0` | Anzeigereihenfolge |
+| `created_at`, `updated_at` | TIMESTAMPTZ, NOT NULL | |
+
+Invarianten:
+
+1. Höchstens eine Zeile mit `is_default = true` pro `home_id` (in der Service-Schicht erzwungen).
+2. Höchstens eine Zeile mit `is_personal = true` pro `owner_id` (in der Service-Schicht erzwungen).
+3. Die API löscht niemals eine geschützte Liste (`is_default` oder `is_personal`).
+
+---
+
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 - **`GET /api/v1/shopping-lists` hat einen Nebeneffekt**: Der erste Aufruf für einen gegebenen Haushalt/Benutzer legt die Standardliste des Haushalts und die persönliche Liste des Aufrufers an, falls sie noch nicht existieren (`ensure_household_list` / `ensure_personal_list` in `ListManagementService`). Das ist beabsichtigt (die Oberfläche hat immer eine Liste zum Hinzufügen von Artikeln), bedeutet aber, dass ein einfaches `GET` nicht ohne Weiteres als reiner Lesezugriff aus Skripten aufgerufen werden sollte. Siehe [Bekannte Probleme](../../explanation/known-issues.md).

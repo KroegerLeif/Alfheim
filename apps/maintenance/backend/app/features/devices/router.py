@@ -1,5 +1,4 @@
-"""
-Devices REST API router.
+"""Devices REST API router.
 
 Exposes REST endpoints for devices and the current household, delegating all domain
 logic to DeviceService.

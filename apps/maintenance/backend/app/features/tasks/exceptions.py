@@ -1,6 +1,4 @@
-"""
-Custom domain exceptions for the tasks feature.
-"""
+"""Custom domain exceptions for the tasks feature."""
 
 
 class TaskError(ValueError):
