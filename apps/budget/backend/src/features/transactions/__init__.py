@@ -1,13 +1,12 @@
 """Transactions feature package."""
 
 from src.features.transactions.models import (
-    PresignedUploadRequest,
-    PresignedUploadResponse,
     QuickAddTransactionCreate,
     ReceiptLineItem,
     ReceiptOCRData,
     ReceiptOCRRequest,
     ReceiptOCRResponse,
+    ReceiptUploadResponse,
     Transaction,
     TransactionCreate,
     TransactionRead,
@@ -19,13 +18,12 @@ from src.features.transactions.router import router
 from src.features.transactions.service import TransactionService
 
 __all__ = [
-    "PresignedUploadRequest",
-    "PresignedUploadResponse",
     "QuickAddTransactionCreate",
     "ReceiptLineItem",
     "ReceiptOCRData",
     "ReceiptOCRRequest",
     "ReceiptOCRResponse",
+    "ReceiptUploadResponse",
     "Transaction",
     "TransactionCreate",
     "TransactionRead",

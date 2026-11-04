@@ -337,6 +337,20 @@ if [[ "$RUN_SECURITY" == true ]]; then
         log_success "Pre-commit check hooks passed"
     fi
 
+    log_section "Compose Guard (bounded logs, memory limits)"
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        if python3 -m unittest discover scripts/tests \
+            && python3 scripts/check-compose.py compose.prod.yaml \
+            && python3 scripts/check-compose.py --logging-only compose.yaml; then
+            log_success "Every compose service has bounded logs; production services have a memory limit"
+        else
+            log_fail "Compose guard failed"
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        log_warn "docker compose is not installed; skipping the compose guard (CI runs it in compose-guard.yml)."
+    fi
+
     log_section "Secret Scan (gitleaks)"
     if command -v gitleaks >/dev/null 2>&1; then
         if gitleaks detect --source . --no-banner --redact; then

@@ -12,7 +12,7 @@ configure({ asyncUtilTimeout: 5000 })
 
 expect.extend(matchers)
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'bypass' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 

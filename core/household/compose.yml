@@ -1,6 +1,14 @@
 # core/household/compose.yml — local development stack for the Tier-1
 # household app (households, memberships, profile). Included from the root
 # compose.yaml and started by scripts/up.sh right after the dashboard.
+# Bounded json-file logs so a chatty container cannot fill the local disk
+# during long sessions (the default driver keeps unbounded logs).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # One-shot: creates the household database and its least-privilege user on
   # postgres-core. infrastructure/postgres/init-multiple-dbs.sh only runs when
@@ -11,6 +19,7 @@ services:
     image: postgres:16-alpine
     container_name: household-db-init
     restart: "no"
+    logging: *default-logging
     environment:
       PGHOST: postgres-core
       PGUSER: ${POSTGRES_USER:-postgres}
@@ -48,6 +57,7 @@ services:
       dockerfile: Dockerfile
     container_name: household-backend
     restart: always
+    logging: *default-logging
     environment:
       - PORT=8080
       - DATABASE_URL=${HOUSEHOLD_DATABASE_URL:-postgres://${HOUSEHOLD_POSTGRES_USER:-household_user}:${HOUSEHOLD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${HOUSEHOLD_POSTGRES_DB:-alfheim_household}?sslmode=disable}
@@ -85,6 +95,7 @@ services:
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: household-frontend
     restart: always
+    logging: *default-logging
     depends_on:
       household-backend:
         condition: service_healthy

@@ -7,6 +7,8 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   test: {
+    // pnpm runs several packages at once; vitest 5 timed out under that load with the default of cores - 1.
+    maxWorkers: 2,
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/tests/setup.ts',

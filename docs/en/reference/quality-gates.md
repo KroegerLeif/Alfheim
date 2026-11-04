@@ -65,7 +65,7 @@ Every FastMCP tool has a docstring and type annotations, handles exceptions and 
 | `ci-required.yml` | Path filter, stack gates, aggregated `ci-required` check |
 | `python-ci.yml` | Ruff, ty, per-app pytest with the 95 % gate, `packages/backend-shared` pytest |
 | `go-ci.yml` | gofmt, `go vet`, revive, `go test -race` per module, installer coverage gate and cross-compile |
-| `frontend-ci.yml` | `pnpm check-types`, `pnpm -r test` |
+| `frontend-ci.yml` | `pnpm check-types`, `pnpm -r test`, `next build` for every frontend (matrix) |
 | `security-scan.yml` | gitleaks, pip-audit, govulncheck, pnpm audit, Trivy (also weekly) |
 | `smoke-test.yml` | Caddy gateway and production core stack startup |
 | `deploy-docs.yml` | Markdown link check and docs build; deploys from `main` |
