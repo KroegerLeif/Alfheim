@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- How-to `storage-layout.md` (EN and DE, #807): where each data class lives and how it grows, the recommended disk layout, ZFS and Btrfs settings (and why not `nodatacow` for PostgreSQL), and the bounded Docker log configuration. Linked from the docs index, the deployment guide and the backup guide.
+
 ### Changed
 - Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
 - Removed the `.ai/` folder (#799). The quality-gate reference moved to `docs/en/reference/quality-gates.md`; the router map, persona workflows and the two-step "APPROVED" gate were dropped. `scripts/check-markdown-links.py` (also run by `verify.sh --security`) now fails if `.ai/` is tracked again.
