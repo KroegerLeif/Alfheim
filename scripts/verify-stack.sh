@@ -294,6 +294,19 @@ fi
 echo ""
 
 # ------------------------------------------------------------------------------
+# 8. postgres-core stores new TOAST values with lz4 (see compose command).
+# ------------------------------------------------------------------------------
+log_info "Checking postgres-core TOAST compression..."
+toast="$(docker compose -f "${COMPOSE_FILE}" exec -T postgres-core \
+  sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SHOW default_toast_compression"' 2>/dev/null | tr -d '[:space:]' || true)"
+if [[ "${toast}" == "lz4" ]]; then
+  log_success "default_toast_compression is lz4"
+else
+  fail "default_toast_compression is '${toast:-<unreadable>}', want lz4"
+fi
+echo ""
+
+# ------------------------------------------------------------------------------
 # Summary
 # ------------------------------------------------------------------------------
 if [[ "${ERRORS}" -eq 0 ]]; then
