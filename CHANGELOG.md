@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `postgres-core` stores new TOAST values with LZ4 (`default_toast_compression=lz4`) in the dev and prod stacks (#806). Existing rows keep pglz until rewritten. `scripts/verify-stack.sh` checks the setting.
+
 ---
 
 ## [v0.3.1] - 2026-10-29
