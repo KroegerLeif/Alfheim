@@ -140,5 +140,8 @@ python3 scripts/check-markdown-links.py
   [environment variables](docs/en/reference/environment-variables.md),
   [app references](docs/en/reference/apps/)
 - [Create a new FDD service](docs/en/tutorials/create-new-fdd-service.md)
-- Stack guides and the detailed quality-gate reference still live in [`.ai/`](.ai/INDEX.md) until
-  they move into nested `AGENTS.md` files and `docs/` (#796, #799).
+- Stack conventions, one canonical page each: [Python and FastAPI](docs/en/reference/conventions/python-fastapi.md),
+  [Go](docs/en/reference/conventions/go.md), [Next.js and Tailwind](docs/en/reference/conventions/nextjs-tailwind.md).
+  Each backend, frontend, shared package and the installer has a nested `AGENTS.md` with its own commands and invariants.
+- The detailed quality-gate reference still lives in [`.ai/`](.ai/INDEX.md) until it moves into
+  `docs/` (#799).

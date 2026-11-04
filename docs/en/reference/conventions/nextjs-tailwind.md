@@ -1,0 +1,66 @@
+---
+title: "Next.js and Tailwind Conventions"
+description: "Canonical conventions for Alfheim Next.js frontends: feature layout, data fetching, household gate and Tailwind theme pairing."
+sidebar:
+  label: "Next.js & Tailwind"
+---
+
+> **TL;DR:** Canonical conventions for every frontend (`apps/*/frontend`, `core/*/frontend`). Nested `AGENTS.md` files link here instead of repeating these rules.
+
+---
+
+## Stack
+
+Next.js (App Router, `src/proxy.ts` instead of the deprecated `middleware.ts`), Tailwind CSS v4, TanStack Query v5, `ky`, TypeScript with Zod schemas, `@alfheim/shared` for UI primitives, i18n, auth and household context.
+
+## Layout
+
+```text
+src/
+├── app/            # pages, layouts, route handlers only
+├── features/<domain>/
+│   ├── components/ # feature UI
+│   ├── hooks/      # TanStack Query hooks
+│   ├── api/        # calls through the shared client
+│   ├── types/      # interfaces and Zod schemas
+│   └── index.ts    # public barrel
+└── shared/         # domain-agnostic components, hooks, lib (cn, formatters)
+```
+
+## Data fetching
+
+- All HTTP goes through one typed `ky` client (`src/shared/api.ts` or `src/lib/api.ts`) with a prefix URL from `NEXT_PUBLIC_API_URL`, a timeout and hooks. Components and features never call bare `fetch`.
+- The client attaches `Authorization: Bearer <token>` from `sessionStorage.alfheim_access_token`, calls `applyHouseholdHeaders` (sets `X-Household-ID`, never `X-Household-Role`) and passes responses to `reportHouseholdErrorResponse`.
+- Wrap calls in hooks under `features/<domain>/hooks/`. Household-scoped queries include the household id in the query key and are enabled only when the household is ready:
+
+```typescript
+const { householdId, status } = useActiveHousehold();
+return useQuery({
+  queryKey: ['items', householdId],
+  queryFn: () => api.get('items').json<Item[]>(),
+  enabled: status === 'ready',
+});
+```
+
+## Household gate
+
+`HouseholdProvider` is mounted by the shared `AppShell`. Wrap household-scoped pages in `HouseholdGate`, which shows onboarding, switch and retry states. Take the household id from `useActiveHousehold()`; never read `localStorage.alfheim_active_household_id` or token claims.
+
+## Tailwind v4 theme pairing
+
+No arbitrary color values such as `bg-[#0f172a]`. Pair every light class with a dark class from the standard tokens:
+
+| UI role | Classes |
+| --- | --- |
+| Page background | `bg-slate-50 dark:bg-slate-950` |
+| Card or surface | `bg-white dark:bg-slate-900` |
+| Primary text | `text-slate-900 dark:text-slate-100` |
+| Muted text | `text-slate-600 dark:text-slate-400` |
+| Subtle border | `border-slate-200 dark:border-slate-800` |
+| Hover | `hover:bg-slate-100 dark:hover:bg-slate-800` |
+
+Shared components consume the CSS custom properties from the shared theme (`var(--surface-canvas)`, `var(--text-primary)`, `var(--primary-main)`). To add a component or theme to the shared package, see [Extend the shared package](../../how-to/extend-shared-package.md).
+
+## Gates
+
+`./scripts/verify.sh --frontend` runs `tsc --noEmit` and Vitest for every frontend. `pnpm build` verifies the production build. Read the Next.js guide in `node_modules/next/dist/docs/` before using an API you are unsure about; this version differs from older releases.
