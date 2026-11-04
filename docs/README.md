@@ -75,6 +75,8 @@ source with a translation notice, so untranslated paths never 404.
 * [Caddy Gateway Ingress & Routing Matrix](./en/reference/ingress-matrix.md) — Public URLs, internal ports, path stripping.
 * [Environment Variables Reference](./en/reference/environment-variables.md) — Every `.env` configuration flag.
 * [Installer CLI Reference](./en/reference/installer-cli.md) — Every flag, environment variable and exit code of `alfheim-setup`.
+* [Quality Gates](./en/reference/quality-gates.md) — Local and CI gates per stack, thresholds, workflows.
+* Conventions: [Python & FastAPI](./en/reference/conventions/python-fastapi.md), [Go](./en/reference/conventions/go.md), [Next.js & Tailwind](./en/reference/conventions/nextjs-tailwind.md), [Code comments](./en/reference/conventions/code-comments.md).
 * [CLI Scripts Reference](./en/reference/cli-scripts.md) — Flags for `up.sh`, `down.sh`, `seed.sh`, and `verify.sh`.
 * App references under [`en/reference/apps/`](./en/reference/apps/): [Budget](./en/reference/apps/budget.md), [Chat](./en/reference/apps/chat.md), [Chores](./en/reference/apps/chores.md), [Dashboard](./en/reference/apps/dashboard.md), [Household](./en/reference/apps/household.md), [Library](./en/reference/apps/library.md), [Maintenance](./en/reference/apps/maintenance.md), [Pantry](./en/reference/apps/pantry.md), [Shopping](./en/reference/apps/shopping.md), [Workout](./en/reference/apps/workout.md) — Routes, environment, domain features, MCP tools, and known issues per app.
 

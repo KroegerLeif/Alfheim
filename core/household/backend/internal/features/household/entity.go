@@ -6,6 +6,7 @@ import "time"
 // HouseholdRole defines permission levels within a household.
 type HouseholdRole string
 
+// Household roles, from most to least privileged.
 const (
 	RoleOwner  HouseholdRole = "OWNER"
 	RoleAdmin  HouseholdRole = "ADMIN"

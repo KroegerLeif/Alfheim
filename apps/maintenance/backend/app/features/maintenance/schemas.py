@@ -1,5 +1,4 @@
-"""
-Maintenance feature — Pydantic schemas for the wizard orchestration layer.
+"""Maintenance feature — Pydantic schemas for the wizard orchestration layer.
 
 These schemas represent the request/response shapes specific to the
 maintenance wizard workflow (multi-step service session). They deliberately

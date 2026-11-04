@@ -1,5 +1,4 @@
-"""
-Maintenance orchestration REST API router.
+"""Maintenance orchestration REST API router.
 
 Exposes endpoints for the maintenance wizard session submission and aggregate summary,
 delegating all execution to MaintenanceService.

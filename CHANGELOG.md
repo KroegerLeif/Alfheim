@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - CI: the frontend gate now runs `next build` for every Next.js frontend (matrix job `production-build`), so build-only failures such as an import above a `"use client"` directive fail `ci-required` on pull requests (#784).
+- Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
+- Removed the `.ai/` folder (#799). The quality-gate reference moved to `docs/en/reference/quality-gates.md`; the router map, persona workflows and the two-step "APPROVED" gate were dropped. `scripts/check-markdown-links.py` (also run by `verify.sh --security`) now fails if `.ai/` is tracked again.
+- Code comment convention (#798): `docs/en/reference/conventions/code-comments.md`. Ruff `D` rules (Google convention) and the `revive` `exported` rule for Go now run in `verify.sh` and CI, and `verify.sh --security` fails on `TODO`/`FIXME` without an issue reference. Existing Python docstring gaps are baselined in `ruff.toml`.
+- Nested `AGENTS.md` files (#796) for every backend, frontend, `packages/shared`, `packages/backend-shared` and `tools/installer`. Stack conventions now live once in `docs/en/reference/conventions/{python-fastapi,go,nextjs-tailwind}.md`, the shared component and theme blueprints became the how-to [Extend the shared package](docs/en/how-to/extend-shared-package.md), and the new-app scaffolding guide is merged into the FDD tutorial. `.ai/stacks`, `.ai/blueprints` and `.ai/guidelines/new-app-scaffolding.md` are removed.
+- Retired `.ai/CONTEXT.md` (#797): the sprint log is dropped (git history and this changelog hold it), the per-app database invariants for shopping, pantry, maintenance, chores, chat and workout moved into `docs/en/reference/apps/<app>.md` and the German pages, and the `TESTING` and `OTEL_ENABLED` flags joined the environment variable reference.
 
 ---
 
