@@ -2,9 +2,12 @@ import io
 import re
 from collections.abc import Iterator
 from decimal import Decimal
+from typing import cast
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+from backend_shared.storage import S3StorageService
 from httpx import AsyncClient
 from PIL import Image
 from pillow_heif import register_heif_opener
@@ -166,10 +169,10 @@ class FakeStorage:
 @pytest.fixture
 def storage(client: AsyncClient) -> Iterator[FakeStorage]:
     fake = FakeStorage()
-    app = client._transport.app  # type: ignore[attr-defined]
+    app = client._transport.app  # ty: ignore[unresolved-attribute]
     app.dependency_overrides[get_transaction_service] = lambda: TransactionService(
-        TransactionRepository(None),  # type: ignore[arg-type]
-        storage_service=fake,  # type: ignore[arg-type]
+        MagicMock(spec=TransactionRepository),
+        storage_service=cast(S3StorageService, fake),
     )
     yield fake
     app.dependency_overrides.pop(get_transaction_service, None)
