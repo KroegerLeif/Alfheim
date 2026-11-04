@@ -106,6 +106,7 @@ Grafana SSO is restricted to users holding the Zitadel project role `alfheim_ope
 | `GOOGLE_BOOKS_API_KEY` | _(empty)_ | Google Books API key for library metadata enrichment (optional; leave empty to disable) |
 | `TMDB_API_KEY` | _(empty)_ | The Movie Database API key for library media metadata enrichment (optional; leave empty to disable) |
 | `MAX_MANUAL_UPLOAD_BYTES` | `52428800` | Largest accepted library manual PDF upload in bytes (50 MiB); larger uploads are rejected with HTTP 413 |
+| `MAX_RECEIPT_UPLOAD_BYTES` | `10485760` | Largest accepted budget receipt upload in bytes (10 MiB); larger uploads are rejected with HTTP 413 |
 
 ### Chat: outbound model endpoints
 

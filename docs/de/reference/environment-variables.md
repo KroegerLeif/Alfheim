@@ -106,6 +106,7 @@ Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` b
 | `GOOGLE_BOOKS_API_KEY` | _(leer)_ | Google Books API-Schlüssel für Bibliotheks-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
 | `TMDB_API_KEY` | _(leer)_ | The Movie Database API-Schlüssel für Bibliotheks-Medien-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
 | `MAX_MANUAL_UPLOAD_BYTES` | `52428800` | Größter akzeptierter PDF-Upload für Bibliotheks-Anleitungen in Bytes (50 MiB); größere Uploads werden mit HTTP 413 abgelehnt |
+| `MAX_RECEIPT_UPLOAD_BYTES` | `10485760` | Größter akzeptierter Budget-Beleg-Upload in Bytes (10 MiB); größere Uploads werden mit HTTP 413 abgelehnt |
 
 ### Chat: ausgehende Modell-Endpunkte
 
