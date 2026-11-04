@@ -73,12 +73,18 @@ def load_config(path: str) -> dict[str, Any]:
     # --no-interpolate: the checked keys never contain variables, and this
     # lets the production file be parsed without a populated .env.
     command = [
-        "docker", "compose", "--profile", "*", "-f", os.path.basename(path), "config",
-        "--format", "json", "--no-interpolate",
+        "docker",
+        "compose",
+        "--profile",
+        "*",
+        "-f",
+        os.path.basename(path),
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
     ]
-    output = subprocess.check_output(
-        command, cwd=os.path.dirname(os.path.abspath(path)), text=True
-    )
+    output = subprocess.check_output(command, cwd=os.path.dirname(os.path.abspath(path)), text=True)
     return json.loads(output)
 
 
@@ -105,8 +111,10 @@ def main() -> int:
             print(f"  {problem}", file=sys.stderr)
         return 1
     count = len(config.get("services") or {})
-    print(f"{args.compose_file}: all {count} services have bounded logging"
-          + ("" if args.logging_only else " and a memory limit"))
+    print(
+        f"{args.compose_file}: all {count} services have bounded logging"
+        + ("" if args.logging_only else " and a memory limit")
+    )
     return 0
 
 
