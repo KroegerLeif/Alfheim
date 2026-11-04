@@ -1,6 +1,4 @@
-"""
-Custom domain exceptions for the maintenance feature.
-"""
+"""Custom domain exceptions for the maintenance feature."""
 
 
 class MaintenanceError(ValueError):

@@ -1,5 +1,4 @@
-"""
-FastMCP tool definitions for the tasks feature.
+"""FastMCP tool definitions for the tasks feature.
 
 Registers tools directly to the central FastMCP server instance, consuming logic
 exclusively from TaskService.

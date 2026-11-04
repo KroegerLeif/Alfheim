@@ -7,7 +7,7 @@ convention of no src/__init__.py or src/features/__init__.py) — `import mcp`
 inside this package would otherwise shadow or be shadowed by the real one.
 
 This is a DELIBERATE, documented exception to the mandatory 6-file feature
-module standard (.ai/stacks/python_fastapi.md): this slice holds only
+module standard (docs/en/reference/conventions/python-fastapi.md): this slice holds only
 mcp_tools.py (+ tests/) and has no models.py/schemas.py/service.py/router.py
 of its own. Its tools compose agent-facing actions that necessarily span
 multiple features (e.g. "start today's workout and log a set" touches
