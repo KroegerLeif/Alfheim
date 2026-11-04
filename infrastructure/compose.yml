@@ -15,6 +15,9 @@ services:
     container_name: alfheim_postgres_core
     restart: unless-stopped
     logging: *default-logging
+    # lz4 decompresses much faster than the default pglz at a similar ratio;
+    # it only applies to newly written TOAST values.
+    command: ["postgres", "-c", "default_toast_compression=lz4"]
     env_file:
       - path: ./postgres/.env
         required: false

@@ -22,7 +22,24 @@ def tracked_markdown_files() -> list[str]:
     return [f for f in out.split() if not f.startswith(SKIP_PATHS)]
 
 
+# Retired in #794: agent instructions live in AGENTS.md files and docs/. A returning
+# folder would fork the rules again, so the link check doubles as the guard.
+RETIRED_PATHS = (".ai/",)
+
+
+def retired_paths_present() -> list[str]:
+    out = subprocess.check_output(["git", "ls-files"], text=True)
+    return [f for f in out.split("\n") if f.startswith(RETIRED_PATHS)]
+
+
 def main() -> int:
+    retired = retired_paths_present()
+    if retired:
+        print("Retired paths are tracked again (agent rules belong in AGENTS.md and docs/):\n")
+        for path in retired:
+            print(f"  {path}")
+        return 1
+
     broken: list[tuple[str, str]] = []
     files = tracked_markdown_files()
 

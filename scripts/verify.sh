@@ -206,6 +206,19 @@ if [[ "$RUN_GO" == true ]]; then
                 ERRORS=$((ERRORS + 1))
             fi
 
+            # Doc-comment rule (revive "exported") is the enforced baseline; CI runs the same command.
+            if command -v golangci-lint >/dev/null 2>&1; then
+                log_section "Go Doc Comments (revive exported) - $service"
+                if (cd "$ROOT_DIR/$service" && golangci-lint run --enable-only revive); then
+                    log_success "Exported identifiers are documented ($service)"
+                else
+                    log_fail "Exported identifiers without doc comments ($service)"
+                    ERRORS=$((ERRORS + 1))
+                fi
+            else
+                log_warn "golangci-lint is not installed; skipping the Go doc-comment check (CI runs it)."
+            fi
+
             if command -v golangci-lint >/dev/null 2>&1; then
                 log_section "Go Linter (golangci-lint) - $service"
                 if (cd "$ROOT_DIR/$service" && golangci-lint run); then
@@ -277,6 +290,22 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     else
         log_success "No private keys detected"
+    fi
+
+    log_section "Checking for TODO/FIXME Without an Issue Reference"
+    if ./scripts/check-todo-refs.sh; then
+        log_success "Every TODO/FIXME carries an issue reference"
+    else
+        log_fail "Found TODO/FIXME markers without an issue reference"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    log_section "Markdown Links and Retired Paths (.ai/)"
+    if python3 scripts/check-markdown-links.py; then
+        log_success "Markdown links resolve and no retired paths are tracked"
+    else
+        log_fail "Broken Markdown links or retired paths are tracked"
+        ERRORS=$((ERRORS + 1))
     fi
 
     log_section "Checking for Tracked Sensitive .env Files"

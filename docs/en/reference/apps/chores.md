@@ -115,6 +115,50 @@ first access of a household's chores list for that day if the system was offline
 
 ---
 
+## 🗄️ Data Model Invariants
+
+### Table `chore_templates`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `home_id` | UUID, NOT NULL, indexed | Active household |
+| `name` | VARCHAR(150), NOT NULL | |
+| `description` | VARCHAR(500), nullable | |
+| `points` | INTEGER, NOT NULL, default `10` | |
+| `is_non_cumulative` | BOOLEAN, NOT NULL, default `true` | |
+
+### Table `chore_instances`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `template_id` | UUID, FK → `chore_templates.id`, NOT NULL | |
+| `home_id` | UUID, NOT NULL, indexed | |
+| `assigned_to`, `completed_by` | UUID, nullable | |
+| `completed_at` | TIMESTAMPTZ, nullable | |
+| `due_date` | DATE, NOT NULL, indexed | |
+| `status` | VARCHAR(20), NOT NULL, default `pending` | `pending`, `completed` or `missed` |
+| `points_awarded` | INTEGER, NOT NULL, default `0` | |
+
+### Table `household_streaks`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `home_id` | UUID, NOT NULL, unique, indexed | |
+| `current_streak`, `longest_streak` | INTEGER, NOT NULL, default `0` | |
+| `last_completed_date` | DATE, nullable | |
+
+Invariants:
+
+1. **Name uniqueness**: template names are unique within a household (index `uq_chore_template_name_per_home`).
+2. **Instance uniqueness**: a template has at most one instance per date (index `uq_chore_instance_template_per_date`).
+3. **Streak integrity**: the streak grows when every scheduled chore of a day is completed. Any chore left open is marked `missed` and the streak resets to 0 during the daily reset.
+4. **Self-healing reset**: if the system was offline, the daily reset runs retroactively on the first access to a household's chores for that day.
+
+---
+
 ## ⚠️ Known Issues & Open Follow-Ups
 
 No known open issues beyond the general household-authorization items in

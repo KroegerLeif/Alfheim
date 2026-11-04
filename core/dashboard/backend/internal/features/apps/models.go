@@ -5,6 +5,7 @@ import "time"
 // TierType defines the application architectural tier classification.
 type TierType string
 
+// Tiers of the app catalog, by where the entry comes from.
 const (
 	TierCore  TierType = "core"  // Tier 1: Natively defined core apps
 	TierStack TierType = "stack" // Tier 2: Loaded from server YAML config

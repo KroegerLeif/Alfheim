@@ -1,5 +1,4 @@
-"""
-Tasks REST API router.
+"""Tasks REST API router.
 
 Exposes REST endpoints for service history, submission, and step updates,
 delegating all logic to TaskService.
