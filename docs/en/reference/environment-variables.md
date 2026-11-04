@@ -13,6 +13,7 @@ sidebar:
 - [Root Platform Configuration](#root-platform-configuration)
 - [Identity & Access Management (Generic OIDC & Zitadel)](#identity--access-management-generic-oidc--zitadel)
 - [Object Storage (RustFS S3)](#object-storage-rustfs-s3)
+- [Data Locations](#data-locations)
 - [Observability Stack (VictoriaStack & Telemetry)](#observability-stack-victoriastack--telemetry)
 - [Microservice Backend Variables](#microservice-backend-variables)
 - [Household & Roles Service (`core/household`)](#household--roles-service-corehousehold)
@@ -73,6 +74,25 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `S3_ROOT_USER` | `minioadmin` | RustFS root user (initial admin) |
 | `S3_ROOT_PASSWORD` | `minioadmin` | RustFS root password |
 | `DOCKER_SOCKET_GID` | detected (required in production) | Numeric group id owning `/var/run/docker.sock` on the host (`stat -c %g /var/run/docker.sock`); `alfheim-setup` detects it on install and adds it on update when missing |
+
+---
+
+## Data Locations
+
+By default every data class lives in a Docker named volume. Setting one of these variables in `.env` turns it into a bind mount of a host directory, for example to put the database on its own disk. Compose treats a value without a slash as a named volume and an absolute path as a bind mount, so unset or empty keeps the current behaviour. `alfheim-setup` accepts the same names as flags (`--db-data-path`, `--object-data-path`, `--metrics-data-path`, `--logs-data-path`) and asks for them in the wizard; it creates each directory with the owner its container needs, checks that it is writable and warns when it is on the same filesystem as `/`.
+
+| Variable | Default | Mounted at | Owner the directory needs |
+| :--- | :--- | :--- | :--- |
+| `ALFHEIM_DB_DATA_PATH` | _(empty: volume `postgres_core_data`)_ | PostgreSQL `/var/lib/postgresql/data` | `70:70`, mode `0700` (alpine `postgres` user) |
+| `ALFHEIM_OBJECT_DATA_PATH` | _(empty: volume `rustfs_data`)_ | RustFS `/data` | `10001:10001`, mode `0700` |
+| `ALFHEIM_METRICS_DATA_PATH` | _(empty: volume `victoriametrics_data`)_ | VictoriaMetrics `/victoria-metrics-data` | `0:0` (the image runs as root) |
+| `ALFHEIM_LOGS_DATA_PATH` | _(empty: volume `victorialogs_data`)_ | VictoriaLogs `/victoria-logs-data` | `0:0` (the image runs as root) |
+
+Notes:
+
+- Paths must be absolute, must not contain `:` and must differ from each other. Grafana and Caddy keep their named volumes.
+- Do not change a variable on a running install by editing `.env` alone: the new directory starts empty. Migrate with `alfheim-setup backup`, stop the stack, set the variable (or re-run `alfheim-setup --reconfigure` with the flag), then `alfheim-setup restore`. Backup and restore work the same for volumes and bind mounts.
+- PostgreSQL 18 images keep the data in a version subdirectory below `/var/lib/postgresql`. When you upgrade to that major version, change the mount target together with the image; the directory you configured here then holds `18/docker`.
 
 ---
 

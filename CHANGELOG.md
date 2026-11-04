@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nested `AGENTS.md` files (#796) for every backend, frontend, `packages/shared`, `packages/backend-shared` and `tools/installer`. Stack conventions now live once in `docs/en/reference/conventions/{python-fastapi,go,nextjs-tailwind}.md`, the shared component and theme blueprints became the how-to [Extend the shared package](docs/en/how-to/extend-shared-package.md), and the new-app scaffolding guide is merged into the FDD tutorial. `.ai/stacks`, `.ai/blueprints` and `.ai/guidelines/new-app-scaffolding.md` are removed.
 - Retired `.ai/CONTEXT.md` (#797): the sprint log is dropped (git history and this changelog hold it), the per-app database invariants for shopping, pantry, maintenance, chores, chat and workout moved into `docs/en/reference/apps/<app>.md` and the German pages, and the `TESTING` and `OTEL_ENABLED` flags joined the environment variable reference.
 
+### Added
+- Configurable data locations (#801): `ALFHEIM_DB_DATA_PATH`, `ALFHEIM_OBJECT_DATA_PATH`, `ALFHEIM_METRICS_DATA_PATH` and `ALFHEIM_LOGS_DATA_PATH` turn the PostgreSQL, RustFS, VictoriaMetrics and VictoriaLogs data from named volumes into bind mounts of absolute host paths; unset keeps the named volumes, so existing installs are unchanged. `alfheim-setup` takes them as flags (`--db-data-path`, ...) or environment variables and asks for them in the wizard, creates each directory with the owner its container needs (postgres 70, rustfs 10001, Victoria* root; mode 0700 for the first two), fails if one is not writable, warns when it is on the same filesystem as `/`, and keeps an earlier choice on a re-run. `scripts/test-prod-startup.sh --bind-mounts` runs the production smoke test with bind mounts and the smoke-test workflow does so in CI.
+
 ---
 
 ## [v0.3.1] - 2026-10-29
