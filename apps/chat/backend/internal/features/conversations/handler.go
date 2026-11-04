@@ -36,6 +36,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 	})
 }
 
+// List returns the caller's conversations.
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	claims, hh, err := callerScope(r)
 	if err != nil {
@@ -52,6 +53,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, convos)
 }
 
+// Create starts a new conversation owned by the caller.
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	claims, hh, err := callerScope(r)
 	if err != nil {
@@ -74,6 +76,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// Delete removes one of the caller's conversations.
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims, hh, err := callerScope(r)
 	if err != nil {
@@ -90,6 +93,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// ListMessages returns the messages of a conversation the caller owns.
 func (h *Handler) ListMessages(w http.ResponseWriter, r *http.Request) {
 	claims, hh, err := callerScope(r)
 	if err != nil {
@@ -107,6 +111,7 @@ func (h *Handler) ListMessages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, messages)
 }
 
+// PostMessage appends a user message and returns it; the reply is streamed separately.
 func (h *Handler) PostMessage(w http.ResponseWriter, r *http.Request) {
 	claims, hh, err := callerScope(r)
 	if err != nil {

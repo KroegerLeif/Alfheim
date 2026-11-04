@@ -91,6 +91,42 @@ Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`, `@m
 
 ---
 
+## 🗄️ Datenmodell-Invarianten
+
+### Tabelle `device`
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | Integer, PK | |
+| `name`, `model`, `serial`, `category`, `location` | VARCHAR, NOT NULL | |
+| `status` | VARCHAR, NOT NULL | `active`, `maintenance` oder `inactive` |
+| `service_interval_months` | INTEGER, nullable | |
+| `household_id` | UUID, NOT NULL, indiziert | Haushalte gehören `core/household`; es gibt keine lokale Tabelle `household` |
+
+### Tabelle `maintenancestep`
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | Integer, PK | |
+| `title` | VARCHAR, NOT NULL | |
+| `description` | VARCHAR, nullable | |
+| `recurrence` | INTEGER, NOT NULL | Intervall in Monaten |
+| `supply_item`, `supply_needed_date`, `last_completed` | VARCHAR, nullable | |
+| `device_id` | Integer, FK → `device.id` | |
+
+### Tabelle `servicehistoryevent`
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | Integer, PK | |
+| `date` | VARCHAR, NOT NULL | |
+| `performer` | VARCHAR, NOT NULL | |
+| `notes` | VARCHAR, nullable | |
+| `completed_steps` | JSON, nullable | Liste der erledigten Schritt-Titel |
+| `device_id` | Integer, FK → `device.id` | |
+
+---
+
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 - **Alte Geräte fehlen nach dem Upgrade**: Eine Datenbank, die vor der Umstellung auf UUID-Haushalte angelegt wurde, wird beim Start umgestellt; die alten Zeilen bleiben im Schema `legacy_maintenance`, werden aber nicht mehr ausgeliefert – siehe [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-alte-maintenance-daten-fehlen-nach-dem-update) und [Bekannte Probleme](../../explanation/known-issues.md).

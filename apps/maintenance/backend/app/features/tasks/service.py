@@ -1,6 +1,4 @@
-"""
-Task feature service layer handling database operations and inter-service HTTP integration.
-"""
+"""Task feature service layer handling database operations and inter-service HTTP integration."""
 
 import datetime
 import logging

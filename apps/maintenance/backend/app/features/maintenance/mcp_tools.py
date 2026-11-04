@@ -1,5 +1,4 @@
-"""
-FastMCP tool definitions for the maintenance orchestration feature.
+"""FastMCP tool definitions for the maintenance orchestration feature.
 
 Registers tools directly to the central FastMCP server instance, consuming logic
 exclusively from MaintenanceService.
