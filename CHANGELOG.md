@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `backend_shared.images.normalize_image` (#804): applies the EXIF orientation, strips all metadata (EXIF/GPS, ICC, XMP), caps the longest edge (default 2560 px), encodes WebP (alpha kept), accepts JPEG, PNG, WebP and HEIC, and refuses decompression bombs. Pillow and pillow-heif ship as the optional `images` extra of `backend-shared`; `budget-backend` opts in.
 ### Security
 - Library manual upload (#803) reads the PDF in chunks up to `MAX_MANUAL_UPLOAD_BYTES` (default 50 MiB, HTTP 413 above it), rejects content that does not start with `%PDF-` (HTTP 400) and stores it under a server-generated object key instead of the client file name; replacing a manual deletes the old object. The reusable `read_bounded_upload` and `generate_object_name` helpers live in `backend_shared.storage`.
 ### Changed
