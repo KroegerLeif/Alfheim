@@ -118,7 +118,8 @@ services:
       LIBRARY_POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:?LIBRARY_POSTGRES_PASSWORD must be set}
     volumes:
       - ./infrastructure/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
-      - postgres_core_data:/var/lib/postgresql/data
+      # A host path (ALFHEIM_DB_DATA_PATH) turns this into a bind mount owned by uid 70.
+      - ${ALFHEIM_DB_DATA_PATH:-postgres_core_data}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -264,7 +265,7 @@ services:
       RUSTFS_ACCESS_KEY: ${S3_ROOT_USER:?S3_ROOT_USER must be set}
       RUSTFS_SECRET_KEY: ${S3_ROOT_PASSWORD:?S3_ROOT_PASSWORD must be set}
     volumes:
-      - rustfs_data:/data
+      - ${ALFHEIM_OBJECT_DATA_PATH:-rustfs_data}:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
       interval: 5s
@@ -300,7 +301,7 @@ services:
       - "-httpListenAddr=:8428"
       - "-promscrape.config=/etc/victoriametrics/scrape.yml"
     volumes:
-      - victoriametrics_data:/victoria-metrics-data
+      - ${ALFHEIM_METRICS_DATA_PATH:-victoriametrics_data}:/victoria-metrics-data
       - ./infrastructure/telemetry/victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
@@ -376,7 +377,7 @@ services:
       - "-storageDataPath=/victoria-logs-data"
       - "-httpListenAddr=:9428"
     volumes:
-      - victorialogs_data:/victoria-logs-data
+      - ${ALFHEIM_LOGS_DATA_PATH:-victorialogs_data}:/victoria-logs-data
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
       interval: 5s

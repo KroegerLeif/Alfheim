@@ -37,7 +37,7 @@ services:
       HOUSEHOLD_POSTGRES_PASSWORD: ${HOUSEHOLD_POSTGRES_PASSWORD:-postgres}
     volumes:
       - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
-      - ./postgres/data:/var/lib/postgresql/data
+      - ${ALFHEIM_DB_DATA_PATH:-./postgres/data}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -159,7 +159,7 @@ services:
       RUSTFS_ACCESS_KEY: ${S3_ROOT_USER:-minioadmin}
       RUSTFS_SECRET_KEY: ${S3_ROOT_PASSWORD:-minioadmin}
     volumes:
-      - rustfs_data:/data
+      - ${ALFHEIM_OBJECT_DATA_PATH:-rustfs_data}:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
       interval: 5s
