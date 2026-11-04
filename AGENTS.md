@@ -146,5 +146,5 @@ python3 scripts/check-markdown-links.py
 - Stack conventions, one canonical page each: [Python and FastAPI](docs/en/reference/conventions/python-fastapi.md),
   [Go](docs/en/reference/conventions/go.md), [Next.js and Tailwind](docs/en/reference/conventions/nextjs-tailwind.md).
   Each backend, frontend, shared package and the installer has a nested `AGENTS.md` with its own commands and invariants.
-- The detailed quality-gate reference still lives in [`.ai/`](.ai/INDEX.md) until it moves into
-  `docs/` (#799).
+- [Quality gates](docs/en/reference/quality-gates.md): thresholds, security checks and what each CI
+  workflow does.

@@ -42,6 +42,10 @@ return useQuery({
 });
 ```
 
+## Feature isolation
+
+Features do not import from other features directly; they expose components and hooks through the feature's `index.ts` barrel. Generic concerns (auth, query client, base HTTP client, providers) live in `src/shared/`. Dynamic routes are async Server Components that resolve `params` with `await`; wrap client components that depend on search params in `<Suspense>` to avoid hydration crashes.
+
 ## Household gate
 
 `HouseholdProvider` is mounted by the shared `AppShell`. Wrap household-scoped pages in `HouseholdGate`, which shows onboarding, switch and retry states. Take the household id from `useActiveHousehold()`; never read `localStorage.alfheim_active_household_id` or token claims.

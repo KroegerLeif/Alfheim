@@ -129,7 +129,7 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
    Add the matching native + prefix-stripped alias on the `api.*` API Gateway domain as well (see
    [Ingress Matrix](../reference/ingress-matrix.md)).
 
-2. **Control Plane Registry**: Register `recipes` in `core/dashboard/backend/internal/features/apps/tier1_core_registry.go`.
+2. **Control Plane Registry**: Register `recipes` in `core/dashboard/backend/internal/features/apps/tier1_core_registry.go`. Integrations that are not part of this monorepo are Tier 2 entries in `deploy/stack-apps.yaml`; see the [classification guidelines](../reference/apps-catalog.md#-application-classification-guidelines).
 3. **Application Catalog**: Add `recipes` to [`docs/en/reference/apps-catalog.md`](../reference/apps-catalog.md).
 4. **Identity provider**: Register the frontend in the Zitadel console as a `User Agent` application
    with PKCE and redirect URIs `<base-url>/recipes/*`. Backends validate tokens through the
