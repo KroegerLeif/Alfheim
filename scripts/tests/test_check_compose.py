@@ -4,9 +4,9 @@ import importlib.util
 import pathlib
 import unittest
 
-_spec = importlib.util.spec_from_file_location(
-    "check_compose", pathlib.Path(__file__).parents[1] / "check-compose.py"
-)
+_spec = importlib.util.spec_from_file_location("check_compose", pathlib.Path(__file__).parents[1] / "check-compose.py")
+if _spec is None or _spec.loader is None:
+    raise ImportError("cannot load scripts/check-compose.py")
 check_compose = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(check_compose)
 

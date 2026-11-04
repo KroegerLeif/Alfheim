@@ -2,10 +2,14 @@
 
 import logging
 import os
+import uuid
+from collections.abc import Sequence
+from typing import Protocol
 
 import aioboto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+from fastapi import HTTPException, status
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -66,6 +70,58 @@ def get_user_object_key(user_id: str, app_name: str, filename: str) -> str:
     """
     clean_filename = filename.lstrip("/")
     return f"users/{user_id}/{app_name}/{clean_filename}"
+
+
+DEFAULT_UPLOAD_CHUNK_SIZE = 64 * 1024
+
+
+class _ChunkReader(Protocol):
+    async def read(self, size: int = -1, /) -> bytes: ...
+
+
+async def read_bounded_upload(
+    upload: _ChunkReader,
+    *,
+    max_bytes: int,
+    signatures: Sequence[bytes] = (),
+    chunk_size: int = DEFAULT_UPLOAD_CHUNK_SIZE,
+) -> bytes:
+    """Read an uploaded file in chunks, refusing anything above ``max_bytes``.
+
+    At most ``max_bytes`` plus one chunk is ever read before the upload is rejected with 413, so a
+    huge request never sits fully in memory. An empty upload, or one whose first bytes match none of
+    ``signatures`` (magic numbers such as ``b"%PDF-"``), is rejected with 400; the declared filename
+    and content type are never trusted.
+    """
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await upload.read(chunk_size)
+        if not chunk:
+            break
+        if not chunks and signatures and not chunk.startswith(tuple(signatures)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The uploaded file content does not match the expected file type.",
+            )
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"The uploaded file exceeds the {max_bytes // (1024 * 1024)} MiB limit.",
+            )
+        chunks.append(chunk)
+    if not total:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The uploaded file cannot be empty.")
+    return b"".join(chunks)
+
+
+def generate_object_name(extension: str) -> str:
+    """Return a server-generated, unguessable object file name such as ``3f2a...c1.pdf``.
+
+    Client-supplied file names never become part of an object key.
+    """
+    return f"{uuid.uuid4().hex}.{extension.lstrip('.').lower()}"
 
 
 class S3StorageService:

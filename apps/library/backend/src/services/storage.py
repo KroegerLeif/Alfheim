@@ -3,20 +3,17 @@
 import logging
 import uuid
 
-from backend_shared.storage import S3StorageService
+from backend_shared.storage import S3StorageService, generate_object_name
 
 logger = logging.getLogger(__name__)
 
 
-def build_manual_object_key(household_id: uuid.UUID, item_id: uuid.UUID, filename: str) -> str:
-    """Generate tenant-isolated S3 key for an item's manual PDF.
+def build_manual_object_key(household_id: uuid.UUID, item_id: uuid.UUID) -> str:
+    """Generate a tenant-isolated S3 key with a server-generated file name.
 
-    Format: library/households/{household_id}/manuals/{item_id}/{filename}
+    Format: library/households/{household_id}/manuals/{item_id}/{random}.pdf
     """
-    clean_filename = filename.lstrip("/")
-    if not clean_filename.lower().endswith(".pdf"):
-        clean_filename = f"{clean_filename}.pdf"
-    return f"library/households/{household_id}/manuals/{item_id}/{clean_filename}"
+    return f"library/households/{household_id}/manuals/{item_id}/{generate_object_name('pdf')}"
 
 
 class ManualStorageService:
@@ -29,11 +26,10 @@ class ManualStorageService:
         self,
         household_id: uuid.UUID,
         item_id: uuid.UUID,
-        filename: str,
         content: bytes,
     ) -> str:
         """Upload PDF manual bytes to S3 and return the object key."""
-        object_key = build_manual_object_key(household_id, item_id, filename)
+        object_key = build_manual_object_key(household_id, item_id)
         await self.s3_service.ensure_bucket_exists()
 
         async with self.s3_service._get_client() as s3_client:
