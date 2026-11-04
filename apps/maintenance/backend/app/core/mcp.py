@@ -1,5 +1,4 @@
-"""
-MCP (Model Context Protocol) server for the Maintenance OS backend.
+"""MCP (Model Context Protocol) server for the Maintenance OS backend.
 
 Exposes AI tools registered dynamically from app/features/*/mcp_tools.py.
 Served by the main FastAPI app at /mcp (Streamable HTTP) via backend_shared.mcp_middleware.mount_mcp.

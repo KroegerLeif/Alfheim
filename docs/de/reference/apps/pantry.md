@@ -91,6 +91,42 @@ Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitg
 
 ---
 
+## 🗄️ Datenmodell-Invarianten
+
+### Tabelle `inventory_states` (Live-Bestandscache)
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `product_id` | UUID, FK → `products.id` | |
+| `location_id` | UUID, FK → `locations.id` | |
+| `household_id` | UUID, NOT NULL, indiziert | |
+| `quantity` | FLOAT, NOT NULL | Aktueller Bestand |
+| `batch_code` | VARCHAR, nullable | Chargenkennung |
+| `expiration_date` | DATE, nullable | |
+
+### Tabelle `inventory_transactions` (unveränderliches Journal)
+
+| Spalte | Typ | Hinweise |
+| --- | --- | --- |
+| `id` | UUID, PK | |
+| `product_id`, `location_id`, `household_id` | UUID, FK | |
+| `transaction_type` | ENUM | `in`, `out`, `waste`, `reconciliation` |
+| `quantity` | FLOAT, mit Vorzeichen | Negativ bei `out` und `waste` |
+| `unit_input` | VARCHAR | Rohe Nutzereinheit vor der Pint-Normalisierung |
+| `batch_code`, `expiration_date`, `notes` | nullable | |
+| `created_at` | TIMESTAMPTZ, NOT NULL | |
+
+Invarianten:
+
+1. Transaktionen sind unveränderlich: Sie werden weder aktualisiert noch gelöscht.
+2. Produkte mit gültigem EAN/UPC-Barcode werden zu `is_global = true` hochgestuft (haushaltsübergreifend geteilt).
+3. Der Systemlagerort `Backlog` (`is_system = true`) kann weder umbenannt noch gelöscht werden.
+4. Pint normalisiert Einheiten, bevor `quantity` in eine der beiden Tabellen geschrieben wird.
+5. `SELECT FOR UPDATE`-Schreibsperren schützen `inventory_states` vor gleichzeitigen Schreibkonflikten.
+
+---
+
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.

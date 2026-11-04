@@ -1,11 +1,23 @@
 # infrastructure/compose.yml
 name: alfheim-iam
 
+# Bounded json-file logs so a chatty container cannot fill the local disk
+# during long sessions (the default driver keeps unbounded logs).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres-core:
     image: postgres:16-alpine
     container_name: alfheim_postgres_core
     restart: unless-stopped
+    logging: *default-logging
+    # lz4 decompresses much faster than the default pglz at a similar ratio;
+    # it only applies to newly written TOAST values.
+    command: ["postgres", "-c", "default_toast_compression=lz4"]
     env_file:
       - path: ./postgres/.env
         required: false
@@ -61,6 +73,7 @@ services:
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
+    logging: *default-logging
     command: >-
       start-from-init
       --masterkey "${ZITADEL_MASTERKEY:-MasterkeyNeedsToHave32Characters}"
@@ -131,6 +144,7 @@ services:
     container_name: alfheim_zitadel_machinekey_init
     user: "0:0"
     restart: "no"
+    logging: *default-logging
     command: ["sh", "-c", "chown 1000:1000 /machinekey && chmod 0700 /machinekey"]
     volumes:
       - zitadel_machinekey:/machinekey
@@ -140,6 +154,7 @@ services:
     image: axllent/mailpit:v1.31.4
     container_name: alfheim_mailpit
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "127.0.0.1:8025:8025"
       - "127.0.0.1:1025:1025"
@@ -152,6 +167,7 @@ services:
     image: rustfs/rustfs:1.0.0-rc.6
     container_name: alfheim_rustfs
     restart: unless-stopped
+    logging: *default-logging
     env_file:
       - path: ./rustfs/.env
         required: false

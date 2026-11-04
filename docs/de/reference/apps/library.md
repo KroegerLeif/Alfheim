@@ -16,7 +16,7 @@ Quelle: [`apps/library/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 | Medien-Tracking | Einheitlicher Artikel-Katalog (Bücher, Filme, Brettspiele, …) mit haushaltsbezogenen Standorten |
 | Ausleihe & Verleih | Leih-Tracker für an Freunde verliehene oder aus Bibliotheken ausgeliehene Artikel |
 | Metadaten-Suche | Externe Abfragen per ISBN, BoardGameGeek und TMDB zum Vorausfüllen von Katalogeinträgen |
-| Spielanleitungen | PDF-Anleitungs-Upload, presigned Download-URLs und Löschung, auf RustFS S3 gestützt |
+| Spielanleitungen | PDF-Anleitungs-Upload (blockweise gelesen, Größenlimit, `%PDF-`-Signaturprüfung, serverseitig erzeugter Objektschlüssel), presigned Download-URLs und Löschung, auf RustFS S3 gestützt |
 | Streaming-Abos | Nachverfolgung, welche Streaming-Anbieter der Haushalt abonniert hat |
 
 > **Hinweis:** Frühere Fassungen dieser Seite beschrieben ein Lese-Fortschritts-Log und eine Haushalts-Wunschliste. Keins von beiden existiert im Code (keine `progress`- oder `wishlist`-Route, kein Service, kein Frontend-Feature) – sie waren angedacht, aber nicht umgesetzt. Diesen Hinweis entfernen, sobald eines davon erscheint, oder stattdessen als Folgearbeit für den Library-App-Sprint einplanen.

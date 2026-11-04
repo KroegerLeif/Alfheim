@@ -1,6 +1,4 @@
-"""
-Device feature service layer handling database queries and business logic.
-"""
+"""Device feature service layer handling database queries and business logic."""
 
 import uuid
 from typing import Any, cast
@@ -80,7 +78,6 @@ class DeviceService:
 
         Executes in an atomic session transaction.
         """
-
         device = Device(
             name=payload.name,
             model=payload.model,
