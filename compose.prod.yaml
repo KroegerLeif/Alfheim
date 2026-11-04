@@ -292,7 +292,7 @@ services:
   # 3. OBSERVABILITY & TELEMETRY
   # ----------------------------------------------------------------------------
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.99.0
+    image: victoriametrics/victoria-metrics:v1.154.1
     container_name: victoriametrics
     restart: unless-stopped
     logging: *default-logging
@@ -369,7 +369,7 @@ services:
           memory: 64m
           cpus: 0.10
   victorialogs:
-    image: victoriametrics/victoria-logs:v0.25.0-victorialogs
+    image: victoriametrics/victoria-logs:v1.51.1
     container_name: victorialogs
     restart: unless-stopped
     logging: *default-logging
@@ -399,7 +399,7 @@ services:
           memory: 256m
           cpus: 0.25
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.100.0
+    image: otel/opentelemetry-collector-contrib:0.163.2
     container_name: otel-collector
     restart: unless-stopped
     logging: *default-logging
@@ -474,7 +474,7 @@ services:
           memory: 64m
           cpus: 0.10
   vector:
-    image: timberio/vector:0.39.0-alpine
+    image: timberio/vector:0.60.0-alpine
     container_name: vector-shipper
     restart: unless-stopped
     logging: *default-logging
@@ -507,7 +507,7 @@ services:
           memory: 256m
           cpus: 0.25
   grafana:
-    image: grafana/grafana:12.4.12
+    image: grafana/grafana:13.2.4
     container_name: alfheim_grafana
     restart: unless-stopped
     logging: *default-logging

@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Library manual upload (#803) reads the PDF in chunks up to `MAX_MANUAL_UPLOAD_BYTES` (default 50 MiB, HTTP 413 above it), rejects content that does not start with `%PDF-` (HTTP 400) and stores it under a server-generated object key instead of the client file name; replacing a manual deletes the old object. The reusable `read_bounded_upload` and `generate_object_name` helpers live in `backend_shared.storage`.
 ### Changed
+- Telemetry stack upgrade, dev and prod on the same pinned tags (#777, #782): VictoriaMetrics v1.99.0 → v1.154.1, VictoriaLogs v0.25.0 → v1.51.1, OpenTelemetry Collector 0.100.0 → 0.163.2, Vector 0.39.0 → 0.60.0, Grafana 12.4.12 → 13.2.4. VictoriaLogs stays at v1.51.1 because v1.52 and later images contain no shell, which the compose healthcheck and the `up.sh` / `test-prod-startup.sh` wait steps rely on.
+- Collector config: `service.telemetry.metrics.address` (removed upstream) became a `readers` Prometheus pull exporter, and the `otlphttp` exporters were renamed `otlp_http`. The config ships as a release asset, so `alfheim-setup update` replaces it together with the compose file.
+- Upgrade note: Grafana 13 migrates dashboards and folders to unified storage on first start and a downgrade does not undo it. Take `alfheim-setup backup` before updating; to roll back, restore that backup.
+
+### Changed
 - CI: GitHub Actions majors in one change (#779), all SHA-pinned: `pnpm/action-setup` 4.4.0 → 6.1.0, `gitleaks/gitleaks-action` 2.3.9 → 3.0.0 (Node 24 runtime, no input changes), `docker/build-push-action` 6.19.2 → 7.4.0, `docker/login-action` 3.7.0 → 4.7.0 and `softprops/action-gh-release` 2.6.2 → 3.0.3.
 
 ### Changed
