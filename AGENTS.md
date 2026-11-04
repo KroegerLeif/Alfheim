@@ -46,7 +46,10 @@ python3 scripts/check-markdown-links.py
 
 - Write all code, comments, docstrings, identifiers, log and error messages and commit messages
   in English.
-- Comment why, not what. Public functions, types and API endpoints get a doc comment.
+- Comment why, not what; no commented-out code. Public functions, types and API endpoints get a
+  doc comment (Go `// Name ...`, Python Google-style docstring, TSDoc in `packages/shared`).
+- Every `TODO` or `FIXME` carries an issue: `TODO(#123): ...`. Open an issue instead of leaving
+  a note for later. Details and enforcement: [code comments](docs/en/reference/conventions/code-comments.md).
 - No stubs: no empty functions or files, no `pass` placeholders, no hardcoded mock returns.
 - Never mask errors: no empty `except`/`catch`, no `// @ts-ignore`, no silently swallowed errors.
 - Organise code by feature (FDD): `features/<domain>/` owns its models, schemas, logic, data
