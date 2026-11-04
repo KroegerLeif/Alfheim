@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Library manual upload (#803) reads the PDF in chunks up to `MAX_MANUAL_UPLOAD_BYTES` (default 50 MiB, HTTP 413 above it), rejects content that does not start with `%PDF-` (HTTP 400) and stores it under a server-generated object key instead of the client file name; replacing a manual deletes the old object. The reusable `read_bounded_upload` and `generate_object_name` helpers live in `backend_shared.storage`.
 ### Changed
+- Go 1.26.10 → 1.27.3 everywhere at once (#778): `go.work`, all four `go.mod` files, the `go-version` pins in `go-ci.yml`, `release.yml` and `security-scan.yml`, the three Go service Dockerfiles and the Caddy `GOTOOLCHAIN` pin, so the images build with the same toolchain CI tests with.
 - Node.js 22 → 24 LTS: `node:24-alpine` in every frontend Dockerfile, `node-version: 24` in all workflows, `@types/node` `^24` and the docs portal `engines` (#783). Dependabot ignores major bumps of `@types/node` so it stays on the runtime major.
 - CI: the frontend gate now runs `next build` for every Next.js frontend (matrix job `production-build`), so build-only failures such as an import above a `"use client"` directive fail `ci-required` on pull requests (#784).
 - `postgres-core` stores new TOAST values with LZ4 (`default_toast_compression=lz4`) in the dev and prod stacks (#806). Existing rows keep pglz until rewritten. `scripts/verify-stack.sh` checks the setting.
