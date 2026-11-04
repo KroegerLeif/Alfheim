@@ -105,6 +105,7 @@ Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` b
 | `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Interne URL für Shopping-List-Dienst zum Erreichen der Speisekammer-Inventar-API |
 | `GOOGLE_BOOKS_API_KEY` | _(leer)_ | Google Books API-Schlüssel für Bibliotheks-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
 | `TMDB_API_KEY` | _(leer)_ | The Movie Database API-Schlüssel für Bibliotheks-Medien-Metadaten-Anreicherung (optional; leer lassen zum Deaktivieren) |
+| `MAX_MANUAL_UPLOAD_BYTES` | `52428800` | Größter akzeptierter PDF-Upload für Bibliotheks-Anleitungen in Bytes (50 MiB); größere Uploads werden mit HTTP 413 abgelehnt |
 
 ### Chat: ausgehende Modell-Endpunkte
 
