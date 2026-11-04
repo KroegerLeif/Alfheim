@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- `postgres-core` stores new TOAST values with LZ4 (`default_toast_compression=lz4`) in the dev and prod stacks (#806). Existing rows keep pglz until rewritten. `scripts/verify-stack.sh` checks the setting.
 - Agent instructions follow the `AGENTS.md` standard (#795): the root `AGENTS.md` holds every binding rule for all coding agents, `CLAUDE.md` only imports it, and `.ai/rules/{core,architecture,safety}.md` are removed. The rule that agents must append to `.ai/CONTEXT.md` after every change is dropped; the remaining `.ai/` files are marked for migration (#794).
 - Removed the `.ai/` folder (#799). The quality-gate reference moved to `docs/en/reference/quality-gates.md`; the router map, persona workflows and the two-step "APPROVED" gate were dropped. `scripts/check-markdown-links.py` (also run by `verify.sh --security`) now fails if `.ai/` is tracked again.
 - Code comment convention (#798): `docs/en/reference/conventions/code-comments.md`. Ruff `D` rules (Google convention) and the `revive` `exported` rule for Go now run in `verify.sh` and CI, and `verify.sh --security` fails on `TODO`/`FIXME` without an issue reference. Existing Python docstring gaps are baselined in `ruff.toml`.
