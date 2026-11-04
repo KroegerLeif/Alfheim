@@ -184,7 +184,9 @@
       "deleteLabel": "Delete transaction {description}",
       "receiptAttachPrompt": "Attach a receipt (optional)",
       "amountWithCurrency": "Amount ({currency})",
-      "receiptUploadFailed": "Receipt upload failed (status {status})."
+      "receiptUploadFailed": "Receipt upload failed (status {status}).",
+      "receiptTooLarge": "Receipt is too large (maximum 10 MB).",
+      "receiptInvalidType": "This file type is not supported. Use JPEG, PNG, WebP, HEIC or PDF."
     },
     "analytics": {
       "title": "Financial Analytics & Cashflow",

@@ -5,8 +5,9 @@ import { QuickAddModal } from "../features/transactions";
 import { transactionsApi } from "../features/transactions/api/transactionsApi";
 import { renderWithProviders } from "./utils";
 
-// Regression tests for issue #529: the frontend now wires up the presigned receipt upload flow
-// (which works end-to-end) and attaches the resulting object key to the transaction as
+// Regression tests for issues #529 and #802: the frontend uploads the receipt to the backend
+// (multipart; the browser never sends file bytes to object storage) and attaches the resulting
+// server-generated object key to the transaction as
 // `receipt_url`. OCR extraction is deliberately NOT exposed here -- see the comment in
 // transactionsApi.ts and the PR description for why.
 
@@ -18,11 +19,10 @@ vi.mock("../features/transactions/api/transactionsApi", async () => {
     ...actual,
     transactionsApi: {
       ...(actual.transactionsApi as Record<string, unknown>),
-      getReceiptUploadUrl: vi.fn().mockResolvedValue({
-        upload_url: "https://storage.example.com/presigned-put",
-        object_key: "households/hh-1/budget/receipts/receipt.jpg",
+      uploadReceipt: vi.fn().mockResolvedValue({
+        object_key: "households/hh-1/budget/receipts/0123abcd.webp",
+        content_type: "image/webp",
       }),
-      uploadReceiptFile: vi.fn().mockResolvedValue(undefined),
     },
   };
 });
@@ -50,15 +50,11 @@ describe("QuickAddModal receipt upload", () => {
     fireEvent.submit(fileInput.closest("form")!);
 
     await waitFor(() => {
-      expect(transactionsApi.getReceiptUploadUrl).toHaveBeenCalledWith("receipt.jpg", "image/jpeg");
+      expect(transactionsApi.uploadReceipt).toHaveBeenCalledWith(file);
     });
-    expect(transactionsApi.uploadReceiptFile).toHaveBeenCalledWith(
-      "https://storage.example.com/presigned-put",
-      file
-    );
     expect(handleSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        receipt_url: "households/hh-1/budget/receipts/receipt.jpg",
+        receipt_url: "households/hh-1/budget/receipts/0123abcd.webp",
       })
     );
   });
@@ -78,12 +74,12 @@ describe("QuickAddModal receipt upload", () => {
     await waitFor(() => {
       expect(handleSubmit).toHaveBeenCalled();
     });
-    expect(transactionsApi.getReceiptUploadUrl).not.toHaveBeenCalled();
+    expect(transactionsApi.uploadReceipt).not.toHaveBeenCalled();
     expect(handleSubmit).toHaveBeenCalledWith(expect.objectContaining({ receipt_url: null }));
   });
 
   it("shows an error and does not submit the transaction when the receipt upload fails", async () => {
-    (transactionsApi.getReceiptUploadUrl as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+    (transactionsApi.uploadReceipt as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error("Upload service unavailable")
     );
     const handleSubmit = vi.fn().mockResolvedValue(undefined);
