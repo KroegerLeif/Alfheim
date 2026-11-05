@@ -9,7 +9,7 @@
 # See docs/decisions/0004-standalone-go-tui-installer.md.
 # ==============================================================================
 
-FROM --platform=$BUILDPLATFORM caddy:2.11.6-builder-alpine AS builder
+FROM --platform=$BUILDPLATFORM caddy:2.11.7-builder-alpine AS builder
 
 # Cross-compile natively on the build host instead of emulating the target.
 ARG TARGETOS
@@ -29,7 +29,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --with github.com/caddy-dns/cloudflare@v0.2.4 \
     --with github.com/caddy-dns/desec@v1.1.0
 
-FROM caddy:2.11.6-alpine
+FROM caddy:2.11.7-alpine
 
 # The base image lags behind Alpine security fixes (brotli, curl).
 RUN apk upgrade --no-cache
