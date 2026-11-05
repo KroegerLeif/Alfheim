@@ -16,7 +16,7 @@ services:
   # predates the household app would otherwise never get alfheim_household.
   # Idempotent; the password is re-applied on every run so it follows .env.
   household-db-init:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: household-db-init
     restart: "no"
     logging: *default-logging
