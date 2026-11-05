@@ -1,2 +1,5 @@
+"""Domain exceptions of the equipment feature."""
+
+
 class EquipmentValidationError(ValueError):
     """Raised for equipment business-rule violations (mapped to HTTP 400 by the global ValueError handler)."""

@@ -1,8 +1,12 @@
+"""Environment-driven settings for the Maintenance service."""
+
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Environment-driven settings for the Maintenance service."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

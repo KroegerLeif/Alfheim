@@ -1,3 +1,5 @@
+"""SQLModel tables and enums of the exercises feature."""
+
 import enum
 import uuid
 from datetime import UTC, datetime

@@ -1,3 +1,5 @@
+"""Seeds the default system locations on startup."""
+
 import json
 import pathlib
 

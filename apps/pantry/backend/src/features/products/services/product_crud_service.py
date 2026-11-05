@@ -1,3 +1,5 @@
+"""Product CRUD with household scoping and in-use protection on delete."""
+
 import logging
 import uuid
 from collections.abc import Sequence

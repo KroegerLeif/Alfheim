@@ -1,8 +1,12 @@
+"""Environment-driven settings for the shopping backend."""
+
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Shopping backend settings, read from the environment and ``.env``; unknown variables are ignored."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

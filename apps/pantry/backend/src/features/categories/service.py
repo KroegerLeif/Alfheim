@@ -1,3 +1,5 @@
+"""Category business rules; global categories are read-only and names are unique per scope."""
+
 import logging
 import uuid
 from collections.abc import Sequence

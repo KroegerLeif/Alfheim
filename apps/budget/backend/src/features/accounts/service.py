@@ -1,3 +1,5 @@
+"""Account business rules, balance aggregation and net-worth calculation."""
+
 from collections.abc import Sequence
 from decimal import Decimal
 from uuid import UUID

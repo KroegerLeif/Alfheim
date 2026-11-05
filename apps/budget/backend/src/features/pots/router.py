@@ -1,3 +1,5 @@
+"""HTTP endpoints for pots, priority cascade allocation and the sinking fund calculator."""
+
 from collections.abc import Sequence
 from datetime import date
 from uuid import UUID

@@ -96,6 +96,7 @@ class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
         self._session_owners: OrderedDict[str, SessionOwner] = OrderedDict()
 
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Any]]) -> Any:
+        """Authorize the request, enforce session ownership and expose the household context to tool code."""
         settings = self.settings if self.settings is not None else get_auth_settings()
         lookup = self.membership_lookup if self.membership_lookup is not None else get_membership_client()
         try:
@@ -189,7 +190,8 @@ def get_mcp_household_context() -> HouseholdContext:
 class MCPHTTPServer(Protocol):
     """What :func:`mount_mcp` needs from a ``fastmcp.FastMCP`` server."""
 
-    def http_app(self, path: str | None = None) -> Starlette: ...
+    def http_app(self, path: str | None = None) -> Starlette:
+        """Return the server's Streamable HTTP ASGI app, optionally at ``path``."""
 
 
 def mount_mcp(

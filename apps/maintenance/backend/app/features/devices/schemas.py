@@ -1,3 +1,5 @@
+"""API schemas for devices, their maintenance steps and service history."""
+
 import uuid
 
 from pydantic import BaseModel, ConfigDict
@@ -13,6 +15,8 @@ class HouseholdRead(BaseModel):
 
 
 class MaintenanceStepRead(BaseModel):
+    """A recurring maintenance step of a device as returned by the API."""
+
     id: int
     title: str
     description: str | None = None
@@ -25,6 +29,8 @@ class MaintenanceStepRead(BaseModel):
 
 
 class ServiceHistoryEventRead(BaseModel):
+    """A completed service event of a device as returned by the API."""
+
     id: int
     date: str
     performer: str
@@ -35,8 +41,9 @@ class ServiceHistoryEventRead(BaseModel):
 
 
 class ServiceHistoryEventDetailRead(BaseModel):
-    """Extended history event schema that includes denormalised device fields
-    so the frontend /history endpoint never needs a second round-trip.
+    """Extended history event schema with denormalised device fields.
+
+    The frontend /history endpoint therefore never needs a second round-trip.
     """
 
     id: int
@@ -51,6 +58,8 @@ class ServiceHistoryEventDetailRead(BaseModel):
 
 
 class DeviceRead(BaseModel):
+    """A device with its maintenance steps and service history as returned by the API."""
+
     id: int
     name: str
     model: str

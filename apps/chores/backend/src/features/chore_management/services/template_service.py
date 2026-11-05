@@ -1,3 +1,5 @@
+"""CRUD for chore templates, scoped to a household."""
+
 import uuid
 from collections.abc import Sequence
 

@@ -1,3 +1,5 @@
+"""Startup seeding of the system-scoped default exercises catalog."""
+
 import json
 import pathlib
 

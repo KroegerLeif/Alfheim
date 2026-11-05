@@ -1,5 +1,6 @@
-"""The relative weight engine: resolves a PlanSet's target_weight_type/offset_kg
-into a single concrete weight value.
+"""The relative weight engine: resolve a PlanSet's target into one concrete weight.
+
+Turns target_weight_type/offset_kg into a single weight value.
 
 This module is the single source of truth for weight resolution. It is imported
 directly (not via HTTP) by both plans/router.py (for plan preview/display) and

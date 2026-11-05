@@ -1,3 +1,5 @@
+"""Barcode lookup that falls back to importing from Open Food Facts."""
+
 import uuid
 
 from sqlmodel import select

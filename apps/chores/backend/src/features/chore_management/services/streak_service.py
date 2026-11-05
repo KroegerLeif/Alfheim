@@ -1,3 +1,5 @@
+"""Household streak record handling."""
+
 import uuid
 
 from sqlalchemy.exc import IntegrityError

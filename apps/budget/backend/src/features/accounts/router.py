@@ -1,3 +1,5 @@
+"""HTTP endpoints for accounts, balance summaries and net worth."""
+
 from collections.abc import Sequence
 from uuid import UUID
 

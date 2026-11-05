@@ -116,6 +116,7 @@ def is_mock_auth_allowed(settings: Any = None) -> bool:
 
 
 def get_jwks_client(jwks_url: str) -> jwt.PyJWKClient:
+    """Return the cached ``PyJWKClient`` for ``jwks_url`` so signing keys are fetched and refreshed once per URL."""
     if jwks_url not in _jwks_clients:
         _jwks_clients[jwks_url] = jwt.PyJWKClient(
             jwks_url,

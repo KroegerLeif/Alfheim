@@ -1,3 +1,5 @@
+"""HTTP API for shopping lists and items, scoped to the caller's household."""
+
 import logging
 import uuid
 from collections.abc import Sequence

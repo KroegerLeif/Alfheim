@@ -1,3 +1,5 @@
+"""Client for the public Open Food Facts product API."""
+
 import logging
 
 import httpx

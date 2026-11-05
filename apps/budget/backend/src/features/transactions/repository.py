@@ -1,3 +1,5 @@
+"""Database access for transactions; every query is scoped to a household and keeps balances in sync."""
+
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from decimal import Decimal

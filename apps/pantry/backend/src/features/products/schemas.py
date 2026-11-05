@@ -1,3 +1,5 @@
+"""API schemas for products and nutrition profiles."""
+
 import uuid
 from datetime import datetime
 

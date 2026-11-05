@@ -1,3 +1,5 @@
+"""HTTP API under ``/api/v1/shopping-history``, scoped to the caller's household."""
+
 import uuid
 from collections.abc import Sequence
 

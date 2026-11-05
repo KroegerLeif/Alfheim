@@ -1,3 +1,5 @@
+"""Client for the Pantry backend, forwarding the caller's token and household."""
+
 import uuid
 
 import httpx

@@ -1,3 +1,5 @@
+"""SQLModel table and API schemas for storage locations."""
+
 import uuid
 from datetime import UTC, datetime
 

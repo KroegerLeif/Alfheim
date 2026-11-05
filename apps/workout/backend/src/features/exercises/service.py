@@ -1,3 +1,5 @@
+"""Database operations of the exercises feature, always filtered by household and user visibility."""
+
 import uuid
 from collections.abc import Collection, Sequence
 

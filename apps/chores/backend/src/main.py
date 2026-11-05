@@ -1,3 +1,5 @@
+"""FastAPI application of the chores backend: routers, MCP mount, telemetry and the nightly reset scheduler."""
+
 import asyncio
 import importlib
 import logging
@@ -86,6 +88,7 @@ async def schedule_nightly_reset():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB tables
+    """Initialise the database and nightly scheduler, and release clients and telemetry on shutdown."""
     from src.core.database import init_db
 
     await init_db()

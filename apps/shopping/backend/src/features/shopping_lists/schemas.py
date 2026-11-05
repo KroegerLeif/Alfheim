@@ -1,3 +1,5 @@
+"""Pydantic request and response schemas of the shopping list feature."""
+
 import uuid
 from datetime import datetime
 
@@ -9,6 +11,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ShoppingItemBase(BaseModel):
+    """Fields shared by shopping item create and read schemas."""
+
     name: str = Field(min_length=1, max_length=255, description="Name of the item.")
     brand: str | None = Field(default=None, max_length=255, description="Optional brand name.")
     barcode: str | None = Field(default=None, max_length=100, description="Optional barcode (EAN/UPC).")
@@ -17,10 +21,14 @@ class ShoppingItemBase(BaseModel):
 
 
 class ShoppingItemCreate(ShoppingItemBase):
+    """Request body for adding an item to a list."""
+
     pass
 
 
 class PushItemPayload(BaseModel):
+    """Request body for pushing an item to a list, optionally linked to a Pantry product."""
+
     name: str = Field(min_length=1, max_length=255, description="Name of the item.")
     brand: str | None = Field(default=None, max_length=255)
     barcode: str | None = Field(default=None, max_length=100)
@@ -31,6 +39,8 @@ class PushItemPayload(BaseModel):
 
 
 class ShoppingItemUpdate(BaseModel):
+    """Partial update of a shopping item; omitted fields stay unchanged."""
+
     name: str | None = Field(default=None, min_length=1, max_length=255)
     brand: str | None = Field(default=None, max_length=255)
     barcode: str | None = Field(default=None, max_length=100)
@@ -40,6 +50,8 @@ class ShoppingItemUpdate(BaseModel):
 
 
 class ShoppingItemRead(ShoppingItemBase):
+    """Shopping item as returned by the API."""
+
     id: uuid.UUID
     list_id: uuid.UUID
     is_completed: bool
@@ -58,14 +70,20 @@ class ShoppingItemRead(ShoppingItemBase):
 
 
 class ShoppingListCreate(BaseModel):
+    """Request body for creating a shopping list."""
+
     name: str = Field(min_length=1, max_length=255, description="Name of the shopping list.")
 
 
 class ReorderListsPayload(BaseModel):
+    """Request body carrying the new display order of lists."""
+
     list_ids: list[uuid.UUID] = Field(description="Ordered list of Shopping List UUIDs.")
 
 
 class ShoppingListRead(BaseModel):
+    """Shopping list with its items as returned by the API."""
+
     id: uuid.UUID
     name: str
     home_id: uuid.UUID
@@ -80,6 +98,7 @@ class ShoppingListRead(BaseModel):
     @field_validator("items", mode="before")
     @classmethod
     def default_items(cls, v):
+        """Coerce a missing ``items`` value to an empty list."""
         return v if v is not None else []
 
     model_config = ConfigDict(from_attributes=True)
@@ -126,6 +145,8 @@ class SyncToPantryResponse(BaseModel):
 
 
 class HouseholdRead(BaseModel):
+    """Household the caller belongs to, as reported by the household API."""
+
     id: uuid.UUID
     name: str
     slug: str

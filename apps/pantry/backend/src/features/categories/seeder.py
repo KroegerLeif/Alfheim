@@ -1,3 +1,5 @@
+"""Seeds the global default categories on startup."""
+
 import json
 import pathlib
 

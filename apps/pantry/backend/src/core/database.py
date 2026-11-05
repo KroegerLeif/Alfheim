@@ -1,3 +1,5 @@
+"""Async database engine, session factory and schema initialisation for the Pantry service."""
+
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
