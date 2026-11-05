@@ -1,3 +1,5 @@
+"""Async SQLAlchemy engine and session factory for ``postgres-core``."""
+
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine

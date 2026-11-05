@@ -1,3 +1,5 @@
+"""Read access to the immutable inventory transaction ledger."""
+
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime

@@ -1,3 +1,5 @@
+"""Nested CRUD for plans, days, exercises and sets; only the plan owner may write."""
+
 import uuid
 from collections.abc import Iterable, Sequence
 
@@ -87,6 +89,7 @@ class PlanCrudService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> Plan:
+        """Create a plan with its nested structure; rejects exercises the caller cannot see."""
         await _assert_exercises_visible(session, _day_exercise_ids(payload.days), home_id, user_id)
         plan = Plan(
             home_id=home_id,
@@ -113,6 +116,7 @@ class PlanCrudService:
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Plan]:
+        """List plans visible to the caller (own plus household-shared), ordered by name."""
         statement = (
             select(Plan).where(_visibility_filter(home_id, user_id)).order_by(Plan.name).offset(offset).limit(limit)
         )
@@ -126,6 +130,7 @@ class PlanCrudService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> Plan | None:
+        """Return a plan if it is visible to the caller, else None."""
         statement = select(Plan).where(Plan.id == plan_id, _visibility_filter(home_id, user_id))
         result = await session.exec(statement)
         return result.first()
@@ -174,6 +179,7 @@ class PlanCrudService:
         user_id: uuid.UUID,
         payload: PlanUpdate,
     ) -> Plan | None:
+        """Update a plan the caller owns; passing `days` replaces the whole nested structure. Returns None if not owned."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return None
@@ -204,6 +210,7 @@ class PlanCrudService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> bool:
+        """Delete a plan the caller owns; returns False if it is not found or not owned."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return False
@@ -219,6 +226,7 @@ class PlanCrudService:
         user_id: uuid.UUID,
         payload: PlanDayCreate,
     ) -> PlanDay | None:
+        """Append a day to an owned plan; returns None if the plan is not owned."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return None
@@ -244,6 +252,7 @@ class PlanCrudService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> bool:
+        """Delete a day of an owned plan; returns False if the plan or day is not found."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return False
@@ -263,6 +272,7 @@ class PlanCrudService:
         user_id: uuid.UUID,
         payload: PlanExerciseCreate,
     ) -> PlanExercise | None:
+        """Append an exercise to a day of an owned plan; returns None if any parent is not found."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return None
@@ -294,6 +304,7 @@ class PlanCrudService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> bool:
+        """Delete an exercise from a day of an owned plan; returns False if any level is not found."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return False
@@ -317,6 +328,7 @@ class PlanCrudService:
         user_id: uuid.UUID,
         payload: PlanSetCreate,
     ) -> PlanSet | None:
+        """Append a set to an exercise of an owned plan; returns None if any parent is not found."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return None
@@ -352,6 +364,7 @@ class PlanCrudService:
         user_id: uuid.UUID,
         payload: PlanSetUpdate,
     ) -> PlanSet | None:
+        """Update a set of an owned plan and re-validate its weight fields; returns None if any level is not found."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return None
@@ -389,6 +402,7 @@ class PlanCrudService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> bool:
+        """Delete a set of an owned plan; returns False if any level is not found."""
         plan = await PlanCrudService._get_owned_plan(session, plan_id, home_id, user_id)
         if not plan:
             return False

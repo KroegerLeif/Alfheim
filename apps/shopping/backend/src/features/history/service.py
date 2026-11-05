@@ -1,3 +1,5 @@
+"""Purchase history aggregation for quick-selection grids."""
+
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime

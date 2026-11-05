@@ -1,3 +1,5 @@
+"""Request and response schemas of the equipment feature."""
+
 import uuid
 from datetime import datetime
 

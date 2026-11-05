@@ -1,8 +1,12 @@
+"""Environment-driven settings for the chores backend."""
+
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Chores backend settings, read from the environment and ``.env``; unknown variables are ignored."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -39,6 +43,7 @@ class Settings(BaseSettings):
 
     @property
     def expected_issuer(self) -> str:
+        """Return the expected JWT issuer without a trailing slash."""
         return self.OIDC_ISSUER_URL.rstrip("/")
 
     # OpenTelemetry Configuration

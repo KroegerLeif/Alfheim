@@ -1,3 +1,5 @@
+"""SQLModel tables for shopping lists and their items."""
+
 import uuid
 from datetime import UTC, datetime
 

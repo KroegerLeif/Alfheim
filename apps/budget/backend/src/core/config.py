@@ -1,3 +1,5 @@
+"""Environment-driven settings for the Budget service."""
+
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

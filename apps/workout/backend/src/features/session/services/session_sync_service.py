@@ -1,6 +1,8 @@
-"""Offline-sync ack logic: upsert-by-idempotency-key so a client can safely
-re-POST the same batch of locally-recorded sets after a flaky retry, and so a
-set logged offline reconciles to a single server row instead of duplicating.
+"""Offline-sync ack logic: upsert sets by idempotency key.
+
+A client can safely re-POST the same batch of locally-recorded sets after a
+flaky retry, and a set logged offline reconciles to a single server row
+instead of duplicating.
 """
 
 import uuid

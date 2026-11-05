@@ -1,3 +1,5 @@
+"""MCP tools for chores; household and user come from the authenticated MCP request context, never from arguments."""
+
 import uuid
 from datetime import date
 

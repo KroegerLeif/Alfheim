@@ -1,3 +1,5 @@
+"""Request and response schemas of the session feature."""
+
 import uuid
 from datetime import datetime
 
@@ -6,11 +8,15 @@ from src.features.session.models import SessionStatus
 
 
 class StartSessionRequest(SQLModel):
+    """Optionally names the plan day whose structure is cloned into the new session."""
+
     plan_id: uuid.UUID | None = Field(default=None)
     plan_day_id: uuid.UUID | None = Field(default=None)
 
 
 class SessionSetRead(SQLModel):
+    """A session set with its target and actual values."""
+
     id: uuid.UUID
     set_order: int
     target_reps: int | None
@@ -23,6 +29,8 @@ class SessionSetRead(SQLModel):
 
 
 class SessionExerciseRead(SQLModel):
+    """A session exercise with name and muscle snapshots, and its ordered sets."""
+
     id: uuid.UUID
     exercise_id: uuid.UUID
     exercise_name_snapshot: str
@@ -32,6 +40,8 @@ class SessionExerciseRead(SQLModel):
 
 
 class WorkoutSessionRead(SQLModel):
+    """A workout session with its cloned exercises and sets."""
+
     id: uuid.UUID
     home_id: uuid.UUID
     user_id: uuid.UUID
@@ -45,8 +55,10 @@ class WorkoutSessionRead(SQLModel):
 
 
 class SessionSetSyncItem(SQLModel):
-    """One offline-recorded set. client_idempotency_key is required — it is what
-    makes re-POSTing the same batch after a flaky retry safe (see session_sync_service.py).
+    """One offline-recorded set.
+
+    client_idempotency_key is required — it is what makes re-POSTing the same batch
+    after a flaky retry safe (see session_sync_service.py).
     """
 
     client_idempotency_key: str = Field(min_length=1, max_length=100)
@@ -59,9 +71,13 @@ class SessionSetSyncItem(SQLModel):
 
 
 class SessionSetSyncRequest(SQLModel):
+    """Batch of offline-recorded sets to sync."""
+
     items: list[SessionSetSyncItem]
 
 
 class SessionSetSyncResponse(SQLModel):
+    """Acknowledged idempotency keys and the server ids they map to."""
+
     acked: list[str]
     server_ids: dict[str, uuid.UUID]

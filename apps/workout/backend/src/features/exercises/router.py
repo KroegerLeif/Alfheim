@@ -1,3 +1,5 @@
+"""HTTP routes of the exercises feature; every handler is scoped to the household from `require_household`."""
+
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household

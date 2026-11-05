@@ -1,3 +1,6 @@
+"""Shopping domain errors carrying an i18n error code for the frontend."""
+
+
 class ShoppingError(ValueError):
     """Base error class for all shopping backend validation or business logic errors.
 

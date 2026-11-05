@@ -1,3 +1,5 @@
+"""Facade over the list, item and Pantry sync services so callers keep one import."""
+
 import logging
 import uuid
 from collections.abc import Sequence
@@ -61,6 +63,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
         owner_id: uuid.UUID,
     ) -> ShoppingList:
+        """Create a list in the household owned by ``owner_id``."""
         return await ListManagementService.create_list(session, payload, home_id, owner_id)
 
     @staticmethod
@@ -71,6 +74,7 @@ class ShoppingListService:
         username: str | None = None,
         token: str | None = None,
     ) -> Sequence[ShoppingList]:
+        """List the lists visible to the owner in the household; ``owner_id`` is required."""
         validated_owner_id = _require_owner_id(owner_id)
         return await ListManagementService.get_lists(session, home_id, validated_owner_id, username, token)
 
@@ -81,6 +85,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> ShoppingList:
+        """Return a list of the household or raise ``ShoppingListNotFoundError``."""
         return await ListManagementService.get_list(session, list_id, home_id, user_id)
 
     @staticmethod
@@ -90,6 +95,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> bool:
+        """Delete a list; raises for protected household and personal lists."""
         return await ListManagementService.delete_list(session, list_id, home_id, user_id)
 
     @staticmethod
@@ -98,6 +104,7 @@ class ShoppingListService:
         list_ids: list[uuid.UUID],
         home_id: uuid.UUID,
     ) -> bool:
+        """Persist the given display order for the household's lists."""
         return await ListManagementService.reorder_lists(session, list_ids, home_id)
 
     @staticmethod
@@ -108,6 +115,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> ShoppingItem:
+        """Add an item to a list of the household."""
         return await ShoppingItemService.add_item(session, list_id, payload, home_id, user_id)
 
     @staticmethod
@@ -117,6 +125,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
         owner_id: uuid.UUID,
     ) -> ShoppingItem:
+        """Add an item to the target list, falling back to the owner's default list."""
         return await ShoppingItemService.push_item(session, payload, home_id, owner_id)
 
     @staticmethod
@@ -128,6 +137,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> ShoppingItem:
+        """Update an item of a list in the household."""
         return await ShoppingItemService.update_item(session, list_id, item_id, payload, home_id, user_id)
 
     @staticmethod
@@ -138,6 +148,7 @@ class ShoppingListService:
         home_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> bool:
+        """Delete an item of a list in the household."""
         return await ShoppingItemService.delete_item(session, list_id, item_id, home_id, user_id)
 
     @staticmethod
@@ -148,6 +159,7 @@ class ShoppingListService:
         user_id: uuid.UUID,
         token: str | None = None,
     ) -> list[ShoppingItem]:
+        """Import low-stock Pantry products into the list after verifying list access."""
         await ListManagementService.get_list(session, list_id, home_id, user_id)
         return await PantrySyncService.auto_import_low_stock(
             session=session,
@@ -165,6 +177,7 @@ class ShoppingListService:
         token: str | None = None,
         item_ids: list[uuid.UUID] | None = None,
     ) -> SyncToPantryResponse:
+        """Sync completed items of the list to Pantry after verifying list access."""
         await ListManagementService.get_list(session, list_id, home_id, user_id)
         return await PantrySyncService.sync_to_pantry(
             session=session,

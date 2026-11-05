@@ -1,3 +1,5 @@
+"""Reads and writes product nutrition profiles, enforcing household isolation."""
+
 import logging
 import uuid
 

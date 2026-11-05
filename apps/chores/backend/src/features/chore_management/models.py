@@ -1,3 +1,5 @@
+"""SQLModel tables for chore templates, daily instances, household streaks and completion history."""
+
 import uuid
 from datetime import UTC, date, datetime
 

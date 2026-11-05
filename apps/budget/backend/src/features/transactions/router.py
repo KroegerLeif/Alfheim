@@ -1,3 +1,5 @@
+"""HTTP endpoints for transactions, quick-add and receipt upload and OCR."""
+
 from collections.abc import Sequence
 from uuid import UUID
 

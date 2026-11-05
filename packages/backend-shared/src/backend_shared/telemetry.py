@@ -1,3 +1,5 @@
+"""OpenTelemetry setup and JSON logging shared by the backends."""
+
 import json
 import logging
 import sys
@@ -34,6 +36,7 @@ class JSONFormatter(logging.Formatter):
     """
 
     def format(self, record: logging.LogRecord) -> str:
+        """Render the record as one JSON line, adding trace and span ids when a span is active."""
         span_context = trace.get_current_span().get_span_context()
         trace_id = format(span_context.trace_id, "032x") if span_context.is_valid else None
         span_id = format(span_context.span_id, "16x") if span_context.is_valid else None

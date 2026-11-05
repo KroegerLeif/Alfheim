@@ -1,3 +1,5 @@
+"""Shared Pint unit registry with the custom count units used for pantry items."""
+
 from pint import UnitRegistry
 
 # Initialize the UnitRegistry singleton

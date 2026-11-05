@@ -1,3 +1,5 @@
+"""Inventory business rules: recording movements, unit conversion, stock state and bulk add."""
+
 import logging
 import uuid
 from collections.abc import Sequence

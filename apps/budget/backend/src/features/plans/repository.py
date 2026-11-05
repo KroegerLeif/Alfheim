@@ -1,3 +1,5 @@
+"""Database access for plans and plan categories; every query is scoped to a household."""
+
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID

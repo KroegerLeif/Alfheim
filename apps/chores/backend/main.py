@@ -1,4 +1,8 @@
+"""Placeholder entry point; the service runs via ``src.main:app``."""
+
+
 def main():
+    """Print a greeting; not used by the deployed service."""
     print("Hello from backend!")
 
 

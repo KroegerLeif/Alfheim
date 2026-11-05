@@ -1,3 +1,5 @@
+"""Seeds the global default products on startup."""
+
 import json
 import pathlib
 import uuid

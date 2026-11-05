@@ -1,3 +1,5 @@
+"""Low-stock and expiration alerts computed from the household's current inventory."""
+
 import uuid
 from datetime import UTC, datetime
 

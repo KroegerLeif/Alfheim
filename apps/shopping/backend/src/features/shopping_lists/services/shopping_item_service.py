@@ -1,3 +1,5 @@
+"""Shopping item operations within lists of a household."""
+
 import logging
 import uuid
 

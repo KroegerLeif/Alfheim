@@ -1,3 +1,5 @@
+"""FastMCP server instance and dynamic discovery of MCP tool modules."""
+
 import importlib
 import pathlib
 

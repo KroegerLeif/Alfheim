@@ -1,3 +1,5 @@
+"""HTTP endpoints for products, barcode lookup and nutrition profiles."""
+
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household

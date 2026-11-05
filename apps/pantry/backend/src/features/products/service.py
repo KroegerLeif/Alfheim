@@ -1,3 +1,5 @@
+"""Facade over the product CRUD, nutrition and barcode services."""
+
 import uuid
 from collections.abc import Sequence
 
@@ -43,6 +45,7 @@ class ProductService:
         protein: float | None = None,
         salt: float | None = None,
     ) -> Product:
+        """Create a product in the household; see ``ProductCrudService.create_product``."""
         return await ProductCrudService.create_product(
             session=session,
             payload=payload,
@@ -70,6 +73,7 @@ class ProductService:
         product_id: uuid.UUID | str,
         home_id: uuid.UUID,
     ) -> Product | None:
+        """Return a product if it is global or belongs to the household, else ``None``."""
         return await ProductCrudService.get_product(session, product_id, home_id)
 
     @staticmethod
@@ -78,6 +82,7 @@ class ProductService:
         product_id: uuid.UUID | str,
         home_id: uuid.UUID,
     ) -> ProductNutrition | None:
+        """Return the nutrition profile of a product visible to the household, else ``None``."""
         return await ProductNutritionService.get_product_nutrition(session, product_id, home_id)
 
     @staticmethod
@@ -87,6 +92,7 @@ class ProductService:
         home_id: uuid.UUID,
         off_client: OpenFoodFactsClient | None = None,
     ) -> Product | None:
+        """Find a product by barcode, importing it from Open Food Facts on a local miss."""
         return await BarcodeService.get_or_create_by_barcode(session, barcode, home_id, off_client)
 
     @staticmethod
@@ -99,6 +105,7 @@ class ProductService:
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Product]:
+        """List and search products visible to the household (global plus household-local)."""
         return await ProductCrudService.list_products(
             session, home_id, name=name, barcode=barcode, category_id=category_id, limit=limit, offset=offset
         )
@@ -118,6 +125,7 @@ class ProductService:
         base_unit: str | None = None,
         minimum_stock: float | None = None,
     ) -> Product | None:
+        """Partially update a household-local product; global products cannot be modified."""
         return await ProductCrudService.update_product(
             session,
             product_id,
@@ -147,6 +155,7 @@ class ProductService:
         protein: float | None = None,
         salt: float | None = None,
     ) -> ProductNutrition | None:
+        """Create or update the nutrition profile of a household-local product."""
         return await ProductNutritionService.update_product_nutrition(
             session,
             product_id,
@@ -167,4 +176,5 @@ class ProductService:
         product_id: uuid.UUID | str,
         home_id: uuid.UUID,
     ) -> bool:
+        """Delete a household-local product; refused while it still has stock or ledger history."""
         return await ProductCrudService.delete_product(session, product_id, home_id)

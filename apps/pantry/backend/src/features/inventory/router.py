@@ -1,3 +1,5 @@
+"""HTTP endpoints for inventory movements, ledger history, current stock and alerts."""
+
 import uuid
 from collections.abc import Sequence
 from datetime import datetime

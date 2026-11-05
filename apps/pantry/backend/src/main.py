@@ -1,3 +1,5 @@
+"""FastAPI application entry point for the Pantry service."""
+
 import importlib
 import pathlib
 from contextlib import asynccontextmanager
@@ -35,6 +37,7 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Run migrations and the MCP session manager on startup; close the membership client and telemetry on shutdown."""
     # Initialize DB tables
     from src.core.database import init_db
 

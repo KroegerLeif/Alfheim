@@ -1,3 +1,6 @@
+"""Domain errors raised by inventory operations."""
+
+
 class InventoryError(ValueError):
     """Base exception for all inventory-related errors."""
 

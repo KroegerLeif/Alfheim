@@ -1,3 +1,5 @@
+"""Chore instance scheduling, assignment, completion and timeline logic."""
+
 import logging
 import uuid
 from collections.abc import Sequence

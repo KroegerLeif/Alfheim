@@ -147,6 +147,7 @@ async def get_session(
     home_id: uuid.UUID,
     user_id: uuid.UUID,
 ) -> WorkoutSession | None:
+    """Return the caller's own session in their household, else None."""
     statement = select(WorkoutSession).where(
         WorkoutSession.id == session_id,
         WorkoutSession.home_id == home_id,
@@ -164,6 +165,7 @@ async def list_sessions(
     limit: int = 100,
     offset: int = 0,
 ):
+    """List the caller's sessions in their household, optionally filtered by status."""
     statement = select(WorkoutSession).where(
         WorkoutSession.home_id == home_id,
         WorkoutSession.user_id == user_id,
@@ -181,6 +183,7 @@ async def complete_session(
     home_id: uuid.UUID,
     user_id: uuid.UUID,
 ) -> WorkoutSession | None:
+    """Mark an active session completed; raises SessionValidationError if it is not active, None if not found."""
     workout_session = await get_session(session, session_id, home_id, user_id)
     if not workout_session:
         return None
@@ -200,6 +203,7 @@ async def abandon_session(
     home_id: uuid.UUID,
     user_id: uuid.UUID,
 ) -> WorkoutSession | None:
+    """Mark an active session abandoned; raises SessionValidationError if it is not active, None if not found."""
     workout_session = await get_session(session, session_id, home_id, user_id)
     if not workout_session:
         return None

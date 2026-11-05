@@ -1,3 +1,5 @@
+"""Central FastMCP server instance and discovery of feature MCP tools."""
+
 import importlib
 import pathlib
 

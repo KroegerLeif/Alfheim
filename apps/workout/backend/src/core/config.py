@@ -1,8 +1,12 @@
+"""Environment-driven settings of the workout backend."""
+
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Workout backend settings, read from the environment and `.env`."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -39,6 +43,7 @@ class Settings(BaseSettings):
 
     @property
     def expected_issuer(self) -> str:
+        """Return the OIDC issuer URL without a trailing slash, as compared against the token `iss` claim."""
         return self.OIDC_ISSUER_URL.rstrip("/")
 
     # OpenTelemetry Configuration

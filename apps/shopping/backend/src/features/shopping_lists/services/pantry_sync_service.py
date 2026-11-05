@@ -1,3 +1,5 @@
+"""Two-way integration with Pantry: low-stock import and stocking of completed items."""
+
 import logging
 import uuid
 

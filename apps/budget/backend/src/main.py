@@ -1,3 +1,5 @@
+"""FastAPI application entry point for the Budget service."""
+
 import logging
 from contextlib import asynccontextmanager
 

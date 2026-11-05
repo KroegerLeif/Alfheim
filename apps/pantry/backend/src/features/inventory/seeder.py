@@ -1,3 +1,5 @@
+"""Seeds initial inventory from the bundled seed configuration on startup."""
+
 import json
 import pathlib
 

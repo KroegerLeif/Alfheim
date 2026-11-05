@@ -1,3 +1,5 @@
+"""Startup seeding of the system-scoped default equipment catalog."""
+
 import json
 import pathlib
 

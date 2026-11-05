@@ -1,3 +1,5 @@
+"""Pot business rules: priority cascade allocation, overflow handling and sinking fund gaps."""
+
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from decimal import Decimal

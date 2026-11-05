@@ -1,3 +1,5 @@
+"""Transaction business rules, household reference checks and receipt storage and OCR."""
+
 from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
