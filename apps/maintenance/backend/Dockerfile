@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --package maintenance-backend --no-editable
 
 # Final slim runtime container
-FROM python:3.12-alpine
+FROM python:3.15-alpine
 
 WORKDIR /app
 
