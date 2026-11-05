@@ -1,9 +1,13 @@
+"""SQLModel table for devices, owned by a household."""
+
 import uuid
 
 from sqlmodel import Field, Relationship, SQLModel
 
 
 class Device(SQLModel, table=True):
+    """A household appliance or installation whose maintenance is tracked."""
+
     id: int | None = Field(default=None, primary_key=True)
     name: str
     model: str

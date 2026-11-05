@@ -1,3 +1,5 @@
+"""SQLModel table and API schemas for global and household-local categories."""
+
 import uuid
 from datetime import UTC, datetime
 

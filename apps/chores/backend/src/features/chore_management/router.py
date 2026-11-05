@@ -1,3 +1,5 @@
+"""HTTP API under ``/api/v1/chores``; every query is scoped to the household returned by the role dependencies."""
+
 import uuid
 from datetime import date
 

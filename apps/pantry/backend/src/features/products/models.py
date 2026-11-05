@@ -1,3 +1,5 @@
+"""SQLModel tables for products and their nutrition profiles."""
+
 import enum
 import uuid
 from datetime import UTC, datetime

@@ -1,6 +1,4 @@
-"""
-Custom domain exceptions for the devices feature.
-"""
+"""Custom domain exceptions for the devices feature."""
 
 
 class DeviceError(ValueError):

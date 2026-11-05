@@ -16,8 +16,9 @@ ARG TARGETOS
 ARG TARGETARCH
 
 # The builder image ships Go 1.27.1, whose stdlib has fixed HIGH CVEs (fixed in
-# 1.26.10 and 1.27.3). Pin the patched 1.26 toolchain until the base image catches up.
-ENV GOTOOLCHAIN=go1.26.10
+# 1.27.3). Pin the patched toolchain, the same one the other Go images use,
+# until the base image catches up.
+ENV GOTOOLCHAIN=go1.27.3
 
 # --replace forces patched versions of transitive dependencies that the pinned
 # caddy and plugin releases still resolve to vulnerable versions.

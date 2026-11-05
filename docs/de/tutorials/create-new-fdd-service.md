@@ -56,7 +56,7 @@ Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog/` umse
    selbst parsen – Zitadel stellt keinen von beidem aus. `configure_household_auth(settings)` in
    `main.py` aufrufen und `await close_membership_client()` beim Shutdown. Siehe
    [ADR 0006](../explanation/decisions/0006-household-authorization-via-membership-api.md) und
-   [.ai/guidelines/new-app-scaffolding.md](../../../.ai/guidelines/new-app-scaffolding.md).
+   [Python- und FastAPI-Konventionen](../../en/reference/conventions/python-fastapi.md) (englisch).
 5. Öffentliche Schnittstellen in `__init__.py` explizit exportieren:
    ```python
    # src/features/catalog/__init__.py
@@ -131,3 +131,9 @@ Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog/` umse
    ```bash
    ./scripts/verify.sh --python --frontend
    ```
+
+---
+
+## Vorlagen und Checkliste
+
+Die Vorlagen für `pyproject.toml`, `conftest.py`, den Haushalts-Isolationstest und das Backend-`Dockerfile` sowie die Checkliste stehen in der englischen Fassung unter [Reference templates](../../en/tutorials/create-new-fdd-service.md#reference-templates). Stack-Konventionen: [Python und FastAPI](../../en/reference/conventions/python-fastapi.md), [Go](../../en/reference/conventions/go.md), [Next.js und Tailwind](../../en/reference/conventions/nextjs-tailwind.md) (alle englisch).

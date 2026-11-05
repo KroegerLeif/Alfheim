@@ -1,3 +1,5 @@
+"""FastAPI application: auto-discovers feature routers, mounts the MCP server and wires telemetry."""
+
 import importlib
 import logging
 import pathlib
@@ -40,6 +42,7 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Initialise the database on startup and release the MCP session manager, membership client and telemetry on shutdown."""
     # Initialize DB tables
     from src.db import init_db
 

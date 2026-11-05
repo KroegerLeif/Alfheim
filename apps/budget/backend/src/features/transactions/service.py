@@ -1,16 +1,19 @@
+"""Transaction business rules, household reference checks and receipt storage and OCR."""
+
 from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from backend_shared.storage import S3StorageService, get_household_object_key
+from backend_shared.images import normalize_image_or_400
+from backend_shared.storage import S3StorageService, generate_object_name, get_household_object_key
 from fastapi import HTTPException, status
 from src.features.transactions.models import (
-    PresignedUploadResponse,
     QuickAddTransactionCreate,
     ReceiptLineItem,
     ReceiptOCRData,
     ReceiptOCRResponse,
+    ReceiptUploadResponse,
     Transaction,
     TransactionCreate,
     TransactionType,
@@ -177,24 +180,24 @@ class TransactionService:
         )
         await self.repository.delete(transaction=transaction)
 
-    async def generate_receipt_upload_url(
-        self,
-        household_id: UUID,
-        filename: str,
-        content_type: str | None = "image/jpeg",
-    ) -> PresignedUploadResponse:
-        """Generate a tenant-isolated presigned upload URL for RustFS S3 receipt storage."""
+    async def store_receipt(self, household_id: UUID, content: bytes, kind: str) -> ReceiptUploadResponse:
+        """Store a validated receipt under a server-generated, tenant-isolated key.
+
+        ``kind`` is the content-detected type (``"image"`` or ``"pdf"``). Images are normalised
+        (orientation applied, metadata stripped, downscaled, WebP); PDFs are stored unchanged.
+        """
+        if kind == "pdf":
+            body, content_type, extension = content, "application/pdf", "pdf"
+        else:
+            body, content_type = normalize_image_or_400(content)
+            extension = "webp"
         object_key = get_household_object_key(
             household_id=str(household_id),
             app_name="budget",
-            filename=f"receipts/{filename}",
+            filename=f"receipts/{generate_object_name(extension)}",
         )
-        upload_url = await self.storage_service.generate_presigned_upload_url(
-            object_key=object_key,
-            expires_in=3600,
-            content_type=content_type,
-        )
-        return PresignedUploadResponse(upload_url=upload_url, object_key=object_key)
+        await self.storage_service.put_object(object_key, body, content_type)
+        return ReceiptUploadResponse(object_key=object_key, content_type=content_type)
 
     async def extract_receipt_ocr(
         self,

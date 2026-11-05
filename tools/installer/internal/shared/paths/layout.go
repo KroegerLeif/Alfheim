@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-// Marker file written once a Day-1 install has completed successfully.
+// MarkerName is the file written once a Day-1 install has completed successfully.
 const MarkerName = ".alfheim.installed"
 
 // Layout resolves installation paths relative to a single root directory.

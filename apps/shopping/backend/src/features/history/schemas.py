@@ -1,3 +1,5 @@
+"""Response schema of the purchase history."""
+
 import uuid
 from datetime import datetime
 
@@ -5,6 +7,8 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ShoppingHistoryRead(BaseModel):
+    """A purchase history entry as returned by the API."""
+
     id: uuid.UUID
     home_id: uuid.UUID
     name: str

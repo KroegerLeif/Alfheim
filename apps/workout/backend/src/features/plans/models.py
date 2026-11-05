@@ -1,3 +1,5 @@
+"""SQLModel tables and enums of the plans feature."""
+
 import enum
 import uuid
 from datetime import UTC, datetime

@@ -1,3 +1,5 @@
+"""MCP tools of the analytics feature (volume, streaks, leaderboard); they read the household and user from the request context."""
+
 from backend_shared.mcp_middleware import get_mcp_household_context
 from src.core.database import async_session_factory
 from src.features.analytics import service

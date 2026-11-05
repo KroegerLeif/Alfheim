@@ -1,3 +1,5 @@
+"""API schemas for submitting maintenance runs and updating step state."""
+
 from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
@@ -6,6 +8,8 @@ SupplyItemName = Annotated[str, StringConstraints(min_length=1, max_length=200)]
 
 
 class MaintenanceSubmission(BaseModel):
+    """Input schema for recording a completed maintenance run of a device."""
+
     device_id: int
     completed_step_ids: list[int] = Field(max_length=200)
     step_notes: str | None = Field(default=None, max_length=2000)

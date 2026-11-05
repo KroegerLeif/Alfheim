@@ -1,3 +1,5 @@
+"""Environment-driven settings for the Budget service."""
+
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,6 +27,9 @@ class Settings(BaseSettings):
         "http://alfheim.loegien.localhost",
         "http://api.alfheim.loegien.localhost",
     ]
+
+    # Largest accepted receipt upload in bytes (default 10 MiB)
+    MAX_RECEIPT_UPLOAD_BYTES: int = 10 * 1024 * 1024
 
     # Database settings
     DATABASE_URL: str = "postgresql+asyncpg://budget_user:postgres@localhost:5432/alfheim_budget"

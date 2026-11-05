@@ -1,3 +1,5 @@
+"""Shopping list CRUD plus provisioning of the household and personal lists."""
+
 import logging
 import uuid
 from collections.abc import Sequence

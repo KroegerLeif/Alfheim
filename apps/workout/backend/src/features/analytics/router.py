@@ -1,3 +1,5 @@
+"""HTTP routes of the analytics feature; every handler is scoped to the household from `require_household`."""
+
 from datetime import date
 
 from backend_shared.household import HouseholdContext, require_household

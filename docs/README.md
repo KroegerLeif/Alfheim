@@ -64,6 +64,7 @@ source with a translation notice, so untranslated paths never 404.
 * [Trust the Local Root CA](./en/how-to/trust-local-root-ca.md) — Importing the installer's root CA for the `internal` TLS strategy, or accepting the warning for both hosts.
 * [Secrets Hardening](./en/how-to/secrets-hardening.md) — Generating, storing and rotating secrets; verifying no development fallback reaches production.
 * [Backup, Restore & Data Migration](./en/how-to/backup-restore.md) — `alfheim-setup backup` / `restore`, scheduled backups and restore drills.
+* [Plan the storage layout](./en/how-to/storage-layout.md) — where data lives, growth, separate disks, ZFS and Btrfs settings.
 * [Update an Installation](./en/how-to/update-installation.md) — One-command release updates with `alfheim-setup update`.
 * [Verify a Release End to End](./en/how-to/verify-release.md) — Checklist for a release candidate: fresh install, backup, update, restore, upgrade from the previous tag.
 * [Grafana and Operator Access](./en/how-to/grafana-access.md) — The `alfheim_operator` role for Grafana, telemetry and the MCP registry.
@@ -75,6 +76,8 @@ source with a translation notice, so untranslated paths never 404.
 * [Caddy Gateway Ingress & Routing Matrix](./en/reference/ingress-matrix.md) — Public URLs, internal ports, path stripping.
 * [Environment Variables Reference](./en/reference/environment-variables.md) — Every `.env` configuration flag.
 * [Installer CLI Reference](./en/reference/installer-cli.md) — Every flag, environment variable and exit code of `alfheim-setup`.
+* [Quality Gates](./en/reference/quality-gates.md) — Local and CI gates per stack, thresholds, workflows.
+* Conventions: [Python & FastAPI](./en/reference/conventions/python-fastapi.md), [Go](./en/reference/conventions/go.md), [Next.js & Tailwind](./en/reference/conventions/nextjs-tailwind.md), [Code comments](./en/reference/conventions/code-comments.md).
 * [CLI Scripts Reference](./en/reference/cli-scripts.md) — Flags for `up.sh`, `down.sh`, `seed.sh`, and `verify.sh`.
 * App references under [`en/reference/apps/`](./en/reference/apps/): [Budget](./en/reference/apps/budget.md), [Chat](./en/reference/apps/chat.md), [Chores](./en/reference/apps/chores.md), [Dashboard](./en/reference/apps/dashboard.md), [Household](./en/reference/apps/household.md), [Library](./en/reference/apps/library.md), [Maintenance](./en/reference/apps/maintenance.md), [Pantry](./en/reference/apps/pantry.md), [Shopping](./en/reference/apps/shopping.md), [Workout](./en/reference/apps/workout.md) — Routes, environment, domain features, MCP tools, and known issues per app.
 

@@ -1,8 +1,12 @@
+"""Environment-driven settings for the Pantry service."""
+
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Environment-driven settings for the Pantry service."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -39,6 +43,7 @@ class Settings(BaseSettings):
 
     @property
     def expected_issuer(self) -> str:
+        """Return the expected JWT issuer URI without a trailing slash."""
         return self.OIDC_ISSUER_URL.rstrip("/")
 
     # OpenTelemetry Configuration

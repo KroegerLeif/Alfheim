@@ -1,16 +1,19 @@
+"""HTTP endpoints for transactions, quick-add and receipt upload and OCR."""
+
 from collections.abc import Sequence
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from backend_shared.storage import read_bounded_upload
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.core.config import settings
 from src.core.dependencies import HouseholdContext, get_db_session, require_household
 from src.core.permissions import require_writer
 from src.features.transactions.models import (
-    PresignedUploadRequest,
-    PresignedUploadResponse,
     QuickAddTransactionCreate,
     ReceiptOCRRequest,
     ReceiptOCRResponse,
+    ReceiptUploadResponse,
     TransactionCreate,
     TransactionRead,
     TransactionUpdate,
@@ -83,18 +86,48 @@ async def list_transactions(
     return [TransactionRead.model_validate(t) for t in transactions]
 
 
-@router.post("/receipt/upload-url", response_model=PresignedUploadResponse)
-async def generate_receipt_upload_url(
-    upload_req: PresignedUploadRequest,
+def _detect_receipt_kind(header: bytes) -> str | None:
+    """Classify a receipt by its magic bytes: ``"image"`` (JPEG, PNG, WebP, HEIC), ``"pdf"`` or None."""
+    if header.startswith(b"%PDF-"):
+        return "pdf"
+    if header.startswith((b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n")):
+        return "image"
+    if header[:4] == b"RIFF" and header[8:12] == b"WEBP":
+        return "image"
+    if header[4:8] == b"ftyp" and header[8:12] in {
+        b"heic",
+        b"heix",
+        b"hevc",
+        b"hevx",
+        b"mif1",
+        b"msf1",
+        b"heim",
+        b"heis",
+    }:
+        return "image"
+    return None
+
+
+@router.post("/receipt", response_model=ReceiptUploadResponse, status_code=status.HTTP_201_CREATED)
+async def upload_receipt(
+    file: UploadFile = File(...),
     ctx: HouseholdContext = Depends(require_writer),
     service: TransactionService = Depends(get_transaction_service),
-) -> PresignedUploadResponse:
-    """Generate RustFS S3 presigned upload URL for receipt image attachment."""
-    return await service.generate_receipt_upload_url(
-        household_id=ctx.household_id,
-        filename=upload_req.filename,
-        content_type=upload_req.content_type,
+) -> ReceiptUploadResponse:
+    """Upload a receipt (JPEG, PNG, WebP, HEIC or PDF) through the backend.
+
+    The size is capped (``MAX_RECEIPT_UPLOAD_BYTES``, 413 above), the type is decided by content,
+    images are normalised and the object key is generated server-side.
+    """
+    content = await read_bounded_upload(
+        file,
+        max_bytes=settings.MAX_RECEIPT_UPLOAD_BYTES,
+        accept_header=lambda header: _detect_receipt_kind(header) is not None,
     )
+    kind = _detect_receipt_kind(content[:16])
+    if kind is None:  # pragma: no cover - guarded by accept_header
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported receipt type.")
+    return await service.store_receipt(household_id=ctx.household_id, content=content, kind=kind)
 
 
 @router.post("/receipt/ocr", response_model=ReceiptOCRResponse)

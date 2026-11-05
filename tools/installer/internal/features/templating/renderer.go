@@ -13,6 +13,7 @@ import (
 	"text/template"
 	"time"
 
+	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/paths"
@@ -30,10 +31,17 @@ type Model struct {
 	// DockerSocketGID is the numeric group id owning the host's Docker
 	// socket (DOCKER_SOCKET_GID). Empty when it could not be detected.
 	DockerSocketGID string
+	// DataPaths are the optional host directories for persistent data. A
+	// class without one keeps its named volume.
+	DataPaths datapaths.Paths
 	// Generated is injected rather than read from the clock, so that golden
 	// file comparisons stay deterministic.
 	Generated time.Time
 }
+
+// DataPath returns the host directory chosen for a data class (the .env key),
+// or the empty string for the named volume.
+func (m Model) DataPath(key string) string { return m.DataPaths[key] }
 
 // Secret returns a generated secret, or the empty string when absent.
 func (m Model) Secret(key string) string { return m.Secrets[key] }

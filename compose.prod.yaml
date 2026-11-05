@@ -88,6 +88,9 @@ services:
     container_name: alfheim_postgres_core
     restart: unless-stopped
     logging: *default-logging
+    # lz4 decompresses much faster than the default pglz at a similar ratio;
+    # it only applies to newly written TOAST values.
+    command: ["postgres", "-c", "default_toast_compression=lz4"]
     security_opt:
       - no-new-privileges:true
     environment:
@@ -118,7 +121,8 @@ services:
       LIBRARY_POSTGRES_PASSWORD: ${LIBRARY_POSTGRES_PASSWORD:?LIBRARY_POSTGRES_PASSWORD must be set}
     volumes:
       - ./infrastructure/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
-      - postgres_core_data:/var/lib/postgresql/data
+      # A host path (ALFHEIM_DB_DATA_PATH) turns this into a bind mount owned by uid 70.
+      - ${ALFHEIM_DB_DATA_PATH:-postgres_core_data}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -264,7 +268,7 @@ services:
       RUSTFS_ACCESS_KEY: ${S3_ROOT_USER:?S3_ROOT_USER must be set}
       RUSTFS_SECRET_KEY: ${S3_ROOT_PASSWORD:?S3_ROOT_PASSWORD must be set}
     volumes:
-      - rustfs_data:/data
+      - ${ALFHEIM_OBJECT_DATA_PATH:-rustfs_data}:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
       interval: 5s
@@ -288,7 +292,7 @@ services:
   # 3. OBSERVABILITY & TELEMETRY
   # ----------------------------------------------------------------------------
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.99.0
+    image: victoriametrics/victoria-metrics:v1.154.1
     container_name: victoriametrics
     restart: unless-stopped
     logging: *default-logging
@@ -300,7 +304,7 @@ services:
       - "-httpListenAddr=:8428"
       - "-promscrape.config=/etc/victoriametrics/scrape.yml"
     volumes:
-      - victoriametrics_data:/victoria-metrics-data
+      - ${ALFHEIM_METRICS_DATA_PATH:-victoriametrics_data}:/victoria-metrics-data
       - ./infrastructure/telemetry/victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
@@ -365,7 +369,7 @@ services:
           memory: 64m
           cpus: 0.10
   victorialogs:
-    image: victoriametrics/victoria-logs:v0.25.0-victorialogs
+    image: victoriametrics/victoria-logs:v1.51.1
     container_name: victorialogs
     restart: unless-stopped
     logging: *default-logging
@@ -376,7 +380,7 @@ services:
       - "-storageDataPath=/victoria-logs-data"
       - "-httpListenAddr=:9428"
     volumes:
-      - victorialogs_data:/victoria-logs-data
+      - ${ALFHEIM_LOGS_DATA_PATH:-victorialogs_data}:/victoria-logs-data
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
       interval: 5s
@@ -395,7 +399,7 @@ services:
           memory: 256m
           cpus: 0.25
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.100.0
+    image: otel/opentelemetry-collector-contrib:0.163.2
     container_name: otel-collector
     restart: unless-stopped
     logging: *default-logging
@@ -470,7 +474,7 @@ services:
           memory: 64m
           cpus: 0.10
   vector:
-    image: timberio/vector:0.39.0-alpine
+    image: timberio/vector:0.60.0-alpine
     container_name: vector-shipper
     restart: unless-stopped
     logging: *default-logging
@@ -503,7 +507,7 @@ services:
           memory: 256m
           cpus: 0.25
   grafana:
-    image: grafana/grafana:12.4.12
+    image: grafana/grafana:13.2.4
     container_name: alfheim_grafana
     restart: unless-stopped
     logging: *default-logging
@@ -1226,6 +1230,7 @@ services:
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:?S3_ACCESS_KEY must be set}
       - S3_SECRET_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY must be set}
+      - MAX_RECEIPT_UPLOAD_BYTES=${MAX_RECEIPT_UPLOAD_BYTES:-10485760}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://rustfs:9000}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-budget-receipts}
       # Presigned URLs handed to the browser point here (the gateway proxies /storage to RustFS).
@@ -1423,6 +1428,7 @@ services:
       # shared storage settings refuse to fall back to the default credentials.
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:?S3_ACCESS_KEY must be set}
       - S3_SECRET_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY must be set}
+      - MAX_MANUAL_UPLOAD_BYTES=${MAX_MANUAL_UPLOAD_BYTES:-52428800}
       # Presigned URLs handed to the browser point here (the gateway proxies /storage to RustFS).
       - S3_PUBLIC_URL=${S3_PUBLIC_URL:-${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/storage}
     volumes:

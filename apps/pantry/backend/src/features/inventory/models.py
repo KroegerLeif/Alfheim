@@ -1,3 +1,5 @@
+"""SQLModel tables for the immutable inventory ledger and the derived current-stock state."""
+
 import enum
 import uuid
 from datetime import UTC, date, datetime

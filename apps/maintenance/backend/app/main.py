@@ -1,6 +1,4 @@
-"""
-Main FastAPI application entry point for the Maintenance OS backend.
-"""
+"""Main FastAPI application entry point for the Maintenance OS backend."""
 
 import importlib
 import pathlib
@@ -38,6 +36,7 @@ def discover_and_include_routers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Run migrations and the MCP session manager on startup; close the membership client and telemetry on shutdown."""
     # Initialize DB tables on startup
     from app.core.database import init_db
 

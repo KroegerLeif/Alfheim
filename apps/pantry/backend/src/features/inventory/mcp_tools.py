@@ -1,3 +1,5 @@
+"""MCP tools for inventory movements and alerts; they read the household from the request context."""
+
 import uuid
 from datetime import date
 

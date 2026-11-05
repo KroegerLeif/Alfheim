@@ -1,3 +1,5 @@
+"""Plan business rules, category tree building and plan summaries."""
+
 from collections.abc import Sequence
 from decimal import Decimal
 from uuid import UUID

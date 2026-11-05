@@ -1,3 +1,5 @@
+"""API schemas for inventory movements, stock state, alerts and bulk add."""
+
 import uuid
 from datetime import date, datetime
 

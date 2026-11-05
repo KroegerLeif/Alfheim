@@ -1,3 +1,5 @@
+"""Location business rules; system locations are read-only and cannot be deleted while in use."""
+
 import logging
 import uuid
 from collections.abc import Sequence

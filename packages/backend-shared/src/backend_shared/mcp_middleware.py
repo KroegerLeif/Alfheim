@@ -96,6 +96,7 @@ class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
         self._session_owners: OrderedDict[str, SessionOwner] = OrderedDict()
 
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Any]]) -> Any:
+        """Authorize the request, enforce session ownership and expose the household context to tool code."""
         settings = self.settings if self.settings is not None else get_auth_settings()
         lookup = self.membership_lookup if self.membership_lookup is not None else get_membership_client()
         try:
@@ -163,13 +164,11 @@ def _current_mcp_request_context() -> HouseholdContext | None:
     variables were copied from the session's *first* request, so the per-request
     ASGI scope is the authoritative source whenever the MCP SDK exposes it.
     """
+    from fastmcp.server.dependencies import get_http_request
+
     try:
-        from mcp.server.lowlevel.server import request_ctx
-    except ImportError:  # pragma: no cover - the MCP SDK is installed wherever MCP tools run
-        return None
-    try:
-        request = request_ctx.get().request
-    except LookupError:
+        request = get_http_request()
+    except RuntimeError:
         return None
     scope = getattr(request, "scope", None)
     context = scope.get(MCP_HOUSEHOLD_SCOPE_KEY) if isinstance(scope, dict) else None
@@ -191,7 +190,8 @@ def get_mcp_household_context() -> HouseholdContext:
 class MCPHTTPServer(Protocol):
     """What :func:`mount_mcp` needs from a ``fastmcp.FastMCP`` server."""
 
-    def http_app(self, path: str | None = None) -> Starlette: ...
+    def http_app(self, path: str | None = None) -> Starlette:
+        """Return the server's Streamable HTTP ASGI app, optionally at ``path``."""
 
 
 def mount_mcp(

@@ -52,6 +52,7 @@ class StaticMembershipLookup:
             self.memberships.update(normalize_memberships({(hh, sub): role}))
 
     async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
+        """Record the call and return the configured role, or ``None`` if not a member."""
         self.calls.append((household_id, user_sub))
         return self.memberships.get((household_id, user_sub))
 

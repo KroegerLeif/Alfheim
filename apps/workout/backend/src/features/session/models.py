@@ -1,3 +1,5 @@
+"""SQLModel tables and enums of the session feature."""
+
 import enum
 import uuid
 from datetime import UTC, datetime
@@ -84,8 +86,9 @@ class SessionExercise(SQLModel, table=True):
 
 
 class SessionSet(SQLModel, table=True):
-    """A structural clone of a PlanSet, with the weight engine's RESOLVED value
-    cloned in (never the type/offset) — see session/services/session_lifecycle_service.py.
+    """A structural clone of a PlanSet, with the weight engine's RESOLVED value cloned in.
+
+    The type/offset are never cloned — see session/services/session_lifecycle_service.py.
 
     client_idempotency_key supports offline sync: a client generates one per set
     while offline, and re-POSTing the same batch after a flaky retry is safe

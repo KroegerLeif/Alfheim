@@ -1,3 +1,5 @@
+"""Table of frequently purchased items, scoped per household."""
+
 import uuid
 from datetime import UTC, datetime
 

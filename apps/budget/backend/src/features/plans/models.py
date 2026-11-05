@@ -1,3 +1,5 @@
+"""SQLModel tables and API schemas for budget plans and their category trees."""
+
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum

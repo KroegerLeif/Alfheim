@@ -1,3 +1,5 @@
+"""MCP tools for budget analysis; they read the household from the request context."""
+
 import calendar
 from datetime import date
 from decimal import Decimal

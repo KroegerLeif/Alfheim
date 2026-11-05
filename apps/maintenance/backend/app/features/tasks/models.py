@@ -1,8 +1,12 @@
+"""SQLModel tables for maintenance steps and service history events."""
+
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Relationship, SQLModel
 
 
 class MaintenanceStep(SQLModel, table=True):
+    """A recurring maintenance task of a device; ``recurrence`` is the interval in months."""
+
     id: int | None = Field(default=None, primary_key=True)
     title: str
     description: str | None = None
@@ -17,6 +21,8 @@ class MaintenanceStep(SQLModel, table=True):
 
 
 class ServiceHistoryEvent(SQLModel, table=True):
+    """A recorded service visit for a device, including the steps completed during it."""
+
     id: int | None = Field(default=None, primary_key=True)
     date: str
     performer: str

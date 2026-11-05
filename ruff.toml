@@ -13,6 +13,7 @@ select = [
     "ASYNC", # flake8-async (asyncio safety)
     "FAST",  # FastAPI specific best practices
     "T20",   # flake8-print (prevent rogue print statements)
+    "D",     # pydocstyle: Google-style docstrings (see docs/en/reference/conventions/code-comments.md)
 ]
 ignore = [
     "E501",    # line length handled by formatter
@@ -21,16 +22,25 @@ ignore = [
     "UP042",   # allow (str, Enum) inheritance for SQLAlchemy/SQLModel string-backed enums
     "FAST001", # allow explicit response_model annotations
     "FAST002", # allow standard non-Annotated Depends syntax
+    "D104",    # package docstrings add no information next to the feature layout
+    "D107",    # __init__ is documented in the class docstring (Google style)
 ]
 
+[lint.pydocstyle]
+convention = "google"
+
 [lint.per-file-ignores]
-"**/tests/**" = ["B008", "ASYNC", "T20", "E741"]
+# Docstrings are required for application code only, not for tests, migrations or tooling.
+"**/tests/**" = ["D", "B008", "ASYNC", "T20", "E741"]
+"**/test_*.py" = ["D"]
+"**/conftest.py" = ["D"]
+"**/alembic/**" = ["D"]
+"scripts/**" = ["D", "T201"]  # standalone CLI tools; reporting to stdout is their purpose
 "**/mcp_tools.py" = ["B008"]
 "**/mcp/server.py" = ["T201"]
 "**/main.py" = ["E402", "T201"]  # E402: imports after module-level side effects (middleware, config); requires main.py restructure (issue #386)
 "**/models.py" = ["E402"]
 "**/seeder.py" = ["T201"]
-"scripts/**" = ["T201"]         # standalone CLI tools; reporting to stdout is their purpose
 
 [format]
 quote-style = "double"

@@ -1,3 +1,5 @@
+"""Async client that maps Open Food Facts barcode lookups to product schemas."""
+
 import logging
 
 import httpx

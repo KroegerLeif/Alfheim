@@ -112,12 +112,15 @@ class HouseholdAuthError(Exception):
 
     @property
     def detail(self) -> dict[str, str]:
+        """Error body as ``{"code", "message"}``."""
         return {"code": self.code, "message": self.message}
 
     def to_http_exception(self) -> HTTPException:
+        """Convert to an ``HTTPException`` for FastAPI dependencies."""
         return HTTPException(status_code=self.status_code, detail=self.detail, headers=self.headers)
 
     def to_response(self) -> JSONResponse:
+        """Convert to a JSON response for middleware that cannot raise ``HTTPException``."""
         return JSONResponse(status_code=self.status_code, content={"detail": self.detail}, headers=self.headers)
 
 
@@ -135,7 +138,8 @@ class MembershipLookup(Protocol):
     Raises :class:`MembershipServiceError` when no definitive answer is possible.
     """
 
-    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None: ...
+    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
+        """Return the user's role in the household, or ``None`` if not a member."""
 
 
 def _is_test_context() -> bool:
@@ -174,6 +178,7 @@ class HouseholdMembershipClient:
 
     @property
     def base_url(self) -> str:
+        """Membership API base URL: explicit value, then environment, then the default; without trailing slash."""
         url = self._base_url or os.getenv(HOUSEHOLD_INTERNAL_URL_ENV) or DEFAULT_HOUSEHOLD_INTERNAL_URL
         return url.strip().rstrip("/")
 
@@ -207,6 +212,7 @@ class HouseholdMembershipClient:
             raise HouseholdConfigError(f"{HOUSEHOLD_INTERNAL_URL_ENV} is not a valid http(s) URL: {self.base_url!r}")
 
     def clear_cache(self) -> None:
+        """Drop all cached membership answers."""
         self._cache.clear()
 
     def _http_client(self) -> httpx.AsyncClient:
@@ -224,6 +230,7 @@ class HouseholdMembershipClient:
         return self._client
 
     async def aclose(self) -> None:
+        """Close the underlying HTTP client, if one was opened."""
         client, self._client, self._client_loop = self._client, None, None
         if client is not None and not client.is_closed:
             await client.aclose()
@@ -248,6 +255,7 @@ class HouseholdMembershipClient:
         self._cache[key] = (now + ttl, role)
 
     async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
+        """Return the user's role in the household from cache or the membership API; errors are not cached."""
         key = (household_id, user_sub)
         hit, role = self._cache_get(key)
         if hit:

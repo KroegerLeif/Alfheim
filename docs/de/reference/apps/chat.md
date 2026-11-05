@@ -23,7 +23,7 @@ Quelle: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 
 ## 🏗️ Architektur & Tech Stack
 
-- **Backend:** Go 1.26 Microservice mit Chi-Router, SSE-Streaming, AES-256-Kryptographie und FastMCP-Client-Integrationen.
+- **Backend:** Go 1.27 Microservice mit Chi-Router, SSE-Streaming, AES-256-Kryptographie und FastMCP-Client-Integrationen.
 - **Frontend:** Next.js 16 (App Router) Microfrontend, SSE-Stream-Parser, Tailwind CSS v4 und `@alfheim/shared`.
 - **Datenbank:** Gehostet auf `postgres-core` (`alfheim_chat`-Datenbank, Besitzer `chat_user`).
 
@@ -69,6 +69,7 @@ Jede Chat-API-Route führt nach der JWT-Prüfung `middleware.RequireHousehold` a
   - Jedes Ergebnis eines Tool-Aufrufs wird als `tool`-Nachricht gespeichert, deren `tool_calls` `{"tool_call_id", "tool_name", "is_error"}` enthält; Transportfehler werden mit einem allgemeinen Text gespeichert, nie mit der internen Endpunkt-URL. Beim Wiederholen der Historie wird die ID als `tool_call_id` gesendet. Die UI zeigt Tool-Aufrufe als eingeklappte Einträge (Name und Status; Argumente und Ergebnis beim Aufklappen, Argumente mit Zugangsdaten-Schlüsseln, Bearer-Tokens und JWTs maskiert).
 - `modelblocks`: Provider-Konfigurationsblöcke (Ollama, OpenAI) mit AES-256-Schlüssel-Verschlüsselung. Nur `ollama` und `openai_compatible` sind lauffähig; die UI bietet nur diese beiden an (#632).
 - `attachments`: Datei-Anhang-Uploads mit RustFS S3-Objektspeicher. Jeder Upload speichert den Hochladenden (`image_refs.owner_user_id`); allen anderen liefert das Lesen eines Anhangs per ID `404`, und eine Nachricht kann nur noch nicht verknüpfte Anhänge des Gesprächsinhabers verknüpfen (sonst `400`). Anhänge aus der Zeit vor dieser Spalte haben keinen Inhaber und lassen sich weder per ID lesen noch verknüpfen.
+  - Uploads (JPEG, PNG oder WebP, bis 10 MB, nach Inhalt geprüft) werden vor dem Speichern normalisiert: Die EXIF-Ausrichtung wird angewendet, alle Metadaten einschließlich GPS entfallen und die längste Kante ist auf 2048 px begrenzt. Deckende Bilder werden als JPEG gespeichert, Bilder mit Transparenz als PNG. Bilder über 40 Megapixel werden mit `400` abgelehnt. Die Verarbeitung ist reines Go, die Binärdatei bleibt CGO-frei.
   - Der Bucket bleibt privat, die API liefert nie Speicher-URLs. Jede `url` (Upload-Antwort, `GET /attachments/{id}`, `attachments` an Nachrichten) lautet `GET /api/v1/chat/attachments/{id}/content?token=…` am Gateway (`ALFHEIM_BASE_URL`) und wird bei jedem Lesen neu erzeugt. Das Token ist ein HMAC-SHA256 über Anhang, Nutzer und Haushalt mit Ablaufzeit (standardmäßig 15 Minuten), sodass `<img>` es ohne Bearer-Header laden kann. Der Endpunkt akzeptiert außerdem ein normales Bearer-Token mit `X-Household-ID`.
   - Eine Token-Anfrage prüft erneut, dass der Nutzer noch Mitglied des Haushalts ist, dass der Hochladende den Anhang besitzt und dass das Objekt im Speicherbereich des Haushalts liegt. Ungültiges oder abgelaufenes Token: `401`; Nutzer nicht mehr Mitglied: `403`; Anhang eines anderen Nutzers oder fehlendes Objekt: `404`; Mitgliedschaftsdienst nicht erreichbar: `503`. Die Antwort enthält den gespeicherten Bildtyp, `Content-Disposition: inline` für Bilder (sonst `attachment`), `X-Content-Type-Options: nosniff`, eine sandboxende `Content-Security-Policy` und `Cache-Control: private`. Die Oberfläche lädt die Unterhaltung einmal neu, wenn ein Bild nicht lädt, und zeigt danach den Hinweis „Anhang nicht verfügbar“.
 - `mcpservers`: FastMCP-Server-Verbindungsdefinitionen und dynamische Tool-Ermittlung.
@@ -80,6 +81,52 @@ Jede Chat-API-Route führt nach der JWT-Prüfung `middleware.RequireHousehold` a
 Chat stellt selbst keine MCP-Tools bereit – es ist der MCP-**Client** für den FastMCP-Server jeder anderen App (`internal/shared/mcp`, ein von Grund auf neu geschriebener Streamable-HTTP-Client). `CHAT_MCP_SERVERS` befüllt die Registry (`app_slug` → `internal_url`, z. B. `http://pantry-backend:8000/mcp`); erneutes Seeding beim Start aktualisiert die URL, setzt aber nie den Enabled/Disabled-Schalter eines Admins zurück. Jeder Aufruf leitet das Bearer-Token des Aufrufers und `X-Household-ID` weiter, sodass die Ziel-App genauso autorisiert wie bei einer REST-Anfrage. Ein 404 von einem MCP-Endpunkt wird dem Aufrufer als Konfigurationsfehler gemeldet (nicht passender `CHAT_MCP_SERVERS`-Pfad), statt als erreichbar zu gelten.
 
 MCP-Sessions werden pro Endpunkt, Haushalt und Nutzer geführt: `ClientPool` wählt den Client bei jedem Aufruf anhand der Aufrufer-Zugangsdaten dieses Aufrufs, sodass eine Session-ID und die zwischengespeicherte Tool-Liste nie zwischen Nutzern oder Haushalten geteilt werden. Unbenutzte Sessions werden nach 15 Minuten verworfen. Die MCP-Server selbst binden eine Session-ID noch nicht an den Aufrufer, der sie geöffnet hat (#633).
+
+---
+
+## 🗄️ Datenmodell-Invarianten
+
+### Tabelle `model_blocks`
+
+| Spalte | Hinweise |
+| --- | --- |
+| `id` | UUID, PK |
+| `owner_user_id` | Zitadel-`sub` |
+| `household_id` | Nullable; `NULL` bedeutet privat |
+| `visibility` | `private` oder `shared`. Geteilte Blöcke sind für Haushaltsmitglieder nutzbar, aber nur vom Eigentümer bearbeitbar |
+| `provider_type` | `ollama` oder `openai_compatible` (`anthropic` ist geplant) |
+| `base_url`, `model_identifier` | |
+| `api_key_encrypted` | AES-256-GCM-Chiffretext, BYTEA, nullable |
+| `api_key_key_id` | Standard `v1`; ermöglicht Schlüsselrotation |
+| `health_status` | `ok`, `unreachable`, `auth_invalid` oder `unknown`; dazu `health_checked_at` und `health_detail` |
+| `is_bootstrap` | Gesetzt beim idempotenten Upsert aus `CHAT_BOOTSTRAP_*`, der nur beim ersten Start läuft |
+
+### Tabelle `mcp_server_registry`
+
+Wird bei jedem Start aus `CHAT_MCP_SERVERS` befüllt und synchronisiert (`internal/features/mcpservers`) mit `app_slug`, `internal_url` (zum Beispiel `http://pantry-backend:8000/mcp`) und `enabled`. Das erneute Einspielen aktualisiert `internal_url` per `app_slug`, setzt aber nie den `enabled`-Schalter eines Admins zurück. `internal/shared/mcp` ist ein selbst geschriebener Streamable-HTTP-**Client** (Initialize-Handshake, Session-ID, JSON- oder SSE-Bodies) für die FastMCP-Server der anderen Apps; Chat bringt keinen eigenen MCP-Servercode mit.
+
+### Tabellen `conversations`, `messages`, `image_refs`
+
+- `conversations.source_app` und `source_context` halten die Host-App und deren Kontext fest, wenn eine Unterhaltung im eingebetteten Chat-Widget beginnt; in der vollständigen Chat-App sind beide `NULL`.
+- `messages.role` ist `user`, `assistant`, `system` oder `tool`.
+- `image_refs.storage_key` verweist auf ein Objekt in RustFS.
+
+### Invarianten
+
+1. Der Klartext des API-Schlüssels verlässt das Backend nie; Antwort-DTOs enthalten nur `has_api_key: bool`.
+2. Geteilte `model_blocks` sind für Haushaltsmitglieder nutzbar; nur `owner_user_id` darf sie bearbeiten, löschen oder per Health-Check prüfen (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
+3. Bootstrap-Blöcke (`is_bootstrap = true`, `owner_user_id = "system"`) sind die Ausnahme: Jeder authentifizierte Nutzer darf sie sehen und ändern. Der einmalige Seed wird in der separaten Tabelle `bootstrap_state` verfolgt, sodass der gelöschte oder geänderte Seed-Block nach einem Neustart nicht wieder erscheint.
+4. `internal/shared/llm.Provider` wird aus primitiven Parametern (Anbietertyp, Basis-URL, Modell, API-Schlüssel) gebaut, nie aus einem `modelblocks.ModelBlock`; `internal/shared/llm` hängt daher nicht von `internal/features/modelblocks` ab.
+5. Die JWT-Validierung in `internal/shared/middleware/auth.go` prüft Issuer und Audience (`OIDC_AUDIENCE`); das unterscheidet sich bewusst von der reinen Issuer-Prüfung in `core/dashboard/backend`.
+6. Unterhaltungen sind immer persönlich (nur `owner_user_id`). Ein Haushaltsmitglied mit Zugriff auf einen geteilten Modellblock erhält eine eigene, separate Unterhaltung.
+7. `GET /api/v1/chat/conversations/{id}/stream` verlangt, dass die letzte Nachricht eine unbeantwortete `user`-Nachricht ist (sonst `ErrNoPendingUserMessage`). Die fertige Assistentenantwort speichert `AppendMessageAndTouchConversation` (eine Transaktion: Nachricht einfügen und `conversations.updated_at` aktualisieren) mit einem frischen 5-s-Timeout auf `context.Background()`, unabhängig von der HTTP-Anfrage. So geht die Antwort nicht verloren, wenn der Client am Stream-Ende die Verbindung trennt. Ein Stream, der mit einem `Err`-Chunk endet, speichert nichts.
+8. `internal/features/conversations` hängt von `internal/shared/llm` ab und definiert ein eigenes schmales Interface `ModelBlockResolver` (strukturell von `modelblocks.Service` erfüllt), statt `internal/features/modelblocks` zu importieren. Go-Interfaces werden beim Konsumenten definiert.
+9. Der HTTP-Server setzt einen `WriteTimeout` von 10 Minuten (`cmd/server/main.go`), weil der SSE-Endpunkt die Antwort offen hält, solange das Modell antwortet; `ReadTimeout` bleibt bei 15 s.
+10. Das Frontend kann das native `EventSource` nicht nutzen, da es keinen `Authorization`-Header senden kann. `streamAssistantReply` in `apps/chat/frontend/src/lib/api.ts` liest den `text/event-stream`-Body über `fetch()` und einen `ReadableStream`.
+11. Die Tool-Calling-Schleife (`conversations.service.runToolLoop`) leitet jeden Provider-Chunk live weiter (`delta`, `tool_call`), aber nie den `Done`-Chunk einer Zwischenrunde. Nur die letzte Runde (keine weiteren Tool-Aufrufe oder Rundenlimit erreicht) sendet den abschließenden `Done`- oder `Err`-Chunk, der die SSE-Antwort beendet.
+12. `tool_round_limit` (Standard 8) und `allowed_mcp_apps` liegen im `config_json` eines Modellblocks und werden von `modelblocks.parseProviderPolicy` zu `llm.ProviderPolicy` geparst. Der Typ liegt in `internal/shared/llm`, damit beide Features ihn teilen, ohne einander zu importieren.
+13. `conversations` importiert weder `mcpservers` noch den konkreten `*mcp.ClientPool` in der exportierten Signatur von `Service` / `NewService`. Es definiert die Konsumenten-Interfaces `MCPServerLister` und `MCPClientPool` (`toolbridge.go`). `mcp.ClientPool.Get` liefert das Interface `mcp.ToolCaller`, damit Tests einen Fake einsetzen können.
+14. `OpenAICompatibleProvider` (`internal/shared/llm/openai_compatible_provider.go`) erwartet `model_blocks.base_url` **ohne** abschließendes `/v1` (zum Beispiel `https://api.openai.com`) und hängt `/v1/chat/completions` und `/v1/models` selbst an. Gestreamte Tool-Call-Argumente kommen als fragmentierte JSON-String-Deltas pro Index; sie werden pro Index gepuffert und als `StreamChunk{ToolCall: ...}` ausgegeben, sobald `finish_reason == "tool_calls"` ist oder die Verbindung ohne `data: [DONE]`-Frame endet, den manche Anbieter weglassen.
 
 ---
 

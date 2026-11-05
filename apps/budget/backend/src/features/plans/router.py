@@ -1,3 +1,5 @@
+"""HTTP endpoints for budget plans, plan categories and plan summaries."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status

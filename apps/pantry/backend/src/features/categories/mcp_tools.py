@@ -1,3 +1,5 @@
+"""MCP tools for categories; they read the household from the request context."""
+
 import uuid
 
 from backend_shared.mcp_middleware import get_mcp_household_context

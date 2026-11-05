@@ -1,3 +1,6 @@
+"""Domain errors of the chore feature; subclasses of ``ValueError`` so the API maps them to 400 responses."""
+
+
 class ChoreError(ValueError):
     """Base exception for all chore-related errors."""
 

@@ -1,3 +1,5 @@
+"""HTTP routes of the session feature; every handler is scoped to the household from `require_household`."""
+
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household

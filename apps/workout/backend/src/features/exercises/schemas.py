@@ -1,3 +1,5 @@
+"""Request and response schemas of the exercises feature."""
+
 import uuid
 from datetime import datetime
 

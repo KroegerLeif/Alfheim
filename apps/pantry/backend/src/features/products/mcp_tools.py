@@ -1,3 +1,5 @@
+"""Re-exports the product MCP tools with the session factory and Open Food Facts client they use."""
+
 from src.core.database import async_session_factory
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 from src.features.products.mcp.product_mcp import (

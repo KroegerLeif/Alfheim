@@ -1,3 +1,5 @@
+"""HTTP endpoints for categories."""
+
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household

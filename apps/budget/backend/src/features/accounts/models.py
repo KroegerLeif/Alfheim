@@ -1,3 +1,5 @@
+"""SQLModel table and API schemas for household accounts."""
+
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
