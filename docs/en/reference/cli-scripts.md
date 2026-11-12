@@ -175,7 +175,8 @@ Executes automated linting, formatting, typechecking, and unit test suites acros
 | `--python` | Runs Ruff check/format, `uv run ty check`, and `pytest` across Python backends |
 | `--go` | Runs `go vet`, `gofmt`, and `go test -race -cover ./...` across Go backends |
 | `--frontend` | Runs `pnpm check-types` (`tsc --noEmit`) and Vitest across frontends |
-| `--security` | Executes security scanners (Bandit, Trivy) |
+| `--security` | Runs gitleaks, private key, `.env` and `TODO` checks, and the non-mutating pre-commit hooks; fails if gitleaks is not installed |
+| `--allow-missing-gitleaks` | With `--security`: warn instead of failing when gitleaks is not installed |
 
 ---
 

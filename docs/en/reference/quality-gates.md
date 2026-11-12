@@ -15,7 +15,7 @@ sidebar:
 ./scripts/verify.sh --python     # ruff, ruff format, ty, pytest per backend, backend-shared
 ./scripts/verify.sh --go         # go test -race per module (incl. tools/installer), revive doc comments
 ./scripts/verify.sh --frontend   # tsc --noEmit, Vitest for every package
-./scripts/verify.sh --security   # secret scans, TODO check, non-mutating pre-commit hooks
+./scripts/verify.sh --security   # gitleaks, secret scans, TODO check, non-mutating pre-commit hooks
 ./scripts/verify.sh              # all of the above
 ```
 
@@ -53,7 +53,9 @@ Every FastMCP tool has a docstring and type annotations, handles exceptions and 
 ## Security
 
 - No live secrets: `.env` files are gitignored, only `.env.example` with placeholders is tracked.
-- `verify.sh --security` scans for private keys and tracked `.env` files, fails on `TODO` / `FIXME` without an issue reference, runs the non-mutating pre-commit hooks (`check-yaml`, `check-json`, `check-added-large-files`, `check-merge-conflict`, `detect-private-key`) and gitleaks when installed. Fixer hooks are not run because a verification must not rewrite files.
+- `verify.sh --security` scans for private keys and tracked `.env` files, fails on `TODO` / `FIXME` without an issue reference, runs the non-mutating pre-commit hooks (`check-yaml`, `check-json`, `check-added-large-files`, `check-merge-conflict`, `detect-private-key`) and `gitleaks detect` over the full history. Fixer hooks are not run because a verification must not rewrite files.
+- `verify.sh --security` fails when gitleaks is not installed (`brew install gitleaks` or a [release binary](https://github.com/gitleaks/gitleaks#installing)). `--allow-missing-gitleaks` turns this into a warning for constrained environments; CI still runs gitleaks.
+- The pre-commit hooks (`pre-commit install`) also run gitleaks on staged changes, and `gofmt -w` and `go vet` for every module listed in `go.work`. Dependabot does not track pre-commit `rev` pins; bump them by hand and keep the ruff `rev` equal to the ruff version in `uv.lock`.
 - Every query filters by the household returned by `require_household` / `RequireHousehold`; see [Authentication and security](../explanation/authentication-security.md).
 
 ## Continuous integration
@@ -66,9 +68,30 @@ Every FastMCP tool has a docstring and type annotations, handles exceptions and 
 | `python-ci.yml` | Ruff, ty, per-app pytest with the 95 % gate, `packages/backend-shared` pytest |
 | `go-ci.yml` | gofmt, `go vet`, revive, `go test -race` per module, installer coverage gate and cross-compile |
 | `frontend-ci.yml` | `pnpm check-types`, `pnpm -r test`, `next build` for every frontend (matrix) |
-| `security-scan.yml` | gitleaks, pip-audit, govulncheck, pnpm audit, Trivy (also weekly) |
+| `security-scan.yml` | gitleaks on every push and pull request; pip-audit, govulncheck, pnpm audit and Trivy when dependencies change; all scans weekly |
 | `smoke-test.yml` | Caddy gateway and production core stack startup |
 | `deploy-docs.yml` | Markdown link check and docs build; deploys from `main` |
 | `release.yml` | Tag-triggered release: ancestry check, quality gates, image build, Trivy gate, push, GitHub release |
 
 Workflow rules: every action is pinned to a full commit SHA with a `# vX.Y.Z` comment (Dependabot updates them); workflows default to `permissions: contents: read` and jobs raise only the scope they need; release images are scanned with Trivy before they are pushed, and pre-release tags (`-rc`, `-beta`, `-alpha`) never receive `latest`.
+
+### When each security scan runs
+
+| Scan | Push to `main` / `dev` and pull requests | Weekly and manual |
+| --- | --- | --- |
+| gitleaks | Always, full history | Yes |
+| pip-audit | `**/pyproject.toml`, `uv.lock` changed | Yes |
+| govulncheck | `go.work`, `**/go.mod`, `**/go.sum` or `**/*.go` changed | Yes |
+| pnpm audit | `**/package.json`, `pnpm-lock.yaml` changed | Yes |
+| Trivy (filesystem) | Any manifest or lockfile above, `**/Dockerfile`, `**/compose*.y*ml` or `release.yml` changed | Yes |
+
+A change to `security-scan.yml` runs every scan. These scans are not part of `ci-required`, so a skipped scan never blocks a merge.
+
+### Dependabot
+
+`.github/dependabot.yml` opens pull requests against `dev` every Monday for uv, each Go module, npm, GitHub Actions, Dockerfiles and compose files. Per ecosystem:
+
+- `security`: minor and patch security fixes in one pull request.
+- `minor-and-patch`: all other minor and patch updates in one pull request.
+- Major updates stay one pull request per dependency, so frameworks (Next.js, React, FastAPI, Zitadel) get an individual review.
+- Dockerfiles and compose files add `major-per-image`: a major bump of one image (for example `postgres`) is one pull request across every directory.
