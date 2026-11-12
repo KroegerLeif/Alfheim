@@ -1,40 +1,18 @@
 name: Security Scanning (Dependencies & Containers)
 
+# The secret scan runs on every push and pull request. The dependency and
+# image scans are path-filtered by the `changes` job: they only run when a
+# manifest, lockfile, Dockerfile, compose file (or Go code for govulncheck)
+# changed. Scheduled and manual runs execute every scan.
 on:
   push:
     branches:
       - main
       - dev
-    paths:
-      - 'apps/*/backend/**'
-      - 'core/*/backend/**'
-      - 'tools/installer/**'
-      - 'packages/backend-shared/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'go.mod'
-      - 'go.sum'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/security-scan.yml'
-      - '.github/workflows/release.yml'
   pull_request:
     branches:
       - main
       - dev
-    paths:
-      - 'apps/*/backend/**'
-      - 'core/*/backend/**'
-      - 'tools/installer/**'
-      - 'packages/backend-shared/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'go.mod'
-      - 'go.sum'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/security-scan.yml'
-      - '.github/workflows/release.yml'
   # Weekly run catches newly published advisories and secrets on unchanged paths.
   schedule:
     - cron: '17 4 * * 1'
@@ -48,8 +26,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changed Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      go: ${{ steps.filter.outputs.go }}
+      node: ${{ steps.filter.outputs.node }}
+      images: ${{ steps.filter.outputs.images }}
+    steps:
+      - name: Checkout Repository
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Scheduled and manual runs skip the filter; every scan job runs then.
+      - name: Filter Changed Paths
+        id: filter
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            workflow: &workflow
+              - '.github/workflows/security-scan.yml'
+            python:
+              - *workflow
+              - '**/pyproject.toml'
+              - 'uv.lock'
+            go:
+              - *workflow
+              - 'go.work'
+              - '**/go.mod'
+              - '**/go.sum'
+              # govulncheck reports only reachable code, so code changes count.
+              - '**/*.go'
+            node:
+              - *workflow
+              - '**/package.json'
+              - 'pnpm-lock.yaml'
+            images:
+              - *workflow
+              - '.github/workflows/release.yml'
+              - '**/pyproject.toml'
+              - 'uv.lock'
+              - 'go.work'
+              - '**/go.mod'
+              - '**/go.sum'
+              - '**/package.json'
+              - 'pnpm-lock.yaml'
+              - '**/Dockerfile'
+              - '**/compose*.y*ml'
+
   python-audit:
     name: Python Dependency Audit (pip-audit)
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -69,6 +102,8 @@ jobs:
 
   go-vulncheck:
     name: Go Dependency Audit (govulncheck)
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -94,6 +129,7 @@ jobs:
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
+  # Never path-filtered: a secret can land in any file.
   secret-scan:
     name: Secret Scanning (gitleaks)
     runs-on: ubuntu-latest
@@ -116,6 +152,8 @@ jobs:
 
   npm-audit:
     name: Node.js Dependency Audit (pnpm audit)
+    needs: changes
+    if: needs.changes.outputs.node == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -138,6 +176,8 @@ jobs:
 
   trivy-scan:
     name: Trivy Filesystem & Config Scanning
+    needs: changes
+    if: needs.changes.outputs.images == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       # upload-sarif >= 4.39 reads the workflow run to attribute the analysis.
