@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
+     Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
+     A release moves these entries under a new version heading and adds its compare link. -->
+
+### Changed
+- Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
+- Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
+
 ---
 
 ## [v0.4.0] - 2026-11-05
@@ -47,6 +55,8 @@ Release from the v0.3.3 milestone: agent instructions move to the `AGENTS.md` st
 ## [v0.3.1] - 2026-10-29
 
 > `v0.3.0` was tagged on 2026-10-23 but never published: the release pipeline's image vulnerability gate blocked it (certifi, authlib and dnspython in the Python images, npm inside the Node base image, an outdated Caddy build) and an emulated arm64 build hung. v0.3.1 contains everything listed for v0.3.0 plus those fixes; only `dashboard-backend`, `household-backend` and `chat-backend` were pushed as `v0.3.0`.
+>
+> The lists below collect every change since v0.1.0-beta.1, because v0.1.2 to v0.3.0 were cut without their own sections; those sections were added later as short summaries.
 
 Release from the October 2026 project review: tenant isolation and role matrix across all apps, real Alembic migrations, backup and restore, the `alfheim_operator` role, a hardened gateway, CI and release pipeline, multi-arch images (linux/amd64 and linux/arm64), and fixes found by an end-to-end installer verification. Upgrading from v0.2.2 with `alfheim-setup update` takes a backup first, migrates every database and repairs `.env` (S3 endpoints, `DOCKER_SOCKET_GID`, new secrets).
 
@@ -102,10 +112,7 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 - Central Known Issues & System Trade-Offs register (`docs/en/explanation/known-issues.md`).
 - `ALFHEIM_EXTRA_CA_FILE`: server-side OIDC clients (`backend_shared`, the dashboard and chat Go backends) and Grafana (`GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) trust an extra PEM root CA on top of the system roots for discovery, JWKS and token calls. `compose.prod.yaml` mounts `./infrastructure/ca` read-only at `/etc/alfheim/ca` for those services and `./infrastructure/caddy/pki` at `/etc/caddy/pki` for Caddy only. Unset keeps library defaults; an unreadable or non-PEM file is an error naming the path.
 - How-to guide `trust-local-root-ca.md` (EN and DE): verifying the root CA fingerprint, importing it per OS, browser and mobile device, and the fallback of accepting the warning for both hosts.
-
 - Dashboard launcher tile for the new Tier-1 `core/household` app (slug `household`, path `/household`, icon `home`), visible to every authenticated user.
-
-### Added
 - `scripts/check-compose.py` (#808), run by `verify.sh --security` and the new `compose-guard` workflow: fails if a service in `compose.prod.yaml` lacks bounded logging or a memory limit, or a dev service lacks bounded logging.
 
 ### Changed
@@ -285,7 +292,66 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 
 ---
 
-## [v0.1.0-beta.1] - 2026-03-01
+## [v0.3.0] - 2026-10-23
+
+Tagged but never published (see v0.3.1); the full list is under v0.3.1.
+
+### Changed
+- Run real Alembic migrations at startup in every Python backend (#692) and add `alfheim-setup backup` and `restore`, with a backup before every update (#690).
+- Publish multi-arch linux/amd64 and linux/arm64 images and harden the release pipeline with pinned actions and the `ci-required` aggregator (#684, #708).
+
+### Fixed
+- Serve real logs and host metrics instead of fabricated telemetry (#701, #709), and make chat attachments and budget receipt uploads work in production (#702, #710).
+- Fix installer S3 endpoints, the Grafana operator role, Docker socket detection and deSEC issuance (#673, #688).
+
+### Security
+- Enforce tenant isolation and the household role matrix on every write route, MCP tool and frontend (#681, #689, #696).
+- Harden JWT validation, Go services, invite tokens, outbound LLM URLs and the gateway headers (#677, #678, #680, #685); gate the MCP registry and telemetry on `alfheim_operator` (#691).
+
+## [v0.2.2] - 2026-10-19
+
+### Added
+- deSEC DNS-01 TLS strategy for Caddy and the installer (#660).
+
+### Changed
+- Move to Go 1.26 with consolidated dependency updates; Dependabot targets `dev` (#661).
+
+## [v0.2.1] - 2026-10-10
+
+### Fixed
+- Add the missing `greenlet` dependency to the workout backend for SQLAlchemy asyncio (#651).
+
+## [v0.2.0] - 2026-10-08
+
+### Fixed
+- Stabilise all apps, the shared packages, the docs portal and the gateway in one sweep (#643).
+
+## [v0.1.3] - 2026-10-02
+
+### Fixed
+- Reattach the TTY in installer update mode so the confirmation prompt works under `curl | bash`.
+
+## [v0.1.2] - 2026-10-02
+
+First stable release after the pre-releases v0.1.0-rc.1 to v0.1.1-rc.13, which introduced the installer, Zitadel, the docs portal and the `core/household` app.
+
+### Added
+- `alfheim-setup update` for one-command releases, and the Tier-1 `core/household` app with the internal membership API that every backend uses for household checks.
+
+### Changed
+- Narrow `GET /api/v1/user/links` on the dashboard to the caller's own links.
+
+### Fixed
+- Dashboard: remove fabricated telemetry, the fake infra panel and placeholder registry entries; launcher tiles use full-page navigation.
+- Chores: verify assignees are household members, fix streaks and point totals, and localize dashboard widgets.
+- Budget: apply transactions to account and pot balances, block deleting referenced accounts, render real cashflow data and stop fabricating receipt OCR results.
+
+### Security
+- Update Next.js and add pnpm overrides for high-severity advisories.
+
+## v0.1.0-beta.1 - 2026-03-01
+
+Never tagged in git, so there is no compare link.
 
 ### Added
 - Initial public beta release of Alfheim Sovereign OS.
@@ -295,3 +361,13 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 - Central Caddy ingress reverse-proxy gateway routing.
 - VictoriaStack observability pipeline (Vector, OTel Collector, VictoriaMetrics, VictoriaLogs, Grafana).
 - Automated staged cluster boot orchestrator (`scripts/up.sh`) and verification suite (`scripts/verify.sh`).
+
+[Unreleased]: https://github.com/KroegerLeif/Alfheim/compare/v0.4.0...dev
+[v0.4.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.3.1...v0.4.0
+[v0.3.1]: https://github.com/KroegerLeif/Alfheim/compare/v0.3.0...v0.3.1
+[v0.3.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.2.2...v0.3.0
+[v0.2.2]: https://github.com/KroegerLeif/Alfheim/compare/v0.2.1...v0.2.2
+[v0.2.1]: https://github.com/KroegerLeif/Alfheim/compare/v0.2.0...v0.2.1
+[v0.2.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.1.3...v0.2.0
+[v0.1.3]: https://github.com/KroegerLeif/Alfheim/compare/v0.1.2...v0.1.3
+[v0.1.2]: https://github.com/KroegerLeif/Alfheim/compare/v0.1.0-rc.1...v0.1.2
