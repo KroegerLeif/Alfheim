@@ -11,7 +11,9 @@ Thumbs.db
 # Environment & Secrets
 **/.env
 **/.env.*
+**/.env.local
 !**/.env.example
+**/.envrc
 *.key
 *.pem
 *.cert
@@ -42,6 +44,18 @@ infrastructure/caddy/pki/*
 **/__pycache__/
 **/.ruff_cache/
 **/.pytest_cache/
+**/.mypy_cache/
+**/htmlcov/
+**/*.egg-info/
+**/.turbo/
+**/playwright-report/
+.pnpm-store/
+# Build outputs (none of these directories hold tracked sources)
+**/dist/
+**/build/
+**/out/
+# Installer binary from `go build` in tools/installer
+/tools/installer/alfheim-setup
 **/*.log
 **/.coverage
 **/.coverage.*
@@ -53,5 +67,8 @@ coverage.out
 *.sqlite
 *.sqlite3
 
-# Sweep worktrees (orchestrator/app-stability-sweep)
+# Git worktrees and local agent settings
 .worktrees/
+.claude/worktrees/
+.claude/settings.local.json
+.worktreeinclude
