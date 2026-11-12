@@ -22,14 +22,16 @@ def tracked_markdown_files() -> list[str]:
     return [f for f in out.split() if not f.startswith(SKIP_PATHS)]
 
 
-# Retired in #794: agent instructions live in AGENTS.md files and docs/. A returning
-# folder would fork the rules again, so the link check doubles as the guard.
+# Retired in #794: agent instructions live in AGENTS.md files and docs/. A growing
+# folder would fork the rules again, so the link check doubles as the guard. #872
+# brought back only the agent workflow files, which link to docs/ instead of copying it.
 RETIRED_PATHS = (".ai/",)
+ALLOWED_RETIRED = frozenset({".ai/README.md", ".ai/workflow.md"})
 
 
 def retired_paths_present() -> list[str]:
     out = subprocess.check_output(["git", "ls-files"], text=True)
-    return [f for f in out.split("\n") if f.startswith(RETIRED_PATHS)]
+    return [f for f in out.split("\n") if f.startswith(RETIRED_PATHS) and f not in ALLOWED_RETIRED]
 
 
 def main() -> int:

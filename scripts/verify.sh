@@ -300,7 +300,7 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     fi
 
-    log_section "Markdown Links and Retired Paths (.ai/)"
+    log_section "Markdown Links and Retired Paths (.ai/ beyond README and workflow)"
     if python3 scripts/check-markdown-links.py; then
         log_success "Markdown links resolve and no retired paths are tracked"
     else
