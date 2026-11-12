@@ -46,4 +46,3 @@ omit = [
     "**/seeder.py",
     "**/mcp/*",
 ]
-

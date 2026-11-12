@@ -97,4 +97,3 @@ with mcp_membership({(household_id, "user-1"): "OWNER"}):
 ```
 
 Unsigned test tokens only decode when `is_mock_auth_allowed()` is true, which means pytest or `TESTING=true` and never production or staging. Undo overrides with `app.dependency_overrides.clear()`.
-
