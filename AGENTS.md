@@ -78,6 +78,7 @@ python3 scripts/check-markdown-links.py
 
 - Filter every query by the household that `require_household` (Python) or `RequireHousehold`
   (Go) returned. Never trust household or role claims from the JWT.
+- MCP tools never take `household_id` or `user_id` arguments; they read the request context.
 - Follow [Python and FastAPI](docs/en/reference/conventions/python-fastapi.md) or
   [Go](docs/en/reference/conventions/go.md) for layout, household authorization, MCP tools and tests.
 - Validate tokens against the JWKS from the issuer's discovery document. Do not tie signature
