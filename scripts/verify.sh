@@ -13,6 +13,10 @@
 #   ./scripts/verify.sh --frontend # Runs TSC typecheck and Vitest test suites
 #   ./scripts/verify.sh --security # Runs secret leakage scans and non-mutating pre-commit checks
 #   ./scripts/verify.sh --smoke  # Runs production compose startup smoke test (--prod-startup)
+#
+# Options:
+#   --allow-missing-gitleaks     # Warn instead of failing --security when gitleaks
+#                                # is not installed (constrained environments only)
 # ==============================================================================
 
 set -euo pipefail
@@ -60,6 +64,8 @@ RUN_GO=false
 RUN_FRONTEND=false
 RUN_SECURITY=false
 RUN_SMOKE=false
+ALLOW_MISSING_GITLEAKS=false
+USAGE="Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup] [--allow-missing-gitleaks]"
 
 # Argument Parsing
 if [[ $# -eq 0 ]]; then
@@ -99,13 +105,17 @@ while [[ $# -gt 0 ]]; do
             RUN_SMOKE=true
             shift
             ;;
+        --allow-missing-gitleaks)
+            ALLOW_MISSING_GITLEAKS=true
+            shift
+            ;;
         -h|--help)
-            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup]"
+            echo "$USAGE"
             exit 0
             ;;
         *)
             log_fail "Unknown argument: $1"
-            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup]"
+            echo "$USAGE"
             exit 1
             ;;
     esac
@@ -359,8 +369,11 @@ if [[ "$RUN_SECURITY" == true ]]; then
             log_fail "gitleaks reported potential secrets"
             ERRORS=$((ERRORS + 1))
         fi
+    elif [[ "$ALLOW_MISSING_GITLEAKS" == true ]]; then
+        log_warn "gitleaks is not installed; skipping because --allow-missing-gitleaks was passed (CI still runs it in security-scan.yml)."
     else
-        log_warn "gitleaks is not installed; skipping (CI runs it in security-scan.yml)."
+        log_fail "gitleaks is not installed. Install it (macOS: brew install gitleaks; other: https://github.com/gitleaks/gitleaks#installing) or pass --allow-missing-gitleaks."
+        ERRORS=$((ERRORS + 1))
     fi
 fi
 
