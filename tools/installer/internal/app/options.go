@@ -50,6 +50,7 @@ const usage = `alfheim-setup - interactive installer for Alfheim Sovereign OS
 Usage:
   alfheim-setup [flags]
   alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+  alfheim-setup apps list|enable <name>|disable <name> [--install-dir DIR]
 
 Run without arguments for a first install, or a plain re-run (Day-2: pulls
 images and restarts with the configuration already on disk). Run
