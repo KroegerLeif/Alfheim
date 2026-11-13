@@ -318,6 +318,14 @@ if [[ "$RUN_SECURITY" == true ]]; then
         log_success "No live .env files are tracked in Git"
     fi
 
+    log_section "init-env.sh Replaces Every Example Secret"
+    if ./scripts/tests/test-init-env.sh; then
+        log_success "No secret-like key keeps its .env.example value and a second run changes nothing"
+    else
+        log_fail "init-env.sh left an example secret in place or is not idempotent"
+        ERRORS=$((ERRORS + 1))
+    fi
+
     # Only the check-type hooks run here. The full pre-commit set also contains
     # fixers (end-of-file-fixer, trailing-whitespace, ruff --fix, gofmt -w) that
     # rewrite files, which a verification run must never do. Formatting is

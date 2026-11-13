@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
+- Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
      A release moves these entries under a new version heading and adds its compare link. -->

@@ -194,6 +194,40 @@ func TestManifestCoversEveryRepositorySecret(t *testing.T) {
 	}
 }
 
+// requiredPasswordPattern matches a password that compose.prod.yaml requires
+// with the fail-fast ${VAR:?...} form.
+var requiredPasswordPattern = regexp.MustCompile(`\$\{([A-Z0-9_]*PASSWORD):\?`)
+
+func TestManifestGeneratesEveryRequiredComposePassword(t *testing.T) {
+	// compose.prod.yaml refuses to start without these passwords, and a plain
+	// update only backfills manifest keys into an existing .env. A required
+	// password missing from the manifest would therefore leave an upgraded
+	// installation unable to start.
+	path := filepath.Join("..", "..", "..", "..", "..", "compose.prod.yaml")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			t.Skipf("repository compose.prod.yaml not reachable from %s", path)
+		}
+		t.Fatal(err)
+	}
+
+	generated := map[string]bool{}
+	for _, key := range Keys() {
+		generated[key] = true
+	}
+
+	matches := requiredPasswordPattern.FindAllStringSubmatch(string(raw), -1)
+	if len(matches) == 0 {
+		t.Fatal("compose.prod.yaml requires no password; the pattern no longer matches")
+	}
+	for _, m := range matches {
+		if !generated[m[1]] {
+			t.Errorf("compose.prod.yaml requires %s but the security manifest does not generate it", m[1])
+		}
+	}
+}
+
 func TestAttachmentURLSecretIsGeneratedWithEnoughEntropy(t *testing.T) {
 	got, err := GenerateAll(NewGenerator(), nil)
 	if err != nil {

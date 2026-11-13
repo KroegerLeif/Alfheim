@@ -203,6 +203,7 @@ Microservice-specific database users and databases created on the shared `postgr
 | `POSTGRES_USER` | `postgres` | PostgreSQL superuser (used for initial setup) |
 | `POSTGRES_PASSWORD` | `super_secret_local_password` | PostgreSQL superuser password |
 | `POSTGRES_DB` | `postgres` | PostgreSQL default database name |
+| `ALFHEIM_ENV` | `production` | Set on `postgres-core` by the compose file, not in `.env`. Only `development` (set by `infrastructure/compose.yml`) lets `init-multiple-dbs.sh` fall back to the password `postgres` |
 | `{SERVICE}_POSTGRES_USER` | `{service}_user` | Database user for a service (e.g., `DASHBOARD_POSTGRES_USER`) |
-| `{SERVICE}_POSTGRES_PASSWORD` | `postgres` | Database password for a service |
+| `{SERVICE}_POSTGRES_PASSWORD` | `postgres` (development only) | Database password for a service. Required in `compose.prod.yaml`; `init-multiple-dbs.sh` stops when it is empty unless `ALFHEIM_ENV=development` |
 | `{SERVICE}_POSTGRES_DB` | `alfheim_{service}` | Database name for a service |

@@ -57,8 +57,43 @@ EOSQL
 }
 
 # ------------------------------------------------------------------------------
+# Password Guard
+# ------------------------------------------------------------------------------
+# Only the development stack (infrastructure/compose.yml sets
+# ALFHEIM_ENV=development) may fall back to the well-known password `postgres`.
+# Anywhere else, including an unset ALFHEIM_ENV, a missing password would
+# create a production role with a public password, so the script stops instead.
+PASSWORD_VARS=(
+  ZITADEL_DB_PASSWORD
+  DASHBOARD_POSTGRES_PASSWORD
+  HOUSEHOLD_POSTGRES_PASSWORD
+  PANTRY_POSTGRES_PASSWORD
+  SHOPPING_POSTGRES_PASSWORD
+  MAINTENANCE_POSTGRES_PASSWORD
+  CHORES_POSTGRES_PASSWORD
+  BUDGET_POSTGRES_PASSWORD
+  CHAT_POSTGRES_PASSWORD
+  WORKOUT_POSTGRES_PASSWORD
+  LIBRARY_POSTGRES_PASSWORD
+)
+
+if [[ "${ALFHEIM_ENV:-production}" != "development" ]]; then
+  missing=()
+  for var in "${PASSWORD_VARS[@]}"; do
+    if [[ -z "${!var:-}" ]]; then
+      missing+=("$var")
+    fi
+  done
+  if (( ${#missing[@]} > 0 )); then
+    echo "ERROR: ${missing[*]} must be set (ALFHEIM_ENV=${ALFHEIM_ENV:-unset}); refusing to create database roles with a default password." >&2
+    exit 1
+  fi
+fi
+
+# ------------------------------------------------------------------------------
 # Database & User Provisioning Matrix
-# Format: DB_NAME:USER_NAME:PASSWORD_ENV_VAR:DEFAULT_PASSWORD
+# Format: DB_NAME:USER_NAME:PASSWORD (the `postgres` fallback is reachable in
+# development only, see the guard above)
 # ------------------------------------------------------------------------------
 SERVICES=(
   "zitadel:${ZITADEL_DB_USER:-zitadel_user}:${ZITADEL_DB_PASSWORD:-postgres}"
