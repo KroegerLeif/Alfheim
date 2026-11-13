@@ -3,7 +3,10 @@
 Binding instructions for every AI coding agent in the Alfheim monorepo (Claude Code, Codex,
 Cursor, Copilot, Gemini and others). Directories may add a nested `AGENTS.md`; the closest one
 adds to these rules and never relaxes them. Explanations for humans live in [`docs/en`](docs/en);
-this file holds rules only.
+this file holds rules only. The issue-to-PR loop is in [`.ai/workflow.md`](.ai/workflow.md).
+
+No duplication: agent files (`AGENTS.md`, `.ai/`) never copy or paraphrase `docs/`; they link to
+the page. Where a rule needs detail, the linked page is the source of truth.
 
 ## Project
 
@@ -57,8 +60,8 @@ python3 scripts/check-markdown-links.py
 
 ### Frontend
 
-- Feature code lives in `src/features/<domain>/{api,hooks,components}`. Pages do not call
-  `fetch` or query hooks directly.
+- Follow [Next.js and Tailwind](docs/en/reference/conventions/nextjs-tailwind.md): feature
+  layout, data fetching, household gate, theme pairing, async `params`.
 - A component or view file stays under 200 lines; split it before it gets there.
 - No hardcoded user-facing strings. Tier-2 apps use `useTranslation` from `@alfheim/shared` with
   `packages/shared/src/features/i18n/locales/{en,de,pl}/<app>.json`; the household app keeps
@@ -66,7 +69,6 @@ python3 scripts/check-markdown-links.py
 - Icons come from `lucide-react` or `packages/shared/src/assets`. No inline `<svg>` in feature
   components.
 - Coalesce array data before use: `const items = data ?? [];`. A truthiness check is not enough.
-- Route `params` and `searchParams` are Promises (Next.js 15+): `const { id } = await params;`.
 - Wrap every Leaflet map (`OSMMapViewer`) in `relative z-0 isolate overflow-hidden`; modals and
   overlays use `fixed inset-0 z-[9999]`.
 - Hide UI whose backend does not exist yet, and file an issue for it (labels `app:<name>`,
@@ -77,11 +79,10 @@ python3 scripts/check-markdown-links.py
 - Filter every query by the household that `require_household` (Python) or `RequireHousehold`
   (Go) returned. Never trust household or role claims from the JWT.
 - MCP tools never take `household_id` or `user_id` arguments; they read the request context.
-  They have docstrings and type annotations and return structured errors, not tracebacks.
+- Follow [Python and FastAPI](docs/en/reference/conventions/python-fastapi.md) or
+  [Go](docs/en/reference/conventions/go.md) for layout, household authorization, MCP tools and tests.
 - Validate tokens against the JWKS from the issuer's discovery document. Do not tie signature
   checks to the host string the token was issued on (browser and containers use different hosts).
-- Python models: wrap columns in `sqlmodel.col()` for `.asc()`, `.desc()`, `.in_()`, `.is_()`;
-  index definitions use string column names.
 - Schema changes go through Alembic migrations (Python) or the module's migration files (Go).
 - Never commit secrets. Only `.env.example` with placeholder values is tracked.
 
@@ -122,9 +123,8 @@ python3 scripts/check-markdown-links.py
 
 - Run the `verify.sh` gate for every stack you touched and confirm it exits 0 before committing.
   Do not commit speculative fixes you have not verified.
-- Python app backends keep at least 95 % line coverage; `tools/installer` at least 80 %.
-- Go tests must pass with `-race`; `gofmt -l .` must print nothing.
-- CI mirrors these gates; `ci-required` is the single required check.
+- Thresholds and per-stack checks (coverage, `-race`, `gofmt`, `ty`) are in
+  [Quality gates](docs/en/reference/quality-gates.md); CI mirrors them via `ci-required`.
 
 ## Documentation
 
@@ -143,8 +143,5 @@ python3 scripts/check-markdown-links.py
   [environment variables](docs/en/reference/environment-variables.md),
   [app references](docs/en/reference/apps/)
 - [Create a new FDD service](docs/en/tutorials/create-new-fdd-service.md)
-- Stack conventions, one canonical page each: [Python and FastAPI](docs/en/reference/conventions/python-fastapi.md),
-  [Go](docs/en/reference/conventions/go.md), [Next.js and Tailwind](docs/en/reference/conventions/nextjs-tailwind.md).
-  Each backend, frontend, shared package and the installer has a nested `AGENTS.md` with its own commands and invariants.
-- [Quality gates](docs/en/reference/quality-gates.md): thresholds, security checks and what each CI
-  workflow does.
+- Each backend, frontend, shared package and the installer has a nested `AGENTS.md` with its own
+  commands and invariants.
