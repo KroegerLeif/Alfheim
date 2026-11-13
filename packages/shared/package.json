@@ -31,6 +31,10 @@
     "./i18n/request": {
       "types": "./src/features/i18n/next/request.ts",
       "default": "./src/features/i18n/next/request.ts"
+    },
+    "./testing": {
+      "types": "./src/testing/index.ts",
+      "default": "./src/testing/index.ts"
     }
   },
   "scripts": {

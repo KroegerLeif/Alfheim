@@ -1,81 +1,14 @@
-import '@testing-library/jest-dom'
-import { createElement, type PropsWithChildren } from 'react'
 import { afterEach, vi } from 'vitest'
+import { setupAlfheimTests } from '@alfheim/shared/testing'
 import { setTestLocale } from './locale'
-import { configure } from '@testing-library/react'
 
-// findBy*/waitFor poll for 5s instead of 1s. The default 1s is shorter than legitimate latency: a cold first
-// render, or ky retrying a failed GET with backoff (~0.9s), so tests failed once the machine was busy
-// (CI, parallel workspaces). The limit only bounds failures; passing tests are not slowed down.
-configure({ asyncUtilTimeout: 5000 })
-
+setupAlfheimTests()
 afterEach(() => {
   setTestLocale('en')
 })
 
-// Mock localStorage and sessionStorage globally for tests
-const localStorageMock = (function () {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value.toString();
-    },
-    clear: () => {
-      store = {};
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});
-Object.defineProperty(global, 'sessionStorage', {
-  value: localStorageMock,
-  writable: true,
-});
-
-// Mock next/navigation router hooks
-vi.mock('next/navigation', () => ({
-  useRouter() {
-    return {
-      prefetch: () => null,
-      push: () => null,
-      replace: () => null,
-      back: () => null,
-    }
-  },
-  usePathname() {
-    return ''
-  },
-  useSearchParams() {
-    return new URLSearchParams()
-  },
-  useParams() {
-    return {}
-  },
-}))
-
-// Mock next-intl translations and localized routing
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-  useLocale: () => 'en',
-  Link: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) =>
-    createElement('a', props, children),
-  useRouter() {
-    return {
-      push: () => null,
-      replace: () => null,
-    }
-  },
-  usePathname() {
-    return ''
-  },
-}))
+vi.mock('next/navigation', async () => (await import('@alfheim/shared/testing')).nextNavigationMock())
+vi.mock('next-intl', async () => (await import('@alfheim/shared/testing')).nextIntlKeyMock())
 
 // The shared translation hook backed by the real dictionaries. Keys resolve in the test
 // locale ("en" unless a test calls setTestLocale) without the hook's German fallback, and
