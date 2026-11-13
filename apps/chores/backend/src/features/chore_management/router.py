@@ -4,10 +4,10 @@ import uuid
 from datetime import date
 
 from backend_shared.household import HouseholdContext, MembershipLookup, get_membership_lookup, require_household
+from backend_shared.household.permissions import require_admin, require_writer
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.permissions import require_admin, require_writer
 from src.features.chore_management.schemas import (
     ChoreAssignRequest,
     ChoreInstanceRead,

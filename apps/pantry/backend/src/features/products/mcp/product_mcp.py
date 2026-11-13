@@ -3,7 +3,7 @@
 import uuid
 
 from backend_shared.mcp_middleware import get_mcp_household_context
-from src.core.permissions import mcp_requires_role
+from backend_shared.mcp_permissions import mcp_requires_role
 from src.features.products.clients.open_food_facts import OpenFoodFactsClient
 from src.features.products.service import ProductService
 from src.mcp.server import mcp
