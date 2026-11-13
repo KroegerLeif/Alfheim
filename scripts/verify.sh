@@ -310,7 +310,7 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     fi
 
-    log_section "Markdown Links and Retired Paths (.ai/)"
+    log_section "Markdown Links and Retired Paths (.ai/ beyond README and workflow)"
     if python3 scripts/check-markdown-links.py; then
         log_success "Markdown links resolve and no retired paths are tracked"
     else
@@ -326,6 +326,14 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     else
         log_success "No live .env files are tracked in Git"
+    fi
+
+    log_section "init-env.sh Replaces Every Example Secret"
+    if ./scripts/tests/test-init-env.sh; then
+        log_success "No secret-like key keeps its .env.example value and a second run changes nothing"
+    else
+        log_fail "init-env.sh left an example secret in place or is not idempotent"
+        ERRORS=$((ERRORS + 1))
     fi
 
     # Only the check-type hooks run here. The full pre-commit set also contains

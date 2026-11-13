@@ -138,6 +138,104 @@ urlencode() {
 }
 
 # ------------------------------------------------------------------------------
+# Example Secret Replacement
+# ------------------------------------------------------------------------------
+# A key is secret-like when its name matches this pattern. It mirrors
+# secretKeyPattern in tools/installer/internal/features/security/policy_test.go.
+readonly SECRET_KEY_RE='^[A-Z0-9_]*(PASSWORD|SECRET|MASTERKEY|ENCRYPTION_KEY|TOKEN)[A-Z0-9_]*$'
+
+# Secret-shaped keys that are not credentials (allowedUngenerated in the same
+# test): the chat key version label must keep its example value.
+readonly NON_SECRET_KEYS=" CHAT_ENCRYPTION_KEY_ID "
+
+# Keys that must hold the same value as another key (mirror:source), because
+# compose wires both to one credential.
+readonly SECRET_MIRRORS=(
+  "ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD:ZITADEL_ADMIN_PASSWORD"
+  "S3_SECRET_KEY:S3_ROOT_PASSWORD"
+)
+
+# env_value prints the last value of <key> in <file> without surrounding quotes.
+env_value() {
+  local file="$1" key="$2" line
+  line="$(grep -E "^${key}=" "$file" | tail -n 1)" || true
+  line="${line#*=}"
+  line="${line%\"}"; line="${line#\"}"
+  line="${line%\'}"; line="${line#\'}"
+  printf '%s' "$line"
+}
+
+# set_env_value replaces every <key>= line in <file> with <key>=<value>. awk
+# reads the value from the environment, so no character in it is special.
+set_env_value() {
+  local file="$1" key="$2" value="$3" tmp
+  tmp="$(mktemp "${file}.XXXXXX")"
+  KEY="$key" VALUE="$value" awk '
+    index($0, ENVIRON["KEY"] "=") == 1 { print ENVIRON["KEY"] "=" ENVIRON["VALUE"]; next }
+    { print }
+  ' "$file" > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$file"
+}
+
+# generate_for_key prints a fresh value in the format <key> needs.
+generate_for_key() {
+  case "$1" in
+    ZITADEL_MASTERKEY) generate_masterkey ;;
+    ZITADEL_ADMIN_PASSWORD) generate_zitadel_password ;;
+    CHAT_ENCRYPTION_KEY) generate_base64_32 ;;
+    ALFHEIM_INTERNAL_TOKEN|CHAT_ATTACHMENT_URL_SECRET) generate_secret 64 ;;
+    *) generate_secret 32 ;;
+  esac
+}
+
+# replace_example_secrets regenerates every secret-like key in <env-file> that
+# still holds its <template> value, so no well-known placeholder survives. A
+# value the user changed is never touched, which makes the step idempotent.
+# Keys whose example value is empty (operator-supplied tokens), a ${...}
+# reference or __PROVISIONED__ (filled in by alfheim-setup provision) are
+# skipped. Only key names are printed, never values.
+replace_example_secrets() {
+  local env_file="$1" template="$2"
+  local line key example current old fresh pair mirror src
+  local replaced=()
+
+  while IFS= read -r line; do
+    [[ "$line" =~ ^([A-Z0-9_]+)=(.*)$ ]] || continue
+    key="${BASH_REMATCH[1]}"
+    example="${BASH_REMATCH[2]}"
+    [[ "$key" =~ $SECRET_KEY_RE ]] || continue
+    [[ "$NON_SECRET_KEYS" == *" $key "* ]] && continue
+    case "$example" in
+      ""|'${'*|__PROVISIONED__) continue ;;
+    esac
+    grep -qE "^${key}=" "$env_file" || continue
+    current="$(env_value "$env_file" "$key")"
+    [[ "$current" == "$example" ]] || continue
+
+    old="$current"
+    fresh="$(generate_for_key "$key")" || return 1
+    set_env_value "$env_file" "$key" "$fresh"
+    replaced+=("$key")
+
+    for pair in "${SECRET_MIRRORS[@]}"; do
+      mirror="${pair%%:*}"
+      src="${pair##*:}"
+      if [[ "$src" == "$key" ]] && grep -qE "^${mirror}=" "$env_file" \
+        && [[ "$(env_value "$env_file" "$mirror")" == "$old" ]]; then
+        set_env_value "$env_file" "$mirror" "$fresh"
+        replaced+=("$mirror")
+      fi
+    done
+  done < "$template"
+
+  if (( ${#replaced[@]} > 0 )); then
+    log_warn "Replaced ${#replaced[@]} example secret(s) in $(basename "$env_file"): ${replaced[*]}"
+    log_warn "A stack that already ran with the old values needs a clean reset to pick them up."
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # CLI Arguments Parsing
 # ------------------------------------------------------------------------------
 AUTO_MODE=false
@@ -448,8 +546,9 @@ migrate_existing_env() {
 if [[ -f "$OUTPUT_FILE" && "$FORCE" != true ]]; then
   log_warn "Target environment file '$OUTPUT_FILE' already exists."
   migrate_existing_env "$OUTPUT_FILE"
+  replace_example_secrets "$OUTPUT_FILE" "$TEMPLATE_FILE"
   if [[ "$AUTO_MODE" == true ]]; then
-    log_info "Skipping secret generation. Use --force to regenerate."
+    log_info "Keeping every other existing secret. Use --force to regenerate all of them."
     exit 0
   fi
   read -r -p "Do you want to overwrite it? [y/N] " response
@@ -762,6 +861,10 @@ sed -i.bak -e '/^DOCKER_SOCKET_GID=/d' "$OUTPUT_FILE" && rm -f "${OUTPUT_FILE}.b
 if ! ensure_docker_socket_gid "$OUTPUT_FILE"; then
   exit 1
 fi
+
+# Safety net for a secret-like key added to .env.example without a matching
+# sed rule above: it must not ship with its public example value.
+replace_example_secrets "$OUTPUT_FILE" "$TEMPLATE_FILE"
 
 # Restrict file permissions to current user only (0600)
 chmod 600 "$OUTPUT_FILE"

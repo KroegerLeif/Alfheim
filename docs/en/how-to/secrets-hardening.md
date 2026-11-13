@@ -54,6 +54,15 @@ and `apps/*/compose.yml` provide defaults so a fresh checkout runs without
 setup. These are convenience values, not secrets. A production deployment must
 source `.env` explicitly so every one of them is overridden.
 
+**Production refuses database password defaults.** `compose.prod.yaml` requires
+`POSTGRES_PASSWORD`, `ZITADEL_DB_PASSWORD` and every `<APP>_POSTGRES_PASSWORD`,
+so `docker compose config` fails and names the variable when one is missing.
+`infrastructure/postgres/init-multiple-dbs.sh` falls back to `postgres` only
+when `ALFHEIM_ENV=development`, which only `infrastructure/compose.yml` sets; in
+any other case it stops instead of creating a role with a public password.
+`alfheim-setup update` adds a generated value for any of them an older `.env`
+lacks.
+
 **Rendered configuration must not embed secrets.** The Caddyfile references
 ACME tokens as `{env.HETZNER_API_TOKEN}` rather than inlining them, which keeps
 it safe to attach to a support request or a configuration backup. Preserve that
@@ -69,12 +78,17 @@ property in anything you add.
 grep -E '(password|secret|key|token)' .env | grep -iE 'changeme|postgres$|admin$|Password1!|super_secret'
 ```
 
-Any match is a value the generator did not replace. Regenerate rather than
-editing by hand:
+Any match is a value the generator did not replace. Run the generator again
+rather than editing by hand. Without `--force` it keeps every value you changed
+and only replaces keys that still hold their `.env.example` placeholder:
 
 ```bash
-./scripts/init-env.sh --force
+./scripts/init-env.sh --auto
 ```
+
+A stack that already ran on the placeholders keeps them in its volumes, so
+reset it after the rotation (for a database password, see
+[Rotating a secret](#rotating-a-secret)).
 
 ### 2. File permissions
 

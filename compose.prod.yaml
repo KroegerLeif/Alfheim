@@ -94,6 +94,8 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Makes init-multiple-dbs.sh refuse to create a role without a password.
+      ALFHEIM_ENV: production
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
@@ -124,7 +126,7 @@ services:
       # A host path (ALFHEIM_DB_DATA_PATH) turns this into a bind mount owned by uid 70.
       - ${ALFHEIM_DB_DATA_PATH:-postgres_core_data}:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER must be set}"]
       interval: 5s
       timeout: 5s
       retries: 15
@@ -583,7 +585,7 @@ services:
       - no-new-privileges:true
     environment:
       - PORT=8080
-      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
+      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:?DASHBOARD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Extra PEM roots (the private CA of --tls internal) added to the system
@@ -751,7 +753,7 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - PORT=8080
-      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
+      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:?CHAT_POSTGRES_PASSWORD must be set}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -849,7 +851,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
+      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:?PANTRY_POSTGRES_PASSWORD must be set}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -941,7 +943,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
+      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:?SHOPPING_POSTGRES_PASSWORD must be set}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
       - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
@@ -1034,7 +1036,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
+      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:?MAINTENANCE_POSTGRES_PASSWORD must be set}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1126,7 +1128,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
+      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:?CHORES_POSTGRES_PASSWORD must be set}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1218,7 +1220,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
+      - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:?BUDGET_POSTGRES_PASSWORD must be set}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1318,7 +1320,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
+      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:?WORKOUT_POSTGRES_PASSWORD must be set}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1410,7 +1412,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
+      - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:?LIBRARY_POSTGRES_PASSWORD must be set}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend

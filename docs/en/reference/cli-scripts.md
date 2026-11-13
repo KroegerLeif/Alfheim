@@ -147,6 +147,8 @@ rm ./pat.txt
 
 Generates cryptographically secure secrets (AES-256 chat encryption keys, Zitadel masterkey and admin password, database credentials) and populates `.env`.
 
+When `.env` already exists (and `--force` is not given), the script migrates legacy keys and replaces every secret-like key (`*PASSWORD*`, `*SECRET*`, `*TOKEN*`, `ZITADEL_MASTERKEY`) that still equals its `.env.example` placeholder. Values you changed are kept, mirrored keys (`S3_SECRET_KEY`, `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`) follow their source, and only key names are printed. A second run changes nothing. Keys with an empty, `${...}` or `__PROVISIONED__` example value and `CHAT_ENCRYPTION_KEY_ID` are left alone. `scripts/tests/test-init-env.sh`, run by `verify.sh --security`, checks this.
+
 ### Usage Syntax
 ```bash
 ./scripts/init-env.sh [OPTIONS]
@@ -157,6 +159,7 @@ Generates cryptographically secure secrets (AES-256 chat encryption keys, Zitade
 | :--- | :--- |
 | `--auto` | Non-interactive auto-generation with default domain |
 | `--base-url <url>` | Set custom base domain URL (e.g. `https://alfheim.loegien.de`) |
+| `--force` | Regenerate `.env` from `.env.example` with fresh values for every secret |
 
 ---
 
