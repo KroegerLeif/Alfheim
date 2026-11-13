@@ -79,6 +79,26 @@ No arbitrary color values such as `bg-[#0f172a]`. Pair every light class with a 
 
 Shared components consume the CSS custom properties from the shared theme (`var(--surface-canvas)`, `var(--text-primary)`, `var(--primary-main)`). To add a component or theme to the shared package, see [Extend the shared package](../../how-to/extend-shared-package.md).
 
+## Testing setup
+
+Frontend configuration comes from `packages/shared`; each app keeps only what differs:
+
+| File | Shared source | Per app |
+| --- | --- | --- |
+| `tsconfig.json` | `extends: "../../../packages/shared/tsconfig.base.json"` | `paths` and `include` |
+| `vitest.config.ts` | `defineAlfheimVitestConfig()` from `packages/shared/vitest.preset.ts` | `testTimeout`, `coverageInclude`; no thresholds (#385) |
+| `src/tests/setup.ts` | `setupAlfheimTests()` and the module doubles from `@alfheim/shared/testing` | app-specific mocks only |
+
+`setupAlfheimTests({ server })` registers the jest-dom and vitest-axe matchers (their type augmentation ships with it, so apps keep no `jest-dom.d.ts` or `vitest-axe.d.ts`), a 5 s async-utility timeout, in-memory `localStorage`/`sessionStorage`, the MSW server lifecycle and an optional `matchMedia` double. Mock modules in the app's setup with the shared doubles, loaded inside the factory because `vi.mock` is hoisted:
+
+```typescript
+vi.mock('next/navigation', async () => (await import('@alfheim/shared/testing')).nextNavigationMock());
+vi.mock('@alfheim/shared', async (importOriginal) =>
+  (await import('@alfheim/shared/testing')).strictTranslationMock(await importOriginal<typeof import('@alfheim/shared')>()));
+```
+
+`appNavigationMock()` replaces `@/navigation`, `nextIntlKeyMock()` replaces `next-intl` with key passthrough, and `strictTranslationMock` keeps the real dictionaries but throws on a key that does not resolve.
+
 ## Gates
 
 `./scripts/verify.sh --frontend` runs `tsc --noEmit` and Vitest for every frontend. `pnpm build` verifies the production build. Read the Next.js guide in `node_modules/next/dist/docs/` before using an API you are unsure about; this version differs from older releases.
