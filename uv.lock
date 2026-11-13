@@ -425,6 +425,7 @@ version = "0.1.0"
 source = { editable = "packages/backend-shared" }
 dependencies = [
     { name = "aioboto3" },
+    { name = "alembic" },
     { name = "certifi" },
     { name = "fastapi" },
     { name = "fastmcp" },
@@ -439,6 +440,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlalchemy" },
+    { name = "sqlmodel" },
 ]
 
 [package.optional-dependencies]
@@ -450,6 +452,7 @@ images = [
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.0.0" },
+    { name = "alembic", specifier = ">=1.13.0" },
     { name = "certifi", specifier = ">=2024.2.2" },
     { name = "fastapi", specifier = ">=0.128.8" },
     { name = "fastmcp", specifier = ">=4.1.5" },
@@ -466,6 +469,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.11.0" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.15.0" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
+    { name = "sqlmodel", specifier = ">=0.0.38" },
 ]
 provides-extras = ["images"]
 

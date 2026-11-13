@@ -21,9 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give the shared `createApiClient` an 8 s default timeout (`ApiTimeoutError`), mapped errors (`ApiError`), a `session` option (bearer token, refresh on 401, household headers) and a streaming opt-out; the dashboard, household and chat frontends and the shared household membership request use it instead of their own clients. Chat now starts a new login when a 401 cannot be refreshed, like the other apps (#877)
 - Generate every tier-2 frontend's `navigation.ts`, `proxy.ts`, `i18n.ts`, `[locale]/providers.tsx` and `[locale]/loading.tsx` from shared factories (`@alfheim/shared/i18n/*`, `@alfheim/shared/app-shell`) instead of eight hand-copied variants (#878)
 - Share the frontend `tsconfig` base, the Vitest preset and the common test setup (matchers, storage, MSW lifecycle, module doubles) from `packages/shared`; the per-app copies and the eleven `jest-dom.d.ts` files go away (#879)
+- Move the Alembic `env.py` body and the startup migration runner into `backend_shared.migrations` and `backend_shared.db`; each Python backend's `env.py` is one `run_env` call and `alembic.ini` keeps only the `[alembic]` section, with revisions and advisory lock keys unchanged (#881)
+- Move the `require_writer` / `require_admin` role matrix of chores, pantry and maintenance into `backend_shared.household.permissions` and the duplicated app `test_storage.py` copies into the `backend_shared` suite (#882)
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
+- Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
      A release moves these entries under a new version heading and adds its compare link. -->

@@ -1,26 +1,20 @@
 """Async database engine, session factory and schema initialisation for the Maintenance service."""
 
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from backend_shared import db
+from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
-from app.core.migrations import run_migrations
+from app.core.migrations import MIGRATION_LOCK_KEY, load_models
 
-# Create the async engine
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.SQL_ECHO,
-    future=True,
-)
+# Backend root holding alembic.ini and the alembic/ script directory.
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
-# Configure the session factory
-async_session_factory = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+engine, async_session_factory = db.create_engine_and_session(settings)
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -29,8 +23,15 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+async def run_migrations(target: AsyncEngine) -> None:
+    """Upgrade the database behind ``target`` to the Alembic head revision under this service's lock."""
+    await db.run_migrations(
+        target, load_models, MIGRATION_LOCK_KEY, backend_dir=BACKEND_DIR, metadata=SQLModel.metadata
+    )
+
+
 async def init_db() -> None:
-    """Bring the database schema to the latest Alembic revision (see ``app.core.migrations``).
+    """Bring the database schema to the latest Alembic revision (see ``backend_shared.db``).
 
     A database still on the pre-UUID integer-household schema is moved aside by revision 0002 instead of
     being served broken.
