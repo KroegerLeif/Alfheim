@@ -101,7 +101,7 @@ Postgres init script and `vector.toml` with the target release's copies, sets
 
 The Caddyfile is not a release asset: the installer renders it. `update`
 re-renders it from the configuration stored in `.env` (hosts, scheme,
-`ALFHEIM_TLS_STRATEGY`, `ACME_EMAIL`), so ingress fixes such as new security
+`ALFHEIM_TLS_STRATEGY`, `ACME_EMAIL`, `ALFHEIM_ENABLED_APPS`), so ingress fixes such as new security
 headers or routes reach existing installations. The previous Caddyfile is part
 of the backup. An installation whose `.env` has no `ALFHEIM_TLS_STRATEGY` (a
 legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
@@ -141,7 +141,12 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
    own login behavior if it has a custom policy. A fresh install fails instead.
 8. Ensures every service database exists (re-runs the idempotent Postgres
    init script).
-9. `docker compose pull` followed by `docker compose up -d --remove-orphans`.
+9. `docker compose pull` followed by `docker compose up -d --remove-orphans`,
+   with `COMPOSE_PROFILES` taken from `ALFHEIM_ENABLED_APPS`. Only the apps
+   you enabled are pulled and started; a disabled app stays off and keeps its
+   data. An installation from before app selection has no
+   `ALFHEIM_ENABLED_APPS`; `update` records every app there, so it keeps
+   running everything (see [the `apps` subcommand](../reference/installer-cli.md#the-apps-subcommand)).
    If the re-rendered Caddyfile differs from the previous one, Caddy is
    restarted too, because it never reloads a changed Caddyfile on its own.
 10. Runs [`scripts/verify-stack.sh`](#verifying-the-result) against the

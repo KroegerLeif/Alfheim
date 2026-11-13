@@ -15,6 +15,7 @@ sidebar:
 - [API Gateway Domain Routing (`api.alfheim.loegien.localhost`)](#api-gateway-domain-routing-apialfheimloegienlocalhost)
 - [Caddy Path Stripping Rules (`handle_path`)](#caddy-path-stripping-rules-handle_path)
 - [Installer-Generated App Host: Household & Internal Routes](#installer-generated-app-host-household--internal-routes)
+- [Routes of Disabled Apps](#routes-of-disabled-apps)
 
 ---
 
@@ -122,6 +123,21 @@ Every site block (the app host, the `auth.*` host and, in the dev stack, the `ap
 | `Server` | removed | Hides the proxy banner |
 
 The dev `api.*` host adds no CORS headers. Every frontend calls the API through its own origin (`NEXT_PUBLIC_API_URL` is derived from `ALFHEIM_BASE_URL`), so browsers never make cross-origin requests there. `./scripts/verify-stack.sh` checks these headers on a running stack.
+
+## Routes of Disabled Apps
+
+The installer renders routes only for the apps in `ALFHEIM_ENABLED_APPS` ([ADR 0007](../explanation/decisions/0007-lean-core-app-set.md)). For an optional app that is switched off, the Caddyfile answers itself instead of proxying to a container that does not run:
+
+| Public URL Path | Response | Why |
+| :--- | :--- | :--- |
+| `/api/v1/<slug>*` | `404` | Without this rule the path would fall through to the dashboard backend's `/api/v1*` catch-all. |
+| `/<slug>/api/v1*` | `404` | Same, for the slug-prefixed API path. |
+| `/<slug>*` | `302` to `/` | The page sends the browser back to the dashboard. |
+| `/grafana*` (telemetry off) | `302` to `/` | Grafana is part of the telemetry module. |
+
+`alfheim-setup apps enable|disable` re-renders the Caddyfile and restarts Caddy when it changed; `update` re-renders it from `.env` as well. The core routes (dashboard, household, storage, `/internal/*`) never change.
+
+---
 
 ## Installer-Generated Route Table
 
