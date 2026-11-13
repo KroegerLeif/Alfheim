@@ -3,6 +3,7 @@ package apps
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -110,5 +111,33 @@ func TestAllAndOptional(t *testing.T) {
 	}
 	if got := Lean().String(); got != "" {
 		t.Errorf("Lean().String() = %q, want empty", got)
+	}
+}
+
+func TestProfilesAndEnvValues(t *testing.T) {
+	s, err := Parse("pantry,shopping,telemetry")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(s.Profiles(), ","); got != "pantry,shopping,telemetry" {
+		t.Errorf("Profiles() = %q", got)
+	}
+	if got := strings.Join(s.Disabled(), ","); got != "budget,chores,library,workout,maintenance,chat" {
+		t.Errorf("Disabled() = %q", got)
+	}
+	kv := EnvValues(s, true)
+	if kv[EnvKey] != "pantry,shopping,telemetry" || kv[ProfilesKey] != "pantry,shopping,telemetry" || kv[OTELEnabledKey] != "true" {
+		t.Errorf("EnvValues = %v", kv)
+	}
+	if kv := EnvValues(Lean(), false); kv[ProfilesKey] != "" || len(kv) != 2 {
+		t.Errorf("Lean EnvValues = %v", kv)
+	}
+	tel, _ := Lookup(Telemetry)
+	if got := tel.ContainerNames(); len(got) != len(tel.Services) || got[5] != "vector-shipper" {
+		t.Errorf("telemetry containers = %v", got)
+	}
+	pantry, _ := Lookup("pantry")
+	if got := pantry.ContainerNames(); got[0] != "pantry-backend" {
+		t.Errorf("pantry containers = %v", got)
 	}
 }

@@ -37,6 +37,20 @@ type Model struct {
 	// Generated is injected rather than read from the clock, so that golden
 	// file comparisons stay deterministic.
 	Generated time.Time
+	// DisabledApps are the optional apps (and "telemetry") that are switched
+	// off. Their routes answer 404 or redirect to the dashboard instead of
+	// proxying to a container that does not run. Empty routes every app.
+	DisabledApps []string
+}
+
+// AppEnabled reports whether the optional app name is routed.
+func (m Model) AppEnabled(name string) bool {
+	for _, d := range m.DisabledApps {
+		if d == name {
+			return false
+		}
+	}
+	return true
 }
 
 // DataPath returns the host directory chosen for a data class (the .env key),
@@ -212,5 +226,24 @@ var apiRoutes = []APIRoute{
 	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat"},
 }
 
-// APIRoutes exposes the application route table to the templates.
+// APIRoutes exposes the whole application route table.
 func (m Model) APIRoutes() []APIRoute { return apiRoutes }
+
+// EnabledRoutes are the routes of the enabled apps, proxied to their
+// containers.
+func (m Model) EnabledRoutes() []APIRoute { return m.filterRoutes(true) }
+
+// DisabledRoutes are the routes of the disabled apps, which the Caddyfile
+// answers itself.
+func (m Model) DisabledRoutes() []APIRoute { return m.filterRoutes(false) }
+
+// filterRoutes returns the routes whose app is (or is not) enabled.
+func (m Model) filterRoutes(enabled bool) []APIRoute {
+	out := []APIRoute{}
+	for _, r := range apiRoutes {
+		if m.AppEnabled(r.Slug) == enabled {
+			out = append(out, r)
+		}
+	}
+	return out
+}

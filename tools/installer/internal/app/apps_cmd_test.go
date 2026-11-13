@@ -15,23 +15,48 @@ import (
 	"alfheim/installer/internal/shared/paths"
 )
 
-// fakeStarter records the services the apps command starts and removes.
-type fakeStarter struct {
+// fakeOrch records the orchestrator calls the apps command makes.
+type fakeOrch struct {
+	calls            []string
 	started, removed []string
 	err              error
+	renderChanged    bool
+	renderErr        error
 }
 
-func (f *fakeStarter) StartServices(_ context.Context, s []string) error {
+func (f *fakeOrch) EnsureDatabases(context.Context) error {
+	f.calls = append(f.calls, "ensure-databases")
+	return nil
+}
+
+func (f *fakeOrch) StartServices(_ context.Context, s []string) error {
+	f.calls = append(f.calls, "start")
 	f.started = append(f.started, s...)
 	return f.err
 }
 
-func (f *fakeStarter) RemoveServices(_ context.Context, s []string) error {
+func (f *fakeOrch) WaitContainers(_ context.Context, c []string) error {
+	f.calls = append(f.calls, "wait "+strings.Join(c, ","))
+	return nil
+}
+
+func (f *fakeOrch) RemoveServices(_ context.Context, s []string) error {
+	f.calls = append(f.calls, "remove")
 	f.removed = append(f.removed, s...)
 	return f.err
 }
 
-func newAppsCommand(t *testing.T, env string) (*AppsCommand, *fakeStarter, *bytes.Buffer, *bytes.Buffer) {
+func (f *fakeOrch) RestartIngress(context.Context) error {
+	f.calls = append(f.calls, "restart-ingress")
+	return nil
+}
+
+func (f *fakeOrch) render() (bool, error) {
+	f.calls = append(f.calls, "render")
+	return f.renderChanged, f.renderErr
+}
+
+func newAppsCommand(t *testing.T, env string) (*AppsCommand, *fakeOrch, *bytes.Buffer, *bytes.Buffer) {
 	t.Helper()
 	root := t.TempDir()
 	if env != "" {
@@ -39,14 +64,14 @@ func newAppsCommand(t *testing.T, env string) (*AppsCommand, *fakeStarter, *byte
 			t.Fatal(err)
 		}
 	}
-	starter := &fakeStarter{}
+	orch := &fakeOrch{renderChanged: true}
 	var stdout, stderr bytes.Buffer
 	return &AppsCommand{
 		Layout:  paths.Layout{Root: root},
-		Applier: composeApplier{orch: starter},
+		Applier: composeApplier{orch: orch, render: orch.render},
 		Stdout:  &stdout,
 		Stderr:  &stderr,
-	}, starter, &stdout, &stderr
+	}, orch, &stdout, &stderr
 }
 
 func TestAppsCommandList(t *testing.T) {
@@ -76,12 +101,19 @@ func TestAppsCommandEnableDisable(t *testing.T) {
 	if !reflect.DeepEqual(starter.started, want) || !reflect.DeepEqual(starter.removed, want) {
 		t.Errorf("started %v, removed %v", starter.started, starter.removed)
 	}
+	wantCalls := []string{
+		"ensure-databases", "start", "wait pantry-backend,pantry-frontend", "render", "restart-ingress",
+		"remove", "render", "restart-ingress",
+	}
+	if !reflect.DeepEqual(starter.calls, wantCalls) {
+		t.Errorf("calls = %v\nwant    %v", starter.calls, wantCalls)
+	}
 	env, err := envfile.ParseFile(cmd.Layout.EnvFile())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if env[apps.EnvKey] != "" {
-		t.Errorf("%s = %q", apps.EnvKey, env[apps.EnvKey])
+	if env[apps.EnvKey] != "" || env[apps.ProfilesKey] != "" {
+		t.Errorf("%s = %q, %s = %q", apps.EnvKey, env[apps.EnvKey], apps.ProfilesKey, env[apps.ProfilesKey])
 	}
 
 	if code := cmd.Run(ctx, "enable", "shopping"); code != ExitFailure {
@@ -102,6 +134,23 @@ func TestAppsCommandFailures(t *testing.T) {
 	starter.err = errors.New("compose failed")
 	if code := cmd.Run(context.Background(), "enable", "chat"); code != ExitFailure {
 		t.Errorf("failed start: exit %d", code)
+	}
+
+	cmd, starter, _, _ = newAppsCommand(t, "ALFHEIM_ENABLED_APPS=chat\n")
+	starter.renderErr = errors.New("template broken")
+	if code := cmd.Run(context.Background(), "disable", "chat"); code != ExitFailure {
+		t.Errorf("failed render: exit %d", code)
+	}
+
+	cmd, starter, _, _ = newAppsCommand(t, "ALFHEIM_ENABLED_APPS=chat\n")
+	starter.renderChanged = false
+	if code := cmd.Run(context.Background(), "disable", "chat"); code != ExitOK {
+		t.Errorf("unchanged Caddyfile: exit %d", code)
+	}
+	for _, c := range starter.calls {
+		if c == "restart-ingress" {
+			t.Error("Caddy was restarted although the Caddyfile did not change")
+		}
 	}
 }
 
@@ -147,10 +196,10 @@ func TestParseAppsArgs(t *testing.T) {
 
 func TestRunAppsUsageAndHelp(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	if code := RunApps([]string{"bogus"}, &stdout, &stderr); code != ExitUsage {
+	if code := RunApps([]string{"bogus"}, &stdout, &stderr, BuildInfo{}); code != ExitUsage {
 		t.Errorf("unknown action: exit %d", code)
 	}
-	if code := RunApps([]string{"-h"}, &stdout, &stderr); code != ExitOK {
+	if code := RunApps([]string{"-h"}, &stdout, &stderr, BuildInfo{}); code != ExitOK {
 		t.Errorf("-h: exit %d", code)
 	}
 	root := t.TempDir()
@@ -158,13 +207,13 @@ func TestRunAppsUsageAndHelp(t *testing.T) {
 		t.Fatal(err)
 	}
 	stdout.Reset()
-	if code := RunApps([]string{"list", "--install-dir", root}, &stdout, &stderr); code != ExitOK {
+	if code := RunApps([]string{"list", "--install-dir", root}, &stdout, &stderr, BuildInfo{}); code != ExitOK {
 		t.Fatalf("list: exit %d: %s", code, stderr.String())
 	}
 	if !strings.Contains(stdout.String(), "chat") {
 		t.Errorf("list output = %q", stdout.String())
 	}
-	if code := RunApps([]string{"list", "--install-dir", "relative/dir"}, &stdout, &stderr); code == ExitOK {
+	if code := RunApps([]string{"list", "--install-dir", "relative/dir"}, &stdout, &stderr, BuildInfo{}); code == ExitOK {
 		t.Error("list succeeded without an installation")
 	}
 }

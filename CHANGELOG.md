@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR 0007 records the Lean Core app set (infrastructure, dashboard, household) and the optional modules; the apps catalog gains a `Tier` column (#855).
 - `alfheim-setup apps list|enable <name>|disable <name>` switches optional apps on and off and stores the set as `ALFHEIM_ENABLED_APPS` in `.env`; a missing key means all apps, and disabling never removes volumes or databases (#856).
 - Compose profiles: every service of an optional app gets the profile named after the app and the telemetry services get `telemetry`; the Lean Core has none. `.env.example` and the installer's `.env` set `COMPOSE_PROFILES` to every profile, so `./scripts/up.sh` and existing installs start what they did before (#857).
+- The installer applies the enabled app set: install, re-run, `update` and `restore` pass `COMPOSE_PROFILES` from `ALFHEIM_ENABLED_APPS` to every compose call, so an update never restarts a disabled app; `apps enable` creates missing databases, starts the app and waits for it; the Caddyfile answers 404 for a disabled app's API and redirects its pages (and `/grafana` without telemetry) to the dashboard (#858).
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)

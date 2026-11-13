@@ -26,6 +26,17 @@ type App struct {
 	Requires []string
 	// Services are the compose services the app owns in compose.prod.yaml.
 	Services []string
+	// Containers are the container names of Services, waited on after a
+	// start. Empty means they equal the service names.
+	Containers []string
+}
+
+// ContainerNames returns the containers to wait on after starting the app.
+func (a App) ContainerNames() []string {
+	if len(a.Containers) > 0 {
+		return a.Containers
+	}
+	return a.Services
 }
 
 // Optional reports whether the app can be switched off.
@@ -58,6 +69,10 @@ var catalog = []App{
 		Services: []string{
 			"victoriametrics", "node-exporter", "victorialogs", "otel-collector",
 			"docker-socket-proxy", "vector", "grafana",
+		},
+		Containers: []string{
+			"victoriametrics", "node-exporter", "victorialogs", "otel-collector",
+			"docker-socket-proxy", "vector-shipper", "alfheim_grafana",
 		}},
 }
 

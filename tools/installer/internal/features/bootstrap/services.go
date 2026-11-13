@@ -4,7 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 )
+
+// serviceTimeout bounds the wait for one container of an enabled app; it
+// matches the slowest core backend in PhaseCoreStack.
+const serviceTimeout = 240 * time.Second
 
 // errNoServices guards against an empty service list, which compose would
 // read as "every service" and so start or remove the whole stack.
@@ -36,6 +41,17 @@ func (o *Orchestrator) RemoveServices(ctx context.Context, services []string) er
 	o.logf("Stopping and removing %v (volumes and databases are kept)", services)
 	if err := o.compose(ctx, append([]string{"rm", "-s", "-f"}, services...)); err != nil {
 		return fmt.Errorf("bootstrap: remove %v: %w", services, err)
+	}
+	return nil
+}
+
+// WaitContainers waits until every container reports healthy, or running
+// when it has no healthcheck.
+func (o *Orchestrator) WaitContainers(ctx context.Context, containers []string) error {
+	for _, c := range containers {
+		if err := o.waitHealthy(ctx, HealthTarget{Container: c, Label: c, Timeout: serviceTimeout}); err != nil {
+			return err
+		}
 	}
 	return nil
 }

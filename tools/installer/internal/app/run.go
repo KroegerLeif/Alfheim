@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/bootstrap"
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
@@ -339,6 +340,10 @@ func (a *App) renderConfiguration(
 	if err != nil {
 		return templating.Model{}, layout, err
 	}
+	set, err := apps.Enabled(existing)
+	if err != nil {
+		return templating.Model{}, layout, err
+	}
 
 	renderer, err := templating.NewRenderer()
 	if err != nil {
@@ -364,6 +369,7 @@ func (a *App) renderConfiguration(
 		// A value from an earlier run wins: it may have been set by hand.
 		DockerSocketGID: a.dockerSocketGID(existing),
 		DataPaths:       dataPaths,
+		DisabledApps:    set.Disabled(),
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {
@@ -384,6 +390,12 @@ func (a *App) renderConfiguration(
 			verb = "Generated"
 		}
 		fmt.Fprintf(a.Stdout, "%s local root CA %s (SHA-256 %s)\n", verb, ca.CertFile, ca.Fingerprint)
+	}
+
+	// env.tmpl renders COMPOSE_PROFILES for every app; record the actual set
+	// (ALFHEIM_ENABLED_APPS and its profiles) before any compose call.
+	if err := envfile.Update(target.EnvFile(), apps.EnvValues(set, false)); err != nil {
+		return model, target, fmt.Errorf("alfheim-setup: record the enabled apps: %w", err)
 	}
 
 	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
@@ -461,7 +473,11 @@ func (a *App) runBootstrap(
 		return err
 	}
 
-	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	set, err := loadEnabledApps(layout)
+	if err != nil {
+		return err
+	}
+	orch := newOrchestrator(a.Runner, layout, a.Stdout, set)
 
 	if err := orch.RunPhase(ctx, bootstrap.PhaseEdgeAuth); err != nil {
 		return err
@@ -661,7 +677,12 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 		return err
 	}
 
-	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	// Respect the stored app set, so a re-run never resurrects a disabled app.
+	set, err := recordEnabledApps(a.Stdout, layout, existing)
+	if err != nil {
+		return err
+	}
+	orch := newOrchestrator(a.Runner, layout, a.Stdout, set)
 	if err := orch.EnsureDatabases(ctx); err != nil {
 		return err
 	}

@@ -66,3 +66,40 @@ func TestServicesRejectEmptyListAndFailures(t *testing.T) {
 		}
 	}
 }
+
+func TestWithProfilesReachesEveryComposeCall(t *testing.T) {
+	rec := healthyRunner()
+	o := New(rec, testLayout, WithProfiles([]string{"pantry", "chat"}), WithClock(newFakeClock()))
+	ctx := context.Background()
+	if err := o.StartServices(ctx, []string{"pantry-backend"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := o.WaitContainers(ctx, []string{"dashboard-backend", "household-backend"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range rec.Calls() {
+		if len(c.Args) == 0 || c.Args[0] != "compose" {
+			continue
+		}
+		if !reflect.DeepEqual(c.Env, []string{"COMPOSE_PROFILES=pantry,chat"}) {
+			t.Errorf("%s ran with env %v", c, c.Env)
+		}
+	}
+
+	lean := runner.NewRecording(nil)
+	if err := New(lean, testLayout, WithProfiles(nil)).RemoveServices(ctx, []string{"chat-backend"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := lean.Calls()[0].Env; !reflect.DeepEqual(got, []string{"COMPOSE_PROFILES="}) {
+		t.Errorf("Lean Core env = %v, want an explicit empty COMPOSE_PROFILES", got)
+	}
+}
+
+func TestWaitContainersReportsFailure(t *testing.T) {
+	rec := runner.NewRecording(nil)
+	rec.ScriptResult(inspectKey("pantry-backend"), runner.Result{Stdout: "running|unhealthy\n"})
+	o := New(rec, testLayout, WithClock(newFakeClock()))
+	if err := o.WaitContainers(context.Background(), []string{"pantry-backend"}); err == nil {
+		t.Error("an unhealthy container was reported ready")
+	}
+}

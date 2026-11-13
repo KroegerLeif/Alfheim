@@ -79,6 +79,22 @@ func (s Set) Optional() []string {
 	return out
 }
 
+// Disabled returns the optional apps not in s, in catalog order.
+func (s Set) Disabled() []string {
+	out := []string{}
+	for _, a := range catalog {
+		if a.Optional() && !s.names[a.Name] {
+			out = append(out, a.Name)
+		}
+	}
+	return out
+}
+
+// Profiles returns the compose profiles that start exactly the apps in s.
+// Every optional app's profile is named after the app; core apps have none.
+// This is the one place the enabled set is turned into COMPOSE_PROFILES.
+func (s Set) Profiles() []string { return s.Optional() }
+
 // String renders the value stored in ALFHEIM_ENABLED_APPS: the enabled
 // optional apps, comma-separated. Core apps are implicit.
 func (s Set) String() string { return strings.Join(s.Optional(), ",") }

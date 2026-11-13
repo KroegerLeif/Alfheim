@@ -9,9 +9,10 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"alfheim/installer/internal/features/apps"
-	"alfheim/installer/internal/features/bootstrap"
+	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
 	"alfheim/installer/internal/shared/runner"
 )
@@ -37,28 +38,6 @@ Exit codes:
   0 success   1 failure   2 usage error
 `
 
-// ServiceStarter is the part of the compose orchestrator the apps command
-// needs. It is an interface so tests never start a container.
-type ServiceStarter interface {
-	StartServices(ctx context.Context, services []string) error
-	RemoveServices(ctx context.Context, services []string) error
-}
-
-// composeApplier implements apps.Applier on top of the compose orchestrator.
-type composeApplier struct {
-	orch ServiceStarter
-}
-
-// Enable starts the app's services.
-func (c composeApplier) Enable(ctx context.Context, app apps.App, _ apps.Set) error {
-	return c.orch.StartServices(ctx, app.Services)
-}
-
-// Disable stops and removes the app's containers, keeping its data.
-func (c composeApplier) Disable(ctx context.Context, app apps.App, _ apps.Set) error {
-	return c.orch.RemoveServices(ctx, app.Services)
-}
-
 // AppsCommand is the assembled `apps` subcommand. Its Applier is injected,
 // so the command never constructs the orchestrator itself.
 type AppsCommand struct {
@@ -70,7 +49,7 @@ type AppsCommand struct {
 
 // RunApps is the composition root of the `apps` subcommand: it parses the
 // arguments, wires the real orchestrator and returns the exit code.
-func RunApps(args []string, stdout, stderr io.Writer) int {
+func RunApps(args []string, stdout, stderr io.Writer, build BuildInfo) int {
 	action, name, installDir, err := parseAppsArgs(args, stderr)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -84,8 +63,28 @@ func RunApps(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "Error: %v\n", err)
 		return ExitFailure
 	}
-	orch := bootstrap.New(runner.NewExec(), layout, bootstrap.WithLogger(stdout))
-	cmd := &AppsCommand{Layout: layout, Applier: composeApplier{orch: orch}, Stdout: stdout, Stderr: stderr}
+	// The orchestrator carries the profiles stored before the change. Every
+	// call the apps command makes names its services explicitly, and compose
+	// starts an explicitly named service whatever profiles are active.
+	set, err := loadEnabledApps(layout)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+	orch := newOrchestrator(runner.NewExec(), layout, stdout, set)
+	render := func() (bool, error) {
+		env, err := envfile.ParseFile(layout.EnvFile())
+		if err != nil {
+			return false, fmt.Errorf("read .env: %w", err)
+		}
+		return rerenderCaddyfile(stdout, stderr, layout, env, build.Version, time.Now())
+	}
+	cmd := &AppsCommand{
+		Layout:  layout,
+		Applier: composeApplier{orch: orch, render: render},
+		Stdout:  stdout,
+		Stderr:  stderr,
+	}
 	return cmd.Run(context.Background(), action, name)
 }
 

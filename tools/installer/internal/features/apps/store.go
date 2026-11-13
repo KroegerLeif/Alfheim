@@ -2,6 +2,7 @@ package apps
 
 import (
 	"strconv"
+	"strings"
 
 	"alfheim/installer/internal/shared/envfile"
 )
@@ -9,6 +10,11 @@ import (
 // OTELEnabledKey is the .env variable the services read to decide whether to
 // export telemetry. It follows the telemetry module.
 const OTELEnabledKey = "OTEL_ENABLED"
+
+// ProfilesKey is the variable docker compose reads its active profiles from.
+// It is stored in .env too, so a manual `docker compose up -d` in the
+// installation root starts the same apps as the installer.
+const ProfilesKey = "COMPOSE_PROFILES"
 
 // Store reads and updates the installation's .env.
 type Store interface {
@@ -31,11 +37,12 @@ func (e EnvFileStore) Load() (map[string]string, error) { return envfile.ParseFi
 // Update writes kv into the .env file in place.
 func (e EnvFileStore) Update(kv map[string]string) error { return envfile.Update(e.Path, kv) }
 
-// EnvValues returns the .env keys that record s. OTEL_ENABLED is included
+// EnvValues returns the .env keys that record s: ALFHEIM_ENABLED_APPS and
+// COMPOSE_PROFILES. OTEL_ENABLED is included
 // only when withTelemetry is true, so a change to another app never
 // overrides a value the operator set by hand.
 func EnvValues(s Set, withTelemetry bool) map[string]string {
-	kv := map[string]string{EnvKey: s.String()}
+	kv := map[string]string{EnvKey: s.String(), ProfilesKey: strings.Join(s.Profiles(), ",")}
 	if withTelemetry {
 		kv[OTELEnabledKey] = strconv.FormatBool(s.Has(Telemetry))
 	}

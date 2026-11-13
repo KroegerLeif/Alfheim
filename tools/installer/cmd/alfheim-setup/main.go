@@ -59,7 +59,7 @@ func run(args []string, stdout, stderr *os.File) int {
 	// `apps` lists the optional apps and switches them on and off on an
 	// existing installation; it never runs the wizard either.
 	if len(args) > 0 && args[0] == "apps" {
-		return app.RunApps(args[1:], stdout, stderr)
+		return app.RunApps(args[1:], stdout, stderr, app.BuildInfo{Version: version, Commit: commit, Date: date})
 	}
 
 	// Restore the terminal even when we unwind through a signal. An interrupt
