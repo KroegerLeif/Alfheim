@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
+- Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
      A release moves these entries under a new version heading and adds its compare link. -->
