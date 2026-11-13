@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ADR 0007 records the Lean Core app set (infrastructure, dashboard, household) and the optional modules; the apps catalog gains a `Tier` column (#855).
+
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
 - Run gitleaks on every push and pull request; path-filter only the dependency and image scans (#867)
