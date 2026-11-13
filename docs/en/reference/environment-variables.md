@@ -206,6 +206,9 @@ Microservice-specific database users and databases created on the shared `postgr
 | `POSTGRES_USER` | `postgres` | PostgreSQL superuser (used for initial setup) |
 | `POSTGRES_PASSWORD` | `super_secret_local_password` | PostgreSQL superuser password |
 | `POSTGRES_DB` | `postgres` | PostgreSQL default database name |
+| `POSTGRES_SHARED_BUFFERS` | `64MB` | `shared_buffers` of `postgres-core`, sized for Lean Core; raise to `128MB` with every app on a host with spare RAM |
+| `POSTGRES_MAX_CONNECTIONS` | `100` | `max_connections` of `postgres-core`; covers Zitadel and every backend's pool |
+| `POSTGRES_WORK_MEM` | `4MB` | `work_mem` of `postgres-core` (per sort or hash operation) |
 | `ALFHEIM_ENV` | `production` | Set on `postgres-core` by the compose file, not in `.env`. Only `development` (set by `infrastructure/compose.yml`) lets `init-multiple-dbs.sh` fall back to the password `postgres` |
 | `{SERVICE}_POSTGRES_USER` | `{service}_user` | Database user for a service (e.g., `DASHBOARD_POSTGRES_USER`) |
 | `{SERVICE}_POSTGRES_PASSWORD` | `postgres` (development only) | Database password for a service. Required in `compose.prod.yaml`; `init-multiple-dbs.sh` stops when it is empty unless `ALFHEIM_ENV=development` |
