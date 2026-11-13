@@ -26,10 +26,10 @@ describe('household app client and active household', () => {
 
   it('sends X-Household-ID via the shared helper and never X-Household-Role', async () => {
     localStorage.setItem(ACTIVE_HOUSEHOLD_STORAGE_KEY, 'hh-1')
-    await api.get('api/v1/households/me').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
-    expect(request.headers.get('X-Household-ID')).toBe('hh-1')
-    expect(request.headers.get('X-Household-Role')).toBeNull()
+    await api.get('households/me').json()
+    const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers)
+    expect(headers.get('X-Household-ID')).toBe('hh-1')
+    expect(headers.get('X-Household-Role')).toBeNull()
   })
 
   it('setActiveHousehold writes the id and dispatches the change event', () => {

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Serve the favicon bundle and web manifest from `packages/shared` in every frontend, including budget, library and chat, which had none; frontends copy it at `predev`/`prebuild` and link it through `createAppMetadata` (#874)
 - Remove the unused per-app `assets/branding` logo copies; `packages/shared/src/assets/brand/` is the only home of the Alfheim logo (#875)
 - Use the shared `cn()` helper from `@alfheim/shared` in chores, maintenance, pantry, shopping and workout instead of five local copies (#876)
+- Give the shared `createApiClient` an 8 s default timeout (`ApiTimeoutError`), mapped errors (`ApiError`), a `session` option (bearer token, refresh on 401, household headers) and a streaming opt-out; the dashboard, household and chat frontends and the shared household membership request use it instead of their own clients. Chat now starts a new login when a 401 cannot be refreshed, like the other apps (#877)
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).

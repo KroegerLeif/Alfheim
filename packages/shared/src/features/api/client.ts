@@ -1,154 +1,170 @@
-import { generateW3CTraceparent } from './traceparent';
+import { ApiTimeoutError, defaultApiErrorMapper, readResponseBody } from './errors';
+import { createBrowserApiSession } from './session';
+import { isRawBody, resolveApiBaseUrl, withResponseHelpers } from './requestHelpers';
+import { withTraceparentHeaders } from './traceHeaders';
+import type {
+  ApiClientOptions,
+  ApiErrorMapper,
+  ApiRequestInit,
+  ApiResponsePromise,
+  ApiSession,
+} from './types';
 
-export interface ApiClientOptions extends Omit<RequestInit, 'headers'> {
-  baseUrl?: string;
-  headers?: HeadersInit;
-  fetch?: typeof fetch;
-}
+export { withTraceparentHeaders, createTraceparentHook, fetchWithTrace } from './traceHeaders';
+export { resolveApiBaseUrl } from './requestHelpers';
+export type { ApiClientOptions, ApiErrorMapper, ApiRequestInit, ApiResponsePromise, ApiSession } from './types';
 
-/**
- * Ensures a valid W3C traceparent header is present in the provided headers.
- * If a traceparent header (case-insensitive) is already set, it is left unchanged.
- */
-export function withTraceparentHeaders(headers?: HeadersInit): Headers {
-  const resolvedHeaders = new Headers(headers);
-  if (!resolvedHeaders.has('traceparent')) {
-    resolvedHeaders.set('traceparent', generateW3CTraceparent());
-  }
-  return resolvedHeaders;
-}
-
-/**
- * Creates a before-request hook function (e.g. for ky beforeRequest interceptor or custom fetch)
- * that injects a W3C traceparent header if not already set.
- */
-export function createTraceparentHook() {
-  return ({ request }: { request: Request }) => {
-    if (!request.headers.has('traceparent')) {
-      request.headers.set('traceparent', generateW3CTraceparent());
-    }
-  };
-}
+/** Default request timeout of the shared API client, in milliseconds. */
+export const DEFAULT_API_TIMEOUT_MS = 8000;
 
 /**
- * Enhanced fetch wrapper that automatically injects a W3C traceparent header
- * into outgoing requests if not already set.
- */
-export async function fetchWithTrace(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-  customFetch: typeof fetch = typeof window !== 'undefined' ? window.fetch : fetch
-): Promise<Response> {
-  const requestInit: RequestInit = {
-    ...init,
-    headers: withTraceparentHeaders(init?.headers),
-  };
-  return customFetch(input, requestInit);
-}
-
-/**
- * Centralized API client class for @alfheim/shared providing
- * automatic W3C traceparent header injection on HTTP requests.
+ * Centralized API client of `@alfheim/shared`: W3C traceparent on every request, a default
+ * timeout, and optionally the signed-in session (bearer token, 401 refresh, household headers)
+ * and mapped errors. Create instances with {@link createApiClient}.
  */
 export class ApiClient {
-  private baseUrl: string;
-  private defaultHeaders: HeadersInit;
-  private customFetch: typeof fetch;
+  private readonly baseUrl: string | null;
+  private readonly basePath: string | null;
+  private readonly apiUrl: string | undefined;
+  private readonly defaultHeaders: HeadersInit;
+  private readonly customFetch: typeof fetch | undefined;
+  private readonly defaultOptions: RequestInit;
+  private readonly timeoutMs: number | false;
+  private readonly session: ApiSession | null;
+  private readonly throwHttpErrors: boolean;
+  private readonly mapError: ApiErrorMapper;
 
   constructor(options: ApiClientOptions = {}) {
-    const { baseUrl = '', headers = {}, fetch: fetchImpl, ...restOptions } = options;
-    this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    const {
+      baseUrl, basePath, apiUrl, headers = {}, fetch: fetchImpl, timeoutMs = DEFAULT_API_TIMEOUT_MS,
+      session, throwHttpErrors, mapError = defaultApiErrorMapper, ...restOptions
+    } = options;
+    this.baseUrl = baseUrl !== undefined ? baseUrl.replace(/\/+$/, '') : null;
+    this.basePath = basePath ?? null;
+    this.apiUrl = apiUrl;
     this.defaultHeaders = headers;
-    this.customFetch =
-      fetchImpl || (typeof window !== 'undefined' ? window.fetch.bind(window) : globalThis.fetch);
+    this.customFetch = fetchImpl;
     this.defaultOptions = restOptions;
+    this.timeoutMs = timeoutMs;
+    this.session = session === true ? createBrowserApiSession() : session || null;
+    this.throwHttpErrors = throwHttpErrors ?? this.session !== null;
+    this.mapError = mapError;
   }
-
-  private defaultOptions: RequestInit;
 
   private resolveUrl(endpoint: string): string {
     if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
       return endpoint;
     }
+    const base = this.baseUrl ?? (this.basePath !== null ? resolveApiBaseUrl(this.basePath, this.apiUrl) : '');
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    return `${this.baseUrl}${path}`;
+    return `${base}${path}`;
   }
 
-  /**
-   * Dispatches an HTTP request with automatic traceparent header injection.
-   */
-  async request(endpoint: string, init: RequestInit = {}): Promise<Response> {
-    const url = this.resolveUrl(endpoint);
+  private buildHeaders(init: HeadersInit | undefined, token: string | null): Headers {
+    const headers = new Headers(this.defaultHeaders);
+    new Headers(init).forEach((value, key) => headers.set(key, value));
+    this.session?.prepareHeaders?.(headers);
+    if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+    return withTraceparentHeaders(headers);
+  }
 
-    // Merge default headers with call-specific headers
-    const mergedHeaders = new Headers(this.defaultHeaders);
-    if (init.headers) {
-      new Headers(init.headers).forEach((value, key) => {
-        mergedHeaders.set(key, value);
-      });
+  private async dispatch(url: string, init: RequestInit, timeoutMs: number | false): Promise<Response> {
+    const fetchImpl = this.customFetch ?? globalThis.fetch;
+    const signals = [init.signal, timeoutMs === false ? null : AbortSignal.timeout(timeoutMs)].filter(
+      (signal): signal is AbortSignal => Boolean(signal),
+    );
+    const signal = signals.length > 1 ? AbortSignal.any(signals) : signals[0];
+    try {
+      return await fetchImpl(url, signal ? { ...init, signal } : init);
+    } catch (error) {
+      if (timeoutMs !== false && error instanceof Error && error.name === 'TimeoutError') {
+        throw new ApiTimeoutError(url, timeoutMs, { cause: error });
+      }
+      throw error;
     }
-
-    const finalHeaders = withTraceparentHeaders(mergedHeaders);
-
-    const mergedOptions: RequestInit = {
-      ...this.defaultOptions,
-      ...init,
-      headers: finalHeaders,
-    };
-
-    return this.customFetch(url, mergedOptions);
   }
 
-  async get(endpoint: string, init?: RequestInit): Promise<Response> {
+  private async refreshToken(session: ApiSession): Promise<string | null> {
+    try {
+      return (await session.refreshToken?.()) ?? null;
+    } catch (error) {
+      console.warn('Access token refresh failed after a 401:', error);
+      return null;
+    }
+  }
+
+  private async send(endpoint: string, init: ApiRequestInit): Promise<Response> {
+    const { timeoutMs, stream, throwHttpErrors, headers, ...requestInit } = init;
+    const url = this.resolveUrl(endpoint);
+    const timeout = stream ? false : (timeoutMs ?? this.timeoutMs);
+    const attempt = (token: string | null) =>
+      this.dispatch(url, { ...this.defaultOptions, ...requestInit, headers: this.buildHeaders(headers, token) }, timeout);
+
+    const session = this.session;
+    let response = await attempt(session?.getToken() ?? null);
+    if (response.status === 401 && session?.refreshToken) {
+      const token = await this.refreshToken(session);
+      if (token) response = await attempt(token);
+      else session.onAuthFailure?.();
+    }
+    if (!response.ok) {
+      await session?.onErrorResponse?.(response);
+      if (throwHttpErrors ?? this.throwHttpErrors) {
+        throw this.mapError(response, await readResponseBody(response));
+      }
+    }
+    return response;
+  }
+
+  /** Sends a request. Resolves with the response; rejects on non-2xx when `throwHttpErrors` is set. */
+  request(endpoint: string, init: ApiRequestInit = {}): ApiResponsePromise {
+    return withResponseHelpers(this.send(endpoint, init));
+  }
+
+  private withBody(method: string, endpoint: string, body: unknown, init?: ApiRequestInit): ApiResponsePromise {
+    const headers = new Headers(init?.headers);
+    const raw = body === undefined || isRawBody(body);
+    if (!raw && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    return this.request(endpoint, {
+      ...init,
+      method,
+      headers,
+      body: raw ? (body as BodyInit | undefined) : JSON.stringify(body),
+    });
+  }
+
+  /** GET request. */
+  get(endpoint: string, init?: ApiRequestInit): ApiResponsePromise {
     return this.request(endpoint, { ...init, method: 'GET' });
   }
 
-  async post(endpoint: string, body?: unknown, init?: RequestInit): Promise<Response> {
-    const headers = new Headers(init?.headers);
-    if (body !== undefined && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
-    return this.request(endpoint, {
-      ...init,
-      method: 'POST',
-      headers,
-      body: typeof body === 'string' || body instanceof FormData ? body : JSON.stringify(body),
-    });
+  /** POST request; plain objects are sent as JSON, `FormData` and other bodies as they are. */
+  post(endpoint: string, body?: unknown, init?: ApiRequestInit): ApiResponsePromise {
+    return this.withBody('POST', endpoint, body, init);
   }
 
-  async put(endpoint: string, body?: unknown, init?: RequestInit): Promise<Response> {
-    const headers = new Headers(init?.headers);
-    if (body !== undefined && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
-    return this.request(endpoint, {
-      ...init,
-      method: 'PUT',
-      headers,
-      body: typeof body === 'string' || body instanceof FormData ? body : JSON.stringify(body),
-    });
+  /** PUT request; plain objects are sent as JSON. */
+  put(endpoint: string, body?: unknown, init?: ApiRequestInit): ApiResponsePromise {
+    return this.withBody('PUT', endpoint, body, init);
   }
 
-  async patch(endpoint: string, body?: unknown, init?: RequestInit): Promise<Response> {
-    const headers = new Headers(init?.headers);
-    if (body !== undefined && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
-    return this.request(endpoint, {
-      ...init,
-      method: 'PATCH',
-      headers,
-      body: typeof body === 'string' || body instanceof FormData ? body : JSON.stringify(body),
-    });
+  /** PATCH request; plain objects are sent as JSON. */
+  patch(endpoint: string, body?: unknown, init?: ApiRequestInit): ApiResponsePromise {
+    return this.withBody('PATCH', endpoint, body, init);
   }
 
-  async delete(endpoint: string, init?: RequestInit): Promise<Response> {
+  /** DELETE request. */
+  delete(endpoint: string, init?: ApiRequestInit): ApiResponsePromise {
     return this.request(endpoint, { ...init, method: 'DELETE' });
   }
 }
 
 /**
- * Creates a new centralized API client instance.
+ * Creates an API client. Without options it behaves as before (traceparent only, responses
+ * returned as they are) plus the default timeout. A typical app client:
+ *
+ * @example
+ * export const api = createApiClient({ basePath: '/api/v1/chat', apiUrl: process.env.NEXT_PUBLIC_API_URL, session: true });
  */
 export function createApiClient(options?: ApiClientOptions): ApiClient {
   return new ApiClient(options);
