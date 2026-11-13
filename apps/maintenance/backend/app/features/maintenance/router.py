@@ -4,12 +4,12 @@ Exposes endpoints for the maintenance wizard session submission and aggregate su
 delegating all execution to MaintenanceService.
 """
 
+from backend_shared.household.permissions import require_writer
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import HouseholdContext, get_authorization, require_household
-from app.core.permissions import require_writer
 from app.features.devices.exceptions import DeviceNotFoundError
 from app.features.maintenance.exceptions import MaintenanceError, WizardValidationError
 from app.features.maintenance.schemas import (
