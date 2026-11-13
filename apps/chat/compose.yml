@@ -12,6 +12,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: chat-backend
+    profiles: ["chat"]
     restart: always
     logging: *default-logging
     extra_hosts:
@@ -63,6 +64,7 @@ services:
         - NEXT_PUBLIC_OIDC_CLIENT_ID=${NEXT_PUBLIC_OIDC_CLIENT_ID:-chat-frontend}
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: chat-frontend
+    profiles: ["chat"]
     restart: always
     logging: *default-logging
     env_file:

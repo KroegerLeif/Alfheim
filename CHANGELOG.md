@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - ADR 0007 records the Lean Core app set (infrastructure, dashboard, household) and the optional modules; the apps catalog gains a `Tier` column (#855).
 - `alfheim-setup apps list|enable <name>|disable <name>` switches optional apps on and off and stores the set as `ALFHEIM_ENABLED_APPS` in `.env`; a missing key means all apps, and disabling never removes volumes or databases (#856).
+- Compose profiles: every service of an optional app gets the profile named after the app and the telemetry services get `telemetry`; the Lean Core has none. `.env.example` and the installer's `.env` set `COMPOSE_PROFILES` to every profile, so `./scripts/up.sh` and existing installs start what they did before (#857).
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)

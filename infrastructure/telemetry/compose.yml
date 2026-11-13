@@ -5,6 +5,7 @@ services:
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.154.1
     container_name: victoriametrics
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -39,6 +40,7 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.12.1
     container_name: node-exporter
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -79,6 +81,7 @@ services:
   victorialogs:
     image: victoriametrics/victoria-logs:v1.51.1
     container_name: victorialogs
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -110,6 +113,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.163.2
     container_name: otel-collector
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -137,6 +141,7 @@ services:
   docker-socket-proxy:
     image: wollomatic/socket-proxy:1.13.1
     container_name: docker-socket-proxy
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -177,6 +182,7 @@ services:
   vector:
     image: timberio/vector:0.60.0-alpine
     container_name: vector-shipper
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -209,6 +215,7 @@ services:
   grafana:
     image: grafana/grafana:13.2.4
     container_name: alfheim_grafana
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging:
       driver: "json-file"

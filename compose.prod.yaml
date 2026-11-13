@@ -296,6 +296,7 @@ services:
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.154.1
     container_name: victoriametrics
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -334,6 +335,7 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.12.1
     container_name: node-exporter
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -373,6 +375,7 @@ services:
   victorialogs:
     image: victoriametrics/victoria-logs:v1.51.1
     container_name: victorialogs
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -403,6 +406,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.163.2
     container_name: otel-collector
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -439,6 +443,7 @@ services:
   docker-socket-proxy:
     image: wollomatic/socket-proxy:1.13.1
     container_name: docker-socket-proxy
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     # Container group must match the host docker group that owns the socket.
@@ -478,6 +483,7 @@ services:
   vector:
     image: timberio/vector:0.60.0-alpine
     container_name: vector-shipper
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -511,6 +517,7 @@ services:
   grafana:
     image: grafana/grafana:13.2.4
     container_name: alfheim_grafana
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -745,6 +752,7 @@ services:
   chat-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chat-backend
+    profiles: ["chat"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -805,6 +813,7 @@ services:
   chat-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chat-frontend
+    profiles: ["chat"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -844,6 +853,7 @@ services:
   pantry-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: pantry-backend
+    profiles: ["pantry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -897,6 +907,7 @@ services:
   pantry-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: pantry-frontend
+    profiles: ["pantry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -936,6 +947,7 @@ services:
   shopping-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: shopping-backend
+    profiles: ["shopping"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -990,6 +1002,7 @@ services:
   shopping-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: shopping-frontend
+    profiles: ["shopping"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1029,6 +1042,7 @@ services:
   maintenance-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: maintenance-backend
+    profiles: ["maintenance"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1082,6 +1096,7 @@ services:
   maintenance-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: maintenance-frontend
+    profiles: ["maintenance"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1121,6 +1136,7 @@ services:
   chores-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chores-backend
+    profiles: ["chores"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1174,6 +1190,7 @@ services:
   chores-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chores-frontend
+    profiles: ["chores"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1213,6 +1230,7 @@ services:
   budget-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: budget-backend
+    profiles: ["budget"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1273,6 +1291,7 @@ services:
   budget-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: budget-frontend
+    profiles: ["budget"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1313,6 +1332,7 @@ services:
   workout-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: workout-backend
+    profiles: ["workout"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1366,6 +1386,7 @@ services:
   workout-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: workout-frontend
+    profiles: ["workout"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1405,6 +1426,7 @@ services:
   library-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: library-backend
+    profiles: ["library"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1465,6 +1487,7 @@ services:
   library-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: library-frontend
+    profiles: ["library"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
