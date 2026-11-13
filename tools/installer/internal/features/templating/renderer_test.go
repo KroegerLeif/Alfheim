@@ -3,6 +3,7 @@ package templating
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,6 +68,7 @@ func model(t *testing.T, preset onboarding.PresetID, tlsCfg tls.Config) Model {
 		Generated:  fixedTime,
 
 		DockerSocketGID: "998",
+		Telemetry:       true,
 	}
 }
 
@@ -608,6 +610,35 @@ func TestRenderedCaddyfileRouting(t *testing.T) {
 	} {
 		if !strings.Contains(caddy, want) {
 			t.Errorf("the Caddyfile lacks %q", want)
+		}
+	}
+}
+
+// TestRenderTelemetrySwitch pins OTEL_ENABLED in .env and the /grafana route
+// to Model.Telemetry, so a Lean Core install exposes no Grafana path.
+func TestRenderTelemetrySwitch(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, on := range []bool{true, false} {
+		m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
+		m.Telemetry = on
+		env, err := r.RenderEnv(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		caddy, err := r.RenderCaddyfile(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantEnv := fmt.Sprintf("\nOTEL_ENABLED=%t\n", on)
+		if !strings.Contains(string(env), wantEnv) {
+			t.Errorf("Telemetry=%t: .env lacks %q", on, wantEnv)
+		}
+		hasRoute := strings.Contains(string(caddy), "reverse_proxy grafana:3000")
+		if hasRoute != on {
+			t.Errorf("Telemetry=%t: Caddyfile routes /grafana = %t", on, hasRoute)
 		}
 	}
 }

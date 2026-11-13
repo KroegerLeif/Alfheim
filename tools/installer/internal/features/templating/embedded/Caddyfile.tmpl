@@ -234,6 +234,8 @@ http://{{ $on.AuthHost }} {
 		reverse_proxy rustfs:9000
 	}
 
+{{- if .Telemetry }}
+
 	# Observability.
 	handle /grafana* {
 {{- if .AppEnabled "telemetry" }}
@@ -243,6 +245,7 @@ http://{{ $on.AuthHost }} {
 		redir / 302
 {{- end }}
 	}
+{{- end }}
 
 	# Household & roles core frontend (Next.js basePath /household).
 	handle /household* {

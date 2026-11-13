@@ -15,6 +15,7 @@ import (
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/security"
+	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/features/templating"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/envfile"
@@ -370,6 +371,9 @@ func (a *App) renderConfiguration(
 		DockerSocketGID: a.dockerSocketGID(existing),
 		DataPaths:       dataPaths,
 		DisabledApps:    set.Disabled(),
+		// A re-render keeps the operator's telemetry choice; a fresh install
+		// starts without it.
+		Telemetry: telemetry.Enabled(existing),
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {
@@ -555,13 +559,7 @@ func provisionZitadel(
 		return nil, fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
 	}
 
-	if err := envfile.Update(layout.EnvFile(), map[string]string{
-		"ZITADEL_PROJECT_ID":         result.ProjectID,
-		"OIDC_AUDIENCE":              result.ProjectID,
-		"ALFHEIM_WEB_CLIENT_ID":      result.WebClientID,
-		"GRAFANA_OIDC_CLIENT_ID":     result.GrafanaClientID,
-		"GRAFANA_OIDC_CLIENT_SECRET": result.GrafanaSecret,
-	}); err != nil {
+	if err := envfile.Update(layout.EnvFile(), result.EnvUpdates()); err != nil {
 		return nil, fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
 	}
 	fmt.Fprintln(stdout, "Zitadel OIDC clients are provisioned.")
@@ -765,8 +763,7 @@ Alfheim is up.
 
   Dashboard       %s
   Identity        %s
-  Observability   %s/grafana/
-
+%s
   Credentials are stored in .env (mode 0600).
 
   Administrator login
@@ -775,12 +772,21 @@ Alfheim is up.
     A password change is required on first login.
     No self-registration is needed: sign in at %s with the credentials above.
 `,
-		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, m.Onboarding.BaseURL,
+		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, observabilityLine(m),
 		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL)
 
 	if ca := m.TLS.LocalCA; ca != nil {
 		a.printLocalCA(m.Onboarding, *ca)
 	}
+}
+
+// observabilityLine is the summary's Grafana entry, or a blank line when the
+// optional telemetry stack is off and there is no Grafana to reach.
+func observabilityLine(m templating.Model) string {
+	if !m.Telemetry {
+		return ""
+	}
+	return fmt.Sprintf("  Observability   %s/grafana/\n", m.Onboarding.BaseURL)
 }
 
 // printLocalCA tells the operator how to trust the internal strategy's

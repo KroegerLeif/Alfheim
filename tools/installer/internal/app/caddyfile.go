@@ -11,6 +11,7 @@ import (
 	"alfheim/installer/internal/features/apps"
 
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/features/templating"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/paths"
@@ -24,7 +25,8 @@ import (
 // already in the update backup (assets.GeneratedAssets).
 //
 // Everything the Caddyfile depends on is read back from .env: the hosts, the
-// scheme, ALFHEIM_TLS_STRATEGY and ACME_EMAIL. DNS API tokens are referenced
+// scheme, ALFHEIM_TLS_STRATEGY, ACME_EMAIL and OTEL_ENABLED (the /grafana
+// route). DNS API tokens are referenced
 // as {env.NAME} and never rendered, and a custom certificate's container
 // paths are fixed. An installation without a recognised ALFHEIM_TLS_STRATEGY
 // (a legacy plain-HTTP .env) is left untouched, since guessing a strategy
@@ -64,6 +66,7 @@ func rerenderCaddyfile(
 	rendered, err := renderer.RenderCaddyfile(templating.Model{
 		Onboarding: on,
 		TLS:        tls.Config{Strategy: strategy, ACMEEmail: env["ACME_EMAIL"]},
+		Telemetry:  telemetry.Enabled(env),
 		Version:    orUnknown(version),
 		Generated:  now,
 		// An app switched off gets a 404 API and a redirect to the dashboard.

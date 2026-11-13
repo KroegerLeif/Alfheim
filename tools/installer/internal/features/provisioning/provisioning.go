@@ -106,6 +106,10 @@ type Input struct {
 	// GrafanaApp is the confidential client used for Grafana's generic OAuth
 	// integration.
 	GrafanaApp AppSpec
+	// Telemetry reports whether the optional observability stack runs
+	// (OTEL_ENABLED). Without it Grafana is not deployed, so its client is
+	// neither created nor touched; a later run with Telemetry set creates it.
+	Telemetry bool
 	// OperatorUserName is the Zitadel user name of the installation's initial
 	// administrator, who is granted OperatorRole. Empty skips the grant (the
 	// role itself is still created).
@@ -115,8 +119,10 @@ type Input struct {
 // Result carries the ids Provision resolved, in the shape orchestrator/run.go
 // writes back into .env.
 type Result struct {
-	ProjectID       string
-	WebClientID     string
+	ProjectID   string
+	WebClientID string
+	// GrafanaClientID and GrafanaSecret are empty when Input.Telemetry is
+	// false; callers then keep whatever .env already holds.
 	GrafanaClientID string
 	GrafanaSecret   string
 	// Warnings are non-fatal findings the operator must still see, such as
@@ -160,16 +166,12 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		return Result{}, fmt.Errorf("provisioning: ensure app %q: %w", webSpec.Name, err)
 	}
 
-	grafanaSpec := in.GrafanaApp
-	grafanaSpec.Type = AppTypeConfidentialWeb
-	grafanaSpec.ExistingClientID = existing["GRAFANA_OIDC_CLIENT_ID"]
-	grafanaSpec.ExistingClientSecret = existing["GRAFANA_OIDC_CLIENT_SECRET"]
-	if knownPlaceholderSecrets[grafanaSpec.ExistingClientSecret] {
-		grafanaSpec.ExistingClientSecret = ""
-	}
-	grafanaCreds, err := c.EnsureOIDCApp(ctx, projectID, grafanaSpec)
-	if err != nil {
-		return Result{}, fmt.Errorf("provisioning: ensure app %q: %w", grafanaSpec.Name, err)
+	var grafanaCreds Credentials
+	if in.Telemetry {
+		grafanaCreds, err = ensureGrafanaApp(ctx, c, projectID, in.GrafanaApp, existing)
+		if err != nil {
+			return Result{}, err
+		}
 	}
 
 	// Reached on every run (fresh install and update), so an instance that
@@ -203,6 +205,40 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		GrafanaClientID: grafanaCreds.ClientID,
 		GrafanaSecret:   grafanaCreds.ClientSecret,
 	}, nil
+}
+
+// ensureGrafanaApp reconciles Grafana's confidential OIDC client, reusing the
+// secret .env already holds unless it is a known placeholder.
+func ensureGrafanaApp(
+	ctx context.Context, c Client, projectID string, spec AppSpec, existing map[string]string,
+) (Credentials, error) {
+	spec.Type = AppTypeConfidentialWeb
+	spec.ExistingClientID = existing["GRAFANA_OIDC_CLIENT_ID"]
+	spec.ExistingClientSecret = existing["GRAFANA_OIDC_CLIENT_SECRET"]
+	if knownPlaceholderSecrets[spec.ExistingClientSecret] {
+		spec.ExistingClientSecret = ""
+	}
+	creds, err := c.EnsureOIDCApp(ctx, projectID, spec)
+	if err != nil {
+		return Credentials{}, fmt.Errorf("provisioning: ensure app %q: %w", spec.Name, err)
+	}
+	return creds, nil
+}
+
+// EnvUpdates returns the .env values r provisioned. The Grafana client is
+// only included when it was reconciled, so turning telemetry off never
+// blanks credentials a later re-enable can reuse.
+func (r Result) EnvUpdates() map[string]string {
+	out := map[string]string{
+		"ZITADEL_PROJECT_ID":    r.ProjectID,
+		"OIDC_AUDIENCE":         r.ProjectID,
+		"ALFHEIM_WEB_CLIENT_ID": r.WebClientID,
+	}
+	if r.GrafanaClientID != "" {
+		out["GRAFANA_OIDC_CLIENT_ID"] = r.GrafanaClientID
+		out["GRAFANA_OIDC_CLIENT_SECRET"] = r.GrafanaSecret
+	}
+	return out
 }
 
 // ensureOperatorAccess reconciles everything Grafana's role mapping needs:
