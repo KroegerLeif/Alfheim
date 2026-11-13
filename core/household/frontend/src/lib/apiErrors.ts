@@ -1,4 +1,4 @@
-import { isHTTPError } from 'ky';
+import { isApiError } from '@alfheim/shared';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -6,9 +6,9 @@ const MAX_MESSAGE_LENGTH = 300;
 /** Machine-readable error codes such as `bad_request` are not shown to users. */
 const MACHINE_CODE = /^[a-z0-9_]+$/;
 
-/** HTTP status of a failed ky request, or undefined for network/other errors. */
+/** HTTP status of a failed API request, or undefined for network/other errors. */
 export function getErrorStatus(error: unknown): number | undefined {
-  if (isHTTPError(error)) return error.response.status;
+  if (isApiError(error)) return error.status;
   if (error && typeof error === 'object' && 'response' in error) {
     const status = (error as { response?: { status?: unknown } }).response?.status;
     if (typeof status === 'number') return status;
@@ -55,11 +55,11 @@ export function messageFromBody(body: unknown): string | undefined {
 }
 
 /**
- * The backend's explanation for a failed request. ky (v2) parses the response
- * body into `HTTPError.data` before the error is thrown (issue #574).
+ * The backend's explanation for a failed request. The shared client parses the
+ * response body into `ApiError.data` before the error is thrown (issue #574).
  */
 export function getServerMessage(error: unknown): string | undefined {
-  if (!isHTTPError(error)) return undefined;
+  if (!isApiError(error)) return undefined;
   return messageFromBody(error.data);
 }
 

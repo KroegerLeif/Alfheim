@@ -4,7 +4,7 @@ import {
   Apple, Milk, Fish, Wheat,
   Cookie, Droplets, ShoppingCart, X
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@alfheim/shared";
 
 // Icon mapping configuration
 export const getIconDetails = (tag?: string | null) => {

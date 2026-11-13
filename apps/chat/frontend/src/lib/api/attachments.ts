@@ -1,29 +1,12 @@
-import type { ApiErrorPayload, Attachment } from "@/features/conversations/types";
-import { reportHouseholdErrorResponse } from "@alfheim/shared";
-import { BASE_URL, authHeaders, ApiError } from "./client";
+import type { Attachment } from "@/features/conversations/types";
+import { chatApi } from "./client";
 
-export async function uploadAttachment(file: File): Promise<Attachment> {
+/**
+ * Uploads one file as multipart form data; rejects with `ApiError` on failure. The client's
+ * default request timeout is disabled because a large file on a slow link can take longer.
+ */
+export function uploadAttachment(file: File): Promise<Attachment> {
   const formData = new FormData();
   formData.append("file", file);
-
-  const res = await fetch(`${BASE_URL}/attachments`, {
-    method: "POST",
-    headers: {
-      ...authHeaders(),
-    },
-    body: formData,
-  });
-
-  if (!res.ok) {
-    await reportHouseholdErrorResponse(res);
-    let payload: ApiErrorPayload = { error: "upload_failed", message: `Upload failed with status ${res.status}` };
-    try {
-      payload = await res.json();
-    } catch {
-      // Non-JSON error body fallback
-    }
-    throw new ApiError(res.status, payload);
-  }
-
-  return res.json() as Promise<Attachment>;
+  return chatApi.post("/attachments", formData, { timeoutMs: false }).json<Attachment>();
 }

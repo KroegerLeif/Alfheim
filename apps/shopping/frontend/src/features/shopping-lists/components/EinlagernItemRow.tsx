@@ -1,9 +1,8 @@
 "use client";
 
-import { getRequestErrorMessage } from "@alfheim/shared";
+import { getRequestErrorMessage, cn } from "@alfheim/shared";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
 import type { LocalStateItem } from "../hooks/useEinlagernItems";
 import { unitLabel } from "../utils/units";
 import { EinlagernCatalogForm } from "./EinlagernCatalogForm";

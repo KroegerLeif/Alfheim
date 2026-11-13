@@ -7,7 +7,7 @@ import { GlassCheckbox } from "./GlassCheckbox";
 import { PantryBadge } from "@/components/shared/PantryBadge";
 import { ShoppingItem } from "../types";
 import { unitLabel } from "../utils/units";
-import { cn } from "@/lib/utils";
+import { cn } from "@alfheim/shared";
 
 interface ItemRowProps {
   item: ShoppingItem;

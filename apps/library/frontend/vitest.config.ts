@@ -1,37 +1,3 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
+import { defineAlfheimVitestConfig } from '../../../packages/shared/vitest.preset';
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    tsconfigPaths: true,
-  },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: './src/tests/setup.ts',
-    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
-    testTimeout: 15000,
-    // pnpm runs several packages at once; vitest 5 timed out under that load with the default of cores - 1.
-    maxWorkers: 2,
-    coverage: {
-      provider: 'v8',
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        '**/node_modules/**',
-        '**/dist/**',
-        '**/e2e/**',
-        '**/*.d.ts',
-        '**/types.ts',
-        '**/types/**',
-        '**/index.ts',
-        'src/app/**',
-        'src/proxy.ts',
-        'src/i18n.ts',
-        'src/navigation.ts',
-        'src/tests/**',
-      ],
-      // Thresholds target 90% once remaining backlog tests are completed (see backlog-coverage-gates.md)
-    },
-  },
-});
+export default defineAlfheimVitestConfig({ coverageInclude: ['src/**/*.{ts,tsx}'] });

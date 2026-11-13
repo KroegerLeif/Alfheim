@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node ../../../packages/shared/scripts/sync-brand-assets.mjs",
     "dev": "next dev -p 3010",
+    "prebuild": "node ../../../packages/shared/scripts/sync-brand-assets.mjs",
     "build": "next build",
     "start": "next start -p 3010",
     "lint": "eslint",

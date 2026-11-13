@@ -11,27 +11,27 @@ import {
 
 /* 3-Tier Dashboard & Apps API */
 export async function fetchDashboardApps(): Promise<DashboardAppsResponse> {
-  return await api.get('api/v1/apps/dashboard').json<DashboardAppsResponse>();
+  return await api.get('apps/dashboard').json<DashboardAppsResponse>();
 }
 
 export async function fetchUserPreferences(): Promise<UserPreferences> {
-  return await api.get('api/v1/user/preferences').json<UserPreferences>();
+  return await api.get('user/preferences').json<UserPreferences>();
 }
 
 export async function updateUserPreferences(hiddenAppIds: string[]): Promise<UserPreferences> {
-  return await api.put('api/v1/user/preferences', { json: { hidden_app_ids: hiddenAppIds } }).json<UserPreferences>();
+  return await api.put('user/preferences', { hidden_app_ids: hiddenAppIds }).json<UserPreferences>();
 }
 
 export async function createUserLink(payload: CreateUserLinkRequest): Promise<AppItem> {
-  return await api.post('api/v1/user/links', { json: payload }).json<AppItem>();
+  return await api.post('user/links', payload).json<AppItem>();
 }
 
 export async function updateUserLink(id: string, payload: Partial<CreateUserLinkRequest>): Promise<AppItem> {
-  return await api.put(`api/v1/user/links/${id}`, { json: payload }).json<AppItem>();
+  return await api.put(`user/links/${id}`, payload).json<AppItem>();
 }
 
 export async function deleteUserLink(id: string): Promise<void> {
-  await api.delete(`api/v1/user/links/${id}`);
+  await api.delete(`user/links/${id}`);
 }
 
 /* Backward-compatibility wrappers */
@@ -50,17 +50,17 @@ export async function updateApp(id: string, payload: Partial<CreateUserLinkReque
 /* Telemetry API */
 export async function fetchTelemetryMetrics(): Promise<TelemetryMetrics> {
   try {
-    return await api.get('api/v1/telemetry/metrics').json<TelemetryMetrics>();
+    return await api.get('telemetry/metrics').json<TelemetryMetrics>();
   } catch {
-    return await api.get('api/v1/telemetry').json<TelemetryMetrics>();
+    return await api.get('telemetry').json<TelemetryMetrics>();
   }
 }
 
 export async function fetchTelemetryLogs(): Promise<TelemetryLogsResponse> {
-  return await api.get('api/v1/telemetry/logs').json<TelemetryLogsResponse>();
+  return await api.get('telemetry/logs').json<TelemetryLogsResponse>();
 }
 
 /* Capabilities API */
 export async function fetchUserCapabilities(): Promise<UserCapabilities> {
-  return await api.get('api/v1/user/capabilities').json<UserCapabilities>();
+  return await api.get('user/capabilities').json<UserCapabilities>();
 }

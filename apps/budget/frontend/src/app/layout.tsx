@@ -1,8 +1,10 @@
 import { ReactNode } from "react";
+import { createAppMetadata } from "@alfheim/shared";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 export const metadata = {
+  ...createAppMetadata({ app: "budget" }),
   title: "Budget & Treasury",
   description: "Alfheim Budget & Treasury Core App",
 };

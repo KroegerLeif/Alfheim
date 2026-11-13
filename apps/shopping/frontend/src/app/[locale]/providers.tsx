@@ -1,61 +1,17 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider as SharedThemeProvider } from "@alfheim/shared";
-import { ReactNode, useState, createContext, useContext } from "react";
+import type { ReactNode } from "react";
+import { AppProviders } from "@alfheim/shared/app-shell";
 import { NotificationsProvider } from "@/components/shared/Notifications";
+import { ShellStateProvider } from "@/components/shared/ShellState";
 
-export const SidebarContext = createContext<{
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
-}>({
-  isSidebarOpen: true,
-  setIsSidebarOpen: () => {},
-});
-
-export const useSidebar = () => useContext(SidebarContext);
-
-export const ActiveListContext = createContext<{
-  activeListId: string | null;
-  setActiveListId: (id: string | null) => void;
-}>({
-  activeListId: null,
-  setActiveListId: () => {},
-});
-
-export const useActiveList = () => useContext(ActiveListContext);
-
-/**
- * Non-auth application providers. Authentication (OIDC session validation,
- * login redirect, misconfiguration/discovery error pages) is handled by the
- * shared AuthGuard wrapping this component in the locale layout.
- */
+/** Shared app providers with the shopping theme, shell state and notifications. */
 export default function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            refetchOnWindowFocus: false,
-            retry: 1,
-            staleTime: 5 * 60 * 1000, // 5 minutes
-          },
-        },
-      })
-  );
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeListId, setActiveListId] = useState<string | null>(null);
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <SharedThemeProvider defaultMode="dark" defaultVariant="obsidian">
-        <SidebarContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-          <ActiveListContext.Provider value={{ activeListId, setActiveListId }}>
-            <NotificationsProvider>{children}</NotificationsProvider>
-          </ActiveListContext.Provider>
-        </SidebarContext.Provider>
-      </SharedThemeProvider>
-    </QueryClientProvider>
+    <AppProviders theme={{ defaultMode: "dark", defaultVariant: "obsidian" }}>
+      <ShellStateProvider>
+        <NotificationsProvider>{children}</NotificationsProvider>
+      </ShellStateProvider>
+    </AppProviders>
   );
 }

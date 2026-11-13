@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { AuthGuard, HouseholdProvider } from '@alfheim/shared';
+import { AuthGuard, HouseholdProvider, createAppMetadata } from '@alfheim/shared';
 import { LanguageProvider, ThemeProvider, QueryProvider } from '@/core/providers';
 import { Sidebar } from '@/shared/components/Sidebar';
 import { Header } from '@/shared/components/Header';
@@ -19,6 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  ...createAppMetadata({ app: 'dashboard' }),
   title: 'Alfheim OS | Dashboard',
   description: 'Central management dashboard for Alfheim OS platform micro-services.',
 };

@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
+import { cn } from "@alfheim/shared";
 
 interface GlassCheckboxProps {
   checked: boolean;

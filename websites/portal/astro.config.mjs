@@ -35,7 +35,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Alfheim',
-      favicon: '/favicon.png',
+      favicon: '/favicon-32x32.png',
       description: 'Documentation for Alfheim Sovereign OS.',
       defaultLocale: 'en',
       locales: {

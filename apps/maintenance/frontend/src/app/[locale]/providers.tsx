@@ -1,31 +1,14 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState } from "react";
+import type { ReactNode } from "react";
+import { AppProviders } from "@alfheim/shared/app-shell";
 import { LayoutProvider } from "@/shared/layout/LayoutContext";
 
-/**
- * Non-auth application providers. Authentication (OIDC session validation,
- * login redirect, misconfiguration/discovery error pages) is handled by the
- * shared AuthGuard wrapping this component in the locale layout.
- */
+/** Shared app providers plus the maintenance layout state. */
 export default function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            refetchOnWindowFocus: false,
-            retry: 1,
-            staleTime: 5 * 60 * 1000,
-          },
-        },
-      })
-  );
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <AppProviders>
       <LayoutProvider>{children}</LayoutProvider>
-    </QueryClientProvider>
+    </AppProviders>
   );
 }

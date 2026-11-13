@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
 import { AppHeader, resolveFrontendUrl } from "@alfheim/shared";
-import { useSidebar } from "@/app/[locale]/providers";
+import { useSidebar } from "@/components/shared/ShellState";
 import { useAuth } from "@alfheim/shared";
 
 /**

@@ -1,50 +1,15 @@
-import '@testing-library/jest-dom'
-import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
-import * as matchers from 'vitest-axe/matchers'
+import { vi } from 'vitest'
+import { setupAlfheimTests } from '@alfheim/shared/testing'
 import { server } from './mocks/server'
 import { resetNavigationMock } from './mocks/navigation'
-import { configure } from '@testing-library/react'
 
-// findBy*/waitFor poll for 5s instead of 1s. The default 1s is shorter than legitimate latency: a cold first
-// render, or ky retrying a failed GET with backoff (~0.9s), so tests failed once the machine was busy
-// (CI, parallel workspaces). The limit only bounds failures; passing tests are not slowed down.
-configure({ asyncUtilTimeout: 5000 })
-
-expect.extend(matchers)
-
-beforeAll(() => server.listen({ onUnhandledFrame: 'bypass' }))
-afterEach(() => {
-  server.resetHandlers()
-  resetNavigationMock()
-  localStorage.clear()
+setupAlfheimTests({
+  server,
+  afterEach: () => {
+    resetNavigationMock()
+    localStorage.clear()
+  },
 })
-afterAll(() => server.close())
-
-// Mock localStorage and sessionStorage globally for tests
-const localStorageMock = (function () {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value.toString();
-    },
-    clear: () => {
-      store = {};
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});
-Object.defineProperty(global, 'sessionStorage', {
-  value: localStorageMock,
-  writable: true,
-});
 
 // Mock next/navigation router hooks; tests assert on the shared mockRouter.
 vi.mock('next/navigation', async () => {

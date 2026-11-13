@@ -1,6 +1,6 @@
 import type { ApiErrorPayload, ToolCallRequest } from "@/features/conversations/types";
 import { parseToolCall } from "@/features/conversations/utils/toolCalls";
-import { reportHouseholdErrorResponse } from "@alfheim/shared";
+import type { ApiClient } from "@alfheim/shared";
 
 /**
  * Why a stream failed. The UI shows a localized headline per kind; `detail` carries the
@@ -29,21 +29,22 @@ function isAbort(err: unknown): boolean {
  * The native EventSource API cannot send an Authorization header, but the backend
  * requires a bearer JWT on every request (including SSE), so this reads the
  * `text/event-stream` response body manually via fetch()'s ReadableStream instead of
- * using EventSource. Aborting `signal` ends the stream silently: no handler is called,
+ * using EventSource. The request goes through the injected API client (session headers,
+ * household error reporting) as a streaming request, so no timeout cuts it off. Aborting `signal` ends the stream silently: no handler is called,
  * and the backend cancels the model request when the connection closes.
  */
 export async function streamAssistantReply(
-  baseUrl: string,
-  authHeaderProvider: () => HeadersInit,
+  client: ApiClient,
   conversationId: string,
   handlers: StreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/conversations/${conversationId}/stream`, {
-      headers: { ...authHeaderProvider() },
+    res = await client.request(`/conversations/${conversationId}/stream`, {
       signal,
+      stream: true,
+      throwHttpErrors: false,
     });
   } catch (err) {
     if (!isAbort(err)) {
@@ -53,7 +54,6 @@ export async function streamAssistantReply(
   }
 
   if (!res.ok || !res.body) {
-    await reportHouseholdErrorResponse(res);
     let detail: string | undefined;
     try {
       const payload: ApiErrorPayload = await res.json();

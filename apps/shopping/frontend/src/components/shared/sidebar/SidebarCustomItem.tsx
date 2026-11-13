@@ -2,8 +2,7 @@
 
 import { GripVertical, ShoppingCart, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useHouseholdCan } from "@alfheim/shared";
-import { cn } from "@/lib/utils";
+import { useHouseholdCan, cn } from "@alfheim/shared";
 
 interface SidebarCustomItemProps {
   name: string;

@@ -710,9 +710,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      ky:
-        specifier: ^2.2.0
-        version: 2.2.0
       next:
         specifier: ^16.3.6
         version: 16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -789,9 +786,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      ky:
-        specifier: ^2.2.0
-        version: 2.2.0
       next:
         specifier: ^16.3.6
         version: 16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -890,6 +884,9 @@ importers:
         specifier: ^3.6.0
         version: 3.7.0
     devDependencies:
+      '@tanstack/react-query':
+        specifier: ^5.105.0
+        version: 5.105.0(@types/react@19.3.0)(react@19.3.1)
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -920,6 +917,9 @@ importers:
       next:
         specifier: ^16.3.6
         version: 16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      next-intl:
+        specifier: ^4.14.9
+        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       react:
         specifier: 19.3.1
         version: 19.3.1

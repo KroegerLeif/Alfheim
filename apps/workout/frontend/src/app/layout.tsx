@@ -1,7 +1,9 @@
 import { ReactNode } from "react";
+import { createAppMetadata } from "@alfheim/shared";
 import "./globals.css";
 
 export const metadata = {
+  ...createAppMetadata({ app: "workout" }),
   title: "Workout Tracker",
   description: "alfheim Workout Tracker App",
 };

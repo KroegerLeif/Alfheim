@@ -49,6 +49,7 @@ ENV NODE_OPTIONS="--max-http-header-size=65536"
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+COPY --from=builder /app/apps/shopping/frontend/public ./apps/shopping/frontend/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shopping/frontend/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shopping/frontend/.next/static ./apps/shopping/frontend/.next/static
 

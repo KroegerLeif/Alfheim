@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { useActiveList } from "@/app/[locale]/providers";
+import { useActiveList } from "@/components/shared/ShellState";
 import { ListSelector } from "@/features/shopping-lists/components/ListSelector";
 import { ChecklistContainer } from "@/features/shopping-lists/components/ChecklistContainer";
 import { AddManualItem } from "@/features/shopping-lists/components/AddManualItem";
@@ -16,9 +16,8 @@ import {
   useSyncToPantry, useDeleteShoppingItem, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
 import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
-import { useActiveHousehold, useAuth } from "@alfheim/shared";
+import { useActiveHousehold, useAuth, cn } from "@alfheim/shared";
 import { useCanEditList } from "@/features/shopping-lists/hooks/useCanEditList";
-import { cn } from "@/lib/utils";
 import { useErrorNotifier } from "@/lib/useErrorNotifier";
 
 export default function ShoppingDashboard() {

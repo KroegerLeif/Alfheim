@@ -5,7 +5,7 @@ import { Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { CATEGORY_ICONS } from "@/shared/data";
 import { Device } from "@/shared/types";
-import { cn } from "@/core/utils";
+import { cn } from "@alfheim/shared";
 import { useDeviceLabels } from "../hooks/useDeviceLabels";
 
 interface DeviceCardProps {

@@ -1,13 +1,8 @@
-import createMiddleware from "next-intl/middleware";
-import { locales, localePrefix } from "./navigation";
+import { createProxy } from "@alfheim/shared/i18n/proxy";
 
-export default createMiddleware({
-  defaultLocale: "de",
-  locales,
-  localePrefix,
-});
+export default createProxy({ defaultLocale: "de" });
 
 export const config = {
-  // Match all paths except internal Next.js assets, API routes, or files (like images, favicon, robots.txt)
+  // Next.js reads the matcher statically, so it stays a literal here. Skips API routes, Next.js internals and files.
   matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };
