@@ -59,3 +59,26 @@ To give a frontend its favicons:
    ```
 
 3. Make sure the Docker runner stage copies `public/` from the builder stage, where `pnpm run build` generated it.
+
+## Create an app's API client
+
+Every frontend talks to its backend through one `createApiClient` instance from `@alfheim/shared`. Do not write a `fetch` or `ky` wrapper that attaches tokens or household headers yourself.
+
+1. Create the instance once, in the module that owns the app's API calls:
+
+   ```typescript
+   import { createApiClient } from '@alfheim/shared';
+
+   export const api = createApiClient({
+     basePath: '/api/v1/<app>',
+     apiUrl: process.env.NEXT_PUBLIC_API_URL,
+     session: true,
+   });
+   ```
+
+   `session: true` attaches the bearer token from the shared token store, refreshes it once on a 401 (and starts a new login when that fails), sets `X-Household-ID` (never `X-Household-Role`) and reports household errors to the `HouseholdGate`. With a session, non-2xx responses reject with an `ApiError` (`status`, `code`, parsed `data`).
+2. Call it from the feature's `api/` module: `api.get('items').json<Item[]>()`, `api.post('items', payload)` (plain objects are sent as JSON, `FormData` as multipart).
+3. Every request has an 8 s timeout and rejects with `ApiTimeoutError` when it elapses. Override it with `timeoutMs`, or pass `stream: true` for Server-Sent Events and other long-lived responses.
+4. Map errors for users with `isApiError` and `isApiTimeoutError`; pass `mapError` to `createApiClient` when an app needs its own error type.
+
+In tests, inject `fetch` and a custom `session` instead of mocking modules.
