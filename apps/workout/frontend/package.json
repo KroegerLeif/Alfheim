@@ -4,7 +4,9 @@
   "private": true,
   "packageManager": "pnpm@11.28.5",
   "scripts": {
+    "predev": "node ../../../packages/shared/scripts/sync-brand-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node ../../../packages/shared/scripts/sync-brand-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
