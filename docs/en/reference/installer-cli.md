@@ -18,6 +18,7 @@ Complete parameter reference for the Alfheim installer.
 
 ```
 alfheim-setup [flags]
+alfheim-setup update|backup|restore|apps ...
 ```
 
 ```bash
@@ -155,6 +156,32 @@ or a Docker volume. Full walkthrough, one-liner and rollback:
 
 `update` first takes a database and secrets backup (see below) and aborts if
 it fails. Pass `--skip-backup` to update without one.
+
+---
+
+## The `apps` subcommand
+
+```
+alfheim-setup apps list              [--install-dir DIR]
+alfheim-setup apps enable  <name>    [--install-dir DIR]
+alfheim-setup apps disable <name>    [--install-dir DIR]
+```
+
+Lists the apps of the [Lean Core app set](../explanation/decisions/0007-lean-core-app-set.md)
+and switches optional apps (and `telemetry`) on and off on an existing
+installation. The choice is stored as `ALFHEIM_ENABLED_APPS` in `.env`; an
+`.env` without it counts as "every app enabled".
+
+| Action | Behaviour |
+| :--- | :--- |
+| `list` | Prints every app with its tier (`core` or `optional`), its state and its requirements. |
+| `enable <name>` | Records the app in `ALFHEIM_ENABLED_APPS`, then pulls and starts its containers. Enabling an enabled app does nothing. |
+| `disable <name>` | Records the change, then stops and removes the app's containers (`docker compose rm -s -f`). **Volumes and databases are never removed**, so enabling the app again brings its data back. Disabling a disabled app does nothing. |
+
+Enabling or disabling `telemetry` also sets `OTEL_ENABLED` in `.env`.
+Unknown names, core apps (`disable dashboard`) and broken requirements
+(`enable shopping` without `pantry`, `disable pantry` while `shopping` is on)
+are rejected with exit code `1` and an error naming the conflict.
 
 ---
 
