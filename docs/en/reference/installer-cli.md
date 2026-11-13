@@ -56,6 +56,7 @@ Each flag has an environment-variable equivalent. The flag wins when both are se
 | `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN`, `DESEC_TOKEN` | DNS provider token. Required for `hetzner`, `cloudflare` and `desec`. |
 | `--cert-path DIR` | `ALFHEIM_CERT_PATH` | Absolute directory holding `fullchain.pem` and `privkey.pem`. Only for `--tls custom`; omit to use `./data/caddy/certs/`. |
 | `--image-tag TAG` | `ALFHEIM_IMAGE_TAG` | Container image tag. Default `latest`. |
+| `--apps LIST` | `ALFHEIM_APPS` | Optional apps to enable: `all`, `none` or a comma-separated list such as `pantry,shopping,telemetry`. Default on a fresh install: `none` (the [Lean Core](../explanation/decisions/0007-lean-core-app-set.md)); a re-run keeps the stored `ALFHEIM_ENABLED_APPS`. Unknown names and broken requirements are usage errors. Without the flag the interactive wizard asks, with telemetry as a separate question that defaults to off. `--apps=all` installs everything, as before. |
 | `--db-data-path DIR` | `ALFHEIM_DB_DATA_PATH` | Absolute host directory for the PostgreSQL data. Default: the `postgres_core_data` named volume. |
 | `--object-data-path DIR` | `ALFHEIM_OBJECT_DATA_PATH` | Absolute host directory for the RustFS object storage. Default: the `rustfs_data` named volume. |
 | `--metrics-data-path DIR` | `ALFHEIM_METRICS_DATA_PATH` | Absolute host directory for VictoriaMetrics. Default: the `victoriametrics_data` named volume. |
@@ -278,6 +279,14 @@ ALFHEIM_DNS_API_TOKEN="$CF_TOKEN" alfheim-setup \
   --tls cloudflare \
   --admin-email ops@example.com \
   --install-dir /srv/alfheim
+```
+
+Headless Lean Core install with pantry and shopping, then add the budget app later:
+
+```bash
+alfheim-setup --non-interactive --domain example.com --tls internal \
+  --admin-email ops@example.com --apps pantry,shopping
+alfheim-setup apps enable budget
 ```
 
 Change the domain on a running instance:
