@@ -1,9 +1,4 @@
-import { createNavigation } from "next-intl/navigation";
+import { createNavigation } from "@alfheim/shared/i18n/navigation";
 
-export const locales = ["en", "de", "pl"] as const;
-export const localePrefix = "always";
-
-export const { Link, redirect, usePathname, useRouter } = createNavigation({
-  locales,
-  localePrefix,
-});
+/** Locale-aware navigation helpers for the shared Alfheim locales. */
+export const { Link, redirect, usePathname, useRouter } = createNavigation();

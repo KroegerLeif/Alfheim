@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useSidebar, useActiveList } from "@/app/[locale]/providers";
+import { useSidebar, useActiveList } from "@/components/shared/ShellState";
 import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,

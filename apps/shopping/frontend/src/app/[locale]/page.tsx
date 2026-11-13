@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { useActiveList } from "@/app/[locale]/providers";
+import { useActiveList } from "@/components/shared/ShellState";
 import { ListSelector } from "@/features/shopping-lists/components/ListSelector";
 import { ChecklistContainer } from "@/features/shopping-lists/components/ChecklistContainer";
 import { AddManualItem } from "@/features/shopping-lists/components/AddManualItem";
