@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
+- Run gitleaks on every push and pull request; path-filter only the dependency and image scans (#867)
+- Fail `verify.sh --security` when gitleaks is missing unless `--allow-missing-gitleaks` is passed (#868)
+- Run the gitleaks pre-commit hook and the Go hooks for every `go.work` module (#868)
+- Group Dependabot security fixes and per-image major updates, and pin `pnpm/action-setup` to one SHA (#869)
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).

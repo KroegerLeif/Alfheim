@@ -1,6 +1,8 @@
+# Dependabot does not update the `rev` pins below; bump them by hand. Keep the
+# ruff rev equal to the ruff version locked in uv.lock.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -13,11 +15,16 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+    rev: v0.17.3
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
 
   - repo: local
     hooks:
@@ -29,17 +36,20 @@ repos:
         pass_filenames: false
         verbose: true
 
+      # Both Go hooks iterate over every module listed in go.work.
       - id: go-fmt
         name: Go Format (gofmt)
-        entry: bash -c 'for d in apps/chat/backend core/dashboard/backend; do (cd $d && gofmt -w .); done'
+        entry: bash -c 'set -e; for d in $(go list -m -f "{{.Dir}}"); do gofmt -w "$d"; done'
         language: system
         files: \.go$
+        pass_filenames: false
 
       - id: go-vet
         name: Go Vet
-        entry: bash -c 'for d in apps/chat/backend core/dashboard/backend; do (cd $d && go vet ./...); done'
+        entry: bash -c 'set -e; for d in $(go list -m -f "{{.Dir}}"); do echo "go vet $d"; (cd "$d" && go vet ./...); done'
         language: system
         files: \.go$
+        pass_filenames: false
 
       - id: frontend-prettier-lint
         name: Frontend Formatting & Linting

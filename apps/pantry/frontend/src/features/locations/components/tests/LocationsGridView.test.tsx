@@ -188,4 +188,3 @@ describe('LocationsGridView', () => {
     expect(screen.getByTitle(longDescription)).toHaveClass('line-clamp-2', 'break-words')
   })
 })
-
