@@ -64,3 +64,15 @@ Copy-ready `conftest.py` and isolation-test templates are in [Create a new FDD m
 ## Persistence
 
 Schema changes go through Alembic. Every backend runs `alembic upgrade head` at startup under a Postgres advisory lock; `create_all` is not used in production. See [Schema migrations](../../explanation/schema-migrations.md).
+
+The database plumbing lives in `backend_shared`; a backend only supplies its models, settings and lock key:
+
+| File in the backend | Contents |
+| --- | --- |
+| `alembic.ini` | Only the `[alembic]` section (`script_location`, `prepend_sys_path`, `path_separator`, `file_template`). CLI logging is configured by `run_env`. |
+| `alembic/env.py` | `load_models()` and one call: `run_env(SQLModel.metadata, database_url=settings.DATABASE_URL)`. Pass `include_object=ignore_indexes({...})` for indexes created with raw SQL. |
+| `alembic/script.py.mako` | The revision template. It stays per backend because Alembic only reads it from the script directory. |
+| `core/migrations.py` | `MIGRATION_LOCK_KEY` (a constant `pg_advisory_xact_lock` key; never change a released one) and `load_models()`, which imports every model module. |
+| `core/database.py` | `engine, async_session_factory = create_engine_and_session(settings)`, `get_db_session`, and `run_migrations(engine)`, which calls `backend_shared.db.run_migrations` with the loader, lock key, backend directory and `SQLModel.metadata`. |
+
+`backend_shared.db.run_migrations` adopts a legacy `create_all` database by stamping revision `0001`, then upgrades to head in one transaction. Tests build their Alembic configuration with `backend_shared.migrations.alembic_config(BACKEND_DIR)`.

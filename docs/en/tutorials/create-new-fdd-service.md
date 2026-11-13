@@ -80,6 +80,33 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
    depend on `household-backend` being healthy. Without a valid, matching
    `ALFHEIM_INTERNAL_TOKEN` every household-scoped request fails closed with
    `503 household_service_unavailable`.
+7. Set up schema migrations with the shared scaffold from `backend_shared`. Copy `alembic.ini`
+   (the `[alembic]` section only) and `alembic/script.py.mako` from an existing backend, then
+   add the three small files that are specific to the service:
+   ```python
+   # src/core/migrations.py
+   MIGRATION_LOCK_KEY = 7_265_008  # next free pg_advisory_xact_lock key; never change it later
+
+
+   def load_models() -> None:
+       """Import every model module so all tables are registered on ``SQLModel.metadata``."""
+       from src.features.catalog.models import Recipe  # noqa: F401
+   ```
+   ```python
+   # alembic/env.py
+   from backend_shared.migrations import run_env
+   from sqlmodel import SQLModel
+   from src.core.config import settings
+   from src.core.migrations import load_models
+
+   load_models()
+   run_env(SQLModel.metadata, database_url=settings.DATABASE_URL)
+   ```
+   `src/core/database.py` creates `engine, async_session_factory =
+   create_engine_and_session(settings)` and wraps `backend_shared.db.run_migrations` (see the
+   [Python and FastAPI conventions](../reference/conventions/python-fastapi.md#persistence)).
+   `main.py` awaits it on startup. Generate the first revision with
+   `uv run alembic revision --autogenerate -m "initial schema"` and set its revision ID to `0001`.
 
 ---
 
