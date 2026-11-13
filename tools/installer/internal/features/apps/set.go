@@ -121,6 +121,26 @@ func Parse(value string) (Set, error) {
 	return s, nil
 }
 
+// Selection keywords accepted by ParseSelection.
+const (
+	// SelectAll enables every optional app and telemetry.
+	SelectAll = "all"
+	// SelectNone enables the Lean Core only.
+	SelectNone = "none"
+)
+
+// ParseSelection reads an operator's choice: "all", "none" or a
+// comma-separated list of app names as accepted by Parse.
+func ParseSelection(value string) (Set, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case SelectAll:
+		return All(), nil
+	case SelectNone:
+		return Lean(), nil
+	}
+	return Parse(value)
+}
+
 // Enabled returns the set stored in env. A missing key means every app.
 func Enabled(env map[string]string) (Set, error) {
 	value, ok := env[EnvKey]

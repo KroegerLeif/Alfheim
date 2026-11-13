@@ -141,3 +141,30 @@ func TestProfilesAndEnvValues(t *testing.T) {
 		t.Errorf("pantry containers = %v", got)
 	}
 }
+
+func TestParseSelection(t *testing.T) {
+	for _, tc := range []struct {
+		in      string
+		want    string
+		wantErr bool
+	}{
+		{in: "all", want: All().String()},
+		{in: " NONE ", want: ""},
+		{in: "pantry,shopping", want: "pantry,shopping"},
+		{in: "todo", wantErr: true},
+	} {
+		got, err := ParseSelection(tc.in)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("%q: err = %v", tc.in, err)
+			continue
+		}
+		if err == nil && got.String() != tc.want {
+			t.Errorf("%q = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+	for _, a := range Catalog() {
+		if a.Description == "" || a.MemoryMB <= 0 {
+			t.Errorf("%s lacks wizard metadata", a.Name)
+		}
+	}
+}

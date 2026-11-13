@@ -20,6 +20,11 @@ type App struct {
 	Name string
 	// Title is the human readable name.
 	Title string
+	// Description is the one line the installer wizard shows.
+	Description string
+	// MemoryMB is the memory the app adds at most: the sum of its services'
+	// memory limits in compose.prod.yaml.
+	MemoryMB int
 	// Tier says whether the app can be disabled.
 	Tier Tier
 	// Requires lists the apps that must be enabled while this one is.
@@ -45,27 +50,38 @@ func (a App) Optional() bool { return a.Tier == TierOptional }
 // catalog lists every app in display order: the Lean Core first, then the
 // optional modules. It mirrors compose.prod.yaml and ADR 0007.
 var catalog = []App{
-	{Name: "dashboard", Title: "Dashboard", Tier: TierCore,
+	{Name: "dashboard", Title: "Dashboard", Description: "Launcher and app catalog", MemoryMB: 384,
+		Tier:     TierCore,
 		Services: []string{"dashboard-backend", "dashboard-frontend"}},
-	{Name: "household", Title: "Household & roles", Tier: TierCore,
+	{Name: "household", Title: "Household & roles", Description: "Households, members, roles and invites", MemoryMB: 512,
+		Tier:     TierCore,
 		Services: []string{"household-backend", "household-frontend"}},
-	{Name: "pantry", Title: "Pantry", Tier: TierOptional,
+	{Name: "pantry", Title: "Pantry", Description: "Stock, expiry dates and barcode scanning", MemoryMB: 384,
+		Tier:     TierOptional,
 		Services: []string{"pantry-backend", "pantry-frontend"}},
-	{Name: "shopping", Title: "Shopping lists", Tier: TierOptional, Requires: []string{"pantry"},
+	{Name: "shopping", Title: "Shopping lists", Description: "Shared shopping lists fed by the pantry", MemoryMB: 384,
+		Tier: TierOptional, Requires: []string{"pantry"},
 		Services: []string{"shopping-backend", "shopping-frontend"}},
-	{Name: "budget", Title: "Budget", Tier: TierOptional,
+	{Name: "budget", Title: "Budget", Description: "Envelope budgets, transactions and receipts", MemoryMB: 384,
+		Tier:     TierOptional,
 		Services: []string{"budget-backend", "budget-frontend"}},
-	{Name: "chores", Title: "Chores", Tier: TierOptional,
+	{Name: "chores", Title: "Chores", Description: "Recurring household tasks", MemoryMB: 384,
+		Tier:     TierOptional,
 		Services: []string{"chores-backend", "chores-frontend"}},
-	{Name: "library", Title: "Library", Tier: TierOptional,
+	{Name: "library", Title: "Library", Description: "Books, media and manuals", MemoryMB: 384,
+		Tier:     TierOptional,
 		Services: []string{"library-backend", "library-frontend"}},
-	{Name: "workout", Title: "Workout", Tier: TierOptional,
+	{Name: "workout", Title: "Workout", Description: "Training plans and workout logs", MemoryMB: 384,
+		Tier:     TierOptional,
 		Services: []string{"workout-backend", "workout-frontend"}},
-	{Name: "maintenance", Title: "Maintenance", Tier: TierOptional,
+	{Name: "maintenance", Title: "Maintenance", Description: "Home maintenance schedules and appliances", MemoryMB: 384,
+		Tier:     TierOptional,
 		Services: []string{"maintenance-backend", "maintenance-frontend"}},
-	{Name: "chat", Title: "Chat assistant", Tier: TierOptional,
+	{Name: "chat", Title: "Chat assistant", Description: "ALFI assistant using the enabled apps as tools", MemoryMB: 640,
+		Tier:     TierOptional,
 		Services: []string{"chat-backend", "chat-frontend"}},
-	{Name: Telemetry, Title: "Telemetry (metrics, logs, Grafana)", Tier: TierOptional,
+	{Name: Telemetry, Title: "Telemetry (metrics, logs, Grafana)", Description: "Metrics, logs and Grafana dashboards", MemoryMB: 1664,
+		Tier: TierOptional,
 		Services: []string{
 			"victoriametrics", "node-exporter", "victorialogs", "otel-collector",
 			"docker-socket-proxy", "vector", "grafana",
