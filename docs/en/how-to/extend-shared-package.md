@@ -31,3 +31,31 @@ Each theme defines a `dark` and a `light` variant that match the `ThemeTokens` i
 5. Verify with `pnpm --filter shopping-frontend exec tsc --noEmit`, select the theme in the header `ThemeToggle` in both modes and check that `--surface-canvas`, `--text-primary` and `--primary-main` change on `document.documentElement`.
 
 The required token keys are the ones in an existing theme file such as `nordic.json`; copy it as the starting point.
+
+## Use the shared brand assets
+
+`packages/shared` is the only home of the Alfheim brand. Apps consume it; they never keep a copy.
+
+| Asset | Location | How an app uses it |
+| --- | --- | --- |
+| Alfheim logo | `src/assets/brand/` (`logo-mark.svg`, `logo-mark-white.svg`, `AlfheimMark`) | Render `AlfheimMark`, or resolve a path from `BRAND_ASSETS` |
+| Favicons and web manifest | `src/assets/favicon_io/` | Copied into `public/` at `predev`/`prebuild`, linked by `createAppMetadata` |
+| App icons | `src/assets/apps/<app>.svg` (`APP_ICONS`) and `src/assets/appGlyphs.ts` (`APP_GLYPH_ICONS`) | Render `AppLogo`; change an app's icon in these two registries only |
+
+To give a frontend its favicons:
+
+1. Add the copy step to the frontend's `package.json`, with the relative path to the repository root:
+
+   ```json
+   "predev": "node ../../../packages/shared/scripts/sync-brand-assets.mjs",
+   "prebuild": "node ../../../packages/shared/scripts/sync-brand-assets.mjs"
+   ```
+
+   The copied files are ignored by `.gitignore`; do not commit them, and do not add a `src/app/favicon.ico`.
+2. Spread the helper into the root layout's metadata. It prefixes every URL with the app's base path (`/<app>`, or the root for the dashboard), because Next.js does not:
+
+   ```typescript
+   export const metadata: Metadata = { title: 'Pantry', ...createAppMetadata({ app: 'pantry' }) };
+   ```
+
+3. Make sure the Docker runner stage copies `public/` from the builder stage, where `pnpm run build` generated it.
