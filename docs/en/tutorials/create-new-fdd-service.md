@@ -96,8 +96,17 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
 4. Enforce the strict 200 lines of code (LOC) limit per `.tsx` source file.
 5. Set up the Next.js project like the existing apps: `basePath: '/recipes'`, `output: 'standalone'`
    and `transpilePackages: ['@alfheim/shared']` in `next.config.ts`, `@alfheim/shared` as a
-   `workspace:*` dependency, `src/proxy.ts` for locale routing (not the deprecated
-   `middleware.ts`), and an `i18n.ts` that merges `getSharedMessages(locale)`.
+   `workspace:*` dependency, and `predev`/`prebuild` scripts that copy the shared favicons.
+   The locale and shell files are one factory call each; copy them from an existing app such as
+   `apps/chores/frontend`:
+
+   | File | Content |
+   | --- | --- |
+   | `src/navigation.ts` | `createNavigation()` from `@alfheim/shared/i18n/navigation` |
+   | `src/proxy.ts` | `createProxy()` from `@alfheim/shared/i18n/proxy`, plus a literal `config.matcher` (not the deprecated `middleware.ts`) |
+   | `src/i18n.ts` | `createRequestConfig()` from `@alfheim/shared/i18n/request` |
+   | `src/app/[locale]/providers.tsx` | `AppProviders` from `@alfheim/shared/app-shell`, with app providers as children |
+   | `src/app/[locale]/loading.tsx` | `AppLoading` from `@alfheim/shared/app-shell` |
 6. Add the app's strings to `packages/shared/src/features/i18n/locales/{en,de,pl}/recipes.json`
    and register the file in the shared locale builder. All three locales must be complete.
    The conventions are in [Next.js and Tailwind conventions](../reference/conventions/nextjs-tailwind.md).

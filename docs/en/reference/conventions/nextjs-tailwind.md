@@ -27,6 +27,20 @@ src/
 └── shared/         # domain-agnostic components, hooks, lib (cn, formatters)
 ```
 
+## App scaffold
+
+The locale routing and shell files are thin calls into `@alfheim/shared`, so a fix to locale handling lands in one place:
+
+| File | Shared factory | App-specific part |
+| --- | --- | --- |
+| `src/navigation.ts` | `createNavigation()` (`@alfheim/shared/i18n/navigation`) | none |
+| `src/proxy.ts` | `createProxy({ defaultLocale })` (`@alfheim/shared/i18n/proxy`) | default locale; the literal `config.matcher`, which Next.js reads statically |
+| `src/i18n.ts` | `createRequestConfig()` (`@alfheim/shared/i18n/request`) | none; pass `loadMessages` for another catalogue |
+| `src/app/[locale]/providers.tsx` | `AppProviders` (`@alfheim/shared/app-shell`) | theme defaults and app providers as children |
+| `src/app/[locale]/loading.tsx` | `AppLoading` (`@alfheim/shared/app-shell`) | optional `messageKey` |
+
+Every app serves `en`, `de` and `pl` with the locale always in the URL (`/pantry/de/inventory`). The header is the shared `ClientHeader`, wrapped in `src/components/shared/ClientHeader.tsx` with the app name and brand title. These factories live on subpaths, not the package root, because they need next-intl and TanStack Query, which non-Next consumers of `@alfheim/shared` do not install. The household app keeps its own `src/i18n` messages and the dashboard its own proxy.
+
 ## Data fetching
 
 - All HTTP goes through one typed `ky` client (`src/shared/api.ts` or `src/lib/api.ts`) with a prefix URL from `NEXT_PUBLIC_API_URL`, a timeout and hooks. Components and features never call bare `fetch`.
