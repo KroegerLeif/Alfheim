@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { ShoppingCart, PackagePlus, PackageMinus } from "lucide-react";
-import { cn } from "@/core/utils";
+import { cn } from "@alfheim/shared";
 
 interface SuppliesPanelProps {
   currentSupplyItem: string | null;

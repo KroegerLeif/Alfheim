@@ -2,11 +2,10 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { PermissionHint, useHouseholdPermission } from "@alfheim/shared";
+import { PermissionHint, useHouseholdPermission, cn } from "@alfheim/shared";
 import { MaintenanceStep } from "@/shared/types";
 import { useFormatDate } from "@/core/useFormatDate";
 import { FileText, Save, Loader2 } from "lucide-react";
-import { cn } from "@/core/utils";
 
 interface ScheduledTaskItemDetailsProps {
   step: MaintenanceStep;

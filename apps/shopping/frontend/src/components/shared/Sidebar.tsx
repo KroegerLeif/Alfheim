@@ -6,10 +6,9 @@ import {
   useShoppingLists, useCreateShoppingList, useDeleteShoppingList,
   useReorderShoppingLists, useHouseholds,
 } from "@/features/shopping-lists/services/shoppingListService";
-import { useAuth, useHouseholdCan } from "@alfheim/shared";
+import { useAuth, useHouseholdCan, cn } from "@alfheim/shared";
 import { Home, User } from "lucide-react";
 import { useState, useMemo } from "react";
-import { cn } from "@/lib/utils";
 import type { ShoppingList } from "@/features/shopping-lists/types";
 import { SidebarItem } from "./sidebar/SidebarItem";
 import { SidebarCustomItem } from "./sidebar/SidebarCustomItem";

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Group Dependabot security fixes and per-image major updates, and pin `pnpm/action-setup` to one SHA (#869)
 - Serve the favicon bundle and web manifest from `packages/shared` in every frontend, including budget, library and chat, which had none; frontends copy it at `predev`/`prebuild` and link it through `createAppMetadata` (#874)
 - Remove the unused per-app `assets/branding` logo copies; `packages/shared/src/assets/brand/` is the only home of the Alfheim logo (#875)
+- Use the shared `cn()` helper from `@alfheim/shared` in chores, maintenance, pantry, shopping and workout instead of five local copies (#876)
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).

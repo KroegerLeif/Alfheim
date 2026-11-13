@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import { Device } from "@/shared/types";
-import { SidePanel } from "@alfheim/shared";
+import { SidePanel, cn } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
-import { cn } from "@/core/utils";
 import { OverviewTab } from "./OverviewTab";
 import { StepsTab } from "./StepsTab";
 import { TimelineTab } from "./TimelineTab";

@@ -2,8 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { User, Home, GripVertical, Trash2 } from "lucide-react";
-import { useHouseholdCan } from "@alfheim/shared";
-import { cn } from "@/lib/utils";
+import { useHouseholdCan, cn } from "@alfheim/shared";
 import type { ShoppingList } from "../types";
 
 interface ListTabProps {

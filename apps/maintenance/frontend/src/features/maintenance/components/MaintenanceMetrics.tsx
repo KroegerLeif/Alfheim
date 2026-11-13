@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Wrench, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
-import { cn } from "@/core/utils";
+import { cn } from "@alfheim/shared";
 import { MetricFilter } from "../utils";
 
 interface MaintenanceMetricsProps {

@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { MaintenanceStep } from "@/shared/types";
 import { Check } from "lucide-react";
-import { cn } from "@/core/utils";
+import { cn } from "@alfheim/shared";
 
 interface WizardStepContentProps {
   activeStep: MaintenanceStep;

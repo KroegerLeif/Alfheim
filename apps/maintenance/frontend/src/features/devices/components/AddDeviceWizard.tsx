@@ -5,7 +5,7 @@ import { CreateDevicePayload, CreateStepPayload } from "@/shared/types";
 import { CATEGORIES } from "@/shared/data";
 import { useLayout } from "@/shared/layout/LayoutContext";
 import { X, Loader2, CheckCircle2 } from "lucide-react";
-import { cn } from "@/core/utils";
+import { cn } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useHouseholds, useCreateDevice } from "../hooks/useDevices";
 import { DeviceDetailsForm } from "./DeviceDetailsForm";

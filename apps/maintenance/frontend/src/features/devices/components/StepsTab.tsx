@@ -3,7 +3,8 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Device } from "@/shared/types";
-import { cn, daysUntil, dueStatusFromDays } from "@/core/utils";
+import { cn } from "@alfheim/shared";
+import { daysUntil, dueStatusFromDays } from "@/core/utils";
 import { useFormatDate } from "@/core/useFormatDate";
 
 interface StepsTabProps {

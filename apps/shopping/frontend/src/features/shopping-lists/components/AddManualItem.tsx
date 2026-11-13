@@ -6,9 +6,8 @@ import { useTranslations } from "next-intl";
 import { UnitSelector } from "./UnitSelector";
 import { DEFAULT_UNIT } from "../utils/units";
 import { useAddShoppingItem, useShoppingLists } from "../services/shoppingListService";
-import { useHouseholdPermission } from "@alfheim/shared";
+import { useHouseholdPermission, cn } from "@alfheim/shared";
 import { useCanEditList } from "../hooks/useCanEditList";
-import { cn } from "@/lib/utils";
 
 interface AddManualItemProps {
   listId: string;
