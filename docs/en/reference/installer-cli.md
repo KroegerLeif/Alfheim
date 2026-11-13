@@ -223,10 +223,14 @@ host. See [Backup, Restore & Data Migration](../how-to/backup-restore.md).
 | Phase | Services | Waits for |
 | :--- | :--- | :--- |
 | 1 — Edge & Identity | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
-| 2 — Zitadel provisioning | — | Reconciles the `Alfheim` project, the web client and the Grafana client via the Management API and writes their IDs to `.env` |
+| 2 — Zitadel provisioning | — | Reconciles the `Alfheim` project, the web client and, when `OTEL_ENABLED=true`, the Grafana client via the Management API and writes their IDs to `.env` |
 | 3 — Core & Application Stack | all remaining services of the Lean Core and the enabled apps (`COMPOSE_PROFILES`) | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
-During provisioning, the installer creates the Zitadel project "Alfheim", one client shared by the dashboard and every app frontend, and a client for Grafana. It writes the client IDs to `.env`. The final output prints the administrator login name and the generated password; a password change is required at first login.
+During provisioning, the installer creates the Zitadel project "Alfheim" and one client shared by the dashboard and every app frontend. It creates the Grafana client only when telemetry is on (`OTEL_ENABLED=true` in `.env`; a fresh install starts with it off). It writes the client IDs to `.env`.
+
+### Telemetry switch
+
+The hidden `provision` subcommand takes `--telemetry` (or `--telemetry=false`) to turn the optional observability stack on or off. It writes `OTEL_ENABLED` to `.env` and creates the Grafana client when telemetry is on; turning it off keeps the existing Grafana credentials for a later re-enable. Without the flag, `OTEL_ENABLED` from `.env` decides. Apply the change with `alfheim-setup update`, which re-renders the Caddyfile (the `/grafana` route exists only with telemetry on) and recreates the services. See [Grant Grafana access](../how-to/grafana-access.md#turn-telemetry-on). The final output prints the administrator login name and the generated password; a password change is required at first login.
 
 ---
 

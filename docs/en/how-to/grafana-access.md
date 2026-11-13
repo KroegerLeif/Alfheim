@@ -14,6 +14,27 @@ The local Grafana `admin` account (`GRAFANA_ADMIN_USER` and
 `GRAFANA_ADMIN_PASSWORD` in `.env`) is unaffected, so you can always sign in
 with it to recover access.
 
+## Turn telemetry on
+
+Grafana is part of the optional observability stack. A fresh install runs
+without it (`OTEL_ENABLED=false`): no Grafana OIDC client is created and the
+Caddyfile has no `/grafana` route. To turn it on, from the installation root:
+
+1. Provision the Grafana client and set `OTEL_ENABLED=true` in `.env`:
+
+   ```bash
+   alfheim-setup provision --env-file .env \
+     --pat-file infrastructure/zitadel/machinekey/pat.txt --telemetry
+   ```
+
+   If the PAT file is gone, write `ZITADEL_BOOTSTRAP_PAT` from `.env` into a
+   private temporary file and pass that instead.
+2. Run `alfheim-setup update` to re-render the Caddyfile with the `/grafana`
+   route and recreate the backends so they start exporting.
+
+`--telemetry=false` turns it off again; the Grafana credentials stay in `.env`
+so a later re-enable reuses them.
+
 ## Automatic setup
 
 `alfheim-setup` creates the project role `alfheim_operator` on the **Alfheim**

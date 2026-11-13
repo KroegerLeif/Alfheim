@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Share the frontend `tsconfig` base, the Vitest preset and the common test setup (matchers, storage, MSW lifecycle, module doubles) from `packages/shared`; the per-app copies and the eleven `jest-dom.d.ts` files go away (#879)
 - Move the Alembic `env.py` body and the startup migration runner into `backend_shared.migrations` and `backend_shared.db`; each Python backend's `env.py` is one `run_env` call and `alembic.ini` keeps only the `[alembic]` section, with revisions and advisory lock keys unchanged (#881)
 - Move the `require_writer` / `require_admin` role matrix of chores, pantry and maintenance into `backend_shared.household.permissions` and the duplicated app `test_storage.py` copies into the `backend_shared` suite (#882)
+- Make the telemetry stack optional in production: `OTEL_ENABLED` (default `false`) now controls OpenTelemetry export in every backend, Grafana's OIDC client and the Caddy `/grafana` route, and `alfheim-setup provision --telemetry` switches it; existing installations set `OTEL_ENABLED=true` to keep Grafana (#861)
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
