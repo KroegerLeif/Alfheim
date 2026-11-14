@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/features/household"
-	"alfheim/household/internal/shared/middleware"
 )
 
 func TestHouseholdService_CreateAndInvite(t *testing.T) {
@@ -19,7 +19,7 @@ func TestHouseholdService_CreateAndInvite(t *testing.T) {
 	ctx := context.Background()
 
 	ownerID := "user-owner-123"
-	claims := &middleware.UserClaims{
+	claims := &auth.UserClaims{
 		Subject:           ownerID,
 		Email:             "owner@example.com",
 		PreferredUsername: "owner",
@@ -55,7 +55,7 @@ func TestHouseholdService_CreateAndInvite(t *testing.T) {
 
 	// Member joins via token
 	joinUserID := "user-member-456"
-	joinedH, err := svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: joinUserID}, invResp.Token)
+	joinedH, err := svc.JoinHousehold(ctx, &auth.UserClaims{Subject: joinUserID}, invResp.Token)
 	if err != nil {
 		t.Fatalf("expected member to join household via token, got error: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("JoinHousehold invalid token", func(t *testing.T) {
-		_, err := svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "new-user"}, "non-existent-token")
+		_, err := svc.JoinHousehold(ctx, &auth.UserClaims{Subject: "new-user"}, "non-existent-token")
 		if err != household.ErrInviteNotFound {
 			t.Errorf("expected ErrInviteNotFound, got %v", err)
 		}
@@ -225,7 +225,7 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 			ExpiresAt:   time.Now().Add(-time.Hour),
 			MaxUses:     1,
 		}
-		_, err = svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "new-user"}, "expired-token")
+		_, err = svc.JoinHousehold(ctx, &auth.UserClaims{Subject: "new-user"}, "expired-token")
 		if err != household.ErrInviteExpiredOrInvalid {
 			t.Errorf("expected ErrInviteExpiredOrInvalid, got %v", err)
 		}
@@ -261,7 +261,7 @@ func TestHouseholdService_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("CreateHousehold validation edge cases", func(t *testing.T) {
-		claims := &middleware.UserClaims{Subject: "u1", Email: "u1@e.com", PreferredUsername: "u1"}
+		claims := &auth.UserClaims{Subject: "u1", Email: "u1@e.com", PreferredUsername: "u1"}
 		_, err := svc.CreateHousehold(ctx, claims, household.CreateHouseholdRequest{Name: ""})
 		if err == nil {
 			t.Fatal("expected error on empty household name, got nil")

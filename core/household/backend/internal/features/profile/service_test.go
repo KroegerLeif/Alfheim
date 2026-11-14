@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/features/profile"
-	"alfheim/household/internal/shared/middleware"
 )
 
 type mockProfileRepository struct {
@@ -72,7 +72,7 @@ func TestProfileService_JITProvisioningAndSync(t *testing.T) {
 	svc := profile.NewService(repo, logger)
 	ctx := context.Background()
 
-	claims := &middleware.UserClaims{
+	claims := &auth.UserClaims{
 		Subject:           "user-sub-123",
 		Email:             "john.doe@example.com",
 		PreferredUsername: "johndoe",
@@ -102,7 +102,7 @@ func TestProfileService_JITProvisioningAndSync(t *testing.T) {
 	}
 
 	// 3. Test Sync existing profile with updated claims
-	updatedClaims := &middleware.UserClaims{
+	updatedClaims := &auth.UserClaims{
 		Subject:           "user-sub-123",
 		Email:             "new.email@example.com",
 		PreferredUsername: "newusername",
@@ -153,7 +153,7 @@ func TestProfileService_SyncAndUpdateErrors(t *testing.T) {
 		repo.getErr = errors.New("db connection pool closed")
 		svc := profile.NewService(repo, logger)
 
-		claims := &middleware.UserClaims{Subject: "user-err"}
+		claims := &auth.UserClaims{Subject: "user-err"}
 		_, err := svc.SyncProfileFromClaims(ctx, claims)
 		if err == nil {
 			t.Fatal("expected error from SyncProfileFromClaims when GetByID fails, got nil")
@@ -169,7 +169,7 @@ func TestProfileService_SyncAndUpdateErrors(t *testing.T) {
 		repo.upsertErr = errors.New("upsert failed")
 		svc := profile.NewService(repo, logger)
 
-		claims := &middleware.UserClaims{Subject: "user-1", Email: "new@example.com"}
+		claims := &auth.UserClaims{Subject: "user-1", Email: "new@example.com"}
 		_, err := svc.SyncProfileFromClaims(ctx, claims)
 		if err == nil {
 			t.Fatal("expected error when Upsert fails during sync, got nil")
@@ -181,7 +181,7 @@ func TestProfileService_SyncAndUpdateErrors(t *testing.T) {
 		repo.upsertErr = errors.New("upsert failed")
 		svc := profile.NewService(repo, logger)
 
-		claims := &middleware.UserClaims{Subject: "user-jit-err"}
+		claims := &auth.UserClaims{Subject: "user-jit-err"}
 		_, err := svc.SyncProfileFromClaims(ctx, claims)
 		if err == nil {
 			t.Fatal("expected error when JIT Upsert fails, got nil")

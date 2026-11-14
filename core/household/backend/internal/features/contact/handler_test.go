@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/features/household"
-	"alfheim/household/internal/shared/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -82,15 +82,15 @@ func (m *mockService) DeleteContact(ctx context.Context, requesterID, householdI
 	return nil
 }
 
-func withUserClaims(req *http.Request, claims *middleware.UserClaims) *http.Request {
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
+func withUserClaims(req *http.Request, claims *auth.UserClaims) *http.Request {
+	ctx := context.WithValue(req.Context(), auth.UserContextKey, claims)
 	return req.WithContext(ctx)
 }
 
 func TestContactHandler_CreateCategory(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		body           string
 		mockFn         func(ctx context.Context, requesterID, householdID string, req CreateCategoryRequest) (*ContactCategory, error)
@@ -107,7 +107,7 @@ func TestContactHandler_CreateCategory(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json payload",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			hhID:           "hh-1",
 			body:           `{invalid}`,
 			expectedStatus: http.StatusBadRequest,
@@ -115,7 +115,7 @@ func TestContactHandler_CreateCategory(t *testing.T) {
 		},
 		{
 			name:   "forbidden when user is unauthorized in household",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"name":"Family"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req CreateCategoryRequest) (*ContactCategory, error) {
@@ -126,7 +126,7 @@ func TestContactHandler_CreateCategory(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic service failure",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"name":"Family"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req CreateCategoryRequest) (*ContactCategory, error) {
@@ -137,7 +137,7 @@ func TestContactHandler_CreateCategory(t *testing.T) {
 		},
 		{
 			name:   "success creating category",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"name":"Family","icon":"users","color":"blue"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req CreateCategoryRequest) (*ContactCategory, error) {
@@ -178,7 +178,7 @@ func TestContactHandler_CreateCategory(t *testing.T) {
 func TestContactHandler_GetCategories(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		mockFn         func(ctx context.Context, requesterID, householdID string) ([]*ContactCategory, error)
 		expectedStatus int
@@ -193,7 +193,7 @@ func TestContactHandler_GetCategories(t *testing.T) {
 		},
 		{
 			name:   "forbidden when unauthorized access to household",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) ([]*ContactCategory, error) {
 				return nil, household.ErrUnauthorizedHouseholdAccess
@@ -203,7 +203,7 @@ func TestContactHandler_GetCategories(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic service error",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) ([]*ContactCategory, error) {
 				return nil, errors.New("db error")
@@ -213,7 +213,7 @@ func TestContactHandler_GetCategories(t *testing.T) {
 		},
 		{
 			name:   "success getting categories",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) ([]*ContactCategory, error) {
 				return []*ContactCategory{{ID: "cat-1", Name: "Neighbors"}}, nil
@@ -253,7 +253,7 @@ func TestContactHandler_GetCategories(t *testing.T) {
 func TestContactHandler_UpdateCategory(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		catID          string
 		body           string
@@ -272,7 +272,7 @@ func TestContactHandler_UpdateCategory(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			hhID:           "hh-1",
 			catID:          "cat-1",
 			body:           `{invalid}`,
@@ -281,7 +281,7 @@ func TestContactHandler_UpdateCategory(t *testing.T) {
 		},
 		{
 			name:   "not found when category does not exist",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-missing",
 			body:   `{"name":"Updated"}`,
@@ -293,7 +293,7 @@ func TestContactHandler_UpdateCategory(t *testing.T) {
 		},
 		{
 			name:   "forbidden when unauthorized to update category",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-1",
 			body:   `{"name":"Updated"}`,
@@ -305,7 +305,7 @@ func TestContactHandler_UpdateCategory(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic service failure",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-1",
 			body:   `{"name":"Updated"}`,
@@ -317,7 +317,7 @@ func TestContactHandler_UpdateCategory(t *testing.T) {
 		},
 		{
 			name:   "success updating category",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-1",
 			body:   `{"name":"Updated Category"}`,
@@ -359,7 +359,7 @@ func TestContactHandler_UpdateCategory(t *testing.T) {
 func TestContactHandler_DeleteCategory(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		catID          string
 		mockFn         func(ctx context.Context, requesterID, householdID, catID string) error
@@ -376,7 +376,7 @@ func TestContactHandler_DeleteCategory(t *testing.T) {
 		},
 		{
 			name:   "not found when category missing",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-missing",
 			mockFn: func(ctx context.Context, requesterID, householdID, catID string) error {
@@ -387,7 +387,7 @@ func TestContactHandler_DeleteCategory(t *testing.T) {
 		},
 		{
 			name:   "forbidden when unauthorized",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-1",
 			mockFn: func(ctx context.Context, requesterID, householdID, catID string) error {
@@ -398,7 +398,7 @@ func TestContactHandler_DeleteCategory(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic error",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-1",
 			mockFn: func(ctx context.Context, requesterID, householdID, catID string) error {
@@ -409,7 +409,7 @@ func TestContactHandler_DeleteCategory(t *testing.T) {
 		},
 		{
 			name:   "success deleting category",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			catID:  "cat-1",
 			mockFn: func(ctx context.Context, requesterID, householdID, catID string) error {
@@ -450,7 +450,7 @@ func TestContactHandler_DeleteCategory(t *testing.T) {
 func TestContactHandler_CreateContact(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		body           string
 		mockFn         func(ctx context.Context, requesterID, householdID string, req CreateContactRequest) (*Contact, error)
@@ -467,7 +467,7 @@ func TestContactHandler_CreateContact(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json payload",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			hhID:           "hh-1",
 			body:           `{invalid}`,
 			expectedStatus: http.StatusBadRequest,
@@ -475,7 +475,7 @@ func TestContactHandler_CreateContact(t *testing.T) {
 		},
 		{
 			name:   "forbidden when unauthorized in household",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"name":"John Doe"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req CreateContactRequest) (*Contact, error) {
@@ -486,7 +486,7 @@ func TestContactHandler_CreateContact(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic failure",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"name":"John Doe"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req CreateContactRequest) (*Contact, error) {
@@ -497,7 +497,7 @@ func TestContactHandler_CreateContact(t *testing.T) {
 		},
 		{
 			name:   "success creating contact",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"name":"John Doe","email":"john@example.com"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req CreateContactRequest) (*Contact, error) {
@@ -538,7 +538,7 @@ func TestContactHandler_CreateContact(t *testing.T) {
 func TestContactHandler_GetContacts(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		mockFn         func(ctx context.Context, requesterID, householdID string) ([]*Contact, error)
 		expectedStatus int
@@ -553,7 +553,7 @@ func TestContactHandler_GetContacts(t *testing.T) {
 		},
 		{
 			name:   "forbidden when unauthorized access to household",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) ([]*Contact, error) {
 				return nil, household.ErrUnauthorizedHouseholdAccess
@@ -563,7 +563,7 @@ func TestContactHandler_GetContacts(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic service failure",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) ([]*Contact, error) {
 				return nil, errors.New("db error")
@@ -573,7 +573,7 @@ func TestContactHandler_GetContacts(t *testing.T) {
 		},
 		{
 			name:   "success getting contacts",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) ([]*Contact, error) {
 				return []*Contact{{ID: "cnt-1", Name: "Jane Smith"}}, nil
@@ -613,7 +613,7 @@ func TestContactHandler_GetContacts(t *testing.T) {
 func TestContactHandler_UpdateContact(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		contactID      string
 		body           string
@@ -632,7 +632,7 @@ func TestContactHandler_UpdateContact(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json payload",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			hhID:           "hh-1",
 			contactID:      "cnt-1",
 			body:           `{invalid}`,
@@ -641,7 +641,7 @@ func TestContactHandler_UpdateContact(t *testing.T) {
 		},
 		{
 			name:      "not found when contact missing",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-missing",
 			body:      `{"name":"Jane Doe"}`,
@@ -653,7 +653,7 @@ func TestContactHandler_UpdateContact(t *testing.T) {
 		},
 		{
 			name:      "forbidden when unauthorized access",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-1",
 			body:      `{"name":"Jane Doe"}`,
@@ -665,7 +665,7 @@ func TestContactHandler_UpdateContact(t *testing.T) {
 		},
 		{
 			name:      "internal error on generic failure",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-1",
 			body:      `{"name":"Jane Doe"}`,
@@ -677,7 +677,7 @@ func TestContactHandler_UpdateContact(t *testing.T) {
 		},
 		{
 			name:      "success updating contact",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-1",
 			body:      `{"name":"Jane Updated"}`,
@@ -719,7 +719,7 @@ func TestContactHandler_UpdateContact(t *testing.T) {
 func TestContactHandler_DeleteContact(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		contactID      string
 		mockFn         func(ctx context.Context, requesterID, householdID, contactID string) error
@@ -736,7 +736,7 @@ func TestContactHandler_DeleteContact(t *testing.T) {
 		},
 		{
 			name:      "not found when contact missing",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-missing",
 			mockFn: func(ctx context.Context, requesterID, householdID, contactID string) error {
@@ -747,7 +747,7 @@ func TestContactHandler_DeleteContact(t *testing.T) {
 		},
 		{
 			name:      "forbidden when unauthorized access",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-1",
 			mockFn: func(ctx context.Context, requesterID, householdID, contactID string) error {
@@ -758,7 +758,7 @@ func TestContactHandler_DeleteContact(t *testing.T) {
 		},
 		{
 			name:      "internal error on generic failure",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-1",
 			mockFn: func(ctx context.Context, requesterID, householdID, contactID string) error {
@@ -769,7 +769,7 @@ func TestContactHandler_DeleteContact(t *testing.T) {
 		},
 		{
 			name:      "success deleting contact",
-			claims:    &middleware.UserClaims{Subject: "user-1"},
+			claims:    &auth.UserClaims{Subject: "user-1"},
 			hhID:      "hh-1",
 			contactID: "cnt-1",
 			mockFn: func(ctx context.Context, requesterID, householdID, contactID string) error {
@@ -818,7 +818,7 @@ func TestContactHandler_RegisterRoutes(t *testing.T) {
 	r := chi.NewRouter()
 	authMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"})
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -837,7 +837,7 @@ func TestContactHandler_RegisterRoutes(t *testing.T) {
 
 func TestContactHandler_MissingHouseholdID(t *testing.T) {
 	handler := NewHandler(&mockService{})
-	ctx := context.WithValue(context.Background(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"})
+	ctx := context.WithValue(context.Background(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"})
 
 	t.Run("CreateCategory missing household id", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/categories", strings.NewReader(`{"name":"test"}`)).WithContext(ctx)

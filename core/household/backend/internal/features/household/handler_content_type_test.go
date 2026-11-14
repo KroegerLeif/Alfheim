@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/shared/httpjson"
-	"alfheim/household/internal/shared/middleware"
 )
 
 // Error bodies must be labelled application/json: the frontend's HTTP client
@@ -21,10 +21,10 @@ import (
 func TestHouseholdHandler_ErrorBodiesAreJSON(t *testing.T) {
 	failing := errors.New("db down")
 	svc := &mockService{
-		joinHouseholdFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+		joinHouseholdFn: func(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error) {
 			return nil, ErrMemberAlreadyExists
 		},
-		createHouseholdFn: func(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+		createHouseholdFn: func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 			return nil, ErrHouseholdSlugExists
 		},
 		transferOwnershipFn: func(ctx context.Context, requesterID, householdID, targetUserID string) (*HouseholdResponse, error) {
@@ -37,7 +37,7 @@ func TestHouseholdHandler_ErrorBodiesAreJSON(t *testing.T) {
 	r := chi.NewRouter()
 	NewHandler(svc).RegisterRoutes(r, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			next.ServeHTTP(w, withUserClaims(req, &middleware.UserClaims{Subject: "user-1"}))
+			next.ServeHTTP(w, withUserClaims(req, &auth.UserClaims{Subject: "user-1"}))
 		})
 	})
 

@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/shared/httpjson"
-	"alfheim/household/internal/shared/middleware"
 )
 
 // Handler manages profile HTTP endpoints.
@@ -32,7 +32,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 
 // GetMyProfile fetches the authenticated user's profile, syncing OIDC claims if necessary.
 func (h *Handler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -49,7 +49,7 @@ func (h *Handler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 
 // UpdateMyProfile updates the authenticated user's profile metadata.
 func (h *Handler) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return

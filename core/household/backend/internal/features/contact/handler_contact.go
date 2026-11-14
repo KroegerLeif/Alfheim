@@ -8,13 +8,13 @@ import (
 	"alfheim/household/internal/features/household"
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/shared/httpjson"
-	"alfheim/household/internal/shared/middleware"
 )
 
 // CreateContact handles POST /api/v1/households/{id}/contacts.
 func (h *Handler) CreateContact(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -47,7 +47,7 @@ func (h *Handler) CreateContact(w http.ResponseWriter, r *http.Request) {
 
 // GetContacts handles GET /api/v1/households/{id}/contacts.
 func (h *Handler) GetContacts(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -74,7 +74,7 @@ func (h *Handler) GetContacts(w http.ResponseWriter, r *http.Request) {
 
 // UpdateContact handles PUT /api/v1/households/{id}/contacts/{contactId}.
 func (h *Handler) UpdateContact(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -108,7 +108,7 @@ func (h *Handler) UpdateContact(w http.ResponseWriter, r *http.Request) {
 
 // DeleteContact handles DELETE /api/v1/households/{id}/contacts/{contactId}.
 func (h *Handler) DeleteContact(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return

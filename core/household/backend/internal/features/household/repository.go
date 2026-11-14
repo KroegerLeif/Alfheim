@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"alfheim/household/internal/shared/db"
+	"alfheim/go-shared/db"
 )
 
 // Repository persistence contract for household entities and invitations.
