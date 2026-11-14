@@ -70,6 +70,57 @@
 }
 
 # =============================================================================
+# App backends and unavailable apps, imported by the site blocks below.
+#
+# app_backend <upstream> <health path> proxies to an app backend. Passive
+# retries (lb_try_duration) let a request wait briefly for a backend that is
+# restarting instead of answering 502 at once; the active health check takes a
+# stopped backend out of rotation, so later requests fail fast with 503.
+#
+# app_unavailable answers a stopped, restarting or missing app (502, 503,
+# 504 from any upstream) with a clear error instead of an empty 502: API paths
+# get a JSON body, page paths the static page that the Caddy image ships in
+# /srv/alfheim-errors (infrastructure/caddy/errors; no external assets, so it
+# passes the CSP above). Caddy stays a host and prefix mapper:
+# the error routes only replace the failed response.
+# =============================================================================
+(app_backend) {
+	reverse_proxy {args[0]} {
+		lb_try_duration 3s
+		lb_try_interval 250ms
+		fail_duration 10s
+		health_uri {args[1]}
+		health_interval 15s
+		health_timeout 3s
+	}
+}
+
+(unavailable_json) {
+	header Content-Type "application/json"
+	respond `{"error":"service_unavailable","message":"This app is not available right now. Try again in a moment."}` 503
+}
+
+(app_unavailable) {
+	handle_errors 502 503 504 {
+		# Error routes start without the headers of the failed route.
+		import security_headers
+		header Retry-After "30"
+		header Cache-Control "no-store"
+		@api path */api/v1*
+		handle @api {
+			import unavailable_json
+		}
+		handle {
+			root * /srv/alfheim-errors
+			rewrite * /app-unavailable.html
+			file_server {
+				status 503
+			}
+		}
+	}
+}
+
+# =============================================================================
 # 0. IDENTITY PROVIDER DOMAIN (Zitadel OIDC)
 # Zitadel is served on its own dedicated host; it does not support sub-path
 # hosting. The issuer therefore is the bare origin of this domain.
@@ -105,6 +156,7 @@ http://auth.loegien.de {
 https://alfheim.loegien.de {
 
 	import security_headers
+	import app_unavailable
 
 	# Dedicated ingress healthcheck endpoint, isolated from downstream services.
 	handle /livez {
@@ -131,75 +183,75 @@ https://alfheim.loegien.de {
 	# /api/v1/households and /api/v1/profile itself. No app slug is a prefix
 	# of "households" or "profile", so no /api/v1/<slug>* rule can take them.
 	handle /api/v1/households* {
-		reverse_proxy household-backend:8080
+		import app_backend household-backend:8080 /healthz
 	}
 	handle /api/v1/profile* {
-		reverse_proxy household-backend:8080
+		import app_backend household-backend:8080 /healthz
 	}
 	handle_path /api/v1/pantry* {
 		rewrite * /api/v1{path}
-		reverse_proxy pantry-backend:8000
+		import app_backend pantry-backend:8000 /api/v1/health
 	}
 	handle_path /pantry/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy pantry-backend:8000
+		import app_backend pantry-backend:8000 /api/v1/health
 	}
 	handle /api/v1/shopping* {
-		reverse_proxy shopping-backend:8000
+		import app_backend shopping-backend:8000 /health
 	}
 	handle_path /shopping/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy shopping-backend:8000
+		import app_backend shopping-backend:8000 /health
 	}
 	handle_path /api/v1/maintenance* {
 		rewrite * /api/v1{path}
-		reverse_proxy maintenance-backend:8000
+		import app_backend maintenance-backend:8000 /api/v1/health
 	}
 	handle_path /maintenance/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy maintenance-backend:8000
+		import app_backend maintenance-backend:8000 /api/v1/health
 	}
 	handle /api/v1/chores* {
-		reverse_proxy chores-backend:8000
+		import app_backend chores-backend:8000 /api/v1/health
 	}
 	handle_path /chores/api/v1* {
 		rewrite * /api/v1/chores{path}
-		reverse_proxy chores-backend:8000
+		import app_backend chores-backend:8000 /api/v1/health
 	}
 	handle_path /api/v1/budget* {
 		rewrite * /api/v1{path}
-		reverse_proxy budget-backend:8000
+		import app_backend budget-backend:8000 /healthz
 	}
 	handle_path /budget/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy budget-backend:8000
+		import app_backend budget-backend:8000 /healthz
 	}
 	handle_path /api/v1/workout* {
 		rewrite * /api/v1{path}
-		reverse_proxy workout-backend:8000
+		import app_backend workout-backend:8000 /api/v1/health
 	}
 	handle_path /workout/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy workout-backend:8000
+		import app_backend workout-backend:8000 /api/v1/health
 	}
 	handle /api/v1/library* {
-		reverse_proxy library-backend:8000
+		import app_backend library-backend:8000 /health
 	}
 	handle_path /library/api/v1* {
 		rewrite * /api/v1/library{path}
-		reverse_proxy library-backend:8000
+		import app_backend library-backend:8000 /health
 	}
 	handle /api/v1/chat* {
-		reverse_proxy chat-backend:8080
+		import app_backend chat-backend:8080 /api/v1/chat/health
 	}
 	handle_path /chat/api/v1* {
 		rewrite * /api/v1/chat{path}
-		reverse_proxy chat-backend:8080
+		import app_backend chat-backend:8080 /api/v1/chat/health
 	}
 
 	# Central dashboard control plane (path preserved).
 	handle /api/v1/* {
-		reverse_proxy dashboard-backend:8080
+		import app_backend dashboard-backend:8080 /healthz
 	}
 
 	# RustFS object storage (S3_PUBLIC_URL). Browsers PUT and GET presigned

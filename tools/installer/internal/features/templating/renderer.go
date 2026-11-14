@@ -209,6 +209,9 @@ type APIRoute struct {
 	// proxied: /api/v1 for most apps, /api/v1/<slug> for apps whose routers
 	// are mounted under their slug.
 	BackendPrefix string
+	// HealthPath is the backend's health endpoint, probed by Caddy's active
+	// health check (the same path as its compose healthcheck).
+	HealthPath string
 }
 
 // apiRoutes mirrors the Tier-2 application services defined in
@@ -216,18 +219,18 @@ type APIRoute struct {
 // the API proxy rules and the frontend handlers are generated from this one
 // list so the two can never drift apart.
 var apiRoutes = []APIRoute{
-	{Slug: "pantry", Upstream: "pantry-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
+	{Slug: "pantry", Upstream: "pantry-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/api/v1/health"},
 	// The shopping backend serves /api/v1/shopping-lists, /api/v1/shopping/items
 	// and /api/v1/shopping-history itself, so /api/v1/shopping* is passed through
 	// while /shopping/api/v1/... maps onto /api/v1/.... Its frontend listens on
 	// 3010 (PORT in compose.prod.yaml).
-	{Slug: "shopping", Upstream: "shopping-backend:8000", FrontendPort: 3010, Direct: true, BackendPrefix: "/api/v1"},
-	{Slug: "maintenance", Upstream: "maintenance-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
-	{Slug: "chores", Upstream: "chores-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chores"},
-	{Slug: "budget", Upstream: "budget-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
-	{Slug: "workout", Upstream: "workout-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
-	{Slug: "library", Upstream: "library-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/library"},
-	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat"},
+	{Slug: "shopping", Upstream: "shopping-backend:8000", FrontendPort: 3010, Direct: true, BackendPrefix: "/api/v1", HealthPath: "/health"},
+	{Slug: "maintenance", Upstream: "maintenance-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/api/v1/health"},
+	{Slug: "chores", Upstream: "chores-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chores", HealthPath: "/api/v1/health"},
+	{Slug: "budget", Upstream: "budget-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/healthz"},
+	{Slug: "workout", Upstream: "workout-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/api/v1/health"},
+	{Slug: "library", Upstream: "library-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/library", HealthPath: "/health"},
+	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat", HealthPath: "/api/v1/chat/health"},
 }
 
 // APIRoutes exposes the whole application route table.
