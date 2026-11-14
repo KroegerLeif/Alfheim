@@ -138,3 +138,31 @@ func TestRepairEnvFile(t *testing.T) {
 		t.Error("an idempotent run must not create a backup")
 	}
 }
+
+// TestRepairEnvFileAddsBootstrapPATExpiry covers an install rendered before
+// issue #789: the updated compose.prod.yaml requires the expiry, so update
+// adds it once and leaves an existing value alone.
+func TestRepairEnvFileAddsBootstrapPATExpiry(t *testing.T) {
+	layout, err := paths.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(layout.EnvFile(), []byte("DOCKER_SOCKET_GID=133\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 14, 10, 0, 0, 0, time.UTC)
+	detect := func() (string, error) { return "998", nil }
+	env, _ := envfile.ParseFile(layout.EnvFile())
+
+	var out bytes.Buffer
+	if _, err := repairEnvFile(&out, layout, env, now, detect); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := envfile.ParseFile(layout.EnvFile())
+	if after[bootstrapPATExpiryKey] != "2026-11-21T10:00:00Z" {
+		t.Errorf("%s = %q, want one week after now", bootstrapPATExpiryKey, after[bootstrapPATExpiryKey])
+	}
+	if _, ok := bootstrapPATExpiryRepair(after, now.Add(30*24*time.Hour)); ok {
+		t.Error("an existing expiry must not be replaced")
+	}
+}

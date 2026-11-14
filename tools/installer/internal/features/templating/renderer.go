@@ -77,6 +77,19 @@ func (m Model) GeneratedStamp() string {
 	return m.Generated.UTC().Format(time.RFC3339)
 }
 
+// BootstrapPATLifetime bounds the personal access token Zitadel creates for
+// the provisioning machine user on first init. alfheim-setup revokes that
+// token minutes later, when it switches to a machine key (issue #789); the
+// expiry only matters if that never happens, and leaves room for a first
+// boot that is retried within a week of rendering .env.
+const BootstrapPATLifetime = 7 * 24 * time.Hour
+
+// BootstrapPATExpiry renders ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE: the
+// generation time plus BootstrapPATLifetime, in UTC.
+func (m Model) BootstrapPATExpiry() string {
+	return m.Generated.Add(BootstrapPATLifetime).UTC().Format(time.RFC3339)
+}
+
 // ExternalPort is the port Zitadel advertises in its issuer metadata.
 func (m Model) ExternalPort() string {
 	if m.Onboarding.Secure {

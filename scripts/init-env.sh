@@ -178,6 +178,31 @@ set_env_value() {
   mv "$tmp" "$file"
 }
 
+# bootstrap_pat_expiry prints the expiry for the PAT Zitadel creates for the
+# provisioning machine user on first init: one week from now, in UTC.
+# `alfheim-setup provision` revokes that PAT on its first run (issue #789).
+bootstrap_pat_expiry() {
+  date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+7d +%Y-%m-%dT%H:%M:%SZ
+}
+
+# ensure_bootstrap_pat_expiry fills ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE in
+# <file> when it is missing, empty or already past; compose.prod.yaml requires
+# it, and Zitadel refuses to create an already expired PAT on first init (a
+# reused .env against a fresh database). Same-format UTC timestamps compare
+# correctly as strings. Returns 1 when the value was left alone.
+ensure_bootstrap_pat_expiry() {
+  local file="$1" current
+  current="$(env_value "$file" ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE)"
+  if [[ -n "${current}" && ! "${current}" < "$(date -u +%Y-%m-%dT%H:%M:%SZ)" ]]; then
+    return 1
+  fi
+  if grep -q '^ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE=' "$file"; then
+    set_env_value "$file" ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE "$(bootstrap_pat_expiry)"
+  else
+    printf 'ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE=%s\n' "$(bootstrap_pat_expiry)" >> "$file"
+  fi
+}
+
 # generate_for_key prints a fresh value in the format <key> needs.
 generate_for_key() {
   case "$1" in
@@ -426,6 +451,9 @@ migrate_existing_env() {
   fi
   if ! grep -q "^ZITADEL_BOOTSTRAP_USERNAME=" "$env_file"; then
     printf "ZITADEL_BOOTSTRAP_USERNAME=bootstrap\nZITADEL_BOOTSTRAP_PAT=\n" >> "$env_file"
+    migrated=true
+  fi
+  if ensure_bootstrap_pat_expiry "$env_file"; then
     migrated=true
   fi
   if ! grep -q "^ZITADEL_PROJECT_ID=" "$env_file"; then
@@ -831,6 +859,7 @@ fi
 if ! grep -q '^ZITADEL_BOOTSTRAP_USERNAME=' "$OUTPUT_FILE"; then
   printf "ZITADEL_BOOTSTRAP_USERNAME=bootstrap\nZITADEL_BOOTSTRAP_PAT=\n" >> "$OUTPUT_FILE"
 fi
+ensure_bootstrap_pat_expiry "$OUTPUT_FILE" || true
 if ! grep -q '^ZITADEL_PROJECT_ID=' "$OUTPUT_FILE"; then
   printf "ZITADEL_PROJECT_ID=%s\n" "${ZITADEL_PROJECT_ID}" >> "$OUTPUT_FILE"
 fi

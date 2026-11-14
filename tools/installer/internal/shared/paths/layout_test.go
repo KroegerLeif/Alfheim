@@ -34,6 +34,8 @@ func TestLayoutPaths(t *testing.T) {
 		{"cert dir", l.DefaultCertDir(), "/srv/alfheim/data/caddy/certs"},
 		{"zitadel machine key dir", l.ZitadelMachineKeyDir(), "/srv/alfheim/infrastructure/zitadel/machinekey"},
 		{"zitadel pat file", l.ZitadelPATFile(), "/srv/alfheim/infrastructure/zitadel/machinekey/pat.txt"},
+		{"zitadel provisioner dir", l.ZitadelProvisionerDir(), "/srv/alfheim/infrastructure/zitadel/provisioner"},
+		{"zitadel provisioner key", l.ZitadelProvisionerKeyFile(), "/srv/alfheim/infrastructure/zitadel/provisioner/machine-key.json"},
 		{"caddy pki dir", l.CaddyPKIDir(), "/srv/alfheim/infrastructure/caddy/pki"},
 		{"caddy pki root cert", l.CaddyPKIRootCert(), "/srv/alfheim/infrastructure/caddy/pki/root.crt"},
 		{"caddy pki root key", l.CaddyPKIRootKey(), "/srv/alfheim/infrastructure/caddy/pki/root.key"},

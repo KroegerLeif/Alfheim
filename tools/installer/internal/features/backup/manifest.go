@@ -6,7 +6,8 @@
 //
 //	database.sql      pg_dumpall of the whole postgres-core cluster
 //	rustfs-data.tar   tar of the RustFS data volume (optional)
-//	files/<path>      .env, Zitadel machinekey, root CA, Caddy PKI, stack files
+//	files/<path>      .env, Zitadel machinekey and provisioner key, root CA,
+//	                  Caddy PKI, stack files
 //	manifest.json     format version, release, per-entry SHA-256 checksums
 //
 // manifest.json is written last so the checksums cover the final bytes of

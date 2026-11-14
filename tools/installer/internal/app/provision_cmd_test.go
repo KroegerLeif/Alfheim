@@ -19,6 +19,8 @@ import (
 // with self-registration enabled like a fresh Zitadel, and the organisation
 // policy that inherits it.
 type loginPolicyStub struct {
+	// creds answers the machine key rotation every run starts with.
+	creds        *credentialStub
 	mu           sync.Mutex
 	registerOpen bool
 	puts         int
@@ -26,10 +28,15 @@ type loginPolicyStub struct {
 	mail emailStub
 }
 
-func newLoginPolicyStub() *loginPolicyStub { return &loginPolicyStub{registerOpen: true} }
+func newLoginPolicyStub() *loginPolicyStub {
+	return &loginPolicyStub{creds: newCredentialStub(), registerOpen: true}
+}
 
 // handle answers a login policy request and reports whether it did.
 func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
+	if l.creds.handle(w, r) {
+		return true
+	}
 	if handleOperatorAccess(w, r) {
 		return true
 	}
@@ -284,13 +291,13 @@ func assertProvisionedEnv(t *testing.T, envPath string) {
 	}
 }
 
-func TestRunProvision_RequiresBothFlags(t *testing.T) {
+func TestRunProvision_RequiresEnvFile(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	code := RunProvision([]string{"--env-file", "/tmp/x"}, &stdout, &stderr)
+	code := RunProvision([]string{"--pat-file", "/tmp/x"}, &stdout, &stderr)
 	if code != ExitUsage {
 		t.Fatalf("RunProvision() = %d, want %d", code, ExitUsage)
 	}
-	if !strings.Contains(stderr.String(), "--pat-file") {
+	if !strings.Contains(stderr.String(), "--env-file") {
 		t.Errorf("stderr = %q", stderr.String())
 	}
 }

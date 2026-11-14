@@ -424,8 +424,9 @@ func (a *App) renderConfiguration(
 	// or the __PROVISIONED__ placeholder, since provisioning runs after
 	// rendering. Carry forward whatever an earlier run actually provisioned
 	// (the same way security.GenerateAll carries forward secrets above), or
-	// --reconfigure would silently discard a working Grafana secret and the
-	// bootstrap PAT and force a full re-provision on the next boot.
+	// --reconfigure would silently discard a working Grafana secret (and a
+	// recovery PAT not yet used) and force a full re-provision on the next
+	// boot.
 	if provisioned := carryForwardProvisioned(existing); len(provisioned) > 0 {
 		if err := envfile.Update(target.EnvFile(), provisioned); err != nil {
 			return model, target, fmt.Errorf(
@@ -455,7 +456,8 @@ func (a *App) dockerSocketGID(existing map[string]string) string {
 }
 
 // provisionedEnvKeys are the values internal/features/provisioning writes
-// into .env (plus the bootstrap PAT, which readPAT persists there too).
+// into .env (plus a bootstrap PAT an operator set for recovery, which the
+// next provisioning run uses once and clears).
 // env.tmpl renders each as empty or as the __PROVISIONED__ placeholder,
 // since provisioning always runs after rendering.
 var provisionedEnvKeys = []string{
