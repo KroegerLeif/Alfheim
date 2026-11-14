@@ -15,6 +15,8 @@ interface CoreAppsSectionProps {
 
 export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsSectionProps) {
   const { t } = useTranslation();
+  // Disabled apps are absent from the registry, so the list may be empty.
+  const items = apps ?? [];
 
   return (
     <div className="col-span-12 mt-2">
@@ -32,7 +34,7 @@ export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsS
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-[var(--text-muted)]">
-            {t('dashboard.tier1_active_count', { count: apps ? apps.length : 0 })}
+            {t('dashboard.tier1_active_count', { count: items.length })}
           </span>
           <Link
             href="/settings"
@@ -69,7 +71,7 @@ export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsS
           <div className="col-span-full p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
             {t('dashboard.tier1_load_error')}
           </div>
-        ) : !apps || apps.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="col-span-full p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
             <span className="material-symbols-outlined text-3xl text-[var(--text-muted)]">visibility_off</span>
             <p className="text-xs font-mono text-[var(--text-muted)]">
@@ -83,7 +85,7 @@ export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsS
             </Link>
           </div>
         ) : (
-          apps.map((app) => {
+          items.map((app) => {
             const targetUrl = app.status === 'in_progress' || app.status === 'maintenance'
               ? `/under-construction?app=${encodeURIComponent(app.title || app.name || app.slug)}`
               : (app.url || app.app_url || '#');

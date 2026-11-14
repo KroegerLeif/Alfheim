@@ -73,7 +73,8 @@ func run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
+	enabledApps := apps.ParseEnabledApps(cfg.EnabledApps)
+	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins, enabledApps)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -134,7 +135,8 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string) http.Handler {
+// enabledApps is the installation's ALFHEIM_ENABLED_APPS set; it decides which Tier-1 tiles exist.
+func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string, enabledApps apps.EnabledApps) http.Handler {
 	// An unauthenticated API must never be served: refuse to build the router.
 	if jwtMw == nil {
 		panic("dashboard-backend: auth middleware is required to build the router")
@@ -148,7 +150,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler)
 	stackLoader := apps.NewStackAppsLoader(stackAppsPath, log)
 
 	// Initialize Services
-	appsService := apps.NewService(appsRepo, stackLoader, log)
+	appsService := apps.NewService(appsRepo, stackLoader, apps.EnabledCoreApps(enabledApps), log)
 	telemetryService := telemetry.NewService("", log)
 
 	// Initialize Handlers

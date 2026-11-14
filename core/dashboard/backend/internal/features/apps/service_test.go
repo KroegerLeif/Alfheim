@@ -129,7 +129,7 @@ func Test3TierAppService_GetDashboardApps(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, stackLoader, logger)
+	svc := apps.NewService(repo, stackLoader, apps.CoreApps, logger)
 	ctx := context.Background()
 
 	// 1. Query for standard user (roles: []) -> should get all Core apps (9; the
@@ -177,7 +177,7 @@ func Test3TierAppService_GetUserLinks(t *testing.T) {
 	repo := newMockRepository()
 	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, stackLoader, logger)
+	svc := apps.NewService(repo, stackLoader, apps.CoreApps, logger)
 	ctx := context.Background()
 
 	links, err := svc.GetUserLinks(ctx, "user-1")
@@ -205,7 +205,7 @@ func Test3TierAppService_UserLinkCRUD(t *testing.T) {
 	repo := newMockRepository()
 	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, stackLoader, logger)
+	svc := apps.NewService(repo, stackLoader, apps.CoreApps, logger)
 	ctx := context.Background()
 
 	// Test link creation
@@ -247,7 +247,7 @@ func Test3TierAppService_UserPreferences(t *testing.T) {
 	repo := newMockRepository()
 	stackLoader := &mockStackLoader{apps: []apps.StackAppConfig{}}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, stackLoader, logger)
+	svc := apps.NewService(repo, stackLoader, apps.CoreApps, logger)
 	ctx := context.Background()
 
 	// Get Preferences
@@ -282,7 +282,7 @@ func Test3TierAppService_PermissionsAndValidationEdgeCases(t *testing.T) {
 		},
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := apps.NewService(repo, stackLoader, logger)
+	svc := apps.NewService(repo, stackLoader, apps.CoreApps, logger)
 	ctx := context.Background()
 
 	t.Run("alfheim_admin sees all stack apps", func(t *testing.T) {
@@ -348,4 +348,23 @@ func Test3TierAppService_PermissionsAndValidationEdgeCases(t *testing.T) {
 			t.Errorf("expected ErrLinkNotFound, got %v", err)
 		}
 	})
+}
+
+func Test3TierAppService_DisabledAppsHaveNoTile(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	core := apps.EnabledCoreApps(apps.ParseEnabledApps("pantry"))
+	svc := apps.NewService(newMockRepository(), &mockStackLoader{}, core, logger)
+
+	res, err := svc.GetDashboardApps(context.Background(), "user-1", nil)
+	if err != nil {
+		t.Fatalf("GetDashboardApps: %v", err)
+	}
+	for _, app := range res.AllCore {
+		if app.ID != "pantry" && app.ID != "household" {
+			t.Errorf("disabled app %q got a tile", app.ID)
+		}
+	}
+	if len(res.AllCore) != 2 {
+		t.Errorf("expected 2 core tiles, got %d", len(res.AllCore))
+	}
 }

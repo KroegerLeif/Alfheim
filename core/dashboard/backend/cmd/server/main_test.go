@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"alfheim/dashboard/config"
+	"alfheim/dashboard/internal/features/apps"
 	"alfheim/dashboard/internal/shared/db"
 	"alfheim/dashboard/internal/shared/middleware"
 )
@@ -47,14 +48,14 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, "", []string{})
+	buildRouter(log, &db.Client{Pool: nil}, nil, "", []string{}, apps.AllApps())
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, passthroughAuth, "", []string{})
+	router := buildRouter(log, dbClient, passthroughAuth, "", []string{}, apps.AllApps())
 
 	t.Run("/healthz endpoint returns 200 healthy", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)

@@ -13,6 +13,7 @@ interface StackAppsSectionProps {
 
 export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionProps) {
   const { t } = useTranslation();
+  const items = apps ?? [];
 
   return (
     <div className="col-span-12 mt-6">
@@ -27,7 +28,7 @@ export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionP
           </h2>
         </div>
         <span className="text-xs font-mono text-[var(--text-muted)]">
-          {t('dashboard.tier2_count', { count: apps ? apps.length : 0 })}
+          {t('dashboard.tier2_count', { count: items.length })}
         </span>
       </div>
 
@@ -49,7 +50,7 @@ export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionP
           <div className="col-span-full p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
             {t('dashboard.tier2_load_error')}
           </div>
-        ) : !apps || apps.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="col-span-full p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
             <span className="material-symbols-outlined text-3xl text-[var(--text-muted)]">dns</span>
             <p className="text-xs font-mono text-[var(--text-muted)]">
@@ -57,7 +58,7 @@ export function StackAppsSection({ isLoading, isError, apps }: StackAppsSectionP
             </p>
           </div>
         ) : (
-          apps.map((app) => {
+          items.map((app) => {
             const targetUrl = app.status === 'in_progress' || app.status === 'maintenance'
               ? `/under-construction?app=${encodeURIComponent(app.title || app.name || app.slug)}`
               : (app.url || app.app_url || '#');

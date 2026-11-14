@@ -616,6 +616,9 @@ services:
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:?DASHBOARD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Enabled optional apps (ADR 0007): the dashboard lists only their tiles.
+      # Unset means every app, like an installation from before the Lean Core.
+      - ALFHEIM_ENABLED_APPS=${ALFHEIM_ENABLED_APPS-all}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
