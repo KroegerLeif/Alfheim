@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The installer applies the enabled app set: install, re-run, `update` and `restore` pass `COMPOSE_PROFILES` from `ALFHEIM_ENABLED_APPS` to every compose call, so an update never restarts a disabled app; `apps enable` creates missing databases, starts the app and waits for it; the Caddyfile answers 404 for a disabled app's API and redirects its pages (and `/grafana` without telemetry) to the dashboard (#858).
 - `alfheim-setup` installs the Lean Core by default: `--apps=all|none|<list>` (or `ALFHEIM_APPS`) selects optional apps non-interactively, and the wizard has an app step listing each optional app with its description and memory, plus a separate telemetry question (default off); a re-run keeps the stored set (#859).
 - `./scripts/up.sh --lean` and `--apps=<list>` boot the dev stack with only the Lean Core or the listed modules, with one stage per app derived from a single array; `./scripts/verify-stack.sh` skips and lists the routes of apps that are not running (#860).
+- List only the enabled apps on the dashboard: the backend reads `ALFHEIM_ENABLED_APPS` at startup (unset means every app), so a disabled app has no tile (#863).
+- Show live health on every core app card: `GET /api/v1/apps/health` probes each enabled app backend with a 2 s timeout, caches the result for 15 s with one probe round per window, and the card shows online, degraded or offline next to its configured status (#810).
+- Answer a stopped or restarting app with a clear error instead of an empty 502: Caddy's `handle_errors` returns JSON `503 service_unavailable` with `Retry-After` on API paths and a static page with a link back to the dashboard on page paths, in the dev Caddyfile and the installer template (#887).
+- Add passive retries (`lb_try_duration`) and active health checks on each backend's health path to every app backend proxy, so short backend restarts no longer surface as 502 (#811).
+- Add `GET /api/v1/shopping/capabilities` (`pantry_available`); the shopping frontend hides the pantry sync when Pantry is not installed (#864).
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
@@ -33,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move the `require_writer` / `require_admin` role matrix of chores, pantry and maintenance into `backend_shared.household.permissions` and the duplicated app `test_storage.py` copies into the `backend_shared` suite (#882)
 - Make the telemetry stack optional in production: `OTEL_ENABLED` (default `false`) now controls OpenTelemetry export in every backend and Grafana's OIDC client, and follows the `telemetry` module of `ALFHEIM_ENABLED_APPS` (`alfheim-setup apps enable|disable telemetry`, or `provision --telemetry`); `/grafana` redirects to the dashboard while it is off, and an existing installation keeps telemetry on through its first update (#861)
 - Right-size `compose.prod.yaml`: memory reservations follow measured idle use with limits at about twice that (Lean Core reserves 752 MB, the full stack 3.2 GB instead of 8 GB), Next.js heaps are capped, `postgres-core` gets `POSTGRES_SHARED_BUFFERS`, `POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM`, and healthchecks run every 30 s with a 5 s `start_interval`, which needs Docker Engine 25 (#862)
+- Move the budget, chores, library, maintenance, pantry, shopping and workout frontends to the shared `createApiClient` instead of their own ky wrappers, and give it a `searchParams` option; `ky` is no longer a dependency, uploads keep their longer timeouts (#877)
+- Render `CHAT_MCP_SERVERS` and `PANTRY_BACKEND_URL` from the enabled apps in the installer; chat only offers tools of the listed apps and treats an unreachable MCP server as "tools unavailable" with a 2 s connect and 5 s discovery timeout (#864)
+### Fixed
+- Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
+- Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
