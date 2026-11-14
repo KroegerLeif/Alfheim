@@ -415,6 +415,18 @@ func (p loginPolicy) allowRegister() bool {
 	return v
 }
 
+// hasFlags reports whether every flag in want already has the wanted value.
+// An omitted boolean field is false, as Zitadel's JSON omits false values.
+func (p loginPolicy) hasFlags(want map[string]bool) bool {
+	for key, v := range want {
+		got, _ := p.fields[key].(bool)
+		if got != v {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *HTTPClient) getLoginPolicy(ctx context.Context, path string) (loginPolicy, error) {
 	respBody, err := c.request(ctx, http.MethodGet, path, nil, "")
 	if err != nil {
@@ -433,15 +445,16 @@ func (c *HTTPClient) getLoginPolicy(ctx context.Context, path string) (loginPoli
 	return loginPolicy{fields: decoded.Policy, isDefault: isDefault}, nil
 }
 
-// disableRegistration reads the policy at path and, unless self-registration
-// is already off, writes it back with allowRegister=false and every other
-// setting unchanged. It returns the policy as read before the change.
-func (c *HTTPClient) disableRegistration(ctx context.Context, path string) (loginPolicy, error) {
+// setLoginPolicyFlags reads the policy at path and, unless every flag in want
+// already has the wanted value, writes it back with those flags changed and
+// every other setting unchanged. It returns the policy as read before the
+// change.
+func (c *HTTPClient) setLoginPolicyFlags(ctx context.Context, path string, want map[string]bool) (loginPolicy, error) {
 	current, err := c.getLoginPolicy(ctx, path)
 	if err != nil {
 		return loginPolicy{}, err
 	}
-	if !current.allowRegister() {
+	if current.hasFlags(want) {
 		return current, nil
 	}
 	body := make(map[string]any, len(loginPolicyFields))
@@ -450,12 +463,17 @@ func (c *HTTPClient) disableRegistration(ctx context.Context, path string) (logi
 			body[key] = v
 		}
 	}
-	body["allowRegister"] = false
+	for key, v := range want {
+		body[key] = v
+	}
 	if _, err := c.request(ctx, http.MethodPut, path, body, ""); err != nil {
 		return loginPolicy{}, err
 	}
 	return current, nil
 }
+
+// registrationOff is the login policy change EnsureRegistrationDisabled makes.
+var registrationOff = map[string]bool{"allowRegister": false}
 
 // EnsureRegistrationDisabled implements Client.
 //
@@ -468,7 +486,7 @@ func (c *HTTPClient) disableRegistration(ctx context.Context, path string) (logi
 // following the instance. Both are read back afterwards, because a policy
 // that silently stayed open must fail the install, not pass it.
 func (c *HTTPClient) EnsureRegistrationDisabled(ctx context.Context) error {
-	if _, err := c.disableRegistration(ctx, instanceLoginPolicyPath); err != nil {
+	if _, err := c.setLoginPolicyFlags(ctx, instanceLoginPolicyPath, registrationOff); err != nil {
 		return fmt.Errorf("instance login policy: %w", err)
 	}
 
@@ -477,7 +495,7 @@ func (c *HTTPClient) EnsureRegistrationDisabled(ctx context.Context) error {
 		return fmt.Errorf("organisation login policy: %w", err)
 	}
 	if !org.isDefault {
-		if _, err := c.disableRegistration(ctx, orgLoginPolicyPath); err != nil {
+		if _, err := c.setLoginPolicyFlags(ctx, orgLoginPolicyPath, registrationOff); err != nil {
 			return fmt.Errorf("organisation login policy: %w", err)
 		}
 	}

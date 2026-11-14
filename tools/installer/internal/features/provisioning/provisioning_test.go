@@ -20,6 +20,8 @@ type fakeClient struct {
 	registrationErr      error
 	// operatorErr fails EnsureRoleAssertion, the first operator-access step.
 	operatorErr error
+	// idpErr fails EnsureIDP.
+	idpErr error
 }
 
 func newFakeClient() *fakeClient {
@@ -73,6 +75,17 @@ func (f *fakeClient) EnsureRoleAssertion(_ context.Context, projectID string) er
 func (f *fakeClient) EnsureProjectRole(_ context.Context, projectID string, role RoleSpec) error {
 	f.calls = append(f.calls, "EnsureProjectRole:"+projectID+":"+role.Key)
 	return nil
+}
+
+func (f *fakeClient) EnsureIDP(_ context.Context, spec IDPSpec) (IDPOutcome, error) {
+	f.calls = append(f.calls, "EnsureIDP:"+string(spec.Kind))
+	if f.idpErr != nil {
+		return IDPOutcome{}, f.idpErr
+	}
+	if !spec.Enabled() {
+		return IDPOutcome{Action: IDPAbsent}, nil
+	}
+	return IDPOutcome{Action: IDPCreated, ID: "idp-" + string(spec.Kind), Fingerprint: spec.Fingerprint()}, nil
 }
 
 func (f *fakeClient) GrantProjectRole(_ context.Context, projectID, userName, roleKey string) error {

@@ -151,6 +151,8 @@ var allowedUngenerated = map[string]string{
 	"HETZNER_API_TOKEN":    "operator-supplied DNS API token",
 	"CLOUDFLARE_API_TOKEN": "operator-supplied DNS API token",
 	"DESEC_TOKEN":          "operator-supplied DNS API token",
+	// Social login credentials the operator creates at the provider.
+	"ALFHEIM_GOOGLE_CLIENT_SECRET": "operator-supplied OAuth client secret",
 }
 
 func TestManifestCoversEveryRepositorySecret(t *testing.T) {

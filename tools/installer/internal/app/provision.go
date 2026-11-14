@@ -87,6 +87,11 @@ func (p *DefaultProvisioner) Provision(
 	in := provisioning.BuildInput(defaultProjectName, on.BaseURL, !on.Secure, provisioning.AppSlugs)
 	in.OperatorUserName = operatorUserName(on, existing)
 	in.Telemetry = telemetry.Enabled(existing)
+	in.AuthOrigin = on.IssuerURL
+	in.IDPs, err = socialLoginSpecs(existing)
+	if err != nil {
+		return provisioning.Result{}, err
+	}
 	result, err := provisioning.Provision(ctx, client, in, existing)
 	if err != nil {
 		if provisioning.IsUnauthorized(err) {

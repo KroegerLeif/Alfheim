@@ -78,6 +78,10 @@ type Client interface {
 	// the role roleKey on projectID, keeping any role the user already holds
 	// there.
 	GrantProjectRole(ctx context.Context, projectID, userName, roleKey string) error
+	// EnsureIDP reconciles one social login provider on the instance and its
+	// login policy (see ADR 0008). A disabled spec takes an existing provider
+	// off the login page.
+	EnsureIDP(ctx context.Context, spec IDPSpec) (IDPOutcome, error)
 }
 
 // OperatorRoleKey is the Zitadel project role compose.prod.yaml's Grafana
@@ -114,6 +118,13 @@ type Input struct {
 	// administrator, who is granted OperatorRole. Empty skips the grant (the
 	// role itself is still created).
 	OperatorUserName string
+	// AuthOrigin is the public auth origin (OIDC issuer), for example
+	// https://auth.example.com, used to build the providers' redirect URIs.
+	AuthOrigin string
+	// IDPs are the social login providers to reconcile. Each kind should be
+	// listed even when disabled, so a provider the operator switched off is
+	// taken off the login page.
+	IDPs []IDPSpec
 }
 
 // Result carries the ids Provision resolved, in the shape orchestrator/run.go
@@ -129,6 +140,9 @@ type Result struct {
 	// self-registration that could not be switched off on an existing
 	// installation.
 	Warnings []string
+	// IDPs are the reconciled social login providers, in Input order. Empty
+	// when they could not be reconciled on an existing installation.
+	IDPs []IDPOutcome
 }
 
 // knownPlaceholderSecrets are values that must never be treated as a real,
@@ -198,7 +212,18 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		warnings = append(warnings, OperatorAccessWarning(err))
 	}
 
+	// Same policy again: a social login problem never bricks an update.
+	idps, err := ensureIDPs(ctx, c, in.AuthOrigin, in.IDPs)
+	if err != nil {
+		if !isExistingInstall(existing) {
+			return Result{}, fmt.Errorf("provisioning: social login: %w", err)
+		}
+		warnings = append(warnings, IDPWarning(err))
+		idps = nil
+	}
+
 	return Result{
+		IDPs:            idps,
 		Warnings:        warnings,
 		ProjectID:       projectID,
 		WebClientID:     webCreds.ClientID,
@@ -237,6 +262,9 @@ func (r Result) EnvUpdates() map[string]string {
 	if r.GrafanaClientID != "" {
 		out["GRAFANA_OIDC_CLIENT_ID"] = r.GrafanaClientID
 		out["GRAFANA_OIDC_CLIENT_SECRET"] = r.GrafanaSecret
+	}
+	for _, idp := range r.IDPs {
+		out[FingerprintEnvKey(idp.Kind)] = idp.Fingerprint
 	}
 	return out
 }
@@ -326,4 +354,13 @@ func OperatorAccessWarning(cause error) string {
 		"    2. Projects -> Alfheim -> Authorizations -> New: select your user and tick the role.\n"+
 		"  See docs/en/how-to/grafana-access.md. Re-run alfheim-setup update to retry automatically.",
 		OperatorRoleKey, cause, OperatorRoleKey)
+}
+
+// IDPWarning is the operator-facing message for social login providers that
+// could not be reconciled on an existing installation.
+func IDPWarning(cause error) string {
+	return fmt.Sprintf("WARNING: social login could not be configured in Zitadel: %v\n"+
+		"  Sign-in with an existing password still works. Check the provider credentials in .env and\n"+
+		"  re-run alfheim-setup update (or provision) with a PAT that has IAM_OWNER rights.\n"+
+		"  See docs/en/how-to/social-login.md.", cause)
 }
