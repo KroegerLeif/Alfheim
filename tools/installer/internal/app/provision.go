@@ -93,6 +93,9 @@ func (p *DefaultProvisioner) Provision(
 	if err != nil {
 		return provisioning.Result{}, err
 	}
+	if in.SMTP, err = smtpSpec(existing); err != nil {
+		return provisioning.Result{}, err
+	}
 	result, err := provisioning.Provision(ctx, client, in, existing)
 	if err != nil {
 		if provisioning.IsUnauthorized(err) {

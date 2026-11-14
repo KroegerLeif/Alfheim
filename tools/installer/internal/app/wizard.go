@@ -6,6 +6,7 @@ import (
 
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/smtp"
 	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 )
@@ -44,6 +45,15 @@ func (w *TUIWizard) AskDataPaths(p datapaths.Paths) error {
 func (w *TUIWizard) AskSocialLogin(s *sociallogin.Settings) error {
 	if err := sociallogin.RunForm(s); err != nil {
 		return fmt.Errorf("alfheim-setup: external sign-in: %w", err)
+	}
+	return nil
+}
+
+// AskSMTP runs the optional "e-mail" step, pre-filled with s and skipped
+// unless the operator opts in. It implements SMTPAsker.
+func (w *TUIWizard) AskSMTP(s *smtp.Settings) error {
+	if err := smtp.RunForm(s); err != nil {
+		return fmt.Errorf("alfheim-setup: e-mail: %w", err)
 	}
 	return nil
 }

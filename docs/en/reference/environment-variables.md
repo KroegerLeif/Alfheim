@@ -13,6 +13,7 @@ sidebar:
 - [Root Platform Configuration](#root-platform-configuration)
 - [Identity & Access Management (Generic OIDC & Zitadel)](#identity--access-management-generic-oidc--zitadel)
 - [Social Login](#social-login)
+- [E-mail (SMTP)](#e-mail-smtp)
 - [Object Storage (RustFS S3)](#object-storage-rustfs-s3)
 - [Data Locations](#data-locations)
 - [Observability Stack (VictoriaStack & Telemetry)](#observability-stack-victoriastack--telemetry)
@@ -85,6 +86,23 @@ Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`),
 | `ALFHEIM_APPLE_KEY_ID` | _(empty)_ | Key ID of the Sign in with Apple key (10 characters); flag `--apple-key-id`. |
 | `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | _(empty)_ | Absolute path of the `.p8` key file, mode `0600` or stricter (the installer refuses anything looser). Only the path is stored; the key is uploaded to Zitadel. Flag `--apple-private-key-file`. |
 | `ZITADEL_APPLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Apple values including the key, so a replaced key is detected. Do not edit. |
+
+---
+
+## E-mail (SMTP)
+
+Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures Zitadel's SMTP e-mail provider; no container reads them. An empty host keeps e-mail off: password reset, invitations and e-mail verification then do not work and the login page hides **Forgot password**. See [Configure e-mail (SMTP)](../how-to/configure-smtp.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_SMTP_HOST` | _(empty)_ | SMTP server host name, without port or scheme; flag `--smtp-host`. |
+| `ALFHEIM_SMTP_PORT` | `587` once a host is set | SMTP port; flag `--smtp-port`. |
+| `ALFHEIM_SMTP_USER` | _(empty)_ | SMTP user; empty for a relay without authentication. Set together with the password; flag `--smtp-user`. |
+| `ALFHEIM_SMTP_PASSWORD` | _(empty)_ | SMTP password. Environment or `.env` only (no flag), never printed. |
+| `ALFHEIM_SMTP_SENDER_ADDRESS` | _(empty)_ | From address of every e-mail, required with a host; flag `--smtp-sender-address`. |
+| `ALFHEIM_SMTP_SENDER_NAME` | `Alfheim` once a host is set | From name; flag `--smtp-sender-name`. |
+| `ALFHEIM_SMTP_TLS` | `true` once a host is set | `true` uses implicit TLS or STARTTLS; `false` only for a relay on the same host. Flag `--smtp-tls`. |
+| `ZITADEL_SMTP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured SMTP values including the password, so a changed password is detected. A hash, not the password. Do not edit. |
 
 ---
 

@@ -82,6 +82,10 @@ type Client interface {
 	// login policy (see ADR 0008). A disabled spec takes an existing provider
 	// off the login page.
 	EnsureIDP(ctx context.Context, spec IDPSpec) (IDPOutcome, error)
+	// EnsureSMTP reconciles the installer's SMTP e-mail provider and the
+	// login page's password reset link with it. A disabled spec removes the
+	// provider and hides the link unless another provider is active.
+	EnsureSMTP(ctx context.Context, spec SMTPSpec) (SMTPOutcome, error)
 }
 
 // OperatorRoleKey is the Zitadel project role compose.prod.yaml's Grafana
@@ -125,6 +129,9 @@ type Input struct {
 	// listed even when disabled, so a provider the operator switched off is
 	// taken off the login page.
 	IDPs []IDPSpec
+	// SMTP is the e-mail provider to reconcile; a zero spec means e-mail is
+	// off.
+	SMTP SMTPSpec
 }
 
 // Result carries the ids Provision resolved, in the shape orchestrator/run.go
@@ -143,6 +150,9 @@ type Result struct {
 	// IDPs are the reconciled social login providers, in Input order. Empty
 	// when they could not be reconciled on an existing installation.
 	IDPs []IDPOutcome
+	// SMTP is the reconciled e-mail configuration, nil when it could not be
+	// reconciled on an existing installation.
+	SMTP *SMTPOutcome
 }
 
 // knownPlaceholderSecrets are values that must never be treated as a real,
@@ -222,7 +232,19 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		idps = nil
 	}
 
+	// Same policy again: an e-mail problem never bricks an update.
+	var mail *SMTPOutcome
+	if out, err := c.EnsureSMTP(ctx, in.SMTP); err != nil {
+		if !isExistingInstall(existing) {
+			return Result{}, fmt.Errorf("provisioning: smtp: %w", err)
+		}
+		warnings = append(warnings, SMTPWarning(err))
+	} else {
+		mail = &out
+	}
+
 	return Result{
+		SMTP:            mail,
 		IDPs:            idps,
 		Warnings:        warnings,
 		ProjectID:       projectID,
@@ -265,6 +287,9 @@ func (r Result) EnvUpdates() map[string]string {
 	}
 	for _, idp := range r.IDPs {
 		out[FingerprintEnvKey(idp.Kind)] = idp.Fingerprint
+	}
+	if r.SMTP != nil {
+		out[SMTPFingerprintEnvKey] = r.SMTP.Fingerprint
 	}
 	return out
 }

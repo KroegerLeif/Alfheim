@@ -153,6 +153,7 @@ var allowedUngenerated = map[string]string{
 	"DESEC_TOKEN":          "operator-supplied DNS API token",
 	// Social login credentials the operator creates at the provider.
 	"ALFHEIM_GOOGLE_CLIENT_SECRET": "operator-supplied OAuth client secret",
+	"ALFHEIM_SMTP_PASSWORD":        "operator-supplied SMTP password",
 }
 
 func TestManifestCoversEveryRepositorySecret(t *testing.T) {
