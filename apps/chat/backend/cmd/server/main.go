@@ -23,12 +23,14 @@ import (
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/attachmenturl"
-	"alfheim/chat/internal/shared/db"
 	"alfheim/chat/internal/shared/householdclient"
-	"alfheim/chat/internal/shared/logger"
 	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
 	"alfheim/chat/internal/shared/storage"
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/db"
+	"alfheim/go-shared/httpmw"
+	"alfheim/go-shared/logger"
 )
 
 var (
@@ -84,15 +86,17 @@ func run(parentCtx context.Context) error {
 	}
 
 	// Generic OIDC Bearer token authenticator (JWKS discovered from the issuer)
-	auth, err := setupAuth(cfg, log)
+	authenticator, err := setupAuth(ctx, cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
+	defer authenticator.Close()
+
 	// Every chat API route is household-scoped: JWT validation first, then the
 	// X-Household-ID membership check against core/household (fail closed).
 	membership := householdclient.New(cfg.Household.InternalURL, cfg.Household.InternalToken)
-	authMw := middleware.Chain(auth.AuthenticateMiddleware, middleware.RequireHousehold(membership, log))
+	authMw := httpmw.Chain(authenticator.AuthenticateMiddleware, middleware.RequireHousehold(membership, log))
 
 	// Model Blocks Feature (LLM provider configs, encryption, health checks)
 	modelBlocksRepo := modelblocks.NewRepository(dbClient.Pool)
@@ -249,9 +253,13 @@ func buildRouter(
 
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.CORSWithOrigins(allowedOrigins))
-	r.Use(middleware.RequestLogger(log))
-	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes, map[string]int64{
+	r.Use(httpmw.CORSWithOrigins(httpmw.CORSConfig{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Household-ID"},
+	}))
+	r.Use(httpmw.RequestLogger(log))
+	r.Use(httpmw.MaxBodySize(httpmw.DefaultMaxBodyBytes, map[string]int64{
 		"/api/v1/chat/attachments": attachments.MaxUploadBodyBytes,
 	}))
 
@@ -273,8 +281,12 @@ func buildRouter(
 }
 
 // setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
-func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.OIDC.IssuerURL, cfg.OIDC.Audience, log)
+func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+	return auth.NewAuthenticator(ctx, auth.Config{
+		IssuerURL: cfg.OIDC.IssuerURL,
+		Audience:  cfg.OIDC.Audience,
+		Logger:    log,
+	})
 }
 
 // healthHandler reports service and database connectivity status for compose healthchecks.

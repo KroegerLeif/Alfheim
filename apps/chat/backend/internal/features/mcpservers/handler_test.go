@@ -16,6 +16,7 @@ import (
 	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 func passthroughMiddleware(next http.Handler) http.Handler { return next }
@@ -54,7 +55,7 @@ func withScope(role householdclient.Role) func(http.Handler) http.Handler {
 func withCaller(role householdclient.Role, operator bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1", AccessToken: "tok-1", IsOperator: operator})
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1", AccessToken: "tok-1", IsOperator: operator})
 			ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: uuid.MustParse("11111111-1111-1111-1111-111111111111"), Role: role, Subject: "user-1"})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

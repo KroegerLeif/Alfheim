@@ -1,3 +1,6 @@
+// Package middleware holds the chat backend's household authorization: the
+// X-Household-ID membership check against core/household. JWT validation and
+// the generic HTTP middleware come from alfheim/go-shared.
 package middleware
 
 import (
@@ -11,10 +14,13 @@ import (
 	"github.com/google/uuid"
 
 	"alfheim/chat/internal/shared/householdclient"
+	"alfheim/go-shared/auth"
 )
 
 // HouseholdHeader selects the household a request acts in.
 const HouseholdHeader = "X-Household-ID"
+
+type contextKey string
 
 // HouseholdContextKey is the context key for the verified HouseholdContext.
 const HouseholdContextKey contextKey = "household_context"
@@ -44,9 +50,9 @@ type HouseholdContext struct {
 func RequireHousehold(checker householdclient.Checker, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, err := GetUserClaims(r.Context())
+			claims, err := auth.GetUserClaims(r.Context())
 			if err != nil {
-				writeUnauthorized(w, "missing authenticated user context")
+				auth.WriteUnauthorized(w, "missing authenticated user context")
 				return
 			}
 
@@ -98,16 +104,6 @@ func GetHousehold(ctx context.Context) (*HouseholdContext, error) {
 // for handler tests that bypass the real middleware.
 func ContextWithHousehold(ctx context.Context, hc *HouseholdContext) context.Context {
 	return context.WithValue(ctx, HouseholdContextKey, hc)
-}
-
-// Chain composes middlewares so that the first one listed runs first.
-func Chain(mws ...func(http.Handler) http.Handler) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		for i := len(mws) - 1; i >= 0; i-- {
-			next = mws[i](next)
-		}
-		return next
-	}
 }
 
 type householdErrorDetail struct {
