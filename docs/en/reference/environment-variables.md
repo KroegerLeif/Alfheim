@@ -102,7 +102,7 @@ Notes:
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
-| `OTEL_ENABLED` | `false` | Turns the optional observability stack on. `compose.prod.yaml` passes it to every FastAPI backend (`${OTEL_ENABLED:-false}`); the installer creates Grafana's OIDC client and renders the Caddy `/grafana` route only when it is `true`. With it off the backends export nothing and never contact the collector. The development `.env.example` sets `true` because `scripts/up.sh` starts the observability stack by default |
+| `OTEL_ENABLED` | `false` | Turns the optional observability stack on. `compose.prod.yaml` passes it to every FastAPI backend (`${OTEL_ENABLED:-false}`); the installer creates Grafana's OIDC client only when it is `true`. It follows the `telemetry` module of `ALFHEIM_ENABLED_APPS`; `alfheim-setup apps enable|disable telemetry` writes both, and an installation from before the Lean Core gets `true` on its first update. With it off the backends export nothing and never contact the collector. The development `.env.example` sets `true` because `scripts/up.sh` starts the observability stack by default |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://otel-collector:4317` | OTLP gRPC endpoint for metrics and trace export |
 | `OTEL_EXPORTER_OTLP_INSECURE` | `true` | Allow unencrypted OTLP connections (set to `false` for TLS) |
 | `GRAFANA_ADMIN_USER` | `admin` | Grafana initial admin username |

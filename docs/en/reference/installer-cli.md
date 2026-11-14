@@ -230,7 +230,7 @@ During provisioning, the installer creates the Zitadel project "Alfheim" and one
 
 ### Telemetry switch
 
-The hidden `provision` subcommand takes `--telemetry` (or `--telemetry=false`) to turn the optional observability stack on or off. It writes `OTEL_ENABLED` to `.env` and creates the Grafana client when telemetry is on; turning it off keeps the existing Grafana credentials for a later re-enable. Without the flag, `OTEL_ENABLED` from `.env` decides. Apply the change with `alfheim-setup update`, which re-renders the Caddyfile (the `/grafana` route exists only with telemetry on) and recreates the services. See [Grant Grafana access](../how-to/grafana-access.md#turn-telemetry-on). The final output prints the administrator login name and the generated password; a password change is required at first login.
+The hidden `provision` subcommand takes `--telemetry` (or `--telemetry=false`) to turn the optional observability stack on or off. Like `apps enable|disable telemetry`, it adds or removes the `telemetry` module in `ALFHEIM_ENABLED_APPS` and writes `COMPOSE_PROFILES` and `OTEL_ENABLED` to match. It creates the Grafana client when telemetry is on; turning it off keeps the existing Grafana credentials for a later re-enable. Without the flag, `OTEL_ENABLED` from `.env` decides. Apply the change with `alfheim-setup update`, which re-renders the Caddyfile (`/grafana` proxies to Grafana with telemetry on and redirects to the dashboard with it off) and recreates the services. See [Grant Grafana access](../how-to/grafana-access.md#turn-telemetry-on). The final output prints the administrator login name and the generated password; a password change is required at first login.
 
 ---
 
