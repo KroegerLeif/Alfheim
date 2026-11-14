@@ -180,7 +180,7 @@ services:
     network_mode: none
 
   mailpit:
-    image: axllent/mailpit:v1.31.4
+    image: axllent/mailpit:v1.33.1
     container_name: alfheim_mailpit
     restart: unless-stopped
     logging: *default-logging
