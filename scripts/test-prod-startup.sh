@@ -335,7 +335,7 @@ wait_for_health "victorialogs" "VictoriaLogs" 30
 wait_for_health "otel-collector" "OpenTelemetry Collector" 30
 
 if [[ "${BIND_MOUNTS}" == "true" ]]; then
-  assert_bind_mount alfheim_postgres_core /var/lib/postgresql/data
+  assert_bind_mount alfheim_postgres_core /var/lib/postgresql
   assert_bind_mount alfheim_rustfs /data
   assert_bind_mount victoriametrics /victoria-metrics-data
   assert_bind_mount victorialogs /victoria-logs-data
@@ -368,7 +368,7 @@ fi
 
 log_info "Testing DNS resolution to 'postgres-core' and legacy alias 'postgres-iam' on infra-net..."
 for host in postgres-core postgres-iam; do
-  if docker run --rm --network infra-net postgres:16-alpine pg_isready -h "${host}" -p 5432 -t 5 >/dev/null 2>&1; then
+  if docker run --rm --network infra-net postgres:18-alpine pg_isready -h "${host}" -p 5432 -t 5 >/dev/null 2>&1; then
     log_success "infra-net -> ${host}:5432 resolved and accepting connections"
   else
     log_error "Failed to resolve or reach ${host}:5432 on infra-net"

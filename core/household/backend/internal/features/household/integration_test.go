@@ -3,7 +3,7 @@ package household_test
 // Integration tests against a real PostgreSQL. They run only when
 // HOUSEHOLD_TEST_DATABASE_URL points at a disposable database, e.g.:
 //
-//	docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=pg postgres:16-alpine
+//	docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=pg postgres:18-alpine
 //	HOUSEHOLD_TEST_DATABASE_URL='postgres://postgres:pg@localhost:55432/postgres?sslmode=disable' go test ./...
 //
 // The public schema of that database is dropped and recreated.

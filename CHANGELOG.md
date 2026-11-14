@@ -40,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Right-size `compose.prod.yaml`: memory reservations follow measured idle use with limits at about twice that (Lean Core reserves 752 MB, the full stack 3.2 GB instead of 8 GB), Next.js heaps are capped, `postgres-core` gets `POSTGRES_SHARED_BUFFERS`, `POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM`, and healthchecks run every 30 s with a 5 s `start_interval`, which needs Docker Engine 25 (#862)
 - Move the budget, chores, library, maintenance, pantry, shopping and workout frontends to the shared `createApiClient` instead of their own ky wrappers, and give it a `searchParams` option; `ky` is no longer a dependency, uploads keep their longer timeouts (#877)
 - Render `CHAT_MCP_SERVERS` and `PANTRY_BACKEND_URL` from the enabled apps in the installer; chat only offers tools of the listed apps and treats an unreachable MCP server as "tools unavailable" with a 2 s connect and 5 s discovery timeout (#864)
+- Move every PostgreSQL pin (compose files, CI, scripts) to `postgres:18-alpine` and mount the data at `/var/lib/postgresql`, where the 18 image keeps its cluster in `18/docker`; new clusters have data checksums on. There is no in-place upgrade: installs and dev data directories created on PostgreSQL 16 must be recreated (#871)
+- Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
+- Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
+- Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
 ### Fixed
 - Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
 - Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
@@ -50,11 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
      A release moves these entries under a new version heading and adds its compare link. -->
-
-### Changed
-- Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
-- Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
-- Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
 
 ---
 

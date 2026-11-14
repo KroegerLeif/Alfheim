@@ -30,8 +30,11 @@ type Class struct {
 
 // Classes are the configurable data classes, in the order they are shown.
 // The owners were read from the images pinned in compose.prod.yaml:
-// postgres:16-alpine runs as postgres (70), rustfs/rustfs as rustfs (10001),
-// and the VictoriaMetrics / VictoriaLogs images run as root.
+// postgres:18-alpine runs as postgres (70), rustfs/rustfs as rustfs (10001),
+// and the VictoriaMetrics / VictoriaLogs images run as root. The PostgreSQL
+// directory is mounted at /var/lib/postgresql, so the cluster itself lives in
+// its 18/docker subdirectory; the entrypoint creates that as root and hands it
+// to uid 70.
 var Classes = []Class{
 	{Key: "ALFHEIM_DB_DATA_PATH", Flag: "db-data-path", Title: "PostgreSQL data", VolumeName: "postgres_core_data", UID: 70, GID: 70, Mode: 0o700},
 	{Key: "ALFHEIM_OBJECT_DATA_PATH", Flag: "object-data-path", Title: "Object storage (RustFS) data", VolumeName: "rustfs_data", UID: 10001, GID: 10001, Mode: 0o700},

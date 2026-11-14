@@ -186,6 +186,12 @@ docker compose -f compose.prod.yaml pull
 docker compose -f compose.prod.yaml up -d
 ```
 
+Image updates stay within the pinned PostgreSQL major version (`postgres:18-alpine`). Alfheim
+ships no in-place major-version upgrade: an install created with PostgreSQL 16 (before the move
+to 18) does not start on the new image and has to be recreated. See
+[data locations](../reference/environment-variables.md#data-locations) for where the cluster is
+stored.
+
 ### Backing Up Persistent Data
 All databases, object storage blobs, and telemetry data reside in named Docker volumes:
 

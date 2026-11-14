@@ -11,7 +11,7 @@ x-logging: &default-logging
 
 services:
   postgres-core:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: alfheim_postgres_core
     restart: unless-stopped
     logging: *default-logging
@@ -61,7 +61,9 @@ services:
       HOUSEHOLD_POSTGRES_PASSWORD: ${HOUSEHOLD_POSTGRES_PASSWORD:-postgres}
     volumes:
       - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
-      - ${ALFHEIM_DB_DATA_PATH:-./postgres/data}:/var/lib/postgresql/data
+      # Postgres 18 images keep PGDATA in /var/lib/postgresql/18/docker and refuse
+      # to start with a mount on the old /var/lib/postgresql/data target.
+      - ${ALFHEIM_DB_DATA_PATH:-./postgres/data}:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 30s

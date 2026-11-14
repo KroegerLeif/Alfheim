@@ -47,7 +47,7 @@ per day (see [Daily Scheduling & Reset](#-daily-scheduling--reset)).
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `chores-backend` | 8000 | `/api/v1/chores` | FastAPI REST API & FastMCP Tools |
 | `chores-frontend` | 3000 | `alfheim.loegien.localhost/chores` | Next.js Microfrontend |
 

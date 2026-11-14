@@ -92,7 +92,7 @@ By default every data class lives in a Docker named volume. Setting one of these
 
 | Variable | Default | Mounted at | Owner the directory needs |
 | :--- | :--- | :--- | :--- |
-| `ALFHEIM_DB_DATA_PATH` | _(empty: volume `postgres_core_data`)_ | PostgreSQL `/var/lib/postgresql/data` | `70:70`, mode `0700` (alpine `postgres` user) |
+| `ALFHEIM_DB_DATA_PATH` | _(empty: volume `postgres_core_data`)_ | PostgreSQL `/var/lib/postgresql` | `70:70`, mode `0700` (alpine `postgres` user) |
 | `ALFHEIM_OBJECT_DATA_PATH` | _(empty: volume `rustfs_data`)_ | RustFS `/data` | `10001:10001`, mode `0700` |
 | `ALFHEIM_METRICS_DATA_PATH` | _(empty: volume `victoriametrics_data`)_ | VictoriaMetrics `/victoria-metrics-data` | `0:0` (the image runs as root) |
 | `ALFHEIM_LOGS_DATA_PATH` | _(empty: volume `victorialogs_data`)_ | VictoriaLogs `/victoria-logs-data` | `0:0` (the image runs as root) |
@@ -101,7 +101,7 @@ Notes:
 
 - Paths must be absolute, must not contain `:` and must differ from each other. Grafana and Caddy keep their named volumes.
 - Do not change a variable on a running install by editing `.env` alone: the new directory starts empty. Migrate with `alfheim-setup backup`, stop the stack, set the variable (or re-run `alfheim-setup --reconfigure` with the flag), then `alfheim-setup restore`. Backup and restore work the same for volumes and bind mounts.
-- PostgreSQL 18 images keep the data in a version subdirectory below `/var/lib/postgresql`. When you upgrade to that major version, change the mount target together with the image; the directory you configured here then holds `18/docker`.
+- The `postgres:18-alpine` image keeps its cluster in `/var/lib/postgresql/18/docker`, so the directory you configure here holds an `18/docker` subdirectory. The image refuses to start when something is mounted at the old `/var/lib/postgresql/data` target, and it does not upgrade a cluster from an earlier major version: a data directory created by PostgreSQL 16 must be removed and the install recreated. New clusters have data checksums enabled.
 
 ---
 
