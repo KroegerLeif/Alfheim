@@ -26,6 +26,7 @@
     "einlagernBtn": "Einkauf Einlagern",
     "pantryBadge": "Pantry",
     "pantryLegend": "Mit Pantry-App verknüpft — wird automatisch eingelagert",
+    "pantryUnavailable": "Pantry ist nicht installiert, Einkäufe werden daher nicht eingelagert.",
     "share": "Teilen",
     "print": "Drucken",
     "clearCompleted": "Erledigte löschen",

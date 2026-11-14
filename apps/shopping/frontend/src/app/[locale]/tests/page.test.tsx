@@ -25,7 +25,7 @@ describe('ShoppingDashboard sync to Pantry', () => {
     )
     await openDashboard()
 
-    fireEvent.click(screen.getByRole('button', { name: /Pantry Transfer/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /Pantry Transfer/ }))
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('Pantry sync failed. Pantry service returned status code 500.')
@@ -53,7 +53,7 @@ describe('ShoppingDashboard sync to Pantry', () => {
     )
     await openDashboard()
 
-    fireEvent.click(screen.getByRole('button', { name: /Pantry Transfer/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /Pantry Transfer/ }))
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('1 Unknown Items Found')).toBeInTheDocument()
@@ -66,5 +66,27 @@ describe('ShoppingDashboard sync to Pantry', () => {
     render(<ShoppingDashboard />, { wrapper: createQueryWrapper() })
     expect(await screen.findByRole('button', { name: /Einkauf Einlagern/ })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Artikel suchen...')).toBeInTheDocument()
+  })
+})
+
+describe('ShoppingDashboard without Pantry', () => {
+  it('hides the pantry sync and explains why when Pantry is not installed', async () => {
+    server.use(
+      http.get('*/api/v1/shopping/capabilities', () => HttpResponse.json({ pantry_available: false }))
+    )
+    await openDashboard()
+
+    expect(await screen.findByText(/Pantry is not installed/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Pantry Transfer/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps list CRUD working while Pantry is absent', async () => {
+    server.use(
+      http.get('*/api/v1/shopping/capabilities', () => HttpResponse.json({ pantry_available: false }))
+    )
+    await openDashboard()
+
+    expect(screen.getByText('Bread')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Pantry Transfer/ })).not.toBeInTheDocument()
   })
 })

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 
 	"alfheim/chat/internal/shared/mcp"
 )
@@ -12,7 +13,10 @@ import (
 // Service defines domain logic for the MCP server registry.
 type Service interface {
 	// SeedFromEnv parses a CHAT_MCP_SERVERS spec ("pantry=http://pantry-backend:8000/mcp,chores=...")
-	// and upserts one registry entry per entry. Safe to call on every startup.
+	// and upserts one registry entry per entry. Safe to call on every startup. Once
+	// called, ListEnabledServers only returns the apps named in spec: the installer
+	// renders the spec from the enabled apps, so a registry row of a disabled app
+	// stays stored but offers no tools.
 	SeedFromEnv(ctx context.Context, spec string) error
 	List(ctx context.Context) ([]ResponseDTO, error)
 	SetEnabled(ctx context.Context, id string, enabled bool) (ResponseDTO, error)
@@ -32,6 +36,11 @@ type MCPClientPool interface {
 type service struct {
 	repo Repository
 	log  *slog.Logger
+
+	mu sync.RWMutex
+	// seeded holds the app slugs of the last applied spec; nil means no spec
+	// was applied and every enabled registry row is used.
+	seeded map[string]bool
 }
 
 // NewService creates an mcpservers service instance.
@@ -40,8 +49,16 @@ func NewService(repo Repository, log *slog.Logger) Service {
 }
 
 func (s *service) SeedFromEnv(ctx context.Context, spec string) error {
+	seeded := map[string]bool{}
+	defer func() {
+		s.mu.Lock()
+		s.seeded = seeded
+		s.mu.Unlock()
+	}()
+
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
+		s.log.Info("CHAT_MCP_SERVERS is empty: no app offers tools")
 		return nil
 	}
 
@@ -61,6 +78,7 @@ func (s *service) SeedFromEnv(ctx context.Context, spec string) error {
 		if err := s.repo.UpsertFromSeed(ctx, appSlug, internalURL); err != nil {
 			return err
 		}
+		seeded[appSlug] = true
 		s.log.Info("seeded mcp server registry entry", slog.String("app_slug", appSlug), slog.String("internal_url", internalURL))
 	}
 
@@ -96,8 +114,15 @@ func (s *service) ListEnabledServers(ctx context.Context) ([]mcp.ServerRef, erro
 	if err != nil {
 		return nil, err
 	}
+	s.mu.RLock()
+	seeded := s.seeded
+	s.mu.RUnlock()
+
 	out := make([]mcp.ServerRef, 0, len(servers))
 	for _, srv := range servers {
+		if seeded != nil && !seeded[srv.AppSlug] {
+			continue
+		}
 		out = append(out, mcp.ServerRef{ID: srv.ID, Slug: srv.AppSlug, EndpointURL: srv.InternalURL})
 	}
 	return out, nil

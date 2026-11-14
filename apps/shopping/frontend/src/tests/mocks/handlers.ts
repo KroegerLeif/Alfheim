@@ -145,6 +145,10 @@ export const handlers = [
     })
   }),
 
+  http.get('*/api/v1/shopping/capabilities', () => {
+    return HttpResponse.json({ pantry_available: true })
+  }),
+
   http.post('*/api/v1/shopping-lists/:id/sync-to-pantry', () => {
     return HttpResponse.json({
       status: 'success',

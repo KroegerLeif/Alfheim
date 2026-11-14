@@ -25,6 +25,11 @@ type Config struct {
 	Attachments    AttachmentsConfig
 	Household      HouseholdConfig
 	MCPServersSpec string
+	// MCPServersSpecSet reports whether CHAT_MCP_SERVERS is present at all.
+	// The installer renders it from the enabled apps, so an empty value means
+	// "no tool apps installed", while a missing variable keeps the registry
+	// as it is.
+	MCPServersSpecSet bool
 }
 
 // HouseholdConfig locates core/household's internal membership API.
@@ -172,6 +177,7 @@ func Load() (*Config, error) {
 		},
 		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
 	}
+	_, cfg.MCPServersSpecSet = os.LookupEnv("CHAT_MCP_SERVERS")
 
 	if strings.TrimSpace(cfg.Household.InternalToken) == "" {
 		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")

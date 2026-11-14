@@ -116,9 +116,13 @@ func run(parentCtx context.Context) error {
 	mcpClientPool := mcp.NewClientPool()
 	mcpServersHandler := mcpservers.NewHandler(mcpServersService, mcpClientPool)
 
-	if err := seedMCPServers(ctx, mcpServersService, cfg.MCPServersSpec); err != nil {
-		log.Error("failed to seed mcp server registry from CHAT_MCP_SERVERS", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to seed mcp server registry: %w", err)
+	// Without CHAT_MCP_SERVERS the registry is used as stored. With it (even
+	// empty) only the listed apps offer tools, so a disabled app drops out.
+	if cfg.MCPServersSpecSet {
+		if err := seedMCPServers(ctx, mcpServersService, cfg.MCPServersSpec); err != nil {
+			log.Error("failed to seed mcp server registry from CHAT_MCP_SERVERS", slog.String("error", err.Error()))
+			return fmt.Errorf("failed to seed mcp server registry: %w", err)
+		}
 	}
 
 	// Non-blocking background health diagnostic for all registered MCP servers
