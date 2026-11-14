@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"alfheim/dashboard/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Handler manages HTTP endpoints for system health telemetry.
@@ -25,7 +25,7 @@ func NewHandler(service Service) *Handler {
 func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler) http.Handler) {
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
-		r.Use(middleware.RequireOperator)
+		r.Use(auth.RequireOperator)
 		r.Get("/api/v1/telemetry", h.GetMetrics)
 		r.Get("/api/v1/telemetry/metrics", h.GetMetrics)
 		r.Get("/api/v1/telemetry/logs", h.GetLogs)

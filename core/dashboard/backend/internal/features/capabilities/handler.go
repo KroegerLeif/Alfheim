@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"alfheim/dashboard/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Response is the JSON body of GET /api/v1/user/capabilities.
@@ -40,5 +40,5 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 // the role themselves.
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(Response{Operator: middleware.IsOperator(r.Context())})
+	_ = json.NewEncoder(w).Encode(Response{Operator: auth.IsOperator(r.Context())})
 }

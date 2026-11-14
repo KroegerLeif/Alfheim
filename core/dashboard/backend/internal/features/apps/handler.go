@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"alfheim/dashboard/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -43,7 +43,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 
 // GetDashboardApps serves unified 3-tier dashboard applications (Core, Stack, User Links).
 func (h *Handler) GetDashboardApps(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -61,7 +61,7 @@ func (h *Handler) GetDashboardApps(w http.ResponseWriter, r *http.Request) {
 
 // GetUserPreferences retrieves the user's settings (e.g. hidden Core Apps).
 func (h *Handler) GetUserPreferences(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -79,7 +79,7 @@ func (h *Handler) GetUserPreferences(w http.ResponseWriter, r *http.Request) {
 
 // UpdateUserPreferences updates user settings (e.g. hidden Core Apps list).
 func (h *Handler) UpdateUserPreferences(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -103,7 +103,7 @@ func (h *Handler) UpdateUserPreferences(w http.ResponseWriter, r *http.Request) 
 
 // GetUserLinks lists custom Tier 3 user links.
 func (h *Handler) GetUserLinks(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -121,7 +121,7 @@ func (h *Handler) GetUserLinks(w http.ResponseWriter, r *http.Request) {
 
 // CreateUserLink creates a new custom Tier 3 user link.
 func (h *Handler) CreateUserLink(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -153,7 +153,7 @@ func (h *Handler) CreateUserLink(w http.ResponseWriter, r *http.Request) {
 
 // UpdateUserLink updates an existing custom Tier 3 user link.
 func (h *Handler) UpdateUserLink(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -195,7 +195,7 @@ func (h *Handler) UpdateUserLink(w http.ResponseWriter, r *http.Request) {
 
 // DeleteUserLink removes a custom Tier 3 user link.
 func (h *Handler) DeleteUserLink(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
