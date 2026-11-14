@@ -63,6 +63,10 @@ Each flag has an environment-variable equivalent. The flag wins when both are se
 | `--logs-data-path DIR` | `ALFHEIM_LOGS_DATA_PATH` | Absolute host directory for VictoriaLogs. Default: the `victorialogs_data` named volume. |
 | `--google-client-id ID` | `ALFHEIM_GOOGLE_CLIENT_ID` | Turn on "Sign in with Google" with this OAuth client ID. Needs `ALFHEIM_GOOGLE_CLIENT_SECRET`. A re-run keeps the values in `.env`; without the flag the wizard offers an "external sign-in" step that is skipped by default. See [Set up social login](../how-to/social-login.md). |
 | — | `ALFHEIM_GOOGLE_CLIENT_SECRET` | Google OAuth client secret. Environment only: a flag would expose it in the process list. |
+| `--apple-client-id ID` | `ALFHEIM_APPLE_CLIENT_ID` | Turn on "Sign in with Apple" with this Services ID. Needs all four Apple values. |
+| `--apple-team-id ID` | `ALFHEIM_APPLE_TEAM_ID` | Apple developer Team ID (10 characters). |
+| `--apple-key-id ID` | `ALFHEIM_APPLE_KEY_ID` | Key ID of the Sign in with Apple key (10 characters). |
+| `--apple-private-key-file PATH` | `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | Absolute path of the `.p8` key. The file must have mode `0600` or stricter, or the installer stops before starting any container. Only the path is stored in `.env`. |
 | — | `ALFHEIM_INSTALL_DIR` | Equivalent to `--install-dir`. |
 
 ### Release selection
@@ -232,7 +236,7 @@ During provisioning, the installer creates the Zitadel project "Alfheim" and one
 
 ### Social login
 
-When `ALFHEIM_GOOGLE_CLIENT_ID` and `ALFHEIM_GOOGLE_CLIENT_SECRET` are set, provisioning creates or updates the instance identity provider "Google" with the options from [ADR 0008](../explanation/decisions/0008-social-login-policy.md), lists it on the login policy, turns `allowExternalIdp` on and keeps `allowRegister` off. It prints the redirect URI to register at Google and writes `ZITADEL_GOOGLE_IDP_FINGERPRINT` to `.env`. A run without changes makes no write to Zitadel. Emptying both values takes the provider off the login page but keeps it, so existing user links survive. The hidden `provision` subcommand takes `--google-client-id ID` too (secret from `ALFHEIM_GOOGLE_CLIENT_SECRET` in the environment or `.env`) and writes both values to `.env`. On an existing installation a social login failure is a warning, so the run still finishes.
+When `ALFHEIM_GOOGLE_CLIENT_ID` and `ALFHEIM_GOOGLE_CLIENT_SECRET` are set, provisioning creates or updates the instance identity provider "Google" (and, with the four `ALFHEIM_APPLE_*` values, "Apple", uploading the key read from `ALFHEIM_APPLE_PRIVATE_KEY_FILE`) with the options from [ADR 0008](../explanation/decisions/0008-social-login-policy.md), lists it on the login policy, turns `allowExternalIdp` on and keeps `allowRegister` off. It prints the redirect URI to register at the provider (Apple's ends in `/callback/form`, because Apple answers with a form POST) and writes `ZITADEL_<PROVIDER>_IDP_FINGERPRINT` to `.env`. A run without changes makes no write to Zitadel. Emptying both values takes the provider off the login page but keeps it, so existing user links survive. The hidden `provision` subcommand takes `--google-client-id ID` and the four `--apple-*` flags too (Google secret from `ALFHEIM_GOOGLE_CLIENT_SECRET` in the environment or `.env`) and writes the values to `.env`. A loose Apple key file stops it with an error on every installation, new or existing. On an existing installation a social login failure is a warning, so the run still finishes.
 
 ### Telemetry switch
 

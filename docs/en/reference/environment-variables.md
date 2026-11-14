@@ -80,6 +80,11 @@ Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`),
 | `ALFHEIM_GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth client ID. Set together with the secret to add "Sign in with Google"; flag `--google-client-id`. |
 | `ALFHEIM_GOOGLE_CLIENT_SECRET` | _(empty)_ | Google OAuth client secret. Environment or `.env` only (no flag), never printed. |
 | `ZITADEL_GOOGLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Google credentials, so the next run detects a rotated secret. A hash, not the secret. Do not edit. |
+| `ALFHEIM_APPLE_CLIENT_ID` | _(empty)_ | Apple Services ID. Set all four Apple values to add "Sign in with Apple"; flag `--apple-client-id`. |
+| `ALFHEIM_APPLE_TEAM_ID` | _(empty)_ | Apple developer Team ID (10 characters); flag `--apple-team-id`. |
+| `ALFHEIM_APPLE_KEY_ID` | _(empty)_ | Key ID of the Sign in with Apple key (10 characters); flag `--apple-key-id`. |
+| `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | _(empty)_ | Absolute path of the `.p8` key file, mode `0600` or stricter (the installer refuses anything looser). Only the path is stored; the key is uploaded to Zitadel. Flag `--apple-private-key-file`. |
+| `ZITADEL_APPLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Apple values including the key, so a replaced key is detected. Do not edit. |
 
 ---
 
