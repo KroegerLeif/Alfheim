@@ -1,4 +1,4 @@
-import { HTTPError } from "ky";
+import { isApiError } from "@alfheim/shared";
 
 /** Structured view of a failed Library API call: `{"detail": {"code", "message", ...}}`. */
 export interface ApiErrorInfo {
@@ -11,16 +11,16 @@ export interface ApiErrorInfo {
 }
 
 /**
- * Extract status and stable error code from a ky failure so callers can show a localized message
+ * Extract status and stable error code from a failed API call so callers can show a localized message
  * instead of the raw English text of the HTTP error.
  */
 export async function readApiError(error: unknown): Promise<ApiErrorInfo> {
-  if (!(error instanceof HTTPError)) {
+  if (!isApiError(error)) {
     return { status: null, code: null, itemCount: null };
   }
 
-  const info: ApiErrorInfo = { status: error.response.status, code: null, itemCount: null };
-  // ky consumes the response body into `error.data` (parsed JSON for JSON responses).
+  const info: ApiErrorInfo = { status: error.status, code: null, itemCount: null };
+  // The shared client reads the body into `error.data` (parsed JSON for JSON responses).
   const detail = (error.data as { detail?: unknown } | null | undefined)?.detail;
   // A non-JSON body (for example a proxy error page) arrives as text; the status alone is still useful.
   if (detail && typeof detail === "object") {

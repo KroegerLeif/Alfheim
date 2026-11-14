@@ -19,11 +19,11 @@ export const plansApi = {
   },
 
   async createPlan(data: PlanCreate): Promise<Plan> {
-    return budgetClient.post("plans", { json: data }).json<Plan>();
+    return budgetClient.post("plans", data).json<Plan>();
   },
 
   async updatePlan(id: string, data: PlanUpdate): Promise<Plan> {
-    return budgetClient.patch(`plans/${id}`, { json: data }).json<Plan>();
+    return budgetClient.patch(`plans/${id}`, data).json<Plan>();
   },
 
   async deletePlan(id: string): Promise<void> {
@@ -35,11 +35,11 @@ export const plansApi = {
   },
 
   async createCategory(planId: string, data: PlanCategoryCreate): Promise<PlanCategory> {
-    return budgetClient.post(`plans/${planId}/categories`, { json: data }).json<PlanCategory>();
+    return budgetClient.post(`plans/${planId}/categories`, data).json<PlanCategory>();
   },
 
   async updateCategory(categoryId: string, data: PlanCategoryUpdate): Promise<PlanCategory> {
-    return budgetClient.patch(`plans/categories/${categoryId}`, { json: data }).json<PlanCategory>();
+    return budgetClient.patch(`plans/categories/${categoryId}`, data).json<PlanCategory>();
   },
 
   async deleteCategory(categoryId: string): Promise<void> {

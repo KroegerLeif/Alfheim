@@ -43,12 +43,12 @@ docker logs --tail 100 -f alfheim_caddy
 
 ## Caddy Ingress Gateway & Routing Issues
 
-### Symptom 1: HTTP 502 Bad Gateway on Microfrontend Path
-* **Cause:** The destination frontend container (e.g. `pantry-frontend`) is either starting up or failing its Next.js health check.
+### Symptom 1: "This app is not available right now" (HTTP 503) on an App Path
+* **Cause:** Caddy could not reach the app's container: it is starting up, restarting, crashed or not running. Page paths show a static error page with a link back to the dashboard; API paths answer `503 {"error":"service_unavailable"}` with `Retry-After: 30` ([ingress matrix](../reference/ingress-matrix.md#stopped-apps-and-upstream-health-checks)). The dashboard tile of the app shows *Offline* within 30 s. A disabled app answers `404` (API) or redirects to the dashboard (page) instead.
 * **Resolution:**
-  1. Inspect container logs: `docker logs --tail 50 pantry-frontend`
-  2. Verify network connectivity: `docker exec -it alfheim_caddy curl -I http://pantry-frontend:3000`
-  3. Restart frontend: `docker compose restart pantry-frontend`
+  1. Check which container is down: `docker compose ps pantry-backend pantry-frontend`
+  2. Inspect its logs: `docker logs --tail 50 pantry-backend` (or `pantry-frontend`)
+  3. Restart it: `docker compose restart pantry-backend`; the page works again once the container is healthy
 
 ### Symptom 2: macOS Loopback DNS Reset (`.localhost` Resolution Fails)
 * **Cause:** Docker Desktop on macOS occasionally drops bridge network loopback bindings after waking from sleep.

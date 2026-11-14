@@ -38,8 +38,9 @@ function resolveSessionToken(): string | null {
         if (val) return val;
       }
     }
-  } catch {
-    // Ignore cross-origin / storage errors
+  } catch (error) {
+    // Blocked storage: the caller continues without a token.
+    console.warn('Cannot read the access token from sessionStorage:', error);
   }
   return null;
 }
@@ -54,8 +55,9 @@ async function getFreshToken(): Promise<string | null> {
         sessionStorage.setItem('alfheim_access_token', oidc.token);
         return oidc.token;
       }
-    } catch {
-      // Token update failed, fall back to storage resolution
+    } catch (error) {
+      // Fall back to the stored token; the request then decides with a 401.
+      console.warn('OIDC token update failed; using the stored token:', error);
     }
   }
   return (typeof oidc?.token === 'string' ? oidc.token : null) || resolveSessionToken();
@@ -90,8 +92,9 @@ export async function fetchMyHouseholds(
             sessionStorage.setItem('alfheim_access_token', freshToken);
             res = await client.get(url, { headers: { Authorization: `Bearer ${freshToken}` } });
           }
-        } catch {
-          // Retry refresh failed
+        } catch (error) {
+          // The 401 response is reported below as the http result.
+          console.warn('OIDC token refresh after a 401 failed:', error);
         }
       }
     }
@@ -100,8 +103,9 @@ export async function fetchMyHouseholds(
       let code: HouseholdErrorCode | null = null;
       try {
         code = getHouseholdErrorCode(await res.json());
-      } catch {
-        // Non-JSON error body
+      } catch (error) {
+        // A non-JSON error body (for example a gateway page) carries no household error code.
+        console.warn(`Household API answered HTTP ${res.status} without a JSON body:`, error);
       }
       return { ok: false, reason: 'http', status: res.status, code };
     }

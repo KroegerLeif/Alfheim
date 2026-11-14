@@ -13,6 +13,6 @@ export function syncSets(
   items: SessionSetSyncItem[]
 ): Promise<SessionSetSyncResponse> {
   return workoutClient
-    .post(`api/v1/sessions/${sessionId}/sets/sync`, { json: { items: items ?? [] } })
+    .post(`sessions/${sessionId}/sets/sync`, { items: items ?? [] })
     .json<SessionSetSyncResponse>();
 }

@@ -1,20 +1,23 @@
 'use client';
 
-import { StatusBadge, useTranslation } from '@alfheim/shared';
-import { AppItem } from '@/shared/types';
-import { isDashboardRoute } from '@/shared/routes';
-import { NavAnchor } from '@/shared/components/NavAnchor';
+import { useTranslation } from '@alfheim/shared';
+import { AppHealthState, AppItem } from '@/shared/types';
 import Link from 'next/link';
+import { CoreAppCard } from './CoreAppCard';
 
 interface CoreAppsSectionProps {
   isLoading: boolean;
   isError: boolean;
   apps?: AppItem[];
   refetch: () => void;
+  /** Live health per app ID from GET /api/v1/apps/health; missing while the first probe runs. */
+  health?: Record<string, AppHealthState>;
 }
 
-export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsSectionProps) {
+export function CoreAppsSection({ isLoading, isError, apps, refetch, health }: CoreAppsSectionProps) {
   const { t } = useTranslation();
+  // Disabled apps are absent from the registry, so the list may be empty.
+  const items = apps ?? [];
 
   return (
     <div className="col-span-12 mt-2">
@@ -32,7 +35,7 @@ export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsS
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-[var(--text-muted)]">
-            {t('dashboard.tier1_active_count', { count: apps ? apps.length : 0 })}
+            {t('dashboard.tier1_active_count', { count: items.length })}
           </span>
           <Link
             href="/settings"
@@ -69,7 +72,7 @@ export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsS
           <div className="col-span-full p-6 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 text-xs font-mono">
             {t('dashboard.tier1_load_error')}
           </div>
-        ) : !apps || apps.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="col-span-full p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-3 flex flex-col items-center justify-center min-h-[140px] shadow-lg">
             <span className="material-symbols-outlined text-3xl text-[var(--text-muted)]">visibility_off</span>
             <p className="text-xs font-mono text-[var(--text-muted)]">
@@ -83,50 +86,7 @@ export function CoreAppsSection({ isLoading, isError, apps, refetch }: CoreAppsS
             </Link>
           </div>
         ) : (
-          apps.map((app) => {
-            const targetUrl = app.status === 'in_progress' || app.status === 'maintenance'
-              ? `/under-construction?app=${encodeURIComponent(app.title || app.name || app.slug)}`
-              : (app.url || app.app_url || '#');
-
-            return (
-              <div
-                key={app.id}
-                className="p-5 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[var(--primary-main)]/60 transition-all duration-200 flex flex-col justify-between group shadow-lg min-w-0"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--primary-main)]/10 border border-[var(--border-accent)] flex items-center justify-center text-[var(--primary-main)] group-hover:scale-105 transition-transform duration-200">
-                      <span className="material-symbols-outlined text-xl">
-                        {app.icon || app.icon_url || 'grid_view'}
-                      </span>
-                    </div>
-                    <StatusBadge status={app.status || 'active'} />
-                  </div>
-
-                  <h3 className="text-base font-bold text-[var(--text-main)] group-hover:text-[var(--primary-main)] transition-colors duration-150 truncate" title={app.title || app.name}>
-                    {app.title || app.name}
-                  </h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed break-words">
-                    {app.description}
-                  </p>
-                </div>
-
-                <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
-                    {t('dashboard.tier1_tag')}
-                  </span>
-                  <NavAnchor
-                    href={targetUrl}
-                    external={!isDashboardRoute(targetUrl)}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary-main)] hover:underline"
-                  >
-                    <span>{t('common.launch')}</span>
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </NavAnchor>
-                </div>
-              </div>
-            );
-          })
+          items.map((app) => <CoreAppCard key={app.id} app={app} health={health?.[app.id]} />)
         )}
       </div>
     </div>

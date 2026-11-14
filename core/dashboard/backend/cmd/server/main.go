@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"alfheim/dashboard/config"
+	"alfheim/dashboard/internal/features/apphealth"
 	"alfheim/dashboard/internal/features/apps"
 	"alfheim/dashboard/internal/features/capabilities"
 	"alfheim/dashboard/internal/features/telemetry"
@@ -73,7 +74,8 @@ func run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
 
-	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
+	enabledApps := apps.ParseEnabledApps(cfg.EnabledApps)
+	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins, enabledApps)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -134,7 +136,8 @@ func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authe
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string) http.Handler {
+// enabledApps is the installation's ALFHEIM_ENABLED_APPS set; it decides which Tier-1 tiles exist.
+func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string, enabledApps apps.EnabledApps) http.Handler {
 	// An unauthenticated API must never be served: refuse to build the router.
 	if jwtMw == nil {
 		panic("dashboard-backend: auth middleware is required to build the router")
@@ -148,11 +151,14 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler)
 	stackLoader := apps.NewStackAppsLoader(stackAppsPath, log)
 
 	// Initialize Services
-	appsService := apps.NewService(appsRepo, stackLoader, log)
+	coreApps := apps.EnabledCoreApps(enabledApps)
+	appsService := apps.NewService(appsRepo, stackLoader, coreApps, log)
+	healthService := apphealth.NewService(healthTargets(coreApps), apphealth.NewHTTPProber(nil, apphealth.DefaultProbeTimeout), apphealth.DefaultCacheTTL, log)
 	telemetryService := telemetry.NewService("", log)
 
 	// Initialize Handlers
 	appsHandler := apps.NewHandler(appsService)
+	healthHandler := apphealth.NewHandler(healthService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
 	capabilitiesHandler := capabilities.NewHandler()
 
@@ -197,8 +203,21 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler)
 
 	// Register Feature Domain Routes
 	appsHandler.RegisterRoutes(r, authMw)
+	healthHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
 	capabilitiesHandler.RegisterRoutes(r, authMw)
 
 	return r
+}
+
+// healthTargets turns the enabled Tier-1 tiles into probe targets, so the
+// dashboard never probes an app that is switched off.
+func healthTargets(coreApps []apps.AppItem) []apphealth.Target {
+	targets := make([]apphealth.Target, 0, len(coreApps))
+	for _, app := range coreApps {
+		if url, ok := apps.HealthURL(app.ID); ok {
+			targets = append(targets, apphealth.Target{ID: app.ID, URL: url})
+		}
+	}
+	return targets
 }

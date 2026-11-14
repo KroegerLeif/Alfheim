@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useEffect, useMemo, useState } from 
 import { DEFAULT_THEME_VARIANT } from '../tokens';
 import { ResolvedMode, ThemeContextType, ThemeMode, ThemeOverrideConfig, ThemeVariant, CustomColorsConfig } from '../types';
 import { getSystemMode, applyThemeToDOM } from '../utils/themeDomUtils';
+import { DEFAULT_CUSTOM_COLORS, withDefaultCustomColors } from '../utils/customColors';
 
 const STORAGE_KEY = 'alfheim_theme_override';
 const LEGACY_STORAGE_KEY = 'stitch-theme';
@@ -31,7 +32,9 @@ export function ThemeProvider({
             return parsed.mode;
           }
         }
-      } catch {}
+      } catch (error) {
+        console.warn('Ignoring an unreadable saved theme setting:', error);
+      }
     }
     return defaultMode;
   });
@@ -50,7 +53,9 @@ export function ThemeProvider({
         if (legacyVariant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(legacyVariant)) {
           return legacyVariant;
         }
-      } catch {}
+      } catch (error) {
+        console.warn('Ignoring an unreadable saved theme setting:', error);
+      }
     }
     return defaultVariant;
   });
@@ -59,39 +64,12 @@ export function ThemeProvider({
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('alfheim_custom_theme');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return {
-            dark: {
-              primary: parsed.dark?.primary || '#10b981',
-              canvas: parsed.dark?.canvas || '#0f172a',
-              accent: parsed.dark?.accent || '#10b981',
-              mint: parsed.dark?.mint || '#10b981',
-              cyan: parsed.dark?.cyan || '#06b6d4',
-              gold: parsed.dark?.gold || '#f59e0b',
-            },
-            light: {
-              primary: parsed.light?.primary || '#059669',
-              canvas: parsed.light?.canvas || '#f8fafc',
-              accent: parsed.light?.accent || '#059669',
-              mint: parsed.light?.mint || '#059669',
-              cyan: parsed.light?.cyan || '#0891b2',
-              gold: parsed.light?.gold || '#d97706',
-            }
-          };
-        }
-      } catch {}
-    }
-    return {
-      dark: {
-        primary: '#10b981', canvas: '#0f172a', accent: '#10b981',
-        mint: '#10b981', cyan: '#06b6d4', gold: '#f59e0b',
-      },
-      light: {
-        primary: '#059669', canvas: '#f8fafc', accent: '#059669',
-        mint: '#059669', cyan: '#0891b2', gold: '#d97706',
+        if (saved) return withDefaultCustomColors(JSON.parse(saved));
+      } catch (error) {
+        console.warn('Ignoring an unreadable saved theme setting:', error);
       }
-    };
+    }
+    return DEFAULT_CUSTOM_COLORS;
   });
 
   const [systemMode, setSystemMode] = useState<ResolvedMode>(getSystemMode);
@@ -115,25 +93,16 @@ export function ThemeProvider({
           const parsed: ThemeOverrideConfig = JSON.parse(e.newValue || '{}');
           if (parsed.mode && ['dark', 'light', 'system'].includes(parsed.mode)) setModeState(parsed.mode);
           if (parsed.variant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) setVariantState(parsed.variant);
-        } catch {}
+        } catch (error) {
+          console.warn('Ignoring an unreadable theme setting from another tab:', error);
+        }
       } else if (e.key === 'alfheim_custom_theme') {
         try {
           const parsed = JSON.parse(e.newValue || '{}');
-          if (parsed.dark || parsed.light) {
-            setCustomColorsState({
-              dark: {
-                primary: parsed.dark?.primary || '#10b981', canvas: parsed.dark?.canvas || '#0f172a',
-                accent: parsed.dark?.accent || '#10b981', mint: parsed.dark?.mint || '#10b981',
-                cyan: parsed.dark?.cyan || '#06b6d4', gold: parsed.dark?.gold || '#f59e0b',
-              },
-              light: {
-                primary: parsed.light?.primary || '#059669', canvas: parsed.light?.canvas || '#f8fafc',
-                accent: parsed.light?.accent || '#059669', mint: parsed.light?.mint || '#059669',
-                cyan: parsed.light?.cyan || '#0891b2', gold: parsed.light?.gold || '#d97706',
-              }
-            });
-          }
-        } catch {}
+          if (parsed.dark || parsed.light) setCustomColorsState(withDefaultCustomColors(parsed));
+        } catch (error) {
+          console.warn('Ignoring an unreadable theme setting from another tab:', error);
+        }
       }
     };
     window.addEventListener('storage', handleStorageChange);

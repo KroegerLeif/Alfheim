@@ -129,8 +129,22 @@ func TestProfilesAndEnvValues(t *testing.T) {
 	if kv[EnvKey] != "pantry,shopping,telemetry" || kv[ProfilesKey] != "pantry,shopping,telemetry" || kv[OTELEnabledKey] != "true" {
 		t.Errorf("EnvValues = %v", kv)
 	}
-	if kv := EnvValues(Lean(), false); kv[ProfilesKey] != "" || len(kv) != 2 {
+	if kv[ChatMCPServersKey] != "pantry=http://pantry-backend:8000/mcp" || kv[PantryBackendURLKey] != "http://pantry-backend:8000" {
+		t.Errorf("EnvValues cross-app URLs = %v", kv)
+	}
+	if kv := EnvValues(Lean(), false); kv[ProfilesKey] != "" || kv[ChatMCPServersKey] != "" || kv[PantryBackendURLKey] != "" || len(kv) != 4 {
 		t.Errorf("Lean EnvValues = %v", kv)
+	}
+	want := "pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp"
+	if got := ChatMCPServers(All()); got != want {
+		t.Errorf("ChatMCPServers(All()) = %q", got)
+	}
+	choresOnly, err := Parse("chat,chores")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := ChatMCPServers(choresOnly); got != "chores=http://chores-backend:8000/mcp" {
+		t.Errorf("ChatMCPServers(chat,chores) = %q", got)
 	}
 	tel, _ := Lookup(Telemetry)
 	if got := tel.ContainerNames(); len(got) != len(tel.Services) || got[5] != "vector-shipper" {

@@ -1,4 +1,4 @@
-import type { KyResponse, ResponsePromise } from 'ky'
+import type { ApiResponsePromise } from '@alfheim/shared'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useLocations, useCreateLocation, useUpdateLocation, useDeleteLocation } from '../locationService'
 import { createQueryWrapper } from '@/tests/utils'
@@ -29,7 +29,7 @@ describe('Location Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockLocations)
       vi.mocked(pantryClient.get).mockReturnValue({
         json: mockJson,
-      } as unknown as ResponsePromise)
+      } as unknown as ApiResponsePromise)
 
       const { result } = renderHook(() => useLocations(), {
         wrapper: createQueryWrapper(),
@@ -38,7 +38,7 @@ describe('Location Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockLocations)
-      expect(pantryClient.get).toHaveBeenCalledWith('api/v1/locations', { searchParams: { limit: 100, offset: 0 } })
+      expect(pantryClient.get).toHaveBeenCalledWith('locations', { searchParams: { limit: 100, offset: 0 } })
     })
   })
 
@@ -49,7 +49,7 @@ describe('Location Service Hooks', () => {
       const mockJson = vi.fn().mockResolvedValue(mockLocRead)
       vi.mocked(pantryClient.post).mockReturnValue({
         json: mockJson,
-      } as unknown as ResponsePromise)
+      } as unknown as ApiResponsePromise)
 
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
@@ -62,7 +62,7 @@ describe('Location Service Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockLocRead)
-      expect(pantryClient.post).toHaveBeenCalledWith('api/v1/locations', { json: newLoc })
+      expect(pantryClient.post).toHaveBeenCalledWith('locations', newLoc)
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['locations'] })
 
       invalidateSpy.mockRestore()
@@ -72,14 +72,14 @@ describe('Location Service Hooks', () => {
   describe('useUpdateLocation', () => {
     it('patches the location and refreshes locations and inventory', async () => {
       const updated = { id: 'l1', name: 'Cellar', description: null }
-      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue(updated) } as unknown as ResponsePromise)
+      vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue(updated) } as unknown as ApiResponsePromise)
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
       const { result } = renderHook(() => useUpdateLocation(), { wrapper: createQueryWrapper() })
       result.current.mutate({ id: 'l1', payload: { name: 'Cellar', description: null } })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(pantryClient.patch).toHaveBeenCalledWith('api/v1/locations/l1', { json: { name: 'Cellar', description: null } })
+      expect(pantryClient.patch).toHaveBeenCalledWith('locations/l1', { name: 'Cellar', description: null })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['locations'] })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['inventory'] })
       invalidateSpy.mockRestore()
@@ -88,14 +88,14 @@ describe('Location Service Hooks', () => {
 
   describe('useDeleteLocation', () => {
     it('deletes the location and refreshes the list', async () => {
-      vi.mocked(pantryClient.delete).mockResolvedValue({} as KyResponse)
+      vi.mocked(pantryClient.delete).mockResolvedValue({} as Response)
       const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
       const { result } = renderHook(() => useDeleteLocation(), { wrapper: createQueryWrapper() })
       result.current.mutate('l1')
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(pantryClient.delete).toHaveBeenCalledWith('api/v1/locations/l1')
+      expect(pantryClient.delete).toHaveBeenCalledWith('locations/l1')
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['locations'] })
       invalidateSpy.mockRestore()
     })

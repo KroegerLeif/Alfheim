@@ -21,7 +21,8 @@ services:
     environment:
       - ENVIRONMENT=development
       - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
-      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
+      # Empty while pantry is disabled: shopping then hides its pantry sync.
+      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-alfheim}
       # Service-to-service membership checks against household-backend

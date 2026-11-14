@@ -15,7 +15,7 @@ describe('fetchAllPages', () => {
         search.get('offset') === '0' ? page(100) : page(40, 100),
     })
 
-    const rows = await fetchAllPages<{ id: number }>('api/v1/products')
+    const rows = await fetchAllPages<{ id: number }>('products')
 
     expect(rows).toHaveLength(140)
     expect(api.to(PATH).map((c) => [c.search.get('limit'), c.search.get('offset')])).toEqual([
@@ -26,6 +26,6 @@ describe('fetchAllPages', () => {
 
   it('treats a null body as an empty list', async () => {
     mockApi({ [PATH]: () => new Response('null', { status: 200, headers: { 'Content-Type': 'application/json' } }) })
-    expect(await fetchAllPages('api/v1/products')).toEqual([])
+    expect(await fetchAllPages('products')).toEqual([])
   })
 })

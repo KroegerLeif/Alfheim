@@ -63,7 +63,7 @@ export function StockActionModal({ isOpen, onClose, mode, preselectedProduct = n
     setScanError("");
     try {
       const data = await pantryClient
-        .get(`api/v1/products/barcode/${encodeURIComponent(barcodeInput.trim())}`)
+        .get(`products/barcode/${encodeURIComponent(barcodeInput.trim())}`)
         .json<ProductRead>();
       setSelectedProduct(data);
       setBarcodeInput("");

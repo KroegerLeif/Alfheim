@@ -94,6 +94,7 @@
     "replyStopped": "Reply stopped.",
     "retry": "Retry",
     "networkError": "The chat service could not be reached.",
+    "unavailable": "ALFI is not available right now. The chat app is stopped or not installed.",
     "toolCallsTitle": "Tools used: {count}",
     "toolStatusRunning": "Running",
     "toolStatusDone": "Done",

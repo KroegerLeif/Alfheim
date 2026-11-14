@@ -38,7 +38,7 @@ export function useShoppingLists() {
     queryKey: shoppingKeys.householdLists(householdId),
     queryFn: () =>
       shoppingClient
-        .get("api/v1/shopping-lists")
+        .get("shopping-lists")
         .json()
         .then((data) => z.array(ShoppingListSchema).parse(data)),
     enabled: status === "ready",
@@ -54,7 +54,7 @@ export function useShoppingListDetails(listId: string) {
     queryKey: shoppingKeys.list(listId),
     queryFn: () =>
       shoppingClient
-        .get(`api/v1/shopping-lists/${listId}`)
+        .get(`shopping-lists/${listId}`)
         .json()
         .then((data) => ShoppingListSchema.parse(data)),
     enabled: status === "ready" && !!listId,
@@ -70,7 +70,7 @@ export function useCreateShoppingList() {
   return useMutation<ShoppingList, Error, ShoppingListCreatePayload>({
     mutationFn: (payload) =>
       shoppingClient
-        .post("api/v1/shopping-lists", { json: payload })
+        .post("shopping-lists", payload)
         .json()
         .then((data) => ShoppingListSchema.parse(data)),
     onSuccess: () => {
@@ -89,7 +89,7 @@ export function useDeleteShoppingList() {
   return useMutation<void, Error, string>({
     mutationFn: (listId) =>
       shoppingClient
-        .delete(`api/v1/shopping-lists/${listId}`)
+        .delete(`shopping-lists/${listId}`)
         .then(() => {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.lists() });
@@ -107,7 +107,7 @@ export function useReorderShoppingLists() {
   return useMutation<void, Error, string[]>({
     mutationFn: (listIds) =>
       shoppingClient
-        .patch("api/v1/shopping-lists/reorder", { json: { list_ids: listIds } })
+        .patch("shopping-lists/reorder", { list_ids: listIds })
         .then(() => {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shoppingKeys.lists() });

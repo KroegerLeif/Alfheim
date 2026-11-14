@@ -19,6 +19,7 @@ import { UnrecognizedShoppingItem } from "@/features/shopping-lists/types";
 import { useActiveHousehold, useAuth, cn } from "@alfheim/shared";
 import { useCanEditList } from "@/features/shopping-lists/hooks/useCanEditList";
 import { useErrorNotifier } from "@/lib/useErrorNotifier";
+import { usePantryAvailable } from "@/features/shopping-lists/services/capabilitiesService";
 
 export default function ShoppingDashboard() {
   const t = useTranslations("Checklist");
@@ -54,6 +55,7 @@ export default function ShoppingDashboard() {
   const { data: listDetails } = useShoppingListDetails(resolvedListId || "");
   const addItem = useAddShoppingItem(resolvedListId || "");
   const syncToPantry = useSyncToPantry(resolvedListId || "");
+  const pantryAvailable = usePantryAvailable();
   const deleteItem = useDeleteShoppingItem(resolvedListId || "");
 
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function ShoppingDashboard() {
         <DashboardHeader
           activeList={activeList} username={user?.preferred_username} households={households}
           checkedCount={items.filter((i) => i.is_completed).length} totalCount={items.length}
-          onSync={handleSyncToPantry} onClearCompleted={handleClearCompleted} isSyncPending={syncToPantry.isPending}
+          onSync={pantryAvailable ? handleSyncToPantry : undefined} onClearCompleted={handleClearCompleted} isSyncPending={syncToPantry.isPending}
         />
 
         <ListSelector activeListId={resolvedListId} onSelect={setActiveListId} />
@@ -152,8 +154,8 @@ export default function ShoppingDashboard() {
               <AddManualItem listId={resolvedListId || ""} />
               <QuickAddGrid onAdd={handleQuickAdd} disabled={!resolvedListId || addItem.isPending || !canEditList} />
               <div className="glass-inset rounded-xl p-3 flex items-center gap-3 shrink-0 select-none">
-                <PantryBadge />
-                <p className="font-sans text-[11px] text-muted-foreground/70 leading-tight">{t("pantryLegend")}</p>
+                {pantryAvailable && <PantryBadge />}
+                <p className="font-sans text-[11px] text-muted-foreground/70 leading-tight">{t(pantryAvailable ? "pantryLegend" : "pantryUnavailable")}</p>
               </div>
             </div>
           )}

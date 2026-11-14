@@ -176,7 +176,7 @@ installation. The choice is stored as `ALFHEIM_ENABLED_APPS` in `.env`; an
 | Action | Behaviour |
 | :--- | :--- |
 | `list` | Prints every app with its tier (`core` or `optional`), its state and its requirements. |
-| `enable <name>` | Records the app in `ALFHEIM_ENABLED_APPS` and `COMPOSE_PROFILES`, creates any missing database (re-runs the idempotent Postgres init script), pulls and starts its containers and waits until they are healthy. Then it routes the app in the Caddyfile and restarts Caddy. Enabling an enabled app does nothing. |
+| `enable <name>` | Records the app in `ALFHEIM_ENABLED_APPS` and `COMPOSE_PROFILES` (and rewrites `CHAT_MCP_SERVERS` and `PANTRY_BACKEND_URL` to match the new set), creates any missing database (re-runs the idempotent Postgres init script), pulls and starts its containers and waits until they are healthy. Then it routes the app in the Caddyfile and restarts Caddy. Enabling an enabled app does nothing. |
 | `disable <name>` | Records the change, then stops and removes the app's containers (`docker compose rm -s -f`). **Volumes and databases are never removed**, so enabling the app again brings its data back. Its routes then answer 404 or redirect to the dashboard ([ingress matrix](./ingress-matrix.md#routes-of-disabled-apps)). Disabling a disabled app does nothing. |
 
 Enabling or disabling `telemetry` also sets `OTEL_ENABLED` in `.env`.

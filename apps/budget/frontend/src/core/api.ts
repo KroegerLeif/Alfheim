@@ -1,14 +1,6 @@
-import ky from "ky";
-import {
-  createTraceparentHook,
-  resolveApiUrl,
-  resolveFrontendUrl,
-  LEGACY_ACCESS_TOKEN_KEY,
-  applyHouseholdHeaders,
-  reportHouseholdErrorResponse,
-  parseApiErrorBody,
-} from "@alfheim/shared";
+import { createApiClient, parseApiErrorBody } from "@alfheim/shared";
 
+/** A non-2xx budget API response; `message` is empty when the server sent no usable text. */
 export class ApiError extends Error {
   status?: number;
   /** Backend error code, e.g. `household_role_forbidden`. */
@@ -21,88 +13,20 @@ export class ApiError extends Error {
   }
 }
 
-const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = resolveApiUrl(defaultFallback, url);
-  if (resolved.startsWith("/")) {
-    if (typeof window !== "undefined") {
-      resolved = window.location.origin + resolved;
-    } else {
-      resolved = resolveFrontendUrl() + resolved;
-    }
+/** Maps a failed response to {@link ApiError}, so the UI can fall back to its localized text. */
+function toApiError(response: Response, body: unknown): ApiError {
+  if (body && typeof body === "object") {
+    const parsed = parseApiErrorBody(body);
+    return new ApiError(response.status, parsed.message || "", parsed.code ?? undefined);
   }
-  if (resolved.endsWith("/")) {
-    resolved = resolved.slice(0, -1);
-  }
-  if (resolved.endsWith("/api/v1")) {
-    resolved = resolved.slice(0, -7);
-  }
-  return resolved + "/";
-};
+  return new ApiError(response.status, response.statusText || "");
+}
 
-const BASE_URL = sanitizeUrl(
-  process.env.NEXT_PUBLIC_API_URL,
-  "/budget/api/v1"
-);
-
-const handleResponseError = async (response: Response) => {
-  let code: string | undefined;
-  // Empty when the server gave no usable message so the UI falls back to its localized text.
-  let message = "";
-  try {
-    const data = await response.json();
-    // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
-    const parsed = parseApiErrorBody(data);
-    code = parsed.code ?? undefined;
-    message = parsed.message || message;
-  } catch {
-    message = response.statusText || message;
-  }
-  throw new ApiError(response.status, message, code);
-};
-
-export const budgetClient = ky.create({
-  prefix: BASE_URL,
-  timeout: 10000,
-  retry: 0,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  hooks: {
-    beforeRequest: [
-      createTraceparentHook(),
-      ({ request }) => {
-        if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
-          if (token) {
-            request.headers.set("Authorization", `Bearer ${token}`);
-          }
-          applyHouseholdHeaders(request.headers);
-        }
-      },
-    ],
-    afterResponse: [
-      async ({ request, options, response }) => {
-        if (response.status === 401 && typeof window !== "undefined") {
-          const oidcBridge = window.__alfheim_oidc__;
-          if (oidcBridge && typeof oidcBridge.refresh === "function") {
-            try {
-              const newToken = await oidcBridge.refresh();
-              if (newToken) {
-                request.headers.set("Authorization", `Bearer ${newToken}`);
-                return ky(request, options);
-              }
-            } catch (err) {
-              console.warn("OIDC token refresh failed on 401:", err);
-            }
-          }
-        }
-        await reportHouseholdErrorResponse(response);
-        if (!response.ok) {
-          await handleResponseError(response);
-        }
-      },
-    ],
-  },
+/** Budget API client: the shared client with the browser session, paths relative to the budget API. */
+export const budgetClient = createApiClient({
+  basePath: "/api/v1/budget",
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  session: true,
+  timeoutMs: 10000,
+  mapError: toApiError,
 });
-
-export type apiClientType = typeof budgetClient;

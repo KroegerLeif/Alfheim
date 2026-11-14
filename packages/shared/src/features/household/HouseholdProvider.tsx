@@ -212,8 +212,8 @@ export function StaticHouseholdProvider({ children, householdId = 'hh-test', val
     try {
       if (householdId) localStorage.setItem(ACTIVE_HOUSEHOLD_STORAGE_KEY, householdId);
       else localStorage.removeItem(ACTIVE_HOUSEHOLD_STORAGE_KEY);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.warn('Cannot store the test household in localStorage:', error);
     }
   }
   const household: Household | null = householdId ? { id: householdId, name: 'Test Household', role: 'OWNER' } : null;

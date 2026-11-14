@@ -24,7 +24,7 @@ export async function fetchConsumptionLedger(windowStart: Date): Promise<Consump
   const rows: InventoryLedgerRead[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
     const batch = await pantryClient
-      .get("api/v1/inventory/transactions", {
+      .get("inventory/transactions", {
         searchParams: [
           ["transaction_type", "out"],
           ["transaction_type", "waste"],

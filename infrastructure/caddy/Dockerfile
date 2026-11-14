@@ -37,6 +37,11 @@ RUN apk upgrade --no-cache
 # Replace the stock binary with the module-enabled build.
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
+# Static page the Caddyfile's handle_errors serves for a stopped or missing
+# app. Baked into the image so the installer-generated Caddyfile can rely on
+# it without an extra bind mount.
+COPY errors/ /srv/alfheim-errors/
+
 # Fail the build early if the DNS modules did not make it into the binary.
 RUN caddy list-modules | grep -q '^dns.providers.hetzner$' \
  && caddy list-modules | grep -q '^dns.providers.cloudflare$' \

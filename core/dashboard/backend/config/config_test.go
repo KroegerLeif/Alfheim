@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -113,4 +114,40 @@ func TestLoad_InvalidIntConversion(t *testing.T) {
 	if cfg.Database.MaxConns != 25 {
 		t.Errorf("expected fallback MaxConns 25 for invalid int input, got %d", cfg.Database.MaxConns)
 	}
+}
+
+func TestLoad_EnabledApps(t *testing.T) {
+	t.Run("unset means every app", func(t *testing.T) {
+		t.Setenv("ALFHEIM_ENABLED_APPS", "")
+		if err := os.Unsetenv("ALFHEIM_ENABLED_APPS"); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.EnabledApps != "all" {
+			t.Errorf("EnabledApps = %q, want all", cfg.EnabledApps)
+		}
+	})
+	t.Run("empty is kept as the Lean Core", func(t *testing.T) {
+		t.Setenv("ALFHEIM_ENABLED_APPS", "")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.EnabledApps != "" {
+			t.Errorf("EnabledApps = %q, want empty", cfg.EnabledApps)
+		}
+	})
+	t.Run("list is passed through", func(t *testing.T) {
+		t.Setenv("ALFHEIM_ENABLED_APPS", "pantry,chat")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.EnabledApps != "pantry,chat" {
+			t.Errorf("EnabledApps = %q", cfg.EnabledApps)
+		}
+	})
 }

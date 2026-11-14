@@ -35,7 +35,7 @@ describe('readApiError', () => {
     expect(await readApiError(makeHttpError(502))).toEqual({ status: 502, code: null, itemCount: null, detail: null })
   })
 
-  it('reports no status for a ky NetworkError', async () => {
+  it('reports no status for a network failure', async () => {
     expect(await readApiError(makeNetworkError())).toEqual({ status: null, code: null, itemCount: null, detail: null })
   })
 
@@ -65,7 +65,7 @@ describe('describeApiError', () => {
     expect(await describeApiError(new TypeError('Failed to fetch'), t, 'fallback')).toBe('fallback pantry.errors.unreachable')
   })
 
-  it('adds the unreachable hint for a ky NetworkError', async () => {
+  it('adds the unreachable hint for a network failure', async () => {
     expect(await describeApiError(makeNetworkError(), t, 'fallback')).toBe('fallback pantry.errors.unreachable')
   })
 

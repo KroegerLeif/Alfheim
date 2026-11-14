@@ -26,6 +26,7 @@
     "einlagernBtn": "Pantry Transfer",
     "pantryBadge": "Pantry",
     "pantryLegend": "Linked with Pantry app — will be automatically added to stock",
+    "pantryUnavailable": "Pantry is not installed, so purchases are not added to stock.",
     "share": "Share",
     "print": "Print",
     "clearCompleted": "Clear Completed",

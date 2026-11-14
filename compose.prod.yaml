@@ -628,6 +628,9 @@ services:
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:?DASHBOARD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Enabled optional apps (ADR 0007): the dashboard lists only their tiles.
+      # Unset means every app, like an installation from before the Lean Core.
+      - ALFHEIM_ENABLED_APPS=${ALFHEIM_ENABLED_APPS-all}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -815,7 +818,9 @@ services:
       - CHAT_ENCRYPTION_KEY_ID=${CHAT_ENCRYPTION_KEY_ID:-v1}
       - CHAT_ATTACHMENT_URL_SECRET=${CHAT_ATTACHMENT_URL_SECRET:?CHAT_ATTACHMENT_URL_SECRET must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
-      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
+      # alfheim-setup renders the list from the enabled apps; an empty value
+      # (no tool app installed) is kept, only a missing one gets the default.
+      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
       # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).
       - CHAT_ALLOWED_LLM_HOSTS=${CHAT_ALLOWED_LLM_HOSTS:-host.docker.internal}
     volumes:
@@ -997,7 +1002,8 @@ services:
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:?SHOPPING_POSTGRES_PASSWORD must be set}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
-      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
+      # Empty while pantry is disabled: shopping then hides its pantry sync.
+      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend

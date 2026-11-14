@@ -193,6 +193,8 @@ func TestRun_EnsureBootstrapError(t *testing.T) {
 }
 
 func TestRun_SeedFromEnvError(t *testing.T) {
+	// The registry is only seeded when CHAT_MCP_SERVERS is present.
+	t.Setenv("CHAT_MCP_SERVERS", "pantry=http://pantry-backend:8000/mcp")
 	origNewDB := newDBClient
 	origSetupAuth := setupAuth
 	origSeedMCPServers := seedMCPServers

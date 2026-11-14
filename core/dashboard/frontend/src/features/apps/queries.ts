@@ -6,16 +6,39 @@ import {
   createUserLink,
   updateUserLink,
   deleteUserLink,
+  fetchAppHealth,
 } from '@/shared/api';
 import {
   DashboardAppsResponse,
   UserPreferences,
   CreateUserLinkRequest,
   AppItem,
+  AppHealthResponse,
 } from '@/shared/types';
 
 export const DASHBOARD_APPS_QUERY_KEY = ['apps', 'dashboard'];
 export const USER_PREFERENCES_QUERY_KEY = ['user', 'preferences'];
+export const APP_HEALTH_QUERY_KEY = ['apps', 'health'];
+
+/**
+ * Matches the backend's 15 s probe cache: polling faster would only re-read the same snapshot,
+ * and together they turn a stopped app offline within 30 s.
+ */
+const APP_HEALTH_POLL_MS = 15 * 1000;
+
+/**
+ * Live health of the enabled app backends from GET /api/v1/apps/health, polled while the
+ * dashboard is open. A failed poll keeps the last known states instead of flagging every app.
+ */
+export function useAppHealth() {
+  return useQuery<AppHealthResponse>({
+    queryKey: APP_HEALTH_QUERY_KEY,
+    queryFn: fetchAppHealth,
+    refetchInterval: APP_HEALTH_POLL_MS,
+    staleTime: APP_HEALTH_POLL_MS,
+    retry: false,
+  });
+}
 
 /**
  * Custom TanStack Query hook to fetch 3-tier dashboard apps from GET /api/v1/apps/dashboard.

@@ -6,11 +6,7 @@ export const manualsApi = {
     const formData = new FormData();
     formData.append("file", file);
 
-    return await libraryClient
-      .post(`items/${itemId}/manual`, {
-        body: formData,
-      })
-      .json<ManualUploadResponse>();
+    return await libraryClient.post(`items/${itemId}/manual`, formData).json<ManualUploadResponse>();
   },
 
   async getManualUrl(itemId: string): Promise<ManualUrlResponse> {

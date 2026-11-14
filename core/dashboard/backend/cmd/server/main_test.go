@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"alfheim/dashboard/config"
+	"alfheim/dashboard/internal/features/apps"
 	"alfheim/dashboard/internal/shared/db"
 	"alfheim/dashboard/internal/shared/middleware"
 )
@@ -47,14 +48,14 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, "", []string{})
+	buildRouter(log, &db.Client{Pool: nil}, nil, "", []string{}, apps.AllApps())
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, passthroughAuth, "", []string{})
+	router := buildRouter(log, dbClient, passthroughAuth, "", []string{}, apps.AllApps())
 
 	t.Run("/healthz endpoint returns 200 healthy", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
@@ -218,5 +219,15 @@ func TestMain_Function(t *testing.T) {
 
 	if exitCode != 1 {
 		t.Errorf("expected exit code 1, got %d", exitCode)
+	}
+}
+
+func TestHealthTargets_FollowEnabledApps(t *testing.T) {
+	targets := healthTargets(apps.EnabledCoreApps(apps.ParseEnabledApps("pantry")))
+	if len(targets) != 2 || targets[0].ID != "pantry" || targets[1].ID != "household" {
+		t.Errorf("unexpected targets %+v", targets)
+	}
+	if got := healthTargets([]apps.AppItem{{ID: "no-probe"}}); len(got) != 0 {
+		t.Errorf("an app without a health URL must not be probed: %+v", got)
 	}
 }

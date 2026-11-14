@@ -17,6 +17,8 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Static page for a stopped or missing app (handle_errors in the Caddyfile).
+      - ./errors:/srv/alfheim-errors:ro
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:

@@ -23,7 +23,8 @@ interface DashboardHeaderProps {
   households: Household[];
   checkedCount: number;
   totalCount: number;
-  onSync: () => void;
+  /** Stores the checked items in Pantry; omitted when Pantry is not installed, which hides the button. */
+  onSync?: () => void;
   onClearCompleted: () => void;
   isSyncPending: boolean;
 }
@@ -157,7 +158,7 @@ export function DashboardHeader({
             )}
 
             {/* Primary Action Button: Store Einkauf */}
-            {canEdit && totalCount > 0 && checkedCount > 0 && (
+            {onSync && canEdit && totalCount > 0 && checkedCount > 0 && (
               <button
                 type="button"
                 onClick={onSync}
