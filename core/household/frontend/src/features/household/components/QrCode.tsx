@@ -27,6 +27,7 @@ export function QrCode({ value, label, className = 'w-44 h-44' }: QrCodeProps) {
     return { size: qr.size, path: d };
   }, [value]);
 
+  // Inline SVG on purpose: the path data is generated per value, so no static icon can replace it.
   return (
     <svg
       role="img"
