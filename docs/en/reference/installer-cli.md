@@ -186,6 +186,11 @@ disabled app.
 Unknown names, core apps (`disable dashboard`) and broken requirements
 (`enable shopping` without `pantry`, `disable pantry` while `shopping` is on)
 are rejected with exit code `1` and an error naming the conflict.
+`apps` does not recreate the dashboard or chat backends, which read
+`ALFHEIM_ENABLED_APPS` and `CHAT_MCP_SERVERS` when their containers are
+created; the next `update` does. The `--apps` names and the per-app memory
+are listed in the [apps catalog](./apps-catalog.md). Task guide:
+[Manage apps](../how-to/manage-apps.md).
 
 ---
 
@@ -317,6 +322,8 @@ ALFHEIM_CHANNEL=prerelease bash -c "$(curl -fsSL https://raw.githubusercontent.c
 
 * [Tutorial: your first installation](../tutorials/first-run.md)
 * [How-to: update an installation](../how-to/update-installation.md)
+* [How-to: manage apps](../how-to/manage-apps.md)
+* [How-to: run Alfheim on low-spec hardware](../how-to/low-spec-setup.md)
 * [Environment variables](./environment-variables.md)
 * [CLI scripts](./cli-scripts.md)
 * [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)
