@@ -1,6 +1,6 @@
 import { ApiTimeoutError, defaultApiErrorMapper, readResponseBody } from './errors';
 import { createBrowserApiSession } from './session';
-import { isRawBody, resolveApiBaseUrl, withResponseHelpers } from './requestHelpers';
+import { isRawBody, resolveApiBaseUrl, withResponseHelpers, withSearchParams } from './requestHelpers';
 import { withTraceparentHeaders } from './traceHeaders';
 import type {
   ApiClientOptions,
@@ -12,7 +12,14 @@ import type {
 
 export { withTraceparentHeaders, createTraceparentHook, fetchWithTrace } from './traceHeaders';
 export { resolveApiBaseUrl } from './requestHelpers';
-export type { ApiClientOptions, ApiErrorMapper, ApiRequestInit, ApiResponsePromise, ApiSession } from './types';
+export type {
+  ApiClientOptions,
+  ApiErrorMapper,
+  ApiRequestInit,
+  ApiResponsePromise,
+  ApiSearchParams,
+  ApiSession,
+} from './types';
 
 /** Default request timeout of the shared API client, in milliseconds. */
 export const DEFAULT_API_TIMEOUT_MS = 8000;
@@ -94,8 +101,8 @@ export class ApiClient {
   }
 
   private async send(endpoint: string, init: ApiRequestInit): Promise<Response> {
-    const { timeoutMs, stream, throwHttpErrors, headers, ...requestInit } = init;
-    const url = this.resolveUrl(endpoint);
+    const { timeoutMs, stream, throwHttpErrors, headers, searchParams, ...requestInit } = init;
+    const url = withSearchParams(this.resolveUrl(endpoint), searchParams);
     const timeout = stream ? false : (timeoutMs ?? this.timeoutMs);
     const attempt = (token: string | null) =>
       this.dispatch(url, { ...this.defaultOptions, ...requestInit, headers: this.buildHeaders(headers, token) }, timeout);

@@ -6,7 +6,7 @@ import type {
   StreakResponse,
 } from "../types";
 
-const RESOURCE = "api/v1/analytics";
+const RESOURCE = "analytics";
 
 /**
  * Raw HTTP calls for the analytics resource. Every endpoint is read-only —

@@ -11,7 +11,7 @@ export interface SendCartResult {
  * puts it on the household list of the active household (X-Household-ID).
  */
 const pushItem = async (name: string): Promise<void> => {
-  await shoppingClient.post("shopping/items", { json: { name, quantity: 1, unit: "piece" } });
+  await shoppingClient.post("shopping/items", { name, quantity: 1, unit: "piece" });
 };
 
 /**

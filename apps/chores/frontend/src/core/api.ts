@@ -1,95 +1,25 @@
-import ky from "ky";
-import {
-  resolveApiUrl,
-  resolveFrontendUrl,
-  LEGACY_ACCESS_TOKEN_KEY,
-  applyHouseholdHeaders,
-  reportHouseholdErrorResponse,
-  parseApiErrorBody,
-} from "@alfheim/shared";
+import { createApiClient, parseApiErrorBody } from "@alfheim/shared";
 
-export interface ApiError {
+/** A failed chores API call: status, backend error code and the server message (may be empty). */
+export interface ApiError extends Error {
   status?: number;
   /** Backend error code, e.g. `household_role_forbidden`. */
   code?: string;
   message: string;
 }
 
-const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = resolveApiUrl(defaultFallback, url);
-  if (resolved.startsWith("/")) {
-    if (typeof window !== "undefined") {
-      resolved = window.location.origin + resolved;
-    } else {
-      resolved = resolveFrontendUrl() + resolved;
-    }
-  }
-  return resolved.endsWith("/") ? resolved : resolved + "/";
-};
+/** Maps a failed response to {@link ApiError}; an empty message lets the UI use its localized text. */
+function toApiError(response: Response, body: unknown): ApiError {
+  const parsed = body && typeof body === "object" ? parseApiErrorBody(body) : null;
+  const message = parsed ? parsed.message || "" : response.statusText || "";
+  return Object.assign(new Error(message), { status: response.status, code: parsed?.code ?? undefined });
+}
 
-const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "/api/v1/chores");
-
-const handleResponseError = async (response: Response) => {
-  let code: string | undefined;
-  // Empty when the server gave no usable message so the UI falls back to its localized text.
-  let message = "";
-  try {
-    const data = await response.json();
-    // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
-    const parsed = parseApiErrorBody(data);
-    code = parsed.code ?? undefined;
-    message = parsed.message || message;
-  } catch {
-    message = response.statusText || message;
-  }
-
-  throw {
-    status: response.status,
-    code,
-    message,
-  } as ApiError;
-};
-
-export const choresClient = ky.create({
-  prefix: BASE_URL,
-  timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  hooks: {
-    beforeRequest: [
-      ({ request }) => {
-        if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
-          if (token) {
-            request.headers.set("Authorization", `Bearer ${token}`);
-          }
-          applyHouseholdHeaders(request.headers);
-        }
-      },
-    ],
-    afterResponse: [
-      async ({ request, options, response }) => {
-        if (response.status === 401 && typeof window !== "undefined") {
-          const oidcBridge = window.__alfheim_oidc__;
-          if (oidcBridge && typeof oidcBridge.refresh === "function") {
-            try {
-              const newToken = await oidcBridge.refresh();
-              if (newToken) {
-                request.headers.set("Authorization", `Bearer ${newToken}`);
-                return ky(request, options);
-              }
-            } catch (err) {
-              console.warn("OIDC token refresh failed on 401:", err);
-            }
-          }
-        }
-        await reportHouseholdErrorResponse(response);
-        if (!response.ok) {
-          await handleResponseError(response);
-        }
-      },
-    ],
-  },
+/** Chores API client: the shared client with the browser session, paths relative to the chores API. */
+export const choresClient = createApiClient({
+  basePath: "/api/v1/chores",
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  session: true,
+  timeoutMs: 10000,
+  mapError: toApiError,
 });
-export type apiClientType = typeof choresClient;

@@ -47,7 +47,7 @@ export function useAddShoppingItem(listId: string) {
   return useMutation<ShoppingItem, Error, ShoppingItemCreatePayload, AddItemContext>({
     mutationFn: (payload) =>
       shoppingClient
-        .post(`api/v1/shopping-lists/${listId}/items`, { json: payload })
+        .post(`shopping-lists/${listId}/items`, payload)
         .json()
         .then((data) => ShoppingItemSchema.parse(data)),
     onMutate: async (newItemPayload) => {
@@ -120,7 +120,7 @@ export function useUpdateShoppingItem(listId: string, { silent = false }: { sile
   >({
     mutationFn: ({ itemId, payload }) =>
       shoppingClient
-        .patch(`api/v1/shopping-lists/${listId}/items/${itemId}`, { json: payload })
+        .patch(`shopping-lists/${listId}/items/${itemId}`, payload)
         .json()
         .then((data) => ShoppingItemSchema.parse(data)),
     onMutate: async ({ itemId, payload }) => {
@@ -167,7 +167,7 @@ export function useDeleteShoppingItem(listId: string) {
   >({
     mutationFn: (itemId) =>
       shoppingClient
-        .delete(`api/v1/shopping-lists/${listId}/items/${itemId}`)
+        .delete(`shopping-lists/${listId}/items/${itemId}`)
         .then(() => {}),
     onMutate: async (itemId) => {
       await queryClient.cancelQueries({ queryKey: shoppingKeys.list(listId) });

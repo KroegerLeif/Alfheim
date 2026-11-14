@@ -1,5 +1,23 @@
 import { resolveApiUrl, resolveFrontendUrl } from '../config/runtimeConfig';
-import type { ApiResponsePromise } from './types';
+import type { ApiResponsePromise, ApiSearchParams } from './types';
+
+/** Appends `searchParams` to `url`, skipping `undefined` and `null` values. */
+export function withSearchParams(url: string, searchParams?: ApiSearchParams): string {
+  if (!searchParams) return url;
+  const params = new URLSearchParams();
+  if (searchParams instanceof URLSearchParams) {
+    searchParams.forEach((value, key) => params.append(key, value));
+  } else if (Array.isArray(searchParams)) {
+    for (const [key, value] of searchParams) params.append(key, value);
+  } else {
+    for (const [key, value] of Object.entries(searchParams)) {
+      if (value !== undefined && value !== null) params.append(key, String(value));
+    }
+  }
+  const query = params.toString();
+  if (!query) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}${query}`;
+}
 
 /**
  * Resolves an API path such as `/api/v1/chat` to an absolute base URL without a trailing slash:

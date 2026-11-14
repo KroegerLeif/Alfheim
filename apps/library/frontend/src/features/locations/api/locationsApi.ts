@@ -15,14 +15,14 @@ export async function fetchLocationsFlat(): Promise<LocationResponse[]> {
 }
 
 export async function createLocation(payload: LocationCreatePayload): Promise<LocationResponse> {
-  return await libraryClient.post("locations", { json: payload }).json<LocationResponse>();
+  return await libraryClient.post("locations", payload).json<LocationResponse>();
 }
 
 export async function updateLocation(
   id: string,
   payload: LocationUpdatePayload
 ): Promise<LocationResponse> {
-  return await libraryClient.put(`locations/${id}`, { json: payload }).json<LocationResponse>();
+  return await libraryClient.put(`locations/${id}`, payload).json<LocationResponse>();
 }
 
 export async function deleteLocation(id: string): Promise<void> {

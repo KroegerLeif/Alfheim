@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { isNetworkError } from 'ky'
 import { getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { choresClient } from '../api'
 
@@ -23,15 +22,15 @@ describe('choresClient household context', () => {
   it('sends X-Household-ID for the active household and never X-Household-Role', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
     await choresClient.get('templates').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
-    expect(request.headers.get('X-Household-ID')).toBe('hh-7')
-    expect(request.headers.get('X-Household-Role')).toBeNull()
+    const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers)
+    expect(headers.get('X-Household-ID')).toBe('hh-7')
+    expect(headers.get('X-Household-Role')).toBeNull()
   })
 
   it('omits the header when no household is active', async () => {
     await choresClient.get('templates').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
-    expect(request.headers.get('X-Household-ID')).toBeNull()
+    const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers)
+    expect(headers.get('X-Household-ID')).toBeNull()
   })
 
   it('reports household_forbidden and surfaces the structured error code', async () => {
@@ -66,17 +65,17 @@ describe('choresClient network failures', () => {
     vi.unstubAllGlobals()
   })
 
-  it('rejects with a NetworkError instead of a normalized API error', async () => {
+  it('rejects with the browser error instead of a normalized API error', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await choresClient.get('templates', { retry: 0 }).json().catch((err: unknown) => err)
-    expect(isNetworkError(error)).toBe(true)
+    const error = await choresClient.get('templates').json().catch((err: unknown) => err)
+    expect(error).toBeInstanceOf(TypeError)
     expect(error).not.toHaveProperty('status')
     expect(error).not.toHaveProperty('code')
   })
 
   it('keeps the browser message for text shown to the user', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await choresClient.get('templates', { retry: 0 }).json().catch((err: unknown) => err)
+    const error = await choresClient.get('templates').json().catch((err: unknown) => err)
     expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

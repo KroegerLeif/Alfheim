@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { isNetworkError } from 'ky'
 import { getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { budgetClient } from '../api'
 
@@ -22,16 +21,16 @@ describe('budgetClient household context', () => {
 
   it('sends X-Household-ID for the active household and never X-Household-Role', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    await budgetClient.get('api/v1/accounts').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
-    expect(request.headers.get('X-Household-ID')).toBe('hh-7')
-    expect(request.headers.get('X-Household-Role')).toBeNull()
+    await budgetClient.get('accounts').json()
+    const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers)
+    expect(headers.get('X-Household-ID')).toBe('hh-7')
+    expect(headers.get('X-Household-Role')).toBeNull()
   })
 
   it('omits the header when no household is active', async () => {
-    await budgetClient.get('api/v1/accounts').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
-    expect(request.headers.get('X-Household-ID')).toBeNull()
+    await budgetClient.get('accounts').json()
+    const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers)
+    expect(headers.get('X-Household-ID')).toBeNull()
   })
 
   it('reports household_forbidden and surfaces the structured error code', async () => {
@@ -41,7 +40,7 @@ describe('budgetClient household context', () => {
     )
     const listener = vi.fn()
     const unsubscribe = subscribeHouseholdErrors(listener)
-    await expect(budgetClient.get('api/v1/accounts').json()).rejects.toMatchObject({
+    await expect(budgetClient.get('accounts').json()).rejects.toMatchObject({
       status: 403,
       code: 'household_forbidden',
       message: 'Not a member',
@@ -52,7 +51,7 @@ describe('budgetClient household context', () => {
 
   it('leaves the message empty when the server sends no usable error body', async () => {
     fetchSpy.mockImplementation(async () => new Response('<html>bad gateway</html>', { status: 502 }))
-    const error = await budgetClient.get('api/v1/accounts').json().catch((err: unknown) => err)
+    const error = await budgetClient.get('accounts').json().catch((err: unknown) => err)
     expect(error).toMatchObject({ status: 502, message: '' })
     expect((error as Error).message).not.toContain('budget.')
   })
@@ -67,17 +66,17 @@ describe('budgetClient network failures', () => {
     vi.unstubAllGlobals()
   })
 
-  it('rejects with a NetworkError instead of a normalized API error', async () => {
+  it('rejects with the browser error instead of a normalized API error', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await budgetClient.get('api/v1/accounts', { retry: 0 }).json().catch((err: unknown) => err)
-    expect(isNetworkError(error)).toBe(true)
+    const error = await budgetClient.get('accounts').json().catch((err: unknown) => err)
+    expect(error).toBeInstanceOf(TypeError)
     expect(error).not.toHaveProperty('status')
     expect(error).not.toHaveProperty('code')
   })
 
   it('keeps the browser message for text shown to the user', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await budgetClient.get('api/v1/accounts', { retry: 0 }).json().catch((err: unknown) => err)
+    const error = await budgetClient.get('accounts').json().catch((err: unknown) => err)
     expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

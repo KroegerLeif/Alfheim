@@ -11,7 +11,7 @@ export function useLocations() {
   const { householdId, status } = useActiveHousehold();
   return useQuery<LocationRead[]>({
     queryKey: ["locations", { householdId }],
-    queryFn: () => fetchAllPages<LocationRead>("api/v1/locations"),
+    queryFn: () => fetchAllPages<LocationRead>("locations"),
     enabled: status === "ready",
   });
 }
@@ -25,7 +25,7 @@ export function useCreateLocation() {
   return useMutation<LocationRead, Error, LocationCreate>({
     mutationFn: (payload) =>
       pantryClient
-        .post("api/v1/locations", { json: payload })
+        .post("locations", payload)
         .json<LocationRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
@@ -42,7 +42,7 @@ export function useUpdateLocation() {
   return useMutation<LocationRead, Error, { id: string; payload: LocationUpdate }>({
     mutationFn: ({ id, payload }) =>
       pantryClient
-        .patch(`api/v1/locations/${id}`, { json: payload })
+        .patch(`locations/${id}`, payload)
         .json<LocationRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
@@ -61,7 +61,7 @@ export function useDeleteLocation() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
-      await pantryClient.delete(`api/v1/locations/${id}`);
+      await pantryClient.delete(`locations/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });

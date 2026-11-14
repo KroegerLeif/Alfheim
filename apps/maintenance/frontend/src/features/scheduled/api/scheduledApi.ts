@@ -6,6 +6,6 @@ export const updateTaskState = async (
   payload: TaskStateUpdatePayload,
 ): Promise<MaintenanceStep> => {
   return await maintenanceClient
-    .post(`tasks/${stepId}/state`, { json: payload })
+    .post(`tasks/${stepId}/state`, payload)
     .json<MaintenanceStep>();
 };

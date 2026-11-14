@@ -13,7 +13,7 @@ import type {
   ResolvedDayRead,
 } from "../types";
 
-const RESOURCE = "api/v1/plans";
+const RESOURCE = "plans";
 
 export interface PlanListParams {
   limit?: number;
@@ -35,11 +35,11 @@ export const plansApi = {
   },
 
   create(payload: PlanCreate): Promise<PlanRead> {
-    return workoutClient.post(RESOURCE, { json: payload }).json<PlanRead>();
+    return workoutClient.post(RESOURCE, payload).json<PlanRead>();
   },
 
   update(planId: string, payload: PlanUpdate): Promise<PlanRead> {
-    return workoutClient.patch(`${RESOURCE}/${planId}`, { json: payload }).json<PlanRead>();
+    return workoutClient.patch(`${RESOURCE}/${planId}`, payload).json<PlanRead>();
   },
 
   async remove(planId: string): Promise<void> {
@@ -47,7 +47,7 @@ export const plansApi = {
   },
 
   addDay(planId: string, payload: PlanDayCreate): Promise<PlanDayRead> {
-    return workoutClient.post(`${RESOURCE}/${planId}/days`, { json: payload }).json<PlanDayRead>();
+    return workoutClient.post(`${RESOURCE}/${planId}/days`, payload).json<PlanDayRead>();
   },
 
   async removeDay(planId: string, dayId: string): Promise<void> {
@@ -60,7 +60,7 @@ export const plansApi = {
     payload: PlanExerciseCreate
   ): Promise<PlanExerciseRead> {
     return workoutClient
-      .post(`${RESOURCE}/${planId}/days/${dayId}/exercises`, { json: payload })
+      .post(`${RESOURCE}/${planId}/days/${dayId}/exercises`, payload)
       .json<PlanExerciseRead>();
   },
 
@@ -75,9 +75,7 @@ export const plansApi = {
     payload: PlanSetCreate
   ): Promise<PlanSetRead> {
     return workoutClient
-      .post(`${RESOURCE}/${planId}/days/${dayId}/exercises/${planExerciseId}/sets`, {
-        json: payload,
-      })
+      .post(`${RESOURCE}/${planId}/days/${dayId}/exercises/${planExerciseId}/sets`, payload)
       .json<PlanSetRead>();
   },
 
@@ -89,9 +87,7 @@ export const plansApi = {
     payload: PlanSetUpdate
   ): Promise<PlanSetRead> {
     return workoutClient
-      .patch(`${RESOURCE}/${planId}/days/${dayId}/exercises/${planExerciseId}/sets/${setId}`, {
-        json: payload,
-      })
+      .patch(`${RESOURCE}/${planId}/days/${dayId}/exercises/${planExerciseId}/sets/${setId}`, payload)
       .json<PlanSetRead>();
   },
 

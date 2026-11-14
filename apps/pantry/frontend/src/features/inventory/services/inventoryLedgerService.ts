@@ -17,7 +17,7 @@ export function useCreateTransaction() {
   return useMutation<InventoryLedgerRead, Error, InventoryTransactionCreate>({
     mutationFn: (payload) =>
       pantryClient
-        .post("api/v1/inventory/transactions", { json: payload })
+        .post("inventory/transactions", payload)
         .json<InventoryLedgerRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
@@ -37,7 +37,7 @@ export function useLedgerHistory(productId?: string, locationId?: string, limit 
     queryKey: inventoryKeys.ledgerFiltered(activeHouseholdId, productId, locationId, limit, offset),
     queryFn: () =>
       pantryClient
-        .get("api/v1/inventory/transactions", {
+        .get("inventory/transactions", {
           searchParams: {
             ...(productId && { product_id: productId }),
             ...(locationId && { location_id: locationId }),

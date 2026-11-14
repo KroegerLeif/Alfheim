@@ -40,15 +40,15 @@ export const transactionsApi = {
   },
 
   async createTransaction(data: TransactionCreate): Promise<Transaction> {
-    return budgetClient.post("transactions", { json: data }).json<Transaction>();
+    return budgetClient.post("transactions", data).json<Transaction>();
   },
 
   async quickAddTransaction(data: QuickAddTransactionCreate): Promise<Transaction> {
-    return budgetClient.post("transactions/quick-add", { json: data }).json<Transaction>();
+    return budgetClient.post("transactions/quick-add", data).json<Transaction>();
   },
 
   async updateTransaction(id: string, data: TransactionUpdate): Promise<Transaction> {
-    return budgetClient.patch(`transactions/${id}`, { json: data }).json<Transaction>();
+    return budgetClient.patch(`transactions/${id}`, data).json<Transaction>();
   },
 
   async deleteTransaction(id: string): Promise<void> {
@@ -67,7 +67,7 @@ export const transactionsApi = {
     body.append("file", file);
     // Larger than the client default: receipts can be up to the backend limit (10 MiB).
     return budgetClient
-      .post("transactions/receipt", { body, timeout: 60000 })
+      .post("transactions/receipt", body, { timeoutMs: 60000 })
       .json<ReceiptUploadResponse>();
   },
 };

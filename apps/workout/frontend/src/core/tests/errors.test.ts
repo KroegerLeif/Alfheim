@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { NetworkError } from "ky";
+import { ApiTimeoutError } from "@alfheim/shared";
 import { ApiError } from "../api";
 import { describeError } from "../errors";
 
@@ -25,8 +25,8 @@ describe("describeError", () => {
     expect(describeError(undefined, t, "workout.saveFailed")).toBe("[workout.saveFailed]");
   });
 
-  it("does not leak the request URL of a ky NetworkError", () => {
-    const error = new NetworkError(new Request("http://localhost/api/v1/plans"), { cause: new TypeError("Failed to fetch") });
+  it("does not leak the request URL of a timeout", () => {
+    const error = new ApiTimeoutError("http://localhost/workout/api/v1/plans", 10000);
     expect(describeError(error, t, "workout.saveFailed")).toBe("[workout.saveFailed]");
   });
 

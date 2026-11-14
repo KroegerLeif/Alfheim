@@ -2,7 +2,7 @@ import React, { ReactElement, ReactNode } from "react";
 import { render, RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LanguageProvider, StaticHouseholdProvider } from "@alfheim/shared";
-import { HTTPError, NetworkError, type NormalizedOptions } from "ky";
+import { ApiError } from "@alfheim/shared";
 
 type Language = "de" | "en" | "pl";
 
@@ -45,16 +45,12 @@ export function renderWithProviders(
   return render(ui, { wrapper: createWrapper({ language, role }), ...options });
 }
 
-/** Build the error ky throws for a non-2xx response, with an optional JSON body. */
-export function makeHttpError(status: number, body?: unknown): HTTPError {
-  const response = new Response(null, { status });
-  const error = new HTTPError(response, new Request("http://localhost/api"), {} as NormalizedOptions);
-  // ky parses the response body into `data` before it throws.
-  error.data = body as HTTPError["data"];
-  return error;
+/** Build the error the shared API client throws for a non-2xx response, with an optional JSON body. */
+export function makeHttpError(status: number, body?: unknown): ApiError {
+  return new ApiError(new Response(null, { status }), body);
 }
 
-/** Builds the error ky throws when `fetch` fails without a response (offline, DNS, refused). */
-export function makeNetworkError(): NetworkError {
-  return new NetworkError(new Request("http://localhost/api"), { cause: new TypeError("Failed to fetch") });
+/** Builds the error `fetch` throws when there is no response (offline, DNS, refused). */
+export function makeNetworkError(): TypeError {
+  return new TypeError("Failed to fetch");
 }

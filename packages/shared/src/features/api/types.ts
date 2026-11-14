@@ -51,8 +51,19 @@ export interface ApiClientOptions extends Omit<RequestInit, 'headers'> {
   mapError?: ApiErrorMapper;
 }
 
+/**
+ * Query parameters of a request: an object (`undefined` and `null` values are left out), key-value
+ * pairs for repeated keys, or `URLSearchParams`.
+ */
+export type ApiSearchParams =
+  | URLSearchParams
+  | Array<[string, string]>
+  | Record<string, string | number | boolean | null | undefined>;
+
 /** Per-request options: a `RequestInit` plus overrides of the client defaults. */
 export interface ApiRequestInit extends RequestInit {
+  /** Appended to the URL as a query string. */
+  searchParams?: ApiSearchParams;
   /** Overrides the client timeout for this request. */
   timeoutMs?: number | false;
   /**

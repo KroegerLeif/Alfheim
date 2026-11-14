@@ -14,7 +14,7 @@ export function useShoppingCapabilities() {
     queryKey: capabilitiesKey,
     queryFn: () =>
       shoppingClient
-        .get("api/v1/shopping/capabilities")
+        .get("shopping/capabilities")
         .json()
         .then((data) => ShoppingCapabilitiesSchema.parse(data)),
     staleTime: 5 * 60 * 1000,

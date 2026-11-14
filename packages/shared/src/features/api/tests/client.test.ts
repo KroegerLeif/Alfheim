@@ -155,3 +155,27 @@ describe('createApiClient bodies and URLs', () => {
     });
   });
 });
+
+describe('createApiClient searchParams', () => {
+  it('appends query parameters and leaves out undefined and null values', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('[]'));
+    const client = createApiClient({ baseUrl: 'https://api.test', fetch: fetchMock });
+
+    await client.get('/items', { searchParams: { q: 'a b', limit: 5, active: true, skip: undefined, none: null } });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.test/items?q=a+b&limit=5&active=true');
+  });
+
+  it('extends an existing query string and accepts URLSearchParams', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('[]'));
+    const client = createApiClient({ baseUrl: 'https://api.test', fetch: fetchMock });
+
+    await client.get('/items?x=1', { searchParams: new URLSearchParams([['tag', 'a'], ['tag', 'b']]) });
+    await client.get('/items', { searchParams: { skip: undefined } });
+    await client.get('/items', { searchParams: [['type', 'out'], ['type', 'waste']] });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.test/items?x=1&tag=a&tag=b');
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/items');
+    expect(fetchMock.mock.calls[2][0]).toBe('https://api.test/items?type=out&type=waste');
+  });
+});
