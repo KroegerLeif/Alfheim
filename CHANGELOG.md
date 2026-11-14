@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ADR 0007 records the Lean Core app set (infrastructure, dashboard, household) and the optional modules; the apps catalog gains a `Tier` column (#855).
+- `alfheim-setup apps list|enable <name>|disable <name>` switches optional apps on and off and stores the set as `ALFHEIM_ENABLED_APPS` in `.env`; a missing key means all apps, and disabling never removes volumes or databases (#856).
+- Compose profiles: every service of an optional app gets the profile named after the app and the telemetry services get `telemetry`; the Lean Core has none. `.env.example` and the installer's `.env` set `COMPOSE_PROFILES` to every profile, so `./scripts/up.sh` and existing installs start what they did before (#857).
+- The installer applies the enabled app set: install, re-run, `update` and `restore` pass `COMPOSE_PROFILES` from `ALFHEIM_ENABLED_APPS` to every compose call, so an update never restarts a disabled app; `apps enable` creates missing databases, starts the app and waits for it; the Caddyfile answers 404 for a disabled app's API and redirects its pages (and `/grafana` without telemetry) to the dashboard (#858).
+- `alfheim-setup` installs the Lean Core by default: `--apps=all|none|<list>` (or `ALFHEIM_APPS`) selects optional apps non-interactively, and the wizard has an app step listing each optional app with its description and memory, plus a separate telemetry question (default off); a re-run keeps the stored set (#859).
+- `./scripts/up.sh --lean` and `--apps=<list>` boot the dev stack with only the Lean Core or the listed modules, with one stage per app derived from a single array; `./scripts/verify-stack.sh` skips and lists the routes of apps that are not running (#860).
+
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
 - Run gitleaks on every push and pull request; path-filter only the dependency and image scans (#867)

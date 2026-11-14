@@ -20,3 +20,4 @@ sidebar:
 | [`0004`](./0004-standalone-go-tui-installer.md) | Standalone Interactive Installer as a Typed Go TUI | Accepted | 2026-09-12 | Adopt a Go + Charm `huh` installer under `tools/installer`; decouple Zitadel bootstrapping into two phases. |
 | [`0005`](./0005-starlight-docs-portal.md) | Astro Starlight Documentation Portal with i18n | Accepted | 2026-09-12 | Render the Diátaxis corpus as a searchable portal; English default, German fallback. |
 | [`0006`](./0006-household-authorization-via-membership-api.md) | Household Authorization via the Membership API | Accepted | 2026-09-19 | Backends check `X-Household-ID` against the `core/household` membership API; no household claims in tokens. |
+| [`0007`](./0007-lean-core-app-set.md) | Lean Core App Set | Accepted | 2026-11-12 | Infrastructure, dashboard and household always run; every `apps/*` app and telemetry is an optional compose profile. |

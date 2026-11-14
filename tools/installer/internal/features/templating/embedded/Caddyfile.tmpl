@@ -194,7 +194,7 @@ http://{{ $on.AuthHost }} {
 	handle /api/v1/profile* {
 		reverse_proxy household-backend:8080
 	}
-{{- range .APIRoutes }}
+{{- range .EnabledRoutes }}
 {{- if .Direct }}
 	handle /api/v1/{{ .Slug }}* {
 		reverse_proxy {{ .Upstream }}
@@ -208,6 +208,16 @@ http://{{ $on.AuthHost }} {
 	handle_path /{{ .Slug }}/api/v1* {
 		rewrite * {{ .BackendPrefix }}{path}
 		reverse_proxy {{ .Upstream }}
+	}
+{{- end }}
+{{- range .DisabledRoutes }}
+	# {{ .Slug }} is disabled (alfheim-setup apps enable {{ .Slug }}): its API
+	# answers 404 instead of falling through to the dashboard backend.
+	handle /api/v1/{{ .Slug }}* {
+		respond 404
+	}
+	handle /{{ .Slug }}/api/v1* {
+		respond 404
 	}
 {{- end }}
 
@@ -226,7 +236,12 @@ http://{{ $on.AuthHost }} {
 
 	# Observability.
 	handle /grafana* {
+{{- if .AppEnabled "telemetry" }}
 		reverse_proxy grafana:3000
+{{- else }}
+		# Telemetry is disabled: send the page back to the dashboard.
+		redir / 302
+{{- end }}
 	}
 
 	# Household & roles core frontend (Next.js basePath /household).
@@ -235,9 +250,15 @@ http://{{ $on.AuthHost }} {
 	}
 
 	# Application frontends.
-{{- range .APIRoutes }}
+{{- range .EnabledRoutes }}
 	handle /{{ .Slug }}* {
 		reverse_proxy {{ .Slug }}-frontend:{{ .FrontendPort }}
+	}
+{{- end }}
+{{- range .DisabledRoutes }}
+	# {{ .Slug }} is disabled: send its pages back to the dashboard.
+	handle /{{ .Slug }}* {
+		redir / 302
 	}
 {{- end }}
 

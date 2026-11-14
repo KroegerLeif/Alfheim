@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/bootstrap"
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
@@ -151,11 +152,15 @@ func (a *App) execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	set, err := a.configureApps(layout, current)
+	if err != nil {
+		return err
+	}
 	// Also covers a re-run over an install that stopped half way, which is
 	// still ModeInstall but already has an .env with the earlier hosts.
 	a.reportDomainChange(layout, on)
 
-	model, target, err := a.renderConfiguration(layout, on, tlsCfg, dataPaths)
+	model, target, err := a.renderConfiguration(layout, on, tlsCfg, dataPaths, set)
 	if err != nil {
 		return err
 	}
@@ -325,7 +330,7 @@ func (a *App) configure(layout paths.Layout) (onboarding.Config, tls.Config, err
 // It returns the layout actually written to, which for a dry run is a
 // temporary directory rather than the installation root.
 func (a *App) renderConfiguration(
-	layout paths.Layout, on onboarding.Config, tlsCfg tls.Config, dataPaths datapaths.Paths,
+	layout paths.Layout, on onboarding.Config, tlsCfg tls.Config, dataPaths datapaths.Paths, set apps.Set,
 ) (templating.Model, paths.Layout, error) {
 	// Carry forward any secret an earlier run generated.
 	existing := map[string]string{}
@@ -364,6 +369,7 @@ func (a *App) renderConfiguration(
 		// A value from an earlier run wins: it may have been set by hand.
 		DockerSocketGID: a.dockerSocketGID(existing),
 		DataPaths:       dataPaths,
+		DisabledApps:    set.Disabled(),
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {
@@ -386,6 +392,13 @@ func (a *App) renderConfiguration(
 		fmt.Fprintf(a.Stdout, "%s local root CA %s (SHA-256 %s)\n", verb, ca.CertFile, ca.Fingerprint)
 	}
 
+	// env.tmpl renders COMPOSE_PROFILES for every app; record the actual set
+	// (ALFHEIM_ENABLED_APPS, its profiles and OTEL_ENABLED for the telemetry
+	// choice) before any compose call.
+	if err := envfile.Update(target.EnvFile(), apps.EnvValues(set, true)); err != nil {
+		return model, target, fmt.Errorf("alfheim-setup: record the enabled apps: %w", err)
+	}
+
 	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
 	// or the __PROVISIONED__ placeholder, since provisioning runs after
 	// rendering. Carry forward whatever an earlier run actually provisioned
@@ -399,7 +412,8 @@ func (a *App) renderConfiguration(
 		}
 	}
 
-	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\n", target.EnvFile(), target.Caddyfile())
+	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\nEnabled apps: %s\n",
+		target.EnvFile(), target.Caddyfile(), strings.Join(set.Names(), ", "))
 	return model, target, nil
 }
 
@@ -461,7 +475,11 @@ func (a *App) runBootstrap(
 		return err
 	}
 
-	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	set, err := loadEnabledApps(layout)
+	if err != nil {
+		return err
+	}
+	orch := newOrchestrator(a.Runner, layout, a.Stdout, set)
 
 	if err := orch.RunPhase(ctx, bootstrap.PhaseEdgeAuth); err != nil {
 		return err
@@ -661,7 +679,12 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 		return err
 	}
 
-	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	// Respect the stored app set, so a re-run never resurrects a disabled app.
+	set, err := recordEnabledApps(a.Stdout, layout, existing)
+	if err != nil {
+		return err
+	}
+	orch := newOrchestrator(a.Runner, layout, a.Stdout, set)
 	if err := orch.EnsureDatabases(ctx); err != nil {
 		return err
 	}

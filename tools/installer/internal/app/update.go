@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"alfheim/installer/internal/features/bootstrap"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/updater"
 	"alfheim/installer/internal/shared/assets"
@@ -171,6 +170,13 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	}
 	printWarnings(u.Stdout, envWarnings)
 
+	// The stored app set decides which services start below, so an update
+	// never brings back an app the operator disabled.
+	set, err := recordEnabledApps(u.Stdout, layout, existing)
+	if err != nil {
+		return u.rollbackError(backupDir, previousTag, layout, err)
+	}
+
 	caddyfileChanged, err := u.rerenderCaddyfile(layout, existing, target)
 	if err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
@@ -189,7 +195,7 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
 
-	orch := bootstrap.New(u.Runner, layout, bootstrap.WithLogger(u.Stdout))
+	orch := newOrchestrator(u.Runner, layout, u.Stdout, set)
 	if err := orch.EnsureDatabases(ctx); err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}

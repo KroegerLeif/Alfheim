@@ -11,30 +11,24 @@
 #   2. Core apps     — dashboard-backend  →  dashboard-frontend
 #                      →  household-backend  →  household-frontend
 #                      [live at ${ALFHEIM_BASE_URL}/ and /household after this stage]
-#   3. Shopping      — shopping-backend  →  shopping-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/shopping after this stage]
-#   4. Pantry        — pantry-backend  →  pantry-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/pantry after this stage]
-#   5. Maintenance   — maintenance-backend  →  maintenance-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/maintenance after this stage]
-#   6. Chores        — chores-backend  →  chores-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/chores after this stage]
-#   7. Budget        — budget-backend  →  budget-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/budget after this stage]
-#   8. Chat          — chat-backend  →  chat-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/chat after this stage]
-#   8a. Workout      — workout-backend  →  workout-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/workout after this stage]
-#   8b. Library      — library-backend  →  library-frontend
-#                      [live at ${ALFHEIM_BASE_URL}/library after this stage]
-#   9. Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
-#   10. Summary      — print accessible URLs with green checkmarks
+#   3+. Apps         — one stage per enabled optional app, in OPTIONAL_APPS
+#                      order: <app>-backend  →  <app>-frontend
+#                      [live at ${ALFHEIM_BASE_URL}/<app> after its stage]
+#   then Observability — victoriametrics  →  victorialogs  →  otel-collector  →  vector-shipper  →  alfheim_grafana
+#   then Summary     — print accessible URLs with green checkmarks
 #
 # Usage:
 #   ./scripts/up.sh              # start stack (use cached images — no build)
 #   ./scripts/up.sh -b           # start stack AND rebuild images first
 #   ./scripts/up.sh --build      # same as -b
 #   ./scripts/up.sh --skip-obs   # skip the VictoriaStack observability stack
+#   ./scripts/up.sh --lean       # Lean Core only: no optional app, no telemetry
+#   ./scripts/up.sh --apps=pantry,shopping,telemetry
+#                                # Lean Core plus the listed modules
+#
+# --lean and --apps set COMPOSE_PROFILES for every compose call and skip the
+# stages of the modules that are off (docs/en/explanation/decisions/
+# 0007-lean-core-app-set.md). Without them every app and telemetry starts.
 # =============================================================================
 
 set -euo pipefail
@@ -65,21 +59,68 @@ BUILD=false       # by default, do NOT rebuild images
 HOUSEHOLD_STARTED=false
 SKIP_OBS=false    # by default, start the observability stack
 
+# Optional apps in boot order, each a compose profile of the same name with
+# <app>-backend and <app>-frontend services. The stage list below is derived
+# from this one array.
+OPTIONAL_APPS=(shopping pantry maintenance chores budget chat workout library)
+# Selected modules; "all" keeps the previous behaviour of starting everything.
+SELECTED="all"
+
+usage() {
+  echo "Usage: $0 [OPTIONS]"
+  echo "Options:"
+  echo "  -b, --build      Build images before starting"
+  echo "  --skip-obs       Skip observability stack"
+  echo "  --lean           Start the Lean Core only (no optional app, no telemetry)"
+  echo "  --apps=LIST      Start the Lean Core plus LIST, comma-separated, e.g."
+  echo "                   pantry,shopping,telemetry (telemetry only when listed)"
+  echo "  -h, --help       Show this help message"
+}
+
 for arg in "$@"; do
   case "$arg" in
     -b|--build)     BUILD=true ;;
     --skip-obs)     SKIP_OBS=true ;;
-    -h|--help)
-      echo "Usage: $0 [OPTIONS]"
-      echo "Options:"
-      echo "  -b, --build     Build images before starting"
-      echo "  --skip-obs      Skip observability stack"
-      echo "  -h, --help      Show this help message"
-      exit 0
-      ;;
+    --lean)         SELECTED="" ;;
+    --apps=*)       SELECTED="${arg#--apps=}" ;;
+    -h|--help)      usage; exit 0 ;;
     *) warn "Unknown argument: $arg" ;;
   esac
 done
+
+# has_module reports whether a module is in the comma-separated SELECTED list.
+has_module() {
+  [[ "${SELECTED}" == "all" || ",${SELECTED}," == *",$1,"* ]]
+}
+
+ENABLED_APPS=()
+if [[ "${SELECTED}" != "all" ]]; then
+  IFS=',' read -r -a requested <<< "${SELECTED}"
+  for module in ${requested[@]+"${requested[@]}"}; do
+    case " ${OPTIONAL_APPS[*]} telemetry " in
+      *" ${module} "*) ;;
+      *) fail "Unknown module '${module}' in --apps (known: ${OPTIONAL_APPS[*]} telemetry)" ;;
+    esac
+  done
+  if has_module shopping && ! has_module pantry; then
+    fail "shopping requires pantry; add pantry to --apps"
+  fi
+  has_module telemetry || SKIP_OBS=true
+fi
+for app in "${OPTIONAL_APPS[@]}"; do
+  if has_module "${app}"; then
+    ENABLED_APPS+=("${app}")
+  fi
+done
+if [[ "${SELECTED}" != "all" ]]; then
+  # Every compose call below sees only the selected profiles.
+  profiles=""
+  for app in ${ENABLED_APPS[@]+"${ENABLED_APPS[@]}"}; do
+    profiles="${profiles:+${profiles},}${app}"
+  done
+  [[ "${SKIP_OBS}" == "true" ]] || profiles="${profiles:+${profiles},}telemetry"
+  export COMPOSE_PROFILES="${profiles}"
+fi
 
 BUILD_FLAG=""
 [[ "${BUILD}" == "true" ]] && BUILD_FLAG="--build"
@@ -344,7 +385,10 @@ if [[ "${BUILD}" == "true" ]]; then
 else
   echo -e "  ${DIM}Build mode: OFF — using cached images  (pass -b to rebuild)${RESET}"
 fi
-[[ "${SKIP_OBS}" == "true" ]] && echo -e "  ${YELLOW}⚠${RESET}  Observability stack will be skipped (--skip-obs)"
+[[ "${SKIP_OBS}" == "true" ]] && echo -e "  ${YELLOW}⚠${RESET}  Observability stack will be skipped"
+if [[ "${SELECTED}" != "all" ]]; then
+  echo -e "  ${YELLOW}⚠${RESET}  Optional apps: ${ENABLED_APPS[*]:-none (Lean Core)}  (COMPOSE_PROFILES=${COMPOSE_PROFILES})"
+fi
 hr
 
 # =============================================================================
@@ -466,132 +510,35 @@ else
 fi
 
 # =============================================================================
-# STAGE 3 — Shopping App Slice  (shopping-backend → shopping-frontend)
+# STAGE 3+ — One slice per enabled optional app  (<app>-backend → <app>-frontend)
 # =============================================================================
-step "STAGE 3 · Shopping App Slice  (backend · frontend)"
+stage=3
+for app in ${ENABLED_APPS[@]+"${ENABLED_APPS[@]}"}; do
+  step "STAGE ${stage} · ${app} app slice  (backend · frontend)"
 
-info "Starting shopping-backend …"
-dc up ${BUILD_FLAG} -d shopping-backend
-wait_healthy "shopping-backend" "shopping-backend" 180
+  info "Starting ${app}-backend …"
+  dc up ${BUILD_FLAG} -d "${app}-backend"
+  wait_healthy "${app}-backend" "${app}-backend" 180
 
-info "Starting shopping-frontend …"
-dc up ${BUILD_FLAG} -d shopping-frontend
-wait_healthy "shopping-frontend" "shopping-frontend" 240
+  info "Starting ${app}-frontend …"
+  dc up ${BUILD_FLAG} -d "${app}-frontend"
+  wait_healthy "${app}-frontend" "${app}-frontend" 240
 
-notice "🟢 Shopping App is live at ${BASE_URL}/shopping"
-
-# =============================================================================
-# STAGE 4 — Pantry App Slice  (pantry-backend → pantry-frontend)
-# =============================================================================
-step "STAGE 4 · Pantry App Slice  (backend · frontend)"
-
-info "Starting pantry-backend …"
-dc up ${BUILD_FLAG} -d pantry-backend
-wait_healthy "pantry-backend" "pantry-backend" 180
-
-info "Starting pantry-frontend …"
-dc up ${BUILD_FLAG} -d pantry-frontend
-wait_healthy "pantry-frontend" "pantry-frontend" 240
-
-notice "🟢 Pantry App is live at ${BASE_URL}/pantry"
+  notice "🟢 ${app} is live at ${BASE_URL}/${app}"
+  stage=$((stage + 1))
+done
+for app in "${OPTIONAL_APPS[@]}"; do
+  has_module "${app}" || warn "Skipping ${app} (not selected)"
+done
 
 # =============================================================================
-# STAGE 5 — Maintenance App Slice  (maintenance-backend → maintenance-frontend)
-# =============================================================================
-step "STAGE 5 · Maintenance App Slice  (backend · frontend)"
-
-info "Starting maintenance-backend …"
-dc up ${BUILD_FLAG} -d maintenance-backend
-wait_healthy "maintenance-backend" "maintenance-backend" 180
-
-info "Starting maintenance-frontend …"
-dc up ${BUILD_FLAG} -d maintenance-frontend
-wait_healthy "maintenance-frontend" "maintenance-frontend" 240
-
-notice "🟢 Maintenance App is live at ${BASE_URL}/maintenance"
-
-# =============================================================================
-# STAGE 6 — Chores App Slice  (chores-backend → chores-frontend)
-# =============================================================================
-step "STAGE 6 · Chores App Slice  (backend · frontend)"
-
-info "Starting chores-backend …"
-dc up ${BUILD_FLAG} -d chores-backend
-wait_healthy "chores-backend" "chores-backend" 180
-
-info "Starting chores-frontend …"
-dc up ${BUILD_FLAG} -d chores-frontend
-wait_healthy "chores-frontend" "chores-frontend" 240
-
-notice "🟢 Chores App is live at ${BASE_URL}/chores"
-
-# =============================================================================
-# STAGE 7 — Budget App Slice  (budget-backend → budget-frontend)
-# =============================================================================
-step "STAGE 7 · Budget App Slice  (backend · frontend)"
-
-info "Starting budget-backend …"
-dc up ${BUILD_FLAG} -d budget-backend
-wait_healthy "budget-backend" "budget-backend" 180
-
-info "Starting budget-frontend …"
-dc up ${BUILD_FLAG} -d budget-frontend
-wait_healthy "budget-frontend" "budget-frontend" 240
-
-notice "🟢 Budget App is live at ${BASE_URL}/budget"
-
-# =============================================================================
-# STAGE 8 — Chat App Slice  (chat-backend → chat-frontend)
-# =============================================================================
-step "STAGE 8 · Chat App Slice  (backend · frontend)"
-
-info "Starting chat-backend …"
-dc up ${BUILD_FLAG} -d chat-backend
-wait_healthy "chat-backend" "chat-backend" 180
-
-info "Starting chat-frontend …"
-dc up ${BUILD_FLAG} -d chat-frontend
-wait_healthy "chat-frontend" "chat-frontend" 240
-
-notice "🟢 Chat App is live at ${BASE_URL}/chat"
-
-# =============================================================================
-# STAGE 8a — Workout App Slice  (workout-backend → workout-frontend)
-# =============================================================================
-step "STAGE 8a · Workout App Slice  (backend · frontend)"
-
-info "Starting workout-backend …"
-dc up ${BUILD_FLAG} -d workout-backend
-wait_healthy "workout-backend" "workout-backend" 180
-
-info "Starting workout-frontend …"
-dc up ${BUILD_FLAG} -d workout-frontend
-wait_healthy "workout-frontend" "workout-frontend" 240
-
-notice "🟢 Workout App is live at ${BASE_URL}/workout"
-
-# =============================================================================
-# STAGE 8b — Library App Slice  (library-backend → library-frontend)
-# =============================================================================
-step "STAGE 8b · Library App Slice  (backend · frontend)"
-
-info "Starting library-backend …"
-dc up ${BUILD_FLAG} -d library-backend
-wait_healthy "library-backend" "library-backend" 180
-
-info "Starting library-frontend …"
-dc up ${BUILD_FLAG} -d library-frontend
-wait_healthy "library-frontend" "library-frontend" 240
-
-notice "🟢 Library App is live at ${BASE_URL}/library"
-
-# =============================================================================
-# STAGE 9 — Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
+# Observability stage  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)
 # =============================================================================
 if [[ "${SKIP_OBS}" == "true" ]]; then
   warn "Skipping observability stack (--skip-obs flag set)"
 else
-  step "STAGE 9 · Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)"
+  step "STAGE ${stage} · Observability  (VictoriaMetrics · VictoriaLogs · OTel · Vector · Grafana)"
+  stage=$((stage + 1))
 
   info "Starting VictoriaMetrics & VictoriaLogs …"
   dc up ${BUILD_FLAG} -d victoriametrics victorialogs
@@ -608,9 +555,9 @@ else
 fi
 
 # =============================================================================
-# STAGE 10 — Summary
+# Summary stage
 # =============================================================================
-step "STAGE 10 · Stack fully operational 🚀"
+step "STAGE ${stage} · Stack fully operational 🚀"
 
 echo ""
 echo -e "  ${BOLD}${GREEN}✔  Alfheim is running!${RESET}"
@@ -620,12 +567,9 @@ echo -e "  ${GREEN}✔${RESET}  Dashboard    →  ${BOLD}${BASE_URL}/${RESET}"
 if [[ "${HOUSEHOLD_STARTED}" == "true" ]]; then
   echo -e "  ${GREEN}✔${RESET}  Household    →  ${BOLD}${BASE_URL}/household/${RESET}"
 fi
-echo -e "  ${GREEN}✔${RESET}  Shopping     →  ${BOLD}${BASE_URL}/shopping${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Pantry       →  ${BOLD}${BASE_URL}/pantry${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Maintenance  →  ${BOLD}${BASE_URL}/maintenance${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chores       →  ${BOLD}${BASE_URL}/chores${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Budget       →  ${BOLD}${BASE_URL}/budget${RESET}"
-echo -e "  ${GREEN}✔${RESET}  Chat         →  ${BOLD}${BASE_URL}/chat${RESET}"
+for app in ${ENABLED_APPS[@]+"${ENABLED_APPS[@]}"}; do
+  echo -e "  ${GREEN}✔${RESET}  $(printf '%-12s' "${app}") →  ${BOLD}${BASE_URL}/${app}${RESET}"
+done
 if [[ "${SKIP_OBS}" != "true" ]]; then
   echo -e "  ${GREEN}✔${RESET}  Grafana UI   →  ${BOLD}${BASE_URL}/grafana${RESET}"
 fi

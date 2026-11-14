@@ -72,7 +72,7 @@ The script detects your CPU architecture, downloads the matching
 
 ## Step 4: Answer the wizard
 
-The wizard asks four things:
+The wizard asks these things:
 
 1. **Deployment target.** Choose *Custom domain* and enter `example.com`. The
    dashboard host defaults to your base domain; the identity provider is always
@@ -90,6 +90,13 @@ The wizard asks four things:
 4. **DNS API token**, if you chose a DNS-01 strategy. See
    [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) or
    [deSEC DNS-01 TLS](../how-to/desec-dns-tls.md) for how to create one.
+5. **Optional apps.** The dashboard and household management always run. Tick
+   the apps you want, for example *Pantry* and *Shopping lists*; each line
+   shows what the app does and how much memory it adds. Leave everything
+   unticked for the smallest install. You can change this later with
+   `alfheim-setup apps enable|disable`.
+6. **Telemetry.** Metrics, logs and Grafana. The default is *No*, which keeps
+   the install small.
 
 The installer then generates every credential from `crypto/rand` and writes:
 
@@ -117,7 +124,8 @@ Alfheim is up.
     A password change is required on first login.
 ```
 
-You do not need to register an account or open the Zitadel console. The
+The Observability line points to Grafana, which only answers when you enabled
+telemetry. You do not need to register an account or open the Zitadel console. The
 administrator e-mail is already verified, so no mail is sent.
 
 ## Step 6: Verify
@@ -126,8 +134,9 @@ administrator e-mail is already verified, so no mail is sent.
 docker compose -f compose.prod.yaml ps
 ```
 
-Every service should report `running`, and those with a healthcheck should
-report `healthy`. Open the dashboard URL and sign in with your Zitadel account.
+Every service of the Lean Core and of the apps you ticked should report
+`running`, and those with a healthcheck should report `healthy`. Check the
+selection with `alfheim-setup apps list`. Open the dashboard URL and sign in with your Zitadel account.
 
 ---
 

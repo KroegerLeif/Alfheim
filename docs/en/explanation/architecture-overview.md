@@ -51,6 +51,10 @@ alfheim/
 * **Core Household & Roles (`core/household`)**: Written in Go (backend) and Next.js (frontend). Owns households, members and roles, invites, the household contact book and the user profile, and answers the membership checks every other backend depends on ([ADR 0006](./decisions/0006-household-authorization-via-membership-api.md)).
 * **Domain Microservices (`apps/*`)**: Independent functional modules providing domain services (e.g. pantry stock tracking, envelope budgeting, workout execution).
 
+### Core and optional services
+
+The infrastructure, `core/dashboard` and `core/household` form the Lean Core: they have no compose profile and always start. Every app under `apps/` and the telemetry stack is an optional module with its own compose profile, so a host starts only the modules listed in `COMPOSE_PROFILES`. Which parts belong where, and the dependency rules between modules, are recorded in [ADR 0007](./decisions/0007-lean-core-app-set.md). All `app-<name>-net` networks and the `postgres-core` memberships stay declared whether a module runs or not, so enabling one later needs no network change.
+
 ---
 
 ## Network Topology & Multi-Zone Segmentation

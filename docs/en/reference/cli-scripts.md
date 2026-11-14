@@ -63,7 +63,20 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
 | :--- | :--- |
 | `-b`, `--build` | Force Docker image rebuild before starting containers |
 | `--skip-obs` | Skip the VictoriaStack observability stage |
+| `--lean` | Start the Lean Core only: infrastructure, dashboard and household, no optional app and no telemetry |
+| `--apps=LIST` | Start the Lean Core plus the comma-separated modules in `LIST`, for example `--apps=pantry,shopping,telemetry`. Telemetry starts only when listed. Unknown names and `shopping` without `pantry` are rejected |
 | `-h`, `--help` | Print the usage summary |
+
+Without `--lean` or `--apps`, every app and the observability stack start, as
+before. With either flag, `up.sh` exports `COMPOSE_PROFILES` for its compose
+calls and skips the stage of every app that is off. One stage per app is
+derived from the `OPTIONAL_APPS` array in the script. The split between the
+Lean Core and the optional modules is recorded in
+[ADR 0007](../explanation/decisions/0007-lean-core-app-set.md).
+
+`./scripts/verify-stack.sh` checks the routes of the core apps always and the
+route of an optional app (or `/grafana`) only when its container runs; it
+lists the routes it skipped, so it passes after `./scripts/up.sh --lean`.
 
 Stage 1 boots `postgres-core → zitadel → rustfs → caddy` and then provisions
 the Zitadel project and every OIDC client (dashboard, every app frontend,

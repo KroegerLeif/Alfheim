@@ -14,8 +14,9 @@ import (
 	"syscall"
 	"time"
 
+	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/backup"
-	"alfheim/installer/internal/features/bootstrap"
+	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
 	"alfheim/installer/internal/shared/runner"
 )
@@ -171,10 +172,11 @@ func (r *RestoreApp) execute(ctx context.Context) error {
 
 	svc := backup.New(r.Runner, layout, r.Build.Version, r.Stdout)
 	svc.Now = r.Now
-	orch := bootstrap.New(r.Runner, layout, bootstrap.WithLogger(r.Stdout))
 
 	if _, err := os.Stat(layout.ComposeFile()); err == nil {
 		fmt.Fprintln(r.Stdout, "Stopping the stack...")
+		// Every profile, so a running app container is stopped whatever
+		// the current .env says is enabled.
 		if err := r.compose(ctx, layout, "stop"); err != nil {
 			return fmt.Errorf("alfheim-setup restore: stop the stack: %w", err)
 		}
@@ -185,6 +187,17 @@ func (r *RestoreApp) execute(ctx context.Context) error {
 		return fmt.Errorf("alfheim-setup restore: %w", err)
 	}
 	fmt.Fprintf(r.Stdout, "Previous versions of overwritten files were saved to %s\n", safety)
+
+	// The restored .env holds the app set to bring back.
+	env, err := envfile.ParseFile(layout.EnvFile())
+	if err != nil {
+		return fmt.Errorf("alfheim-setup restore: read the restored .env: %w", err)
+	}
+	set, err := recordEnabledApps(r.Stdout, layout, env)
+	if err != nil {
+		return fmt.Errorf("alfheim-setup restore: %w", err)
+	}
+	orch := newOrchestrator(r.Runner, layout, r.Stdout, set)
 
 	if err := orch.EnsureDatabases(ctx); err != nil {
 		return fmt.Errorf("alfheim-setup restore: start the database: %w", err)
@@ -209,6 +222,7 @@ func (r *RestoreApp) compose(ctx context.Context, layout paths.Layout, args ...s
 	res, err := r.Runner.Run(ctx, runner.Command{
 		Name: "docker", Args: append([]string{"compose", "-f", layout.ComposeFile()}, args...),
 		Dir: layout.Root, Stdout: r.Stdout,
+		Env: []string{apps.ProfilesKey + "=" + strings.Join(apps.All().Profiles(), ",")},
 	})
 	if err != nil {
 		return err

@@ -18,6 +18,7 @@ Complete parameter reference for the Alfheim installer.
 
 ```
 alfheim-setup [flags]
+alfheim-setup update|backup|restore|apps ...
 ```
 
 ```bash
@@ -55,6 +56,7 @@ Each flag has an environment-variable equivalent. The flag wins when both are se
 | `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN`, `DESEC_TOKEN` | DNS provider token. Required for `hetzner`, `cloudflare` and `desec`. |
 | `--cert-path DIR` | `ALFHEIM_CERT_PATH` | Absolute directory holding `fullchain.pem` and `privkey.pem`. Only for `--tls custom`; omit to use `./data/caddy/certs/`. |
 | `--image-tag TAG` | `ALFHEIM_IMAGE_TAG` | Container image tag. Default `latest`. |
+| `--apps LIST` | `ALFHEIM_APPS` | Optional apps to enable: `all`, `none` or a comma-separated list such as `pantry,shopping,telemetry`. Default on a fresh install: `none` (the [Lean Core](../explanation/decisions/0007-lean-core-app-set.md)); a re-run keeps the stored `ALFHEIM_ENABLED_APPS`. Unknown names and broken requirements are usage errors. Without the flag the interactive wizard asks, with telemetry as a separate question that defaults to off. `--apps=all` installs everything, as before. |
 | `--db-data-path DIR` | `ALFHEIM_DB_DATA_PATH` | Absolute host directory for the PostgreSQL data. Default: the `postgres_core_data` named volume. |
 | `--object-data-path DIR` | `ALFHEIM_OBJECT_DATA_PATH` | Absolute host directory for the RustFS object storage. Default: the `rustfs_data` named volume. |
 | `--metrics-data-path DIR` | `ALFHEIM_METRICS_DATA_PATH` | Absolute host directory for VictoriaMetrics. Default: the `victoriametrics_data` named volume. |
@@ -158,6 +160,35 @@ it fails. Pass `--skip-backup` to update without one.
 
 ---
 
+## The `apps` subcommand
+
+```
+alfheim-setup apps list              [--install-dir DIR]
+alfheim-setup apps enable  <name>    [--install-dir DIR]
+alfheim-setup apps disable <name>    [--install-dir DIR]
+```
+
+Lists the apps of the [Lean Core app set](../explanation/decisions/0007-lean-core-app-set.md)
+and switches optional apps (and `telemetry`) on and off on an existing
+installation. The choice is stored as `ALFHEIM_ENABLED_APPS` in `.env`; an
+`.env` without it counts as "every app enabled".
+
+| Action | Behaviour |
+| :--- | :--- |
+| `list` | Prints every app with its tier (`core` or `optional`), its state and its requirements. |
+| `enable <name>` | Records the app in `ALFHEIM_ENABLED_APPS` and `COMPOSE_PROFILES`, creates any missing database (re-runs the idempotent Postgres init script), pulls and starts its containers and waits until they are healthy. Then it routes the app in the Caddyfile and restarts Caddy. Enabling an enabled app does nothing. |
+| `disable <name>` | Records the change, then stops and removes the app's containers (`docker compose rm -s -f`). **Volumes and databases are never removed**, so enabling the app again brings its data back. Its routes then answer 404 or redirect to the dashboard ([ingress matrix](./ingress-matrix.md#routes-of-disabled-apps)). Disabling a disabled app does nothing. |
+
+Enabling or disabling `telemetry` also sets `OTEL_ENABLED` in `.env`.
+Every other compose call of the installer (install, plain re-run, `update`,
+`restore`) passes the same `COMPOSE_PROFILES`, so none of them starts a
+disabled app.
+Unknown names, core apps (`disable dashboard`) and broken requirements
+(`enable shopping` without `pantry`, `disable pantry` while `shopping` is on)
+are rejected with exit code `1` and an error naming the conflict.
+
+---
+
 ## The `backup` subcommand
 
 ```
@@ -193,7 +224,7 @@ host. See [Backup, Restore & Data Migration](../how-to/backup-restore.md).
 | :--- | :--- | :--- |
 | 1 — Edge & Identity | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
 | 2 — Zitadel provisioning | — | Reconciles the `Alfheim` project, the web client and the Grafana client via the Management API and writes their IDs to `.env` |
-| 3 — Core & Application Stack | all remaining | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
+| 3 — Core & Application Stack | all remaining services of the Lean Core and the enabled apps (`COMPOSE_PROFILES`) | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
 During provisioning, the installer creates the Zitadel project "Alfheim", one client shared by the dashboard and every app frontend, and a client for Grafana. It writes the client IDs to `.env`. The final output prints the administrator login name and the generated password; a password change is required at first login.
 
@@ -248,6 +279,14 @@ ALFHEIM_DNS_API_TOKEN="$CF_TOKEN" alfheim-setup \
   --tls cloudflare \
   --admin-email ops@example.com \
   --install-dir /srv/alfheim
+```
+
+Headless Lean Core install with pantry and shopping, then add the budget app later:
+
+```bash
+alfheim-setup --non-interactive --domain example.com --tls internal \
+  --admin-email ops@example.com --apps pantry,shopping
+alfheim-setup apps enable budget
 ```
 
 Change the domain on a running instance:
