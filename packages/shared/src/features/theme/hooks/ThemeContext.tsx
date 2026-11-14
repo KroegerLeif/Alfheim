@@ -31,7 +31,9 @@ export function ThemeProvider({
             return parsed.mode;
           }
         }
-      } catch {}
+      } catch (error) {
+        console.warn('Ignoring an unreadable saved theme setting:', error);
+      }
     }
     return defaultMode;
   });
@@ -50,7 +52,9 @@ export function ThemeProvider({
         if (legacyVariant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(legacyVariant)) {
           return legacyVariant;
         }
-      } catch {}
+      } catch (error) {
+        console.warn('Ignoring an unreadable saved theme setting:', error);
+      }
     }
     return defaultVariant;
   });
@@ -80,7 +84,9 @@ export function ThemeProvider({
             }
           };
         }
-      } catch {}
+      } catch (error) {
+        console.warn('Ignoring an unreadable saved theme setting:', error);
+      }
     }
     return {
       dark: {
@@ -115,7 +121,9 @@ export function ThemeProvider({
           const parsed: ThemeOverrideConfig = JSON.parse(e.newValue || '{}');
           if (parsed.mode && ['dark', 'light', 'system'].includes(parsed.mode)) setModeState(parsed.mode);
           if (parsed.variant && ['nordic', 'obsidian', 'kinetic', 'slate', 'custom'].includes(parsed.variant)) setVariantState(parsed.variant);
-        } catch {}
+        } catch (error) {
+          console.warn('Ignoring an unreadable theme setting from another tab:', error);
+        }
       } else if (e.key === 'alfheim_custom_theme') {
         try {
           const parsed = JSON.parse(e.newValue || '{}');
@@ -133,7 +141,9 @@ export function ThemeProvider({
               }
             });
           }
-        } catch {}
+        } catch (error) {
+          console.warn('Ignoring an unreadable theme setting from another tab:', error);
+        }
       }
     };
     window.addEventListener('storage', handleStorageChange);

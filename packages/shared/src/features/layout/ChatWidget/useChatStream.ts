@@ -1,15 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AlfiStatus,
-  AttachmentSummary,
-  ChatWidgetContext,
-  ConversationResponse,
-  ModelBlock,
-  WidgetMessage,
-} from './types';
+import { AlfiStatus, AttachmentSummary, ChatWidgetContext, WidgetMessage } from './types';
 import { getResolvedToken, readSSEStream, sanitizeApiUrl } from './sseClient';
+import {
+  ChatUnavailableError,
+  chatFetch,
+  createConversation,
+  fetchDefaultModelBlockId,
+  isAbortError,
+} from './chatApi';
 import { useTranslation } from '../../i18n/utils/useTranslation';
 import { householdHeaders } from '../../household/householdStore';
 
@@ -63,27 +63,14 @@ export function useChatStream({
 
   const ensureConversation = async (): Promise<string> => {
     if (conversationId) return conversationId;
-    let modelBlockId: string | undefined;
-    try {
-      const mbRes = await fetch(`${baseUrl}/model-blocks`, { headers: authHeaders() });
-      if (mbRes.ok) {
-        const blocks: ModelBlock[] = await mbRes.json();
-        modelBlockId = blocks.find((b) => b.is_active)?.id || blocks[0]?.id;
-      }
-    } catch { /* ignore */ }
-
-    const res = await fetch(`${baseUrl}/conversations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({
-        model_block_id: modelBlockId,
-        source_app: context?.sourceApp,
-        source_context: context,
-        title: context?.sourceApp ? `ALFI (${context.sourceApp})` : 'ALFI Chat',
-      }),
+    const modelBlockId = await fetchDefaultModelBlockId(baseUrl, authHeaders());
+    const created = await createConversation(baseUrl, authHeaders(), {
+      model_block_id: modelBlockId,
+      source_app: context?.sourceApp,
+      source_context: context,
+      title: context?.sourceApp ? `ALFI (${context.sourceApp})` : 'ALFI Chat',
     });
-    if (!res.ok) throw new ChatApiError(t('Chat.createError'));
-    const created: ConversationResponse = await res.json();
+    if (!created) throw new ChatApiError(t('Chat.createError'));
     setConversationId(created.id);
     return created.id;
   };
@@ -91,7 +78,7 @@ export function useChatStream({
   const uploadFile = async (file: File): Promise<AttachmentSummary> => {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`${baseUrl}/attachments`, {
+    const res = await chatFetch(`${baseUrl}/attachments`, {
       method: 'POST',
       headers: authHeaders(),
       body: formData,
@@ -118,7 +105,7 @@ export function useChatStream({
     try {
       const cid = await ensureConversation();
       const attIds = attachments.map((a) => a.id);
-      const postRes = await fetch(`${baseUrl}/conversations/${cid}/messages`, {
+      const postRes = await chatFetch(`${baseUrl}/conversations/${cid}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ content: userMsg.content, attachment_ids: attIds }),
@@ -171,7 +158,20 @@ export function useChatStream({
         householdHeaders(householdId)
       );
     } catch (err) {
-      setError(err instanceof ChatApiError ? err.message : t('Chat.networkError'));
+      // Closing or resetting the widget aborts on purpose; that is not an error.
+      if (isAbortError(err)) {
+        setStatus('idle');
+        return;
+      }
+      if (err instanceof ChatUnavailableError) {
+        console.warn('ALFI chat is unavailable:', err.cause ?? err.message);
+        setError(t('Chat.unavailable'));
+      } else if (err instanceof ChatApiError) {
+        setError(err.message);
+      } else {
+        console.warn('ALFI chat request failed:', err);
+        setError(t('Chat.networkError'));
+      }
       setStatus('idle');
     }
   };

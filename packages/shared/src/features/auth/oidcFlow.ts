@@ -168,8 +168,9 @@ export function persistTokens(tokens: OidcTokenSet): void {
   try {
     sessionStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
     sessionStorage.setItem(LEGACY_ACCESS_TOKEN_KEY, tokens.accessToken);
-  } catch {
-    /* storage disabled - tokens stay in memory only */
+  } catch (error) {
+    // Storage disabled: the tokens stay in memory only.
+    console.warn('Cannot persist the OIDC tokens to sessionStorage:', error);
   }
 }
 
@@ -189,8 +190,9 @@ export function clearPersistedTokens(): void {
     sessionStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(VERIFIER_KEY);
     sessionStorage.removeItem(STATE_KEY);
-  } catch {
-    /* ignore */
+  } catch (error) {
+    // Storage disabled: nothing was persisted, so there is nothing left to clear.
+    console.warn('Cannot clear the OIDC tokens from sessionStorage:', error);
   }
 }
 
@@ -297,8 +299,9 @@ export async function endSession(config: OidcConfig, idToken: string | null): Pr
       window.location.assign(`${metadata.end_session_endpoint}?${params.toString()}`);
       return;
     }
-  } catch {
-    /* fall through to local redirect */
+  } catch (error) {
+    // Without provider metadata the logout falls back to the local redirect.
+    console.warn('OIDC end-session discovery failed; redirecting locally:', error);
   }
   window.location.assign(config.redirectUri);
 }
