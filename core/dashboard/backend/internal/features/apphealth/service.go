@@ -10,9 +10,9 @@ import (
 )
 
 // DefaultCacheTTL is how long a snapshot is served before the apps are
-// probed again. A stopped backend shows as offline within this window plus
-// one probe timeout.
-const DefaultCacheTTL = 20 * time.Second
+// probed again. With the dashboard polling every 15 s, a stopped backend
+// shows as offline within 30 s plus one probe timeout.
+const DefaultCacheTTL = 15 * time.Second
 
 // Service returns the cached health of the enabled apps.
 type Service interface {

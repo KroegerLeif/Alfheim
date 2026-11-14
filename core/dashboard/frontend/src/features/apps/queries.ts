@@ -20,8 +20,11 @@ export const DASHBOARD_APPS_QUERY_KEY = ['apps', 'dashboard'];
 export const USER_PREFERENCES_QUERY_KEY = ['user', 'preferences'];
 export const APP_HEALTH_QUERY_KEY = ['apps', 'health'];
 
-/** The backend caches probes for 20 s, so polling faster would only re-read the same snapshot. */
-const APP_HEALTH_POLL_MS = 30 * 1000;
+/**
+ * Matches the backend's 15 s probe cache: polling faster would only re-read the same snapshot,
+ * and together they turn a stopped app offline within 30 s.
+ */
+const APP_HEALTH_POLL_MS = 15 * 1000;
 
 /**
  * Live health of the enabled app backends from GET /api/v1/apps/health, polled while the
