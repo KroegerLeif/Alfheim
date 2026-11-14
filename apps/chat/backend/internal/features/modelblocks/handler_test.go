@@ -17,6 +17,7 @@ import (
 	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/llm"
 	"alfheim/chat/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // testHouseholdID is the verified household injected by the fake auth middleware.
@@ -24,10 +25,10 @@ const testHouseholdID = "11111111-1111-1111-1111-111111111111"
 
 // withClaims returns a fake auth middleware that injects fixed UserClaims into the
 // request context, standing in for the real OIDC JWT authenticator in tests.
-func withClaims(claims *middleware.UserClaims) func(http.Handler) http.Handler {
+func withClaims(claims *auth.UserClaims) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, claims)
 			if claims != nil {
 				ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: uuid.MustParse(testHouseholdID), Role: householdclient.RoleOwner, Subject: claims.Subject})
 			}
@@ -36,7 +37,7 @@ func withClaims(claims *middleware.UserClaims) func(http.Handler) http.Handler {
 	}
 }
 
-func newTestRouter(svc modelblocks.Service, claims *middleware.UserClaims) http.Handler {
+func newTestRouter(svc modelblocks.Service, claims *auth.UserClaims) http.Handler {
 	r := chi.NewRouter()
 	handler := modelblocks.NewHandler(svc)
 	handler.RegisterRoutes(r, withClaims(claims))
@@ -46,7 +47,7 @@ func newTestRouter(svc modelblocks.Service, claims *middleware.UserClaims) http.
 func TestHandler_CreateAndListModelBlocks(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	createBody, _ := json.Marshal(modelblocks.CreateRequest{
@@ -91,7 +92,7 @@ func TestHandler_CreateAndListModelBlocks(t *testing.T) {
 func TestHandler_UpdateForbiddenForNonOwner(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	owner := &middleware.UserClaims{Subject: "owner-1"}
+	owner := &auth.UserClaims{Subject: "owner-1"}
 
 	created, err := svc.Create(context.Background(), owner.Subject, "", modelblocks.CreateRequest{
 		ProviderType:    "ollama",
@@ -102,7 +103,7 @@ func TestHandler_UpdateForbiddenForNonOwner(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	otherUser := &middleware.UserClaims{Subject: "intruder"}
+	otherUser := &auth.UserClaims{Subject: "intruder"}
 	router := newTestRouter(svc, otherUser)
 
 	newName := "Hijacked"
@@ -120,7 +121,7 @@ func TestHandler_UpdateForbiddenForNonOwner(t *testing.T) {
 func TestHandler_DeleteNotFound(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/model-blocks/does-not-exist", nil)
@@ -139,7 +140,7 @@ func TestHandler_CreateRejectsMissingHouseholdForSharedVisibility(t *testing.T) 
 	r := chi.NewRouter()
 	modelblocks.NewHandler(svc).RegisterRoutes(r, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := context.WithValue(req.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"})
+			ctx := context.WithValue(req.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"})
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	})
@@ -164,7 +165,7 @@ func TestHandler_CreateRejectsMissingHouseholdForSharedVisibility(t *testing.T) 
 func TestHandler_GetModelBlock(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	created, err := svc.Create(context.Background(), "user-1", testHouseholdID, modelblocks.CreateRequest{
@@ -197,7 +198,7 @@ func TestHandler_GetModelBlock(t *testing.T) {
 func TestHandler_DeleteForbiddenForNonOwner(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	owner := &middleware.UserClaims{Subject: "owner-1"}
+	owner := &auth.UserClaims{Subject: "owner-1"}
 
 	created, err := svc.Create(context.Background(), owner.Subject, "", modelblocks.CreateRequest{
 		ProviderType:    "ollama",
@@ -208,7 +209,7 @@ func TestHandler_DeleteForbiddenForNonOwner(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	intruder := &middleware.UserClaims{Subject: "intruder"}
+	intruder := &auth.UserClaims{Subject: "intruder"}
 	router := newTestRouter(svc, intruder)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/model-blocks/"+created.ID, nil)
@@ -223,7 +224,7 @@ func TestHandler_DeleteForbiddenForNonOwner(t *testing.T) {
 func TestHandler_TriggerHealthCheck(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	created, err := svc.Create(context.Background(), claims.Subject, testHouseholdID, modelblocks.CreateRequest{
@@ -271,7 +272,7 @@ func TestHandler_DiscoverModels(t *testing.T) {
 
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	body, _ := json.Marshal(modelblocks.DiscoverRequest{
@@ -335,7 +336,7 @@ func TestHandler_UnauthorizedRequests(t *testing.T) {
 func TestHandler_BadJSONPayloads(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	t.Run("Create bad json", func(t *testing.T) {
@@ -400,7 +401,7 @@ func (e *errorModelBlockService) ResolveProvider(ctx context.Context, userID, ho
 }
 
 func TestHandler_ServiceErrorsAndWriteServiceError(t *testing.T) {
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 
 	tests := []struct {
 		name     string

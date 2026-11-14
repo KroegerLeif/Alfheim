@@ -9,8 +9,8 @@ x-logging: &default-logging
 services:
   dashboard-backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: core/dashboard/backend/Dockerfile
     container_name: dashboard-backend
     restart: always
     logging: *default-logging

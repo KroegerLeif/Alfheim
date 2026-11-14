@@ -16,14 +16,15 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/sync/errgroup"
 
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/db"
+	"alfheim/go-shared/httpmw"
+	"alfheim/go-shared/logger"
 	"alfheim/household/config"
 	"alfheim/household/internal/features/contact"
 	"alfheim/household/internal/features/household"
 	"alfheim/household/internal/features/membership"
 	"alfheim/household/internal/features/profile"
-	"alfheim/household/internal/shared/db"
-	"alfheim/household/internal/shared/logger"
-	"alfheim/household/internal/shared/middleware"
 )
 
 var (
@@ -68,13 +69,14 @@ func run(parentCtx context.Context) error {
 	}
 
 	// Generic OIDC Bearer token authenticator (JWKS discovered from the issuer)
-	auth, err := setupAuth(cfg, log)
+	authenticator, err := setupAuth(ctx, cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
+	defer authenticator.Close()
 
-	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.InternalToken, cfg.CORS.AllowedOrigins)
+	r := buildRouter(log, dbClient, authenticator.AuthenticateMiddleware, cfg.InternalToken, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -130,8 +132,12 @@ func run(parentCtx context.Context) error {
 }
 
 // setupAuthenticator initializes the generic OIDC JWT authenticator from application configuration.
-func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.OIDC.IssuerURL, cfg.OIDC.Audience, log)
+func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+	return auth.NewAuthenticator(ctx, auth.Config{
+		IssuerURL: cfg.OIDC.IssuerURL,
+		Audience:  cfg.OIDC.Audience,
+		Logger:    log,
+	})
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
@@ -161,9 +167,13 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, authMw func(http.Handler
 	// Router Setup
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.CORSWithOrigins(allowedOrigins))
-	r.Use(middleware.RequestLogger(log))
-	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes))
+	r.Use(httpmw.CORSWithOrigins(httpmw.CORSConfig{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Household-ID", "X-Household-Role"},
+	}))
+	r.Use(httpmw.RequestLogger(log))
+	r.Use(httpmw.MaxBodySize(httpmw.DefaultMaxBodyBytes, nil))
 
 	// Health Check Endpoints
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {

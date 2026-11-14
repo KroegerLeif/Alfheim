@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"alfheim/chat/internal/shared/db"
+	"alfheim/go-shared/db"
 )
 
 // Repository defines data access operations for conversations and messages.

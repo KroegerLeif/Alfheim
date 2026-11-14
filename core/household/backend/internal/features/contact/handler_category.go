@@ -8,13 +8,13 @@ import (
 	"alfheim/household/internal/features/household"
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/shared/httpjson"
-	"alfheim/household/internal/shared/middleware"
 )
 
 // CreateCategory handles POST /api/v1/households/{id}/contact-categories.
 func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -47,7 +47,7 @@ func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 // GetCategories handles GET /api/v1/households/{id}/contact-categories.
 func (h *Handler) GetCategories(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -74,7 +74,7 @@ func (h *Handler) GetCategories(w http.ResponseWriter, r *http.Request) {
 
 // UpdateCategory handles PUT /api/v1/households/{id}/contact-categories/{catId}.
 func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -108,7 +108,7 @@ func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 // DeleteCategory handles DELETE /api/v1/households/{id}/contact-categories/{catId}.
 func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return

@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"alfheim/dashboard/internal/shared/db"
+	"alfheim/go-shared/db"
 )
 
 // Repository database access contract for user preferences and user custom links.

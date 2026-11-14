@@ -5,12 +5,12 @@ import (
 	"errors"
 	"log/slog"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Service defines domain logic for user profile syncing and management.
 type Service interface {
-	SyncProfileFromClaims(ctx context.Context, claims *middleware.UserClaims) (*Profile, error)
+	SyncProfileFromClaims(ctx context.Context, claims *auth.UserClaims) (*Profile, error)
 	GetProfileByID(ctx context.Context, id string) (*Profile, error)
 	UpdateProfile(ctx context.Context, id string, dto UpdateDTO) (*Profile, error)
 }
@@ -30,7 +30,7 @@ func NewService(repo Repository, log *slog.Logger) Service {
 
 // SyncProfileFromClaims reconciles the local profile store with the verified OIDC
 // token claims, performing Just-In-Time provisioning on first sign-in.
-func (s *service) SyncProfileFromClaims(ctx context.Context, claims *middleware.UserClaims) (*Profile, error) {
+func (s *service) SyncProfileFromClaims(ctx context.Context, claims *auth.UserClaims) (*Profile, error) {
 	existing, err := s.repo.GetByID(ctx, claims.Subject)
 	if err != nil && !errors.Is(err, ErrProfileNotFound) {
 		return nil, err

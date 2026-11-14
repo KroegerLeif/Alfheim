@@ -9,6 +9,7 @@ import (
 
 	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Handler manages MCP server registry HTTP endpoints (admin/debug visibility).
@@ -27,8 +28,8 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
 		r.Get("/api/v1/chat/mcp-servers", h.List)
-		r.With(middleware.RequireOperator).Get("/api/v1/chat/mcp-servers/diagnostics", h.Diagnostics)
-		r.With(middleware.RequireOperator).Patch("/api/v1/chat/mcp-servers/{id}", h.SetEnabled)
+		r.With(auth.RequireOperator).Get("/api/v1/chat/mcp-servers/diagnostics", h.Diagnostics)
+		r.With(auth.RequireOperator).Patch("/api/v1/chat/mcp-servers/{id}", h.SetEnabled)
 	})
 }
 
@@ -41,7 +42,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_server_error", "failed to list mcp servers")
 		return
 	}
-	if !middleware.IsOperator(r.Context()) {
+	if !auth.IsOperator(r.Context()) {
 		summaries := make([]SummaryDTO, 0, len(servers))
 		for _, s := range servers {
 			summaries = append(summaries, ToSummary(s))
@@ -57,7 +58,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Diagnostics(w http.ResponseWriter, r *http.Request) {
 	// Probe the MCP servers as the calling user, since they authorize every request.
 	ctx := r.Context()
-	claims, cErr := middleware.GetUserClaims(ctx)
+	claims, cErr := auth.GetUserClaims(ctx)
 	hc, hErr := middleware.GetHousehold(ctx)
 	if cErr == nil && hErr == nil {
 		ctx = mcp.WithCallerCredentials(ctx, mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hc.HouseholdID.String(), UserID: claims.Subject})

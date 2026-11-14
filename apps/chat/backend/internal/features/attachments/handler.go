@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"alfheim/chat/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Handler manages image attachment upload and metadata HTTP endpoints.
@@ -43,7 +44,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 
 // Upload handles multipart file upload (POST /api/v1/chat/attachments).
 func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -99,7 +100,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 // Get retrieves attachment metadata by ID (GET /api/v1/chat/attachments/{id}).
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -150,7 +151,7 @@ func (h *Handler) Content(authMiddleware func(http.Handler) http.Handler) http.H
 }
 
 func (h *Handler) contentWithBearer(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return

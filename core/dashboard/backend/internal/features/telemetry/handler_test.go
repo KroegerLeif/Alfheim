@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"alfheim/dashboard/internal/features/telemetry"
-	"alfheim/dashboard/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 type mockTelemetryService struct {
@@ -41,7 +41,7 @@ func mockAuthMW(shouldAuth bool) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "u1", IsOperator: true})
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "u1", IsOperator: true})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -195,7 +195,7 @@ func TestTelemetryHandler_GetLogs(t *testing.T) {
 func TestTelemetryHandler_RequiresOperator(t *testing.T) {
 	regularUser := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "u1"})
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "u1"})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

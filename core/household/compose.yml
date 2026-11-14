@@ -53,8 +53,8 @@ services:
 
   household-backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: core/household/backend/Dockerfile
     container_name: household-backend
     restart: always
     logging: *default-logging

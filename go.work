@@ -4,5 +4,6 @@ use (
 	./apps/chat/backend
 	./core/dashboard/backend
 	./core/household/backend
+	./packages/go-shared
 	./tools/installer
 )

@@ -3,24 +3,7 @@ module alfheim/chat
 go 1.27.4
 
 require (
-	github.com/MicahParks/keyfunc/v2 v2.1.0
-	github.com/aws/aws-sdk-go-v2 v1.47.5
-	github.com/aws/aws-sdk-go-v2/config v1.33.13
-	github.com/aws/aws-sdk-go-v2/credentials v1.20.13
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.6
-	github.com/aws/smithy-go v1.28.7
-	github.com/go-chi/chi/v5 v5.5.0
-	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/golang-migrate/migrate/v4 v4.20.1
-	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.12.0
-	go.opentelemetry.io/otel v1.47.0
-	go.opentelemetry.io/otel/trace v1.47.0
-	golang.org/x/image v0.47.0
-	golang.org/x/sync v0.24.0
-)
-
-require (
+	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.25 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.8 // indirect
@@ -35,9 +18,30 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.6 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
+	github.com/golang-migrate/migrate/v4 v4.20.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )
+
+require (
+	alfheim/go-shared v0.0.0
+	github.com/aws/aws-sdk-go-v2 v1.47.5
+	github.com/aws/aws-sdk-go-v2/config v1.33.13
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.13
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.6
+	github.com/aws/smithy-go v1.28.7
+	github.com/go-chi/chi/v5 v5.5.0
+	github.com/google/uuid v1.6.0
+	github.com/jackc/pgx/v5 v5.12.0
+	golang.org/x/image v0.47.0
+	golang.org/x/sync v0.24.0
+)
+
+// The shared module is not published; images copy it next to the backend.
+replace alfheim/go-shared => ../../../packages/go-shared

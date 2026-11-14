@@ -19,6 +19,7 @@ import (
 	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/llm"
 	"alfheim/chat/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 var errStreamFailed = errors.New("stream failed")
@@ -26,10 +27,10 @@ var errStreamFailed = errors.New("stream failed")
 // testHouseholdID is the verified household injected by the fake auth middleware.
 const testHouseholdID = "11111111-1111-1111-1111-111111111111"
 
-func withClaims(claims *middleware.UserClaims) func(http.Handler) http.Handler {
+func withClaims(claims *auth.UserClaims) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, claims)
 			if claims != nil {
 				ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: uuid.MustParse(testHouseholdID), Role: householdclient.RoleOwner, Subject: claims.Subject})
 			}
@@ -38,7 +39,7 @@ func withClaims(claims *middleware.UserClaims) func(http.Handler) http.Handler {
 	}
 }
 
-func newTestRouter(svc conversations.Service, claims *middleware.UserClaims) http.Handler {
+func newTestRouter(svc conversations.Service, claims *auth.UserClaims) http.Handler {
 	r := chi.NewRouter()
 	handler := conversations.NewHandler(svc)
 	handler.RegisterRoutes(r, withClaims(claims))
@@ -48,7 +49,7 @@ func newTestRouter(svc conversations.Service, claims *middleware.UserClaims) htt
 func TestHandler_CreateListDeleteConversation(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
@@ -90,7 +91,7 @@ func TestHandler_CreateListDeleteConversation(t *testing.T) {
 func TestHandler_CreateRejectsMissingModelBlockID(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	body, _ := json.Marshal(conversations.CreateConversationRequest{})
@@ -106,7 +107,7 @@ func TestHandler_CreateRejectsMissingModelBlockID(t *testing.T) {
 func TestHandler_PostAndListMessages(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
@@ -144,7 +145,7 @@ func TestHandler_StreamEmitsSSEDeltasAndDoneEvent(t *testing.T) {
 		{Done: true, Usage: &llm.Usage{TotalTokens: 5}},
 	})
 	svc := newTestService(repo, &fakeResolver{provider: provider})
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
@@ -185,7 +186,7 @@ func TestHandler_StreamReportsErrorEventOnMidStreamFailure(t *testing.T) {
 		{Done: true, Err: errStreamFailed},
 	})
 	svc := newTestService(repo, &fakeResolver{provider: provider})
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
@@ -213,7 +214,7 @@ func TestHandler_StreamReportsErrorEventOnMidStreamFailure(t *testing.T) {
 func TestHandler_StreamRejectsMissingModelBlockBeforeHeadersSent(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/does-not-exist/stream", nil)
@@ -292,7 +293,7 @@ func (e *errorService) StreamAssistantReply(ctx context.Context, userID, househo
 
 func TestHandler_ListServiceError(t *testing.T) {
 	svc := &errorService{err: errors.New("db error")}
-	claims := &middleware.UserClaims{Subject: "u1"}
+	claims := &auth.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations", nil)
@@ -305,7 +306,7 @@ func TestHandler_ListServiceError(t *testing.T) {
 
 func TestHandler_CreateBadJSON(t *testing.T) {
 	svc := &errorService{err: nil}
-	claims := &middleware.UserClaims{Subject: "u1"}
+	claims := &auth.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/conversations", bytes.NewReader([]byte("not json")))
@@ -319,7 +320,7 @@ func TestHandler_CreateBadJSON(t *testing.T) {
 func TestHandler_PostMessageBadJSON(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo, &fakeResolver{})
-	claims := &middleware.UserClaims{Subject: "u1"}
+	claims := &auth.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/conversations/c1/messages", bytes.NewReader([]byte("{invalid")))
@@ -348,7 +349,7 @@ func TestHandler_WriteServiceErrorMappings(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &errorService{err: tt.err}
-			claims := &middleware.UserClaims{Subject: "u1"}
+			claims := &auth.UserClaims{Subject: "u1"}
 			router := newTestRouter(svc, claims)
 
 			// Test via Delete handler which calls writeServiceError directly
@@ -376,7 +377,7 @@ func TestHandler_StreamToolCallSSEEvent(t *testing.T) {
 		},
 	}}
 	svc := newTestService(repo, &fakeResolver{provider: provider})
-	claims := &middleware.UserClaims{Subject: "u1"}
+	claims := &auth.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"
@@ -401,7 +402,7 @@ func TestHandler_StreamToolCallSSEEvent(t *testing.T) {
 
 func TestHandler_ListMessagesServiceError(t *testing.T) {
 	svc := &errorService{err: conversations.ErrNotFound}
-	claims := &middleware.UserClaims{Subject: "u1"}
+	claims := &auth.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/c1/messages", nil)
@@ -414,7 +415,7 @@ func TestHandler_ListMessagesServiceError(t *testing.T) {
 
 func TestHandler_PostMessageServiceError(t *testing.T) {
 	svc := &errorService{err: conversations.ErrForbidden}
-	claims := &middleware.UserClaims{Subject: "u1"}
+	claims := &auth.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	body, _ := json.Marshal(conversations.CreateMessageRequest{Content: "hello"})
@@ -428,7 +429,7 @@ func TestHandler_PostMessageServiceError(t *testing.T) {
 
 func TestHandler_StreamServiceError(t *testing.T) {
 	svc := &errorService{err: conversations.ErrModelBlockUnavailable}
-	claims := &middleware.UserClaims{Subject: "u1"}
+	claims := &auth.UserClaims{Subject: "u1"}
 	router := newTestRouter(svc, claims)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/conversations/c1/stream", nil)
@@ -468,7 +469,7 @@ func TestHandler_StreamStopsWhenClientAbortsAndCanBeRetried(t *testing.T) {
 	repo := newFakeRepository()
 	provider := &ctxBoundProvider{started: make(chan struct{})}
 	svc := newTestService(repo, &fakeResolver{provider: provider})
-	claims := &middleware.UserClaims{Subject: "user-1"}
+	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
 	modelBlockID := "mb-1"

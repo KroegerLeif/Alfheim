@@ -206,11 +206,11 @@ jobs:
           images=$(cat <<'JSON'
           [
                       {"name": "caddy", "context": "infrastructure/caddy", "dockerfile": "infrastructure/caddy/Dockerfile"},
-            {"name": "dashboard-backend", "context": "core/dashboard/backend", "dockerfile": "core/dashboard/backend/Dockerfile"},
+            {"name": "dashboard-backend", "context": ".", "dockerfile": "core/dashboard/backend/Dockerfile"},
             {"name": "dashboard-frontend", "context": ".", "dockerfile": "core/dashboard/frontend/Dockerfile"},
-            {"name": "household-backend", "context": "core/household/backend", "dockerfile": "core/household/backend/Dockerfile"},
+            {"name": "household-backend", "context": ".", "dockerfile": "core/household/backend/Dockerfile"},
             {"name": "household-frontend", "context": ".", "dockerfile": "core/household/frontend/Dockerfile"},
-            {"name": "chat-backend", "context": "apps/chat/backend", "dockerfile": "apps/chat/backend/Dockerfile"},
+            {"name": "chat-backend", "context": ".", "dockerfile": "apps/chat/backend/Dockerfile"},
             {"name": "chat-frontend", "context": ".", "dockerfile": "apps/chat/frontend/Dockerfile"},
             {"name": "pantry-backend", "context": ".", "dockerfile": "apps/pantry/backend/Dockerfile"},
             {"name": "pantry-frontend", "context": ".", "dockerfile": "apps/pantry/frontend/Dockerfile"},
