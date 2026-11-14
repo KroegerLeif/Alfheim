@@ -102,4 +102,6 @@ export function getAppIconPath(appSlug: AppSlug = 'dashboard'): string {
 
 export { AlfheimMark } from './brand/AlfheimMark';
 export type { AlfheimMarkProps } from './brand/AlfheimMark';
+export { GithubMark } from './brand/GithubMark';
+export type { GithubMarkProps } from './brand/GithubMark';
 export { APP_GLYPH_ICONS } from './appGlyphs';

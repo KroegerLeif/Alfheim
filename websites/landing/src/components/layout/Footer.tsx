@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDocTranslation } from '../../i18n/useDocTranslation';
 import { AlfheimLogo } from '../icons/AlfheimLogo';
-import { GithubMark } from '../icons/GithubMark';
+import { GithubMark } from '@alfheim/shared';
 import { Shield } from 'lucide-react';
 
 export const Footer: React.FC = () => {
