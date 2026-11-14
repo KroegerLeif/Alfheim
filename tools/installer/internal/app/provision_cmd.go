@@ -12,6 +12,7 @@ import (
 	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/provisioning"
 	"alfheim/installer/internal/features/security"
+	"alfheim/installer/internal/features/smtp"
 	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
@@ -29,6 +30,8 @@ Usage:
                           [--telemetry[=true|false]] [--google-client-id ID]
                           [--apple-client-id ID --apple-team-id ID --apple-key-id ID
                            --apple-private-key-file PATH]
+                          [--smtp-host HOST --smtp-sender-address ADDR [--smtp-port PORT]
+                           [--smtp-user USER] [--smtp-sender-name NAME] [--smtp-tls BOOL]]
 
 Flags:
   --env-file PATH      The .env to read (for ZITADEL_EXTERNALDOMAIN,
@@ -64,6 +67,13 @@ Flags:
                        Turn on Sign in with Apple. The key file must have
                        mode 0600; only its path is stored in the .env, the
                        key itself is uploaded to Zitadel.
+  --smtp-host HOST, --smtp-port PORT, --smtp-user USER,
+  --smtp-sender-address ADDR, --smtp-sender-name NAME, --smtp-tls BOOL
+                       Configure Zitadel's SMTP e-mail provider. The password
+                       comes from ALFHEIM_SMTP_PASSWORD in the environment or
+                       the .env. Without the flags, the .env decides; an empty
+                       ALFHEIM_SMTP_HOST there removes the installer's provider
+                       and hides "Forgot password" on the login page.
 
 Exit codes:
   0 success   1 failure   2 usage error
@@ -87,6 +97,8 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	telemetryFlag := fs.Bool("telemetry", false, "turn the optional observability stack on (OTEL_ENABLED)")
 	var social sociallogin.Settings
 	sociallogin.RegisterFlags(fs, &social)
+	var mail smtp.Settings
+	smtp.RegisterFlags(fs, &mail)
 
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
@@ -148,11 +160,21 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "Error: %v\n", err)
 		return ExitFailure
 	}
+	mail.ApplyEnv(os.Getenv)
+	mailUpdates, err := applySMTPOverrides(existing, mail)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
 
 	client := &provisioning.HTTPClient{BaseURL: endpointURL, Host: authHost, PAT: pat, HTTP: httpClient}
 	in := provisioning.BuildInput(defaultProjectName, baseURL, !secure, provisioning.AppSlugs)
 	in.AuthOrigin = authOrigin(authHost, secure)
 	if in.IDPs, err = socialLoginSpecs(existing, security.ReadPrivateKeyFile); err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+	if in.SMTP, err = smtpSpec(existing); err != nil {
 		fmt.Fprintf(stderr, "Error: %v\n", err)
 		return ExitFailure
 	}
@@ -169,8 +191,10 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	}
 
 	updates := result.EnvUpdates()
-	for k, v := range socialUpdates {
-		updates[k] = v
+	for _, extra := range []map[string]string{socialUpdates, mailUpdates} {
+		for k, v := range extra {
+			updates[k] = v
+		}
 	}
 	if telemetrySet {
 		// The flag toggles the telemetry module, so ALFHEIM_ENABLED_APPS,
@@ -197,6 +221,7 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stdout, "  Telemetry is off (OTEL_ENABLED=false): the Grafana client was skipped.")
 	}
 	printSocialLogin(stdout, result.IDPs)
+	printSMTP(stdout, result.SMTP)
 	printWarnings(stderr, result.Warnings)
 	return ExitOK
 }

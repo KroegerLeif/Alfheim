@@ -16,6 +16,7 @@ import (
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/provisioning"
 	"alfheim/installer/internal/features/security"
+	"alfheim/installer/internal/features/smtp"
 	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/templating"
 	"alfheim/installer/internal/features/tls"
@@ -166,11 +167,15 @@ func (a *App) execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	mail, err := a.configureSMTP(layout)
+	if err != nil {
+		return err
+	}
 	// Also covers a re-run over an install that stopped half way, which is
 	// still ModeInstall but already has an .env with the earlier hosts.
 	a.reportDomainChange(layout, on)
 
-	model, target, err := a.renderConfiguration(layout, on, tlsCfg, dataPaths, set, social)
+	model, target, err := a.renderConfiguration(layout, on, tlsCfg, dataPaths, set, social, mail)
 	if err != nil {
 		return err
 	}
@@ -341,7 +346,7 @@ func (a *App) configure(layout paths.Layout) (onboarding.Config, tls.Config, err
 // temporary directory rather than the installation root.
 func (a *App) renderConfiguration(
 	layout paths.Layout, on onboarding.Config, tlsCfg tls.Config, dataPaths datapaths.Paths, set apps.Set,
-	social sociallogin.Settings,
+	social sociallogin.Settings, mail smtp.Settings,
 ) (templating.Model, paths.Layout, error) {
 	// Carry forward any secret an earlier run generated.
 	existing := map[string]string{}
@@ -381,6 +386,7 @@ func (a *App) renderConfiguration(
 		DockerSocketGID: a.dockerSocketGID(existing),
 		DataPaths:       dataPaths,
 		SocialLogin:     social,
+		SMTP:            mail,
 		DisabledApps:    set.Disabled(),
 		// OTEL_ENABLED follows the telemetry module of the enabled set, so
 		// the rendered .env and the /grafana route never disagree.
@@ -461,6 +467,7 @@ var provisionedEnvKeys = []string{
 	"GRAFANA_OIDC_CLIENT_SECRET",
 	provisioning.FingerprintEnvKey(provisioning.IDPGoogle),
 	provisioning.FingerprintEnvKey(provisioning.IDPApple),
+	provisioning.SMTPFingerprintEnvKey,
 }
 
 // carryForwardProvisioned picks out the previously provisioned values worth
@@ -577,6 +584,7 @@ func provisionZitadel(
 	}
 	fmt.Fprintln(stdout, "Zitadel OIDC clients are provisioned.")
 	printSocialLogin(stdout, result.IDPs)
+	printSMTP(stdout, result.SMTP)
 	printWarnings(stdout, result.Warnings)
 	return result.Warnings, nil
 }
@@ -785,9 +793,11 @@ Alfheim is up.
     Password:              %s (also in .env, ZITADEL_ADMIN_PASSWORD)
     A password change is required on first login.
     No self-registration is needed: sign in at %s with the credentials above.
-`,
+
+%s`,
 		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, observabilityLine(m),
-		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL)
+		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL,
+		smtp.Summary(m.SMTP))
 
 	if ca := m.TLS.LocalCA; ca != nil {
 		a.printLocalCA(m.Onboarding, *ca)

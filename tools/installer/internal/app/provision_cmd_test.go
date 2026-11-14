@@ -22,6 +22,8 @@ type loginPolicyStub struct {
 	mu           sync.Mutex
 	registerOpen bool
 	puts         int
+	// mail fakes the e-mail provider endpoints, see smtp_test.go.
+	mail emailStub
 }
 
 func newLoginPolicyStub() *loginPolicyStub { return &loginPolicyStub{registerOpen: true} }
@@ -29,6 +31,9 @@ func newLoginPolicyStub() *loginPolicyStub { return &loginPolicyStub{registerOpe
 // handle answers a login policy request and reports whether it did.
 func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
 	if handleOperatorAccess(w, r) {
+		return true
+	}
+	if l.handleEmail(w, r) {
 		return true
 	}
 	if r.URL.Path != "/admin/v1/policies/login" && r.URL.Path != "/management/v1/policies/login" {
@@ -41,12 +46,13 @@ func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
 		var body map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		l.registerOpen, _ = body["allowRegister"].(bool)
+		l.mail.resetHidden, _ = body["hidePasswordReset"].(bool)
 		l.puts++
 		_ = json.NewEncoder(w).Encode(map[string]any{})
 		return true
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"policy": map[string]any{
-		"allowRegister": l.registerOpen, "isDefault": true,
+		"allowRegister": l.registerOpen, "isDefault": true, "hidePasswordReset": l.mail.resetHidden,
 	}})
 	return true
 }

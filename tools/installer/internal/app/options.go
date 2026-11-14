@@ -12,6 +12,7 @@ import (
 	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/smtp"
 	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 )
@@ -53,6 +54,10 @@ type Options struct {
 	// SocialLogin are the optional social login credentials from flags and
 	// the environment. Empty values keep what .env already holds.
 	SocialLogin sociallogin.Settings
+
+	// SMTP is the optional mail server for Zitadel from flags and the
+	// environment. Empty values keep what .env already holds.
+	SMTP smtp.Settings
 }
 
 // usage is printed for -h and on a usage error.
@@ -112,6 +117,19 @@ An earlier choice in .env is kept on a re-run:
                            ALFHEIM_APPLE_PRIVATE_KEY_FILE
                            Absolute path of the .p8 key; mode 0600 required
 
+E-mail (optional, off by default; see docs/en/how-to/configure-smtp.md). Without
+it Zitadel cannot send password resets, invitations or e-mail verification.
+An earlier choice in .env is kept on a re-run:
+  --smtp-host HOST         ALFHEIM_SMTP_HOST             SMTP server host name
+  --smtp-port PORT         ALFHEIM_SMTP_PORT             default 587
+  --smtp-user USER         ALFHEIM_SMTP_USER             empty: no authentication
+                           ALFHEIM_SMTP_PASSWORD         SMTP password
+                           (environment only, never a flag)
+  --smtp-sender-address ADDR
+                           ALFHEIM_SMTP_SENDER_ADDRESS   From address
+  --smtp-sender-name NAME  ALFHEIM_SMTP_SENDER_NAME      default Alfheim
+  --smtp-tls BOOL          ALFHEIM_SMTP_TLS              default true (TLS or STARTTLS)
+
 Exit codes:
   0 success   1 failure   2 usage error   130 interrupted
 `
@@ -141,6 +159,7 @@ func ParseOptions(args []string, stderr io.Writer) (*Options, error) {
 	fs.StringVar(&opts.Apps, "apps", "", "optional apps: all, none or a comma-separated list")
 
 	sociallogin.RegisterFlags(fs, &opts.SocialLogin)
+	smtp.RegisterFlags(fs, &opts.SMTP)
 
 	dataFlags := make(map[string]*string, len(datapaths.Classes))
 	for _, c := range datapaths.Classes {
@@ -208,6 +227,7 @@ func (o *Options) applyEnvDefaults() {
 	}
 
 	o.SocialLogin.ApplyEnv(os.Getenv)
+	o.SMTP.ApplyEnv(os.Getenv)
 
 	if o.APIToken == "" {
 		// Accept the provider-specific names too, since those are what the
