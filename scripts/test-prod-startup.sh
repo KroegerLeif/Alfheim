@@ -208,7 +208,7 @@ wait_for_health() {
 # to Zitadel's /machinekey is writable by the container's own user before
 # Zitadel ever starts.
 #
-# The ghcr.io/zitadel/zitadel:v2.66.1 image runs as uid:gid 1000:1000 (the
+# The ghcr.io/zitadel/zitadel image (v2 through v4) runs as uid:gid 1000:1000 (the
 # "zitadel" user baked into its /etc/passwd). A bind-mount directory that
 # does not exist yet is created by the Docker daemon itself, root-owned —
 # not by the container — which denies that user the write it needs to save

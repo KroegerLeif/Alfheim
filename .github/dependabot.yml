@@ -226,6 +226,7 @@ updates:
       - 'area:dependencies'
       - 'area:security'
     ignore:
-      # Zitadel v2 -> v4 is a planned migration (database and login UI changes), not a tag bump.
+      # A Zitadel major (v4 -> v5) is a planned migration (database steps, removed v1 APIs,
+      # login UI changes), not a tag bump; see issue #765 for how v2 -> v4 was done.
       - dependency-name: 'zitadel/zitadel'
         update-types: ['version-update:semver-major']
