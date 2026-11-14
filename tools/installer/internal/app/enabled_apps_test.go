@@ -87,6 +87,22 @@ func TestRecordEnabledApps(t *testing.T) {
 			apps.ProfilesKey, after[apps.ProfilesKey])
 	}
 
+	if env[apps.OTELEnabledKey] == "" && after[apps.OTELEnabledKey] != "true" {
+		t.Errorf("legacy install without OTEL_ENABLED: got %q, want true (it always exported)",
+			after[apps.OTELEnabledKey])
+	}
+
+	// An operator's explicit OTEL_ENABLED survives the backfill.
+	if err := envfile.Update(layout.EnvFile(), map[string]string{apps.OTELEnabledKey: "false"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := recordEnabledApps(&out, layout, map[string]string{apps.OTELEnabledKey: "false"}); err != nil {
+		t.Fatal(err)
+	}
+	if kept, err := envfile.ParseFile(layout.EnvFile()); err != nil || kept[apps.OTELEnabledKey] != "false" {
+		t.Errorf("explicit OTEL_ENABLED=false was overwritten: %q (%v)", kept[apps.OTELEnabledKey], err)
+	}
+
 	// A recorded set is returned as is and .env is not rewritten.
 	out.Reset()
 	if _, err := recordEnabledApps(&out, layout, map[string]string{apps.EnvKey: "chat"}); err != nil {

@@ -156,7 +156,59 @@ func TestProvision_ExistingInstallWarnsInsteadOfFailing(t *testing.T) {
 }
 
 func testInput() Input {
-	return BuildInput("Alfheim", "https://alfheim.example.com", false, AppSlugs)
+	in := BuildInput("Alfheim", "https://alfheim.example.com", false, AppSlugs)
+	in.Telemetry = true
+	return in
+}
+
+// TestProvision_TelemetryOffSkipsGrafana covers a Lean Core install: no
+// Grafana client is created, and EnvUpdates leaves the .env's Grafana keys
+// alone so a later re-enable can reuse them.
+func TestProvision_TelemetryOffSkipsGrafana(t *testing.T) {
+	c := newFakeClient()
+	in := testInput()
+	in.Telemetry = false
+	result, err := Provision(context.Background(), c, in, nil)
+	if err != nil {
+		t.Fatalf("Provision() error = %v", err)
+	}
+	if result.GrafanaClientID != "" || result.GrafanaSecret != "" {
+		t.Errorf("Grafana credentials = %+v, want none with telemetry off", result)
+	}
+	if _, ok := c.apps["Grafana"]; ok {
+		t.Error("the Grafana client was created with telemetry off")
+	}
+	updates := result.EnvUpdates()
+	if _, ok := updates["GRAFANA_OIDC_CLIENT_ID"]; ok {
+		t.Errorf("EnvUpdates() = %v, must not touch the Grafana keys", updates)
+	}
+	if updates["ALFHEIM_WEB_CLIENT_ID"] != "client-Alfheim Web" || updates["OIDC_AUDIENCE"] != "project-Alfheim" {
+		t.Errorf("EnvUpdates() = %v", updates)
+	}
+}
+
+// TestProvision_EnablingTelemetryLaterCreatesGrafana proves the switch is
+// idempotent: a Lean Core install that turns telemetry on gets the client on
+// the next run without touching the existing web client.
+func TestProvision_EnablingTelemetryLaterCreatesGrafana(t *testing.T) {
+	c := newFakeClient()
+	off := testInput()
+	off.Telemetry = false
+	first, err := Provision(context.Background(), c, off, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := Provision(context.Background(), c, testInput(), first.EnvUpdates())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.WebClientID != first.WebClientID {
+		t.Errorf("WebClientID changed from %q to %q", first.WebClientID, second.WebClientID)
+	}
+	updates := second.EnvUpdates()
+	if updates["GRAFANA_OIDC_CLIENT_ID"] != "client-Grafana" || updates["GRAFANA_OIDC_CLIENT_SECRET"] != "secret-Grafana" {
+		t.Errorf("EnvUpdates() = %v, want the new Grafana client", updates)
+	}
 }
 
 func TestProvision_CreatesProjectAndApps(t *testing.T) {

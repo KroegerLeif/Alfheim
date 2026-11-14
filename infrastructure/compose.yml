@@ -16,8 +16,18 @@ services:
     restart: unless-stopped
     logging: *default-logging
     # lz4 decompresses much faster than the default pglz at a similar ratio;
-    # it only applies to newly written TOAST values.
-    command: ["postgres", "-c", "default_toast_compression=lz4"]
+    # it only applies to newly written TOAST values. The memory settings are
+    # sized for the Lean Core tier and overridable from .env (.env.example).
+    command:
+      - postgres
+      - -c
+      - default_toast_compression=lz4
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-64MB}
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-100}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-4MB}
     env_file:
       - path: ./postgres/.env
         required: false
@@ -54,9 +64,11 @@ services:
       - ${ALFHEIM_DB_DATA_PATH:-./postgres/data}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 10s
+      start_interval: 5s
     networks:
       - infra-net
       - core-net
@@ -120,10 +132,11 @@ services:
       - zitadel_machinekey:/machinekey
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 15
       start_period: 30s
+      start_interval: 5s
     depends_on:
       postgres-core:
         condition: service_healthy
@@ -180,10 +193,11 @@ services:
       - ${ALFHEIM_OBJECT_DATA_PATH:-rustfs_data}:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 15s
+      start_interval: 5s
     networks:
       - infra-net
       - gateway-net

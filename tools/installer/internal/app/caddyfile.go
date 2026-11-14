@@ -24,7 +24,8 @@ import (
 // already in the update backup (assets.GeneratedAssets).
 //
 // Everything the Caddyfile depends on is read back from .env: the hosts, the
-// scheme, ALFHEIM_TLS_STRATEGY and ACME_EMAIL. DNS API tokens are referenced
+// scheme, ALFHEIM_TLS_STRATEGY, ACME_EMAIL and ALFHEIM_ENABLED_APPS (the
+// app and /grafana routes). DNS API tokens are referenced
 // as {env.NAME} and never rendered, and a custom certificate's container
 // paths are fixed. An installation without a recognised ALFHEIM_TLS_STRATEGY
 // (a legacy plain-HTTP .env) is left untouched, since guessing a strategy

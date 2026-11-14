@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
 )
@@ -22,6 +24,7 @@ const provisionUsage = `alfheim-setup provision - reconcile Zitadel OIDC clients
 Usage:
   alfheim-setup provision --env-file PATH --pat-file PATH
                           [--zitadel-url URL] [--zitadel-tls-addr HOST:PORT] [--ca-file PATH]
+                          [--telemetry[=true|false]]
 
 Flags:
   --env-file PATH      The .env to read (for ZITADEL_EXTERNALDOMAIN,
@@ -39,6 +42,13 @@ Flags:
   --ca-file PATH       Root CA trusted in addition to the system roots.
                        Default: infrastructure/ca/alfheim-root-ca.crt next to
                        the .env, when it exists.
+  --telemetry[=BOOL]   Turn the optional observability stack on or off: adds or
+                       removes the telemetry module in ALFHEIM_ENABLED_APPS
+                       (with COMPOSE_PROFILES and OTEL_ENABLED) and provisions
+                       Grafana's OIDC client when on. Without the flag, OTEL_ENABLED from the
+                       .env decides (missing means off). Apply the change with
+                       alfheim-setup update, which re-renders the Caddyfile's
+                       /grafana route and recreates the services.
 
 Exit codes:
   0 success   1 failure   2 usage error
@@ -59,6 +69,7 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	zitadelURL := fs.String("zitadel-url", provisioning.DefaultPlainURL, "Caddy's plain-HTTP base URL")
 	tlsAddr := fs.String("zitadel-tls-addr", provisioning.DefaultTLSAddr, "Caddy's HTTPS listener address")
 	caFile := fs.String("ca-file", "", "extra root CA to trust")
+	telemetryFlag := fs.Bool("telemetry", false, "turn the optional observability stack on (OTEL_ENABLED)")
 
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
@@ -116,6 +127,11 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	}
 	client := &provisioning.HTTPClient{BaseURL: endpointURL, Host: authHost, PAT: pat, HTTP: httpClient}
 	in := provisioning.BuildInput(defaultProjectName, baseURL, !secure, provisioning.AppSlugs)
+	telemetrySet := flagWasSet(fs, "telemetry")
+	in.Telemetry = telemetry.Enabled(existing)
+	if telemetrySet {
+		in.Telemetry = *telemetryFlag
+	}
 
 	result, err := provisioning.Provision(context.Background(), client, in, existing)
 	if err != nil {
@@ -123,19 +139,61 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 		return ExitFailure
 	}
 
-	if err := envfile.Update(*envFile, map[string]string{
-		"ZITADEL_PROJECT_ID":         result.ProjectID,
-		"OIDC_AUDIENCE":              result.ProjectID,
-		"ALFHEIM_WEB_CLIENT_ID":      result.WebClientID,
-		"GRAFANA_OIDC_CLIENT_ID":     result.GrafanaClientID,
-		"GRAFANA_OIDC_CLIENT_SECRET": result.GrafanaSecret,
-	}); err != nil {
+	updates := result.EnvUpdates()
+	if telemetrySet {
+		// The flag toggles the telemetry module, so ALFHEIM_ENABLED_APPS,
+		// COMPOSE_PROFILES and OTEL_ENABLED stay in step with
+		// `alfheim-setup apps enable|disable telemetry`.
+		setValues, err := telemetrySetValues(existing, in.Telemetry)
+		if err != nil {
+			fmt.Fprintf(stderr, "Error: %v\n", err)
+			return ExitFailure
+		}
+		for k, v := range setValues {
+			updates[k] = v
+		}
+	}
+	if err := envfile.Update(*envFile, updates); err != nil {
 		fmt.Fprintf(stderr, "Error: write %s: %v\n", *envFile, err)
 		return ExitFailure
 	}
 
-	fmt.Fprintf(stdout, "Zitadel OIDC clients are provisioned.\n  GRAFANA_OIDC_CLIENT_ID=%s\n",
-		result.GrafanaClientID)
+	fmt.Fprintln(stdout, "Zitadel OIDC clients are provisioned.")
+	if in.Telemetry {
+		fmt.Fprintf(stdout, "  GRAFANA_OIDC_CLIENT_ID=%s\n", result.GrafanaClientID)
+	} else {
+		fmt.Fprintln(stdout, "  Telemetry is off (OTEL_ENABLED=false): the Grafana client was skipped.")
+	}
 	printWarnings(stderr, result.Warnings)
 	return ExitOK
+}
+
+// flagWasSet reports whether name was given on the command line, so an
+// absent --telemetry keeps the .env's choice instead of turning it off.
+func flagWasSet(fs *flag.FlagSet, name string) bool {
+	set := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			set = true
+		}
+	})
+	return set
+}
+
+// telemetrySetValues returns the .env values that switch the telemetry module
+// on or off in the enabled app set stored in existing.
+func telemetrySetValues(existing map[string]string, on bool) (map[string]string, error) {
+	set, err := apps.Enabled(existing)
+	if err != nil {
+		return nil, err
+	}
+	if on {
+		set, err = apps.Enable(set, apps.Telemetry)
+	} else {
+		set, err = apps.Disable(set, apps.Telemetry)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return apps.EnvValues(set, true), nil
 }

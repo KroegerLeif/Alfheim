@@ -9,6 +9,7 @@ import (
 
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
 )
@@ -85,6 +86,7 @@ func (p *DefaultProvisioner) Provision(
 	}
 	in := provisioning.BuildInput(defaultProjectName, on.BaseURL, !on.Secure, provisioning.AppSlugs)
 	in.OperatorUserName = operatorUserName(on, existing)
+	in.Telemetry = telemetry.Enabled(existing)
 	result, err := provisioning.Provision(ctx, client, in, existing)
 	if err != nil {
 		if provisioning.IsUnauthorized(err) {

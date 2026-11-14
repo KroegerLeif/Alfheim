@@ -13,12 +13,21 @@ Welcome to the **Alfheim Home Server OS** installation guide. This document prov
 
 ### Hardware Specifications
 
-| Component | Minimum | Recommended (All Services Active) |
+| Component | Lean Core | Full stack (all apps and telemetry) |
 | :--- | :--- | :--- |
 | **CPU** | 2 Cores (x86_64 or arm64) | 4+ Cores (x86_64 or arm64) |
-| **RAM** | 4 GB (with 2 GB swap) | 8 GB+ |
+| **RAM** | 2 GB (with 1 GB swap) | 4 GB minimum (with 2 GB swap), 8 GB recommended |
 | **Storage** | 10 GB SSD / NVMe | 20 GB+ SSD |
 | **Network** | 100 Mbps Ethernet | 1 Gbps Gigabit Ethernet |
+
+**Memory budget:** Lean Core is the infrastructure (Caddy, PostgreSQL, Zitadel,
+RustFS) plus the dashboard and household services; its containers reserve
+752 MB with limits of 1.5 GB. The full stack, with all eight apps and the
+telemetry stack, reserves 3.2 GB. Each limit in `compose.prod.yaml` is about
+twice the measured idle use, so leave the rest of the RAM to the OS and to
+load peaks. PostgreSQL memory is tuned through `POSTGRES_SHARED_BUFFERS`,
+`POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM` (see
+[environment variables](../reference/environment-variables.md#postgresql-database-credentials)).
 
 **Storage Breakdown:** Fresh Alfheim install requires ~5.5–6.5 GB: container images (≈3.6 GB extracted), base OS + Docker Engine (≈1.5–2.5 GB), fresh volumes (≈0.2 GB). Headroom is for RustFS uploads (budget receipts, library PDFs), unrotated container logs, and backups. Metrics retention is bounded to 14 days, logs to 7 days (configured in `compose.prod.yaml`).
 
@@ -29,7 +38,7 @@ Welcome to the **Alfheim Home Server OS** installation guide. This document prov
 * **Development / macOS**: macOS 14+ with Docker Desktop or OrbStack.
 
 ### Software Prerequisites
-1. **Docker Engine**: Version `24.0.0` or newer.
+1. **Docker Engine**: Version `25.0.0` or newer (the healthchecks use `start_interval`).
    * [Official Docker Engine Installation Guide](https://docs.docker.com/engine/install/)
 2. **Docker Compose**: Version `v2.20.0` or newer (Docker Compose v2 plugin).
    * Verify with: `docker compose version`

@@ -57,10 +57,11 @@ services:
       - caddy_config:/config
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80/livez || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 10
       start_period: 10s
+      start_interval: 5s
     networks:
       # Backends validate access tokens by fetching OIDC discovery/JWKS from
       # OIDC_ISSUER_URL (http://<ZITADEL_EXTERNALDOMAIN>) from inside their
@@ -75,10 +76,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 96m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 48m
           cpus: 0.5
   # ----------------------------------------------------------------------------
   # 2. CONSOLIDATED POSTGRESQL CORE DATABASE SERVER & IAM / CENTRAL STORAGE
@@ -89,8 +90,18 @@ services:
     restart: unless-stopped
     logging: *default-logging
     # lz4 decompresses much faster than the default pglz at a similar ratio;
-    # it only applies to newly written TOAST values.
-    command: ["postgres", "-c", "default_toast_compression=lz4"]
+    # it only applies to newly written TOAST values. The memory settings are
+    # sized for the Lean Core tier and overridable from .env (.env.example).
+    command:
+      - postgres
+      - -c
+      - default_toast_compression=lz4
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-64MB}
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-100}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-4MB}
     security_opt:
       - no-new-privileges:true
     environment:
@@ -127,10 +138,11 @@ services:
       - ${ALFHEIM_DB_DATA_PATH:-postgres_core_data}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER must be set}"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 15
       start_period: 30s
+      start_interval: 5s
     networks:
       infra-net:
         aliases:
@@ -177,10 +189,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 384m
           cpus: 1
         reservations:
-          memory: 1g
+          memory: 160m
           cpus: 1
   zitadel:
     image: ghcr.io/zitadel/zitadel:v2.66.1
@@ -232,10 +244,11 @@ services:
       - ./infrastructure/zitadel/machinekey:/machinekey
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 30
       start_period: 60s
+      start_interval: 5s
     depends_on:
       postgres-core:
         condition: service_healthy
@@ -247,10 +260,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 256m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 128m
           cpus: 0.5
   rustfs:
     # RustFS is the intended S3 implementation (see infrastructure/rustfs/README.md).
@@ -273,10 +286,11 @@ services:
       - ${ALFHEIM_OBJECT_DATA_PATH:-rustfs_data}:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 15s
+      start_interval: 5s
     networks:
       - infra-net
       - gateway-net
@@ -285,10 +299,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 256m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 128m
           cpus: 0.5
   # ----------------------------------------------------------------------------
   # 3. OBSERVABILITY & TELEMETRY
@@ -311,20 +325,21 @@ services:
       - ./infrastructure/telemetry/victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - observability-internal
 
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 192m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 96m
           cpus: 0.5
   # Host metrics for the dashboard's system health widget. VictoriaMetrics
   # scrapes it (infrastructure/telemetry/victoriametrics/scrape.yml). The host
@@ -357,10 +372,11 @@ services:
       - /:/host:ro,rslave
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 -O /dev/null http://127.0.0.1:9100/metrics || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - observability-internal
 
@@ -370,7 +386,7 @@ services:
           memory: 64m
           cpus: 0.10
         reservations:
-          memory: 64m
+          memory: 32m
           cpus: 0.10
   victorialogs:
     image: victoriametrics/victoria-logs:v1.51.1
@@ -388,20 +404,21 @@ services:
       - ${ALFHEIM_LOGS_DATA_PATH:-victorialogs_data}:/victoria-logs-data
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - observability-internal
 
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 128m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 64m
           cpus: 0.25
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.163.2
@@ -428,10 +445,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 128m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 64m
           cpus: 0.25
   # Read-only Docker API gateway for Vector. Mounting docker.sock into Vector
   # directly would hand it root on the host, even with :ro. The proxy holds the
@@ -466,19 +483,21 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       test: ["CMD", "./healthcheck"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
+      start_interval: 5s
     networks:
       - docker-proxy-net
 
     deploy:
       resources:
         limits:
-          memory: 64m
+          memory: 32m
           cpus: 0.10
         reservations:
-          memory: 64m
+          memory: 16m
           cpus: 0.10
   vector:
     image: timberio/vector:0.60.0-alpine
@@ -493,10 +512,11 @@ services:
       - ./infrastructure/telemetry/vector/vector.toml:/etc/vector/vector.toml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     depends_on:
       victorialogs:
         condition: service_started
@@ -509,10 +529,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 96m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 48m
           cpus: 0.25
   grafana:
     image: grafana/grafana:13.2.4
@@ -564,10 +584,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - gateway-net
       - observability-internal
@@ -578,7 +599,7 @@ services:
           memory: 256m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 4. CONTROL PLANE: DASHBOARD SERVICE
@@ -603,10 +624,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -621,10 +643,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 64m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 32m
           cpus: 0.5
   dashboard-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -638,7 +660,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -647,20 +669,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 4b. CORE: HOUSEHOLD & ROLES SERVICE (core/household)
@@ -688,10 +711,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -704,10 +728,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 64m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 32m
           cpus: 0.5
   household-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -721,7 +745,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -731,20 +755,21 @@ services:
     healthcheck:
       # Next.js basePath is /household, so / itself is a 404.
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/household', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 5. CHAT ASSISTANT SERVICE
@@ -786,10 +811,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -805,10 +831,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 128m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 64m
           cpus: 0.5
   chat-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -823,7 +849,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -832,20 +858,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chat
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 6. PANTRY MANAGEMENT SERVICE
@@ -871,7 +898,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=pantry-backend
@@ -880,10 +907,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -899,10 +927,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 176m
           cpus: 0.5
   pantry-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -917,7 +945,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -926,20 +954,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/pantry/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/pantry/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 7. SHOPPING LIST SERVICE
@@ -966,7 +995,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=shopping-backend
@@ -975,10 +1004,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -994,10 +1024,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   shopping-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -1012,7 +1042,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3010
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1021,20 +1051,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/shopping/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 8. MAINTENANCE & DEVICES SERVICE
@@ -1060,7 +1091,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=maintenance-backend
@@ -1069,10 +1100,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1088,10 +1120,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 176m
           cpus: 0.5
   maintenance-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -1106,7 +1138,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1115,20 +1147,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/maintenance
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 9. HOUSEHOLD CHORES SERVICE
@@ -1154,7 +1187,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=chores-backend
@@ -1163,10 +1196,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1182,10 +1216,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   chores-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -1200,7 +1234,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1209,20 +1243,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chores
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chores/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 10. BUDGET & FINANCE SERVICE
@@ -1255,7 +1290,7 @@ services:
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-budget-receipts}
       # Presigned URLs handed to the browser point here (the gateway proxies /storage to RustFS).
       - S3_PUBLIC_URL=${S3_PUBLIC_URL:-${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/storage}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=budget-backend
@@ -1264,10 +1299,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1283,10 +1319,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   budget-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -1301,7 +1337,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1310,10 +1346,11 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/budget
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/budget/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
       - observability-internal
@@ -1321,10 +1358,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 11. WORKOUT TRACKING SERVICE
@@ -1350,7 +1387,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=workout-backend
@@ -1359,10 +1396,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1378,10 +1416,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   workout-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -1396,7 +1434,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1405,20 +1443,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/workout/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/workout/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 12. MEDIA LIBRARY SERVICE
@@ -1444,7 +1483,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=library-backend
@@ -1460,10 +1499,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1479,10 +1519,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 176m
           cpus: 0.5
   library-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -1497,7 +1537,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1506,20 +1546,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/library
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/library/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
 # ==============================================================================
 # VOLUMES & PERSISTENT DATA

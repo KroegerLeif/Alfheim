@@ -128,12 +128,19 @@ func TestRunProvision_Succeeds(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunProvision([]string{
-		"--env-file", envPath, "--pat-file", patPath, "--zitadel-tls-addr", addr,
+		"--env-file", envPath, "--pat-file", patPath, "--zitadel-tls-addr", addr, "--telemetry",
 	}, &stdout, &stderr)
 	if code != ExitOK {
 		t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
 	}
 	assertProvisionedEnv(t, envPath)
+	vars, err := envfile.ParseFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vars["OTEL_ENABLED"] != "true" {
+		t.Errorf("OTEL_ENABLED = %q, want --telemetry to persist true", vars["OTEL_ENABLED"])
+	}
 	if policy.registrationOpen() {
 		t.Error("self-registration is still enabled after RunProvision")
 	}
@@ -148,6 +155,10 @@ func TestRunProvision_LegacyInsecureEnv(t *testing.T) {
 
 	dir := t.TempDir()
 	envPath := writeProvisionEnv(t, dir, "false")
+	// Telemetry already on in .env: no flag is needed to keep Grafana provisioned.
+	if err := envfile.Update(envPath, map[string]string{"OTEL_ENABLED": "true"}); err != nil {
+		t.Fatal(err)
+	}
 	patPath := filepath.Join(dir, "pat.txt")
 	if err := os.WriteFile(patPath, []byte("test-pat\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -163,6 +174,58 @@ func TestRunProvision_LegacyInsecureEnv(t *testing.T) {
 	assertProvisionedEnv(t, envPath)
 	if policy.registrationOpen() {
 		t.Error("self-registration is still enabled after RunProvision")
+	}
+}
+
+// TestRunProvision_TelemetryOff covers the Lean Core default and an explicit
+// --telemetry=false: the Grafana client is skipped and an earlier Grafana
+// credential in .env survives for a later re-enable.
+func TestRunProvision_TelemetryOff(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		args     []string
+		wantOTEL string
+	}{
+		{"missing OTEL_ENABLED means off", nil, ""},
+		{"explicit --telemetry=false", []string{"--telemetry=false"}, "false"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			policy := newLoginPolicyStub()
+			srv := httptest.NewServer(zitadelStub(t, policy))
+			defer srv.Close()
+
+			dir := t.TempDir()
+			envPath := writeProvisionEnv(t, dir, "false")
+			if err := envfile.Update(envPath, map[string]string{"GRAFANA_OIDC_CLIENT_SECRET": "kept"}); err != nil {
+				t.Fatal(err)
+			}
+			patPath := filepath.Join(dir, "pat.txt")
+			if err := os.WriteFile(patPath, []byte("test-pat\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			var stdout, stderr bytes.Buffer
+			args := append([]string{"--env-file", envPath, "--pat-file", patPath, "--zitadel-url", srv.URL}, tc.args...)
+			if code := RunProvision(args, &stdout, &stderr); code != ExitOK {
+				t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
+			}
+			vars, err := envfile.ParseFile(envPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if vars["GRAFANA_OIDC_CLIENT_SECRET"] != "kept" {
+				t.Errorf("GRAFANA_OIDC_CLIENT_SECRET = %q, want the earlier value kept", vars["GRAFANA_OIDC_CLIENT_SECRET"])
+			}
+			if vars["OTEL_ENABLED"] != tc.wantOTEL {
+				t.Errorf("OTEL_ENABLED = %q, want %q", vars["OTEL_ENABLED"], tc.wantOTEL)
+			}
+			if vars["ALFHEIM_WEB_CLIENT_ID"] != "web-client" {
+				t.Errorf("ALFHEIM_WEB_CLIENT_ID = %q", vars["ALFHEIM_WEB_CLIENT_ID"])
+			}
+			if !strings.Contains(stdout.String(), "Grafana client was skipped") {
+				t.Errorf("stdout = %q, want the skip notice", stdout.String())
+			}
+		})
 	}
 }
 

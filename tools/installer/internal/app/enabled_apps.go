@@ -30,7 +30,9 @@ func loadEnabledApps(layout paths.Layout) (apps.Set, error) {
 // recordEnabledApps returns the set stored in env. An installation from
 // before the Lean Core has no ALFHEIM_ENABLED_APPS; for it the key and
 // COMPOSE_PROFILES are written with every app enabled, so a manual
-// `docker compose up -d` keeps starting the whole stack it always ran.
+// `docker compose up -d` keeps starting the whole stack it always ran. Such
+// an installation always exported telemetry, so OTEL_ENABLED=true is written
+// too unless the operator already set it.
 func recordEnabledApps(stdout io.Writer, layout paths.Layout, env map[string]string) (apps.Set, error) {
 	set, err := apps.Enabled(env)
 	if err != nil {
@@ -39,7 +41,8 @@ func recordEnabledApps(stdout io.Writer, layout paths.Layout, env map[string]str
 	if _, ok := env[apps.EnvKey]; ok {
 		return set, nil
 	}
-	if err := envfile.Update(layout.EnvFile(), apps.EnvValues(set, false)); err != nil {
+	_, hasOTEL := env[apps.OTELEnabledKey]
+	if err := envfile.Update(layout.EnvFile(), apps.EnvValues(set, !hasOTEL)); err != nil {
 		return apps.Set{}, fmt.Errorf("alfheim-setup: record %s in .env: %w", apps.EnvKey, err)
 	}
 	fmt.Fprintf(stdout, "Recorded %s=%s (every app, as before) in .env\n", apps.EnvKey, set)

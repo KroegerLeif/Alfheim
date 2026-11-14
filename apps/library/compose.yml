@@ -24,7 +24,7 @@ services:
       # (GET /internal/v1/memberships/{householdId}/{userSub}, Bearer token).
       - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:-dev-internal-token-change-me}
       - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=library-backend
