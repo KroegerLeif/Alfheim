@@ -40,7 +40,7 @@ The installer and `alfheim-setup provision` configure clients through Zitadel's 
 
 ### Social login (Google, Apple)
 
-Social login is opt-in per installation: `alfheim-setup` configures Google or Apple as a Zitadel identity provider only when the operator supplies its credentials. The policy is recorded in [ADR 0008](./decisions/0008-social-login-policy.md). Local username/password registration stays off either way.
+Social login is opt-in per installation: `alfheim-setup` configures Google or Apple as a Zitadel identity provider only when the operator supplies its credentials (see [Set up social login](../how-to/social-login.md)). The policy is recorded in [ADR 0008](./decisions/0008-social-login-policy.md). Local username/password registration stays off either way.
 
 * All frontends share one public PKCE client (`ALFHEIM_WEB_CLIENT_ID`). The identity providers live on the Zitadel instance, not on the client, so redirect URIs, grant types and project roles do not change.
 * Login V1 shows a button per provider on the existing login page. The provider redirects back to Zitadel's own callback on the auth host (`/ui/login/login/externalidp/callback`, and `/callback/form` for Apple's form POST); Caddy proxies it unchanged.

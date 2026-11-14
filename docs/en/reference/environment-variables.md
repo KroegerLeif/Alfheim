@@ -12,6 +12,7 @@ sidebar:
 ## 📋 Table of Contents
 - [Root Platform Configuration](#root-platform-configuration)
 - [Identity & Access Management (Generic OIDC & Zitadel)](#identity--access-management-generic-oidc--zitadel)
+- [Social Login](#social-login)
 - [Object Storage (RustFS S3)](#object-storage-rustfs-s3)
 - [Data Locations](#data-locations)
 - [Observability Stack (VictoriaStack & Telemetry)](#observability-stack-victoriastack--telemetry)
@@ -67,6 +68,18 @@ The Zitadel service in `compose.prod.yaml` and `infrastructure/compose.yml` also
 | :--- | :--- | :--- |
 | `ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED` | `false` | Keeps the built-in Login V1 at `/ui/login`; Login V2 would need a separate `zitadel-login` container |
 | `ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE` | `rsa` | Signs tokens with RSA web keys, matching the `RS256` check in every backend |
+
+---
+
+## Social Login
+
+Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures the providers in Zitadel; no container reads them. Empty values keep a provider off. See [Set up social login](../how-to/social-login.md) and [ADR 0008](../explanation/decisions/0008-social-login-policy.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth client ID. Set together with the secret to add "Sign in with Google"; flag `--google-client-id`. |
+| `ALFHEIM_GOOGLE_CLIENT_SECRET` | _(empty)_ | Google OAuth client secret. Environment or `.env` only (no flag), never printed. |
+| `ZITADEL_GOOGLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Google credentials, so the next run detects a rotated secret. A hash, not the secret. Do not edit. |
 
 ---
 
