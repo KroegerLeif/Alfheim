@@ -3,7 +3,7 @@
 The SQLite tests always run. The PostgreSQL tests run when ALFHEIM_MIGRATION_TEST_DATABASE_URL points at a
 disposable database (its public schema is dropped and recreated), e.g.:
 
-    docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=x postgres:16-alpine
+    docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=x postgres:18-alpine
     ALFHEIM_MIGRATION_TEST_DATABASE_URL=postgresql+asyncpg://postgres:x@localhost:55432/postgres pytest
 """
 
