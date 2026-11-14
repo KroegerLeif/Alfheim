@@ -33,9 +33,9 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_CHANNEL=prerelease bash
 ```
 
-👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
+👉 **New install?** Follow the [first-run tutorial (docs/en/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/en/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
 
-👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/en/how-to/homelab-deployment.md).**
+👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/en/how-to/homelab-deployment.md)](docs/en/how-to/homelab-deployment.md).**
 
 ---
 
