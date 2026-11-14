@@ -16,6 +16,7 @@ sidebar:
 - [Caddy Path Stripping Rules (`handle_path`)](#caddy-path-stripping-rules-handle_path)
 - [Installer-Generated App Host: Household & Internal Routes](#installer-generated-app-host-household--internal-routes)
 - [Routes of Disabled Apps](#routes-of-disabled-apps)
+- [Stopped Apps and Upstream Health Checks](#stopped-apps-and-upstream-health-checks)
 
 ---
 
@@ -136,6 +137,27 @@ The installer renders routes only for the apps in `ALFHEIM_ENABLED_APPS` ([ADR 0
 | `/grafana*` (telemetry off) | `302` to `/` | Grafana is part of the telemetry module. |
 
 `alfheim-setup apps enable|disable` re-renders the Caddyfile and restarts Caddy when it changed; `update` re-renders it from `.env` as well. The core routes (dashboard, household, storage, `/internal/*`) never change.
+
+## Stopped Apps and Upstream Health Checks
+
+An enabled app can still be stopped, restarting or crashed. Both Caddyfiles (dev and installer) handle that the same way, through two snippets.
+
+Every app backend `reverse_proxy` (the optional apps plus `dashboard-backend` and `household-backend`) goes through `app_backend <upstream> <health path>`:
+
+| Setting | Value | Effect |
+| :--- | :--- | :--- |
+| `lb_try_duration` / `lb_try_interval` | `3s` / `250ms` | A request waits briefly for a backend that is restarting instead of failing at once. |
+| `fail_duration` | `10s` | A failed request marks the upstream down for 10 s (passive check). |
+| `health_uri` | the backend's health path | Active check every `15s` with a `3s` timeout, on the same path as its compose healthcheck (for example `/api/v1/health` for pantry, `/healthz` for budget, the dashboard and the household app). |
+
+The `app_unavailable` snippet adds `handle_errors 502 503 504` to the app host (the dev `api.*` host imports `api_unavailable`, which always answers JSON). It only replaces a response Caddy itself failed to get; an app's own `503` (for example `household_service_unavailable`) passes through unchanged.
+
+| Request | Response |
+| :--- | :--- |
+| Any path containing `/api/v1` | `503` with `{"error":"service_unavailable","message":"..."}`, `Retry-After: 30` |
+| Any other path | `503` with a static HTML page (`infrastructure/caddy/errors/app-unavailable.html`, no external assets) that links back to the dashboard, `Retry-After: 30` |
+
+The page ships in the Caddy image at `/srv/alfheim-errors`; the dev compose file mounts it from `infrastructure/caddy/errors`. Error responses carry the same security headers as every other response. Other apps are unaffected: the error routes only apply to the failed request.
 
 ---
 

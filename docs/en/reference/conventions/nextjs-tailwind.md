@@ -11,7 +11,7 @@ sidebar:
 
 ## Stack
 
-Next.js (App Router, `src/proxy.ts` instead of the deprecated `middleware.ts`), Tailwind CSS v4, TanStack Query v5, `ky`, TypeScript with Zod schemas, `@alfheim/shared` for UI primitives, i18n, auth and household context.
+Next.js (App Router, `src/proxy.ts` instead of the deprecated `middleware.ts`), Tailwind CSS v4, TanStack Query v5, the shared API client (`createApiClient`), TypeScript with Zod schemas, `@alfheim/shared` for UI primitives, i18n, auth and household context.
 
 ## Layout
 
@@ -43,8 +43,8 @@ Every app serves `en`, `de` and `pl` with the locale always in the URL (`/pantry
 
 ## Data fetching
 
-- All HTTP goes through one typed `ky` client (`src/shared/api.ts` or `src/lib/api.ts`) with a prefix URL from `NEXT_PUBLIC_API_URL`, a timeout and hooks. Components and features never call bare `fetch`.
-- The client attaches `Authorization: Bearer <token>` from `sessionStorage.alfheim_access_token`, calls `applyHouseholdHeaders` (sets `X-Household-ID`, never `X-Household-Role`) and passes responses to `reportHouseholdErrorResponse`.
+- All HTTP goes through one `createApiClient({ basePath, apiUrl: process.env.NEXT_PUBLIC_API_URL, session: true })` instance from `@alfheim/shared` (usually `src/core/api.ts`), with a timeout. Components and features never call bare `fetch` and apps write no token-attaching wrapper of their own; see [Create an app's API client](../../how-to/extend-shared-package.md#create-an-apps-api-client).
+- The session attaches `Authorization: Bearer <token>` from `sessionStorage.alfheim_access_token`, refreshes it once on a 401, sets `X-Household-ID` (never `X-Household-Role`) and passes failed responses to `reportHouseholdErrorResponse`.
 - Wrap calls in hooks under `features/<domain>/hooks/`. Household-scoped queries include the household id in the query key and are enabled only when the household is ready:
 
 ```typescript

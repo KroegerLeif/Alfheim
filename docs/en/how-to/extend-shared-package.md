@@ -77,8 +77,9 @@ Every frontend talks to its backend through one `createApiClient` instance from 
    ```
 
    `session: true` attaches the bearer token from the shared token store, refreshes it once on a 401 (and starts a new login when that fails), sets `X-Household-ID` (never `X-Household-Role`) and reports household errors to the `HouseholdGate`. With a session, non-2xx responses reject with an `ApiError` (`status`, `code`, parsed `data`).
-2. Call it from the feature's `api/` module: `api.get('items').json<Item[]>()`, `api.post('items', payload)` (plain objects are sent as JSON, `FormData` as multipart).
-3. Every request has an 8 s timeout and rejects with `ApiTimeoutError` when it elapses. Override it with `timeoutMs`, or pass `stream: true` for Server-Sent Events and other long-lived responses.
+2. Call it from the feature's `api/` module: `api.get('items').json<Item[]>()`, `api.get('items', { searchParams: { limit: 20 } })`, `api.post('items', payload)` (plain objects are sent as JSON, `FormData` as multipart). Paths are relative to the API base, so they never repeat `api/v1`. `searchParams` takes an object (`undefined` and `null` values are dropped), key-value pairs for repeated keys, or `URLSearchParams`.
+3. Every request has an 8 s timeout and rejects with `ApiTimeoutError` when it elapses. Override it with `timeoutMs` per client or per request (uploads such as budget receipts use a longer one), or pass `stream: true` for Server-Sent Events and other long-lived responses.
+   A client for another app's public API (for example maintenance pushing parts to shopping) sets `baseUrl` to the frontend origin plus that app's `/<app>/api/v1` prefix instead of `basePath`, because the runtime `API_URL` only describes the app's own API.
 4. Map errors for users with `isApiError` and `isApiTimeoutError`; pass `mapError` to `createApiClient` when an app needs its own error type.
 
 In tests, inject `fetch` and a custom `session` instead of mocking modules.

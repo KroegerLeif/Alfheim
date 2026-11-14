@@ -45,7 +45,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | `CHAT_ENCRYPTION_KEY` | *(Generated 32-byte base64 key)* | AES-256-GCM key for encrypting LLM API keys |
 | `CHAT_ATTACHMENT_URL_SECRET` | *(generated secret, at least 32 bytes)* | HMAC key signing attachment download URLs. Required in production (compose refuses to start without it); the installer generates it and backfills it on update. Without it outside production, a random key is used per process |
 | `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lifetime of a signed attachment download URL |
-| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints |
+| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints of the enabled tool apps. Empty means no tool app is installed; unset keeps the stored registry |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chat` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
@@ -85,6 +85,14 @@ startup upserts the URL but never resets an admin's enabled/disabled toggle. Eve
 the caller's bearer token and `X-Household-ID` so the target app authorizes it the same way it
 authorizes a REST request. A 404 from an MCP endpoint is reported to the caller as a configuration
 error (mismatched `CHAT_MCP_SERVERS` path) rather than treated as reachable.
+
+The tool apps (pantry, chores, maintenance) are optional ([ADR 0007](../../explanation/decisions/0007-lean-core-app-set.md)).
+The installer renders `CHAT_MCP_SERVERS` from the enabled apps, and once the variable is present
+(even empty) only the apps it lists offer tools: the registry row of a disabled app stays stored
+but is skipped. Without the variable the stored registry is used as is. An MCP server that is down
+never fails the conversation: dialing it gives up after 2 s and tool discovery after 5 s per
+server, its tools are left out of that turn, and a failed tool call is fed back to the model as a
+tool error.
 
 MCP sessions are kept per endpoint, household and user: `ClientPool` resolves the client for
 every call from that call's caller credentials, so a session id and the cached tool list are

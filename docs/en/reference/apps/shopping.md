@@ -41,7 +41,7 @@ Source: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 | Variable | Default / Example | Purpose |
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgresql+asyncpg://shopping_user:postgres@postgres-core:5432/alfheim_shopping` | Async PostgreSQL connection string |
-| `PANTRY_API_URL` | `http://pantry-backend:8000/api/v1` | Internal Pantry service endpoint |
+| `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Internal Pantry backend. Empty when Pantry is not installed: the installer renders it from the enabled apps, and shopping then works without the pantry sync |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/shopping/api/v1` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
@@ -67,6 +67,12 @@ Source: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 - The unit picker stores lower-cased German codes (`stk`, `fl.`, `pkg.`, `pkt.`, `bund`, `dose`, `g`, `kg`, `ml`, `l`). Before sending, the backend maps the codes Pantry's unit registry does not know (`stk`/`bund` to `piece`, `fl.` to `bottle`, `pkg.`/`pkt.` to `pack`, `dose` to `can`). The stored unit does not change. The frontend shows localized labels (`Units` namespace) for the codes; codes without a label are shown as stored.
 
 **Save to catalog** in the dialog runs end to end from the browser: create the Pantry product (`POST /pantry/api/v1/products`, with the item's brand and barcode), rename the shopping item to the catalog name (Pantry matches by barcode or exact name), then retry the sync for that item. A failed step shows its error inside the item's row and the dialog keeps the already created product, so retrying does not create a duplicate.
+
+### Pantry is optional
+
+Pantry is a separate optional app ([ADR 0007](../../explanation/decisions/0007-lean-core-app-set.md)). `GET /api/v1/shopping/capabilities` returns `{"pantry_available": bool}`, derived from `PANTRY_BACKEND_URL` (any authenticated household member may call it). With `pantry_available: false` the frontend hides the stock-in button and the pantry badge and shows a short note instead; lists and items work as usual.
+
+Calls to Pantry use a 2 s connect and 5 s overall timeout. The pantry endpoints (`auto-import-low-stock`, `sync-to-pantry`) answer `503` with `shopping.error.pantry_not_installed` when Pantry is not installed, and `502` with `shopping.error.pantry_service_unavailable` when Pantry is unreachable or answers with an error. Validation errors stay `400`.
 
 ---
 
