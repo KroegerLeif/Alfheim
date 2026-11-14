@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refuse an Apple sign-in key file that its group or others can access (mode must be `0600` or stricter), before any container starts and before every provisioning run (#886).
 - Never pass the Google client secret as a command-line flag: `alfheim-setup` reads it from the environment or `.env` only, and prints neither it nor the Apple key (#885).
 - Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
+- Replace the never-expiring Zitadel bootstrap PAT: provisioning uses it once to store a machine key (`infrastructure/zitadel/provisioner/machine-key.json`, mode `0600`, rotated every run with a 90-day expiry), revokes every PAT of the machine user and clears `ZITADEL_BOOTSTRAP_PAT`, then authenticates with access tokens that expire within hours; existing installs migrate on their next `update`, the first-instance PAT now expires after a week (`ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`), `provision --pat-file` is optional and `alfheim-setup zitadel-token` prints a short-lived token for manual API calls (#789).
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
      A release moves these entries under a new version heading and adds its compare link. -->
