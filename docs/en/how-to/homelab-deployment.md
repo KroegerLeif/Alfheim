@@ -13,21 +13,18 @@ Welcome to the **Alfheim Home Server OS** installation guide. This document prov
 
 ### Hardware Specifications
 
-| Component | Lean Core | Full stack (all apps and telemetry) |
-| :--- | :--- | :--- |
-| **CPU** | 2 Cores (x86_64 or arm64) | 4+ Cores (x86_64 or arm64) |
-| **RAM** | 2 GB (with 1 GB swap) | 4 GB minimum (with 2 GB swap), 8 GB recommended |
-| **Storage** | 10 GB SSD / NVMe | 20 GB+ SSD |
-| **Network** | 100 Mbps Ethernet | 1 Gbps Gigabit Ethernet |
+This is the one place the hardware tiers are listed; other pages link here. The memory columns are the sums of the `deploy.resources` reservations and limits in `compose.prod.yaml`, which follow measured idle use with limits at about twice that.
 
-**Memory budget:** Lean Core is the infrastructure (Caddy, PostgreSQL, Zitadel,
-RustFS) plus the dashboard and household services; its containers reserve
-752 MB with limits of 1.5 GB. The full stack, with all eight apps and the
-telemetry stack, reserves 3.2 GB. Each limit in `compose.prod.yaml` is about
-twice the measured idle use, so leave the rest of the RAM to the OS and to
-load peaks. PostgreSQL memory is tuned through `POSTGRES_SHARED_BUFFERS`,
-`POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM` (see
-[environment variables](../reference/environment-variables.md#postgresql-database-credentials)).
+| Tier | What runs | Reserved RAM | Sum of limits | Host RAM | CPU |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Lean Core** | Caddy, PostgreSQL, Zitadel, RustFS, dashboard, household | 752 MB | 1.5 GB | 2 GB (plus 1 GB swap) | 2 cores |
+| **Lean Core + N apps** | plus each app you enable | 752 MB + 176–288 MB per app | 1.5 GB + 352–544 MB per app | 3 GB for up to two apps, 4 GB for up to five | 2 cores |
+| **Full** | every optional app, telemetry off | 2.75 GB | 5.6 GB | 4 GB (plus 2 GB swap), 8 GB recommended | 4 cores |
+| **Full + telemetry** | every app plus VictoriaMetrics, VictoriaLogs, Collector, Vector and Grafana | 3.2 GB | 6.5 GB | 6 GB minimum, 8 GB recommended | 4 cores |
+
+Each app's share is listed in the `Memory` column of [the apps catalog](../reference/apps-catalog.md) and in the installer wizard (chat 176 MB; shopping, budget, chores and workout 240 MB; pantry, library and maintenance 288 MB; telemetry 448 MB). Every tier runs on x86_64 or arm64 and needs 10 GB of SSD storage (20 GB or more for the full stack) and an ordinary 100 Mbps network.
+
+Leave the RAM above the reservations to the OS and to load peaks. PostgreSQL memory is tuned through `POSTGRES_SHARED_BUFFERS`, `POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM` (see [environment variables](../reference/environment-variables.md#postgresql-database-credentials)). For a small host, see [Run Alfheim on low-spec hardware](./low-spec-setup.md).
 
 **Storage Breakdown:** Fresh Alfheim install requires ~5.5–6.5 GB: container images (≈3.6 GB extracted), base OS + Docker Engine (≈1.5–2.5 GB), fresh volumes (≈0.2 GB). Headroom is for RustFS uploads (budget receipts, library PDFs), unrotated container logs, and backups. Metrics retention is bounded to 14 days, logs to 7 days (configured in `compose.prod.yaml`).
 
@@ -186,11 +183,9 @@ docker compose -f compose.prod.yaml pull
 docker compose -f compose.prod.yaml up -d
 ```
 
-Image updates stay within the pinned PostgreSQL major version (`postgres:18-alpine`). Alfheim
-ships no in-place major-version upgrade: an install created with PostgreSQL 16 (before the move
-to 18) does not start on the new image and has to be recreated. See
-[data locations](../reference/environment-variables.md#data-locations) for where the cluster is
-stored.
+Image updates stay within the pinned PostgreSQL major version (`postgres:18-alpine`). Moving an
+install created on PostgreSQL 16 is covered in
+[Update an installation](./update-installation.md#updating-from-v04x).
 
 ### Backing Up Persistent Data
 All databases, object storage blobs, and telemetry data reside in named Docker volumes:

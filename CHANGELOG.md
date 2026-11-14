@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
 - Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
 - Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
+- Document the Lean Core setup: new how-tos for low-spec hosts and for managing apps, one hardware tier table built from the measured reservations (the stale 4 GB / 8 GB figures are gone), memory and requirements in the apps catalog, and the v0.4.x update steps for Zitadel v4 and PostgreSQL 18 (#889)
+- Regenerate the ingress matrix from the Caddyfile with a prefix-handling column, state that backends accept `RS256` only, document the gateway's CORS stance, and fix stale paths in `README.md` and the Caddy Dockerfile (#890)
 ### Fixed
 - Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
 - Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)

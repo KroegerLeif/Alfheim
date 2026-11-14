@@ -68,6 +68,13 @@ To ensure clear architectural boundaries and keep external identity infrastructu
 1. **Authorization Grant**: Frontends redirect unauthenticated users to Zitadel using standard generic OIDC Authorization Code Flow with PKCE (`S256`).
 2. **Token Exchange**: Zitadel issues an `RS256`-signed JWT access token containing standard identity claims (`sub`, `email`, `preferred_username`).
 3. **Session & Header Injection**: Frontends store the access token in session storage and attach `Authorization: Bearer <token>` to outbound API calls. Household-scoped calls also carry `X-Household-ID: <active household UUID>`. Frontends never send `X-Household-Role`.
+4. **Token Verification**: Backends accept `RS256` only. The Go middleware of the dashboard, household and chat backends (`internal/shared/middleware/auth.go`) parses tokens with `jwt.WithValidMethods([]string{"RS256"})`, and the Python backends verify with `algorithms=["RS256"]` in `backend_shared`. A token signed with any other algorithm (for example `EdDSA` or `ES256`) is rejected with `401`.
+
+### Cross-Origin Requests (CORS)
+
+The gateway adds no CORS headers, by design. Every frontend calls its API through its own origin (relative `/api/v1/...` paths on the app host, see the [ingress matrix](../reference/ingress-matrix.md)), so browsers never send a cross-origin API request and need no preflight. Reflecting arbitrary origins together with credentials at the gateway would let any website read authenticated responses.
+
+The backends still register a CORS middleware with an origin allowlist. Its defaults are development hosts (`http://localhost:3000`, `:5173`, `:8000`, `http://alfheim.loegien.localhost`, `http://api.alfheim.loegien.localhost`): `CORS_ORIGINS` in the FastAPI settings (for example `apps/pantry/backend/src/core/config.py`) and `CORS_ALLOWED_ORIGINS` in the Go backends. `compose.prod.yaml` does not override them, which is harmless because production traffic is same-origin. Set them only when a client on another origin must call a backend directly.
 
 ---
 

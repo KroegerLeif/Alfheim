@@ -3,7 +3,7 @@ title: "Update an Installation"
 description: "Update a production Alfheim installation to a new release with one command, without re-running the wizard, regenerating secrets, or logging in again."
 ---
 
-> **TL;DR:** `curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_VERSION=vX.Y.Z bash -s -- update` fetches that release's stack files, backs up the previous ones, and restarts — no wizard, no new secrets, no root CA, no re-login.
+> **TL;DR:** `curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_VERSION=vX.Y.Z bash -s -- update` fetches that release's stack files, backs up the previous ones, and restarts — no wizard, no new secrets, no root CA, no re-login. Coming from v0.4.x or older? Read [Updating from v0.4.x](#updating-from-v04x) first.
 
 ---
 
@@ -14,6 +14,7 @@ description: "Update a production Alfheim installation to a new release with one
 - [What is preserved](#what-is-preserved)
 - [What actually happens](#what-actually-happens)
 - [Verifying the result](#verifying-the-result)
+- [Updating from v0.4.x](#updating-from-v04x)
 - [Rolling back](#rolling-back)
 - [Troubleshooting](#troubleshooting)
 
@@ -175,6 +176,54 @@ that every app route resolves through the gateway without a 5xx, that
 `/internal/*` is blocked at the edge, and that the household API rejects a
 request without a bearer token. It exits non-zero and prints a readable
 summary if anything fails.
+
+---
+
+## Updating from v0.4.x
+
+The release after v0.4.x changes two infrastructure components. Both affect an existing
+installation once, on the first update.
+
+### Zitadel v2.66 to v4
+
+Zitadel moves from v2.66.1 to v4.20.3 and migrates its database in place on first start; no
+manual step is needed and no data is lost. Instances keep the built-in Login V1 at
+`/ui/login`, so the sign-in page looks the same.
+
+v4 signs tokens only with newly created web keys, so every token issued before the update is
+rejected:
+
+1. Run the update as usual.
+2. Wait until `alfheim_zitadel` reports `healthy` in `docker compose -f compose.prod.yaml ps`.
+3. Sign in again once, on every device. User accounts, passwords, households and the
+   `alfheim_operator` role are unchanged.
+
+If sign-in fails in the first minutes with `Errors.WebKey.NoActive`, see
+[Troubleshooting](#troubleshooting). Background: [Zitadel version and login UI](../explanation/authentication-security.md#zitadel-version-and-login-ui).
+
+### PostgreSQL 16 to 18
+
+`postgres-core` moves from `postgres:16-alpine` to `postgres:18-alpine`, and the data is
+mounted at `/var/lib/postgresql` (the 18 image keeps its cluster in `18/docker` below it).
+**There is no in-place upgrade.** A cluster created by PostgreSQL 16 cannot be opened by
+PostgreSQL 18, and neither `update` nor `restore` converts it.
+
+Do not update an installation created on PostgreSQL 16 in place. Recreate it instead:
+
+1. Take a full backup on the old release, including the object storage, and copy it off the
+   host: `alfheim-setup backup` ([Backup and restore](./backup-restore.md)).
+2. Install the new release into a new, empty installation directory (or a new host), as in
+   the [first-run tutorial](../tutorials/first-run.md). Its PostgreSQL 18 cluster starts empty,
+   with data checksums on.
+
+`alfheim-setup` has no command that moves the data of the old cluster into the new one. The
+`database.sql` in the backup archive is a plain `pg_dumpall` that PostgreSQL 18 can read, but
+replaying it into a new installation is a manual database operation outside the installer.
+
+`alfheim-setup restore` of a v0.4.x archive is not a migration path: it restores that archive's
+stack files, which pin PostgreSQL 16, so the restored installation runs the old release again.
+Installations created on PostgreSQL 18 are not affected by this section. Where the cluster is
+stored: [data locations](../reference/environment-variables.md#data-locations).
 
 ---
 
