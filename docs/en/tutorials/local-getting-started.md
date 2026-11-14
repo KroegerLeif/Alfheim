@@ -69,7 +69,7 @@ Add `--skip-obs` to leave out the observability stack. The script boots the clus
 * **Stages 3–8**: Domain application microservices (Shopping, Pantry, Maintenance, Chores, Budget, Chat)
 * **Stage 9**: Observability (VictoriaMetrics, VictoriaLogs, OTel Collector, Vector, Grafana)
 
-Zitadel writes its bootstrap token (PAT) into the `zitadel_machinekey` Docker volume. A one-shot `zitadel-machinekey-init` container hands that volume to Zitadel's container user (uid 1000) before Zitadel starts, so nothing on your host needs a `chown`. `up.sh` copies the PAT out with `docker compose cp` and stores it as `ZITADEL_BOOTSTRAP_PAT` in `.env`.
+Zitadel writes its bootstrap token (PAT) into the `zitadel_machinekey` Docker volume. A one-shot `zitadel-machinekey-init` container hands that volume to Zitadel's container user (uid 1000) before Zitadel starts, so nothing on your host needs a `chown`. `up.sh` copies the PAT out with `docker compose cp` for the first `alfheim-setup provision` run, which stores a machine key in `infrastructure/zitadel/provisioner/` and revokes the PAT. Later runs authenticate with that key, rotated on every run; `.env` holds no Zitadel token.
 
 ---
 
@@ -116,7 +116,7 @@ Reset to a clean slate (removes containers, Docker volumes including `zitadel_ma
 docker run --rm -v "$PWD/infrastructure/postgres:/pg" alpine:3.20 rm -rf /pg/data
 ```
 
-The data directory is deleted from a throwaway container because on Linux it belongs to the Postgres container user; this needs no `sudo` on either platform. `down.sh --volumes` alone keeps `infrastructure/postgres/data`. Zitadel then stays initialised and never writes a new PAT, so `up.sh` falls back to `ZITADEL_BOOTSTRAP_PAT` in `.env`.
+The data directory is deleted from a throwaway container because on Linux it belongs to the Postgres container user; this needs no `sudo` on either platform. `down.sh --volumes` alone keeps `infrastructure/postgres/data`. Zitadel then stays initialised and never writes a new PAT, so provisioning keeps using the stored machine key. After a full reset Zitadel writes a fresh PAT and provisioning replaces the now-rejected key on its own.
 
 ---
 

@@ -18,7 +18,7 @@ Complete parameter reference for the Alfheim installer.
 
 ```
 alfheim-setup [flags]
-alfheim-setup update|backup|restore|apps ...
+alfheim-setup update|backup|restore|apps|zitadel-token ...
 ```
 
 ```bash
@@ -164,8 +164,10 @@ target release's `compose.prod.yaml` and the other standalone stack files,
 backs up the previous ones, sets `IMAGE_TAG` in `.env`, then runs the same
 secret-backfill, Zitadel-reconciliation and restart steps as a plain re-run.
 It requires an existing installation (an `.env` present) and never runs the
-wizard, rotates a secret, or touches the root CA, the Zitadel machinekey/PAT,
-or a Docker volume. Full walkthrough, one-liner and rollback:
+wizard, rotates a secret, or touches the root CA or a Docker volume. Like
+every provisioning run it rotates the Zitadel machine key and, on an
+installation that still has a bootstrap PAT, revokes and clears it (see
+[Zitadel credential](#zitadel-credential)). Full walkthrough, one-liner and rollback:
 [Update an installation](../how-to/update-installation.md).
 
 `update` first takes a database and secrets backup (see below) and aborts if
@@ -214,8 +216,8 @@ alfheim-setup backup [--output DIR] [--keep N] [--skip-media] [--install-dir DIR
 ```
 
 Writes one `alfheim-backup-<UTC>.tar.gz` (mode `0600`) holding a `pg_dumpall`
-of every database, the RustFS object storage, `.env`, the Zitadel machinekey,
-the root CA and Caddy PKI, the stack files and a checksummed `manifest.json`.
+of every database, the RustFS object storage, `.env`, the Zitadel machinekey
+and provisioner key, the root CA and Caddy PKI, the stack files and a checksummed `manifest.json`.
 The stack must be running. `--output` (or `ALFHEIM_BACKUP_DIR`) defaults to
 `<install-dir>/backups`; `--keep` retains the N newest archives (default 7);
 `--skip-media` leaves out the object storage. The archive contains all secrets
@@ -236,6 +238,20 @@ host. See [Backup, Restore & Data Migration](../how-to/backup-restore.md).
 
 ---
 
+## The `zitadel-token` subcommand
+
+```
+alfheim-setup zitadel-token --env-file PATH [--zitadel-url URL] [--zitadel-tls-addr HOST:PORT] [--ca-file PATH]
+```
+
+Prints an access token of the provisioning machine user on stdout, for manual calls to Zitadel's APIs. It exchanges the stored machine key next to the `.env` and does not rotate it. The token carries IAM owner rights and expires after Zitadel's access token lifetime (12 hours by default); keep it in a shell variable, never in a file. The connection flags work as for `provision`. It fails when no machine key exists yet; run `provision` or `update` first.
+
+```bash
+TOKEN=$(alfheim-setup zitadel-token --env-file /opt/alfheim/.env)
+```
+
+---
+
 ## Two-phase bootstrap
 
 | Phase | Services | Waits for |
@@ -245,6 +261,19 @@ host. See [Backup, Restore & Data Migration](../how-to/backup-restore.md).
 | 3 — Core & Application Stack | all remaining services of the Lean Core and the enabled apps (`COMPOSE_PROFILES`) | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
 During provisioning, the installer creates the Zitadel project "Alfheim" and one client shared by the dashboard and every app frontend. It creates the Grafana client only when telemetry is on (`OTEL_ENABLED=true` in `.env`; a fresh install starts with it off). It writes the client IDs to `.env`.
+
+### Zitadel credential
+
+Provisioning authenticates as the Zitadel machine user `ZITADEL_BOOTSTRAP_USERNAME` with an access token that expires within hours (Zitadel's access token lifetime, 12 hours by default). The token comes from a machine key stored in `infrastructure/zitadel/provisioner/machine-key.json` (mode `0600`):
+
+| Run | Credential used | Left behind |
+| :--- | :--- | :--- |
+| Fresh install | The PAT Zitadel wrote to `infrastructure/zitadel/machinekey/pat.txt` (expiry `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`) | A machine key valid for 90 days. Every PAT of the machine user is revoked, `pat.txt` is deleted. |
+| Update or re-run of an older install | `ZITADEL_BOOTSTRAP_PAT` from `.env` | The same as above, and `ZITADEL_BOOTSTRAP_PAT` is cleared. |
+| Every later run | The stored machine key | A new machine key valid for 90 days; the previous key is deleted in Zitadel. |
+| Stored key rejected (expired, other installation) | A PAT from `pat.txt`, `ZITADEL_BOOTSTRAP_PAT` or `--pat-file` | The same as a fresh install, plus a warning. |
+
+Deleting an old key or PAT that fails is a warning, not an error: the new key is already stored, and the next run retries. Why this design and what the stored key can do: [How the installer authenticates to Zitadel](../explanation/authentication-security.md#how-the-installer-authenticates-to-zitadel).
 
 ### Social login
 
@@ -279,7 +308,8 @@ be destroyed.
 
 | Path | Mode | Contents |
 | :--- | :--- | :--- |
-| `.env` | `0600` | All configuration and credentials. |
+| `.env` | `0600` | All configuration and credentials. No Zitadel token after the first provisioning run. |
+| `infrastructure/zitadel/provisioner/machine-key.json` | `0600` (directory `0700`) | Machine key of the Zitadel provisioning user, rotated on every provisioning run. See [Zitadel credential](#zitadel-credential). |
 | `infrastructure/caddy/Caddyfile` | `0644` | Rendered ingress configuration. Contains no credential; DNS tokens are referenced as `{env.NAME}`. |
 | `.alfheim.installed` | `0644` | Completion marker: version and timestamp. |
 | `data/caddy/certs/` | `0700` | Created for `--tls custom` in the default location. |

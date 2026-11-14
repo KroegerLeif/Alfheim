@@ -89,7 +89,8 @@ reference: [alfheim-setup CLI reference](../reference/installer-cli.md#the-updat
 
 - `.env` secrets (Postgres passwords, `ZITADEL_MASTERKEY`, JWT signing keys, …)
 - `infrastructure/ca/` (the `--tls internal` root CA) or `infrastructure/caddy/pki/`
-- The Zitadel machinekey and bootstrap PAT (`infrastructure/zitadel/machinekey/`)
+- The Zitadel machinekey directory (`infrastructure/zitadel/machinekey/`), except that a
+  leftover bootstrap PAT in it is revoked and deleted
 - Any Docker volume (databases, object storage, …)
 - The Zitadel project and OIDC clients it already provisioned — the
   administrator account, its password and every app's login all keep working
@@ -131,10 +132,12 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
 7. Re-reconciles the Zitadel project and OIDC clients (idempotent — adds a
    missing redirect URI, changes nothing that already matches) and makes sure
    self-registration is disabled on the Zitadel login policy. Accounts are
-   created by the operator, never by a visitor of the login page. This uses
-   the bootstrap PAT stored in `.env` as `ZITADEL_BOOTSTRAP_PAT`. On an
-   existing installation this step never aborts the update: if the PAT lacks
-   the rights, or the policy cannot be changed or verified, the update
+   created by the operator, never by a visitor of the login page. This
+   authenticates with a short-lived token from the stored Zitadel machine key
+   and rotates the key (an older install migrates from its bootstrap PAT; see
+   [Updating from v0.4.x](#bootstrap-pat-replaced-by-a-machine-key)). On an
+   existing installation the reconciliation itself never aborts the update: if
+   the token lacks the rights, or the policy cannot be changed or verified, the update
    continues and prints a prominent warning (again in the final summary) that
    self-registration may still be enabled. Then disable it by hand in the
    Zitadel console: **Default settings → Login behavior and security → uncheck
@@ -181,8 +184,8 @@ summary if anything fails.
 
 ## Updating from v0.4.x
 
-The release after v0.4.x changes two infrastructure components. Both affect an existing
-installation once, on the first update.
+The release after v0.4.x changes two infrastructure components and how the installer
+authenticates to Zitadel. Each affects an existing installation once, on the first update.
 
 ### Zitadel v2.66 to v4
 
@@ -200,6 +203,23 @@ rejected:
 
 If sign-in fails in the first minutes with `Errors.WebKey.NoActive`, see
 [Troubleshooting](#troubleshooting). Background: [Zitadel version and login UI](../explanation/authentication-security.md#zitadel-version-and-login-ui).
+
+### Bootstrap PAT replaced by a machine key
+
+Older installs keep a Zitadel personal access token that never expires in `.env`
+(`ZITADEL_BOOTSTRAP_PAT`). The first update uses it once: it stores a machine key in
+`infrastructure/zitadel/provisioner/machine-key.json` (mode `0600`), revokes every PAT of the
+provisioning machine user in Zitadel, deletes `infrastructure/zitadel/machinekey/pat.txt` and
+clears `ZITADEL_BOOTSTRAP_PAT`. It also adds `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`, which the
+new `compose.prod.yaml` requires. No manual step is needed. Check it afterwards:
+
+```bash
+grep '^ZITADEL_BOOTSTRAP_PAT=' .env                        # prints an empty value
+ls -l infrastructure/zitadel/provisioner/machine-key.json  # -rw------- owned by the installer's user
+```
+
+Backups taken before the update still contain the old PAT, which no longer works against the
+running instance. Background: [How the installer authenticates to Zitadel](../explanation/authentication-security.md#how-the-installer-authenticates-to-zitadel).
 
 ### PostgreSQL 16 to 18
 
@@ -270,6 +290,13 @@ keys. Every user has to sign in again. For the first few minutes Zitadel may
 answer token requests with `Errors.WebKey.NoActive` (and `GET /oauth/v2/keys`
 with an empty key list) until it has caught up its projections; wait and
 retry, no action is needed.
+
+**"the stored machine key … was rejected and no bootstrap PAT is available"** — the
+Zitadel machine key expired (no provisioning run for 90 days) or belongs to another
+installation. Sign in to the Zitadel console as an IAM owner, open the machine user
+`alfheim-bootstrap` under **Users → Service Users**, create a personal access token with an
+expiry of one day, and set it in `.env` as `ZITADEL_BOOTSTRAP_PAT`. Re-run the update; it
+stores a new key, revokes the token and clears the value again.
 
 **Verification fails after a successful restart** — the stack came back up
 but one of the checks in

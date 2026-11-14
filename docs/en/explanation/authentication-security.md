@@ -38,6 +38,21 @@ Alfheim runs Zitadel v4 (`ghcr.io/zitadel/zitadel:v4.20.3`), pinned in `compose.
 
 The installer and `alfheim-setup provision` configure clients through Zitadel's Management API v1 (`/management/v1/...`) and the instance login policy through the Admin API v1. Zitadel v4 marks these endpoints deprecated in favour of its resource-based v2 services but still serves them; they are expected to go away in v5, which is a separate migration.
 
+### How the installer authenticates to Zitadel
+
+Provisioning runs as a dedicated machine user (`ZITADEL_BOOTSTRAP_USERNAME`, IAM owner) that Zitadel creates with its first instance. Earlier releases kept that user's personal access token (PAT) in `.env`, valid until 2519, so a leaked `.env` meant permanent control of the identity provider (issue #789). Since then the installer keeps no long-lived token:
+
+* **First run.** Zitadel writes a PAT to `infrastructure/zitadel/machinekey/pat.txt` once, when it creates the instance. Its expiry is `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`, one week after the installer rendered `.env`. Provisioning uses the PAT once to register a machine key for the same user, stores it in `infrastructure/zitadel/provisioner/machine-key.json` (directory `0700`, file `0600`, owned by the installer's user), deletes every PAT of the machine user in Zitadel, deletes `pat.txt` and clears `ZITADEL_BOOTSTRAP_PAT` in `.env`.
+* **Every run.** The installer signs a JWT with the stored key and exchanges it at Zitadel's token endpoint (JWT profile grant, RFC 7523) for an access token. That token lives only in memory and expires after Zitadel's access token lifetime (12 hours by default). The run then rotates the key: it registers a new key that expires after 90 days, checks that the new key works, replaces the file and deletes every other key of the machine user.
+* **Recovery.** When Zitadel rejects the stored key (it expired after 90 days without a run, or belongs to an earlier installation), the installer falls back to a PAT from `pat.txt`, `ZITADEL_BOOTSTRAP_PAT` or `alfheim-setup provision --pat-file`, and migrates again. See [Update an installation](../how-to/update-installation.md#troubleshooting).
+
+Afterwards `.env` holds no Zitadel credential. The machine key is the one long-lived credential the installer keeps, with these limits:
+
+* It never leaves the host except inside a backup, and it lives outside `.env` and outside the directory mounted into the Zitadel container.
+* Anyone who can read it can already read `.env`, which holds `ZITADEL_MASTERKEY` and the PostgreSQL superuser password and therefore full access to Zitadel's data. The key adds no new privilege to a host compromise.
+* Every installer run (`update`, a re-run, `provision`) revokes the previous key, so a copy taken from an older backup or disk image stops working at the next run, and an untouched key expires on its own after 90 days.
+* For manual API calls, `alfheim-setup zitadel-token` prints a short-lived access token instead of exposing the key or a PAT.
+
 ### Social login (Google, Apple)
 
 Social login is opt-in per installation: `alfheim-setup` configures Google or Apple as a Zitadel identity provider only when the operator supplies its credentials (see [Set up social login](../how-to/social-login.md)). The policy is recorded in [ADR 0008](./decisions/0008-social-login-policy.md). Local username/password registration stays off either way.
