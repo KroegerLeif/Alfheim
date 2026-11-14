@@ -7,6 +7,7 @@ import {
   TelemetryMetrics,
   TelemetryLogsResponse,
   UserCapabilities,
+  AppHealthResponse,
 } from './types';
 
 /* 3-Tier Dashboard & Apps API */
@@ -32,6 +33,11 @@ export async function updateUserLink(id: string, payload: Partial<CreateUserLink
 
 export async function deleteUserLink(id: string): Promise<void> {
   await api.delete(`user/links/${id}`);
+}
+
+/** Cached live health of the enabled app backends; the browser never probes the apps itself. */
+export async function fetchAppHealth(): Promise<AppHealthResponse> {
+  return await api.get('apps/health').json<AppHealthResponse>();
 }
 
 /* Backward-compatibility wrappers */

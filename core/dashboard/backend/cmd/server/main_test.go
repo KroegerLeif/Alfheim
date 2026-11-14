@@ -221,3 +221,13 @@ func TestMain_Function(t *testing.T) {
 		t.Errorf("expected exit code 1, got %d", exitCode)
 	}
 }
+
+func TestHealthTargets_FollowEnabledApps(t *testing.T) {
+	targets := healthTargets(apps.EnabledCoreApps(apps.ParseEnabledApps("pantry")))
+	if len(targets) != 2 || targets[0].ID != "pantry" || targets[1].ID != "household" {
+		t.Errorf("unexpected targets %+v", targets)
+	}
+	if got := healthTargets([]apps.AppItem{{ID: "no-probe"}}); len(got) != 0 {
+		t.Errorf("an app without a health URL must not be probed: %+v", got)
+	}
+}
