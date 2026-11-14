@@ -6,7 +6,7 @@
 # deSEC DNS-01 for wildcard issuance without inbound port 80, which requires the
 # providers to be compiled in with xcaddy.
 #
-# See docs/decisions/0004-standalone-go-tui-installer.md.
+# See docs/en/explanation/decisions/0004-standalone-go-tui-installer.md.
 # ==============================================================================
 
 FROM --platform=$BUILDPLATFORM caddy:2.11.6-builder-alpine AS builder
