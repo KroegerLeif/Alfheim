@@ -12,6 +12,7 @@ import (
 	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 )
 
@@ -48,6 +49,10 @@ type Options struct {
 	// DataPaths are host directories for persistent data, keyed by the .env
 	// variable (ALFHEIM_DB_DATA_PATH, ...). Empty keeps the named volume.
 	DataPaths datapaths.Paths
+
+	// SocialLogin are the optional social login credentials from flags and
+	// the environment. Empty values keep what .env already holds.
+	SocialLogin sociallogin.Settings
 }
 
 // usage is printed for -h and on a usage error.
@@ -95,6 +100,18 @@ fails if it is not writable. An earlier choice in .env is kept on a re-run.
   --metrics-data-path DIR  ALFHEIM_METRICS_DATA_PATH  VictoriaMetrics data
   --logs-data-path DIR     ALFHEIM_LOGS_DATA_PATH     VictoriaLogs data
 
+External sign-in (optional, off by default; see docs/en/how-to/social-login.md).
+An earlier choice in .env is kept on a re-run:
+  --google-client-id ID    ALFHEIM_GOOGLE_CLIENT_ID      Google OAuth client id
+                           ALFHEIM_GOOGLE_CLIENT_SECRET  Google client secret
+                           (environment only, never a flag)
+  --apple-client-id ID     ALFHEIM_APPLE_CLIENT_ID       Apple Services ID
+  --apple-team-id ID       ALFHEIM_APPLE_TEAM_ID         Apple Team ID
+  --apple-key-id ID        ALFHEIM_APPLE_KEY_ID          Apple Key ID
+  --apple-private-key-file PATH
+                           ALFHEIM_APPLE_PRIVATE_KEY_FILE
+                           Absolute path of the .p8 key; mode 0600 required
+
 Exit codes:
   0 success   1 failure   2 usage error   130 interrupted
 `
@@ -122,6 +139,8 @@ func ParseOptions(args []string, stderr io.Writer) (*Options, error) {
 	fs.StringVar(&opts.CertPath, "cert-path", "", "certificate directory")
 	fs.StringVar(&opts.ImageTag, "image-tag", "", "container image tag")
 	fs.StringVar(&opts.Apps, "apps", "", "optional apps: all, none or a comma-separated list")
+
+	sociallogin.RegisterFlags(fs, &opts.SocialLogin)
 
 	dataFlags := make(map[string]*string, len(datapaths.Classes))
 	for _, c := range datapaths.Classes {
@@ -187,6 +206,8 @@ func (o *Options) applyEnvDefaults() {
 			}
 		}
 	}
+
+	o.SocialLogin.ApplyEnv(os.Getenv)
 
 	if o.APIToken == "" {
 		// Accept the provider-specific names too, since those are what the

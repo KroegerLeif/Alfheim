@@ -15,6 +15,7 @@ import (
 
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/paths"
 )
@@ -34,6 +35,9 @@ type Model struct {
 	// DataPaths are the optional host directories for persistent data. A
 	// class without one keeps its named volume.
 	DataPaths datapaths.Paths
+	// SocialLogin are the optional social login credentials. Empty values
+	// render empty variables, which keeps the provider switched off.
+	SocialLogin sociallogin.Settings
 	// Telemetry renders OTEL_ENABLED. It follows the telemetry module of the
 	// enabled app set, which also decides the Caddyfile's /grafana route
 	// (DisabledApps). It is off for a fresh install (Lean Core).

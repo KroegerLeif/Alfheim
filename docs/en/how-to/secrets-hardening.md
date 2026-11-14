@@ -68,6 +68,36 @@ ACME tokens as `{env.HETZNER_API_TOKEN}` rather than inlining them, which keeps
 it safe to attach to a support request or a configuration backup. Preserve that
 property in anything you add.
 
+### Social login credentials
+
+The optional [social login](social-login.md) providers are the one place where
+the operator supplies a credential instead of the generator:
+
+* **Google:** `ALFHEIM_GOOGLE_CLIENT_SECRET` lives in `.env` like every other
+  secret. Pass it through the environment or `.env`, never as a flag: the
+  installer has no flag for it, because a flag value is visible to every local
+  user in the process list.
+* **Apple:** the `.p8` signing key never goes into `.env`. Keep it in its own
+  file, owned by the user that runs `alfheim-setup`, with mode `0600`, and put
+  only its absolute path in `ALFHEIM_APPLE_PRIVATE_KEY_FILE`:
+
+  ```bash
+  sudo install -m 600 -o root -g root AuthKey_<KEY ID>.p8 /etc/alfheim/AuthKey_<KEY ID>.p8
+  ```
+
+  `alfheim-setup` refuses to continue when the file is readable by its group or
+  by others (`chmod 600` fixes it), is not a regular file, or does not hold a
+  PKCS #8 EC key. It checks before any container starts and again before every
+  provisioning run. It reads the key only to upload it to Zitadel, which stores
+  it encrypted with `ZITADEL_MASTERKEY` and mints Apple's short-lived client
+  secret from it at each login. The key is never written to `.env`, a log or the
+  installer output.
+
+`.env` also holds `ZITADEL_GOOGLE_IDP_FINGERPRINT` and
+`ZITADEL_APPLE_IDP_FINGERPRINT`. They are SHA-256 hashes over the configured
+credentials, used to detect a rotation; they reveal neither the secret nor the
+key.
+
 ---
 
 ## Verify before exposing the instance
@@ -97,6 +127,12 @@ stat -c '%a %n' .env
 ```
 
 Expect `600`. The installer sets this; a restore from backup often does not.
+With Sign in with Apple configured, check the key file as well; the installer
+refuses to run otherwise:
+
+```bash
+stat -c '%a %n' "$(grep '^ALFHEIM_APPLE_PRIVATE_KEY_FILE=' .env | cut -d= -f2)"
+```
 
 ### 3. Containers run unprivileged
 
@@ -128,6 +164,11 @@ Two exceptions:
 * **`CHAT_ENCRYPTION_KEY` cannot be rotated in place** without first
   re-encrypting stored LLM API keys. Clear them in the chat settings, rotate,
   then re-enter them.
+* **Social login credentials live in Zitadel too.** After changing
+  `ALFHEIM_GOOGLE_CLIENT_SECRET`, or replacing the Apple key file (and
+  `ALFHEIM_APPLE_KEY_ID`), re-run `alfheim-setup` so it uploads the new value;
+  restarting the containers alone does not. See
+  [Set up social login](social-login.md#rotate-a-secret-or-key).
 
 Database passwords must be changed in PostgreSQL as well as in `.env`:
 

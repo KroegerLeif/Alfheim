@@ -38,13 +38,22 @@ Alfheim runs Zitadel v4 (`ghcr.io/zitadel/zitadel:v4.20.3`), pinned in `compose.
 
 The installer and `alfheim-setup provision` configure clients through Zitadel's Management API v1 (`/management/v1/...`) and the instance login policy through the Admin API v1. Zitadel v4 marks these endpoints deprecated in favour of its resource-based v2 services but still serves them; they are expected to go away in v5, which is a separate migration.
 
-### Preparing for social login
+### Social login (Google, Apple)
 
-Social login (Google, Apple) is not configured yet. The setup is shaped so that it can be added without restructuring:
+Social login is opt-in per installation: `alfheim-setup` configures Google or Apple as a Zitadel identity provider only when the operator supplies its credentials (see [Set up social login](../how-to/social-login.md)). The policy is recorded in [ADR 0008](./decisions/0008-social-login-policy.md). Local username/password registration stays off either way.
 
-* All frontends share one public PKCE client (`ALFHEIM_WEB_CLIENT_ID`, authorization code grant, `S256`). An external identity provider is configured on the instance or the `Alfheim` organization in Zitadel, not per client, so redirect URIs, grant types and project roles stay as they are.
-* Login V1 shows the provider buttons on the existing login page once a provider is added and the login policy allows external login.
-* Backends identify users only by the Zitadel `sub`. A user who signs in through Google still gets a Zitadel user ID, so household membership and the `alfheim_operator` role keep working.
+* All frontends share one public PKCE client (`ALFHEIM_WEB_CLIENT_ID`). The identity providers live on the Zitadel instance, not on the client, so redirect URIs, grant types and project roles do not change.
+* Login V1 shows a button per provider on the existing login page. The provider redirects back to Zitadel's own callback on the auth host (`/ui/login/login/externalidp/callback`, and `/callback/form` for Apple's form POST); Caddy proxies it unchanged.
+* Backends identify users only by the Zitadel `sub`. A user who signs in through Google or Apple is a normal Zitadel user, so household membership and the `alfheim_operator` role work the same way.
+
+First login through a provider:
+
+1. **Provider.** The user authenticates at Google or Apple and is sent back to Zitadel's callback.
+2. **Zitadel user.** Zitadel signs in the user already linked to that external identity. Otherwise it links the identity to an existing user whose e-mail is verified on both sides, or creates a new user. An unverified address never links.
+3. **Membership check.** The frontend gets ordinary tokens and asks `core/household` for the user's households (`GET /api/v1/households/me`). Every household-scoped call is checked against `core/household`; the token carries no household or role.
+4. **Onboarding.** A new user has no household. They accept an invitation or create their own household; until then no household data is reachable.
+
+With social login on, anyone with an account at that provider who reaches the instance can sign in and create their own household. Restrict the audience at the provider if the instance must stay closed (see the ADR).
 
 ---
 

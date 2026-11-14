@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Answer a stopped or restarting app with a clear error instead of an empty 502: Caddy's `handle_errors` returns JSON `503 service_unavailable` with `Retry-After` on API paths and a static page with a link back to the dashboard on page paths, in the dev Caddyfile and the installer template (#887).
 - Add passive retries (`lb_try_duration`) and active health checks on each backend's health path to every app backend proxy, so short backend restarts no longer surface as 502 (#811).
 - Add `GET /api/v1/shopping/capabilities` (`pantry_available`); the shopping frontend hides the pantry sync when Pantry is not installed (#864).
+- ADR 0008 records the social login policy: first-time Google or Apple users are created just in time, linked to an existing account only by a verified e-mail, start without a household, and local registration stays off (#884).
+- Add optional "Sign in with Google": `alfheim-setup` creates or updates the Zitadel identity provider from `ALFHEIM_GOOGLE_CLIENT_ID` / `ALFHEIM_GOOGLE_CLIENT_SECRET` (flag `--google-client-id`, an opt-in wizard step, or `.env`), prints the redirect URI to register, makes no change on a repeated run, and takes the provider off the login page when the values are emptied (#885).
+- Add optional "Sign in with Apple" through the same mechanism from `ALFHEIM_APPLE_CLIENT_ID`, `ALFHEIM_APPLE_TEAM_ID`, `ALFHEIM_APPLE_KEY_ID` and `ALFHEIM_APPLE_PRIVATE_KEY_FILE` (or the matching `--apple-*` flags); the `.p8` key is uploaded to Zitadel and never copied into `.env` (#886).
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
@@ -54,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
+- Refuse an Apple sign-in key file that its group or others can access (mode must be `0600` or stricter), before any container starts and before every provisioning run (#886).
+- Never pass the Google client secret as a command-line flag: `alfheim-setup` reads it from the environment or `.env` only, and prints neither it nor the Apple key (#885).
 - Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.

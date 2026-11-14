@@ -61,6 +61,12 @@ Each flag has an environment-variable equivalent. The flag wins when both are se
 | `--object-data-path DIR` | `ALFHEIM_OBJECT_DATA_PATH` | Absolute host directory for the RustFS object storage. Default: the `rustfs_data` named volume. |
 | `--metrics-data-path DIR` | `ALFHEIM_METRICS_DATA_PATH` | Absolute host directory for VictoriaMetrics. Default: the `victoriametrics_data` named volume. |
 | `--logs-data-path DIR` | `ALFHEIM_LOGS_DATA_PATH` | Absolute host directory for VictoriaLogs. Default: the `victorialogs_data` named volume. |
+| `--google-client-id ID` | `ALFHEIM_GOOGLE_CLIENT_ID` | Turn on "Sign in with Google" with this OAuth client ID. Needs `ALFHEIM_GOOGLE_CLIENT_SECRET`. A re-run keeps the values in `.env`; without the flag the wizard offers an "external sign-in" step that is skipped by default. See [Set up social login](../how-to/social-login.md). |
+| — | `ALFHEIM_GOOGLE_CLIENT_SECRET` | Google OAuth client secret. Environment only: a flag would expose it in the process list. |
+| `--apple-client-id ID` | `ALFHEIM_APPLE_CLIENT_ID` | Turn on "Sign in with Apple" with this Services ID. Needs all four Apple values. |
+| `--apple-team-id ID` | `ALFHEIM_APPLE_TEAM_ID` | Apple developer Team ID (10 characters). |
+| `--apple-key-id ID` | `ALFHEIM_APPLE_KEY_ID` | Key ID of the Sign in with Apple key (10 characters). |
+| `--apple-private-key-file PATH` | `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | Absolute path of the `.p8` key. The file must have mode `0600` or stricter, or the installer stops before starting any container. Only the path is stored in `.env`. |
 | — | `ALFHEIM_INSTALL_DIR` | Equivalent to `--install-dir`. |
 
 ### Release selection
@@ -228,10 +234,14 @@ host. See [Backup, Restore & Data Migration](../how-to/backup-restore.md).
 | Phase | Services | Waits for |
 | :--- | :--- | :--- |
 | 1 — Edge & Identity | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
-| 2 — Zitadel provisioning | — | Reconciles the `Alfheim` project, the web client and, when `OTEL_ENABLED=true`, the Grafana client via the Management API and writes their IDs to `.env` |
+| 2 — Zitadel provisioning | — | Reconciles the `Alfheim` project, the web client and, when `OTEL_ENABLED=true`, the Grafana client via the Management API and writes their IDs to `.env`; turns self-registration off and reconciles the configured social login providers |
 | 3 — Core & Application Stack | all remaining services of the Lean Core and the enabled apps (`COMPOSE_PROFILES`) | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
 During provisioning, the installer creates the Zitadel project "Alfheim" and one client shared by the dashboard and every app frontend. It creates the Grafana client only when telemetry is on (`OTEL_ENABLED=true` in `.env`; a fresh install starts with it off). It writes the client IDs to `.env`.
+
+### Social login
+
+When `ALFHEIM_GOOGLE_CLIENT_ID` and `ALFHEIM_GOOGLE_CLIENT_SECRET` are set, provisioning creates or updates the instance identity provider "Google" (and, with the four `ALFHEIM_APPLE_*` values, "Apple", uploading the key read from `ALFHEIM_APPLE_PRIVATE_KEY_FILE`) with the options from [ADR 0008](../explanation/decisions/0008-social-login-policy.md), lists it on the login policy, turns `allowExternalIdp` on and keeps `allowRegister` off. It prints the redirect URI to register at the provider (Apple's ends in `/callback/form`, because Apple answers with a form POST) and writes `ZITADEL_<PROVIDER>_IDP_FINGERPRINT` to `.env`. A run without changes makes no write to Zitadel. Emptying both values takes the provider off the login page but keeps it, so existing user links survive. The hidden `provision` subcommand takes `--google-client-id ID` and the four `--apple-*` flags too (Google secret from `ALFHEIM_GOOGLE_CLIENT_SECRET` in the environment or `.env`) and writes the values to `.env`. A loose Apple key file stops it with an error on every installation, new or existing. On an existing installation a social login failure is a warning, so the run still finishes.
 
 ### Telemetry switch
 

@@ -6,6 +6,7 @@ import (
 
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 )
 
@@ -34,6 +35,15 @@ func (w *TUIWizard) Run(on *onboarding.Config, tlsCfg *tls.Config) error {
 func (w *TUIWizard) AskDataPaths(p datapaths.Paths) error {
 	if err := datapaths.RunForm(p); err != nil {
 		return fmt.Errorf("alfheim-setup: data locations: %w", err)
+	}
+	return nil
+}
+
+// AskSocialLogin runs the optional "external sign-in" step, pre-filled with
+// s and skipped unless the operator opts in. It implements SocialLoginAsker.
+func (w *TUIWizard) AskSocialLogin(s *sociallogin.Settings) error {
+	if err := sociallogin.RunForm(s); err != nil {
+		return fmt.Errorf("alfheim-setup: external sign-in: %w", err)
 	}
 	return nil
 }

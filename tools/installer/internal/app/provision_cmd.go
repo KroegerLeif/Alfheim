@@ -11,6 +11,8 @@ import (
 
 	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/features/security"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
@@ -24,7 +26,9 @@ const provisionUsage = `alfheim-setup provision - reconcile Zitadel OIDC clients
 Usage:
   alfheim-setup provision --env-file PATH --pat-file PATH
                           [--zitadel-url URL] [--zitadel-tls-addr HOST:PORT] [--ca-file PATH]
-                          [--telemetry[=true|false]]
+                          [--telemetry[=true|false]] [--google-client-id ID]
+                          [--apple-client-id ID --apple-team-id ID --apple-key-id ID
+                           --apple-private-key-file PATH]
 
 Flags:
   --env-file PATH      The .env to read (for ZITADEL_EXTERNALDOMAIN,
@@ -49,6 +53,17 @@ Flags:
                        .env decides (missing means off). Apply the change with
                        alfheim-setup update, which re-renders the Caddyfile's
                        /grafana route and recreates the services.
+  --google-client-id ID
+                       Turn on Sign in with Google with this OAuth client id.
+                       The secret comes from ALFHEIM_GOOGLE_CLIENT_SECRET in
+                       the environment or the .env. Both are stored in the .env.
+                       Without the flag, the .env decides; empty values there
+                       take the provider off the login page.
+  --apple-client-id ID, --apple-team-id ID, --apple-key-id ID,
+  --apple-private-key-file PATH
+                       Turn on Sign in with Apple. The key file must have
+                       mode 0600; only its path is stored in the .env, the
+                       key itself is uploaded to Zitadel.
 
 Exit codes:
   0 success   1 failure   2 usage error
@@ -70,6 +85,8 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	tlsAddr := fs.String("zitadel-tls-addr", provisioning.DefaultTLSAddr, "Caddy's HTTPS listener address")
 	caFile := fs.String("ca-file", "", "extra root CA to trust")
 	telemetryFlag := fs.Bool("telemetry", false, "turn the optional observability stack on (OTEL_ENABLED)")
+	var social sociallogin.Settings
+	sociallogin.RegisterFlags(fs, &social)
 
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
@@ -125,8 +142,20 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "Error: %v\n", err)
 		return ExitFailure
 	}
+	social.ApplyEnv(os.Getenv)
+	socialUpdates, err := applySocialLoginOverrides(existing, social)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+
 	client := &provisioning.HTTPClient{BaseURL: endpointURL, Host: authHost, PAT: pat, HTTP: httpClient}
 	in := provisioning.BuildInput(defaultProjectName, baseURL, !secure, provisioning.AppSlugs)
+	in.AuthOrigin = authOrigin(authHost, secure)
+	if in.IDPs, err = socialLoginSpecs(existing, security.ReadPrivateKeyFile); err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
 	telemetrySet := flagWasSet(fs, "telemetry")
 	in.Telemetry = telemetry.Enabled(existing)
 	if telemetrySet {
@@ -140,6 +169,9 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	}
 
 	updates := result.EnvUpdates()
+	for k, v := range socialUpdates {
+		updates[k] = v
+	}
 	if telemetrySet {
 		// The flag toggles the telemetry module, so ALFHEIM_ENABLED_APPS,
 		// COMPOSE_PROFILES and OTEL_ENABLED stay in step with
@@ -164,6 +196,7 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	} else {
 		fmt.Fprintln(stdout, "  Telemetry is off (OTEL_ENABLED=false): the Grafana client was skipped.")
 	}
+	printSocialLogin(stdout, result.IDPs)
 	printWarnings(stderr, result.Warnings)
 	return ExitOK
 }
