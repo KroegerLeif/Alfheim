@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR 0008 records the social login policy: first-time Google or Apple users are created just in time, linked to an existing account only by a verified e-mail, start without a household, and local registration stays off (#884).
 - Add optional "Sign in with Google": `alfheim-setup` creates or updates the Zitadel identity provider from `ALFHEIM_GOOGLE_CLIENT_ID` / `ALFHEIM_GOOGLE_CLIENT_SECRET` (flag `--google-client-id`, an opt-in wizard step, or `.env`), prints the redirect URI to register, makes no change on a repeated run, and takes the provider off the login page when the values are emptied (#885).
 - Add optional "Sign in with Apple" through the same mechanism from `ALFHEIM_APPLE_CLIENT_ID`, `ALFHEIM_APPLE_TEAM_ID`, `ALFHEIM_APPLE_KEY_ID` and `ALFHEIM_APPLE_PRIVATE_KEY_FILE` (or the matching `--apple-*` flags); the `.p8` key is uploaded to Zitadel and never copied into `.env` (#886).
+- Add optional SMTP e-mail for Zitadel: `alfheim-setup` configures an SMTP provider from `ALFHEIM_SMTP_*` (the `--smtp-*` flags, an opt-in wizard step, or `.env`; the password from the environment or `.env` only), so password reset, invitations and e-mail verification work; a repeated run makes no change, and without SMTP the installer states what does not work and hides "Forgot password" on the login page (#456).
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
