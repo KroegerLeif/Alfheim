@@ -34,8 +34,9 @@ type Model struct {
 	// DataPaths are the optional host directories for persistent data. A
 	// class without one keeps its named volume.
 	DataPaths datapaths.Paths
-	// Telemetry renders OTEL_ENABLED and decides whether the Caddyfile routes
-	// /grafana. It is off for a fresh install (Lean Core).
+	// Telemetry renders OTEL_ENABLED. It follows the telemetry module of the
+	// enabled app set, which also decides the Caddyfile's /grafana route
+	// (DisabledApps). It is off for a fresh install (Lean Core).
 	Telemetry bool
 	// Generated is injected rather than read from the clock, so that golden
 	// file comparisons stay deterministic.

@@ -4,12 +4,13 @@ import (
 	"strconv"
 	"strings"
 
+	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
 )
 
 // OTELEnabledKey is the .env variable the services read to decide whether to
 // export telemetry. It follows the telemetry module.
-const OTELEnabledKey = "OTEL_ENABLED"
+const OTELEnabledKey = telemetry.EnvKey
 
 // ProfilesKey is the variable docker compose reads its active profiles from.
 // It is stored in .env too, so a manual `docker compose up -d` in the

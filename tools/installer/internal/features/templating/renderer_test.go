@@ -624,6 +624,10 @@ func TestRenderTelemetrySwitch(t *testing.T) {
 	for _, on := range []bool{true, false} {
 		m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
 		m.Telemetry = on
+		if !on {
+			// The app set drives the route; the installer keeps both in step.
+			m.DisabledApps = []string{"telemetry"}
+		}
 		env, err := r.RenderEnv(m)
 		if err != nil {
 			t.Fatal(err)
@@ -639,6 +643,9 @@ func TestRenderTelemetrySwitch(t *testing.T) {
 		hasRoute := strings.Contains(string(caddy), "reverse_proxy grafana:3000")
 		if hasRoute != on {
 			t.Errorf("Telemetry=%t: Caddyfile routes /grafana = %t", on, hasRoute)
+		}
+		if !strings.Contains(string(caddy), "handle /grafana*") {
+			t.Errorf("Telemetry=%t: /grafana must always be handled (proxy or redirect)", on)
 		}
 	}
 }

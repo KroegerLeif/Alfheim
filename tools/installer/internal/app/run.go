@@ -15,7 +15,6 @@ import (
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/security"
-	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/features/templating"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/envfile"
@@ -371,9 +370,9 @@ func (a *App) renderConfiguration(
 		DockerSocketGID: a.dockerSocketGID(existing),
 		DataPaths:       dataPaths,
 		DisabledApps:    set.Disabled(),
-		// A re-render keeps the operator's telemetry choice; a fresh install
-		// starts without it.
-		Telemetry: telemetry.Enabled(existing),
+		// OTEL_ENABLED follows the telemetry module of the enabled set, so
+		// the rendered .env and the /grafana route never disagree.
+		Telemetry: set.Has(apps.Telemetry),
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {

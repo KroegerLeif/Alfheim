@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/provisioning"
 	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
@@ -41,9 +42,10 @@ Flags:
   --ca-file PATH       Root CA trusted in addition to the system roots.
                        Default: infrastructure/ca/alfheim-root-ca.crt next to
                        the .env, when it exists.
-  --telemetry[=BOOL]   Turn the optional observability stack on or off: writes
-                       OTEL_ENABLED to the .env and provisions Grafana's OIDC
-                       client when on. Without the flag, OTEL_ENABLED from the
+  --telemetry[=BOOL]   Turn the optional observability stack on or off: adds or
+                       removes the telemetry module in ALFHEIM_ENABLED_APPS
+                       (with COMPOSE_PROFILES and OTEL_ENABLED) and provisions
+                       Grafana's OIDC client when on. Without the flag, OTEL_ENABLED from the
                        .env decides (missing means off). Apply the change with
                        alfheim-setup update, which re-renders the Caddyfile's
                        /grafana route and recreates the services.
@@ -139,7 +141,17 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 
 	updates := result.EnvUpdates()
 	if telemetrySet {
-		updates[telemetry.EnvKey] = telemetry.EnvValue(in.Telemetry)
+		// The flag toggles the telemetry module, so ALFHEIM_ENABLED_APPS,
+		// COMPOSE_PROFILES and OTEL_ENABLED stay in step with
+		// `alfheim-setup apps enable|disable telemetry`.
+		setValues, err := telemetrySetValues(existing, in.Telemetry)
+		if err != nil {
+			fmt.Fprintf(stderr, "Error: %v\n", err)
+			return ExitFailure
+		}
+		for k, v := range setValues {
+			updates[k] = v
+		}
 	}
 	if err := envfile.Update(*envFile, updates); err != nil {
 		fmt.Fprintf(stderr, "Error: write %s: %v\n", *envFile, err)
@@ -166,4 +178,22 @@ func flagWasSet(fs *flag.FlagSet, name string) bool {
 		}
 	})
 	return set
+}
+
+// telemetrySetValues returns the .env values that switch the telemetry module
+// on or off in the enabled app set stored in existing.
+func telemetrySetValues(existing map[string]string, on bool) (map[string]string, error) {
+	set, err := apps.Enabled(existing)
+	if err != nil {
+		return nil, err
+	}
+	if on {
+		set, err = apps.Enable(set, apps.Telemetry)
+	} else {
+		set, err = apps.Disable(set, apps.Telemetry)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return apps.EnvValues(set, true), nil
 }
