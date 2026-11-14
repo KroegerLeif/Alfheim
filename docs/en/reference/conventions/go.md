@@ -5,7 +5,7 @@ sidebar:
   label: "Go"
 ---
 
-> **TL;DR:** Canonical conventions for every Go module (`apps/chat/backend`, `core/dashboard/backend`, `core/household/backend`, `tools/installer`). Nested `AGENTS.md` files link here instead of repeating these rules.
+> **TL;DR:** Canonical conventions for every Go module (`apps/chat/backend`, `core/dashboard/backend`, `core/household/backend`, `packages/go-shared`, `tools/installer`). Nested `AGENTS.md` files link here instead of repeating these rules.
 
 ---
 
@@ -24,8 +24,25 @@ internal/features/<domain>/
 ├── handler.go            # HTTP handlers and route registration
 ├── repository.go         # database access behind an interface
 └── errors.go             # sentinel errors such as ErrNotFound
-internal/shared/          # domain-agnostic code: logger, database, middleware
+internal/shared/          # app-specific, domain-agnostic code (for example chat's householdclient)
 ```
+
+## Shared module
+
+`packages/go-shared` (module `alfheim/go-shared`) holds the code every Go backend needs exactly once. Import it instead of copying it into `internal/shared`:
+
+| Package | Contents |
+| --- | --- |
+| `auth` | OIDC bearer token validation (`NewAuthenticator`, `AuthenticateMiddleware`), `UserClaims`, the operator role (`RequireOperator`) |
+| `httpmw` | `RequestLogger`, `CORSWithOrigins`, `MaxBodySize`, `Chain`, `ExtraCATransport` (`ALFHEIM_EXTRA_CA_FILE`) |
+| `db` | `Config`, the pgx pool `Client` and golang-migrate `RunMigrations` |
+| `logger` | JSON `slog` logger with OpenTelemetry trace and span ids |
+
+- `auth.NewAuthenticator(ctx, auth.Config{IssuerURL, Audience, HTTPClient, Logger})` discovers the JWKS from `{IssuerURL}/.well-known/openid-configuration`. Issuer and audience are required and always checked, tokens need an expiry and a subject, and only RS256 is accepted. The request host plays no part. Tests inject `HTTPClient`; production leaves it nil to get a client that trusts `ALFHEIM_EXTRA_CA_FILE`.
+- `UserClaims` carries identity only. Household membership and role never come from the token: see [Household authorization](#household-authorization).
+- Each backend aliases its database settings to the shared type (`type DatabaseConfig = db.Config`) and passes its own allowed CORS methods and headers.
+- Backends require `alfheim/go-shared v0.0.0` with `replace alfheim/go-shared => ../../../packages/go-shared`, so a module builds outside `go.work`. Their Dockerfiles therefore build from the repository root (`docker build -f core/dashboard/backend/Dockerfile .`), as the compose files and the release workflow do.
+- A change to `packages/go-shared` affects every Go backend: run the whole `./scripts/verify.sh --go` gate.
 
 ## Conventions
 
