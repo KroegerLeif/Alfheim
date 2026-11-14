@@ -33,7 +33,7 @@ Source: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `budget-backend` | 8000 | `/budget/api/v1` | FastAPI REST API & Telemetry |
 | `budget-frontend` | 3000 | `alfheim.loegien.localhost/budget` | Next.js Microfrontend |
 

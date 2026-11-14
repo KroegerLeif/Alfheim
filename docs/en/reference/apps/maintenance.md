@@ -33,7 +33,7 @@ Source: [`apps/maintenance/`](https://github.com/KroegerLeif/Alfheim/tree/main/a
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `maintenance-backend` | 8000 | `/maintenance/api/v1` | FastAPI REST API & FastMCP Tools |
 | `maintenance-frontend` | 3000 | `alfheim.loegien.localhost/maintenance` | Next.js Microfrontend |
 

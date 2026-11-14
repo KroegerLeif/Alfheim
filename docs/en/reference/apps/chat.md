@@ -34,7 +34,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `chat-backend` | 8080 | `/api/v1/chat` | Go REST API, SSE & MCP Bridge |
 | `chat-frontend` | 3000 | `alfheim.loegien.localhost/chat` | Next.js Microfrontend |
 
