@@ -9,6 +9,7 @@ import (
 
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/features/security"
 	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
@@ -88,7 +89,7 @@ func (p *DefaultProvisioner) Provision(
 	in.OperatorUserName = operatorUserName(on, existing)
 	in.Telemetry = telemetry.Enabled(existing)
 	in.AuthOrigin = on.IssuerURL
-	in.IDPs, err = socialLoginSpecs(existing)
+	in.IDPs, err = socialLoginSpecs(existing, security.ReadPrivateKeyFile)
 	if err != nil {
 		return provisioning.Result{}, err
 	}

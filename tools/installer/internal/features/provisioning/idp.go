@@ -14,6 +14,8 @@ type IDPKind string
 const (
 	// IDPGoogle is "Sign in with Google" (an OAuth client from Google Cloud).
 	IDPGoogle IDPKind = "google"
+	// IDPApple is "Sign in with Apple" (a Services ID plus a .p8 signing key).
+	IDPApple IDPKind = "apple"
 )
 
 // IDPSpec declares one social login provider EnsureIDP reconciles. A spec
@@ -21,11 +23,17 @@ const (
 // taken off the login page, never created.
 type IDPSpec struct {
 	Kind IDPKind
-	// ClientID is the Google OAuth client id.
+	// ClientID is the Google OAuth client id or the Apple Services ID.
 	ClientID string
 	// ClientSecret is Google's client secret. It is sent to Zitadel only and
 	// never logged.
 	ClientSecret string
+	// TeamID, KeyID and PrivateKey (the .p8 file's PEM content) are Apple's.
+	// Zitadel stores the key encrypted and mints Apple's client secret JWT
+	// from it on every login; the installer only uploads it.
+	TeamID     string
+	KeyID      string
+	PrivateKey []byte
 	// ExistingFingerprint is the Fingerprint recorded by the previous run. The
 	// secret and key cannot be read back from Zitadel, so a matching
 	// fingerprint is what proves they did not change.
@@ -37,7 +45,12 @@ func (s IDPSpec) Enabled() bool { return s.ClientID != "" }
 
 // Name is the provider's display name in Zitadel, shown on the login button
 // and used to find it again on the next run.
-func (s IDPSpec) Name() string { return "Google" }
+func (s IDPSpec) Name() string {
+	if s.Kind == IDPApple {
+		return "Apple"
+	}
+	return "Google"
+}
 
 // Fingerprint is a SHA-256 over every configured value, including the secret
 // and the key. Recording it in .env lets the next run detect a rotated
@@ -48,7 +61,10 @@ func (s IDPSpec) Fingerprint() string {
 		return ""
 	}
 	h := sha256.New()
-	for _, part := range [][]byte{[]byte(s.Kind), []byte(s.ClientID), []byte(s.ClientSecret)} {
+	for _, part := range [][]byte{
+		[]byte(s.Kind), []byte(s.ClientID), []byte(s.ClientSecret),
+		[]byte(s.TeamID), []byte(s.KeyID), s.PrivateKey,
+	} {
 		// The length prefix keeps ("ab", "c") and ("a", "bc") apart.
 		_, _ = fmt.Fprintf(h, "%d:", len(part))
 		_, _ = h.Write(part)
@@ -56,11 +72,22 @@ func (s IDPSpec) Fingerprint() string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// scopes are the provider scopes Zitadel requests.
-func (s IDPSpec) scopes() []string { return []string{"openid", "profile", "email"} }
+// scopes are the provider scopes Zitadel requests. Apple rejects "profile";
+// Zitadel adds "openid" to Apple's on its own.
+func (s IDPSpec) scopes() []string {
+	if s.Kind == IDPApple {
+		return []string{"name", "email"}
+	}
+	return []string{"openid", "profile", "email"}
+}
 
 // zitadelType is the Admin API's provider type for s.Kind.
-func (s IDPSpec) zitadelType() string { return "PROVIDER_TYPE_GOOGLE" }
+func (s IDPSpec) zitadelType() string {
+	if s.Kind == IDPApple {
+		return "PROVIDER_TYPE_APPLE"
+	}
+	return "PROVIDER_TYPE_GOOGLE"
+}
 
 // FingerprintEnvKey is the .env variable that records the fingerprint of the
 // provider kind's last provisioned configuration.
@@ -127,10 +154,16 @@ type IDPOutcome struct {
 }
 
 // CallbackURL is the Zitadel Login V1 callback the provider redirects to,
-// on the public auth origin (for example https://auth.example.com)
-// (Zitadel v4.20.3, internal/api/ui/login/router.go line 17).
-func CallbackURL(authOrigin string, _ IDPKind) string {
-	return strings.TrimSuffix(authOrigin, "/") + "/ui/login/login/externalidp/callback"
+// on the public auth origin (for example https://auth.example.com). Google
+// redirects with GET; Apple answers with a form POST (response_mode
+// form_post) to its own endpoint, which Zitadel turns into a GET redirect
+// (Zitadel v4.20.3, internal/api/ui/login/router.go lines 17-18).
+func CallbackURL(authOrigin string, kind IDPKind) string {
+	base := strings.TrimSuffix(authOrigin, "/") + "/ui/login/login/externalidp/callback"
+	if kind == IDPApple {
+		return base + "/form"
+	}
+	return base
 }
 
 // ensureIDPs reconciles every spec and returns the outcomes in input order.

@@ -12,15 +12,16 @@ import (
 // Settings.Validate, so the headless path enforces the same ones.
 func RunForm(s *Settings) error {
 	enable := s.Configured()
-	google := *s
+	answers := *s
+	hidden := func() bool { return !enable }
 
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
-				Title("Set up external sign-in (Google)?").
-				Description("No keeps password sign-in only (the default). Yes adds a \"Sign in with Google\" "+
-					"button; anyone with a Google account who reaches this instance can then sign in "+
-					"and create a household. See docs/en/how-to/social-login.md.").
+				Title("Set up external sign-in (Google, Apple)?").
+				Description("No keeps password sign-in only (the default). Yes adds \"Sign in with Google\" "+
+					"or \"Sign in with Apple\"; anyone with such an account who reaches this instance can "+
+					"then sign in and create a household. See docs/en/how-to/social-login.md.").
 				Value(&enable),
 		),
 		huh.NewGroup(
@@ -28,12 +29,26 @@ func RunForm(s *Settings) error {
 				Title("Google client id").
 				Description("OAuth client id from Google Cloud. Leave empty to skip Google.").
 				Placeholder("1234567890-abc.apps.googleusercontent.com").
-				Value(&google.GoogleClientID),
+				Value(&answers.GoogleClientID),
 			huh.NewInput().
 				Title("Google client secret").
 				EchoMode(huh.EchoModePassword).
-				Value(&google.GoogleClientSecret),
-		).WithHideFunc(func() bool { return !enable }),
+				Value(&answers.GoogleClientSecret),
+		).WithHideFunc(hidden),
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Apple Services ID").
+				Description("Identifier of the Services ID. Leave every Apple field empty to skip Apple.").
+				Placeholder("com.example.alfheim.signin").
+				Value(&answers.AppleClientID),
+			huh.NewInput().Title("Apple Team ID").Placeholder("ABCDE12345").Value(&answers.AppleTeamID),
+			huh.NewInput().Title("Apple Key ID").Placeholder("FGHIJ67890").Value(&answers.AppleKeyID),
+			huh.NewInput().
+				Title("Apple private key file").
+				Description("Absolute path of the .p8 key, mode 0600. The key stays in the file and in Zitadel.").
+				Placeholder("/etc/alfheim/AuthKey_FGHIJ67890.p8").
+				Value(&answers.ApplePrivateKeyFile),
+		).WithHideFunc(hidden),
 	)
 	if err := form.Run(); err != nil {
 		return err
@@ -43,7 +58,9 @@ func RunForm(s *Settings) error {
 		*s = Settings{}
 		return nil
 	}
-	s.GoogleClientID = strings.TrimSpace(google.GoogleClientID)
-	s.GoogleClientSecret = strings.TrimSpace(google.GoogleClientSecret)
+	values := answers.fields()
+	for key, field := range s.fields() {
+		*field = strings.TrimSpace(*values[key])
+	}
 	return nil
 }

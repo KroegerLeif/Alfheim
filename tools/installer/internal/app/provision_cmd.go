@@ -11,6 +11,7 @@ import (
 
 	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/features/security"
 	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
@@ -26,6 +27,8 @@ Usage:
   alfheim-setup provision --env-file PATH --pat-file PATH
                           [--zitadel-url URL] [--zitadel-tls-addr HOST:PORT] [--ca-file PATH]
                           [--telemetry[=true|false]] [--google-client-id ID]
+                          [--apple-client-id ID --apple-team-id ID --apple-key-id ID
+                           --apple-private-key-file PATH]
 
 Flags:
   --env-file PATH      The .env to read (for ZITADEL_EXTERNALDOMAIN,
@@ -56,6 +59,11 @@ Flags:
                        the environment or the .env. Both are stored in the .env.
                        Without the flag, the .env decides; empty values there
                        take the provider off the login page.
+  --apple-client-id ID, --apple-team-id ID, --apple-key-id ID,
+  --apple-private-key-file PATH
+                       Turn on Sign in with Apple. The key file must have
+                       mode 0600; only its path is stored in the .env, the
+                       key itself is uploaded to Zitadel.
 
 Exit codes:
   0 success   1 failure   2 usage error
@@ -144,7 +152,7 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	client := &provisioning.HTTPClient{BaseURL: endpointURL, Host: authHost, PAT: pat, HTTP: httpClient}
 	in := provisioning.BuildInput(defaultProjectName, baseURL, !secure, provisioning.AppSlugs)
 	in.AuthOrigin = authOrigin(authHost, secure)
-	if in.IDPs, err = socialLoginSpecs(existing); err != nil {
+	if in.IDPs, err = socialLoginSpecs(existing, security.ReadPrivateKeyFile); err != nil {
 		fmt.Fprintf(stderr, "Error: %v\n", err)
 		return ExitFailure
 	}

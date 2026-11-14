@@ -29,16 +29,28 @@ type providerTemplate struct {
 			ClientID string   `json:"clientId"`
 			Scopes   []string `json:"scopes"`
 		} `json:"google"`
+		Apple *struct {
+			ClientID string   `json:"clientId"`
+			TeamID   string   `json:"teamId"`
+			KeyID    string   `json:"keyId"`
+			Scopes   []string `json:"scopes"`
+		} `json:"apple"`
 	} `json:"config"`
 }
 
-// matches reports whether the readable part of p equals spec. The secret is
-// compared through the fingerprint instead.
+// matches reports whether the readable part of p equals spec. The secret and
+// the private key are compared through the fingerprint instead.
 func (p providerTemplate) matches(spec IDPSpec) bool {
-	if p.Config.Options != SocialLoginOptions || p.Config.Google == nil {
+	if p.Config.Options != SocialLoginOptions {
 		return false
 	}
-	return p.Config.Google.ClientID == spec.ClientID && slices.Equal(p.Config.Google.Scopes, spec.scopes())
+	if spec.Kind == IDPApple {
+		a := p.Config.Apple
+		return a != nil && a.ClientID == spec.ClientID && a.TeamID == spec.TeamID &&
+			a.KeyID == spec.KeyID && slices.Equal(a.Scopes, spec.scopes())
+	}
+	g := p.Config.Google
+	return g != nil && g.ClientID == spec.ClientID && slices.Equal(g.Scopes, spec.scopes())
 }
 
 // EnsureIDP implements Client.
@@ -90,15 +102,24 @@ func (c *HTTPClient) EnsureIDP(ctx context.Context, spec IDPSpec) (IDPOutcome, e
 	return out, nil
 }
 
-// providerBody is the create and update request body for spec.
+// providerBody is the create and update request body for spec. Apple's
+// private key is a protobuf bytes field, which encoding/json sends as the
+// base64 the API expects.
 func providerBody(spec IDPSpec) map[string]any {
-	return map[string]any{
+	body := map[string]any{
 		"name":            spec.Name(),
 		"clientId":        spec.ClientID,
-		"clientSecret":    spec.ClientSecret,
 		"scopes":          spec.scopes(),
 		"providerOptions": SocialLoginOptions,
 	}
+	if spec.Kind == IDPApple {
+		body["teamId"] = spec.TeamID
+		body["keyId"] = spec.KeyID
+		body["privateKey"] = spec.PrivateKey
+	} else {
+		body["clientSecret"] = spec.ClientSecret
+	}
+	return body
 }
 
 // findProvider returns the instance provider named spec.Name() of spec's

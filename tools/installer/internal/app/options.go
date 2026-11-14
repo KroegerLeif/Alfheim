@@ -105,6 +105,12 @@ An earlier choice in .env is kept on a re-run:
   --google-client-id ID    ALFHEIM_GOOGLE_CLIENT_ID      Google OAuth client id
                            ALFHEIM_GOOGLE_CLIENT_SECRET  Google client secret
                            (environment only, never a flag)
+  --apple-client-id ID     ALFHEIM_APPLE_CLIENT_ID       Apple Services ID
+  --apple-team-id ID       ALFHEIM_APPLE_TEAM_ID         Apple Team ID
+  --apple-key-id ID        ALFHEIM_APPLE_KEY_ID          Apple Key ID
+  --apple-private-key-file PATH
+                           ALFHEIM_APPLE_PRIVATE_KEY_FILE
+                           Absolute path of the .p8 key; mode 0600 required
 
 Exit codes:
   0 success   1 failure   2 usage error   130 interrupted

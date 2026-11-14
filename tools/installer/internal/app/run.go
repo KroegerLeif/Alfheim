@@ -94,6 +94,10 @@ type App struct {
 	// tests, which have no Caddy on 127.0.0.1:443. When nil, tls.CertWaiter
 	// is used.
 	CertWaiter CertWaiter
+	// ReadKey reads the Apple sign-in key file. Injectable for tests; when
+	// nil, security.ReadPrivateKeyFile is used, which refuses a key file
+	// with loose permissions.
+	ReadKey KeyReader
 }
 
 // CertWaiter waits until every host has a valid certificate.
@@ -456,6 +460,7 @@ var provisionedEnvKeys = []string{
 	"GRAFANA_OIDC_CLIENT_ID",
 	"GRAFANA_OIDC_CLIENT_SECRET",
 	provisioning.FingerprintEnvKey(provisioning.IDPGoogle),
+	provisioning.FingerprintEnvKey(provisioning.IDPApple),
 }
 
 // carryForwardProvisioned picks out the previously provisioned values worth

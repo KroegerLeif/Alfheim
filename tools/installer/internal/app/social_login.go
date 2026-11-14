@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/features/security"
 	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
@@ -38,14 +39,34 @@ func (a *App) configureSocialLogin(layout paths.Layout) (sociallogin.Settings, e
 	if err := chosen.Validate(); err != nil {
 		return sociallogin.Settings{}, err
 	}
+	// Check the Apple key now, before any container starts, instead of
+	// failing half way through the boot when provisioning reads it.
+	if chosen.AppleEnabled() {
+		if _, err := a.keyReader()(chosen.ApplePrivateKeyFile); err != nil {
+			return sociallogin.Settings{}, fmt.Errorf("alfheim-setup: Apple sign-in: %w", err)
+		}
+	}
 	return chosen, nil
 }
+
+// keyReader returns the configured KeyReader, defaulting to the real one.
+func (a *App) keyReader() KeyReader {
+	if a.ReadKey != nil {
+		return a.ReadKey
+	}
+	return security.ReadPrivateKeyFile
+}
+
+// KeyReader reads the Apple .p8 key. Production uses
+// security.ReadPrivateKeyFile, which refuses a file with loose permissions.
+type KeyReader func(path string) ([]byte, error)
 
 // socialLoginSpecs turns the social login settings stored in an .env into
 // the provider specs provisioning reconciles. Every provider kind is listed,
 // enabled or not, so one the operator switched off is taken off the login
-// page.
-func socialLoginSpecs(env map[string]string) ([]provisioning.IDPSpec, error) {
+// page. The Apple key is read from its file here and only ever passed on to
+// Zitadel.
+func socialLoginSpecs(env map[string]string, readKey KeyReader) ([]provisioning.IDPSpec, error) {
 	s := sociallogin.FromEnv(env)
 	if err := s.Validate(); err != nil {
 		return nil, err
@@ -56,12 +77,27 @@ func socialLoginSpecs(env map[string]string) ([]provisioning.IDPSpec, error) {
 		ClientSecret:        s.GoogleClientSecret,
 		ExistingFingerprint: env[provisioning.FingerprintEnvKey(provisioning.IDPGoogle)],
 	}
-	return []provisioning.IDPSpec{google}, nil
+	apple := provisioning.IDPSpec{
+		Kind:                provisioning.IDPApple,
+		ClientID:            s.AppleClientID,
+		TeamID:              s.AppleTeamID,
+		KeyID:               s.AppleKeyID,
+		ExistingFingerprint: env[provisioning.FingerprintEnvKey(provisioning.IDPApple)],
+	}
+	if s.AppleEnabled() {
+		key, err := readKey(s.ApplePrivateKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("alfheim-setup: Apple sign-in: %w", err)
+		}
+		apple.PrivateKey = key
+	}
+	return []provisioning.IDPSpec{google, apple}, nil
 }
 
 // idpTitles are the provider names and consoles printed for the operator.
 var idpTitles = map[provisioning.IDPKind]string{
 	provisioning.IDPGoogle: "Google (register it under APIs & Services -> Credentials -> your OAuth client -> Authorized redirect URIs)",
+	provisioning.IDPApple:  "Apple (register it under Certificates, IDs & Profiles -> your Services ID -> Return URLs)",
 }
 
 // printSocialLogin tells the operator what happened to each provider and the

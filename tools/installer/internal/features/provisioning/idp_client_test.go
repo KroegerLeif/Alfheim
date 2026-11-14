@@ -60,15 +60,16 @@ func (s *idpServer) handler(t *testing.T) http.HandlerFunc {
 				result = append(result, p)
 			}
 			writeJSON(w, 200, map[string]any{"result": result})
-		case path == "/admin/v1/idps/google" && r.Method == http.MethodPost:
+		case (path == "/admin/v1/idps/google" || path == "/admin/v1/idps/apple") && r.Method == http.MethodPost:
 			write()
 			s.nextID++
 			id := fmt.Sprintf("idp-%d", s.nextID)
-			s.store(id, body)
+			s.store(id, strings.TrimPrefix(path, "/admin/v1/idps/"), body)
 			writeJSON(w, 200, map[string]any{"id": id})
-		case strings.HasPrefix(path, "/admin/v1/idps/google/") && r.Method == http.MethodPut:
+		case strings.HasPrefix(path, "/admin/v1/idps/") && r.Method == http.MethodPut:
 			write()
-			s.store(strings.TrimPrefix(path, "/admin/v1/idps/google/"), body)
+			kind, id, _ := strings.Cut(strings.TrimPrefix(path, "/admin/v1/idps/"), "/")
+			s.store(id, kind, body)
 			writeJSON(w, 200, map[string]any{})
 		case strings.HasSuffix(path, "/idps/_search"):
 			result := []map[string]any{}
@@ -93,13 +94,17 @@ func (s *idpServer) handler(t *testing.T) http.HandlerFunc {
 
 // store keeps a provider the way the template search returns it: secrets
 // are dropped, the readable config is kept.
-func (s *idpServer) store(id string, body map[string]any) {
+func (s *idpServer) store(id, kind string, body map[string]any) {
+	config := map[string]any{"options": body["providerOptions"]}
+	if kind == "apple" {
+		config["apple"] = map[string]any{
+			"clientId": body["clientId"], "teamId": body["teamId"], "keyId": body["keyId"], "scopes": body["scopes"],
+		}
+	} else {
+		config["google"] = map[string]any{"clientId": body["clientId"], "scopes": body["scopes"]}
+	}
 	s.providers[id] = map[string]any{
-		"id": id, "name": body["name"], "type": "PROVIDER_TYPE_GOOGLE",
-		"config": map[string]any{
-			"options": body["providerOptions"],
-			"google":  map[string]any{"clientId": body["clientId"], "scopes": body["scopes"]},
-		},
+		"id": id, "name": body["name"], "type": "PROVIDER_TYPE_" + strings.ToUpper(kind), "config": config,
 	}
 }
 

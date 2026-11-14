@@ -77,3 +77,58 @@ func TestRegisterFlagsAndApplyEnv(t *testing.T) {
 		t.Errorf("ApplyEnv(nil) = %+v, want os.Getenv to be used", fromProcess)
 	}
 }
+
+func validApple() Settings {
+	return Settings{
+		AppleClientID: "com.example.signin", AppleTeamID: "ABCDE12345", AppleKeyID: "FGHIJ67890",
+		ApplePrivateKeyFile: "/etc/alfheim/AuthKey.p8",
+	}
+}
+
+func TestValidateApple(t *testing.T) {
+	missing := validApple()
+	missing.AppleKeyID = ""
+	shortTeam := validApple()
+	shortTeam.AppleTeamID = "ABC"
+	relative := validApple()
+	relative.ApplePrivateKeyFile = "AuthKey.p8"
+	spaced := validApple()
+	spaced.AppleClientID = "com.example signin"
+	for name, tc := range map[string]struct {
+		s       Settings
+		wantErr string
+	}{
+		"complete":      {validApple(), ""},
+		"one missing":   {missing, "needs"},
+		"short team id": {shortTeam, "10 characters"},
+		"relative path": {relative, "absolute path"},
+		"whitespace":    {spaced, "whitespace"},
+	} {
+		err := tc.s.Validate()
+		if tc.wantErr == "" && err != nil || tc.wantErr != "" && (err == nil || !strings.Contains(err.Error(), tc.wantErr)) {
+			t.Errorf("%s: Validate() = %v, want %q", name, err, tc.wantErr)
+		}
+	}
+	if !validApple().AppleEnabled() || !validApple().Configured() || validApple().GoogleEnabled() {
+		t.Error("Apple alone must count as configured")
+	}
+}
+
+func TestAppleFlagsAndEnvRoundTrip(t *testing.T) {
+	var s Settings
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	RegisterFlags(fs, &s)
+	if err := fs.Parse([]string{
+		"--apple-client-id", "com.example.signin", "--apple-team-id", "ABCDE12345",
+		"--apple-key-id", "FGHIJ67890", "--apple-private-key-file", "/etc/alfheim/AuthKey.p8",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if s != validApple() {
+		t.Errorf("flags = %+v", s)
+	}
+	if FromEnv(s.EnvValues()) != s {
+		t.Error("Apple values must round-trip through .env")
+	}
+}
