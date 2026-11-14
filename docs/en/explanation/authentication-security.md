@@ -29,6 +29,23 @@ Alfheim uses **Zitadel** as its lightweight, Go-based Identity and Access Manage
 * **Internal Docker JWKS Endpoint**: `http://zitadel:8080/oauth/v2/keys`
 * **Protocol Standard**: Generic OpenID Connect (OIDC) 1.0 & OAuth 2.0 PKCE
 
+### Zitadel version and login UI
+
+Alfheim runs Zitadel v4 (`ghcr.io/zitadel/zitadel:v4.20.3`), pinned in `compose.prod.yaml` and `infrastructure/compose.yml`. Two settings in those files shape every new instance; Zitadel reads `ZITADEL_DEFAULTINSTANCE_*` and `ZITADEL_FIRSTINSTANCE_*` only when it creates an instance, so changing them later has no effect on an existing one:
+
+* **Login V1 stays the login UI** (`ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED=false`). Zitadel v4 would otherwise make new instances send every authorize request to Login V2 at `/ui/v2/login`, a separate Next.js container (`zitadel-login`) that needs its own login-client token. Login V1 is served by the Zitadel binary at `/ui/login`, is still supported in v4, and already renders buttons for external identity providers. It costs no extra container or memory, and Caddy keeps proxying the whole auth host to one upstream.
+* **Tokens are signed with RSA web keys** (`ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE=rsa`, also v4's default). Since v4, web keys are the only signing keys and the JWKS lists them. Every backend fetches the JWKS from the issuer's discovery document and accepts only `RS256`, so the key type must stay RSA.
+
+The installer and `alfheim-setup provision` configure clients through Zitadel's Management API v1 (`/management/v1/...`) and the instance login policy through the Admin API v1. Zitadel v4 marks these endpoints deprecated in favour of its resource-based v2 services but still serves them; they are expected to go away in v5, which is a separate migration.
+
+### Preparing for social login
+
+Social login (Google, Apple) is not configured yet. The setup is shaped so that it can be added without restructuring:
+
+* All frontends share one public PKCE client (`ALFHEIM_WEB_CLIENT_ID`, authorization code grant, `S256`). An external identity provider is configured on the instance or the `Alfheim` organization in Zitadel, not per client, so redirect URIs, grant types and project roles stay as they are.
+* Login V1 shows the provider buttons on the existing login page once a provider is added and the login policy allows external login.
+* Backends identify users only by the Zitadel `sub`. A user who signs in through Google still gets a Zitadel user ID, so household membership and the `alfheim_operator` role keep working.
+
 ---
 
 ## Separation of Concerns: AuthN vs AuthZ
@@ -49,7 +66,7 @@ To ensure clear architectural boundaries and keep external identity infrastructu
 ## Authentication Flow (Generic OIDC PKCE)
 
 1. **Authorization Grant**: Frontends redirect unauthenticated users to Zitadel using standard generic OIDC Authorization Code Flow with PKCE (`S256`).
-2. **Token Exchange**: Zitadel issues an RSA256/Ed25519-signed JWT access token containing standard identity claims (`sub`, `email`, `preferred_username`).
+2. **Token Exchange**: Zitadel issues an `RS256`-signed JWT access token containing standard identity claims (`sub`, `email`, `preferred_username`).
 3. **Session & Header Injection**: Frontends store the access token in session storage and attach `Authorization: Bearer <token>` to outbound API calls. Household-scoped calls also carry `X-Household-ID: <active household UUID>`. Frontends never send `X-Household-Role`.
 
 ---

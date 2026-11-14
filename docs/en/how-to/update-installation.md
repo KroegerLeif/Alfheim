@@ -215,6 +215,13 @@ version to fall back to; pass `--version vX.Y.Z` explicitly.
 **Checksum mismatch** — the download was corrupted or intercepted; re-run
 the command. Nothing on disk is touched until every asset verifies.
 
+**Sign-in fails right after updating from v0.4.x or older** — that update
+moves Zitadel from v2.66 to v4, which signs tokens only with newly created web
+keys. Every user has to sign in again. For the first few minutes Zitadel may
+answer token requests with `Errors.WebKey.NoActive` (and `GET /oauth/v2/keys`
+with an empty key list) until it has caught up its projections; wait and
+retry, no action is needed.
+
 **Verification fails after a successful restart** — the stack came back up
 but one of the checks in
 [Verifying the result](#verifying-the-result) failed. Run

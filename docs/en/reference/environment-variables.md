@@ -61,6 +61,13 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `ZITADEL_DB_USER` | `zitadel_user` | Zitadel database user |
 | `ZITADEL_DB_PASSWORD` | `postgres` | Zitadel database password |
 
+The Zitadel service in `compose.prod.yaml` and `infrastructure/compose.yml` also sets two values that are not read from `.env`, because the rest of the stack depends on them. Both apply only when Zitadel creates its instance:
+
+| Variable | Value | Description |
+| :--- | :--- | :--- |
+| `ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED` | `false` | Keeps the built-in Login V1 at `/ui/login`; Login V2 would need a separate `zitadel-login` container |
+| `ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE` | `rsa` | Signs tokens with RSA web keys, matching the `RS256` check in every backend |
+
 ---
 
 ## Object Storage (RustFS S3)
