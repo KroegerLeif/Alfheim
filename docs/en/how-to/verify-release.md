@@ -74,6 +74,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | Check | Expected |
 | --- | --- |
 | Installer exit code and `scripts/verify-stack.sh` | 0, every service healthy |
+| Zitadel login | Signing in from the dashboard redirects to `/ui/login/login` (Login V1), not `/ui/v2/login`; `GET /oauth/v2/keys` lists `RS256` keys |
 | Zitadel `GET /admin/v1/policies/login` | `allowRegister` absent or `false`; `/ui/login/register` answers "Registration is not allowed" |
 | Project `alfheim_operator` role | exists, granted to the admin, `projectRoleAssertion: true` |
 | Admin access token | carries `alfheim_operator` under `urn:zitadel:iam:org:project:roles` |
@@ -145,3 +146,16 @@ data with it, then run `alfheim-setup update --version <candidate>`. Expected:
 - registration is switched off and `alfheim_operator` is created and granted on
   the existing installation;
 - all data created with the previous release is still there and writable.
+
+Upgrading from v0.4.x or older also moves Zitadel from v2.66 to v4. Expected
+in addition:
+
+- Zitadel starts on the same database and masterkey and runs its setup
+  migrations on its own (`start-from-init` skips the init steps it already
+  finds);
+- tokens issued before the update are rejected (401), because v4 signs only
+  with new web keys; users sign in again and keep their Zitadel user ID, so
+  their households are unchanged;
+- for the first few minutes after the update, `GET /oauth/v2/keys` may return
+  `{"keys":null}` and sign-in may fail with `Errors.WebKey.NoActive` while
+  Zitadel catches up its projections; it recovers without intervention.

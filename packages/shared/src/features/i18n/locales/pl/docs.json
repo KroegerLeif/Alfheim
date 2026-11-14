@@ -189,7 +189,7 @@
       "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
       "backend": "Backend: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
       "database": "Bazy danych: PostgreSQL 16 (dedykowane instancje dla każdej aplikacji), ClickHouse",
-      "infra": "Infrastruktura: Docker Compose, Caddy 2, Zitadel 2, RustFS (zgodny z S3)",
+      "infra": "Infrastruktura: Docker Compose, Caddy 2, Zitadel 4, RustFS (zgodny z S3)",
       "categories": {
         "frontends": "Frontends & UI",
         "backends": "API Backends",

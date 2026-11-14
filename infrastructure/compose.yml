@@ -83,7 +83,7 @@ services:
     stop_grace_period: 10s
 
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v2.66.1
+    image: ghcr.io/zitadel/zitadel:v4.20.3
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
@@ -98,6 +98,18 @@ services:
       ZITADEL_EXTERNALDOMAIN: "${ZITADEL_EXTERNALDOMAIN:-auth.alfheim.loegien.localhost}"
       ZITADEL_EXTERNALPORT: "${ZITADEL_EXTERNALPORT:-80}"
       ZITADEL_TLS_ENABLED: "false"
+      # --- Login UI and token signing (Zitadel v4) ---
+      # v4 creates new instances with Login V2 required, which redirects every
+      # OIDC authorize request to /ui/v2/login, served by a separate
+      # zitadel-login container. Alfheim keeps the built-in Login V1 (still
+      # supported in v4, and it renders the external IdP buttons social login
+      # needs), so no second container or login-client PAT is required.
+      # FIRSTINSTANCE/DEFAULTINSTANCE values only apply when an instance is
+      # created; changing them later does not touch an existing instance.
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"
+      # Every backend pins RS256 when it verifies tokens against the JWKS, so
+      # the web keys v4 signs with must stay RSA (also v4's default).
+      ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE: rsa
       # --- PostgreSQL connection (application user) ---
       ZITADEL_DATABASE_POSTGRES_HOST: "${ZITADEL_DB_HOST:-postgres-core}"
       ZITADEL_DATABASE_POSTGRES_PORT: "${ZITADEL_DB_PORT:-5432}"

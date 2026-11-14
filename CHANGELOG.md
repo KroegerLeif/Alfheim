@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
 - Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
+- Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
 
 ---
 
