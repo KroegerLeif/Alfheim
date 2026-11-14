@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -13,9 +14,22 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"alfheim/dashboard/config"
 )
+
+// Config holds the PostgreSQL connection settings of a backend. Backends alias
+// their own config type to it so the environment parsing stays in the backend.
+type Config struct {
+	// URL is the PostgreSQL connection URL.
+	URL string
+	// MaxConns caps the pool size.
+	MaxConns int32
+	// MinConns keeps this many idle connections open.
+	MinConns int32
+	// MaxConnLifetime recycles connections older than this.
+	MaxConnLifetime time.Duration
+	// MigrationsDir is the directory of golang-migrate up-migrations.
+	MigrationsDir string
+}
 
 // DBTX abstracts database execution operations (satisfied by *pgxpool.Pool and pgx.Tx).
 type DBTX interface {
@@ -36,7 +50,7 @@ var newPoolWithConfig = func(ctx context.Context, config *pgxpool.Config) (*pgxp
 }
 
 // NewClient initializes a pgxpool PostgreSQL connection pool and verifies connectivity.
-func NewClient(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*Client, error) {
+func NewClient(ctx context.Context, cfg Config, log *slog.Logger) (*Client, error) {
 	poolCfg, err := pgxpool.ParseConfig(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse postgresql connection url: %w", err)

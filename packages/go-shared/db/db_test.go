@@ -13,15 +13,13 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"alfheim/dashboard/config"
 )
 
 func TestNewClient_InvalidURL(t *testing.T) {
 	ctx := context.Background()
 	testLogger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 
-	invalidCfg := config.DatabaseConfig{
+	invalidCfg := Config{
 		URL: "://invalid-url-scheme",
 	}
 
@@ -40,7 +38,7 @@ func TestNewClient_PingFailure(t *testing.T) {
 
 	testLogger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 
-	unreachableCfg := config.DatabaseConfig{
+	unreachableCfg := Config{
 		URL:             "postgres://user:pass@127.0.0.1:54321/db?sslmode=disable",
 		MaxConns:        5,
 		MinConns:        1,
@@ -68,7 +66,7 @@ func TestNewClient_PoolCreationError(t *testing.T) {
 
 	ctx := context.Background()
 	testLogger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-	cfg := config.DatabaseConfig{
+	cfg := Config{
 		URL: "postgres://user:pass@127.0.0.1:5432/db?sslmode=disable",
 	}
 
@@ -185,7 +183,7 @@ func TestNewClient_Success(t *testing.T) {
 	defer cancel()
 
 	testLogger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-	validCfg := config.DatabaseConfig{
+	validCfg := Config{
 		URL:             "postgres://user:pass@" + addr + "/db?sslmode=disable",
 		MaxConns:        2,
 		MinConns:        1,

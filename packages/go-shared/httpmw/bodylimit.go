@@ -1,4 +1,4 @@
-package middleware
+package httpmw
 
 import (
 	"encoding/json"
@@ -14,9 +14,16 @@ const DefaultMaxBodyBytes int64 = 1 << 20 // 1 MiB
 // before any handler runs. Bodies of unknown length (chunked) or with a
 // misleading Content-Length are capped by http.MaxBytesReader, so reading past
 // the limit fails instead of buffering unbounded input.
-func MaxBodySize(limit int64) func(http.Handler) http.Handler {
+//
+// pathLimits overrides the limit for exact URL paths (for example the multipart
+// upload route, which legitimately carries files larger than a JSON payload).
+func MaxBodySize(limit int64, pathLimits map[string]int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			limit := limit
+			if override, ok := pathLimits[r.URL.Path]; ok {
+				limit = override
+			}
 			if r.ContentLength > limit {
 				writeBodyTooLarge(w)
 				return

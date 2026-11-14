@@ -1,4 +1,4 @@
-package middleware
+package httpmw
 
 import (
 	"io"
@@ -16,7 +16,7 @@ func TestMaxBodySize(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
-	h := MaxBodySize(10)(read)
+	h := MaxBodySize(10, map[string]int64{"/big": 20})(read)
 
 	t.Run("body within limit passes", func(t *testing.T) {
 		rec := httptest.NewRecorder()
@@ -44,6 +44,19 @@ func TestMaxBodySize(t *testing.T) {
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("expected read to fail (400 from test handler), got %d", rec.Code)
+		}
+	})
+
+	t.Run("path override raises the limit", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/big", strings.NewReader("0123456789012345")))
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("expected 204, got %d", rec.Code)
+		}
+		rec = httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/big", strings.NewReader(strings.Repeat("x", 21))))
+		if rec.Code != http.StatusRequestEntityTooLarge {
+			t.Fatalf("expected 413, got %d", rec.Code)
 		}
 	})
 

@@ -1,4 +1,4 @@
-package middleware
+package httpmw
 
 import (
 	"crypto/tls"
@@ -10,25 +10,26 @@ import (
 	"strings"
 )
 
-// extraCAFileEnv names a PEM bundle of extra root certificates to trust for
-// calls to the OIDC issuer. Installs using a private root CA (--tls internal)
-// serve the issuer with a certificate the system store does not know.
-const extraCAFileEnv = "ALFHEIM_EXTRA_CA_FILE"
+// ExtraCAFileEnv names a PEM bundle of extra root certificates to trust for
+// outbound calls such as the OIDC issuer. Installs using a private root CA
+// (--tls internal) serve the issuer with a certificate the system store does
+// not know.
+const ExtraCAFileEnv = "ALFHEIM_EXTRA_CA_FILE"
 
-// extraCATransport returns an HTTP transport that trusts the system roots plus
+// ExtraCATransport returns an HTTP transport that trusts the system roots plus
 // the certificates in ALFHEIM_EXTRA_CA_FILE. It returns nil when the variable is
 // unset or blank so callers keep Go's default transport unchanged. A set but
 // unreadable or invalid file is an error: failing at startup is clearer than an
 // opaque "certificate signed by unknown authority" on every request.
-func extraCATransport() (http.RoundTripper, error) {
-	caFile := strings.TrimSpace(os.Getenv(extraCAFileEnv))
+func ExtraCATransport() (http.RoundTripper, error) {
+	caFile := strings.TrimSpace(os.Getenv(ExtraCAFileEnv))
 	if caFile == "" {
 		return nil, nil
 	}
 
 	pem, err := os.ReadFile(caFile) // #nosec G304 -- operator-provided path
 	if err != nil {
-		return nil, fmt.Errorf("%s=%q could not be read: %w", extraCAFileEnv, caFile, err)
+		return nil, fmt.Errorf("%s=%q could not be read: %w", ExtraCAFileEnv, caFile, err)
 	}
 
 	pool, err := x509.SystemCertPool()
@@ -37,7 +38,7 @@ func extraCATransport() (http.RoundTripper, error) {
 	}
 	// Extra roots are added to the system pool, never replacing it.
 	if !pool.AppendCertsFromPEM(pem) {
-		return nil, errors.New(extraCAFileEnv + "=" + caFile + " contains no valid PEM certificates")
+		return nil, errors.New(ExtraCAFileEnv + "=" + caFile + " contains no valid PEM certificates")
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
