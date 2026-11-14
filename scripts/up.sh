@@ -225,32 +225,39 @@ wait_healthy() {
 # directory is involved, so neither sudo nor a world-writable directory is
 # needed — on macOS (Docker Desktop) and Linux alike.
 #
-# fetch_zitadel_pat writes the PAT to ${PAT_FILE}, a private temp file that
-# `alfheim-setup provision` (which only takes a file) reads and the exit trap
+# The PAT is only needed until `alfheim-setup provision` has stored a machine
+# key in ${PROVISIONER_KEY} (issue #789): that first run revokes every PAT
+# of the machine user, and later runs authenticate with the rotated key.
+# fetch_zitadel_pat therefore only waits for the PAT when no key exists yet,
+# and returns success without one when a key does. When the key is rejected
+# (a reset database), provision falls back to whatever PAT was found here.
+#
+# A PAT that is found goes to ${PAT_FILE}, a private temp file the exit trap
 # removes. Sources, in order:
 #   1. /machinekey/pat.txt in the volume (written on Zitadel's first init;
 #      it may land a moment after the healthcheck turns green, hence the retry)
-#   2. ZITADEL_BOOTSTRAP_PAT in .env (the volume was removed by `down -v`
-#      while Postgres kept Zitadel's data, so the PAT is never written again)
+#   2. ZITADEL_BOOTSTRAP_PAT in .env (set by hand for recovery)
 #   3. infrastructure/zitadel/machinekey/pat.txt, the bind-mount location
 #      used before the named volume, so an existing dev database keeps working
-# Whatever was found is stored back into .env for the next run.
+PROVISIONER_KEY="${REPO_ROOT}/infrastructure/zitadel/provisioner/machine-key.json"
 PAT_DIR=""
 PAT_FILE=""
 fetch_zitadel_pat() {
   PAT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/alfheim-pat.XXXXXX")"
   chmod 700 "${PAT_DIR}"
-  PAT_FILE="${PAT_DIR}/pat.txt"
+  local candidate="${PAT_DIR}/pat.txt"
   local pat="" i tries=20
 
   # Only a cold first init needs to wait for the file to appear.
-  grep -qE '^ZITADEL_BOOTSTRAP_PAT=.+' .env && tries=1
+  if [[ -f "${PROVISIONER_KEY}" ]] || grep -qE '^ZITADEL_BOOTSTRAP_PAT=.+' .env; then
+    tries=1
+  fi
   for i in $(seq 1 "${tries}"); do
-    if dc cp zitadel:/machinekey/pat.txt "${PAT_FILE}" >/dev/null 2>&1 && [[ -s "${PAT_FILE}" ]]; then
-      pat="$(tr -d '[:space:]' < "${PAT_FILE}")"
+    if dc cp zitadel:/machinekey/pat.txt "${candidate}" >/dev/null 2>&1 && [[ -s "${candidate}" ]]; then
+      pat="$(tr -d '[:space:]' < "${candidate}")"
       break
     fi
-    sleep 1
+    if [[ "${tries}" -gt 1 ]]; then sleep 1; fi
   done
 
   if [[ -z "${pat}" ]]; then
@@ -260,20 +267,14 @@ fetch_zitadel_pat() {
   if [[ -z "${pat}" && -r "${legacy}" ]]; then
     pat="$(tr -d '[:space:]' < "${legacy}")"
   fi
-  [[ -n "${pat}" ]] || return 1
+  if [[ -z "${pat}" ]]; then
+    [[ -f "${PROVISIONER_KEY}" ]]
+    return
+  fi
 
+  PAT_FILE="${candidate}"
   printf '%s\n' "${pat}" > "${PAT_FILE}"
   chmod 600 "${PAT_FILE}"
-
-  # Persist into .env (kept 0600) so a lost volume does not strand the next run.
-  if ! grep -qxF "ZITADEL_BOOTSTRAP_PAT=${pat}" .env; then
-    local tmp_env
-    tmp_env="$(mktemp "${REPO_ROOT}/.env.XXXXXX")"
-    grep -v '^ZITADEL_BOOTSTRAP_PAT=' .env > "${tmp_env}" || true
-    printf 'ZITADEL_BOOTSTRAP_PAT=%s\n' "${pat}" >> "${tmp_env}"
-    chmod 600 "${tmp_env}"
-    mv "${tmp_env}" .env
-  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -457,12 +458,14 @@ wait_healthy "alfheim_caddy" "caddy" 60
 # install, via the installer's hidden `provision` subcommand — see
 # tools/installer/internal/app/provision_cmd.go.
 info "Provisioning Zitadel OIDC clients (dashboard, every app frontend, Grafana) …"
-fetch_zitadel_pat || fail "No Zitadel bootstrap PAT: none in the zitadel_machinekey volume and ZITADEL_BOOTSTRAP_PAT in .env is empty. See the clean reset in docs/en/tutorials/local-getting-started.md."
+fetch_zitadel_pat || fail "No Zitadel credential: no machine key in ${PROVISIONER_KEY}, no PAT in the zitadel_machinekey volume, and ZITADEL_BOOTSTRAP_PAT in .env is empty. See the clean reset in docs/en/tutorials/local-getting-started.md."
+pat_args=()
+if [[ -n "${PAT_FILE}" ]]; then pat_args=(--pat-file "${PAT_FILE}"); fi
 (
   cd "${REPO_ROOT}/tools/installer" && \
   go run ./cmd/alfheim-setup provision \
     --env-file "${REPO_ROOT}/.env" \
-    --pat-file "${PAT_FILE}" \
+    ${pat_args[@]+"${pat_args[@]}"} \
     --zitadel-url "http://127.0.0.1:80"
 ) || fail "Zitadel OIDC provisioning failed."
 

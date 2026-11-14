@@ -735,3 +735,10 @@ func TestRenderedCaddyfileResilience(t *testing.T) {
 		}
 	}
 }
+
+func TestBootstrapPATExpiryIsOneWeekAfterGeneration(t *testing.T) {
+	m := Model{Generated: time.Date(2026, 11, 14, 10, 0, 0, 0, time.FixedZone("CET", 3600))}
+	if got := m.BootstrapPATExpiry(); got != "2026-11-21T09:00:00Z" {
+		t.Errorf("BootstrapPATExpiry() = %q", got)
+	}
+}

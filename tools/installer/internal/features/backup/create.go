@@ -295,6 +295,7 @@ func filePaths() []string {
 		".env",
 		paths.MarkerName,
 		"infrastructure/zitadel/machinekey",
+		"infrastructure/zitadel/provisioner",
 		"infrastructure/ca",
 		"infrastructure/caddy/pki",
 		"data/caddy/certs",

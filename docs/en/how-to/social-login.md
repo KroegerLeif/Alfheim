@@ -150,10 +150,11 @@ A user who chooses **Hide My Email** signs in with an
 `@privaterelay.appleid.com` address. It matches no existing account, so Zitadel
 creates a new one. To attach that Apple identity to the user's existing account
 instead, an administrator moves the link, using the Zitadel user API v2 and the
-bootstrap token from `.env`:
+a short-lived admin token from `alfheim-setup zitadel-token` (`.env` holds no
+Zitadel token):
 
 ```bash
-PAT=$(grep '^ZITADEL_BOOTSTRAP_PAT=' .env | cut -d= -f2)
+PAT=$(alfheim-setup zitadel-token --env-file .env)
 AUTH=https://auth.<your domain>
 # 1. Read the Apple link of the account the relay sign-in created
 #    (its user ID is shown in the Zitadel console under Users).

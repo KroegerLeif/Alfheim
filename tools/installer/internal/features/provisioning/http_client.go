@@ -43,7 +43,10 @@ type HTTPClient struct {
 	// Host is the external auth domain Zitadel was configured with, e.g.
 	// auth.alfheim.example.com.
 	Host string
-	// PAT is the bootstrap machine user's personal access token.
+	// PAT is the bearer token every request carries. Despite the name it is
+	// normally a short-lived access token from the provisioning machine key
+	// (see WithToken and internal/features/zitadelauth); only the first run
+	// of an install uses Zitadel's bootstrap personal access token here.
 	PAT string
 
 	// HTTP is the transport. Defaults to http.DefaultClient.

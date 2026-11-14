@@ -23,10 +23,11 @@ import (
 // UpdateApp is the assembled `alfheim-setup update` command: the one-command
 // Day-2 path a fresh install's owner runs on every later release. It never
 // runs the configuration wizard and never touches a secret, the generated
-// root CA, the Zitadel machinekey/PAT, or a Docker volume — only the
-// standalone stack files (internal/shared/assets.StackAssets), the IMAGE_TAG
-// line in .env, and whatever backfillSecrets/provisionZitadel already do for
-// a plain no-flag re-run.
+// root CA, or a Docker volume — only the standalone stack files
+// (internal/shared/assets.StackAssets), the IMAGE_TAG line in .env, and
+// whatever backfillSecrets/provisionZitadel already do for a plain no-flag
+// re-run. Provisioning rotates Zitadel's provisioning machine key and, on
+// an install that predates it, revokes and clears the bootstrap PAT.
 type UpdateApp struct {
 	Options *UpdateOptions
 	Build   BuildInfo

@@ -11,7 +11,6 @@ import (
 	"alfheim/installer/internal/features/provisioning"
 	"alfheim/installer/internal/features/security"
 	"alfheim/installer/internal/features/telemetry"
-	"alfheim/installer/internal/shared/envfile"
 	"alfheim/installer/internal/shared/paths"
 )
 
@@ -49,26 +48,13 @@ type DefaultProvisioner struct {
 }
 
 // Provision implements Provisioner.
+//
+// It authenticates with a short-lived access token from the stored machine
+// key (see authenticateZitadel); Zitadel's first-instance PAT is only read
+// when no key works yet, and is revoked right after (issue #789).
 func (p *DefaultProvisioner) Provision(
 	ctx context.Context, layout paths.Layout, on onboarding.Config, existing map[string]string,
 ) (provisioning.Result, error) {
-	pat, err := p.readPAT(ctx, layout, existing)
-	if err != nil {
-		return provisioning.Result{}, err
-	}
-
-	// The PAT file only exists while Zitadel's first instance is created, so
-	// once we have a PAT — from the file or from .env — persist it into .env
-	// (issue #452, fact I). That is what lets a later run, against an
-	// already-initialised Zitadel whose machinekey volume was lost, still
-	// find it. Only write when it actually changed, so a plain re-run does
-	// not touch .env for no reason.
-	if pat != strings.TrimSpace(existing["ZITADEL_BOOTSTRAP_PAT"]) {
-		if err := envfile.Update(layout.EnvFile(), map[string]string{"ZITADEL_BOOTSTRAP_PAT": pat}); err != nil {
-			return provisioning.Result{}, fmt.Errorf("alfheim-setup: store the Zitadel bootstrap PAT: %w", err)
-		}
-	}
-
 	baseURL, httpClient, err := provisioning.Endpoint{
 		Secure:          on.Secure,
 		AuthHost:        on.AuthHost,
@@ -78,12 +64,6 @@ func (p *DefaultProvisioner) Provision(
 	}.Client()
 	if err != nil {
 		return provisioning.Result{}, err
-	}
-	client := &provisioning.HTTPClient{
-		BaseURL: baseURL,
-		Host:    on.AuthHost,
-		PAT:     pat,
-		HTTP:    httpClient,
 	}
 	in := provisioning.BuildInput(defaultProjectName, on.BaseURL, !on.Secure, provisioning.AppSlugs)
 	in.OperatorUserName = operatorUserName(on, existing)
@@ -96,16 +76,33 @@ func (p *DefaultProvisioner) Provision(
 	if in.SMTP, err = smtpSpec(existing); err != nil {
 		return provisioning.Result{}, err
 	}
-	result, err := provisioning.Provision(ctx, client, in, existing)
+
+	// Authenticate only once every local input is valid, since this rotates
+	// the stored machine key.
+	client, credentialWarnings, err := authenticateZitadel(ctx, zitadelCredentials{
+		client:    &provisioning.HTTPClient{BaseURL: baseURL, Host: on.AuthHost, HTTP: httpClient},
+		issuer:    zitadelIssuer(on.AuthHost, on.Secure, existing["ZITADEL_EXTERNALPORT"]),
+		layout:    layout,
+		existing:  existing,
+		bootstrap: func(ctx context.Context) (string, error) { return p.readPAT(ctx, layout, existing) },
+		sleep:     p.Sleep,
+	})
 	if err != nil {
 		if provisioning.IsUnauthorized(err) {
 			return provisioning.Result{}, fmt.Errorf(
 				"alfheim-setup: Zitadel rejected the bootstrap PAT: it likely does not belong to "+
-					"this Zitadel instance — check %s for a PAT left over from an earlier install: %w",
-				layout.ZitadelPATFile(), err)
+					"this Zitadel instance — check %s and %s in .env for a PAT left over from an "+
+					"earlier install: %w",
+				layout.ZitadelPATFile(), bootstrapPATEnvKey, err)
 		}
 		return provisioning.Result{}, err
 	}
+
+	result, err := provisioning.Provision(ctx, client, in, existing)
+	if err != nil {
+		return provisioning.Result{}, err
+	}
+	result.Warnings = append(credentialWarnings, result.Warnings...)
 	return result, nil
 }
 
@@ -148,7 +145,9 @@ func existingRootCA(layout paths.Layout) string {
 	return ""
 }
 
-// readPAT resolves the bootstrap machine user's personal access token.
+// readPAT resolves the bootstrap machine user's personal access token. It
+// is only called when no stored machine key works: on a fresh install, on the
+// first run of an install that predates the machine key, or for recovery.
 //
 // Order matters: the PAT file only exists while Zitadel's first instance is
 // created, so on an update against an already-initialised Zitadel (or one

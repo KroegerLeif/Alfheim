@@ -78,6 +78,7 @@ func newInstall(t *testing.T) paths.Layout {
 	writeFile(t, filepath.Join(root, ".alfheim.installed"), "version=v1.2.3\n", 0o644)
 	writeFile(t, filepath.Join(root, "compose.prod.yaml"), "services: {}\n", 0o644)
 	writeFile(t, filepath.Join(root, "infrastructure/zitadel/machinekey/pat.txt"), "PAT", 0o600)
+	writeFile(t, filepath.Join(root, "infrastructure/zitadel/provisioner/machine-key.json"), "{}", 0o600)
 	writeFile(t, filepath.Join(root, "infrastructure/ca/alfheim-root-ca.crt"), "CERT", 0o644)
 	writeFile(t, filepath.Join(root, "infrastructure/caddy/pki/root.key"), "KEY", 0o600)
 	writeFile(t, filepath.Join(root, "infrastructure/caddy/Caddyfile"), "example.com\n", 0o644)
@@ -176,6 +177,7 @@ func TestCreateManifestAndRoundTrip(t *testing.T) {
 	for _, n := range []string{
 		"database.sql", "rustfs-data.tar", "files/.env", "files/.alfheim.installed",
 		"files/compose.prod.yaml", "files/infrastructure/zitadel/machinekey/pat.txt",
+		"files/infrastructure/zitadel/provisioner/machine-key.json",
 		"files/infrastructure/ca/alfheim-root-ca.crt", "files/infrastructure/caddy/pki/root.key",
 		"files/infrastructure/caddy/Caddyfile",
 	} {

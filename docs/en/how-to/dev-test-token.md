@@ -21,17 +21,18 @@ carrying the project audience every Alfheim backend requires.
 ## Step 1: Create a Zitadel Machine User
 
 Machine users are service accounts that can authenticate without browser interaction. Create one
-using the bootstrap personal access token (Zitadel's Management API v1, the same API
-`alfheim-setup provision` uses).
+with a short-lived access token of the provisioning machine user, which `alfheim-setup
+zitadel-token` mints from the machine key `scripts/up.sh` stored (Zitadel's Management API v1,
+the same API `alfheim-setup provision` uses). `.env` holds no Zitadel token.
 
 ```bash
-# Read the bootstrap PAT and issuer from your .env
-BOOTSTRAP_PAT=$(grep '^ZITADEL_BOOTSTRAP_PAT=' .env | cut -d= -f2-)
+# Mint a short-lived admin token (valid for hours) and read the issuer from your .env
+BOOTSTRAP_TOKEN=$(go run ./tools/installer/cmd/alfheim-setup zitadel-token --env-file .env)
 ZITADEL_ISSUER=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
 OIDC_AUDIENCE=$(grep '^OIDC_AUDIENCE=' .env | cut -d= -f2-)
 
 USER_ID=$(curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/machine" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"userName": "dev-test-token", "name": "Dev Test Token", "description": "Local API testing"}' \
   | jq -r '.userId')
@@ -51,7 +52,7 @@ The JWT profile grant signs its assertion with an RSA key Zitadel generates and 
 
 ```bash
 KEY_RESPONSE=$(curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/${USER_ID}/keys" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"type": "KEY_TYPE_JSON", "expirationDate": "2099-01-01T00:00:00.000Z"}')
 
@@ -143,7 +144,7 @@ stack up.
 #!/bin/bash
 set -euo pipefail
 
-BOOTSTRAP_PAT=$(grep '^ZITADEL_BOOTSTRAP_PAT=' .env | cut -d= -f2-)
+BOOTSTRAP_TOKEN=$(go run ./tools/installer/cmd/alfheim-setup zitadel-token --env-file .env)
 ZITADEL_ISSUER=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
 OIDC_AUDIENCE=$(grep '^OIDC_AUDIENCE=' .env | cut -d= -f2-)
 
@@ -154,12 +155,12 @@ trap 'rm -rf "${WORKDIR}"' EXIT
 
 # 1. Machine user
 USER_ID=$(curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/machine" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" -H "Content-Type: application/json" \
   -d '{"userName": "dev-test-'"$(date +%s)"'", "name": "Dev Test Token"}' | jq -r '.userId')
 
 # 2. Machine key
 curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/${USER_ID}/keys" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" -H "Content-Type: application/json" \
   -d '{"type": "KEY_TYPE_JSON", "expirationDate": "2099-01-01T00:00:00.000Z"}' \
   | jq -r '.keyDetails' | base64 -d > "${WORKDIR}/machine_key.json"
 KEY_ID=$(jq -r '.keyId' "${WORKDIR}/machine_key.json")
@@ -190,8 +191,9 @@ echo "Access token: ${ACCESS_TOKEN}"
 
 ## Troubleshooting
 
-- **401 on the machine-user or key creation calls**: the bootstrap PAT is missing or expired.
-  Re-run `./scripts/up.sh` to refresh it, or re-read it from `.env`.
+- **401 on the machine-user or key creation calls**: the admin token expired; mint a new one with
+  `alfheim-setup zitadel-token`. If that fails with "no Zitadel machine key", run
+  `./scripts/up.sh` once so provisioning stores one.
 - **`invalid_scope` or `invalid_grant` from the token endpoint**: confirm `OIDC_AUDIENCE` is set
   (it holds the Zitadel *project id*, not the literal string `alfheim`) and that the scope reads
   exactly `openid urn:zitadel:iam:org:project:id:<OIDC_AUDIENCE>:aud`.
