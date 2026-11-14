@@ -17,6 +17,9 @@ What happens at the first sign-in is decided in
   household (onboarding asks them to accept an invitation or create one).
 * A person whose **verified** e-mail matches an existing account is linked to it.
 * Local username/password registration stays off.
+* Linking needs a verified e-mail on the Zitadel side. For an account you create
+  in the console, either mark the address as verified there or let the user
+  verify it by e-mail, which needs [SMTP](configure-smtp.md).
 
 > **Your instance becomes open.** Anyone with an account at the provider who can
 > reach your instance can sign in and create their own household. They cannot see

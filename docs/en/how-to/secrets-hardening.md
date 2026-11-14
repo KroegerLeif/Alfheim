@@ -169,6 +169,11 @@ Two exceptions:
   `ALFHEIM_APPLE_KEY_ID`), re-run `alfheim-setup` so it uploads the new value;
   restarting the containers alone does not. See
   [Set up social login](social-login.md#rotate-a-secret-or-key).
+* **The SMTP password lives in Zitadel too.** After changing
+  `ALFHEIM_SMTP_PASSWORD`, re-run `alfheim-setup` so it updates the e-mail
+  provider. Like the Google secret it has no flag; pass it through the
+  environment or `.env`. See
+  [Configure e-mail (SMTP)](configure-smtp.md#change-a-value-or-the-password).
 
 Database passwords must be changed in PostgreSQL as well as in `.env`:
 
