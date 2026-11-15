@@ -6,6 +6,11 @@
 # deSEC DNS-01 for wildcard issuance without inbound port 80, which requires the
 # providers to be compiled in with xcaddy.
 #
+# The rate_limit directive (mholt/caddy-ratelimit) is compiled in as well: the
+# gateway limits /auth logins, the APIs and the external lookups per client IP.
+# The module has no tagged release newer than v0.1.0 (2024), so it is pinned to
+# a commit pseudo-version that builds against the Caddy 2.11 line.
+#
 # See docs/en/explanation/decisions/0004-standalone-go-tui-installer.md.
 # ==============================================================================
 
@@ -27,7 +32,8 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --replace golang.org/x/net=golang.org/x/net@v0.60.0 \
     --with github.com/caddy-dns/hetzner@v1.0.0 \
     --with github.com/caddy-dns/cloudflare@v0.2.4 \
-    --with github.com/caddy-dns/desec@v1.1.0
+    --with github.com/caddy-dns/desec@v1.1.0 \
+    --with github.com/mholt/caddy-ratelimit@v0.1.1-0.20260612195517-5625512f24f6
 
 FROM caddy:2.11.8-alpine
 
@@ -42,7 +48,9 @@ COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 # it without an extra bind mount.
 COPY errors/ /srv/alfheim-errors/
 
-# Fail the build early if the DNS modules did not make it into the binary.
+# Fail the build early if the DNS or rate-limit modules did not make it into
+# the binary.
 RUN caddy list-modules | grep -q '^dns.providers.hetzner$' \
  && caddy list-modules | grep -q '^dns.providers.cloudflare$' \
- && caddy list-modules | grep -q '^dns.providers.desec$'
+ && caddy list-modules | grep -q '^dns.providers.desec$' \
+ && caddy list-modules | grep -q '^http.handlers.rate_limit$'

@@ -347,6 +347,12 @@ docker compose -f "${COMPOSE_FILE}" up -d zitadel
 
 wait_for_health "alfheim_zitadel" "Zitadel Identity Provider" "${TIMEOUT}"
 
+# Build Caddy from this checkout instead of pulling the published image: the
+# Caddyfile under test may use a module (rate_limit) that an older release
+# image lacks, and the image and the Caddyfile ship together.
+log_info "Building the Caddy image from infrastructure/caddy..."
+docker compose -f "${COMPOSE_FILE}" build caddy
+
 log_info "Launching Caddy Ingress Gateway..."
 docker compose -f "${COMPOSE_FILE}" up -d caddy
 

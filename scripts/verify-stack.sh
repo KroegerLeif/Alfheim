@@ -300,6 +300,15 @@ for header in "X-Content-Type-Options: nosniff" "Referrer-Policy:" "X-Frame-Opti
     fail "${header%%:*} is missing from ${BASE_URL}/livez"
   fi
 done
+# The Content-Security-Policy is enforced (#786), not report-only.
+if grep -qi "^Content-Security-Policy: .*default-src 'self'" <<<"${headers}"; then
+  log_success "Content-Security-Policy is enforced"
+else
+  fail "the enforced Content-Security-Policy is missing from ${BASE_URL}/livez"
+fi
+if grep -qi '^Content-Security-Policy-Report-Only:' <<<"${headers}"; then
+  fail "a report-only Content-Security-Policy is still sent on ${BASE_URL}/livez"
+fi
 if grep -qi '^Server:' <<<"${headers}"; then
   fail "the Server header is exposed on ${BASE_URL}/livez"
 else

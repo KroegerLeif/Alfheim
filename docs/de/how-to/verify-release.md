@@ -9,6 +9,7 @@ description: "Checkliste, um einen Release-Kandidaten vor dem Wechsel von dev na
 
 ## 📋 Inhaltsverzeichnis
 - [Zuerst den Release-Dry-Run ausführen](#zuerst-den-release-dry-run-ausführen)
+- [Signaturen und Attestierungen prüfen](#signaturen-und-attestierungen-prüfen)
 - [Wegwerf-Host vorbereiten](#wegwerf-host-vorbereiten)
 - [1. Neuinstallation](#1-neuinstallation)
 - [2. Beispieldaten und Backup](#2-beispieldaten-und-backup)
@@ -34,9 +35,9 @@ gh run watch
 Ein Dry-Run führt dieselben Qualitäts-Gates aus, baut jedes Image nativ für
 `linux/amd64` (`ubuntu-24.04`) und `linux/arm64` (`ubuntu-24.04-arm`) und wendet
 das Trivy-Gate an (behebbare CRITICAL- und HIGH-Funde lassen den Job
-fehlschlagen). Er überspringt die Tag-Ancestry-Prüfung und veröffentlicht
-nichts: Es wird kein Image gepusht, kein Manifest und kein Tag angelegt, kein
-GitHub-Release erstellt und kein SARIF-Report an Code Scanning gesendet. Manuelle
+fehlschlagen) und erzeugt die SBOM jedes Images. Er überspringt die Tag-Ancestry-Prüfung und veröffentlicht
+nichts: Es wird kein Image gepusht, kein Manifest und kein Tag angelegt, nichts
+signiert oder attestiert, kein GitHub-Release erstellt und kein SARIF-Report an Code Scanning gesendet. Manuelle
 Läufe mit `dry_run=false` werden abgelehnt; nur ein Tag-Push `v*.*.*` erzeugt
 ein Release.
 
@@ -50,6 +51,60 @@ behobene Schicht des Basis-Images gezogen wird. Führe danach den Dry-Run erneut
 aus. Ein Fund ohne verfügbaren Fix (`ignore-unfixed`) lässt das Gate nie
 fehlschlagen. Tagge nicht, solange ein Dry-Run rot ist; ein Tag-Lauf scheitert
 am selben Gate, nachdem die Tests schon gelaufen sind.
+
+---
+
+## Signaturen und Attestierungen prüfen
+
+Jeder Tag-Lauf (auch Release-Kandidaten) signiert und attestiert, was er
+veröffentlicht: schlüssellos über Sigstore mit der GitHub-OIDC-Identität des
+Release-Workflows. Nichts wird mit einem langlebigen Schlüssel signiert.
+Releases vor `v0.5.0` tragen keine Signaturen.
+
+| Artefakt | Signatur | Attestierungen |
+| --- | --- | --- |
+| Jedes Multi-Arch-Image (`ghcr.io/kroegerleif/alfheim/<name>:<tag>`) | cosign, auf dem Index und jedem Plattform-Manifest | SLSA-Build-Provenance auf dem Index, SPDX-SBOM auf jedem Plattform-Image |
+| `SHA256SUMS` | cosign-Bundle `SHA256SUMS.sigstore.json` (Release-Asset) | – |
+| Installer-Binaries und Stack-Dateien aus `SHA256SUMS` | über die signierte `SHA256SUMS` | SLSA-Build-Provenance |
+
+Prüfe sie am Kandidaten vor der Installation unten. Du brauchst
+[cosign](https://docs.sigstore.dev/cosign/system_config/installation/) und die
+GitHub CLI.
+
+```bash
+TAG="v0.5.0-rc.1"
+IMAGE="ghcr.io/kroegerleif/alfheim/caddy"
+IDENTITY='^https://github\.com/KroegerLeif/Alfheim/\.github/workflows/release\.yml@refs/tags/v'
+ISSUER="https://token.actions.githubusercontent.com"
+
+# Image-Signatur, gebunden an release.yml auf einem v*-Tag
+cosign verify "${IMAGE}:${TAG}" \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+
+# Build-Provenance des Multi-Arch-Images
+gh attestation verify "oci://${IMAGE}:${TAG}" --repo KroegerLeif/Alfheim \
+  --signer-workflow KroegerLeif/Alfheim/.github/workflows/release.yml
+
+# SBOM des amd64-Images (arm64 für die andere Plattform)
+DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{json .Manifest}}' \
+  | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+gh attestation verify "oci://${IMAGE}@${DIGEST}" --repo KroegerLeif/Alfheim \
+  --predicate-type https://spdx.dev/Document/v2.3
+```
+
+Für die Installer-Assets lädst du `SHA256SUMS`, `SHA256SUMS.sigstore.json` und
+das Binary von der Release-Seite herunter, dann:
+
+```bash
+cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+sha256sum --check --ignore-missing SHA256SUMS
+gh attestation verify alfheim-setup_linux_amd64 --repo KroegerLeif/Alfheim
+```
+
+Jeder Befehl muss mit einer erfolgreichen Prüfung enden. Schlägt einer bei
+einem Tag fehl, den der Workflow veröffentlicht hat, wurde das Release nicht
+korrekt signiert oder attestiert: Gib es nicht frei.
 
 ---
 

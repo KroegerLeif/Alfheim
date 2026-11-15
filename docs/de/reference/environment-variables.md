@@ -238,6 +238,17 @@ Automatische TLS-Zertifikat-Ausstellung via Let's Encrypt. Siehe `docs/en/how-to
 | `CLOUDFLARE_API_TOKEN` | _(leer)_ | Cloudflare API-Token für DNS-01-Challenges (erforderlich wenn Cloudflare DNS verwendet wird) |
 | `DESEC_TOKEN` | _(leer)_ | deSEC API-Token für DNS-01-Challenges (erforderlich wenn deSEC verwendet wird) |
 
+### Rate-Limits des Gateways
+
+Anfragen pro Minute und Client-IP, die Caddy zulässt, bevor es mit `429` antwortet. Optional: Ohne Wert gilt der Standard, und `alfheim-setup --reconfigure` behält einen gesetzten Wert. Siehe [Rate-Limits des Gateways anpassen](../how-to/tune-rate-limits.md).
+
+| Variable | Standardwert | Beschreibung |
+| :--- | :--- | :--- |
+| `ALFHEIM_RATE_LIMIT_LOGIN` | `30` | Formular-Posts an den Zitadel-Login (`POST /ui/login/*`, `/ui/v2/login/*`) |
+| `ALFHEIM_RATE_LIMIT_AUTH` | `600` | Jede Anfrage an den `auth.*`-Host |
+| `ALFHEIM_RATE_LIMIT_API` | `1200` | Jede `/api/v1`-Anfrage |
+| `ALFHEIM_RATE_LIMIT_LOOKUP` | `60` | ISBN-/BGG-/TMDB-Lookups der Bibliothek und Barcode-Lookups der Vorratskammer |
+
 ---
 
 ## PostgreSQL-Datenbankberechtigungen

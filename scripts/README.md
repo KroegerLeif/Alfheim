@@ -25,6 +25,7 @@ scripts/
 ├── check-frontend-runtime-config.sh  # Fails a build that leaked OIDC config into static output
 ├── check-markdown-links.py # Fails CI on a broken relative link in any Markdown file
 ├── test-prod-startup.sh    # Preflight/smoke-test harness for `compose.prod.yaml`
+├── test-gateway-hardening.sh  # Caddy rate-limit (429) and enforced-CSP checks
 ├── install-hooks.sh        # Installs the repo's git hooks
 └── hooks/                  # Git hook scripts installed by install-hooks.sh
 ```
@@ -104,6 +105,13 @@ prerendered HTML or JS — that config must only ever be delivered at request ti
 `<basePath>/runtime-config.js` route, never baked into a static `next build` output.
 * **Usage**: `./scripts/check-frontend-runtime-config.sh <frontend-dir>` (run after `next build`
   with no `OIDC_*` build-time env vars set)
+
+#### 10. `test-gateway-hardening.sh` — Gateway Rate Limits and CSP
+Builds the Caddy image, starts it alone with the dev Caddyfile and lowered
+`ALFHEIM_RATE_LIMIT_*` values, and checks the enforced Content-Security-Policy
+header, that traffic below each rate limit passes, and that traffic above it
+gets `429` with `Retry-After` for every zone. Runs in `smoke-test.yml`.
+* **Usage**: `./scripts/test-gateway-hardening.sh` (set `GATEWAY_TEST_IMAGE` to reuse an image)
 
 ---
 

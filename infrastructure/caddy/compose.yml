@@ -8,7 +8,11 @@ x-logging: &default-logging
 
 services:
   caddy:
-    image: caddy:2.11.8
+    # Built from ./Dockerfile like the release image: the stock caddy image
+    # lacks the rate_limit directive the Caddyfile uses.
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: alfheim_caddy
     restart: unless-stopped
     logging: *default-logging

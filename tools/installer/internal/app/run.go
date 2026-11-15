@@ -433,6 +433,14 @@ func (a *App) renderConfiguration(
 				"alfheim-setup: carry forward provisioned Zitadel credentials: %w", err)
 		}
 	}
+	// Optional keys an operator added by hand (gateway rate limits) are not
+	// in env.tmpl at all, so a re-render would drop them just as silently.
+	if tuned := carryForwardOperatorTuned(existing); len(tuned) > 0 {
+		if err := envfile.Update(target.EnvFile(), tuned); err != nil {
+			return model, target, fmt.Errorf(
+				"alfheim-setup: carry forward operator-tuned settings: %w", err)
+		}
+	}
 
 	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\nEnabled apps: %s\n",
 		target.EnvFile(), target.Caddyfile(), strings.Join(set.Names(), ", "))
@@ -485,6 +493,29 @@ func carryForwardProvisioned(existing map[string]string) map[string]string {
 			continue
 		}
 		out[key] = v
+	}
+	return out
+}
+
+// operatorTunedEnvKeys are optional .env keys an operator sets by hand to
+// tune the stack. env.tmpl does not render them, because compose.prod.yaml
+// supplies their defaults.
+var operatorTunedEnvKeys = []string{
+	"ALFHEIM_RATE_LIMIT_LOGIN",
+	"ALFHEIM_RATE_LIMIT_AUTH",
+	"ALFHEIM_RATE_LIMIT_API",
+	"ALFHEIM_RATE_LIMIT_LOOKUP",
+}
+
+// carryForwardOperatorTuned picks out the operator-tuned values present in
+// the previous .env, so a re-render keeps them. An empty value means the
+// default and is not carried.
+func carryForwardOperatorTuned(existing map[string]string) map[string]string {
+	out := map[string]string{}
+	for _, key := range operatorTunedEnvKeys {
+		if v := existing[key]; v != "" {
+			out[key] = v
+		}
 	}
 	return out
 }

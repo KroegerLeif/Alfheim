@@ -241,6 +241,17 @@ Automatic TLS certificate issuance via Let's Encrypt. See `docs/en/how-to/hetzne
 | `CLOUDFLARE_API_TOKEN` | _(empty)_ | Cloudflare API token for DNS-01 challenges (required if using Cloudflare DNS) |
 | `DESEC_TOKEN` | _(empty)_ | deSEC API token for DNS-01 challenges (required if using deSEC) |
 
+### Gateway rate limits
+
+Requests per minute and client IP that Caddy allows before it answers `429`. Optional: unset keeps the default, and `alfheim-setup --reconfigure` keeps a value you set. See [Tune the gateway rate limits](../how-to/tune-rate-limits.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_RATE_LIMIT_LOGIN` | `30` | Form posts to the Zitadel login (`POST /ui/login/*`, `/ui/v2/login/*`) |
+| `ALFHEIM_RATE_LIMIT_AUTH` | `600` | Every request to the `auth.*` host |
+| `ALFHEIM_RATE_LIMIT_API` | `1200` | Every `/api/v1` request |
+| `ALFHEIM_RATE_LIMIT_LOOKUP` | `60` | Library ISBN/BGG/TMDB lookups and pantry barcode lookups |
+
 ---
 
 ## PostgreSQL Database Credentials

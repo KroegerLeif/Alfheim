@@ -594,7 +594,8 @@ func TestReconfigureCarriesForwardProvisionedCredentials(t *testing.T) {
 		"OIDC_AUDIENCE=proj-123\n" +
 		"ALFHEIM_WEB_CLIENT_ID=web-client-1\n" +
 		"GRAFANA_OIDC_CLIENT_ID=grafana-client-1\n" +
-		"GRAFANA_OIDC_CLIENT_SECRET=grafana-secret-1\n"
+		"GRAFANA_OIDC_CLIENT_SECRET=grafana-secret-1\n" +
+		"ALFHEIM_RATE_LIMIT_LOOKUP=120\n"
 	if err := os.WriteFile(filepath.Join(root, ".env"), []byte(existing), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -624,6 +625,7 @@ func TestReconfigureCarriesForwardProvisionedCredentials(t *testing.T) {
 		"ALFHEIM_WEB_CLIENT_ID":      "web-client-1",
 		"GRAFANA_OIDC_CLIENT_ID":     "grafana-client-1",
 		"GRAFANA_OIDC_CLIENT_SECRET": "grafana-secret-1",
+		"ALFHEIM_RATE_LIMIT_LOOKUP":  "120",
 	}
 	for key, want := range want {
 		if vars[key] != want {
@@ -669,6 +671,17 @@ func dryRunTargetFromStdout(t *testing.T, out string) string {
 	}
 	t.Fatalf("no 'Wrote ...env' line found in stdout:\n%s", out)
 	return ""
+}
+
+func TestCarryForwardOperatorTuned(t *testing.T) {
+	got := carryForwardOperatorTuned(map[string]string{
+		"ALFHEIM_RATE_LIMIT_LOOKUP": "120",
+		"ALFHEIM_RATE_LIMIT_API":    "",
+		"ALFHEIM_HOST":              "alfheim.example.com",
+	})
+	if len(got) != 1 || got["ALFHEIM_RATE_LIMIT_LOOKUP"] != "120" {
+		t.Fatalf("carryForwardOperatorTuned() = %v, want only ALFHEIM_RATE_LIMIT_LOOKUP=120", got)
+	}
 }
 
 func TestCarryForwardProvisioned(t *testing.T) {
