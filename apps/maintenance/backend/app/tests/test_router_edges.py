@@ -182,4 +182,6 @@ async def test_tasks_router_edge_cases(client: AsyncClient, db_session: AsyncSes
         headers=headers,
     )
     assert res_state_ok.status_code == 200
-    assert res_state_ok.json()["description"] == "Updated description"
+    # The note has its own field; the procedure stays as it was (#620).
+    assert res_state_ok.json()["comment"] == "Updated description"
+    assert res_state_ok.json()["description"] == "Inspect dial"

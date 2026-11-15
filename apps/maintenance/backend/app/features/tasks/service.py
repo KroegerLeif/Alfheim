@@ -210,8 +210,10 @@ class TaskService:
         if not step:
             raise StepNotFoundError(f"MaintenanceStep {step_id} not found")
 
-        if payload.comment is not None:
-            step.description = payload.comment
+        # The comment has its own column so the procedure in ``description`` survives (#620).
+        # A comment that was sent as null or blank clears it; an omitted one leaves it alone.
+        if "comment" in payload.model_fields_set:
+            step.comment = (payload.comment or "").strip() or None
         if payload.supply_needed_date is not None:
             step.supply_needed_date = payload.supply_needed_date
         if payload.supply_item is not None:

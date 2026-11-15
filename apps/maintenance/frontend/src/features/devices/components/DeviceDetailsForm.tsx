@@ -25,11 +25,12 @@ interface DeviceDetailsFormProps {
   setDeviceStatus: (v: string) => void;
   intervalMonths: number;
   setIntervalMonths: (v: number) => void;
-  selectedHouseholdId: string;
-  setSelectedHouseholdId: (v: string) => void;
+  /** Household picker; left out when editing, since a device stays in its household. */
+  selectedHouseholdId?: string;
+  setSelectedHouseholdId?: (v: string) => void;
   notes: string;
   setNotes: (v: string) => void;
-  households: Household[];
+  households?: Household[];
 }
 
 export function DeviceDetailsForm({
@@ -126,23 +127,25 @@ export function DeviceDetailsForm({
         </label>
       </div>
 
-      <label className="space-y-1.5 block">
-        <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
-          {t("wizard.household")}
-        </span>
-        <div className="relative">
-          <select
-            value={selectedHouseholdId}
-            onChange={(e) => setSelectedHouseholdId(e.target.value)}
-            className="w-full appearance-none p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all pr-8"
-          >
-            {householdList.map((h) => (
-              <option key={h.id} value={h.id} className="bg-[var(--surface-card)] text-[var(--text-main)]">{h.name}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
-        </div>
-      </label>
+      {setSelectedHouseholdId && (
+        <label className="space-y-1.5 block">
+          <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+            {t("wizard.household")}
+          </span>
+          <div className="relative">
+            <select
+              value={selectedHouseholdId ?? ""}
+              onChange={(e) => setSelectedHouseholdId(e.target.value)}
+              className="w-full appearance-none p-2.5 bg-[var(--surface-canvas)] border border-[var(--border-subtle)] focus:border-[var(--primary-main)]/50 rounded-xl text-[var(--text-main)] text-sm focus:outline-none transition-all pr-8"
+            >
+              {householdList.map((h) => (
+                <option key={h.id} value={h.id} className="bg-[var(--surface-card)] text-[var(--text-main)]">{h.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
+          </div>
+        </label>
+      )}
 
       <label className="space-y-1.5 block">
         <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">

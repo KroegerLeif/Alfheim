@@ -52,6 +52,18 @@
         "dueIn": "In {days}d",
         "steps": "Steps"
       },
+      "edit": {
+        "editDevice": "Edit device",
+        "deleteDevice": "Delete device",
+        "deleteDeviceQuestion": "Delete {name} with all its maintenance steps and service history? This cannot be undone.",
+        "editStep": "Edit step",
+        "deleteStep": "Delete step",
+        "deleteStepQuestion": "Delete the step \"{title}\"? This cannot be undone.",
+        "confirmDelete": "Delete",
+        "save": "Save",
+        "saveError": "Could not save the changes. Please check the form and try again.",
+        "deleteError": "Could not delete. Please try again."
+      },
       "loadError": "Failed to load devices or location data. Please refresh or try again later."
     },
     "wizard": {

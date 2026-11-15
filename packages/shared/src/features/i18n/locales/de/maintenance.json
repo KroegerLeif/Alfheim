@@ -52,6 +52,18 @@
         "dueIn": "In {days}T",
         "steps": "Schritte"
       },
+      "edit": {
+        "editDevice": "Gerät bearbeiten",
+        "deleteDevice": "Gerät löschen",
+        "deleteDeviceQuestion": "{name} mit allen Wartungsschritten und der Wartungshistorie löschen? Das kann nicht rückgängig gemacht werden.",
+        "editStep": "Schritt bearbeiten",
+        "deleteStep": "Schritt löschen",
+        "deleteStepQuestion": "Den Schritt „{title}“ löschen? Das kann nicht rückgängig gemacht werden.",
+        "confirmDelete": "Löschen",
+        "save": "Speichern",
+        "saveError": "Die Änderungen konnten nicht gespeichert werden. Bitte prüfen Sie das Formular und versuchen Sie es erneut.",
+        "deleteError": "Löschen fehlgeschlagen. Bitte versuchen Sie es erneut."
+      },
       "loadError": "Geräte oder Standortdaten konnten nicht geladen werden. Bitte aktualisieren Sie die Seite oder versuchen Sie es später erneut."
     },
     "wizard": {

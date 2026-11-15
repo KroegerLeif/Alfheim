@@ -77,7 +77,7 @@ class MaintenanceService:
                 assert step.id is not None
                 wizard_entry = completed_step_map[step.id]
                 if wizard_entry.comment is not None:
-                    step.description = wizard_entry.comment
+                    step.comment = wizard_entry.comment.strip() or None
                 if wizard_entry.supply_item_override is not None:
                     step.supply_item = wizard_entry.supply_item_override
 

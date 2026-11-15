@@ -52,6 +52,18 @@
         "dueIn": "Za {days}d",
         "steps": "Kroki"
       },
+      "edit": {
+        "editDevice": "Edytuj urządzenie",
+        "deleteDevice": "Usuń urządzenie",
+        "deleteDeviceQuestion": "Usunąć {name} wraz ze wszystkimi krokami konserwacji i historią serwisu? Tej operacji nie można cofnąć.",
+        "editStep": "Edytuj krok",
+        "deleteStep": "Usuń krok",
+        "deleteStepQuestion": "Usunąć krok „{title}”? Tej operacji nie można cofnąć.",
+        "confirmDelete": "Usuń",
+        "save": "Zapisz",
+        "saveError": "Nie udało się zapisać zmian. Sprawdź formularz i spróbuj ponownie.",
+        "deleteError": "Nie udało się usunąć. Spróbuj ponownie."
+      },
       "loadError": "Nie udało się wczytać urządzeń ani danych lokalizacji. Odśwież stronę lub spróbuj ponownie później."
     },
     "wizard": {

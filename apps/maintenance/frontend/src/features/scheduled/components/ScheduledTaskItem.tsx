@@ -36,7 +36,7 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
   const t = useTranslations("maintenance");
   const formatDate = useFormatDate();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [comment, setComment] = useState(step.description ?? "");
+  const [comment, setComment] = useState(step.comment ?? "");
   const [savedFlash, setSavedFlash] = useState(false);
   useAutoClear(savedFlash, () => setSavedFlash(false), SAVED_FLASH_MS);
 
