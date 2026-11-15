@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator, Callable, Generator
 
 import pytest
 import pytest_asyncio
-from backend_shared.household import get_membership_lookup
+from backend_shared.household import get_member_directory, get_membership_lookup
 from backend_shared.household.testing import (
     DEFAULT_TEST_HOUSEHOLD_ID,
     DEFAULT_TEST_SUB,
@@ -85,6 +85,7 @@ def membership() -> Generator[StaticMembershipLookup, None, None]:
     lookup = override_membership(app, {(TEST_HOUSEHOLD_ID, TEST_USER_SUB): "OWNER"})
     yield lookup
     app.dependency_overrides.pop(get_membership_lookup, None)
+    app.dependency_overrides.pop(get_member_directory, None)
 
 
 @pytest_asyncio.fixture

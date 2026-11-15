@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 
+from backend_shared.household import HouseholdMember
 from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.chore_management.exceptions import (
@@ -27,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 
 ELEVATED_ASSIGN_ROLES = frozenset({"OWNER", "ADMIN"})
+# Roles that can act on a chore. A GUEST is read-only, so a chore assigned to one could never be done.
+ASSIGNABLE_ROLES = frozenset({"OWNER", "ADMIN", "MEMBER"})
 
 
 class InstanceService:
@@ -41,6 +44,44 @@ class InstanceService:
         member is an elevated, explicit action restricted to OWNER/ADMIN.
         """
         return target is None or target == caller_user_id or caller_role in ELEVATED_ASSIGN_ROLES
+
+    @staticmethod
+    def can_hold_assignment(role: str) -> bool:
+        """Whether a member with ``role`` may be assigned a chore (everyone except read-only guests)."""
+        return role in ASSIGNABLE_ROLES
+
+    @staticmethod
+    async def reconcile_assignees(
+        session: AsyncSession,
+        instances: Sequence[ChoreInstance],
+        members: Sequence[HouseholdMember],
+    ) -> None:
+        """Release open chores whose assignee left the household or became a guest (#581).
+
+        Membership changes in core/household are not pushed to chores, so this runs lazily when a
+        day's chores are listed. Only pending instances are released; completed and missed ones
+        keep their assignee as history. An empty member list (the household could not be listed)
+        changes nothing.
+        """
+        if not members:
+            return
+        assignable = {m.user_id for m in members if InstanceService.can_hold_assignment(m.role)}
+        released = [
+            inst
+            for inst in instances
+            if inst.status == "pending" and inst.assigned_to is not None and inst.assigned_to not in assignable
+        ]
+        if not released:
+            return
+        now = datetime.now(UTC)
+        for inst in released:
+            logger.info("Releasing chore instance %s: its assignee is no longer an active member", inst.id)
+            inst.assigned_to = None
+            inst.updated_at = now
+            session.add(inst)
+        await session.commit()
+        for inst in released:
+            await session.refresh(inst)
 
     @staticmethod
     async def ensure_household_reset(session: AsyncSession, home_id: uuid.UUID, target_date: date) -> None:

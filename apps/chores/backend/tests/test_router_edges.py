@@ -89,9 +89,8 @@ async def test_update_and_delete_chore_template_router(client: AsyncClient, auth
 async def test_today_chores_and_instance_lifecycle_router(client: AsyncClient, auth_headers, membership):
     """Verify chore instance lifecycle through router endpoints."""
     headers = auth_headers()
-    # The REST assign endpoint only carries a UUID, so membership is checked by treating it as
-    # a candidate subject; this works cleanly when the assignee's subject is itself a UUID (the
-    # common case in this deployment).
+    # The REST assign endpoint carries the assignee's app user id, which is matched against the
+    # household's member list (#583).
     member_sub = str(uuid.uuid4())
     member_user_id = derive_user_id(member_sub)
     membership.set(DEFAULT_TEST_HOUSEHOLD_ID, member_sub, "MEMBER")
