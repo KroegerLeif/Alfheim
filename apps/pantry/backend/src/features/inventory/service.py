@@ -5,7 +5,8 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy.exc import IntegrityError
+import httpx
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlmodel import col, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.inventory.alert_service import AlertService
@@ -23,6 +24,14 @@ from src.features.locations.models import Location
 from src.features.products.models import Product
 
 logger = logging.getLogger(__name__)
+
+# Reason codes of BulkAddUnrecognizedItem. A lookup failure is transient and must not read as
+# "no such product": Shopping would then offer to create a catalog entry that already exists (#630).
+REASON_PRODUCT_NOT_FOUND = "pantry.error.product_not_found"
+REASON_LOOKUP_UNAVAILABLE = "pantry.error.lookup_unavailable"
+
+# Failures of the barcode lookup that say nothing about whether the product exists.
+TRANSIENT_LOOKUP_ERRORS = (SQLAlchemyError, httpx.HTTPError, TimeoutError)
 
 
 class InventoryService:
@@ -284,7 +293,8 @@ class InventoryService:
         for item in payload.items:
             product = None
 
-            # Match 1: By barcode
+            # Match 1: By barcode. Only a transient failure is caught; anything else is a bug and
+            # propagates instead of being reported as an unknown product.
             if item.barcode:
                 try:
                     product = await ProductService.get_or_create_by_barcode(
@@ -292,8 +302,24 @@ class InventoryService:
                         barcode=item.barcode,
                         home_id=home_id,
                     )
-                except Exception:
-                    product = None
+                except TRANSIENT_LOOKUP_ERRORS:
+                    logger.warning(
+                        "Barcode lookup failed during bulk add; reporting the item as temporarily unavailable",
+                        exc_info=True,
+                        extra={"home_id": str(home_id), "shopping_item_id": str(item.shopping_item_id)},
+                    )
+                    unrecognized_items.append(
+                        BulkAddUnrecognizedItem(
+                            shopping_item_id=item.shopping_item_id,
+                            name=item.name,
+                            brand=item.brand,
+                            barcode=item.barcode,
+                            quantity=item.quantity,
+                            unit=item.unit,
+                            reason=REASON_LOOKUP_UNAVAILABLE,
+                        )
+                    )
+                    continue
 
             # Match 2: By exact name (case-insensitive) if barcode lookup did not match
             if not product:
@@ -314,7 +340,7 @@ class InventoryService:
                         barcode=item.barcode,
                         quantity=item.quantity,
                         unit=item.unit,
-                        reason="pantry.error.product_not_found",
+                        reason=REASON_PRODUCT_NOT_FOUND,
                     )
                 )
                 continue

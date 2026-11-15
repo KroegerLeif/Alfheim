@@ -26,6 +26,7 @@ const REASON_KEYS: Record<string, string> = {
   "pantry.error.invalid_unit": "reasonInvalidUnit",
   "pantry.error.incompatible_units": "reasonIncompatibleUnits",
   "pantry.error.system_location_missing": "reasonSystemLocationMissing",
+  "pantry.error.lookup_unavailable": "reasonLookupUnavailable",
 };
 
 /** Pantry stores weights in g, volumes in ml and everything else as pieces. */

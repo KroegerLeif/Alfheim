@@ -106,7 +106,8 @@
     "reasonProductNotFound": "Pantry findet unter diesem Namen oder Barcode weiterhin kein Produkt.",
     "reasonInvalidUnit": "Pantry kennt die Einheit dieses Artikels nicht.",
     "reasonIncompatibleUnits": "Die Einheit passt nicht zur Einheit des Katalogeintrags.",
-    "reasonSystemLocationMissing": "In Pantry gibt es noch keinen Lagerort für neuen Bestand. Öffne Pantry einmal, um ihn anzulegen."
+    "reasonSystemLocationMissing": "In Pantry gibt es noch keinen Lagerort für neuen Bestand. Öffne Pantry einmal, um ihn anzulegen.",
+    "reasonLookupUnavailable": "Pantry konnte diesen Artikel gerade nicht nachschlagen. Versuchen Sie es gleich noch einmal."
   },
   "Error": {
     "nameRequired": "Name ist erforderlich",
