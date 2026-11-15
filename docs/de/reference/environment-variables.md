@@ -32,6 +32,7 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | Variable | Standardwert | Beschreibung |
 | :--- | :--- | :--- |
 | `ALFHEIM_BASE_URL` | `https://alfheim.loegien.de` | Öffentliche Root-Domain für Frontend-Ingress |
+| `ALFHEIM_CORS_ORIGINS` | _(gerendert: `ALFHEIM_BASE_URL`)_ | Origins, die die produktiven Backends Cross-Origin aufrufen dürfen: kommagetrennte, exakte `scheme://host[:port]`-Einträge, nie ein Wildcard (#921). Der Installer rendert bei jedem Lauf den öffentlichen App-Origin; `compose.prod.yaml` gibt ihn als `CORS_ORIGINS` (FastAPI) und `CORS_ALLOWED_ORIGINS` (Go) an jedes Backend weiter und greift ohne Wert auf `ALFHEIM_BASE_URL` zurück. Leer erlaubt keinen Cross-Origin-Zugriff |
 | `ALFHEIM_HOST` | `alfheim.loegien.de` | Kanonischer Hostname für die Hauptanwendung |
 | `DOMAIN` | `loegien.de` | Root-Domain für alle Dienste |
 | `IMAGE_REGISTRY` | `ghcr.io` | Container-Image-Registry |
@@ -75,7 +76,7 @@ Der Zitadel-Dienst in `compose.prod.yaml` und `infrastructure/compose.yml` setzt
 
 ## Social Login
 
-Optional. Nur `alfheim-setup` liest sie (Installation, erneuter Lauf, `update`, `provision`) und richtet damit die Provider in Zitadel ein; kein Container liest sie. Leere Werte lassen einen Provider aus. Siehe [Set up social login](../../en/how-to/social-login.md) und [ADR 0008](../../en/explanation/decisions/0008-social-login-policy.md) (beide englisch).
+Optional. Nur `alfheim-setup` liest sie (Installation, erneuter Lauf, `update`, `provision`) und richtet damit die Provider in Zitadel ein; kein Container liest sie, außer `ALFHEIM_SIGNUP_ALLOWLIST`, das `household-backend` liest. Leere Werte lassen einen Provider aus. Siehe [Set up social login](../../en/how-to/social-login.md) und [ADR 0008](../../en/explanation/decisions/0008-social-login-policy.md) (beide englisch).
 
 | Variable | Standardwert | Beschreibung |
 | :--- | :--- | :--- |
@@ -87,6 +88,7 @@ Optional. Nur `alfheim-setup` liest sie (Installation, erneuter Lauf, `update`, 
 | `ALFHEIM_APPLE_KEY_ID` | _(leer)_ | Key ID des Sign-in-with-Apple-Schlüssels (10 Zeichen); Flag `--apple-key-id`. |
 | `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | _(leer)_ | Absoluter Pfad der `.p8`-Schlüsseldatei, Modus `0600` oder strenger (der Installer lehnt alles Offenere ab). Gespeichert wird nur der Pfad; der Schlüssel wird nach Zitadel hochgeladen. Flag `--apple-private-key-file`. |
 | `ZITADEL_APPLE_IDP_FINGERPRINT` | _(vom Provisioning geschrieben)_ | SHA-256 über die konfigurierten Apple-Werte einschließlich Schlüssel, damit ein ersetzter Schlüssel erkannt wird. Nicht bearbeiten. |
+| `ALFHEIM_SIGNUP_ALLOWLIST` | _(leer)_ | Optionale Sign-up-Allowlist ([ADR 0009](../../en/explanation/decisions/0009-signup-allowlist.md)): kommagetrennte E-Mail-Adressen (`alice@example.com`) und Domains (`@example.com` oder `example.com`). Gesetzt darf jemand ohne Haushalt nur dann einen anlegen, wenn seine **verifizierte** E-Mail-Adresse oder deren Domain gelistet ist; Eingeladene können immer beitreten. Leer behält das offene Verhalten aus ADR 0008. Ein fehlerhafter Eintrag stoppt `household-backend` beim Start. Bleibt bei Installer-Läufen erhalten. |
 
 ---
 
@@ -162,6 +164,8 @@ Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` b
 | Variable | Standardwert | Beschreibung |
 | :--- | :--- | :--- |
 | `{SERVICE}_DATABASE_URL` | _(konstruiert)_ | Explizite PostgreSQL-Verbindungszeichenkette für einen Dienst (z.B. `DASHBOARD_DATABASE_URL`, `PANTRY_DATABASE_URL`); wenn leer, konstruieren Dienste sie aus `{SERVICE}_POSTGRES_*`-Variablen |
+| `CORS_ORIGINS` / `CORS_ALLOWED_ORIGINS` | _(Dev-Hosts in Entwicklung, keine in Produktion)_ | Cross-Origin-Allowlist der FastAPI- und Go-Backends, kommagetrennt (FastAPI akzeptiert auch eine JSON-Liste). `compose.prod.yaml` setzt beide aus `ALFHEIM_CORS_ORIGINS`. Ein Wildcard oder ein fehlerhafter Eintrag stoppt das Backend beim Start |
+| `ENVIRONMENT` | `development` | In `compose.prod.yaml` für jedes Backend `production`: produktives Logging (INFO, ohne Quellangabe) und kein Rückfall auf die Dev-CORS-Hosts |
 | `TESTING` | _(nicht gesetzt)_ | Nur in Backend-Testsuites auf `true` setzen; umgeht die JWT-Prüfung. Niemals in einem deployten Stack setzen |
 | `OTEL_ENABLED` | _(je Compose-Datei)_ | Aktiviert die OpenTelemetry-Erfassung in den FastAPI-Backends |
 | `CHAT_ENCRYPTION_KEY` | _(leer)_ | AES-256-GCM-Schlüssel (Base64-codiert) zum Verschlüsseln gespeicherter LLM-API-Schlüssel und Anmeldedaten |
@@ -190,7 +194,7 @@ Bootstrap-Modellblöcke (aus `CHAT_BOOTSTRAP_*`) werden von der Server-Umgebung 
 
 ## Haushalts- & Rollendienst (`core/household`)
 
-Tier-1-Kerndienst, dem Haushalte und Mitgliederrollen gehören. `compose.prod.yaml` betreibt ihn als `household-backend` (Go, Port `8080`, Health-Check `GET /healthz`) und `household-frontend` (Next.js, Port `3000`, basePath `/household`). Das Frontend erhält dieselben Variablen wie `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` aus `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
+Tier-1-Kerndienst, dem Haushalte und Mitgliederrollen gehören. `compose.prod.yaml` betreibt ihn als `household-backend` (Go, Port `8080`, Liveness `GET /healthz`, Readiness `GET /readyz`) und `household-frontend` (Next.js, Port `3000`, basePath `/household`). Das Frontend erhält dieselben Variablen wie `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` aus `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
 
 | Variable | Standardwert | Beschreibung |
 | :--- | :--- | :--- |

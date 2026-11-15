@@ -175,6 +175,16 @@ func TestHouseholdHandler_CreateHousehold(t *testing.T) {
 			expectedSubstr: "household slug already in use",
 		},
 		{
+			name:   "forbidden when the sign-up allowlist denies",
+			claims: &auth.UserClaims{Subject: "user-1"},
+			body:   `{"name":"Test"}`,
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+				return nil, errors.Join(ErrSignupNotAllowed, errors.New("not listed"))
+			},
+			expectedStatus: http.StatusForbidden,
+			expectedSubstr: "signup_not_allowed",
+		},
+		{
 			name:   "internal server error on service failure",
 			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"name":"Test"}`,

@@ -9,7 +9,7 @@
 #   ./scripts/verify.sh          # Runs all verification gates (--all)
 #   ./scripts/verify.sh --all    # Runs Python, Go, Frontend, Security, and Smoke tests
 #   ./scripts/verify.sh --python # Runs Ruff, Ty, and Pytest (apps and packages/backend-shared)
-#   ./scripts/verify.sh --go     # Runs Go tests and race detectors (incl. tools/installer)
+#   ./scripts/verify.sh --go     # Runs Go tests, race detector and coverage gates (incl. tools/installer)
 #   ./scripts/verify.sh --frontend # Runs TSC typecheck and Vitest test suites
 #   ./scripts/verify.sh --security # Runs secret leakage scans and non-mutating pre-commit checks
 #   ./scripts/verify.sh --smoke  # Runs production compose startup smoke test (--prod-startup)
@@ -208,11 +208,13 @@ if [[ "$RUN_GO" == true ]]; then
         done < <({ find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort; echo packages/go-shared; echo tools/installer; })
 
         for service in "${GO_SERVICES[@]}"; do
-            log_section "Go Backend Unit & Integration Tests ($service)"
-            if (cd "$ROOT_DIR/$service" && go test -race -cover ./...); then
-                log_success "Go test suite passed with race detector enabled ($service)"
+            # Tests with the race detector plus the module's coverage gate (#813),
+            # the same script go-ci.yml runs.
+            log_section "Go Tests & Coverage Gate ($service)"
+            if "$ROOT_DIR/scripts/check-go-coverage.sh" "$service"; then
+                log_success "Go test suite passed with race detector and coverage gate ($service)"
             else
-                log_fail "Go tests failed ($service)"
+                log_fail "Go tests or coverage gate failed ($service)"
                 ERRORS=$((ERRORS + 1))
             fi
 

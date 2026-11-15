@@ -32,6 +32,9 @@ var (
 	ErrOwnerCannotLeave = errors.New("the owner must transfer ownership or delete the household before leaving")
 	// ErrInvalidHouseholdName indicates an empty, unsluggable or too long household name.
 	ErrInvalidHouseholdName = errors.New("invalid household name")
+	// ErrSignupNotAllowed indicates that the sign-up allowlist does not admit a
+	// caller creating their first household (#923).
+	ErrSignupNotAllowed = errors.New("creating a household is restricted on this instance; ask a member for an invite")
 	// ErrInvalidTransferTarget indicates a missing transfer target or a transfer to oneself.
 	ErrInvalidTransferTarget = errors.New("invalid ownership transfer target")
 )

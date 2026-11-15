@@ -37,9 +37,20 @@ All backends and `packages/backend-shared` form one `uv` workspace. `uv sync --a
 
 Modules: `apps/chat/backend`, `core/dashboard/backend`, `core/household/backend`, `packages/go-shared`, `tools/installer`.
 
-- `gofmt -l .` prints nothing, `go vet ./...` and `go test -race -cover ./...` pass.
+- `gofmt -l .` prints nothing, `go vet ./...` passes.
 - `golangci-lint run --enable-only revive` passes (doc comments on exported identifiers).
-- `tools/installer` additionally keeps at least 80 % coverage (`-coverpkg=./internal/...`) and cross-compiles for linux/amd64 and linux/arm64 in CI.
+- `scripts/check-go-coverage.sh <module>` runs `go test -race` with `-coverpkg` over the whole module and enforces the module's coverage gate. `verify.sh --go` and the `go-ci.yml` test matrix call the same script, so the gates live in one place (#813):
+
+  | Module | Gate |
+  | :--- | :--- |
+  | `apps/chat/backend` | 94 % |
+  | `core/dashboard/backend` | 95 % |
+  | `core/household/backend` | 97 % |
+  | `packages/go-shared` | 96 % |
+  | `tools/installer` (`-coverpkg=./internal/...`) | 80 % |
+
+  The service gates are the coverage measured when they were introduced, rounded down. Raise a gate when coverage grows; never lower one to make a change pass.
+- `tools/installer` also cross-compiles for linux/amd64 and linux/arm64 in CI.
 - Tests mock external dependencies (OIDC JWKS, VictoriaLogs, VictoriaMetrics).
 
 ## Frontend

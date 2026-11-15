@@ -78,9 +78,10 @@ services:
       retries: 5
       start_period: 10s
 
-  # VictoriaLogs >= 1.53 ships a distroless image without a shell or wget. This
-  # one-shot service copies a static busybox into a read-only volume so the
-  # VictoriaLogs healthcheck can still probe /health from inside the container.
+  # VictoriaLogs >= 1.53 and the OTel Collector contrib image ship without a
+  # shell or wget. This one-shot service copies a static busybox into a
+  # read-only volume so their healthchecks can still probe from inside the
+  # container.
   victorialogs-probe:
     image: busybox:1.38.0-musl
     container_name: victorialogs-probe
@@ -153,6 +154,9 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Static busybox from victorialogs-probe: the contrib image has no shell
+      # or wget, so the healthcheck below runs this binary instead.
+      - victorialogs_probe:/probe:ro
     deploy:
       resources:
         limits:
@@ -165,6 +169,16 @@ services:
         condition: service_healthy
       victorialogs:
         condition: service_healthy
+      victorialogs-probe:
+        condition: service_completed_successfully
+    # The collector's health_check extension (collector/config.yaml) answers
+    # on :13133 once every pipeline is running.
+    healthcheck:
+      test: ["CMD", "/probe/busybox", "wget", "-q", "--spider", "http://127.0.0.1:13133/"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   # Read-only Docker API gateway for Vector (same allowlist as compose.prod.yaml).
   # Vector never mounts docker.sock directly.

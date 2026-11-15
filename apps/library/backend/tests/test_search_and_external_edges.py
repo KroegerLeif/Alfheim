@@ -7,7 +7,6 @@ import httpx
 import pytest
 from backend_shared import oidc_discovery
 from fastapi import HTTPException
-from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import settings
 from src.db.models import Item, MediaType, ProviderSubscription
@@ -211,19 +210,3 @@ async def test_main_lifespan():
         async with lifespan(app):
             pass
         mock_shutdown.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_health_endpoints(client: AsyncClient):
-    """Verify root /health and /api/v1/health endpoints."""
-    # Mount health routes to test app
-    client._transport.app.add_api_route("/health", app.routes[-2].endpoint)  # type: ignore
-    client._transport.app.add_api_route("/api/v1/health", app.routes[-1].endpoint)  # type: ignore
-
-    res1 = await client.get("/health")
-    assert res1.status_code == 200
-    assert res1.json()["status"] == "ok"
-
-    res2 = await client.get("/api/v1/health")
-    assert res2.status_code == 200
-    assert res2.json()["status"] == "ok"

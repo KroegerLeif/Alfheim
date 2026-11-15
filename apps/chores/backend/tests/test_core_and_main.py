@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from backend_shared import oidc_discovery
 from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
-from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.config import settings
@@ -63,15 +62,6 @@ def test_telemetry_setup_and_shutdown():
     with patch.object(settings, "OTEL_ENABLED", True):
         setup_telemetry(app)
     shutdown_telemetry()
-
-
-@pytest.mark.asyncio
-async def test_health_check_endpoint(client: AsyncClient):
-    """Verify the /api/v1/health status endpoint."""
-    response = await client.get("/api/v1/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    assert "project" in response.json()
 
 
 def test_handle_task_exception_callback():

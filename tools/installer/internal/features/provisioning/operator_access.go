@@ -2,7 +2,6 @@ package provisioning
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,8 +9,8 @@ import (
 )
 
 // zitadelNoChangesMessage is the text Zitadel answers an update with when it
-// would not change anything. Unlike the app config update, the project update
-// has no id this code relies on, so the message itself is matched.
+// would not change anything. Some updates carry no id this code relies on, so
+// the message itself is matched.
 const zitadelNoChangesMessage = "No changes"
 
 // isConflict reports whether err is a Zitadel API answer of HTTP 409, which
@@ -21,162 +20,156 @@ func isConflict(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.status == http.StatusConflict
 }
 
-type projectResponse struct {
-	Project map[string]any `json:"project"`
-}
-
 // EnsureRoleAssertion implements Client.
 //
 // With projectRoleAssertion on, Zitadel adds the user's roles of the project
 // to the tokens of every application in it, independent of the scopes the
 // client requests. projectRoleCheck and hasProjectCheck are deliberately left
 // as they are: turning either on would lock every user without a grant out of
-// the whole stack.
+// the whole stack. The v2 update only changes the fields it is sent.
 func (c *HTTPClient) EnsureRoleAssertion(ctx context.Context, projectID string) error {
-	path := fmt.Sprintf("/management/v1/projects/%s", projectID)
-	respBody, err := c.request(ctx, http.MethodGet, path, nil, "")
+	project, err := c.getProject(ctx, projectID)
 	if err != nil {
 		return err
 	}
-	var decoded projectResponse
-	if err := json.Unmarshal(respBody, &decoded); err != nil {
-		return fmt.Errorf("provisioning: decode project response: %w", err)
-	}
-	if decoded.Project == nil {
-		return fmt.Errorf("provisioning: %s returned no project", path)
-	}
-	if asserted, _ := decoded.Project["projectRoleAssertion"].(bool); asserted {
+	if project.ProjectRoleAssertion {
 		return nil
 	}
-
-	// A PUT replaces the whole project, so the settings that stay as they
-	// are must be sent back.
-	body := map[string]any{"projectRoleAssertion": true}
-	for _, key := range []string{"name", "projectRoleCheck", "hasProjectCheck", "privateLabelingSetting"} {
-		if v, ok := decoded.Project[key]; ok {
-			body[key] = v
-		}
-	}
-	_, err = c.request(ctx, http.MethodPut, path, body, zitadelNoChangesMessage)
-	return err
+	body := map[string]any{"projectId": projectID, "projectRoleAssertion": true}
+	return c.call(ctx, projectService, "UpdateProject", body, nil, zitadelNoChangesMessage)
 }
 
 // EnsureProjectRole implements Client.
 func (c *HTTPClient) EnsureProjectRole(ctx context.Context, projectID string, role RoleSpec) error {
-	searchBody := map[string]any{
-		"queries": []map[string]any{
-			{"keyQuery": map[string]any{"key": role.Key, "method": "TEXT_QUERY_METHOD_EQUALS"}},
+	listBody := map[string]any{
+		"projectId": projectID,
+		"filters": []map[string]any{
+			{"roleKeyFilter": map[string]any{"key": role.Key, "method": "TEXT_FILTER_METHOD_EQUALS"}},
 		},
 	}
-	respBody, err := c.request(ctx,
-		http.MethodPost, fmt.Sprintf("/management/v1/projects/%s/roles/_search", projectID), searchBody, "")
-	if err != nil {
+	var list struct {
+		ProjectRoles []struct {
+			Key string `json:"key"`
+		} `json:"projectRoles"`
+	}
+	if err := c.call(ctx, projectService, "ListProjectRoles", listBody, &list, ""); err != nil {
 		return err
 	}
-	var search struct {
-		Result []struct {
-			Key string `json:"key"`
-		} `json:"result"`
-	}
-	if err := json.Unmarshal(respBody, &search); err != nil {
-		return fmt.Errorf("provisioning: decode role search response: %w", err)
-	}
-	for _, r := range search.Result {
+	for _, r := range list.ProjectRoles {
 		if r.Key == role.Key {
 			return nil
 		}
 	}
 
 	createBody := map[string]any{
+		"projectId":   projectID,
 		"roleKey":     role.Key,
 		"displayName": role.DisplayName,
 		"group":       role.Group,
 	}
-	_, err = c.request(ctx,
-		http.MethodPost, fmt.Sprintf("/management/v1/projects/%s/roles", projectID), createBody, "")
+	err := c.call(ctx, projectService, "AddProjectRole", createBody, nil, "")
 	if isConflict(err) {
 		return nil // created in the meantime
 	}
 	return err
 }
 
+// authorization is the subset of a v2 authorization (formerly user grant)
+// GrantProjectRole reads.
+type authorization struct {
+	ID   string `json:"id"`
+	User struct {
+		ID string `json:"id"`
+	} `json:"user"`
+	Project struct {
+		ID string `json:"id"`
+	} `json:"project"`
+	Roles []struct {
+		Key string `json:"key"`
+	} `json:"roles"`
+}
+
+func (a authorization) roleKeys() []string {
+	keys := make([]string, 0, len(a.Roles))
+	for _, r := range a.Roles {
+		keys = append(keys, r.Key)
+	}
+	return keys
+}
+
 // GrantProjectRole implements Client.
+//
+// An existing authorization of the user on the project is extended with
+// roleKey; other roles the user holds there are kept.
 func (c *HTTPClient) GrantProjectRole(ctx context.Context, projectID, userName, roleKey string) error {
-	userID, err := c.findUserID(ctx, userName)
+	project, err := c.getProject(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	userID, err := c.findUserID(ctx, project.OrganizationID, userName)
 	if err != nil {
 		return err
 	}
 
-	searchBody := map[string]any{
-		"queries": []map[string]any{
-			{"userIdQuery": map[string]any{"userId": userID}},
-			{"projectIdQuery": map[string]any{"projectId": projectID}},
+	listBody := map[string]any{
+		"filters": []map[string]any{
+			{"inUserIds": map[string]any{"ids": []string{userID}}},
+			{"projectId": map[string]any{"id": projectID}},
 		},
 	}
-	respBody, err := c.request(ctx, http.MethodPost, "/management/v1/users/grants/_search", searchBody, "")
-	if err != nil {
+	var list struct {
+		Authorizations []authorization `json:"authorizations"`
+	}
+	if err := c.call(ctx, authorizationService, "ListAuthorizations", listBody, &list, ""); err != nil {
 		return err
 	}
-	var search struct {
-		Result []struct {
-			ID        string   `json:"id"`
-			UserID    string   `json:"userId"`
-			ProjectID string   `json:"projectId"`
-			RoleKeys  []string `json:"roleKeys"`
-		} `json:"result"`
-	}
-	if err := json.Unmarshal(respBody, &search); err != nil {
-		return fmt.Errorf("provisioning: decode user grant search response: %w", err)
-	}
 
-	for _, g := range search.Result {
-		if g.UserID != userID || g.ProjectID != projectID || g.ID == "" {
+	for _, a := range list.Authorizations {
+		if a.User.ID != userID || a.Project.ID != projectID || a.ID == "" {
 			continue
 		}
-		if slices.Contains(g.RoleKeys, roleKey) {
+		current := a.roleKeys()
+		if slices.Contains(current, roleKey) {
 			return nil
 		}
-		// The user already holds other roles here: add to them, never
-		// replace.
-		roleKeys := append(slices.Clone(g.RoleKeys), roleKey)
-		_, err := c.request(ctx, http.MethodPut,
-			fmt.Sprintf("/management/v1/users/%s/grants/%s", userID, g.ID),
-			map[string]any{"roleKeys": roleKeys}, zitadelNoChangesMessage)
-		return err
+		updateBody := map[string]any{"id": a.ID, "roleKeys": append(current, roleKey)}
+		return c.call(ctx, authorizationService, "UpdateAuthorization", updateBody, nil, zitadelNoChangesMessage)
 	}
 
-	_, err = c.request(ctx, http.MethodPost, fmt.Sprintf("/management/v1/users/%s/grants", userID),
-		map[string]any{"projectId": projectID, "roleKeys": []string{roleKey}}, "")
+	createBody := map[string]any{
+		"userId":         userID,
+		"projectId":      projectID,
+		"organizationId": project.OrganizationID,
+		"roleKeys":       []string{roleKey},
+	}
+	err = c.call(ctx, authorizationService, "CreateAuthorization", createBody, nil, "")
 	if isConflict(err) {
 		return nil // granted in the meantime
 	}
 	return err
 }
 
-// findUserID resolves a user name of the bootstrap PAT's organisation to the
-// user id.
-func (c *HTTPClient) findUserID(ctx context.Context, userName string) (string, error) {
-	searchBody := map[string]any{
+// findUserID resolves an organisation user's id from its user name (for the
+// operator: the admin e-mail address it was bootstrapped with).
+func (c *HTTPClient) findUserID(ctx context.Context, orgID, userName string) (string, error) {
+	listBody := map[string]any{
 		"queries": []map[string]any{
+			{"organizationIdQuery": map[string]any{"organizationId": orgID}},
 			{"userNameQuery": map[string]any{"userName": userName, "method": "TEXT_QUERY_METHOD_EQUALS"}},
 		},
 	}
-	respBody, err := c.request(ctx, http.MethodPost, "/management/v1/users/_search", searchBody, "")
-	if err != nil {
-		return "", err
-	}
-	var search struct {
+	var list struct {
 		Result []struct {
-			ID       string `json:"id"`
-			UserName string `json:"userName"`
+			UserID   string `json:"userId"`
+			Username string `json:"username"`
 		} `json:"result"`
 	}
-	if err := json.Unmarshal(respBody, &search); err != nil {
-		return "", fmt.Errorf("provisioning: decode user search response: %w", err)
+	if err := c.call(ctx, userService, "ListUsers", listBody, &list, ""); err != nil {
+		return "", err
 	}
-	for _, u := range search.Result {
-		if u.UserName == userName && u.ID != "" {
-			return u.ID, nil
+	for _, u := range list.Result {
+		if u.Username == userName && u.UserID != "" {
+			return u.UserID, nil
 		}
 	}
 	return "", fmt.Errorf("provisioning: no Zitadel user named %q in the organisation", userName)

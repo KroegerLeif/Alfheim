@@ -6,6 +6,8 @@ import pathlib
 from contextlib import asynccontextmanager
 
 from backend_shared import setup_telemetry, shutdown_telemetry
+from backend_shared.cors import resolve_cors_origins
+from backend_shared.health import health_router
 from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import mount_mcp
 from fastapi import APIRouter, FastAPI
@@ -13,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from src.api.v1 import router as api_v1_router
 from src.config import settings
+from src.db.database import BACKEND_DIR, engine
 from src.errors import CODE_CONFLICT, error_detail
 from src.mcp.server import mcp
 
@@ -74,7 +77,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Security: Restrict allowed origins instead of using wildcard '*' when allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=resolve_cors_origins(settings),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,14 +125,5 @@ discover_and_import_mcp_tools()
 mcp_app = mount_mcp(app, mcp, settings=settings)
 
 
-@app.get("/health")
-async def health_check_root():
-    """Root health check endpoint for readiness probes."""
-    return {"status": "ok"}
-
-
-@app.get("/api/v1/health")
-async def health_check():
-    """Simple health check endpoint."""
-    logging.info("Library health check endpoint hit!")
-    return {"status": "ok"}
+# Liveness (/healthz) and database-aware readiness (/readyz) probes (#788).
+app.include_router(health_router(engine, service="library-backend", backend_dir=BACKEND_DIR))

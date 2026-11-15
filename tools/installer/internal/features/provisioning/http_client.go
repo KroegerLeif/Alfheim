@@ -33,7 +33,7 @@ func (realClock) Sleep(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// HTTPClient talks to the Zitadel Management API through Caddy: Zitadel
+// HTTPClient talks to the Zitadel APIs (v2 services, see zitadel_v2.go) through Caddy: Zitadel
 // resolves the instance from the Host header rather than from the address it
 // is dialled on, so every request is made against BaseURL (Caddy) while
 // claiming Host as the external auth domain.
@@ -203,72 +203,60 @@ func (c *HTTPClient) doOnce(ctx context.Context, method, path string, payload []
 
 // --- Client implementation ---------------------------------------------
 
+// idResponse decodes the id the v1 Admin API returns for a created object
+// (identity and e-mail providers).
 type idResponse struct {
 	ID string `json:"id"`
 }
 
-type projectSearchResponse struct {
-	Result []struct {
-		ID string `json:"id"`
-	} `json:"result"`
-}
-
-type appSearchResponse struct {
-	Result []struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		OIDCConfig *struct {
-			ClientID string `json:"clientId"`
-		} `json:"oidcConfig"`
-	} `json:"result"`
-}
-
-type createOIDCAppResponse struct {
-	AppID        string `json:"appId"`
-	ClientID     string `json:"clientId"`
-	ClientSecret string `json:"clientSecret"`
-}
-
-type generateSecretResponse struct {
-	ClientSecret string `json:"clientSecret"`
+// zitadelApplication is the subset of a v2 application the installer reads.
+type zitadelApplication struct {
+	ID         string `json:"applicationId"`
+	Name       string `json:"name"`
+	OIDCConfig *struct {
+		ClientID string `json:"clientId"`
+	} `json:"oidcConfiguration"`
 }
 
 // EnsureProject implements Client.
 func (c *HTTPClient) EnsureProject(ctx context.Context, name string) (string, error) {
-	searchBody := map[string]any{
-		"queries": []map[string]any{
-			{"nameQuery": map[string]any{"name": name, "method": "TEXT_QUERY_METHOD_EQUALS"}},
+	orgID, err := c.currentUserOrganization(ctx)
+	if err != nil {
+		return "", err
+	}
+	listBody := map[string]any{
+		"filters": []map[string]any{
+			{"organizationIdFilter": map[string]any{"organizationId": orgID}},
+			{"projectNameFilter": map[string]any{"projectName": name, "method": "TEXT_FILTER_METHOD_EQUALS"}},
 		},
 	}
-	respBody, err := c.request(ctx, http.MethodPost, "/management/v1/projects/_search", searchBody, "")
-	if err != nil {
+	var list struct {
+		Projects []zitadelProject `json:"projects"`
+	}
+	if err := c.call(ctx, projectService, "ListProjects", listBody, &list, ""); err != nil {
 		return "", err
 	}
-	var search projectSearchResponse
-	if err := json.Unmarshal(respBody, &search); err != nil {
-		return "", fmt.Errorf("provisioning: decode project search response: %w", err)
-	}
-	if len(search.Result) > 0 && search.Result[0].ID != "" {
-		return search.Result[0].ID, nil
+	for _, p := range list.Projects {
+		if p.Name == name && p.ID != "" {
+			return p.ID, nil
+		}
 	}
 
-	createBody := map[string]any{"name": name}
-	respBody, err = c.request(ctx, http.MethodPost, "/management/v1/projects", createBody, "")
-	if err != nil {
+	var created struct {
+		ProjectID string `json:"projectId"`
+	}
+	createBody := map[string]any{"organizationId": orgID, "name": name}
+	if err := c.call(ctx, projectService, "CreateProject", createBody, &created, ""); err != nil {
 		return "", err
 	}
-	var created idResponse
-	if err := json.Unmarshal(respBody, &created); err != nil {
-		return "", fmt.Errorf("provisioning: decode project create response: %w", err)
-	}
-	if created.ID == "" {
+	if created.ProjectID == "" {
 		return "", fmt.Errorf("provisioning: zitadel returned no project id for %q", name)
 	}
-	return created.ID, nil
+	return created.ProjectID, nil
 }
 
-// oidcConfigBody renders the shared parts of an OIDC application body: used
-// both to create the app and to reconcile its redirect configuration.
+// oidcConfigBody renders the OIDC configuration of an application: used both
+// to create the app and to reconcile its redirect configuration.
 func oidcConfigBody(spec AppSpec) map[string]any {
 	appType := "OIDC_APP_TYPE_WEB"
 	authMethod := "OIDC_AUTH_METHOD_TYPE_BASIC"
@@ -281,10 +269,10 @@ func oidcConfigBody(spec AppSpec) map[string]any {
 		"postLogoutRedirectUris": spec.PostLogoutRedirectURIs,
 		"responseTypes":          []string{"OIDC_RESPONSE_TYPE_CODE"},
 		"grantTypes":             []string{"OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN"},
-		"appType":                appType,
+		"applicationType":        appType,
 		"authMethodType":         authMethod,
 		"version":                "OIDC_VERSION_1_0",
-		"devMode":                spec.DevMode,
+		"developmentMode":        spec.DevMode,
 		// Backends validate the access token themselves (JWKS from
 		// OIDC_ISSUER_URL), which needs a JWT, not Zitadel's default opaque
 		// bearer token.
@@ -300,60 +288,70 @@ func oidcConfigBody(spec AppSpec) map[string]any {
 // not change anything, which a reconciling client treats as success.
 const zitadelNoChangesError = "COMMAND-1m88i"
 
-// EnsureOIDCApp implements Client.
-func (c *HTTPClient) EnsureOIDCApp(ctx context.Context, projectID string, spec AppSpec) (Credentials, error) {
-	searchBody := map[string]any{
-		"queries": []map[string]any{
-			{"nameQuery": map[string]any{"name": spec.Name, "method": "TEXT_QUERY_METHOD_EQUALS"}},
+// findApplication returns the application named name inside projectID, or a
+// zero value when there is none.
+func (c *HTTPClient) findApplication(ctx context.Context, projectID, name string) (zitadelApplication, error) {
+	listBody := map[string]any{
+		"filters": []map[string]any{
+			{"projectIdFilter": map[string]any{"projectId": projectID}},
+			{"nameFilter": map[string]any{"name": name, "method": "TEXT_FILTER_METHOD_EQUALS"}},
 		},
 	}
-	respBody, err := c.request(ctx,
-		http.MethodPost, fmt.Sprintf("/management/v1/projects/%s/apps/_search", projectID), searchBody, "")
+	var list struct {
+		Applications []zitadelApplication `json:"applications"`
+	}
+	if err := c.call(ctx, applicationService, "ListApplications", listBody, &list, ""); err != nil {
+		return zitadelApplication{}, err
+	}
+	for _, a := range list.Applications {
+		if a.Name == name {
+			return a, nil
+		}
+	}
+	return zitadelApplication{}, nil
+}
+
+// EnsureOIDCApp implements Client.
+func (c *HTTPClient) EnsureOIDCApp(ctx context.Context, projectID string, spec AppSpec) (Credentials, error) {
+	app, err := c.findApplication(ctx, projectID, spec.Name)
 	if err != nil {
 		return Credentials{}, err
 	}
-	var search appSearchResponse
-	if err := json.Unmarshal(respBody, &search); err != nil {
-		return Credentials{}, fmt.Errorf("provisioning: decode app search response: %w", err)
-	}
 
-	var appID, clientID string
-	for _, a := range search.Result {
-		if a.Name == spec.Name {
-			appID = a.ID
-			if a.OIDCConfig != nil {
-				clientID = a.OIDCConfig.ClientID
-			}
-			break
+	if app.ID == "" {
+		createBody := map[string]any{
+			"projectId":         projectID,
+			"name":              spec.Name,
+			"oidcConfiguration": oidcConfigBody(spec),
 		}
-	}
-
-	if appID == "" {
-		createBody := map[string]any{"name": spec.Name}
-		for k, v := range oidcConfigBody(spec) {
-			createBody[k] = v
+		var created struct {
+			OIDCConfig struct {
+				ClientID     string `json:"clientId"`
+				ClientSecret string `json:"clientSecret"`
+			} `json:"oidcConfiguration"`
 		}
-		respBody, err = c.request(ctx,
-			http.MethodPost, fmt.Sprintf("/management/v1/projects/%s/apps/oidc", projectID), createBody, "")
-		if err != nil {
+		if err := c.call(ctx, applicationService, "CreateApplication", createBody, &created, ""); err != nil {
 			return Credentials{}, err
 		}
-		var created createOIDCAppResponse
-		if err := json.Unmarshal(respBody, &created); err != nil {
-			return Credentials{}, fmt.Errorf("provisioning: decode app create response: %w", err)
-		}
-		if created.ClientID == "" {
+		if created.OIDCConfig.ClientID == "" {
 			return Credentials{}, fmt.Errorf("provisioning: zitadel returned no clientId for %q", spec.Name)
 		}
-		return Credentials{ClientID: created.ClientID, ClientSecret: created.ClientSecret}, nil
+		return Credentials{ClientID: created.OIDCConfig.ClientID, ClientSecret: created.OIDCConfig.ClientSecret}, nil
+	}
+
+	var clientID string
+	if app.OIDCConfig != nil {
+		clientID = app.OIDCConfig.ClientID
 	}
 
 	// Reconcile the redirect configuration of an existing app. A no-op
 	// update answers 400 COMMAND-1m88i ("No changes"), which is success here.
-	_, err = c.request(ctx, http.MethodPut,
-		fmt.Sprintf("/management/v1/projects/%s/apps/%s/oidc_config", projectID, appID),
-		oidcConfigBody(spec), zitadelNoChangesError)
-	if err != nil {
+	updateBody := map[string]any{
+		"projectId":         projectID,
+		"applicationId":     app.ID,
+		"oidcConfiguration": oidcConfigBody(spec),
+	}
+	if err := c.call(ctx, applicationService, "UpdateApplication", updateBody, nil, zitadelNoChangesError); err != nil {
 		return Credentials{}, err
 	}
 
@@ -367,15 +365,12 @@ func (c *HTTPClient) EnsureOIDCApp(ctx context.Context, projectID string, spec A
 		return Credentials{ClientID: clientID, ClientSecret: spec.ExistingClientSecret}, nil
 	}
 
-	respBody, err = c.request(ctx, http.MethodPost,
-		fmt.Sprintf("/management/v1/projects/%s/apps/%s/oidc_config/_generate_client_secret", projectID, appID),
-		map[string]any{}, "")
-	if err != nil {
-		return Credentials{}, err
+	var generated struct {
+		ClientSecret string `json:"clientSecret"`
 	}
-	var generated generateSecretResponse
-	if err := json.Unmarshal(respBody, &generated); err != nil {
-		return Credentials{}, fmt.Errorf("provisioning: decode secret regeneration response: %w", err)
+	secretBody := map[string]any{"projectId": projectID, "applicationId": app.ID}
+	if err := c.call(ctx, applicationService, "GenerateClientSecret", secretBody, &generated, ""); err != nil {
+		return Credentials{}, err
 	}
 	if generated.ClientSecret == "" {
 		return Credentials{}, fmt.Errorf("provisioning: zitadel returned no clientSecret regenerating %q", spec.Name)
@@ -399,7 +394,8 @@ var loginPolicyFields = []string{
 
 const (
 	// instanceLoginPolicyPath is the Admin API login policy every
-	// organisation without its own custom policy inherits.
+	// organisation without its own custom policy inherits. Login policies stay
+	// on v1: Zitadel 4's settings.v2 service only reads them (see zitadel_v2.go).
 	instanceLoginPolicyPath = "/admin/v1/policies/login"
 	// orgLoginPolicyPath is the Management API login policy of the
 	// organisation the bootstrap PAT belongs to, which is where the

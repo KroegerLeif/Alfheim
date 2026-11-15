@@ -112,6 +112,7 @@
     "errors": {
       "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
       "forbidden": "Du hast keine Berechtigung, das in diesem Haushalt zu tun.",
+      "signup_not_allowed": "Neue Haushalte sind auf dieser Instanz eingeschränkt. Bitte ein Mitglied eines Haushalts, dich einzuladen.",
       "household_not_found": "Dieser Haushalt existiert nicht oder du bist kein Mitglied mehr.",
       "invite_not_found": "Dieser Einladungscode ist ungültig, abgelaufen oder wurde widerrufen.",
       "conflict": "Das steht im Konflikt mit dem aktuellen Zustand. {detail}",

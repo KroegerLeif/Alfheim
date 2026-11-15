@@ -12,7 +12,6 @@ from app.tests.conftest import test_engine, test_session_factory
 from backend_shared import oidc_discovery
 from backend_shared.telemetry import setup_telemetry, shutdown_telemetry
 from fastapi import Request
-from httpx import AsyncClient
 
 
 def test_settings_jwks_url_explicit_override_wins():
@@ -70,15 +69,6 @@ def test_discover_and_import_mcp_tools_error_handling():
     """Verify error logging when an MCP tool module fails to import."""
     with patch("importlib.import_module", side_effect=ImportError("MCP tool import fail")):
         discover_and_import_mcp_tools()
-
-
-@pytest.mark.asyncio
-async def test_health_check_endpoint(client: AsyncClient):
-    """Verify the /api/v1/health status endpoint."""
-    response = await client.get("/api/v1/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    assert "project" in response.json()
 
 
 @pytest.mark.asyncio

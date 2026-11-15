@@ -18,6 +18,7 @@ import (
 
 	"alfheim/go-shared/auth"
 	"alfheim/go-shared/db"
+	"alfheim/go-shared/health"
 	"alfheim/go-shared/httpmw"
 	"alfheim/go-shared/logger"
 	"alfheim/household/config"
@@ -25,6 +26,7 @@ import (
 	"alfheim/household/internal/features/household"
 	"alfheim/household/internal/features/membership"
 	"alfheim/household/internal/features/profile"
+	"alfheim/household/internal/features/signup"
 )
 
 var (
@@ -76,7 +78,12 @@ func run(parentCtx context.Context) error {
 	}
 	defer authenticator.Close()
 
-	r := buildRouter(log, dbClient, authenticator.AuthenticateMiddleware, cfg.InternalToken, cfg.CORS.AllowedOrigins)
+	ready := readinessCheck(dbClient, cfg.Database.MigrationsDir, log)
+	householdOpts, err := signupOptions(cfg, log)
+	if err != nil {
+		return err
+	}
+	r := buildRouter(log, dbClient, ready, authenticator.AuthenticateMiddleware, cfg.InternalToken, cfg.CORS.AllowedOrigins, householdOpts...)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -141,7 +148,7 @@ func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logge
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, authMw func(http.Handler) http.Handler, internalToken string, allowedOrigins []string) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, authMw func(http.Handler) http.Handler, internalToken string, allowedOrigins []string, householdOpts ...household.Option) http.Handler {
 	// An unauthenticated API must never be served: refuse to build the router.
 	if authMw == nil {
 		panic("household-backend: auth middleware is required to build the router")
@@ -155,7 +162,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, authMw func(http.Handler
 
 	// Initialize Services
 	profileService := profile.NewService(profileRepo, log)
-	householdService := household.NewService(householdRepo, log)
+	householdService := household.NewService(householdRepo, log, householdOpts...)
 	contactService := contact.NewService(contactRepo, householdRepo, log)
 
 	// Initialize Handlers
@@ -175,25 +182,8 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, authMw func(http.Handler
 	r.Use(httpmw.RequestLogger(log))
 	r.Use(httpmw.MaxBodySize(httpmw.DefaultMaxBodyBytes, nil))
 
-	// Health Check Endpoints
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"healthy","service":"household-backend"}`))
-	})
-
-	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if pool != nil {
-			if err := pool.Ping(r.Context()); err != nil {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				_, _ = w.Write([]byte(`{"status":"unready","database":"disconnected"}`))
-				return
-			}
-		}
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ready","database":"connected"}`))
-	})
+	// Liveness (/healthz) and database-aware readiness (/readyz) probes.
+	health.Register(r, "household-backend", ready, log)
 
 	// OIDC JWT validation only. Household authorization happens per request
 	// against household_members, keyed by the household id in the URL path;
@@ -207,4 +197,35 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, authMw func(http.Handler
 	membershipHandler.RegisterRoutes(r)
 
 	return r
+}
+
+// readinessCheck builds the /readyz check: the database must answer and its
+// schema must be at the newest migration shipped in migrationsDir. An
+// unreadable migrations directory keeps the backend unready instead of
+// crash-looping it, and is logged once here.
+func readinessCheck(dbClient *db.Client, migrationsDir string, log *slog.Logger) health.Check {
+	check, err := dbClient.ReadinessCheck(migrationsDir)
+	if err != nil {
+		log.Error("readiness check disabled: cannot read the migrations", slog.String("error", err.Error()))
+		return func(context.Context) error { return err }
+	}
+	return check
+}
+
+// signupOptions enables the sign-up allowlist (ADR 0009) when one is
+// configured. The caller's e-mail is read from the issuer's userinfo endpoint
+// with the same extra CA trust as JWKS discovery.
+func signupOptions(cfg *config.Config, log *slog.Logger) ([]household.Option, error) {
+	if !cfg.SignupAllowlist.Enabled() {
+		return nil, nil
+	}
+	transport, err := httpmw.ExtraCATransport()
+	if err != nil {
+		return nil, fmt.Errorf("sign-up allowlist: %w", err)
+	}
+	log.Info("household creation is restricted by ALFHEIM_SIGNUP_ALLOWLIST")
+	source := &signup.UserInfoSource{IssuerURL: cfg.OIDC.IssuerURL, HTTP: &http.Client{Transport: transport}}
+	return []household.Option{household.WithSignupPolicy(signup.Policy{
+		List: cfg.SignupAllowlist, Identity: source, Log: log,
+	})}, nil
 }

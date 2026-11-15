@@ -31,6 +31,10 @@ func (h *Handler) CreateHousehold(w http.ResponseWriter, r *http.Request) {
 			httpjson.WriteError(w, http.StatusConflict, "conflict", "household slug already in use")
 			return
 		}
+		if errors.Is(err, ErrSignupNotAllowed) {
+			httpjson.WriteError(w, http.StatusForbidden, "signup_not_allowed", ErrSignupNotAllowed.Error())
+			return
+		}
 		if errors.Is(err, ErrInvalidHouseholdName) {
 			writeServiceError(w, err, "")
 			return

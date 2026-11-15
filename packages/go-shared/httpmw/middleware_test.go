@@ -25,6 +25,22 @@ func TestRequestLogger(t *testing.T) {
 		}
 	})
 
+	t.Run("logs health probes at debug only", func(t *testing.T) {
+		var buf bytes.Buffer
+		log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo}))
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+		for _, path := range []string{"/healthz", "/readyz"} {
+			RequestLogger(log)(next).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, path, nil))
+		}
+		if buf.Len() != 0 {
+			t.Errorf("probes were logged at INFO: %s", buf.String())
+		}
+		RequestLogger(log)(next).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/v1/x", nil))
+		if !bytes.Contains(buf.Bytes(), []byte("/api/v1/x")) {
+			t.Errorf("an API request was not logged at INFO: %s", buf.String())
+		}
+	})
+
 	t.Run("extracts the traceparent header into the context", func(t *testing.T) {
 		var buf bytes.Buffer
 		var captured trace.SpanContext

@@ -674,17 +674,17 @@ func TestRenderedCaddyfileRouting(t *testing.T) {
 		t.Error("the gateway must not redirect bare app paths; next-intl owns locale selection")
 	}
 	for _, want := range []string{
-		"\thandle /api/v1/shopping* {\n\t\timport app_backend shopping-backend:8000 /health\n",
+		"\thandle /api/v1/shopping* {\n\t\timport app_backend shopping-backend:8000 /readyz\n",
 		"\thandle_path /shopping/api/v1* {\n\t\trewrite * /api/v1{path}\n",
-		"\thandle /api/v1/chores* {\n\t\timport app_backend chores-backend:8000 /api/v1/health\n",
+		"\thandle /api/v1/chores* {\n\t\timport app_backend chores-backend:8000 /readyz\n",
 		"\thandle_path /chores/api/v1* {\n\t\trewrite * /api/v1/chores{path}\n",
-		"\thandle /api/v1/library* {\n\t\timport app_backend library-backend:8000 /health\n",
+		"\thandle /api/v1/library* {\n\t\timport app_backend library-backend:8000 /readyz\n",
 		"\thandle_path /library/api/v1* {\n\t\trewrite * /api/v1/library{path}\n",
-		"\thandle /api/v1/chat* {\n\t\timport app_backend chat-backend:8080 /api/v1/chat/health\n",
+		"\thandle /api/v1/chat* {\n\t\timport app_backend chat-backend:8080 /readyz\n",
 		"\thandle_path /chat/api/v1* {\n\t\trewrite * /api/v1/chat{path}\n",
 		"\thandle_path /api/v1/pantry* {\n\t\trewrite * /api/v1{path}\n",
 		"\thandle_path /api/v1/budget* {\n\t\trewrite * /api/v1{path}\n",
-		"\thandle /api/v1/* {\n\t\timport app_backend dashboard-backend:8080 /healthz\n",
+		"\thandle /api/v1/* {\n\t\timport app_backend dashboard-backend:8080 /readyz\n",
 		"\thandle /shopping* {\n\t\treverse_proxy shopping-frontend:3010\n",
 		"\thandle /pantry* {\n\t\treverse_proxy pantry-frontend:3000\n",
 	} {
@@ -788,7 +788,7 @@ func TestRenderedCaddyfileResilience(t *testing.T) {
 		"\t\t\troot * /srv/alfheim-errors\n\t\t\trewrite * /app-unavailable.html\n",
 		"\t\t\t\tstatus 503\n",
 		"\timport security_headers\n\timport app_unavailable\n",
-		"\t\timport app_backend household-backend:8080 /healthz\n",
+		"\t\timport app_backend household-backend:8080 /readyz\n",
 	} {
 		if !strings.Contains(caddy, want) {
 			t.Errorf("the Caddyfile lacks %q", want)
@@ -819,5 +819,21 @@ func TestBootstrapPATExpiryIsOneWeekAfterGeneration(t *testing.T) {
 	m := Model{Generated: time.Date(2026, 11, 14, 10, 0, 0, 0, time.FixedZone("CET", 3600))}
 	if got := m.BootstrapPATExpiry(); got != "2026-11-21T09:00:00Z" {
 		t.Errorf("BootstrapPATExpiry() = %q", got)
+	}
+}
+
+// TestCORSOrigins covers #921: the rendered allowlist is the public app origin
+// and never a wildcard.
+func TestCORSOrigins(t *testing.T) {
+	for base, want := range map[string]string{
+		"https://alfheim.example.com":  "https://alfheim.example.com",
+		"http://alfheim.localhost/":    "http://alfheim.localhost",
+		"https://home.example.org:443": "https://home.example.org:443",
+	} {
+		m := Model{}
+		m.Onboarding.BaseURL = base
+		if got := m.CORSOrigins(); got != want || strings.Contains(got, "*") {
+			t.Errorf("CORSOrigins(%q) = %q, want %q", base, got, want)
+		}
 	}
 }

@@ -65,6 +65,16 @@ export function getServerMessage(error: unknown): string | undefined {
 
 export type ApiErrorContext = 'household' | 'invite' | 'action';
 
+/** Machine-readable `error` code of a household API error body, if any. */
+function errorCode(error: unknown): string | undefined {
+  if (!isApiError(error)) return undefined;
+  let body: unknown = error.data;
+  if (typeof body === 'string') body = parseJson(body);
+  if (!body || typeof body !== 'object') return undefined;
+  const code = (body as Record<string, unknown>).error;
+  return typeof code === 'string' ? code : undefined;
+}
+
 /**
  * Maps an API error to a user-facing, translated message. 401, 403 and 404 get
  * dedicated explanations; everything else keeps the backend's own explanation
@@ -77,7 +87,10 @@ export function describeApiError(error: unknown, t: Translate, context: ApiError
     case 401:
       return t('household_app.errors.unauthorized');
     case 403:
-      return t('household_app.errors.forbidden');
+      // The sign-up allowlist (ADR 0009) refuses a first household: say so instead of a permission error.
+      return errorCode(error) === 'signup_not_allowed'
+        ? t('household_app.errors.signup_not_allowed')
+        : t('household_app.errors.forbidden');
     case 404:
       return context === 'invite'
         ? t('household_app.errors.invite_not_found')

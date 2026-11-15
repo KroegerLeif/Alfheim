@@ -24,8 +24,9 @@ What happens at the first sign-in is decided in
 > **Your instance becomes open.** Anyone with an account at the provider who can
 > reach your instance can sign in and create their own household. They cannot see
 > other households. To keep the instance closed, restrict the audience at the
-> provider (Google: see below). Apple has no such restriction: do not enable
-> Apple on an instance that must stay closed.
+> provider (Google: see below) or set a
+> [sign-up allowlist](#restrict-who-can-create-a-household), which also works
+> for Apple.
 
 ## Google
 
@@ -188,6 +189,30 @@ which Caddy keeps and which sets no `form-action`, so it does not block
 Apple's form. The `auth_login` rate limit (30 login posts per minute and IP)
 does not cover this callback path.
 
+## Restrict who can create a household
+
+Set `ALFHEIM_SIGNUP_ALLOWLIST` in `.env` to the e-mail addresses and domains
+that may start using the instance ([ADR 0009](../explanation/decisions/0009-signup-allowlist.md)):
+
+```bash
+ALFHEIM_SIGNUP_ALLOWLIST=alice@example.com,@family.example
+```
+
+Then run `alfheim-setup update`. The value is kept when the installer re-renders
+`.env`.
+
+* Someone who belongs to no household can create one only when their
+  **verified** e-mail address, or its domain, is listed. Everyone else sees
+  "Creating a household is restricted on this instance" and needs an invite.
+* Invites always work, and a member of a household can create more households.
+* The rule applies to every account, social or not. List your own address too
+  if you ever need to start a fresh household without an invite.
+* A malformed entry (a wildcard, a bare word, `Name <address>`) stops
+  `household-backend` at startup; `docker compose logs household-backend` names
+  the entry.
+
+Leave the value empty to keep the instance open.
+
 ## Rotate a secret or key
 
 * **Google:** change `ALFHEIM_GOOGLE_CLIENT_SECRET` in `.env`.
@@ -227,6 +252,7 @@ still be removed in the Zitadel console.
 ## See also
 
 * [ADR 0008: Social login policy](../explanation/decisions/0008-social-login-policy.md)
+* [ADR 0009: Sign-up allowlist](../explanation/decisions/0009-signup-allowlist.md)
 * [Secrets hardening](secrets-hardening.md#social-login-credentials)
 * [Authentication and multi-tenancy](../explanation/authentication-security.md)
 * [Environment variables](../reference/environment-variables.md#social-login)

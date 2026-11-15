@@ -68,19 +68,23 @@ func newCredentialStub() *credentialStub {
 
 // handle answers a credential request and reports whether it did.
 func (c *credentialStub) handle(w http.ResponseWriter, r *http.Request) bool {
-	userPrefix := "/management/v1/users/" + stubMachineUserID + "/"
-	if r.URL.Path != "/auth/v1/users/me" && r.URL.Path != "/oauth/v2/token" &&
-		!strings.HasPrefix(r.URL.Path, userPrefix) {
+	const userService = "/zitadel.user.v2.UserService/"
+	if r.URL.Path != "/oidc/v1/userinfo" && r.URL.Path != "/oauth/v2/token" &&
+		!strings.HasPrefix(r.URL.Path, userService) {
 		return false
+	}
+	method := strings.TrimPrefix(r.URL.Path, userService)
+	var body map[string]any
+	if r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, userService) {
+		_ = json.NewDecoder(r.Body).Decode(&body)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")
-	rest := strings.TrimPrefix(r.URL.Path, userPrefix)
 	var resp any = map[string]any{}
 	switch {
-	case r.URL.Path == "/auth/v1/users/me":
-		resp = map[string]any{"user": map[string]any{"id": stubMachineUserID}}
+	case r.URL.Path == "/oidc/v1/userinfo":
+		resp = map[string]any{"sub": stubMachineUserID}
 	case r.URL.Path == "/oauth/v2/token":
 		kid := assertionKeyID(r)
 		if !c.keys[kid] {
@@ -90,19 +94,23 @@ func (c *credentialStub) handle(w http.ResponseWriter, r *http.Request) bool {
 		}
 		c.exchange++
 		resp = map[string]any{"access_token": "token-for-" + kid, "token_type": "Bearer", "expires_in": 43199}
-	case r.Method == http.MethodPost && rest == "keys":
+	case method == "GetUserByID":
+		resp = map[string]any{"user": map[string]any{
+			"userId": stubMachineUserID, "details": map[string]any{"resourceOwner": "org-1"},
+		}}
+	case method == "AddKey" && body["userId"] == stubMachineUserID:
 		c.nextKey++
 		id := fmt.Sprintf("key-%d", c.nextKey)
 		c.keys[id] = true
-		resp = map[string]any{"keyId": id, "keyDetails": base64.StdEncoding.EncodeToString(stubKeyJSON(id))}
-	case rest == "keys/_search":
+		resp = map[string]any{"keyId": id, "keyContent": base64.StdEncoding.EncodeToString(stubKeyJSON(id))}
+	case method == "ListKeys":
 		resp = map[string]any{"result": idResults(c.keys)}
-	case rest == "pats/_search":
+	case method == "ListPersonalAccessTokens":
 		resp = map[string]any{"result": idResults(c.pats)}
-	case r.Method == http.MethodDelete && strings.HasPrefix(rest, "keys/"):
-		delete(c.keys, strings.TrimPrefix(rest, "keys/"))
-	case r.Method == http.MethodDelete && strings.HasPrefix(rest, "pats/"):
-		delete(c.pats, strings.TrimPrefix(rest, "pats/"))
+	case method == "RemoveKey" && body["userId"] == stubMachineUserID:
+		delete(c.keys, fmt.Sprint(body["keyId"]))
+	case method == "RemovePersonalAccessToken" && body["userId"] == stubMachineUserID:
+		delete(c.pats, fmt.Sprint(body["tokenId"]))
 	default:
 		return false
 	}

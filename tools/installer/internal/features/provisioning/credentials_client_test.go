@@ -20,13 +20,13 @@ func TestHTTPClient_WithTokenLeavesTheOriginalAlone(t *testing.T) {
 
 func TestHTTPClient_CurrentUserID(t *testing.T) {
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/auth/v1/users/me" {
+		if r.Method != http.MethodGet || r.URL.Path != userinfoPath {
 			t.Errorf("request = %s %s", r.Method, r.URL.Path)
 		}
 		if r.Header.Get("Authorization") != "Bearer test-pat" {
 			t.Errorf("Authorization = %q", r.Header.Get("Authorization"))
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"user": map[string]any{"id": "machine-1"}})
+		writeJSON(w, http.StatusOK, map[string]any{"sub": "machine-1"})
 	})
 	id, err := c.CurrentUserID(context.Background())
 	if err != nil || id != "machine-1" {
@@ -38,7 +38,7 @@ func TestHTTPClient_CurrentUserIDFailures(t *testing.T) {
 	for name, respond := range map[string]func(w http.ResponseWriter){
 		"401":      func(w http.ResponseWriter) { writeJSON(w, http.StatusUnauthorized, map[string]any{}) },
 		"bad json": func(w http.ResponseWriter) { _, _ = w.Write([]byte("{")) },
-		"no id":    func(w http.ResponseWriter) { writeJSON(w, http.StatusOK, map[string]any{"user": map[string]any{}}) },
+		"no sub":   func(w http.ResponseWriter) { writeJSON(w, http.StatusOK, map[string]any{}) },
 	} {
 		c, _ := newTestClient(t, func(w http.ResponseWriter, _ *http.Request) { respond(w) })
 		if _, err := c.CurrentUserID(context.Background()); err == nil {
@@ -50,19 +50,16 @@ func TestHTTPClient_CurrentUserIDFailures(t *testing.T) {
 func TestHTTPClient_AddMachineKey(t *testing.T) {
 	expires := time.Date(2027, 2, 12, 8, 0, 0, 0, time.FixedZone("CET", 3600))
 	keyFile := []byte(`{"type":"serviceaccount","keyId":"key-1"}`)
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/management/v1/users/machine-1/keys" {
-			t.Errorf("request = %s %s", r.Method, r.URL.Path)
-		}
-		var body map[string]string
-		_ = json.NewDecoder(r.Body).Decode(&body)
-		if body["type"] != "KEY_TYPE_JSON" || body["expirationDate"] != "2027-02-12T07:00:00Z" {
-			t.Errorf("body = %v", body)
-		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"keyId": "key-1", "keyDetails": base64.StdEncoding.EncodeToString(keyFile),
-		})
-	})
+	c, _ := newTestClient(t, v2Fake(t, map[string]rpcReply{
+		userService + "AddKey": func(body map[string]any) (int, any) {
+			if body["userId"] != "machine-1" || body["expirationDate"] != "2027-02-12T07:00:00Z" {
+				t.Errorf("body = %v", body)
+			}
+			return 200, map[string]any{
+				"keyId": "key-1", "keyContent": base64.StdEncoding.EncodeToString(keyFile),
+			}
+		},
+	}, nil))
 	id, data, err := c.AddMachineKey(context.Background(), "machine-1", expires)
 	if err != nil || id != "key-1" || string(data) != string(keyFile) {
 		t.Fatalf("AddMachineKey() = %q, %q, %v", id, data, err)
@@ -74,7 +71,7 @@ func TestHTTPClient_AddMachineKeyFailures(t *testing.T) {
 		"403":      func(w http.ResponseWriter) { writeJSON(w, http.StatusForbidden, map[string]any{}) },
 		"bad json": func(w http.ResponseWriter) { _, _ = w.Write([]byte("{")) },
 		"bad base64": func(w http.ResponseWriter) {
-			writeJSON(w, http.StatusOK, map[string]any{"keyId": "k", "keyDetails": "%%"})
+			writeJSON(w, http.StatusOK, map[string]any{"keyId": "k", "keyContent": "%%"})
 		},
 		"empty reply": func(w http.ResponseWriter) { writeJSON(w, http.StatusOK, map[string]any{}) },
 	} {
@@ -86,20 +83,34 @@ func TestHTTPClient_AddMachineKeyFailures(t *testing.T) {
 }
 
 func TestHTTPClient_ListAndRemoveCredentials(t *testing.T) {
-	var deleted []string
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/keys/_search"):
-			writeJSON(w, http.StatusOK, map[string]any{"result": []map[string]string{{"id": "k1"}, {"id": "k2"}}})
-		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/pats/_search"):
-			writeJSON(w, http.StatusOK, map[string]any{"result": []map[string]string{{"id": "p1"}}})
-		case r.Method == http.MethodDelete:
-			deleted = append(deleted, r.URL.Path)
-			writeJSON(w, http.StatusOK, map[string]any{})
-		default:
-			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+	var removed []string
+	userFilter := func(body map[string]any) {
+		raw, _ := json.Marshal(body["filters"])
+		if string(raw) != `[{"userIdFilter":{"id":"machine-1"}}]` {
+			t.Errorf("filters = %s, want the machine user only", raw)
 		}
-	})
+	}
+	c, _ := newTestClient(t, v2Fake(t, map[string]rpcReply{
+		userService + "ListKeys": func(body map[string]any) (int, any) {
+			userFilter(body)
+			// k3 belongs to another user and must never be returned.
+			return 200, map[string]any{"result": []map[string]string{
+				{"id": "k1", "userId": "machine-1"}, {"id": "k2", "userId": "machine-1"}, {"id": "k3", "userId": "someone"},
+			}}
+		},
+		userService + "ListPersonalAccessTokens": func(body map[string]any) (int, any) {
+			userFilter(body)
+			return 200, map[string]any{"result": []map[string]string{{"id": "p1"}}}
+		},
+		userService + "RemoveKey": func(body map[string]any) (int, any) {
+			removed = append(removed, "key:"+body["userId"].(string)+"/"+body["keyId"].(string))
+			return 200, map[string]any{}
+		},
+		userService + "RemovePersonalAccessToken": func(body map[string]any) (int, any) {
+			removed = append(removed, "pat:"+body["userId"].(string)+"/"+body["tokenId"].(string))
+			return 200, map[string]any{}
+		},
+	}, nil))
 	ctx := context.Background()
 	keys, err := c.ListMachineKeys(ctx, "machine-1")
 	if err != nil || strings.Join(keys, ",") != "k1,k2" {
@@ -115,15 +126,14 @@ func TestHTTPClient_ListAndRemoveCredentials(t *testing.T) {
 	if err := c.RemovePersonalAccessToken(ctx, "machine-1", "p 1"); err != nil {
 		t.Errorf("RemovePersonalAccessToken() error = %v", err)
 	}
-	want := "/management/v1/users/machine-1/keys/k1,/management/v1/users/machine-1/pats/p 1"
-	if strings.Join(deleted, ",") != want {
-		t.Errorf("deleted = %v", deleted)
+	if want := "key:machine-1/k1,pat:machine-1/p 1"; strings.Join(removed, ",") != want {
+		t.Errorf("removed = %v", removed)
 	}
 }
 
 func TestHTTPClient_ListIDsFailures(t *testing.T) {
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "keys") {
+		if strings.HasSuffix(r.URL.Path, "ListKeys") {
 			writeJSON(w, http.StatusForbidden, map[string]any{})
 			return
 		}

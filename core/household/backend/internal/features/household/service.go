@@ -30,16 +30,36 @@ type Service interface {
 }
 
 type service struct {
-	repo Repository
-	log  *slog.Logger
+	repo   Repository
+	log    *slog.Logger
+	signup SignupPolicy
+}
+
+// SignupPolicy decides whether a caller who belongs to no household yet may
+// create one (ALFHEIM_SIGNUP_ALLOWLIST, #923). Members of a household, and
+// invited users joining one, are never asked.
+type SignupPolicy interface {
+	AllowHouseholdCreation(ctx context.Context, claims *auth.UserClaims) error
+}
+
+// Option configures the household service.
+type Option func(*service)
+
+// WithSignupPolicy restricts first-household creation to what p allows.
+func WithSignupPolicy(p SignupPolicy) Option {
+	return func(s *service) { s.signup = p }
 }
 
 // NewService constructs a household service implementation.
-func NewService(repo Repository, log *slog.Logger) Service {
-	return &service{
+func NewService(repo Repository, log *slog.Logger, opts ...Option) Service {
+	s := &service{
 		repo: repo,
 		log:  log,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // requireRole returns the requester's role in the household, or

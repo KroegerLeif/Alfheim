@@ -13,9 +13,13 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/otel/propagation"
+
+	"alfheim/go-shared/health"
 )
 
 // RequestLogger creates a middleware for structured request logging and W3C trace propagation.
+// Health probes (/healthz, /readyz) run every few seconds and are logged at
+// DEBUG; every other request at INFO.
 func RequestLogger(log *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +30,11 @@ func RequestLogger(log *slog.Logger) func(next http.Handler) http.Handler {
 			t1 := time.Now()
 
 			defer func() {
-				log.InfoContext(r.Context(), "http request",
+				level := slog.LevelInfo
+				if health.IsProbe(r.URL.Path) {
+					level = slog.LevelDebug
+				}
+				log.Log(r.Context(), level, "http request",
 					slog.String("method", r.Method),
 					slog.String("path", r.URL.Path),
 					slog.Int("status", ww.Status()),

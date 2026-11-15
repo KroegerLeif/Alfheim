@@ -22,3 +22,4 @@ sidebar:
 | [`0006`](./0006-household-authorization-via-membership-api.md) | Household Authorization via the Membership API | Accepted | 2026-09-19 | Backends check `X-Household-ID` against the `core/household` membership API; no household claims in tokens. |
 | [`0007`](./0007-lean-core-app-set.md) | Lean Core App Set | Accepted | 2026-11-12 | Infrastructure, dashboard and household always run; every `apps/*` app and telemetry is an optional compose profile. |
 | [`0008`](./0008-social-login-policy.md) | Social Login Policy (Google and Apple) | Accepted | 2026-11-14 | JIT provisioning, linking by verified e-mail only, households stay with `core/household`, registration stays off. |
+| [`0009`](./0009-signup-allowlist.md) | Optional Sign-up Allowlist for First Households | Accepted | 2026-11-15 | `ALFHEIM_SIGNUP_ALLOWLIST` limits first-household creation to verified, listed e-mail addresses or domains; invites always work. |

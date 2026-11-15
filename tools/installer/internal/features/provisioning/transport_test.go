@@ -95,7 +95,7 @@ func TestEndpoint_SecureDialsLoopbackWithSNIAndCustomRoot(t *testing.T) {
 	const host = "auth.alfheim.example.com"
 	pki := newTestPKI(t, host)
 	srv, seen := startTLSCaddy(t, pki, func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"result": []any{map[string]any{"id": "proj-9"}}})
+		writeJSON(w, 200, map[string]any{"sub": "machine-9"})
 	})
 
 	base, hc, err := Endpoint{
@@ -113,12 +113,12 @@ func TestEndpoint_SecureDialsLoopbackWithSNIAndCustomRoot(t *testing.T) {
 	}
 
 	c := &HTTPClient{BaseURL: base, Host: host, PAT: "pat", HTTP: hc, Clock: &noSleep{}}
-	id, err := c.EnsureProject(context.Background(), "Alfheim")
+	id, err := c.CurrentUserID(context.Background())
 	if err != nil {
-		t.Fatalf("EnsureProject() over HTTPS error = %v", err)
+		t.Fatalf("CurrentUserID() over HTTPS error = %v", err)
 	}
-	if id != "proj-9" {
-		t.Errorf("project id = %q", id)
+	if id != "machine-9" {
+		t.Errorf("user id = %q", id)
 	}
 	if len(*seen) != 1 || (*seen)[0] != host+"|"+host+"|Bearer pat" {
 		t.Errorf("requests = %v, want SNI and Host %s with the bearer token", *seen, host)

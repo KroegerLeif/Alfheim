@@ -151,3 +151,35 @@ func TestLoad_EnabledApps(t *testing.T) {
 		}
 	})
 }
+
+// TestLoad_CORSOrigins covers #921: production never falls back to the dev
+// hosts, operator origins are used as configured and a malformed list fails
+// startup.
+func TestLoad_CORSOrigins(t *testing.T) {
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "") // registers the restore
+	if err := os.Unsetenv("CORS_ALLOWED_ORIGINS"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 0 {
+		t.Errorf("production without CORS_ALLOWED_ORIGINS allows %v, want none", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://alfheim.example.com")
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 1 || cfg.CORS.AllowedOrigins[0] != "https://alfheim.example.com" {
+		t.Errorf("AllowedOrigins = %v", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "*")
+	if _, err := Load(); err == nil {
+		t.Error("a wildcard origin must fail Load()")
+	}
+}
