@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@alfheim/shared';
+import { Dialog, DialogContent, DialogTitle, useAutoClear } from '@alfheim/shared';
 import { useTranslation } from '@/i18n';
 import { buildJoinUrl } from '@/lib/routes';
 import { InviteCodeResponse } from '@/shared/types';
@@ -23,6 +23,7 @@ interface InviteModalProps {
 export function InviteModal({ isOpen, invite, onClose, origin }: InviteModalProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState<'token' | 'link' | null>(null);
+  useAutoClear(copied, () => setCopied(null), 2500);
 
   // The plaintext token only exists right after creation; listed invites cannot be shown.
   if (!isOpen || !invite?.token) return null;
@@ -33,7 +34,6 @@ export function InviteModal({ isOpen, invite, onClose, origin }: InviteModalProp
   const handleCopy = (value: string, which: 'token' | 'link') => {
     void navigator.clipboard?.writeText(value);
     setCopied(which);
-    setTimeout(() => setCopied(null), 2500);
   };
 
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTheme, useTranslation } from '@alfheim/shared';
+import { useAutoClear, useTheme, useTranslation } from '@alfheim/shared';
 import { useDashboardApps, useUpdateUserPreferences } from '@/features/apps';
 import { ThemePickerWidget } from '@/features/dashboard/components/ThemePickerWidget';
 import { CustomThemeBuilder } from '@/features/dashboard/components/CustomThemeBuilder';
@@ -15,6 +15,7 @@ export default function SettingsPage() {
 
   const [hiddenAppIds, setHiddenAppIds] = useState<string[]>(dashboard?.preferences?.hidden_app_ids ?? []);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  useAutoClear(statusMessage, () => setStatusMessage(null), 3000);
 
   // Follow the server's preferences whenever they are reloaded (adjusted during render, not in an effect).
   const [syncedDashboard, setSyncedDashboard] = useState(dashboard);
@@ -35,7 +36,6 @@ export default function SettingsPage() {
     updatePrefsMutation.mutate(updated, {
       onSuccess: () => {
         setStatusMessage(t('settings.visibility_updated'));
-        setTimeout(() => setStatusMessage(null), 3000);
       },
     });
   };

@@ -5,7 +5,7 @@ import { CreateDevicePayload, CreateStepPayload } from "@/shared/types";
 import { CATEGORIES } from "@/shared/data";
 import { useLayout } from "@/shared/layout/LayoutContext";
 import { X, Loader2, CheckCircle2 } from "lucide-react";
-import { cn } from "@alfheim/shared";
+import { cn, useAutoClear } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useHouseholds, useCreateDevice } from "../hooks/useDevices";
 import { DeviceDetailsForm } from "./DeviceDetailsForm";
@@ -49,8 +49,9 @@ export function AddDeviceWizard({ onClose }: AddDeviceWizardProps) {
   // Create device mutation using hook
   const mutation = useCreateDevice(() => {
     setSuccess(true);
-    setTimeout(onClose, 1200);
   });
+  // Close shortly after the success message; cancelled if the wizard unmounts first (#647).
+  useAutoClear(success, onClose, 1200);
 
   const handleAddStep = () => {
     setSteps((prev) => [...prev, { ...EMPTY_STEP }]);

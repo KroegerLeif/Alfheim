@@ -11,6 +11,7 @@ import {
   Printer,
   Trash2,
 } from "lucide-react";
+import { useAutoClear } from "@alfheim/shared";
 import { useNotifications } from "@/components/shared/Notifications";
 import type { ShoppingList } from "../types";
 import { ProgressRing } from "./ProgressRing";
@@ -45,6 +46,7 @@ export function DashboardHeader({
 
   const { notifyError } = useNotifications();
   const [copiedNotification, setCopiedNotification] = useState(false);
+  useAutoClear(copiedNotification, () => setCopiedNotification(false), 2000);
 
   const percentage = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
 
@@ -70,7 +72,6 @@ export function DashboardHeader({
       return;
     }
     setCopiedNotification(true);
-    setTimeout(() => setCopiedNotification(false), 2000);
   };
 
   const handlePrint = () => {
