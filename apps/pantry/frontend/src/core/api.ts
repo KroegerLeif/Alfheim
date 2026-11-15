@@ -1,77 +1,16 @@
-import ky from "ky";
-import {
-  resolveApiUrl,
-  resolveFrontendUrl,
-  LEGACY_ACCESS_TOKEN_KEY,
-  applyHouseholdHeaders,
-  reportHouseholdErrorResponse,
-} from "@alfheim/shared";
+import { createApiClient, resolveFrontendUrl } from "@alfheim/shared";
 
-// Sanitize and resolve base host URLs to bypass client-side path mutations
-const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = resolveApiUrl(defaultFallback, url);
-  if (resolved.startsWith("/")) {
-    if (typeof window !== "undefined") {
-      resolved = window.location.origin + resolved;
-    } else {
-      resolved = resolveFrontendUrl() + resolved;
-    }
-  }
-  if (resolved.endsWith("/")) {
-    resolved = resolved.slice(0, -1);
-  }
-  if (resolved.endsWith("/api/v1")) {
-    resolved = resolved.slice(0, -7);
-  }
-  return resolved + "/";
-};
-
-const BASE_URL = sanitizeUrl(process.env.NEXT_PUBLIC_API_URL, "/pantry/api/v1");
-
-/** Creates a ky client that carries the bearer token and household headers and handles 401 refresh. */
-const createApiClient = (prefixUrl: string) =>
-  ky.create({
-    prefix: prefixUrl,
-    timeout: 10000,
-    headers: {
-      "Content-Type": "application/json",
-    },
-    hooks: {
-      beforeRequest: [
-        ({ request }) => {
-          if (typeof window !== "undefined") {
-            const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
-            if (token) {
-              request.headers.set("Authorization", `Bearer ${token}`);
-            }
-            applyHouseholdHeaders(request.headers);
-          }
-        },
-      ],
-      afterResponse: [
-        async ({ request, options, response }) => {
-          if (response.status === 401 && typeof window !== "undefined") {
-            const oidcBridge = window.__alfheim_oidc__;
-            if (oidcBridge && typeof oidcBridge.refresh === "function") {
-              try {
-                const newToken = await oidcBridge.refresh();
-                if (newToken) {
-                  request.headers.set("Authorization", `Bearer ${newToken}`);
-                  return ky(request, options);
-                }
-              } catch (err) {
-                console.warn("OIDC token refresh failed on 401:", err);
-              }
-            }
-          }
-          await reportHouseholdErrorResponse(response);
-        },
-      ],
-    },
-  });
-
-export const pantryClient = createApiClient(BASE_URL);
-export type apiClientType = typeof pantryClient;
+/**
+ * Pantry API client: the shared client with the browser session (bearer token, 401 refresh,
+ * household headers), paths relative to the pantry API. Failed responses reject with the shared
+ * `ApiError`, which `readApiError` turns into a localizable message.
+ */
+export const pantryClient = createApiClient({
+  basePath: "/pantry/api/v1",
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  session: true,
+  timeoutMs: 10000,
+});
 
 /**
  * Public API of the shopping app, reached on the frontend origin (never through another app's database
@@ -79,7 +18,8 @@ export type apiClientType = typeof pantryClient;
  * to the shopping backend as `/api/v1`, so items are added with `POST shopping/items`. The runtime
  * `API_URL` only describes this app's own API, so it is deliberately not consulted here.
  */
-const SHOPPING_API_URL =
-  (typeof window !== "undefined" ? window.location.origin : resolveFrontendUrl()) + "/shopping/api/v1/";
-
-export const shoppingClient = createApiClient(SHOPPING_API_URL);
+export const shoppingClient = createApiClient({
+  baseUrl: (typeof window !== "undefined" ? window.location.origin : resolveFrontendUrl()) + "/shopping/api/v1",
+  session: true,
+  timeoutMs: 10000,
+});

@@ -78,11 +78,10 @@ describe('HouseholdSwitcher Component', () => {
     )
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith('/api/v1/households/me', {
-        headers: {
-          Authorization: 'Bearer test-jwt-token',
-        },
-      })
+      expect(fetchSpy).toHaveBeenCalled()
+      const [url, init] = fetchSpy.mock.calls[0]
+      expect(url).toBe('/api/v1/households/me')
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-jwt-token')
     })
 
     fetchSpy.mockRestore()

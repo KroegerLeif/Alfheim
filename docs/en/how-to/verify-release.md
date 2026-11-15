@@ -74,6 +74,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | Check | Expected |
 | --- | --- |
 | Installer exit code and `scripts/verify-stack.sh` | 0, every service healthy |
+| Zitadel login | Signing in from the dashboard redirects to `/ui/login/login` (Login V1), not `/ui/v2/login`; `GET /oauth/v2/keys` lists `RS256` keys |
 | Zitadel `GET /admin/v1/policies/login` | `allowRegister` absent or `false`; `/ui/login/register` answers "Registration is not allowed" |
 | Project `alfheim_operator` role | exists, granted to the admin, `projectRoleAssertion: true` |
 | Admin access token | carries `alfheim_operator` under `urn:zitadel:iam:org:project:roles` |
@@ -82,6 +83,8 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | `GET /api/v1/chat/mcp-servers/diagnostics`, `PATCH /api/v1/chat/mcp-servers/{id}` | 200 for the admin, 403 for others (the list itself is redacted for them) |
 | Budget receipt: attach a phone photo to a transaction | The browser posts the file to `/api/v1/budget/transactions/receipt` (never to `/storage/`); the stored object is a small WebP |
 | Chat attachment upload | 201, the object exists in RustFS |
+| Zitadel credential | `ZITADEL_BOOTSTRAP_PAT` in `.env` is empty, `infrastructure/zitadel/machinekey/pat.txt` is gone, `infrastructure/zitadel/provisioner/` has mode `0700` and `machine-key.json` mode `0600`; `alfheim-setup zitadel-token --env-file .env` prints a token |
+| Password reset by e-mail (with SMTP) | **Forgot password** is shown on the login page and the reset e-mail arrives. Against Mailpit, `ALFHEIM_SMTP_HOST=mailpit` makes `scripts/verify-stack.sh` check this on its own ([Configure e-mail](./configure-smtp.md#test-it-locally-with-mailpit)); without SMTP the link is hidden |
 
 Test the "others" rows with a second user who owns a household of their own:
 household roles must not unlock installation-wide resources.
@@ -99,7 +102,7 @@ alfheim-setup backup
 ```
 
 The archive must contain `database.sql`, `rustfs-data.tar`, `.env`, the Zitadel
-machinekey, the CA and Caddy PKI, the stack files and `manifest.json`.
+machinekey and provisioner key, the CA and Caddy PKI, the stack files and `manifest.json`.
 
 ---
 
@@ -113,7 +116,10 @@ alfheim-setup update --version v0.3.0-rc.2
 
 Expected: a pre-update backup is written before anything changes, the
 Caddyfile is re-rendered, Zitadel provisioning runs, every service restarts
-healthy and the final verification passes. All sample data is unchanged.
+healthy and the final verification passes. All sample data is unchanged. The
+`keyId` in `infrastructure/zitadel/provisioner/machine-key.json` has changed
+(the key is rotated), and the previous key is gone from the machine user in
+the Zitadel console.
 
 ---
 
@@ -144,4 +150,20 @@ data with it, then run `alfheim-setup update --version <candidate>`. Expected:
 - `.env` repairs are reported (`minio` → `rustfs`, `DOCKER_SOCKET_GID`);
 - registration is switched off and `alfheim_operator` is created and granted on
   the existing installation;
+- the long-lived `ZITADEL_BOOTSTRAP_PAT` is used once, revoked in Zitadel and
+  cleared from `.env`, a machine key is stored instead (directory `0700`,
+  file `0600`), and `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` is added to `.env`;
 - all data created with the previous release is still there and writable.
+
+Upgrading from v0.4.x or older also moves Zitadel from v2.66 to v4. Expected
+in addition:
+
+- Zitadel starts on the same database and masterkey and runs its setup
+  migrations on its own (`start-from-init` skips the init steps it already
+  finds);
+- tokens issued before the update are rejected (401), because v4 signs only
+  with new web keys; users sign in again and keep their Zitadel user ID, so
+  their households are unchanged;
+- for the first few minutes after the update, `GET /oauth/v2/keys` may return
+  `{"keys":null}` and sign-in may fail with `Errors.WebKey.NoActive` while
+  Zitadel catches up its projections; it recovers without intervention.

@@ -2,7 +2,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
+import { cn } from "@alfheim/shared";
 import { UNIT_CODES, unitLabel } from "../utils/units";
 
 interface UnitSelectorProps {

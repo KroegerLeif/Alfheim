@@ -17,12 +17,15 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"alfheim/dashboard/config"
+	"alfheim/dashboard/internal/features/apphealth"
 	"alfheim/dashboard/internal/features/apps"
 	"alfheim/dashboard/internal/features/capabilities"
 	"alfheim/dashboard/internal/features/telemetry"
-	"alfheim/dashboard/internal/shared/db"
-	"alfheim/dashboard/internal/shared/logger"
 	"alfheim/dashboard/internal/shared/middleware"
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/db"
+	"alfheim/go-shared/httpmw"
+	"alfheim/go-shared/logger"
 )
 
 var (
@@ -67,13 +70,15 @@ func run(parentCtx context.Context) error {
 	}
 
 	// Generic OIDC Bearer token authenticator (JWKS discovered from the issuer)
-	auth, err := setupAuth(cfg, log)
+	authenticator, err := setupAuth(ctx, cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
+	defer authenticator.Close()
 
-	r := buildRouter(log, dbClient, auth.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins)
+	enabledApps := apps.ParseEnabledApps(cfg.EnabledApps)
+	r := buildRouter(log, dbClient, authenticator.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins, enabledApps)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -129,12 +134,17 @@ func run(parentCtx context.Context) error {
 }
 
 // setupAuthenticator initializes the generic OIDC JWT authenticator from application configuration.
-func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.OIDC.IssuerURL, cfg.OIDC.Audience, log)
+func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+	return auth.NewAuthenticator(ctx, auth.Config{
+		IssuerURL: cfg.OIDC.IssuerURL,
+		Audience:  cfg.OIDC.Audience,
+		Logger:    log,
+	})
 }
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string) http.Handler {
+// enabledApps is the installation's ALFHEIM_ENABLED_APPS set; it decides which Tier-1 tiles exist.
+func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string, enabledApps apps.EnabledApps) http.Handler {
 	// An unauthenticated API must never be served: refuse to build the router.
 	if jwtMw == nil {
 		panic("dashboard-backend: auth middleware is required to build the router")
@@ -148,20 +158,27 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler)
 	stackLoader := apps.NewStackAppsLoader(stackAppsPath, log)
 
 	// Initialize Services
-	appsService := apps.NewService(appsRepo, stackLoader, log)
+	coreApps := apps.EnabledCoreApps(enabledApps)
+	appsService := apps.NewService(appsRepo, stackLoader, coreApps, log)
+	healthService := apphealth.NewService(healthTargets(coreApps), apphealth.NewHTTPProber(nil, apphealth.DefaultProbeTimeout), apphealth.DefaultCacheTTL, log)
 	telemetryService := telemetry.NewService("", log)
 
 	// Initialize Handlers
 	appsHandler := apps.NewHandler(appsService)
+	healthHandler := apphealth.NewHandler(healthService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
 	capabilitiesHandler := capabilities.NewHandler()
 
 	// Router Setup
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.CORSWithOrigins(allowedOrigins))
-	r.Use(middleware.RequestLogger(log))
-	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes))
+	r.Use(httpmw.CORSWithOrigins(httpmw.CORSConfig{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Household-ID", "X-Household-Role"},
+	}))
+	r.Use(httpmw.RequestLogger(log))
+	r.Use(httpmw.MaxBodySize(httpmw.DefaultMaxBodyBytes, nil))
 
 	// Health Check Endpoints
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -197,8 +214,21 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, jwtMw func(http.Handler)
 
 	// Register Feature Domain Routes
 	appsHandler.RegisterRoutes(r, authMw)
+	healthHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
 	capabilitiesHandler.RegisterRoutes(r, authMw)
 
 	return r
+}
+
+// healthTargets turns the enabled Tier-1 tiles into probe targets, so the
+// dashboard never probes an app that is switched off.
+func healthTargets(coreApps []apps.AppItem) []apphealth.Target {
+	targets := make([]apphealth.Target, 0, len(coreApps))
+	for _, app := range coreApps {
+		if url, ok := apps.HealthURL(app.ID); ok {
+			targets = append(targets, apphealth.Target{ID: app.ID, URL: url})
+		}
+	}
+	return targets
 }

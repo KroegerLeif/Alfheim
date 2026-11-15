@@ -20,15 +20,15 @@ describe('dashboard api client household header', () => {
 
   it('sends the active household as X-Household-ID and never X-Household-Role', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-dash')
-    await api.get('api/v1/apps').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
-    expect(request.headers.get('X-Household-ID')).toBe('hh-dash')
-    expect(request.headers.get('X-Household-Role')).toBeNull()
+    await api.get('apps').json()
+    const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers)
+    expect(headers.get('X-Household-ID')).toBe('hh-dash')
+    expect(headers.get('X-Household-Role')).toBeNull()
   })
 
   it('omits the header without an active household', async () => {
-    await api.get('api/v1/apps').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
-    expect(request.headers.get('X-Household-ID')).toBeNull()
+    await api.get('apps').json()
+    const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers)
+    expect(headers.get('X-Household-ID')).toBeNull()
   })
 })

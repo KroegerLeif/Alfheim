@@ -40,8 +40,9 @@ export async function readSSEStream(
     try {
       const errJson = await res.json();
       msg = errJson.message || msg;
-    } catch {
-      // fallback to status msg
+    } catch (error) {
+      // A non-JSON error body keeps the status message.
+      console.warn('Chat stream error response has no JSON body:', error);
     }
     handlers.onError(msg);
     return;

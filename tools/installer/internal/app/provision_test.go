@@ -228,7 +228,10 @@ func TestDefaultProvisioner_ReadPAT_WaitsWhenNeitherIsAvailableYet(t *testing.T)
 // I: once a PAT is resolved, it must be written into .env so a later run
 // against an already-initialised Zitadel (whose machinekey volume may be
 // gone) can still find it.
-func TestDefaultProvisioner_Provision_PersistsPATToEnv(t *testing.T) {
+// TestDefaultProvisioner_Provision_MigratesFirstInstancePAT covers a fresh
+// install: the PAT Zitadel wrote on first init is used once to store a
+// machine key, then revoked in Zitadel and deleted from disk.
+func TestDefaultProvisioner_Provision_MigratesFirstInstancePAT(t *testing.T) {
 	root := t.TempDir()
 	layout := paths.Layout{Root: root}
 	if err := layout.EnsureDirs(); err != nil {
@@ -286,8 +289,16 @@ func TestDefaultProvisioner_Provision_PersistsPATToEnv(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if vars["ZITADEL_BOOTSTRAP_PAT"] != "pat-from-file" {
-		t.Errorf("ZITADEL_BOOTSTRAP_PAT = %q, want it persisted", vars["ZITADEL_BOOTSTRAP_PAT"])
+	if vars["ZITADEL_BOOTSTRAP_PAT"] != "" {
+		t.Error("ZITADEL_BOOTSTRAP_PAT was written to .env; no PAT may be kept there")
+	}
+	if _, err := os.Stat(layout.ZitadelPATFile()); !os.IsNotExist(err) {
+		t.Errorf("PAT file still exists after migration (stat error %v)", err)
+	}
+	assertOwnerOnlyKey(t, layout)
+	keys, pats := policy.creds.state()
+	if len(keys) != 1 || len(pats) != 0 {
+		t.Errorf("Zitadel holds keys %v and PATs %v, want one key and no PAT", keys, pats)
 	}
 	if vars["FOO"] != "bar" {
 		t.Errorf("FOO = %q, want other keys left alone", vars["FOO"])
@@ -345,54 +356,6 @@ func TestDefaultProvisioner_Provision_ReportsABadRootCA(t *testing.T) {
 	_, err := p.Provision(context.Background(), layout, on, map[string]string{"ZITADEL_BOOTSTRAP_PAT": "pat"})
 	if err == nil || !strings.Contains(err.Error(), "missing.crt") {
 		t.Fatalf("error = %v, want the unreadable root CA named", err)
-	}
-}
-
-// TestDefaultProvisioner_Provision_SkipsPATWriteWhenUnchanged asserts the
-// .env is not rewritten when the resolved PAT already matches what is on
-// file, so a plain re-run does not touch .env for no reason.
-func TestDefaultProvisioner_Provision_SkipsPATWriteWhenUnchanged(t *testing.T) {
-	root := t.TempDir()
-	layout := paths.Layout{Root: root}
-	if err := layout.EnsureDirs(); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(layout.ZitadelPATFile(), []byte("same-pat"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	envContent := "ZITADEL_BOOTSTRAP_PAT=same-pat\n"
-	if err := os.WriteFile(layout.EnvFile(), []byte(envContent), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	before, err := os.Stat(layout.EnvFile())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// A failing (but fast, non-retried) Zitadel call after the PAT step
-	// still lets us assert the .env write (or non-write) that happens
-	// before it, without paying for the HTTP client's real retry backoff.
-	addr := startSecureZitadel(t, layout, "auth.example.com", http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
-		}))
-	p := &DefaultProvisioner{TLSAddr: addr, Sleep: instantSleep}
-	on := onboarding.Config{AuthHost: "auth.example.com", BaseURL: "https://alfheim.example.com", Secure: true}
-	_, _ = p.Provision(context.Background(), layout, on, map[string]string{"ZITADEL_BOOTSTRAP_PAT": "same-pat"})
-
-	after, err := os.Stat(layout.EnvFile())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !before.ModTime().Equal(after.ModTime()) {
-		t.Error(".env was rewritten even though the PAT did not change")
-	}
-	got, err := os.ReadFile(layout.EnvFile())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != envContent {
-		t.Errorf(".env content changed: %q", got)
 	}
 }
 

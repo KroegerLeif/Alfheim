@@ -28,7 +28,7 @@ export function useImportLowStock(listId: string) {
   return useMutation<ShoppingItem[], Error, void>({
     mutationFn: () =>
       shoppingClient
-        .post(`api/v1/shopping-lists/${listId}/auto-import-low-stock`)
+        .post(`shopping-lists/${listId}/auto-import-low-stock`)
         .json()
         .then((data) => z.array(ShoppingItemSchema).parse(data)),
     onSuccess: () => {
@@ -55,7 +55,7 @@ export function useSyncToPantry(listId: string) {
       const headers = householdHeaders(variables?.householdId ?? null);
       const json = variables?.itemIds ? { item_ids: variables.itemIds } : undefined;
       return shoppingClient
-        .post(`api/v1/shopping-lists/${listId}/sync-to-pantry`, { headers, json })
+        .post(`shopping-lists/${listId}/sync-to-pantry`, json, { headers })
         .json()
         .then((data) => SyncToPantryResponseSchema.parse(data));
     },
@@ -74,7 +74,7 @@ export function useCreatePantryProduct() {
     mutationFn: ({ householdId, ...payload }) => {
       const headers = householdHeaders(householdId ?? null);
       return pantryClient
-        .post("api/v1/products", { json: payload, headers })
+        .post("products", payload, { headers })
         .json()
         .then((data) => ProductReadSchema.parse(data));
     },

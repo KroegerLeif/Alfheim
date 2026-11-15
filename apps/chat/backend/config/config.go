@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"alfheim/chat/internal/shared/crypto"
+
+	"alfheim/go-shared/db"
 )
 
 // Config encapsulates all chat-backend service configurations.
@@ -25,6 +27,11 @@ type Config struct {
 	Attachments    AttachmentsConfig
 	Household      HouseholdConfig
 	MCPServersSpec string
+	// MCPServersSpecSet reports whether CHAT_MCP_SERVERS is present at all.
+	// The installer renders it from the enabled apps, so an empty value means
+	// "no tool apps installed", while a missing variable keeps the registry
+	// as it is.
+	MCPServersSpecSet bool
 }
 
 // HouseholdConfig locates core/household's internal membership API.
@@ -36,14 +43,9 @@ type HouseholdConfig struct {
 	InternalToken string
 }
 
-// DatabaseConfig holds PostgreSQL connection configuration settings.
-type DatabaseConfig struct {
-	URL             string
-	MaxConns        int32
-	MinConns        int32
-	MaxConnLifetime time.Duration
-	MigrationsDir   string
-}
+// DatabaseConfig holds PostgreSQL connection configuration settings. It is the
+// shared go-shared/db configuration, so it can be handed to db.NewClient as is.
+type DatabaseConfig = db.Config
 
 // OIDCConfig holds OpenID Connect verification settings used for bearer token validation.
 type OIDCConfig struct {
@@ -172,6 +174,7 @@ func Load() (*Config, error) {
 		},
 		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
 	}
+	_, cfg.MCPServersSpecSet = os.LookupEnv("CHAT_MCP_SERVERS")
 
 	if strings.TrimSpace(cfg.Household.InternalToken) == "" {
 		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")

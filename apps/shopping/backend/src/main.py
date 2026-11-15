@@ -80,9 +80,13 @@ setup_telemetry(app)
 
 @app.exception_handler(ShoppingError)
 async def shopping_error_handler(request: Request, exc: ShoppingError):
-    """Catch custom ShoppingError exceptions and return a structured i18n JSON payload."""
+    """Catch custom ShoppingError exceptions and return a structured i18n JSON payload.
+
+    Validation errors answer 400; failures of an upstream app (Pantry) carry their
+    own gateway status (502 or 503).
+    """
     return JSONResponse(
-        status_code=400,
+        status_code=exc.status_code,
         content={
             "detail": {
                 "error_code": exc.error_code,

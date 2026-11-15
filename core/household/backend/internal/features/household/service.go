@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Service defines business logic for household management, authorization, and invitations.
@@ -12,7 +12,7 @@ import (
 // Authorization is always derived from household_members for the household id
 // passed in; it never trusts client-supplied household or role headers.
 type Service interface {
-	CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
+	CreateHousehold(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
 	GetUserHouseholds(ctx context.Context, userID string) ([]HouseholdResponse, error)
 	GetHouseholdDetails(ctx context.Context, requesterID string, householdID string) (*HouseholdResponse, error)
 	RenameHousehold(ctx context.Context, requesterID string, householdID string, req RenameHouseholdRequest) (*HouseholdResponse, error)
@@ -23,7 +23,7 @@ type Service interface {
 	CreateInvite(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error)
 	ListInvites(ctx context.Context, requesterID string, householdID string) ([]InviteResponse, error)
 	RevokeInvite(ctx context.Context, requesterID string, householdID string, token string) error
-	JoinHousehold(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error)
+	JoinHousehold(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error)
 	RemoveMember(ctx context.Context, requesterID string, householdID string, targetUserID string) error
 	UpdateMemberRole(ctx context.Context, requesterID string, householdID string, targetUserID string, newRole HouseholdRole) error
 	UpdateHouseholdAddress(ctx context.Context, requesterID string, householdID string, req UpdateHouseholdAddressRequest) error

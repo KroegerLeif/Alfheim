@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 	"github.com/go-chi/chi/v5"
 )
 
 type mockService struct {
-	createHouseholdFn        func(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
+	createHouseholdFn        func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
 	getUserHouseholdsFn      func(ctx context.Context, userID string) ([]HouseholdResponse, error)
 	getHouseholdDetailsFn    func(ctx context.Context, requesterID string, householdID string) (*HouseholdResponse, error)
 	createInviteFn           func(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error)
-	joinHouseholdFn          func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error)
+	joinHouseholdFn          func(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error)
 	removeMemberFn           func(ctx context.Context, requesterID string, householdID string, targetUserID string) error
 	updateMemberRoleFn       func(ctx context.Context, requesterID string, householdID string, targetUserID string, newRole HouseholdRole) error
 	updateHouseholdAddressFn func(ctx context.Context, requesterID string, householdID string, req UpdateHouseholdAddressRequest) error
@@ -80,7 +80,7 @@ func (m *mockService) RevokeInvite(ctx context.Context, requesterID, householdID
 	return nil
 }
 
-func (m *mockService) CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+func (m *mockService) CreateHousehold(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 	if m.createHouseholdFn != nil {
 		return m.createHouseholdFn(ctx, claims, req)
 	}
@@ -108,7 +108,7 @@ func (m *mockService) CreateInvite(ctx context.Context, requesterID string, req 
 	return nil, nil
 }
 
-func (m *mockService) JoinHousehold(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+func (m *mockService) JoinHousehold(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error) {
 	if m.joinHouseholdFn != nil {
 		return m.joinHouseholdFn(ctx, claims, token)
 	}
@@ -136,17 +136,17 @@ func (m *mockService) UpdateHouseholdAddress(ctx context.Context, requesterID st
 	return nil
 }
 
-func withUserClaims(req *http.Request, claims *middleware.UserClaims) *http.Request {
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
+func withUserClaims(req *http.Request, claims *auth.UserClaims) *http.Request {
+	ctx := context.WithValue(req.Context(), auth.UserContextKey, claims)
 	return req.WithContext(ctx)
 }
 
 func TestHouseholdHandler_CreateHousehold(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		body           string
-		mockFn         func(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
+		mockFn         func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
 		expectedStatus int
 		expectedSubstr string
 	}{
@@ -159,16 +159,16 @@ func TestHouseholdHandler_CreateHousehold(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			body:           `{invalid}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedSubstr: "invalid json payload",
 		},
 		{
 			name:   "conflict when slug exists",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"name":"Test","slug":"exists"}`,
-			mockFn: func(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 				return nil, ErrHouseholdSlugExists
 			},
 			expectedStatus: http.StatusConflict,
@@ -176,9 +176,9 @@ func TestHouseholdHandler_CreateHousehold(t *testing.T) {
 		},
 		{
 			name:   "internal server error on service failure",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"name":"Test"}`,
-			mockFn: func(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 				return nil, errors.New("db error")
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -186,9 +186,9 @@ func TestHouseholdHandler_CreateHousehold(t *testing.T) {
 		},
 		{
 			name:   "success creating household",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"name":"Test Household"}`,
-			mockFn: func(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 				return &HouseholdResponse{ID: "hh-123", Name: req.Name}, nil
 			},
 			expectedStatus: http.StatusCreated,
@@ -222,7 +222,7 @@ func TestHouseholdHandler_CreateHousehold(t *testing.T) {
 func TestHouseholdHandler_GetMyHouseholds(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		mockFn         func(ctx context.Context, userID string) ([]HouseholdResponse, error)
 		expectedStatus int
 		expectedSubstr string
@@ -235,7 +235,7 @@ func TestHouseholdHandler_GetMyHouseholds(t *testing.T) {
 		},
 		{
 			name:   "internal error on service error",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			mockFn: func(ctx context.Context, userID string) ([]HouseholdResponse, error) {
 				return nil, errors.New("db error")
 			},
@@ -244,7 +244,7 @@ func TestHouseholdHandler_GetMyHouseholds(t *testing.T) {
 		},
 		{
 			name:   "success returning households",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			mockFn: func(ctx context.Context, userID string) ([]HouseholdResponse, error) {
 				return []HouseholdResponse{{ID: "hh-1", Name: "My House"}}, nil
 			},
@@ -279,7 +279,7 @@ func TestHouseholdHandler_GetMyHouseholds(t *testing.T) {
 func TestHouseholdHandler_GetHouseholdDetails(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		urlParamID     string
 		mockFn         func(ctx context.Context, requesterID string, householdID string) (*HouseholdResponse, error)
 		expectedStatus int
@@ -294,7 +294,7 @@ func TestHouseholdHandler_GetHouseholdDetails(t *testing.T) {
 		},
 		{
 			name:       "not found when household missing",
-			claims:     &middleware.UserClaims{Subject: "user-1"},
+			claims:     &auth.UserClaims{Subject: "user-1"},
 			urlParamID: "hh-missing",
 			mockFn: func(ctx context.Context, requesterID, householdID string) (*HouseholdResponse, error) {
 				return nil, ErrHouseholdNotFound
@@ -304,7 +304,7 @@ func TestHouseholdHandler_GetHouseholdDetails(t *testing.T) {
 		},
 		{
 			name:       "forbidden when user not member",
-			claims:     &middleware.UserClaims{Subject: "user-1"},
+			claims:     &auth.UserClaims{Subject: "user-1"},
 			urlParamID: "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) (*HouseholdResponse, error) {
 				return nil, ErrUnauthorizedHouseholdAccess
@@ -314,7 +314,7 @@ func TestHouseholdHandler_GetHouseholdDetails(t *testing.T) {
 		},
 		{
 			name:       "internal error on generic service error",
-			claims:     &middleware.UserClaims{Subject: "user-1"},
+			claims:     &auth.UserClaims{Subject: "user-1"},
 			urlParamID: "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) (*HouseholdResponse, error) {
 				return nil, errors.New("db failure")
@@ -324,7 +324,7 @@ func TestHouseholdHandler_GetHouseholdDetails(t *testing.T) {
 		},
 		{
 			name:       "success getting details",
-			claims:     &middleware.UserClaims{Subject: "user-1"},
+			claims:     &auth.UserClaims{Subject: "user-1"},
 			urlParamID: "hh-1",
 			mockFn: func(ctx context.Context, requesterID, householdID string) (*HouseholdResponse, error) {
 				return &HouseholdResponse{ID: "hh-1", Name: "Detail House"}, nil
@@ -363,7 +363,7 @@ func TestHouseholdHandler_GetHouseholdDetails(t *testing.T) {
 func TestHouseholdHandler_CreateInvite(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		body           string
 		mockFn         func(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error)
 		expectedStatus int
@@ -378,14 +378,14 @@ func TestHouseholdHandler_CreateInvite(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			body:           `{bad json}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedSubstr: "invalid json payload",
 		},
 		{
 			name:   "forbidden when unauthorized",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"household_id":"hh-1"}`,
 			mockFn: func(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error) {
 				return nil, ErrUnauthorizedHouseholdAccess
@@ -395,7 +395,7 @@ func TestHouseholdHandler_CreateInvite(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic failure",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"household_id":"hh-1"}`,
 			mockFn: func(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error) {
 				return nil, errors.New("error")
@@ -405,7 +405,7 @@ func TestHouseholdHandler_CreateInvite(t *testing.T) {
 		},
 		{
 			name:   "success creating invite",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"household_id":"hh-1","role":"MEMBER"}`,
 			mockFn: func(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error) {
 				return &InviteResponse{Token: "token-123", HouseholdID: req.HouseholdID}, nil
@@ -441,9 +441,9 @@ func TestHouseholdHandler_CreateInvite(t *testing.T) {
 func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		body           string
-		mockFn         func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error)
+		mockFn         func(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error)
 		expectedStatus int
 		expectedSubstr string
 	}{
@@ -456,16 +456,16 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 		},
 		{
 			name:           "bad request on empty token",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			body:           `{"token":""}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedSubstr: "invite token is required",
 		},
 		{
 			name:   "bad request on invalid or expired invite token",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"token":"expired-token"}`,
-			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error) {
 				return nil, ErrInviteExpiredOrInvalid
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -473,9 +473,9 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 		},
 		{
 			name:   "conflict when user already member",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"token":"valid-token"}`,
-			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error) {
 				return nil, ErrMemberAlreadyExists
 			},
 			expectedStatus: http.StatusConflict,
@@ -483,9 +483,9 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 		},
 		{
 			name:   "internal error on generic service error",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"token":"valid-token"}`,
-			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error) {
 				return nil, errors.New("db error")
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -493,9 +493,9 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 		},
 		{
 			name:   "success joining household",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			body:   `{"token":"valid-token"}`,
-			mockFn: func(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+			mockFn: func(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error) {
 				return &HouseholdResponse{ID: "hh-joined", Name: "Joined House"}, nil
 			},
 			expectedStatus: http.StatusOK,
@@ -529,7 +529,7 @@ func TestHouseholdHandler_JoinHousehold(t *testing.T) {
 func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		targetUserID   string
 		body           string
@@ -548,7 +548,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			hhID:           "hh-1",
 			targetUserID:   "user-2",
 			body:           `{invalid}`,
@@ -557,7 +557,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:         "forbidden on unauthorized access",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			body:         `{"role":"ADMIN"}`,
@@ -569,7 +569,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:         "not found when member missing",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			body:         `{"role":"ADMIN"}`,
@@ -581,7 +581,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:         "internal error on generic error",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			body:         `{"role":"ADMIN"}`,
@@ -593,7 +593,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:         "bad request on invalid role",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			body:         `{"role":"superuser"}`,
@@ -605,7 +605,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:         "forbidden when assigning OWNER",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			body:         `{"role":"OWNER"}`,
@@ -617,7 +617,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:         "bad request when changing the owner's role",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "owner-1",
 			body:         `{"role":"MEMBER"}`,
@@ -629,7 +629,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 		},
 		{
 			name:         "success updating member role",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			body:         `{"role":"ADMIN"}`,
@@ -671,7 +671,7 @@ func TestHouseholdHandler_UpdateMemberRole(t *testing.T) {
 func TestHouseholdHandler_RemoveMember(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		targetUserID   string
 		mockFn         func(ctx context.Context, requesterID, householdID, targetUserID string) error
@@ -688,7 +688,7 @@ func TestHouseholdHandler_RemoveMember(t *testing.T) {
 		},
 		{
 			name:         "bad request when removing owner",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "owner-id",
 			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string) error {
@@ -699,7 +699,7 @@ func TestHouseholdHandler_RemoveMember(t *testing.T) {
 		},
 		{
 			name:         "forbidden when unauthorized to remove",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string) error {
@@ -710,7 +710,7 @@ func TestHouseholdHandler_RemoveMember(t *testing.T) {
 		},
 		{
 			name:         "not found when member not found",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string) error {
@@ -721,7 +721,7 @@ func TestHouseholdHandler_RemoveMember(t *testing.T) {
 		},
 		{
 			name:         "internal error on generic failure",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string) error {
@@ -732,7 +732,7 @@ func TestHouseholdHandler_RemoveMember(t *testing.T) {
 		},
 		{
 			name:         "success removing member",
-			claims:       &middleware.UserClaims{Subject: "user-1"},
+			claims:       &auth.UserClaims{Subject: "user-1"},
 			hhID:         "hh-1",
 			targetUserID: "user-2",
 			mockFn: func(ctx context.Context, requesterID, householdID, targetUserID string) error {
@@ -773,7 +773,7 @@ func TestHouseholdHandler_RemoveMember(t *testing.T) {
 func TestHouseholdHandler_UpdateHouseholdAddress(t *testing.T) {
 	tests := []struct {
 		name           string
-		claims         *middleware.UserClaims
+		claims         *auth.UserClaims
 		hhID           string
 		body           string
 		mockFn         func(ctx context.Context, requesterID, householdID string, req UpdateHouseholdAddressRequest) error
@@ -790,7 +790,7 @@ func TestHouseholdHandler_UpdateHouseholdAddress(t *testing.T) {
 		},
 		{
 			name:           "bad request on invalid json",
-			claims:         &middleware.UserClaims{Subject: "user-1"},
+			claims:         &auth.UserClaims{Subject: "user-1"},
 			hhID:           "hh-1",
 			body:           `{invalid}`,
 			expectedStatus: http.StatusBadRequest,
@@ -798,7 +798,7 @@ func TestHouseholdHandler_UpdateHouseholdAddress(t *testing.T) {
 		},
 		{
 			name:   "not found when household missing",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-missing",
 			body:   `{"street":"Main St"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req UpdateHouseholdAddressRequest) error {
@@ -809,7 +809,7 @@ func TestHouseholdHandler_UpdateHouseholdAddress(t *testing.T) {
 		},
 		{
 			name:   "forbidden when unauthorized",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"street":"Main St"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req UpdateHouseholdAddressRequest) error {
@@ -820,7 +820,7 @@ func TestHouseholdHandler_UpdateHouseholdAddress(t *testing.T) {
 		},
 		{
 			name:   "internal error on service failure",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"street":"Main St"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req UpdateHouseholdAddressRequest) error {
@@ -831,7 +831,7 @@ func TestHouseholdHandler_UpdateHouseholdAddress(t *testing.T) {
 		},
 		{
 			name:   "success updating address",
-			claims: &middleware.UserClaims{Subject: "user-1"},
+			claims: &auth.UserClaims{Subject: "user-1"},
 			hhID:   "hh-1",
 			body:   `{"street":"Main St","city":"Zurich"}`,
 			mockFn: func(ctx context.Context, requesterID, householdID string, req UpdateHouseholdAddressRequest) error {
@@ -880,7 +880,7 @@ func TestHouseholdHandler_RegisterRoutes(t *testing.T) {
 	r := chi.NewRouter()
 	authMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"})
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -899,7 +899,7 @@ func TestHouseholdHandler_RegisterRoutes(t *testing.T) {
 
 func TestHouseholdHandler_MissingHouseholdID(t *testing.T) {
 	handler := NewHandler(&mockService{})
-	ctx := context.WithValue(context.Background(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"})
+	ctx := context.WithValue(context.Background(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"})
 
 	t.Run("GetHouseholdDetails missing id", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/details", nil).WithContext(ctx)

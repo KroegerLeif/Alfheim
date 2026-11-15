@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"os"
 	"testing"
 	"time"
 )
@@ -178,4 +179,27 @@ func TestAttachmentURLSecretConfig(t *testing.T) {
 			t.Fatal("expected an error for a zero ttl")
 		}
 	})
+}
+
+func TestLoad_MCPServersSpecSet(t *testing.T) {
+	t.Setenv("ALFHEIM_INTERNAL_TOKEN", "internal-token")
+	t.Setenv("CHAT_MCP_SERVERS", "")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.MCPServersSpecSet || cfg.MCPServersSpec != "" {
+		t.Errorf("empty CHAT_MCP_SERVERS: set=%t spec=%q", cfg.MCPServersSpecSet, cfg.MCPServersSpec)
+	}
+
+	if err := os.Unsetenv("CHAT_MCP_SERVERS"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.MCPServersSpecSet {
+		t.Error("a missing CHAT_MCP_SERVERS must not count as set")
+	}
 }

@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { ShoppingCart, Download, Send, Trash2, CheckCircle2, Loader2 } from "lucide-react";
-import { cn } from "@/core/utils";
 import { useTranslations } from "next-intl";
-import { PermissionHint, useHouseholdPermission } from "@alfheim/shared";
+import { PermissionHint, useHouseholdPermission, cn } from "@alfheim/shared";
 import { useCart } from "../hooks/useCart";
 import { useSendToShopping } from "../hooks/useSendToShopping";
 import { buildCartCsv } from "../utils/csv";

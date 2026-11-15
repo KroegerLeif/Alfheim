@@ -1,20 +1,4 @@
-import { getRequestConfig } from "next-intl/server";
-import { notFound } from "next/navigation";
-import { locales } from "./navigation";
-import { getSharedMessages, Language } from "@alfheim/shared";
+import { createRequestConfig } from "@alfheim/shared/i18n/request";
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  const locale = await requestLocale;
-
-  // Validate that the incoming locale is supported
-  if (!locale || !locales.includes(locale as (typeof locales)[number])) {
-    notFound();
-  }
-
-  const messages = getSharedMessages(locale as Language);
-
-  return {
-    locale,
-    messages,
-  };
-});
+/** next-intl request config: validates the locale segment and serves the shared messages. */
+export default createRequestConfig();

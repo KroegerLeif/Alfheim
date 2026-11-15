@@ -28,7 +28,7 @@ export const TechStackSection: React.FC = () => {
       category: t('docs.techStack.categories.platform'),
       icon: Container,
       color: 'text-purple-400',
-      items: [t('docs.techStack.items.compose'), t('docs.techStack.items.caddy'), 'Zitadel 2 (OIDC / OAuth2)', 'WireGuard / Tailscale Enclave'],
+      items: [t('docs.techStack.items.compose'), t('docs.techStack.items.caddy'), 'Zitadel 4 (OIDC / OAuth2)', 'WireGuard / Tailscale Enclave'],
     },
   ];
 

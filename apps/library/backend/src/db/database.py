@@ -1,41 +1,37 @@
 """Database connection, session management, and initialization for Library microservice."""
 
-import os
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from backend_shared import db
+from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.migrations import run_migrations
+from src.config import settings
+from src.db.migrations import MIGRATION_LOCK_KEY, load_models
 
-# Database connection settings
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://library_user:postgres@localhost:5432/alfheim_library",
-)
-SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() in ("true", "1", "t")
+# Backend root holding alembic.ini and the alembic/ script directory.
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
-# Create the async engine
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=SQL_ECHO,
-    future=True,
-)
+DATABASE_URL = settings.DATABASE_URL
 
-# Configure the session factory
-async_session_factory = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+engine, async_session_factory = db.create_engine_and_session(settings)
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Provide an async database session dependency for FastAPI routes."""
+    """Provide a database session dependency for FastAPI routes."""
     async with async_session_factory() as session:
         yield session
 
 
+async def run_migrations(target: AsyncEngine) -> None:
+    """Upgrade the database behind ``target`` to the Alembic head revision under this service's lock."""
+    await db.run_migrations(
+        target, load_models, MIGRATION_LOCK_KEY, backend_dir=BACKEND_DIR, metadata=SQLModel.metadata
+    )
+
+
 async def init_db() -> None:
-    """Bring the database schema to the latest Alembic revision (see ``src.db.migrations``)."""
+    """Bring the database schema to the latest Alembic revision (see ``backend_shared.db``)."""
     await run_migrations(engine)

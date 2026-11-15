@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"slices"
+	"time"
 
 	"alfheim/chat/internal/shared/llm"
 	"alfheim/chat/internal/shared/mcp"
@@ -20,6 +21,19 @@ type MCPServerLister interface {
 // supply fake mcp.ToolCaller instances instead of dialing a real MCP server.
 type MCPClientPool interface {
 	Get(endpointURL string) mcp.ToolCaller
+}
+
+// toolDiscoveryTimeout bounds tool discovery per MCP server, so an app that
+// is disabled, stopped or hanging only makes its own tools unavailable and
+// delays the chat turn by a few seconds at most. A variable so tests can
+// shorten it.
+var toolDiscoveryTimeout = 5 * time.Second
+
+// discoverTools lists one server's tools within toolDiscoveryTimeout.
+func discoverTools(ctx context.Context, client mcp.ToolCaller) ([]mcp.Tool, error) {
+	ctx, cancel := context.WithTimeout(ctx, toolDiscoveryTimeout)
+	defer cancel()
+	return client.ListTools(ctx)
 }
 
 // buildToolDefinitions discovers tools from every enabled MCP server allowed by
@@ -49,8 +63,7 @@ func buildToolDefinitions(
 			continue
 		}
 
-		client := pool.Get(server.EndpointURL)
-		tools, err := client.ListTools(ctx)
+		tools, err := discoverTools(ctx, pool.Get(server.EndpointURL))
 		if err != nil {
 			log.Warn("failed to list tools from mcp server; skipping",
 				slog.String("app_slug", server.Slug), slog.String("error", err.Error()))

@@ -14,6 +14,30 @@ The local Grafana `admin` account (`GRAFANA_ADMIN_USER` and
 `GRAFANA_ADMIN_PASSWORD` in `.env`) is unaffected, so you can always sign in
 with it to recover access.
 
+## Turn telemetry on
+
+Grafana is part of the optional `telemetry` module (see
+[ADR 0007](../explanation/decisions/0007-lean-core-app-set.md)). A fresh install
+runs without it (`OTEL_ENABLED=false`): no Grafana OIDC client is created and
+`/grafana` redirects to the dashboard. To turn it on, from the installation root:
+
+1. Enable the module. This adds `telemetry` to `ALFHEIM_ENABLED_APPS` and
+   `COMPOSE_PROFILES`, sets `OTEL_ENABLED=true` and starts the telemetry
+   containers:
+
+   ```bash
+   alfheim-setup apps enable telemetry
+   ```
+
+2. Run `alfheim-setup update`. It provisions the Grafana client, re-renders
+   the Caddyfile with the `/grafana` route and recreates the backends so they
+   start exporting.
+
+`alfheim-setup apps disable telemetry` turns it off again. The Grafana
+credentials stay in `.env`, so a later re-enable reuses them, and the metrics
+and log volumes are kept. The hidden `provision --telemetry[=false]` flag does
+the same toggle for scripts.
+
 ## Automatic setup
 
 `alfheim-setup` creates the project role `alfheim_operator` on the **Alfheim**

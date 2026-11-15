@@ -13,15 +13,13 @@ export interface ShoppingExportResult {
  */
 async function pushItem({ product, current_stock }: LowStockItem): Promise<void> {
   await shoppingClient.post("shopping/items", {
-    json: {
       name: product.name,
       brand: product.brand,
       barcode: product.barcode,
       quantity: Math.max(1, product.minimum_stock - current_stock),
       unit: product.base_unit || "piece",
       product_id: product.id,
-    },
-  });
+    });
 }
 
 /**

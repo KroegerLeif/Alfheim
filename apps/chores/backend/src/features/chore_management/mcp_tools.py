@@ -6,9 +6,9 @@ from datetime import date
 from backend_shared import mcp_middleware
 from backend_shared.household import derive_user_id
 from backend_shared.mcp_middleware import get_mcp_household_context
+from backend_shared.mcp_permissions import mcp_requires_role
 from sqlmodel import select
 from src.core.database import async_session_factory
-from src.core.permissions import mcp_requires_role
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
 from src.features.chore_management.schemas import ChoreAssignRequest
 from src.features.chore_management.service import ChoreService

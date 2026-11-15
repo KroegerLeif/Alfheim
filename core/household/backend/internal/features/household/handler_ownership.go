@@ -6,13 +6,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/shared/httpjson"
-	"alfheim/household/internal/shared/middleware"
 )
 
 // TransferOwnership handles POST /api/v1/households/{id}/transfer-ownership (OWNER only).
 func (h *Handler) TransferOwnership(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -34,7 +34,7 @@ func (h *Handler) TransferOwnership(w http.ResponseWriter, r *http.Request) {
 
 // LeaveHousehold handles POST /api/v1/households/{id}/leave (any member except OWNER).
 func (h *Handler) LeaveHousehold(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -49,7 +49,7 @@ func (h *Handler) LeaveHousehold(w http.ResponseWriter, r *http.Request) {
 
 // SetDefaultHousehold handles PUT /api/v1/households/{id}/default.
 func (h *Handler) SetDefaultHousehold(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return

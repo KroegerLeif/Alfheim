@@ -1,10 +1,14 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { isNetworkError } from 'ky'
 import { getRequestErrorMessage, householdHeaders, subscribeHouseholdErrors } from '@alfheim/shared'
 import { shoppingClient, pantryClient } from '../api'
 import { ShoppingErrorBanner } from '@/features/shopping-lists/components/ShoppingErrorBanner'
+
+/** The request the shared client passed to `fetch` as (url, init), as a `Request`. */
+function toRequest(call: unknown[]): Request {
+  return new Request(String(call[0]), call[1] as RequestInit)
+}
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -25,16 +29,16 @@ describe('shopping API clients household context', () => {
 
   it('sends the active household as X-Household-ID and never X-Household-Role', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-active')
-    await shoppingClient.get('api/v1/shopping-lists').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
+    await shoppingClient.get('shopping-lists').json()
+    const request = toRequest(fetchSpy.mock.calls[0])
     expect(request.headers.get('X-Household-ID')).toBe('hh-active')
     expect(request.headers.get('X-Household-Role')).toBeNull()
   })
 
   it('keeps an explicit target household (pantry sync) instead of the active one', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-active')
-    await pantryClient.post('api/v1/products', { json: {}, headers: householdHeaders('hh-target') }).json()
-    const request = fetchSpy.mock.calls[0][0] as Request
+    await pantryClient.post('products', {}, { headers: householdHeaders('hh-target') }).json()
+    const request = toRequest(fetchSpy.mock.calls[0])
     expect(request.headers.get('X-Household-ID')).toBe('hh-target')
   })
 
@@ -45,7 +49,7 @@ describe('shopping API clients household context', () => {
     )
     const listener = vi.fn()
     const unsubscribe = subscribeHouseholdErrors(listener)
-    await expect(shoppingClient.get('api/v1/shopping-lists').json()).rejects.toMatchObject({
+    await expect(shoppingClient.get('shopping-lists').json()).rejects.toMatchObject({
       status: 403,
       code: 'household_forbidden',
     })
@@ -55,7 +59,7 @@ describe('shopping API clients household context', () => {
 
   it('throws an empty message instead of a raw translation key for non-JSON error bodies', async () => {
     fetchSpy.mockImplementation(async () => new Response('Bad gateway', { status: 502 }))
-    await expect(shoppingClient.get('api/v1/shopping-lists').json()).rejects.toMatchObject({
+    await expect(shoppingClient.get('shopping-lists').json()).rejects.toMatchObject({
       status: 502,
       message: '',
     })
@@ -98,17 +102,17 @@ describe('shoppingClient network failures', () => {
     vi.unstubAllGlobals()
   })
 
-  it('rejects with a NetworkError instead of a normalized API error', async () => {
+  it('rejects with the browser error instead of a normalized API error', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await shoppingClient.get('api/v1/shopping-lists', { retry: 0 }).json().catch((err: unknown) => err)
-    expect(isNetworkError(error)).toBe(true)
+    const error = await shoppingClient.get('shopping-lists').json().catch((err: unknown) => err)
+    expect(error).toBeInstanceOf(TypeError)
     expect(error).not.toHaveProperty('status')
     expect(error).not.toHaveProperty('code')
   })
 
   it('keeps the browser message for text shown to the user', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await shoppingClient.get('api/v1/shopping-lists', { retry: 0 }).json().catch((err: unknown) => err)
+    const error = await shoppingClient.get('shopping-lists').json().catch((err: unknown) => err)
     expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

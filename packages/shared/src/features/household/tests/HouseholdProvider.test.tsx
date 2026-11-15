@@ -32,7 +32,10 @@ describe('HouseholdProvider', () => {
     const { result } = renderHook(() => useActiveHousehold(), { wrapper })
     expect(result.current.status).toBe('loading')
     await waitFor(() => expect(result.current.status).toBe('ready'))
-    expect(fetchSpy).toHaveBeenCalledWith('/api/v1/households/me', { headers: { Authorization: 'Bearer tkn' } })
+    const [url, init] = fetchSpy.mock.calls[0]
+    expect(url).toBe('/api/v1/households/me')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer tkn')
+    expect(init?.signal).toBeInstanceOf(AbortSignal)
     expect(result.current.householdId).toBe('hh-2')
     expect(result.current.role).toBe('OWNER')
     expect(localStorage.getItem(ACTIVE_HOUSEHOLD_STORAGE_KEY)).toBe('hh-2')

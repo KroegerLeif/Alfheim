@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/db"
 	"alfheim/household/config"
-	"alfheim/household/internal/shared/db"
-	"alfheim/household/internal/shared/middleware"
 )
 
 func TestSetupAuthenticator_FailClosed(t *testing.T) {
@@ -29,12 +29,12 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 		},
 	}
 
-	auth, err := setupAuthenticator(cfg, log)
+	authenticator, err := setupAuthenticator(t.Context(), cfg, log)
 	if err == nil {
 		t.Errorf("expected error when setting up authenticator with unreachable JWKS URL, got nil")
 	}
-	if auth != nil {
-		t.Errorf("expected nil authenticator when setup fails, got %v", auth)
+	if authenticator != nil {
+		t.Errorf("expected nil authenticator when setup fails, got %v", authenticator)
 	}
 }
 
@@ -136,7 +136,7 @@ func TestRun_AuthenticatorError(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
 		return nil, errors.New("auth init failure")
 	}
 
@@ -157,7 +157,7 @@ func TestRun_GracefulShutdown_ContextCancel(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
 		return nil, nil
 	}
 
@@ -194,7 +194,7 @@ func TestRun_GracefulShutdown_Signal(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
 		return nil, nil
 	}
 

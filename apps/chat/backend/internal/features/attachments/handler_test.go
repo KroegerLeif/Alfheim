@@ -22,6 +22,7 @@ import (
 	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/middleware"
 	"alfheim/chat/internal/shared/storage"
+	"alfheim/go-shared/auth"
 )
 
 type mockAttachmentsService struct {
@@ -62,8 +63,8 @@ func (m *mockAttachmentsService) EnsureStorageReady(ctx context.Context) error {
 func mockAuthMiddleware(userID, householdID string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims := &middleware.UserClaims{Subject: userID}
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			claims := &auth.UserClaims{Subject: userID}
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, claims)
 			if hh, err := uuid.Parse(householdID); err == nil {
 				ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: hh, Role: householdclient.RoleMember, Subject: userID})
 			}

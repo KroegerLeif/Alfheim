@@ -4,12 +4,12 @@ Exposes REST endpoints for service history, submission, and step updates,
 delegating all logic to TaskService.
 """
 
+from backend_shared.household.permissions import require_writer
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import HouseholdContext, get_authorization, require_household
-from app.core.permissions import require_writer
 from app.features.devices.exceptions import DeviceNotFoundError
 from app.features.devices.schemas import MaintenanceStepRead, ServiceHistoryEventDetailRead, ServiceHistoryEventRead
 from app.features.tasks.exceptions import InvalidStepError, StepNotFoundError

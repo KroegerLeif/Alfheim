@@ -4,7 +4,9 @@
   "private": true,
   "packageManager": "pnpm@11.28.5",
   "scripts": {
+    "predev": "node ../../../packages/shared/scripts/sync-brand-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node ../../../packages/shared/scripts/sync-brand-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -17,7 +19,6 @@
     "@radix-ui/react-progress": "^1.2.1",
     "@tanstack/react-query": "^5.105.0",
     "clsx": "^2.1.1",
-    "ky": "^2.2.0",
     "lucide-react": "^1.66.0",
     "next": "^16.4.3",
     "next-intl": "^4.14.9",

@@ -4,10 +4,13 @@
 # ==============================================================================
 # Checks a *running* Alfheim stack end to end: every Compose service reports
 # healthy (or, absent a healthcheck, running), Caddy answers its healthcheck,
-# the OIDC discovery document names the configured issuer, every app route
-# resolves through the ingress gateway without a 5xx, the /internal/* surface
-# is unreachable from the outside, and the household API rejects a request
-# with no bearer token.
+# the OIDC discovery document names the configured issuer, the route of every
+# running app resolves through the ingress gateway without a 5xx (apps that are
+# not running, such as optional apps left out of a Lean Core install, are
+# skipped and listed), the /internal/* surface
+# is unreachable from the outside, the household API rejects a request
+# with no bearer token, and, when Zitadel sends e-mail through Mailpit, a
+# password reset for a throwaway user arrives there.
 #
 # It works unmodified against either compose file this repository ships:
 #   - compose.prod.yaml (a production install, run from the install root)
@@ -22,6 +25,11 @@
 #
 # Services still in their healthcheck start period are waited for, up to
 # VERIFY_STACK_WAIT_SECONDS (default 300), before the health check judges them.
+#
+# The password-reset e-mail check runs only when ALFHEIM_SMTP_HOST=mailpit or
+# VERIFY_STACK_MAILPIT_URL names a Mailpit (default http://127.0.0.1:8025). It
+# gets a Zitadel API token from VERIFY_STACK_ZITADEL_TOKEN, `alfheim-setup
+# zitadel-token`, or the installer source of a repository checkout.
 #
 # Exit codes: 0 every check passed, 1 one or more checks failed, 2 usage error.
 # ==============================================================================
@@ -212,19 +220,34 @@ echo ""
 # 4. Every app route resolves through the gateway without a 5xx.
 # ------------------------------------------------------------------------------
 log_info "Checking app routes..."
-ROUTES=(
-  "/"
-  "/household"
-  "/pantry"
-  "/shopping"
-  "/maintenance"
-  "/chores"
-  "/budget"
-  "/workout"
-  "/chat"
-  "/library"
-  "/grafana"
+# Core routes are always checked. An optional route is checked only when the
+# container serving it runs: optional apps and telemetry are compose profiles
+# (docs/en/explanation/decisions/0007-lean-core-app-set.md) and may be off.
+ROUTES=("/" "/household")
+OPTIONAL_ROUTES=(
+  "/pantry:pantry-frontend"
+  "/shopping:shopping-frontend"
+  "/maintenance:maintenance-frontend"
+  "/chores:chores-frontend"
+  "/budget:budget-frontend"
+  "/workout:workout-frontend"
+  "/chat:chat-frontend"
+  "/library:library-frontend"
+  "/grafana:grafana"
 )
+SKIPPED=()
+for entry in "${OPTIONAL_ROUTES[@]}"; do
+  route="${entry%%:*}"
+  service="${entry#*:}"
+  if grep -q "^${service}"$'\trunning' <<< "${services}"; then
+    ROUTES+=("${route}")
+  else
+    SKIPPED+=("${route}")
+  fi
+done
+if [[ ${#SKIPPED[@]} -gt 0 ]]; then
+  log_warn "Skipped routes of apps that are not running: ${SKIPPED[*]}"
+fi
 for route in "${ROUTES[@]}"; do
   code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}${route}" 2>/dev/null || true)"
   if [[ "${code}" =~ ^[0-9]+$ ]] && [[ "${code}" -ge 200 ]] && [[ "${code}" -lt 500 ]]; then
@@ -303,6 +326,89 @@ if [[ "${toast}" == "lz4" ]]; then
   log_success "default_toast_compression is lz4"
 else
   fail "default_toast_compression is '${toast:-<unreadable>}', want lz4"
+fi
+echo ""
+
+# ------------------------------------------------------------------------------
+# 9. Zitadel delivers a password-reset e-mail through SMTP into Mailpit.
+# Runs only when Zitadel's SMTP server is Mailpit (ALFHEIM_SMTP_HOST=mailpit)
+# or VERIFY_STACK_MAILPIT_URL is set, so a production install never sends a
+# test e-mail through a real mail server. A throwaway human user with an
+# @alfheim.test address is created, sent a reset link, and deleted again
+# together with the captured message.
+# ------------------------------------------------------------------------------
+json_field() {
+  # Prints the first string or number value of key $1 in the JSON on stdin.
+  sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\{0,1\}\([^\",}]*\).*/\1/p" | head -n 1
+}
+
+# zitadel_token prints a short-lived API token of the provisioning machine
+# user: VERIFY_STACK_ZITADEL_TOKEN, else `alfheim-setup zitadel-token` from
+# PATH, else the installer source of a repository checkout (dev stack).
+zitadel_token() {
+  if [[ -n "${VERIFY_STACK_ZITADEL_TOKEN:-}" ]]; then
+    printf '%s' "${VERIFY_STACK_ZITADEL_TOKEN}"
+  elif command -v alfheim-setup >/dev/null 2>&1; then
+    alfheim-setup zitadel-token --env-file "${ENV_FILE}" 2>/dev/null
+  elif [[ -f "${DIR}/tools/installer/go.mod" ]] && command -v go >/dev/null 2>&1; then
+    (cd "${DIR}/tools/installer" && go run ./cmd/alfheim-setup zitadel-token --env-file "${ENV_FILE}" 2>/dev/null)
+  fi
+}
+
+SMTP_HOST="$(env_value ALFHEIM_SMTP_HOST)"
+MAILPIT_URL="${VERIFY_STACK_MAILPIT_URL:-}"
+if [[ -z "${MAILPIT_URL}" && "${SMTP_HOST}" == "mailpit" ]]; then
+  MAILPIT_URL="http://127.0.0.1:8025"
+fi
+log_info "Checking password-reset e-mail delivery..."
+if [[ -z "${MAILPIT_URL}" ]]; then
+  log_warn "Skipped: Zitadel's SMTP server is ${SMTP_HOST:-not configured}, not Mailpit (set VERIFY_STACK_MAILPIT_URL to force)"
+elif ! curl -fsS "${MAILPIT_URL%/}/api/v1/info" >/dev/null 2>&1; then
+  fail "Mailpit API is not reachable at ${MAILPIT_URL}"
+else
+  token="$(zitadel_token || true)"
+  if [[ -z "${token}" ]]; then
+    fail "could not get a Zitadel API token (alfheim-setup zitadel-token or VERIFY_STACK_ZITADEL_TOKEN)"
+  else
+    zcurl() {
+      curl -sS ${CURL_TLS[@]+"${CURL_TLS[@]}"} -H "Authorization: Bearer ${token}" \
+        -H 'Content-Type: application/json' "$@"
+    }
+    reset_user="verify-stack-$(date +%s)-$RANDOM"
+    reset_email="${reset_user}@alfheim.test"
+    created="$(zcurl -X POST "${ISSUER_URL%/}/v2/users/human" -d "{
+      \"username\": \"${reset_user}\",
+      \"profile\": {\"givenName\": \"Verify\", \"familyName\": \"Stack\"},
+      \"email\": {\"email\": \"${reset_email}\", \"isVerified\": true}
+    }" 2>/dev/null || true)"
+    user_id="$(json_field userId <<< "${created}")"
+    if [[ -z "${user_id}" ]]; then
+      fail "could not create the test user: ${created:-<no response>}"
+    else
+      reset="$(zcurl -X POST "${ISSUER_URL%/}/v2/users/${user_id}/password_reset" \
+        -d '{"sendLink": {"notificationType": "NOTIFICATION_TYPE_Email"}}' 2>/dev/null || true)"
+      if ! grep -q '"details"' <<< "${reset}"; then
+        fail "Zitadel did not accept the password reset: ${reset:-<no response>}"
+      else
+        # Zitadel sends notifications asynchronously from its event queue.
+        search="${MAILPIT_URL%/}/api/v1/search?query=to:${reset_email}"
+        count=0
+        for _ in $(seq 1 30); do
+          count="$(curl -fsS "${search}" 2>/dev/null | json_field messages_count || true)"
+          [[ "${count:-0}" -gt 0 ]] && break
+          sleep 2
+        done
+        if [[ "${count:-0}" -gt 0 ]]; then
+          log_success "password-reset e-mail for ${reset_email} arrived in Mailpit"
+        else
+          fail "no password-reset e-mail for ${reset_email} arrived in Mailpit within 60s"
+        fi
+        curl -fsS -X DELETE "${search}" >/dev/null 2>&1 || log_warn "could not delete the test e-mail from Mailpit"
+      fi
+      zcurl -X DELETE "${ISSUER_URL%/}/v2/users/${user_id}" >/dev/null 2>&1 \
+        || log_warn "could not delete the test user ${reset_user} (${user_id})"
+    fi
+  fi
 fi
 echo ""
 

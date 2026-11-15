@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/features/household"
-	"alfheim/household/internal/shared/middleware"
 )
 
 const (
@@ -121,7 +121,7 @@ func TestService_JoinHousehold(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "newbie"}, inv.Token)
+	res, err := svc.JoinHousehold(ctx, &auth.UserClaims{Subject: "newbie"}, inv.Token)
 	if err != nil {
 		t.Fatalf("join: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestService_JoinHousehold(t *testing.T) {
 	}
 
 	// Already a member -> conflict and the use is not consumed.
-	if _, err := svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "newbie"}, inv.Token); !errors.Is(err, household.ErrMemberAlreadyExists) {
+	if _, err := svc.JoinHousehold(ctx, &auth.UserClaims{Subject: "newbie"}, inv.Token); !errors.Is(err, household.ErrMemberAlreadyExists) {
 		t.Errorf("expected ErrMemberAlreadyExists, got %v", err)
 	}
 	if repo.invites[inv.Token].Uses != 1 {
@@ -142,7 +142,7 @@ func TestService_JoinHousehold(t *testing.T) {
 
 	// A legacy OWNER invite is redeemed as MEMBER, never OWNER.
 	repo.invites["legacy"] = &household.Invite{Token: "legacy", HouseholdID: hhA, Role: household.RoleOwner, MaxUses: 1, ExpiresAt: time.Now().Add(time.Hour)}
-	res, err = svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "sneaky"}, "legacy")
+	res, err = svc.JoinHousehold(ctx, &auth.UserClaims{Subject: "sneaky"}, "legacy")
 	if err != nil || res.Role != "MEMBER" {
 		t.Errorf("OWNER invite must redeem as MEMBER, got %+v, %v", res, err)
 	}
@@ -151,7 +151,7 @@ func TestService_JoinHousehold(t *testing.T) {
 func TestService_DefaultHousehold(t *testing.T) {
 	svc, repo := seededService(t)
 	ctx := context.Background()
-	claims := &middleware.UserClaims{Subject: "fresh"}
+	claims := &auth.UserClaims{Subject: "fresh"}
 
 	first, err := svc.CreateHousehold(ctx, claims, household.CreateHouseholdRequest{Name: "First Home"})
 	if err != nil {
@@ -209,7 +209,7 @@ func TestService_RenameHousehold(t *testing.T) {
 			t.Errorf("rename to %q: expected ErrInvalidHouseholdName, got %v", bad, err)
 		}
 	}
-	if _, err := svc.CreateHousehold(ctx, &middleware.UserClaims{Subject: "x"}, household.CreateHouseholdRequest{Name: "???"}); !errors.Is(err, household.ErrInvalidHouseholdName) {
+	if _, err := svc.CreateHousehold(ctx, &auth.UserClaims{Subject: "x"}, household.CreateHouseholdRequest{Name: "???"}); !errors.Is(err, household.ErrInvalidHouseholdName) {
 		t.Errorf("unsluggable name: expected ErrInvalidHouseholdName, got %v", err)
 	}
 }
@@ -318,7 +318,7 @@ func TestService_InviteManagement(t *testing.T) {
 	if err := svc.RevokeInvite(ctx, admin, hhA, active.Token); err != nil {
 		t.Fatalf("revoke: %v", err)
 	}
-	if _, err := svc.JoinHousehold(ctx, &middleware.UserClaims{Subject: "late"}, active.Token); !errors.Is(err, household.ErrInviteNotFound) {
+	if _, err := svc.JoinHousehold(ctx, &auth.UserClaims{Subject: "late"}, active.Token); !errors.Is(err, household.ErrInviteNotFound) {
 		t.Errorf("revoked invite must not be redeemable, got %v", err)
 	}
 
@@ -344,7 +344,7 @@ func TestService_ErrorPropagation(t *testing.T) {
 		t.Errorf("GetHouseholdDetails outsider: expected forbidden, got %v", err)
 	}
 	repo.failNext["CreateHouseholdTx"] = errMockDB
-	if _, err := svc.CreateHousehold(ctx, &middleware.UserClaims{Subject: "x"}, household.CreateHouseholdRequest{Name: "Home"}); !errors.Is(err, errMockDB) {
+	if _, err := svc.CreateHousehold(ctx, &auth.UserClaims{Subject: "x"}, household.CreateHouseholdRequest{Name: "Home"}); !errors.Is(err, errMockDB) {
 		t.Errorf("CreateHousehold: expected repo error, got %v", err)
 	}
 	repo.failNext["CreateInvite"] = errMockDB

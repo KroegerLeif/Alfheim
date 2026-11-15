@@ -15,6 +15,8 @@ import (
 	"github.com/google/uuid"
 
 	"alfheim/chat/internal/shared/householdclient"
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/httpmw"
 )
 
 type fakeChecker struct {
@@ -37,7 +39,7 @@ type errorBody struct {
 func withTestClaims(sub string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), UserContextKey, &UserClaims{Subject: sub})
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: sub})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -70,7 +72,7 @@ func TestRequireHousehold(t *testing.T) {
 			return householdclient.Membership{}, householdclient.ErrNotMember
 		}
 	}}
-	handler := Chain(withTestClaims("user-1"), RequireHousehold(checker, log))(echoHousehold())
+	handler := httpmw.Chain(withTestClaims("user-1"), RequireHousehold(checker, log))(echoHousehold())
 
 	tests := []struct {
 		name     string
@@ -143,7 +145,7 @@ func TestRequireHousehold_BadHeaderDoesNotReachMembershipService(t *testing.T) {
 	checker := &fakeChecker{fn: func(uuid.UUID, string) (householdclient.Membership, error) {
 		return householdclient.Membership{}, nil
 	}}
-	h := Chain(withTestClaims("u"), RequireHousehold(checker, slog.New(slog.NewTextHandler(io.Discard, nil))))(echoHousehold())
+	h := httpmw.Chain(withTestClaims("u"), RequireHousehold(checker, slog.New(slog.NewTextHandler(io.Discard, nil))))(echoHousehold())
 	for _, v := range []string{"", "nope"} {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set(HouseholdHeader, v)
@@ -179,7 +181,7 @@ func TestRequireHousehold_WithRealClient(t *testing.T) {
 	defer upstream.Close()
 
 	client := householdclient.New(upstream.URL, "internal")
-	h := Chain(withTestClaims("user-1"), RequireHousehold(client, slog.New(slog.NewTextHandler(io.Discard, nil))))(echoHousehold())
+	h := httpmw.Chain(withTestClaims("user-1"), RequireHousehold(client, slog.New(slog.NewTextHandler(io.Discard, nil))))(echoHousehold())
 
 	do := func(hhID string) int {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)

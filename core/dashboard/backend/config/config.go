@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"alfheim/go-shared/db"
 )
 
 // Config encapsulates all backend service configurations.
@@ -16,16 +18,15 @@ type Config struct {
 	OIDC          OIDCConfig
 	CORS          CORSConfig
 	StackAppsPath string
+	// EnabledApps is the raw ALFHEIM_ENABLED_APPS value: the optional apps
+	// the installation runs, or "all" when the variable is unset (the
+	// installer default for installations from before the Lean Core).
+	EnabledApps string
 }
 
-// DatabaseConfig holds PostgreSQL connection configuration settings.
-type DatabaseConfig struct {
-	URL             string
-	MaxConns        int32
-	MinConns        int32
-	MaxConnLifetime time.Duration
-	MigrationsDir   string
-}
+// DatabaseConfig holds PostgreSQL connection configuration settings. It is the
+// shared go-shared/db configuration, so it can be handed to db.NewClient as is.
+type DatabaseConfig = db.Config
 
 // OIDCConfig holds the generic OpenID Connect verification settings.
 //
@@ -62,6 +63,13 @@ func Load() (*Config, error) {
 
 	stackAppsPath := getEnv("STACK_APPS_PATH", "deploy/stack-apps.yaml")
 
+	// An empty ALFHEIM_ENABLED_APPS is the Lean Core, so only a missing
+	// variable falls back to every app; getEnv would treat both alike.
+	enabledApps, ok := os.LookupEnv("ALFHEIM_ENABLED_APPS")
+	if !ok {
+		enabledApps = "all"
+	}
+
 	// Parse CORS allowed origins from environment variable
 	corsOriginsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://alfheim.loegien.localhost,http://api.alfheim.loegien.localhost")
 	corsOrigins := []string{}
@@ -76,6 +84,7 @@ func Load() (*Config, error) {
 		Environment:   env,
 		Port:          port,
 		StackAppsPath: stackAppsPath,
+		EnabledApps:   enabledApps,
 		Database: DatabaseConfig{
 			URL:             dbURL,
 			MaxConns:        maxConns,

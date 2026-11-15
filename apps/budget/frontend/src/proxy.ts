@@ -1,17 +1,8 @@
-import createMiddleware from "next-intl/middleware";
-import { locales, localePrefix } from "./navigation";
+import { createProxy } from "@alfheim/shared/i18n/proxy";
 
-/**
- * Route & Auth Proxy Middleware for Next.js 16.
- * Replaces deprecated middleware.ts in favor of src/proxy.ts.
- */
-export default createMiddleware({
-  defaultLocale: "en",
-  locales,
-  localePrefix,
-});
+export default createProxy();
 
 export const config = {
-  // Match all paths except internal Next.js assets, API routes, or files with extensions
+  // Next.js reads the matcher statically, so it stays a literal here. Skips API routes, Next.js internals and files.
   matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };

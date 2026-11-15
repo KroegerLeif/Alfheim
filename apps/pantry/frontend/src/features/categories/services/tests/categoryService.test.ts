@@ -1,4 +1,4 @@
-import type { KyResponse, ResponsePromise } from 'ky'
+import type { ApiResponsePromise } from '@alfheim/shared'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '../categoryService'
 import { createQueryWrapper } from '@/tests/utils'
@@ -25,7 +25,7 @@ describe('useCategories Hook', () => {
     const mockJson = vi.fn().mockResolvedValue(mockCategories)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as unknown as ResponsePromise)
+    } as unknown as ApiResponsePromise)
 
     const { result } = renderHook(() => useCategories(), {
       wrapper: createQueryWrapper(),
@@ -38,7 +38,7 @@ describe('useCategories Hook', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(result.current.data).toEqual(mockCategories)
-    expect(pantryClient.get).toHaveBeenCalledWith('api/v1/categories', { searchParams: { limit: 100, offset: 0 } })
+    expect(pantryClient.get).toHaveBeenCalledWith('categories', { searchParams: { limit: 100, offset: 0 } })
   })
 
   it('handles errors gracefully when API fetch fails', async () => {
@@ -46,7 +46,7 @@ describe('useCategories Hook', () => {
     const mockJson = vi.fn().mockRejectedValue(apiError)
     vi.mocked(pantryClient.get).mockReturnValue({
       json: mockJson,
-    } as unknown as ResponsePromise)
+    } as unknown as ApiResponsePromise)
 
     const { result } = renderHook(() => useCategories(), {
       wrapper: createQueryWrapper(),
@@ -57,25 +57,25 @@ describe('useCategories Hook', () => {
   })
 
   it('creates, renames and deletes categories and refreshes the list each time', async () => {
-    vi.mocked(pantryClient.post).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Baking' }) } as unknown as ResponsePromise)
-    vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Bakery' }) } as unknown as ResponsePromise)
-    vi.mocked(pantryClient.delete).mockResolvedValue({} as KyResponse)
+    vi.mocked(pantryClient.post).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Baking' }) } as unknown as ApiResponsePromise)
+    vi.mocked(pantryClient.patch).mockReturnValue({ json: vi.fn().mockResolvedValue({ id: 'c1', name: 'Bakery' }) } as unknown as ApiResponsePromise)
+    vi.mocked(pantryClient.delete).mockResolvedValue({} as Response)
     const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
 
     const create = renderHook(() => useCreateCategory(), { wrapper: createQueryWrapper() })
     create.result.current.mutate({ name: 'Baking' })
     await waitFor(() => expect(create.result.current.isSuccess).toBe(true))
-    expect(pantryClient.post).toHaveBeenCalledWith('api/v1/categories', { json: { name: 'Baking' } })
+    expect(pantryClient.post).toHaveBeenCalledWith('categories', { name: 'Baking' })
 
     const update = renderHook(() => useUpdateCategory(), { wrapper: createQueryWrapper() })
     update.result.current.mutate({ id: 'c1', payload: { name: 'Bakery' } })
     await waitFor(() => expect(update.result.current.isSuccess).toBe(true))
-    expect(pantryClient.patch).toHaveBeenCalledWith('api/v1/categories/c1', { json: { name: 'Bakery' } })
+    expect(pantryClient.patch).toHaveBeenCalledWith('categories/c1', { name: 'Bakery' })
 
     const remove = renderHook(() => useDeleteCategory(), { wrapper: createQueryWrapper() })
     remove.result.current.mutate('c1')
     await waitFor(() => expect(remove.result.current.isSuccess).toBe(true))
-    expect(pantryClient.delete).toHaveBeenCalledWith('api/v1/categories/c1')
+    expect(pantryClient.delete).toHaveBeenCalledWith('categories/c1')
 
     expect(invalidateSpy).toHaveBeenCalledTimes(3)
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['categories'] })

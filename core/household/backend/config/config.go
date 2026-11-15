@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"alfheim/go-shared/db"
 )
 
 // Config encapsulates all backend service configurations.
@@ -20,14 +22,9 @@ type Config struct {
 	InternalToken string
 }
 
-// DatabaseConfig holds PostgreSQL connection configuration settings.
-type DatabaseConfig struct {
-	URL             string
-	MaxConns        int32
-	MinConns        int32
-	MaxConnLifetime time.Duration
-	MigrationsDir   string
-}
+// DatabaseConfig holds PostgreSQL connection configuration settings. It is the
+// shared go-shared/db configuration, so it can be handed to db.NewClient as is.
+type DatabaseConfig = db.Config
 
 // OIDCConfig holds the generic OpenID Connect verification settings.
 //

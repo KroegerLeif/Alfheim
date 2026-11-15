@@ -23,7 +23,7 @@ export function useSearchProducts(name?: string) {
     queryKey: productKeys.search(householdId, name),
     queryFn: () =>
       pantryClient
-        .get("api/v1/products", {
+        .get("products", {
           searchParams: {
             ...(name && { name }),
             limit: 20,
@@ -43,7 +43,7 @@ export function useProductByBarcode(barcode: string, enabled = true) {
     queryKey: productKeys.barcode(householdId, barcode),
     queryFn: () =>
       pantryClient
-        .get(`api/v1/products/barcode/${barcode}`)
+        .get(`products/barcode/${barcode}`)
         .json<ProductRead>(),
     enabled: status === "ready" && enabled && barcode.trim().length > 0,
     retry: false, // Don't retry since barcode lookup can fail on non-existent items
@@ -57,7 +57,7 @@ export function useProducts() {
   const { householdId, status } = useActiveHousehold();
   return useQuery<ProductRead[]>({
     queryKey: productKeys.list(householdId),
-    queryFn: () => fetchAllPages<ProductRead>("api/v1/products"),
+    queryFn: () => fetchAllPages<ProductRead>("products"),
     enabled: status === "ready",
   });
 }
@@ -71,7 +71,7 @@ export function useCreateProduct() {
   return useMutation<ProductRead, Error, ProductCreate>({
     mutationFn: (payload) =>
       pantryClient
-        .post("api/v1/products", { json: payload })
+        .post("products", payload)
         .json<ProductRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
@@ -89,7 +89,7 @@ export function useUpdateProduct() {
   return useMutation<ProductRead, Error, { id: string; payload: ProductUpdate }>({
     mutationFn: ({ id, payload }) =>
       pantryClient
-        .patch(`api/v1/products/${id}`, { json: payload })
+        .patch(`products/${id}`, payload)
         .json<ProductRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
@@ -108,7 +108,7 @@ export function useDeleteProduct() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
-      await pantryClient.delete(`api/v1/products/${id}`);
+      await pantryClient.delete(`products/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });

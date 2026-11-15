@@ -80,6 +80,33 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
    depend on `household-backend` being healthy. Without a valid, matching
    `ALFHEIM_INTERNAL_TOKEN` every household-scoped request fails closed with
    `503 household_service_unavailable`.
+7. Set up schema migrations with the shared scaffold from `backend_shared`. Copy `alembic.ini`
+   (the `[alembic]` section only) and `alembic/script.py.mako` from an existing backend, then
+   add the three small files that are specific to the service:
+   ```python
+   # src/core/migrations.py
+   MIGRATION_LOCK_KEY = 7_265_008  # next free pg_advisory_xact_lock key; never change it later
+
+
+   def load_models() -> None:
+       """Import every model module so all tables are registered on ``SQLModel.metadata``."""
+       from src.features.catalog.models import Recipe  # noqa: F401
+   ```
+   ```python
+   # alembic/env.py
+   from backend_shared.migrations import run_env
+   from sqlmodel import SQLModel
+   from src.core.config import settings
+   from src.core.migrations import load_models
+
+   load_models()
+   run_env(SQLModel.metadata, database_url=settings.DATABASE_URL)
+   ```
+   `src/core/database.py` creates `engine, async_session_factory =
+   create_engine_and_session(settings)` and wraps `backend_shared.db.run_migrations` (see the
+   [Python and FastAPI conventions](../reference/conventions/python-fastapi.md#persistence)).
+   `main.py` awaits it on startup. Generate the first revision with
+   `uv run alembic revision --autogenerate -m "initial schema"` and set its revision ID to `0001`.
 
 ---
 
@@ -96,8 +123,17 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
 4. Enforce the strict 200 lines of code (LOC) limit per `.tsx` source file.
 5. Set up the Next.js project like the existing apps: `basePath: '/recipes'`, `output: 'standalone'`
    and `transpilePackages: ['@alfheim/shared']` in `next.config.ts`, `@alfheim/shared` as a
-   `workspace:*` dependency, `src/proxy.ts` for locale routing (not the deprecated
-   `middleware.ts`), and an `i18n.ts` that merges `getSharedMessages(locale)`.
+   `workspace:*` dependency, and `predev`/`prebuild` scripts that copy the shared favicons.
+   The locale and shell files are one factory call each; copy them from an existing app such as
+   `apps/chores/frontend`:
+
+   | File | Content |
+   | --- | --- |
+   | `src/navigation.ts` | `createNavigation()` from `@alfheim/shared/i18n/navigation` |
+   | `src/proxy.ts` | `createProxy()` from `@alfheim/shared/i18n/proxy`, plus a literal `config.matcher` (not the deprecated `middleware.ts`) |
+   | `src/i18n.ts` | `createRequestConfig()` from `@alfheim/shared/i18n/request` |
+   | `src/app/[locale]/providers.tsx` | `AppProviders` from `@alfheim/shared/app-shell`, with app providers as children |
+   | `src/app/[locale]/loading.tsx` | `AppLoading` from `@alfheim/shared/app-shell` |
 6. Add the app's strings to `packages/shared/src/features/i18n/locales/{en,de,pl}/recipes.json`
    and register the file in the shared locale builder. All three locales must be complete.
    The conventions are in [Next.js and Tailwind conventions](../reference/conventions/nextjs-tailwind.md).

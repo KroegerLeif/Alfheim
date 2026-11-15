@@ -12,17 +12,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/features/profile"
-	"alfheim/household/internal/shared/middleware"
 )
 
 type mockService struct {
-	syncProfileFunc   func(ctx context.Context, claims *middleware.UserClaims) (*profile.Profile, error)
+	syncProfileFunc   func(ctx context.Context, claims *auth.UserClaims) (*profile.Profile, error)
 	getProfileFunc    func(ctx context.Context, id string) (*profile.Profile, error)
 	updateProfileFunc func(ctx context.Context, id string, dto profile.UpdateDTO) (*profile.Profile, error)
 }
 
-func (m *mockService) SyncProfileFromClaims(ctx context.Context, claims *middleware.UserClaims) (*profile.Profile, error) {
+func (m *mockService) SyncProfileFromClaims(ctx context.Context, claims *auth.UserClaims) (*profile.Profile, error) {
 	if m.syncProfileFunc != nil {
 		return m.syncProfileFunc(ctx, claims)
 	}
@@ -43,14 +43,14 @@ func (m *mockService) UpdateProfile(ctx context.Context, id string, dto profile.
 	return nil, nil
 }
 
-func mockAuthMiddleware(claims *middleware.UserClaims, shouldAuth bool) func(http.Handler) http.Handler {
+func mockAuthMiddleware(claims *auth.UserClaims, shouldAuth bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !shouldAuth {
 				next.ServeHTTP(w, r)
 				return
 			}
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -74,12 +74,12 @@ func TestHandler_GetMyProfile(t *testing.T) {
 
 	t.Run("internal server error when sync fails", func(t *testing.T) {
 		svc := &mockService{
-			syncProfileFunc: func(ctx context.Context, claims *middleware.UserClaims) (*profile.Profile, error) {
+			syncProfileFunc: func(ctx context.Context, claims *auth.UserClaims) (*profile.Profile, error) {
 				return nil, errors.New("db failed")
 			},
 		}
 		h := profile.NewHandler(svc)
-		claims := &middleware.UserClaims{Subject: "user-1"}
+		claims := &auth.UserClaims{Subject: "user-1"}
 		r := chi.NewRouter()
 		h.RegisterRoutes(r, mockAuthMiddleware(claims, true))
 
@@ -105,12 +105,12 @@ func TestHandler_GetMyProfile(t *testing.T) {
 			UpdatedAt: now,
 		}
 		svc := &mockService{
-			syncProfileFunc: func(ctx context.Context, claims *middleware.UserClaims) (*profile.Profile, error) {
+			syncProfileFunc: func(ctx context.Context, claims *auth.UserClaims) (*profile.Profile, error) {
 				return p, nil
 			},
 		}
 		h := profile.NewHandler(svc)
-		claims := &middleware.UserClaims{Subject: "user-1"}
+		claims := &auth.UserClaims{Subject: "user-1"}
 		r := chi.NewRouter()
 		h.RegisterRoutes(r, mockAuthMiddleware(claims, true))
 
@@ -151,7 +151,7 @@ func TestHandler_UpdateMyProfile(t *testing.T) {
 	t.Run("bad request on invalid json body", func(t *testing.T) {
 		svc := &mockService{}
 		h := profile.NewHandler(svc)
-		claims := &middleware.UserClaims{Subject: "user-1"}
+		claims := &auth.UserClaims{Subject: "user-1"}
 		r := chi.NewRouter()
 		h.RegisterRoutes(r, mockAuthMiddleware(claims, true))
 
@@ -171,7 +171,7 @@ func TestHandler_UpdateMyProfile(t *testing.T) {
 			},
 		}
 		h := profile.NewHandler(svc)
-		claims := &middleware.UserClaims{Subject: "user-1"}
+		claims := &auth.UserClaims{Subject: "user-1"}
 		r := chi.NewRouter()
 		h.RegisterRoutes(r, mockAuthMiddleware(claims, true))
 
@@ -192,7 +192,7 @@ func TestHandler_UpdateMyProfile(t *testing.T) {
 			},
 		}
 		h := profile.NewHandler(svc)
-		claims := &middleware.UserClaims{Subject: "user-1"}
+		claims := &auth.UserClaims{Subject: "user-1"}
 		r := chi.NewRouter()
 		h.RegisterRoutes(r, mockAuthMiddleware(claims, true))
 
@@ -218,7 +218,7 @@ func TestHandler_UpdateMyProfile(t *testing.T) {
 			},
 		}
 		h := profile.NewHandler(svc)
-		claims := &middleware.UserClaims{Subject: "user-1"}
+		claims := &auth.UserClaims{Subject: "user-1"}
 		r := chi.NewRouter()
 		h.RegisterRoutes(r, mockAuthMiddleware(claims, true))
 

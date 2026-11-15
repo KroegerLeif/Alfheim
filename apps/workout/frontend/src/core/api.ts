@@ -1,13 +1,6 @@
-import ky from "ky";
-import {
-  resolveApiUrl,
-  resolveFrontendUrl,
-  LEGACY_ACCESS_TOKEN_KEY,
-  applyHouseholdHeaders,
-  reportHouseholdErrorResponse,
-  parseApiErrorBody,
-} from "@alfheim/shared";
+import { createApiClient, parseApiErrorBody } from "@alfheim/shared";
 
+/** A non-2xx workout API response; `message` is empty when the server sent no usable text. */
 export class ApiError extends Error {
   status?: number;
   /** Backend error code, e.g. `household_role_forbidden`. */
@@ -20,100 +13,23 @@ export class ApiError extends Error {
   }
 }
 
+/** Maps a failed response to {@link ApiError}; callers pick a localized fallback for an empty message. */
+function toApiError(response: Response, body: unknown): ApiError {
+  if (body && typeof body === "object") {
+    const parsed = parseApiErrorBody(body);
+    return new ApiError(response.status, parsed.message || "", parsed.code ?? undefined);
+  }
+  return new ApiError(response.status, response.statusText);
+}
+
 /**
- * Normalize NEXT_PUBLIC_API_URL into a ky prefix.
- *
- * The Caddy gateway strips the `/workout` prefix and the backend mounts every
- * router at `/api/v1/...`, so the configured URL ends in `/api/v1`. That tail is
- * removed here and re-supplied by each call site (`workoutClient.get("api/v1/plans")`),
- * which keeps request paths readable and matches the pantry convention.
+ * Workout API client: the shared client with the browser session, paths relative to the workout
+ * API (`NEXT_PUBLIC_API_URL`, which Caddy maps from `/workout/api/v1` to the backend's `/api/v1`).
  */
-const sanitizeUrl = (url: string | undefined, defaultFallback: string) => {
-  let resolved = resolveApiUrl(defaultFallback, url);
-
-  if (resolved.startsWith("/")) {
-    if (typeof window !== "undefined") {
-      resolved = window.location.origin + resolved;
-    } else {
-      resolved = resolveFrontendUrl() + resolved;
-    }
-  }
-
-  if (resolved.endsWith("/")) {
-    resolved = resolved.slice(0, -1);
-  }
-  if (resolved.endsWith("/api/v1")) {
-    resolved = resolved.slice(0, -7);
-  }
-  return resolved + "/";
-};
-
-const BASE_URL = sanitizeUrl(
-  process.env.NEXT_PUBLIC_API_URL,
-  "/workout/api/v1"
-);
-
-const handleResponseError = async (response: Response) => {
-  let code: string | undefined;
-  // Empty by default: callers pick a localized fallback instead of showing a raw key.
-  let message = "";
-  try {
-    const data = await response.json();
-    // Plain FastAPI detail strings and the structured {"detail":{"code","message"}} contract
-    const parsed = parseApiErrorBody(data);
-    code = parsed.code ?? undefined;
-    message = parsed.message || message;
-  } catch {
-    message = response.statusText;
-  }
-
-  throw new ApiError(response.status, message, code);
-};
-
-export const workoutClient = ky.create({
-  prefix: BASE_URL,
-  timeout: 10000,
-  retry: 0,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  hooks: {
-    beforeRequest: [
-      ({ request }) => {
-        if (typeof window !== "undefined") {
-          const token = sessionStorage.getItem(LEGACY_ACCESS_TOKEN_KEY);
-          if (token) {
-            request.headers.set("Authorization", `Bearer ${token}`);
-          }
-          applyHouseholdHeaders(request.headers);
-        }
-      },
-    ],
-    afterResponse: [
-      async ({ request, options, response }) => {
-        // Refresh once on 401 and replay, so a token that expired mid-workout
-        // does not surface as a failed set log.
-        if (response.status === 401 && typeof window !== "undefined") {
-          const oidcBridge = window.__alfheim_oidc__;
-          if (oidcBridge && typeof oidcBridge.refresh === "function") {
-            try {
-              const newToken = await oidcBridge.refresh();
-              if (newToken) {
-                request.headers.set("Authorization", `Bearer ${newToken}`);
-                return ky(request, options);
-              }
-            } catch (err) {
-              console.warn("OIDC token refresh failed on 401:", err);
-            }
-          }
-        }
-        await reportHouseholdErrorResponse(response);
-        if (!response.ok) {
-          await handleResponseError(response);
-        }
-      },
-    ],
-  },
+export const workoutClient = createApiClient({
+  basePath: "/workout/api/v1",
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  session: true,
+  timeoutMs: 10000,
+  mapError: toApiError,
 });
-
-export type apiClientType = typeof workoutClient;

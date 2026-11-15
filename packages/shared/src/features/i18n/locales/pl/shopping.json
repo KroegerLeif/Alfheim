@@ -26,6 +26,7 @@
     "einlagernBtn": "Zapisz do spiżarni",
     "pantryBadge": "Spiżarnia",
     "pantryLegend": "Powiązano ze spiżarnią — zostanie automatycznie dodane do zapasów",
+    "pantryUnavailable": "Spiżarnia nie jest zainstalowana, więc zakupy nie są dodawane do zapasów.",
     "share": "Udostępnij",
     "print": "Drukuj",
     "clearCompleted": "Usuń ukończone",

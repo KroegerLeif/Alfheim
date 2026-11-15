@@ -6,6 +6,7 @@ import { getMessages } from "next-intl/server";
 import {
   AppShell,
   AuthGuard,
+  createAppMetadata,
   LanguageProvider,
   ThemeProvider,
   HouseholdProvider,
@@ -44,7 +45,11 @@ export async function generateMetadata({ params }: Pick<LayoutProps, "params">):
   const { locale } = await params;
   const { library } = getSharedMessages(resolveLanguage(locale));
 
-  return { title: library.title, description: library.subtitle };
+  return {
+    title: library.title,
+    description: library.subtitle,
+    ...createAppMetadata({ app: "library" }),
+  };
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {

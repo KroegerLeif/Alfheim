@@ -1,7 +1,7 @@
 import { workoutClient } from "@/core/api";
 import type { SessionListParams, StartSessionRequest, WorkoutSessionRead } from "../types";
 
-const RESOURCE = "api/v1/sessions";
+const RESOURCE = "sessions";
 
 export const sessionsApi = {
   list(params: SessionListParams = {}): Promise<WorkoutSessionRead[]> {
@@ -19,7 +19,7 @@ export const sessionsApi = {
 
   /** Clones the given plan day's state; omit both fields for a freeform session. */
   start(payload: StartSessionRequest): Promise<WorkoutSessionRead> {
-    return workoutClient.post(RESOURCE, { json: payload }).json<WorkoutSessionRead>();
+    return workoutClient.post(RESOURCE, payload).json<WorkoutSessionRead>();
   },
 
   complete(id: string): Promise<WorkoutSessionRead> {

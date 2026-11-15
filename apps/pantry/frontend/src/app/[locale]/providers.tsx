@@ -1,35 +1,18 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState } from "react";
+import type { ReactNode } from "react";
+import { AppProviders } from "@alfheim/shared/app-shell";
 import { PantryChatProvider } from "@/core/chatContext";
 import { PantryChatOverlay } from "@/components/shared/PantryChatOverlay";
 
-/**
- * Non-auth application providers. Authentication (OIDC session validation,
- * login redirect, misconfiguration/discovery error pages) is handled by the
- * shared AuthGuard wrapping this component in the locale layout.
- */
+/** Shared app providers plus the pantry chat overlay. */
 export default function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            refetchOnWindowFocus: false,
-            retry: 1,
-            staleTime: 5 * 60 * 1000, // 5 minutes
-          },
-        },
-      })
-  );
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <AppProviders>
       <PantryChatProvider>
         {children}
         <PantryChatOverlay />
       </PantryChatProvider>
-    </QueryClientProvider>
+    </AppProviders>
   );
 }

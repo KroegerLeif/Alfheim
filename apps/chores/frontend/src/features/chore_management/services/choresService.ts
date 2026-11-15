@@ -65,7 +65,7 @@ export function useCreateChoreTemplate() {
   return useMutation<ChoreTemplateRead, Error, ChoreTemplateCreate>({
     mutationFn: (payload) =>
       choresClient
-        .post("templates", { json: payload })
+        .post("templates", payload)
         .json<ChoreTemplateRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: choreKeys.templates(activeHouseholdId) });

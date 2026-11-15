@@ -39,6 +39,12 @@ func run(args []string, stdout, stderr *os.File) int {
 		return app.RunProvision(args[1:], stdout, stderr)
 	}
 
+	// `zitadel-token` prints a short-lived access token from the stored
+	// machine key, for manual Zitadel API calls without a long-lived PAT.
+	if len(args) > 0 && args[0] == "zitadel-token" {
+		return app.RunZitadelToken(args[1:], stdout, stderr)
+	}
+
 	// `update` is the Day-2 one-command entry point: fetch a target
 	// release's stack assets, back up and replace the previous ones, and
 	// restart. Unlike a plain no-flag re-run it never falls back to the
@@ -54,6 +60,12 @@ func run(args []string, stdout, stderr *os.File) int {
 	}
 	if len(args) > 0 && args[0] == "restore" {
 		return app.RunRestore(args[1:], stdout, stderr, app.BuildInfo{Version: version, Commit: commit, Date: date})
+	}
+
+	// `apps` lists the optional apps and switches them on and off on an
+	// existing installation; it never runs the wizard either.
+	if len(args) > 0 && args[0] == "apps" {
+		return app.RunApps(args[1:], stdout, stderr, app.BuildInfo{Version: version, Commit: commit, Date: date})
 	}
 
 	// Restore the terminal even when we unwind through a signal. An interrupt

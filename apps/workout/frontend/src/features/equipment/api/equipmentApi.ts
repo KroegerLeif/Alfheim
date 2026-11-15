@@ -6,7 +6,7 @@ import type {
   EquipmentUpdate,
 } from "../types";
 
-const RESOURCE = "api/v1/equipment";
+const RESOURCE = "equipment";
 
 /**
  * Raw HTTP calls for the equipment resource.
@@ -29,11 +29,11 @@ export const equipmentApi = {
   },
 
   create(payload: EquipmentCreate): Promise<EquipmentRead> {
-    return workoutClient.post(RESOURCE, { json: payload }).json<EquipmentRead>();
+    return workoutClient.post(RESOURCE, payload).json<EquipmentRead>();
   },
 
   update(id: string, payload: EquipmentUpdate): Promise<EquipmentRead> {
-    return workoutClient.patch(`${RESOURCE}/${id}`, { json: payload }).json<EquipmentRead>();
+    return workoutClient.patch(`${RESOURCE}/${id}`, payload).json<EquipmentRead>();
   },
 
   async remove(id: string): Promise<void> {

@@ -33,7 +33,7 @@ Source: [`apps/workout/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `workout-backend` | 8000 | `/workout/api/v1` | FastAPI REST API & FastMCP Tools |
 | `workout-frontend` | 3000 | `alfheim.loegien.localhost/workout` | Next.js Microfrontend |
 

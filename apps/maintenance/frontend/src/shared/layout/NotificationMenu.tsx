@@ -2,10 +2,9 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
-import { useTranslation } from "@alfheim/shared";
+import { useTranslation, cn } from "@alfheim/shared";
 import { useTranslations } from "next-intl";
 import { useDueAlerts } from "@/features/maintenance";
-import { cn } from "@/core/utils";
 import { useLayout } from "./LayoutContext";
 
 /** Bell button with a dropdown of overdue and due-soon maintenance steps. */

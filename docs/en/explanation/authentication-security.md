@@ -29,6 +29,47 @@ Alfheim uses **Zitadel** as its lightweight, Go-based Identity and Access Manage
 * **Internal Docker JWKS Endpoint**: `http://zitadel:8080/oauth/v2/keys`
 * **Protocol Standard**: Generic OpenID Connect (OIDC) 1.0 & OAuth 2.0 PKCE
 
+### Zitadel version and login UI
+
+Alfheim runs Zitadel v4 (`ghcr.io/zitadel/zitadel:v4.20.3`), pinned in `compose.prod.yaml` and `infrastructure/compose.yml`. Two settings in those files shape every new instance; Zitadel reads `ZITADEL_DEFAULTINSTANCE_*` and `ZITADEL_FIRSTINSTANCE_*` only when it creates an instance, so changing them later has no effect on an existing one:
+
+* **Login V1 stays the login UI** (`ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED=false`). Zitadel v4 would otherwise make new instances send every authorize request to Login V2 at `/ui/v2/login`, a separate Next.js container (`zitadel-login`) that needs its own login-client token. Login V1 is served by the Zitadel binary at `/ui/login`, is still supported in v4, and already renders buttons for external identity providers. It costs no extra container or memory, and Caddy keeps proxying the whole auth host to one upstream.
+* **Tokens are signed with RSA web keys** (`ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE=rsa`, also v4's default). Since v4, web keys are the only signing keys and the JWKS lists them. Every backend fetches the JWKS from the issuer's discovery document and accepts only `RS256`, so the key type must stay RSA.
+
+The installer and `alfheim-setup provision` configure clients through Zitadel's Management API v1 (`/management/v1/...`) and the instance login policy through the Admin API v1. Zitadel v4 marks these endpoints deprecated in favour of its resource-based v2 services but still serves them; they are expected to go away in v5, which is a separate migration.
+
+### How the installer authenticates to Zitadel
+
+Provisioning runs as a dedicated machine user (`ZITADEL_BOOTSTRAP_USERNAME`, IAM owner) that Zitadel creates with its first instance. Earlier releases kept that user's personal access token (PAT) in `.env`, valid until 2519, so a leaked `.env` meant permanent control of the identity provider (issue #789). Since then the installer keeps no long-lived token:
+
+* **First run.** Zitadel writes a PAT to `infrastructure/zitadel/machinekey/pat.txt` once, when it creates the instance. Its expiry is `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`, one week after the installer rendered `.env`. Provisioning uses the PAT once to register a machine key for the same user, stores it in `infrastructure/zitadel/provisioner/machine-key.json` (directory `0700`, file `0600`, owned by the installer's user), deletes every PAT of the machine user in Zitadel, deletes `pat.txt` and clears `ZITADEL_BOOTSTRAP_PAT` in `.env`.
+* **Every run.** The installer signs a JWT with the stored key and exchanges it at Zitadel's token endpoint (JWT profile grant, RFC 7523) for an access token. That token lives only in memory and expires after Zitadel's access token lifetime (12 hours by default). The run then rotates the key: it registers a new key that expires after 90 days, checks that the new key works, replaces the file and deletes every other key of the machine user.
+* **Recovery.** When Zitadel rejects the stored key (it expired after 90 days without a run, or belongs to an earlier installation), the installer falls back to a PAT from `pat.txt`, `ZITADEL_BOOTSTRAP_PAT` or `alfheim-setup provision --pat-file`, and migrates again. See [Update an installation](../how-to/update-installation.md#troubleshooting).
+
+Afterwards `.env` holds no Zitadel credential. The machine key is the one long-lived credential the installer keeps, with these limits:
+
+* It never leaves the host except inside a backup, and it lives outside `.env` and outside the directory mounted into the Zitadel container.
+* Anyone who can read it can already read `.env`, which holds `ZITADEL_MASTERKEY` and the PostgreSQL superuser password and therefore full access to Zitadel's data. The key adds no new privilege to a host compromise.
+* Every installer run (`update`, a re-run, `provision`) revokes the previous key, so a copy taken from an older backup or disk image stops working at the next run, and an untouched key expires on its own after 90 days.
+* For manual API calls, `alfheim-setup zitadel-token` prints a short-lived access token instead of exposing the key or a PAT.
+
+### Social login (Google, Apple)
+
+Social login is opt-in per installation: `alfheim-setup` configures Google or Apple as a Zitadel identity provider only when the operator supplies its credentials (see [Set up social login](../how-to/social-login.md)). The policy is recorded in [ADR 0008](./decisions/0008-social-login-policy.md). Local username/password registration stays off either way.
+
+* All frontends share one public PKCE client (`ALFHEIM_WEB_CLIENT_ID`). The identity providers live on the Zitadel instance, not on the client, so redirect URIs, grant types and project roles do not change.
+* Login V1 shows a button per provider on the existing login page. The provider redirects back to Zitadel's own callback on the auth host (`/ui/login/login/externalidp/callback`, and `/callback/form` for Apple's form POST); Caddy proxies it unchanged.
+* Backends identify users only by the Zitadel `sub`. A user who signs in through Google or Apple is a normal Zitadel user, so household membership and the `alfheim_operator` role work the same way.
+
+First login through a provider:
+
+1. **Provider.** The user authenticates at Google or Apple and is sent back to Zitadel's callback.
+2. **Zitadel user.** Zitadel signs in the user already linked to that external identity. Otherwise it links the identity to an existing user whose e-mail is verified on both sides, or creates a new user. An unverified address never links.
+3. **Membership check.** The frontend gets ordinary tokens and asks `core/household` for the user's households (`GET /api/v1/households/me`). Every household-scoped call is checked against `core/household`; the token carries no household or role.
+4. **Onboarding.** A new user has no household. They accept an invitation or create their own household; until then no household data is reachable.
+
+With social login on, anyone with an account at that provider who reaches the instance can sign in and create their own household. Restrict the audience at the provider if the instance must stay closed (see the ADR).
+
 ---
 
 ## Separation of Concerns: AuthN vs AuthZ
@@ -49,8 +90,15 @@ To ensure clear architectural boundaries and keep external identity infrastructu
 ## Authentication Flow (Generic OIDC PKCE)
 
 1. **Authorization Grant**: Frontends redirect unauthenticated users to Zitadel using standard generic OIDC Authorization Code Flow with PKCE (`S256`).
-2. **Token Exchange**: Zitadel issues an RSA256/Ed25519-signed JWT access token containing standard identity claims (`sub`, `email`, `preferred_username`).
+2. **Token Exchange**: Zitadel issues an `RS256`-signed JWT access token containing standard identity claims (`sub`, `email`, `preferred_username`).
 3. **Session & Header Injection**: Frontends store the access token in session storage and attach `Authorization: Bearer <token>` to outbound API calls. Household-scoped calls also carry `X-Household-ID: <active household UUID>`. Frontends never send `X-Household-Role`.
+4. **Token Verification**: Backends accept `RS256` only. The Go middleware of the dashboard, household and chat backends (`internal/shared/middleware/auth.go`) parses tokens with `jwt.WithValidMethods([]string{"RS256"})`, and the Python backends verify with `algorithms=["RS256"]` in `backend_shared`. A token signed with any other algorithm (for example `EdDSA` or `ES256`) is rejected with `401`.
+
+### Cross-Origin Requests (CORS)
+
+The gateway adds no CORS headers, by design. Every frontend calls its API through its own origin (relative `/api/v1/...` paths on the app host, see the [ingress matrix](../reference/ingress-matrix.md)), so browsers never send a cross-origin API request and need no preflight. Reflecting arbitrary origins together with credentials at the gateway would let any website read authenticated responses.
+
+The backends still register a CORS middleware with an origin allowlist. Its defaults are development hosts (`http://localhost:3000`, `:5173`, `:8000`, `http://alfheim.loegien.localhost`, `http://api.alfheim.loegien.localhost`): `CORS_ORIGINS` in the FastAPI settings (for example `apps/pantry/backend/src/core/config.py`) and `CORS_ALLOWED_ORIGINS` in the Go backends. `compose.prod.yaml` does not override them, which is harmless because production traffic is same-origin. Set them only when a client on another origin must call a backend directly.
 
 ---
 

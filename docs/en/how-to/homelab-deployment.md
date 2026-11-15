@@ -13,12 +13,18 @@ Welcome to the **Alfheim Home Server OS** installation guide. This document prov
 
 ### Hardware Specifications
 
-| Component | Minimum | Recommended (All Services Active) |
-| :--- | :--- | :--- |
-| **CPU** | 2 Cores (x86_64 or arm64) | 4+ Cores (x86_64 or arm64) |
-| **RAM** | 4 GB (with 2 GB swap) | 8 GB+ |
-| **Storage** | 10 GB SSD / NVMe | 20 GB+ SSD |
-| **Network** | 100 Mbps Ethernet | 1 Gbps Gigabit Ethernet |
+This is the one place the hardware tiers are listed; other pages link here. The memory columns are the sums of the `deploy.resources` reservations and limits in `compose.prod.yaml`, which follow measured idle use with limits at about twice that.
+
+| Tier | What runs | Reserved RAM | Sum of limits | Host RAM | CPU |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Lean Core** | Caddy, PostgreSQL, Zitadel, RustFS, dashboard, household | 752 MB | 1.5 GB | 2 GB (plus 1 GB swap) | 2 cores |
+| **Lean Core + N apps** | plus each app you enable | 752 MB + 176–288 MB per app | 1.5 GB + 352–544 MB per app | 3 GB for up to two apps, 4 GB for up to five | 2 cores |
+| **Full** | every optional app, telemetry off | 2.75 GB | 5.6 GB | 4 GB (plus 2 GB swap), 8 GB recommended | 4 cores |
+| **Full + telemetry** | every app plus VictoriaMetrics, VictoriaLogs, Collector, Vector and Grafana | 3.2 GB | 6.5 GB | 6 GB minimum, 8 GB recommended | 4 cores |
+
+Each app's share is listed in the `Memory` column of [the apps catalog](../reference/apps-catalog.md) and in the installer wizard (chat 176 MB; shopping, budget, chores and workout 240 MB; pantry, library and maintenance 288 MB; telemetry 448 MB). Every tier runs on x86_64 or arm64 and needs 10 GB of SSD storage (20 GB or more for the full stack) and an ordinary 100 Mbps network.
+
+Leave the RAM above the reservations to the OS and to load peaks. PostgreSQL memory is tuned through `POSTGRES_SHARED_BUFFERS`, `POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM` (see [environment variables](../reference/environment-variables.md#postgresql-database-credentials)). For a small host, see [Run Alfheim on low-spec hardware](./low-spec-setup.md).
 
 **Storage Breakdown:** Fresh Alfheim install requires ~5.5–6.5 GB: container images (≈3.6 GB extracted), base OS + Docker Engine (≈1.5–2.5 GB), fresh volumes (≈0.2 GB). Headroom is for RustFS uploads (budget receipts, library PDFs), unrotated container logs, and backups. Metrics retention is bounded to 14 days, logs to 7 days (configured in `compose.prod.yaml`).
 
@@ -29,7 +35,7 @@ Welcome to the **Alfheim Home Server OS** installation guide. This document prov
 * **Development / macOS**: macOS 14+ with Docker Desktop or OrbStack.
 
 ### Software Prerequisites
-1. **Docker Engine**: Version `24.0.0` or newer.
+1. **Docker Engine**: Version `25.0.0` or newer (the healthchecks use `start_interval`).
    * [Official Docker Engine Installation Guide](https://docs.docker.com/engine/install/)
 2. **Docker Compose**: Version `v2.20.0` or newer (Docker Compose v2 plugin).
    * Verify with: `docker compose version`
@@ -176,6 +182,10 @@ docker compose -f compose.prod.yaml pull
 # Recreate containers with zero downtime migration
 docker compose -f compose.prod.yaml up -d
 ```
+
+Image updates stay within the pinned PostgreSQL major version (`postgres:18-alpine`). Moving an
+install created on PostgreSQL 16 is covered in
+[Update an installation](./update-installation.md#updating-from-v04x).
 
 ### Backing Up Persistent Data
 All databases, object storage blobs, and telemetry data reside in named Docker volumes:

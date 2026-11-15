@@ -1,10 +1,3 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
 /** A step due within this many days (inclusive) counts as "due soon". Mirrors the backend summary. */
 export const DUE_SOON_THRESHOLD_DAYS = 14;
 

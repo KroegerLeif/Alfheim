@@ -13,6 +13,6 @@ export const getDevices = async (): Promise<Device[]> => {
  */
 export const createDevice = async (payload: CreateDevicePayload, householdId?: string | null): Promise<Device> => {
   return await maintenanceClient
-    .post("devices", { json: payload, headers: householdHeaders(householdId ?? null) })
+    .post("devices", payload, { headers: householdHeaders(householdId ?? null) })
     .json<Device>();
 };

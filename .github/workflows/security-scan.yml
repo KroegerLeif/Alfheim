@@ -89,7 +89,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Python 3.12 and uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: '3.12'
           enable-cache: true
@@ -112,6 +112,7 @@ jobs:
           - apps/chat/backend
           - core/dashboard/backend
           - core/household/backend
+          - packages/go-shared
           - tools/installer
     defaults:
       run:
@@ -123,7 +124,7 @@ jobs:
       - name: Set up Go 1.27
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.27.3'
+          go-version: '1.27.4'
           cache-dependency-path: '${{ matrix.service }}/go.sum'
 
       - name: Run govulncheck
@@ -209,7 +210,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy Results to GitHub Security Tab
-        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && github.event.repository.visibility == 'public'
         with:
           sarif_file: 'trivy-results.sarif'

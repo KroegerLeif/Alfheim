@@ -11,13 +11,23 @@ x-logging: &default-logging
 
 services:
   postgres-core:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: alfheim_postgres_core
     restart: unless-stopped
     logging: *default-logging
     # lz4 decompresses much faster than the default pglz at a similar ratio;
-    # it only applies to newly written TOAST values.
-    command: ["postgres", "-c", "default_toast_compression=lz4"]
+    # it only applies to newly written TOAST values. The memory settings are
+    # sized for the Lean Core tier and overridable from .env (.env.example).
+    command:
+      - postgres
+      - -c
+      - default_toast_compression=lz4
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-64MB}
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-100}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-4MB}
     env_file:
       - path: ./postgres/.env
         required: false
@@ -51,12 +61,16 @@ services:
       HOUSEHOLD_POSTGRES_PASSWORD: ${HOUSEHOLD_POSTGRES_PASSWORD:-postgres}
     volumes:
       - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
-      - ${ALFHEIM_DB_DATA_PATH:-./postgres/data}:/var/lib/postgresql/data
+      # Postgres 18 images keep PGDATA in /var/lib/postgresql/18/docker and refuse
+      # to start with a mount on the old /var/lib/postgresql/data target.
+      - ${ALFHEIM_DB_DATA_PATH:-./postgres/data}:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 10s
+      start_interval: 5s
     networks:
       - infra-net
       - core-net
@@ -71,7 +85,7 @@ services:
     stop_grace_period: 10s
 
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v2.66.1
+    image: ghcr.io/zitadel/zitadel:v4.20.3
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
@@ -86,6 +100,18 @@ services:
       ZITADEL_EXTERNALDOMAIN: "${ZITADEL_EXTERNALDOMAIN:-auth.alfheim.loegien.localhost}"
       ZITADEL_EXTERNALPORT: "${ZITADEL_EXTERNALPORT:-80}"
       ZITADEL_TLS_ENABLED: "false"
+      # --- Login UI and token signing (Zitadel v4) ---
+      # v4 creates new instances with Login V2 required, which redirects every
+      # OIDC authorize request to /ui/v2/login, served by a separate
+      # zitadel-login container. Alfheim keeps the built-in Login V1 (still
+      # supported in v4, and it renders the external IdP buttons social login
+      # needs), so no second container or login-client PAT is required.
+      # FIRSTINSTANCE/DEFAULTINSTANCE values only apply when an instance is
+      # created; changing them later does not touch an existing instance.
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"
+      # Every backend pins RS256 when it verifies tokens against the JWKS, so
+      # the web keys v4 signs with must stay RSA (also v4's default).
+      ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE: rsa
       # --- PostgreSQL connection (application user) ---
       ZITADEL_DATABASE_POSTGRES_HOST: "${ZITADEL_DB_HOST:-postgres-core}"
       ZITADEL_DATABASE_POSTGRES_PORT: "${ZITADEL_DB_PORT:-5432}"
@@ -105,9 +131,12 @@ services:
       # --- First instance bootstrap (machine user used to provision clients) ---
       # Zitadel ships no admin CLI, so `go run ./tools/installer/cmd/alfheim-setup
       # provision` (called from scripts/up.sh) provisions OIDC clients through
-      # the Management API instead. Its bearer token is the personal access
-      # token Zitadel writes to PATPATH while creating the first instance.
-      # Local development only.
+      # the Management API instead. Its first run authenticates with the
+      # personal access token Zitadel writes to PATPATH while creating the
+      # first instance, stores a machine key in
+      # infrastructure/zitadel/provisioner/ and revokes that token (issue
+      # #789), so the far-future expiry below never outlives the first
+      # provisioning. Local development only.
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: "${ZITADEL_BOOTSTRAP_USERNAME:-bootstrap}"
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: "Alfheim Bootstrap"
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2519-04-01T08:45:00Z"
@@ -120,10 +149,11 @@ services:
       - zitadel_machinekey:/machinekey
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 15
       start_period: 30s
+      start_interval: 5s
     depends_on:
       postgres-core:
         condition: service_healthy
@@ -153,7 +183,7 @@ services:
     network_mode: none
 
   mailpit:
-    image: axllent/mailpit:v1.31.4
+    image: axllent/mailpit:v1.33.1
     container_name: alfheim_mailpit
     restart: unless-stopped
     logging: *default-logging
@@ -180,10 +210,11 @@ services:
       - ${ALFHEIM_OBJECT_DATA_PATH:-rustfs_data}:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 15s
+      start_interval: 5s
     networks:
       - infra-net
       - gateway-net

@@ -8,10 +8,10 @@ import datetime
 from typing import Any
 
 from backend_shared.mcp_middleware import get_mcp_household_context
+from backend_shared.mcp_permissions import mcp_requires_role
 
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
-from app.core.permissions import mcp_requires_role
 from app.features.tasks.exceptions import TaskError
 from app.features.tasks.schemas import TaskStateUpdate
 from app.features.tasks.service import TaskService

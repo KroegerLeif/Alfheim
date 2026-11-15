@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { Device, MaintenanceStep } from "@/shared/types";
-import { cn, daysUntil, dueStatusFromDays } from "@/core/utils";
+import { cn } from "@alfheim/shared";
+import { daysUntil, dueStatusFromDays } from "@/core/utils";
 import { useFormatDate } from "@/core/useFormatDate";
 import { useUpdateTaskState } from "../hooks/useScheduled";
 import { ChevronDown, Calendar } from "lucide-react";
