@@ -14,8 +14,11 @@ vi.mock('@alfheim/shared', async (importOriginal) => {
   };
 });
 
+let chatEnabled = true;
+
 vi.mock('@/core/chatContext', () => ({
   usePantryChat: () => ({
+    chatEnabled,
     isChatOpen: true,
     closeChat: () => {},
     chatContext: { sourceApp: 'pantry' },
@@ -28,6 +31,7 @@ type RuntimeWindow = Window & { __ALFHEIM_ENV__?: { API_URL?: string } };
 describe('PantryChatOverlay', () => {
   beforeEach(() => {
     chatWidgetMock.mockClear();
+    chatEnabled = true;
   });
 
   afterEach(() => {
@@ -42,5 +46,13 @@ describe('PantryChatOverlay', () => {
     const props = chatWidgetMock.mock.calls[0][0];
     expect(props.apiBaseUrl).toBe(`${window.location.origin}/api/v1/chat`);
     expect(props.householdId).toBe('hh-1');
+  });
+
+  it('renders no widget when the chat app is not installed', () => {
+    chatEnabled = false;
+
+    render(<PantryChatOverlay />);
+
+    expect(chatWidgetMock).not.toHaveBeenCalled();
   });
 });

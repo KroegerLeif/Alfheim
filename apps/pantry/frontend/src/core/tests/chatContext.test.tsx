@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PantryChatProvider, usePantryChat } from '../chatContext';
 import { ClientHeader } from '@/components/shared/ClientHeader';
@@ -8,13 +8,34 @@ import { PantryChatOverlay } from '@/components/shared/PantryChatOverlay';
 import { ProductList } from '@/features/products/components/ProductList';
 import { InventoryTableRow } from '@/features/inventory/components/InventoryTableRow';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { LanguageProvider, StaticHouseholdProvider, ThemeProvider } from '@alfheim/shared';
+import { LanguageProvider, StaticHouseholdProvider, ThemeProvider, resetEnabledAppsCache } from '@alfheim/shared';
 
 describe('Pantry ALFI Chat Integration', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     vi.restoreAllMocks();
+    resetEnabledAppsCache();
+  });
+
+  it('leaves out every ALFI entry point when the chat app is not installed (#917)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ apps: ['household', 'pantry'] }), { status: 200 }),
+    );
+    renderWithProviders(<ClientHeader />);
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /ALFI/i })).not.toBeInTheDocument());
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/apps/enabled', expect.anything());
+  });
+
+  it('keeps the ALFI entry point when the chat app is installed', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ apps: ['household', 'chat'] }), { status: 200 }),
+    );
+    renderWithProviders(<ClientHeader />);
+
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(await screen.findByRole('button', { name: /ALFI/i })).toBeInTheDocument();
   });
 
   const renderWithProviders = (ui: React.ReactNode) => {

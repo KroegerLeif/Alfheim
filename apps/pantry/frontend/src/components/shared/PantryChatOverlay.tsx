@@ -14,7 +14,8 @@ function resolveChatApiUrl(): string {
 }
 
 export function PantryChatOverlay() {
-  const { isChatOpen, closeChat, chatContext, householdId } = usePantryChat();
+  const { chatEnabled, isChatOpen, closeChat, chatContext, householdId } = usePantryChat();
+  if (!chatEnabled) return null;
 
   const chatApiUrl = resolveChatApiUrl();
 

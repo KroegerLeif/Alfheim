@@ -26,7 +26,7 @@ const ICON_BUTTON =
 export function ProductRow({ product, category }: ProductRowProps) {
   const { t } = useTranslation();
   const canWrite = useHouseholdCan("write");
-  const { openChat } = usePantryChat();
+  const { chatEnabled, openChat } = usePantryChat();
   const deleteProductMut = useDeleteProduct();
   const [isEditing, setIsEditing] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -63,28 +63,30 @@ export function ProductRow({ product, category }: ProductRowProps) {
             </button>
           </>
         )}
-        <button
-          type="button"
-          onClick={() =>
-            openChat({
-              sourceApp: "pantry",
-              entityType: "product",
-              entityId: product.id,
-              entityData: {
-                name: product.name,
-                barcode: product.barcode,
-                brand: product.brand,
-                minimum_stock: product.minimum_stock,
-                base_unit: product.base_unit,
-              },
-            })
-          }
-          aria-label={`${t("pantry.askAlfi")}: ${product.name}`}
-          title={t("pantry.askAlfiAboutProduct")}
-          className={`${ICON_BUTTON} gap-1.5`}
-        >
-          <AlfiAvatar status="idle" size="sm" />
-        </button>
+        {chatEnabled && (
+          <button
+            type="button"
+            onClick={() =>
+              openChat({
+                sourceApp: "pantry",
+                entityType: "product",
+                entityId: product.id,
+                entityData: {
+                  name: product.name,
+                  barcode: product.barcode,
+                  brand: product.brand,
+                  minimum_stock: product.minimum_stock,
+                  base_unit: product.base_unit,
+                },
+              })
+            }
+            aria-label={`${t("pantry.askAlfi")}: ${product.name}`}
+            title={t("pantry.askAlfiAboutProduct")}
+            className={`${ICON_BUTTON} gap-1.5`}
+          >
+            <AlfiAvatar status="idle" size="sm" />
+          </button>
+        )}
       </div>
 
       {isEditing && <ProductEditDialog product={product} onClose={() => setIsEditing(false)} />}
