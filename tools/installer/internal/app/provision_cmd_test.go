@@ -70,16 +70,19 @@ func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
 func handleOperatorAccess(w http.ResponseWriter, r *http.Request) bool {
 	var resp map[string]any
 	switch {
-	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/management/v1/projects/proj-"):
-		resp = map[string]any{"project": map[string]any{"name": "Alfheim", "projectRoleAssertion": true}}
-	case strings.HasSuffix(r.URL.Path, "/roles/_search"):
-		resp = map[string]any{"result": []map[string]any{{"key": "alfheim_operator"}}}
-	case r.URL.Path == "/management/v1/users/_search":
-		resp = map[string]any{"result": []map[string]any{{"id": "user-1", "userName": "admin@example.com"}}}
-	case r.URL.Path == "/management/v1/users/grants/_search":
-		resp = map[string]any{"result": []map[string]any{
-			{"id": "grant-1", "userId": "user-1", "projectId": "proj-1", "roleKeys": []string{"alfheim_operator"}},
+	case r.URL.Path == "/zitadel.project.v2.ProjectService/GetProject":
+		resp = map[string]any{"project": map[string]any{
+			"projectId": "proj-1", "name": "Alfheim", "organizationId": "org-1", "projectRoleAssertion": true,
 		}}
+	case r.URL.Path == "/zitadel.project.v2.ProjectService/ListProjectRoles":
+		resp = map[string]any{"projectRoles": []map[string]any{{"key": "alfheim_operator"}}}
+	case r.URL.Path == "/zitadel.user.v2.UserService/ListUsers":
+		resp = map[string]any{"result": []map[string]any{{"userId": "user-1", "username": "admin@example.com"}}}
+	case r.URL.Path == "/zitadel.authorization.v2.AuthorizationService/ListAuthorizations":
+		resp = map[string]any{"authorizations": []map[string]any{{
+			"id": "grant-1", "user": map[string]any{"id": "user-1"}, "project": map[string]any{"id": "proj-1"},
+			"roles": []map[string]any{{"key": "alfheim_operator"}},
+		}}}
 	default:
 		return false
 	}
@@ -94,7 +97,7 @@ func (l *loginPolicyStub) registrationOpen() bool {
 	return l.registerOpen
 }
 
-// zitadelStub answers just enough of the Management API for RunProvision to
+// zitadelStub answers just enough of the Zitadel v2 APIs for RunProvision to
 // reconcile a project and two OIDC applications from scratch.
 func zitadelStub(t *testing.T, policy *loginPolicyStub) http.Handler {
 	t.Helper()
@@ -104,21 +107,23 @@ func zitadelStub(t *testing.T, policy *loginPolicyStub) http.Handler {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case strings.HasSuffix(r.URL.Path, "/projects/_search"):
-			_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
-		case r.URL.Path == "/management/v1/projects":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "proj-1"})
-		case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-			_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
-		case strings.HasSuffix(r.URL.Path, "/apps/oidc"):
-			var body map[string]any
-			_ = json.NewDecoder(r.Body).Decode(&body)
-			resp := map[string]any{"appId": "app-1", "clientId": "web-client"}
-			if body["authMethodType"] == "OIDC_AUTH_METHOD_TYPE_BASIC" {
-				resp["clientId"] = "grafana-client"
-				resp["clientSecret"] = "grafana-secret"
+		case r.URL.Path == "/zitadel.project.v2.ProjectService/ListProjects":
+			_ = json.NewEncoder(w).Encode(map[string]any{"projects": []any{}})
+		case r.URL.Path == "/zitadel.project.v2.ProjectService/CreateProject":
+			_ = json.NewEncoder(w).Encode(map[string]any{"projectId": "proj-1"})
+		case r.URL.Path == "/zitadel.application.v2.ApplicationService/ListApplications":
+			_ = json.NewEncoder(w).Encode(map[string]any{"applications": []any{}})
+		case r.URL.Path == "/zitadel.application.v2.ApplicationService/CreateApplication":
+			var body struct {
+				OIDC map[string]any `json:"oidcConfiguration"`
 			}
-			_ = json.NewEncoder(w).Encode(resp)
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			cfg := map[string]any{"clientId": "web-client"}
+			if body.OIDC["authMethodType"] == "OIDC_AUTH_METHOD_TYPE_BASIC" {
+				cfg["clientId"] = "grafana-client"
+				cfg["clientSecret"] = "grafana-secret"
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"applicationId": "app-1", "oidcConfiguration": cfg})
 		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}

@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+// SMTP providers stay on the v1 Admin API: Zitadel 4 has no v2 service for
+// e-mail providers yet (#915).
 const (
 	// adminEmailProvidersSearchPath lists the instance's e-mail providers
 	// (Admin API ListEmailProviders, Zitadel v2.59 and later).

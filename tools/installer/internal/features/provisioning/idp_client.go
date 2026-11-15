@@ -8,6 +8,8 @@ import (
 	"slices"
 )
 
+// Identity providers stay on the v1 Admin API: Zitadel 4's idp.v2 service
+// only reads providers, it cannot create, update or link them (#915).
 const (
 	// adminIDPSearchPath lists the instance's identity providers.
 	adminIDPSearchPath = "/admin/v1/idps/templates/_search"

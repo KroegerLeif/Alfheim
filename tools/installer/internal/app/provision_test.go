@@ -254,20 +254,24 @@ func TestDefaultProvisioner_Provision_MigratesFirstInstancePAT(t *testing.T) {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			switch {
-			case strings.HasSuffix(r.URL.Path, "/projects/_search"):
-				_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
-			case r.URL.Path == "/management/v1/projects":
-				_ = json.NewEncoder(w).Encode(map[string]any{"id": "proj-1"})
-			case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-				_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
-			case strings.HasSuffix(r.URL.Path, "/apps/oidc"):
-				var body map[string]any
+			case r.URL.Path == "/zitadel.project.v2.ProjectService/ListProjects":
+				_ = json.NewEncoder(w).Encode(map[string]any{"projects": []any{}})
+			case r.URL.Path == "/zitadel.project.v2.ProjectService/CreateProject":
+				_ = json.NewEncoder(w).Encode(map[string]any{"projectId": "proj-1"})
+			case r.URL.Path == "/zitadel.application.v2.ApplicationService/ListApplications":
+				_ = json.NewEncoder(w).Encode(map[string]any{"applications": []any{}})
+			case r.URL.Path == "/zitadel.application.v2.ApplicationService/CreateApplication":
+				var body struct {
+					OIDC map[string]any `json:"oidcConfiguration"`
+				}
 				_ = json.NewDecoder(r.Body).Decode(&body)
-				devModes = append(devModes, body["devMode"])
-				for _, u := range body["redirectUris"].([]any) {
+				devModes = append(devModes, body.OIDC["developmentMode"])
+				for _, u := range body.OIDC["redirectUris"].([]any) {
 					redirects = append(redirects, u.(string))
 				}
-				_ = json.NewEncoder(w).Encode(map[string]any{"appId": "app-1", "clientId": "client-1"})
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"applicationId": "app-1", "oidcConfiguration": map[string]any{"clientId": "client-1"},
+				})
 			default:
 				t.Errorf("unexpected request: %s", r.URL.Path)
 			}
