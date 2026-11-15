@@ -10,6 +10,10 @@ interface CatalogGridProps {
   isError?: boolean;
   locationsMap: Map<string, string>;
   onEditItem?: (item: MediaItem) => void;
+  /** Opens the lend dialog for an available item; omitted for read-only members. */
+  onLendItem?: (item: MediaItem) => void;
+  /** Marks a lent item as returned; omitted for read-only members. */
+  onReturnItem?: (item: MediaItem) => void;
 }
 
 export function CatalogGrid({
@@ -18,6 +22,8 @@ export function CatalogGrid({
   isError,
   locationsMap,
   onEditItem,
+  onLendItem,
+  onReturnItem,
 }: CatalogGridProps) {
   const { t } = useTranslation();
 
@@ -81,6 +87,8 @@ export function CatalogGrid({
           item={item}
           locationName={item.location_id ? locationsMap.get(item.location_id) : undefined}
           onEdit={onEditItem ? () => onEditItem(item) : undefined}
+          onLend={onLendItem}
+          onReturn={onReturnItem}
         />
       ))}
     </div>

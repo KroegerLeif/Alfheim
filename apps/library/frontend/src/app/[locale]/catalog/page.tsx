@@ -10,6 +10,7 @@ import {
 } from "@/features/catalog";
 import { MediaItem } from "@/features/catalog/types";
 import { ItemDialog } from "@/features/item-dialog";
+import { LendItemDialog, useCatalogLending } from "@/features/lending";
 
 export default function CatalogPage() {
   const { t } = useTranslation();
@@ -37,6 +38,7 @@ export default function CatalogPage() {
     refetch,
   } = useCatalog();
 
+  const lending = useCatalogLending(refetch);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MediaItem | null>(null);
 
@@ -80,12 +82,20 @@ export default function CatalogPage() {
         setActiveProvidersOnly={setActiveProvidersOnly}
       />
 
+      {lending.returnError && (
+        <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
+          {t("library.lending.returnError")}
+        </div>
+      )}
+
       <CatalogGrid
         items={items}
         isLoading={isLoading}
         isError={isError}
         locationsMap={locationsMap}
         onEditItem={handleOpenEditDialog}
+        onLendItem={canWrite ? lending.openLendDialog : undefined}
+        onReturnItem={canWrite ? (item) => void lending.returnItem(item) : undefined}
       />
 
       {!isLoading && !isError && (
@@ -106,6 +116,15 @@ export default function CatalogPage() {
         locations={locations}
         providers={providers}
         onSuccess={refetch}
+      />
+
+      <LendItemDialog
+        open={lending.lendingItem !== null}
+        onOpenChange={(open) => {
+          if (!open) lending.closeLendDialog();
+        }}
+        itemTitle={lending.lendingItem?.title}
+        onSubmit={lending.submitLend}
       />
     </div>
   );

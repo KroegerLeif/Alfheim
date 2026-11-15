@@ -67,6 +67,7 @@
       "title": "Verleih-Tracker",
       "subtitle": "Übersicht ausgeliehener Medien und Kontakte",
       "lendItem": "Artikel ausleihen",
+      "lendFromCatalog": "Medium verleihen",
       "markReturned": "Als zurückgegeben markieren",
       "statusAvailable": "Verfügbar",
       "statusLent": "Ausgeliehen",
