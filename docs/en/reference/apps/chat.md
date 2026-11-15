@@ -67,7 +67,7 @@ Every chat API route runs `middleware.RequireHousehold` after JWT validation: `X
   - A conversation keeps the model block it was created with. The sidebar picker only sets the model of the next new conversation; the header of an open conversation shows that conversation's own model ("Model unavailable" when the block was deleted or is no longer visible).
   - `GET /conversations/{id}/stream` emits `delta`, `tool_call` (`{"ID", "ToolName", "Arguments"}`), `done` and `error` events. Closing the connection cancels the model request and any running tool call; nothing is stored for the cancelled reply, so the pending user message can be streamed again (the UI's Stop and Retry actions).
   - Every tool call outcome is stored as a `tool` message whose `tool_calls` holds `{"tool_call_id", "tool_name", "is_error"}`; transport failures are stored with a generic text, never the internal endpoint URL. History replay sends the id as `tool_call_id`. The UI shows tool calls as collapsed entries (name and status; arguments and result on expand, credential-like argument keys, bearer tokens and JWTs masked).
-- `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption. Only `ollama` and `openai_compatible` can run; the UI offers only these two (#632).
+- `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption. Only `ollama` and `openai_compatible` can run, and creating a block with any other `provider_type` answers `400`. OpenRouter is configured as `openai_compatible` with base URL `https://openrouter.ai/api`.
 - `attachments`: File attachment uploads backed by RustFS S3 object storage. Each upload records its uploader (`image_refs.owner_user_id`); reading an attachment by ID returns `404` to anyone else, and a message can only link unlinked attachments owned by the conversation owner (otherwise `400`). Attachments uploaded before this ownership column existed have no owner and can no longer be read by ID or linked.
   - Uploads (JPEG, PNG or WebP, up to 10 MB, checked by content) are normalised before they are stored: the EXIF orientation is applied, all metadata including GPS is dropped, and the longest edge is capped at 2048 px. Opaque images are stored as JPEG, images with transparency as PNG. Images above 40 megapixels are refused with `400`. The pipeline is pure Go, so the binary stays CGO-free.
   - The bucket stays private and the API never returns storage URLs. Every `url` (upload response, `GET /attachments/{id}`, message `attachments`) is `GET /api/v1/chat/attachments/{id}/content?token=…` on the gateway (`ALFHEIM_BASE_URL`), minted fresh on each read. The token is an HMAC-SHA256 over attachment, user and household with an expiry (15 minutes by default), so `<img>` can load it without a bearer header. The endpoint also accepts a normal bearer token with `X-Household-ID`.
@@ -111,7 +111,7 @@ servers themselves do not yet bind a session id to the caller that opened it (#6
 | `owner_user_id` | Zitadel `sub` |
 | `household_id` | Nullable; `NULL` means private |
 | `visibility` | `private` or `shared`. Shared blocks are usable by household members but editable only by the owner |
-| `provider_type` | `ollama` or `openai_compatible` (`anthropic` is planned) |
+| `provider_type` | `ollama` or `openai_compatible` for new blocks; rows from older releases may hold other values, which never run |
 | `base_url`, `model_identifier` | |
 | `api_key_encrypted` | AES-256-GCM ciphertext, BYTEA, nullable |
 | `api_key_key_id` | Default `v1`; enables key rotation |

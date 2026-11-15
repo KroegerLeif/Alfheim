@@ -40,6 +40,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 
 ### FDD Domain Features (`internal/features/`)
 - `apps`: Unified 3-Tier application registry handlers and YAML loaders.
+- `apps` also serves `GET /api/v1/apps/enabled`: `{"apps": ["household", ...]}`, the Tier-1 app ids from `ALFHEIM_ENABLED_APPS` (authenticated, independent of hidden tiles and health). `useAppEnabled` in `@alfheim/shared` reads it once per page load, so other frontends leave out entry points into an app that is not installed (pantry hides the ALFI chat button and widget without the chat app).
 - `apphealth`: Live state of the Tier-1 tiles. `GET /api/v1/apps/health` returns `{"apps": {"<id>": "online|degraded|offline"}, "checked_at": ...}`. The backend probes each enabled app backend's readiness endpoint (`/readyz`) on `gateway-net` (2 s timeout): a `2xx` answer is *online*, any other answer *degraded* (for example a backend whose database is down or behind on migrations), no answer *offline*. Snapshots are cached for 15 s and concurrent requests share one probe round, so each app is probed at most once per window however many dashboards are open. The frontend polls every 15 s, so a stopped app turns offline within 30 s, and never calls the app APIs itself. Tier-2 stack apps are not probed.
 - `telemetry`: System metrics and log queries. When VictoriaLogs is unreachable or empty, `GET /api/v1/telemetry/logs` returns a fixed set of illustrative entries (they only reference routes the dashboard serves); the frontend shows a notice when the log request itself fails.
 
@@ -51,7 +52,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 | Service | Internal Port | Host Mapping / Gateway Route | Description |
 | :--- | :--- | :--- | :--- |
 | `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
-| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/apps/health`, `/api/v1/user/*`, `/api/v1/telemetry*` | Go REST API Control Plane |
+| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/apps/health`, `/api/v1/apps/enabled`, `/api/v1/user/*`, `/api/v1/telemetry*` | Go REST API Control Plane |
 | `dashboard-frontend` | 3000 | `alfheim.loegien.localhost/` | Next.js Landing Page Control Plane |
 
 ### Essential Environment Variables

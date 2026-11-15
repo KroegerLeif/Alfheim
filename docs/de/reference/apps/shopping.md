@@ -116,7 +116,7 @@ Invarianten:
 - **`GET /api/v1/shopping-lists` hat einen Nebeneffekt**: Der erste Aufruf für einen gegebenen Haushalt/Benutzer legt die Standardliste des Haushalts und die persönliche Liste des Aufrufers an, falls sie noch nicht existieren (`ensure_household_list` / `ensure_personal_list` in `ListManagementService`). Das ist beabsichtigt (die Oberfläche hat immer eine Liste zum Hinzufügen von Artikeln), bedeutet aber, dass ein einfaches `GET` nicht ohne Weiteres als reiner Lesezugriff aus Skripten aufgerufen werden sollte. Siehe [Bekannte Probleme](../../explanation/known-issues.md).
 - **502 auf Proxmox**: `shopping-frontend` liefert hinter Caddy auf Proxmox-VE-Installationen gelegentlich `502`. Vermutete, aber unbestätigte Ursache: ein OOM-Kill unter Last — `compose.prod.yaml` begrenzt jedes Frontend (nicht nur Shopping) auf `memory: 128m`, was für Next.js unter dem virtualisierten Overhead von Proxmox knapp sein kann. Offene Folgearbeit für den Shopping-App-Sprint.
 - **Keine Artikel-Icons**: Das Backend speichert kein Icon pro Artikel, daher hat das Formular für manuelle Artikel keine Icon-Auswahl (#511).
-- Die Ziel-Haushalt-Auswahl im Einlagern-Dialog kann nur für den Haushalt der Liste funktionieren (#627), wiederholte Syncs zählen übersprungene Artikel erneut im Verlauf (#628) und ein Pantry-Ausfall wird mit `400` beantwortet (#629).
+- Ein Pantry-Ausfall beim Einlagern wird mit `400` beantwortet (#629).
 - Keine bekannten offenen Probleme im Pantry-Sync-Pfad über die allgemeine, in [Bekannte Probleme](../../explanation/known-issues.md) dokumentierte Cache-Verzögerung hinaus.
 
 ---
