@@ -12,6 +12,8 @@ sidebar:
 ## 📋 Table of Contents
 - [Root Platform Configuration](#root-platform-configuration)
 - [Identity & Access Management (Generic OIDC & Zitadel)](#identity--access-management-generic-oidc--zitadel)
+- [Social Login](#social-login)
+- [E-mail (SMTP)](#e-mail-smtp)
 - [Object Storage (RustFS S3)](#object-storage-rustfs-s3)
 - [Data Locations](#data-locations)
 - [Observability Stack (VictoriaStack & Telemetry)](#observability-stack-victoriastack--telemetry)
@@ -60,6 +62,9 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `ZITADEL_DB_NAME` | `zitadel` | Zitadel database name |
 | `ZITADEL_DB_USER` | `zitadel_user` | Zitadel database user |
 | `ZITADEL_DB_PASSWORD` | `postgres` | Zitadel database password |
+| `ZITADEL_BOOTSTRAP_USERNAME` | `alfheim-bootstrap` | Machine user Zitadel creates with its first instance; `alfheim-setup` provisions as this user |
+| `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` | _(render time + 7 days, UTC)_ | Expiry of the PAT Zitadel creates for that user on first init. Required by `compose.prod.yaml`. `alfheim-setup update` and a re-run of `alfheim-setup` add it when missing and move it one week ahead when it is past (a database wiped while `.env` is kept), as `scripts/init-env.sh` does. Ignored once the instance exists. |
+| `ZITADEL_BOOTSTRAP_PAT` | _(empty)_ | Stays empty. Set it only to recover after the machine key expired; the next provisioning run uses it once, revokes it in Zitadel and clears it. See [Zitadel credential](installer-cli.md#zitadel-credential). |
 
 The Zitadel service in `compose.prod.yaml` and `infrastructure/compose.yml` also sets two values that are not read from `.env`, because the rest of the stack depends on them. Both apply only when Zitadel creates its instance:
 
@@ -67,6 +72,40 @@ The Zitadel service in `compose.prod.yaml` and `infrastructure/compose.yml` also
 | :--- | :--- | :--- |
 | `ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED` | `false` | Keeps the built-in Login V1 at `/ui/login`; Login V2 would need a separate `zitadel-login` container |
 | `ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE` | `rsa` | Signs tokens with RSA web keys, matching the `RS256` check in every backend |
+
+---
+
+## Social Login
+
+Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures the providers in Zitadel; no container reads them. Empty values keep a provider off. See [Set up social login](../how-to/social-login.md) and [ADR 0008](../explanation/decisions/0008-social-login-policy.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth client ID. Set together with the secret to add "Sign in with Google"; flag `--google-client-id`. |
+| `ALFHEIM_GOOGLE_CLIENT_SECRET` | _(empty)_ | Google OAuth client secret. Environment or `.env` only (no flag), never printed. |
+| `ZITADEL_GOOGLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Google credentials, so the next run detects a rotated secret. A hash, not the secret. Do not edit. |
+| `ALFHEIM_APPLE_CLIENT_ID` | _(empty)_ | Apple Services ID. Set all four Apple values to add "Sign in with Apple"; flag `--apple-client-id`. |
+| `ALFHEIM_APPLE_TEAM_ID` | _(empty)_ | Apple developer Team ID (10 characters); flag `--apple-team-id`. |
+| `ALFHEIM_APPLE_KEY_ID` | _(empty)_ | Key ID of the Sign in with Apple key (10 characters); flag `--apple-key-id`. |
+| `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | _(empty)_ | Absolute path of the `.p8` key file, mode `0600` or stricter (the installer refuses anything looser). Only the path is stored; the key is uploaded to Zitadel. Flag `--apple-private-key-file`. |
+| `ZITADEL_APPLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Apple values including the key, so a replaced key is detected. Do not edit. |
+
+---
+
+## E-mail (SMTP)
+
+Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures Zitadel's SMTP e-mail provider; no container reads them. An empty host keeps e-mail off: password reset, invitations and e-mail verification then do not work and the login page hides **Forgot password**. See [Configure e-mail (SMTP)](../how-to/configure-smtp.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_SMTP_HOST` | _(empty)_ | SMTP server host name, without port or scheme; flag `--smtp-host`. `mailpit` in the local stack. |
+| `ALFHEIM_SMTP_PORT` | `587` once a host is set | SMTP port; flag `--smtp-port`. |
+| `ALFHEIM_SMTP_USER` | _(empty)_ | SMTP user; empty for a relay without authentication. Set together with the password; flag `--smtp-user`. |
+| `ALFHEIM_SMTP_PASSWORD` | _(empty)_ | SMTP password. Environment or `.env` only (no flag), never printed. |
+| `ALFHEIM_SMTP_SENDER_ADDRESS` | _(empty)_ | From address of every e-mail, required with a host; flag `--smtp-sender-address`. |
+| `ALFHEIM_SMTP_SENDER_NAME` | `Alfheim` once a host is set | From name; flag `--smtp-sender-name`. |
+| `ALFHEIM_SMTP_TLS` | `true` once a host is set | `true` uses implicit TLS or STARTTLS; `false` only for a relay on the same host. Flag `--smtp-tls`. |
+| `ZITADEL_SMTP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured SMTP values including the password, so a changed password is detected. A hash, not the password. Do not edit. |
 
 ---
 
@@ -92,7 +131,7 @@ By default every data class lives in a Docker named volume. Setting one of these
 
 | Variable | Default | Mounted at | Owner the directory needs |
 | :--- | :--- | :--- | :--- |
-| `ALFHEIM_DB_DATA_PATH` | _(empty: volume `postgres_core_data`)_ | PostgreSQL `/var/lib/postgresql/data` | `70:70`, mode `0700` (alpine `postgres` user) |
+| `ALFHEIM_DB_DATA_PATH` | _(empty: volume `postgres_core_data`)_ | PostgreSQL `/var/lib/postgresql` | `70:70`, mode `0700` (alpine `postgres` user) |
 | `ALFHEIM_OBJECT_DATA_PATH` | _(empty: volume `rustfs_data`)_ | RustFS `/data` | `10001:10001`, mode `0700` |
 | `ALFHEIM_METRICS_DATA_PATH` | _(empty: volume `victoriametrics_data`)_ | VictoriaMetrics `/victoria-metrics-data` | `0:0` (the image runs as root) |
 | `ALFHEIM_LOGS_DATA_PATH` | _(empty: volume `victorialogs_data`)_ | VictoriaLogs `/victoria-logs-data` | `0:0` (the image runs as root) |
@@ -101,7 +140,7 @@ Notes:
 
 - Paths must be absolute, must not contain `:` and must differ from each other. Grafana and Caddy keep their named volumes.
 - Do not change a variable on a running install by editing `.env` alone: the new directory starts empty. Migrate with `alfheim-setup backup`, stop the stack, set the variable (or re-run `alfheim-setup --reconfigure` with the flag), then `alfheim-setup restore`. Backup and restore work the same for volumes and bind mounts.
-- PostgreSQL 18 images keep the data in a version subdirectory below `/var/lib/postgresql`. When you upgrade to that major version, change the mount target together with the image; the directory you configured here then holds `18/docker`.
+- The `postgres:18-alpine` image keeps its cluster in `/var/lib/postgresql/18/docker`, so the directory you configure here holds an `18/docker` subdirectory. The image refuses to start when something is mounted at the old `/var/lib/postgresql/data` target, and it does not upgrade a cluster from an earlier major version: a data directory created by PostgreSQL 16 must be removed and the install recreated. New clusters have data checksums enabled.
 
 ---
 

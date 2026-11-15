@@ -36,7 +36,7 @@ repos:
         pass_filenames: false
         verbose: true
 
-      # Both Go hooks iterate over every module listed in go.work.
+      # Both Go hooks iterate over every module listed in go.work, packages/go-shared included.
       - id: go-fmt
         name: Go Format (gofmt)
         entry: bash -c 'set -e; for d in $(go list -m -f "{{.Dir}}"); do gofmt -w "$d"; done'

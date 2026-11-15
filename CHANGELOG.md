@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Answer a stopped or restarting app with a clear error instead of an empty 502: Caddy's `handle_errors` returns JSON `503 service_unavailable` with `Retry-After` on API paths and a static page with a link back to the dashboard on page paths, in the dev Caddyfile and the installer template (#887).
 - Add passive retries (`lb_try_duration`) and active health checks on each backend's health path to every app backend proxy, so short backend restarts no longer surface as 502 (#811).
 - Add `GET /api/v1/shopping/capabilities` (`pantry_available`); the shopping frontend hides the pantry sync when Pantry is not installed (#864).
+- ADR 0008 records the social login policy: first-time Google or Apple users are created just in time, linked to an existing account only by a verified e-mail, start without a household, and local registration stays off (#884).
+- Add optional "Sign in with Google": `alfheim-setup` creates or updates the Zitadel identity provider from `ALFHEIM_GOOGLE_CLIENT_ID` / `ALFHEIM_GOOGLE_CLIENT_SECRET` (flag `--google-client-id`, an opt-in wizard step, or `.env`), prints the redirect URI to register, makes no change on a repeated run, and takes the provider off the login page when the values are emptied (#885).
+- Add optional "Sign in with Apple" through the same mechanism from `ALFHEIM_APPLE_CLIENT_ID`, `ALFHEIM_APPLE_TEAM_ID`, `ALFHEIM_APPLE_KEY_ID` and `ALFHEIM_APPLE_PRIVATE_KEY_FILE` (or the matching `--apple-*` flags); the `.p8` key is uploaded to Zitadel and never copied into `.env` (#886).
+- Add optional SMTP e-mail for Zitadel: `alfheim-setup` configures an SMTP provider from `ALFHEIM_SMTP_*` (the `--smtp-*` flags, an opt-in wizard step, or `.env`; the password from the environment or `.env` only), so password reset, invitations and e-mail verification work; a repeated run makes no change, and without SMTP the installer states what does not work and hides "Forgot password" on the login page (#456).
+- Check password-reset e-mail delivery in `scripts/verify-stack.sh`: when Zitadel's SMTP server is Mailpit (`ALFHEIM_SMTP_HOST=mailpit`) or `VERIFY_STACK_MAILPIT_URL` is set, it creates a throwaway user, requests a reset, waits for the e-mail in Mailpit's API and deletes both again; against any other mail server the check is skipped. `./scripts/up.sh` starts Mailpit when `.env` points SMTP at it.
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
@@ -38,23 +43,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move the `require_writer` / `require_admin` role matrix of chores, pantry and maintenance into `backend_shared.household.permissions` and the duplicated app `test_storage.py` copies into the `backend_shared` suite (#882)
 - Make the telemetry stack optional in production: `OTEL_ENABLED` (default `false`) now controls OpenTelemetry export in every backend and Grafana's OIDC client, and follows the `telemetry` module of `ALFHEIM_ENABLED_APPS` (`alfheim-setup apps enable|disable telemetry`, or `provision --telemetry`); `/grafana` redirects to the dashboard while it is off, and an existing installation keeps telemetry on through its first update (#861)
 - Right-size `compose.prod.yaml`: memory reservations follow measured idle use with limits at about twice that (Lean Core reserves 752 MB, the full stack 3.2 GB instead of 8 GB), Next.js heaps are capped, `postgres-core` gets `POSTGRES_SHARED_BUFFERS`, `POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM`, and healthchecks run every 30 s with a 5 s `start_interval`, which needs Docker Engine 25 (#862)
+- Validate JWTs in one shared Go package: `packages/go-shared` (`auth`, `httpmw`, `db`, `logger`) replaces the copies in the dashboard, household and chat backends. Every Go backend now requires a configured audience and a token subject and accepts RS256 only; the dashboard, household and chat images build from the repository root (#883)
+- Split the four frontend components over 200 lines (`HouseholdProvider`, budget `QuickAddModal`, chat `ModelBlockFormModal`, landing `AppsGrid`) into hooks and sibling components, and move the GitHub mark into the shared brand assets (#880)
 - Move the budget, chores, library, maintenance, pantry, shopping and workout frontends to the shared `createApiClient` instead of their own ky wrappers, and give it a `searchParams` option; `ky` is no longer a dependency, uploads keep their longer timeouts (#877)
 - Render `CHAT_MCP_SERVERS` and `PANTRY_BACKEND_URL` from the enabled apps in the installer; chat only offers tools of the listed apps and treats an unreachable MCP server as "tools unavailable" with a 2 s connect and 5 s discovery timeout (#864)
-### Fixed
-- Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
-- Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
-### Security
-- Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
-- Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
-- Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
-<!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
-     Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
-     A release moves these entries under a new version heading and adds its compare link. -->
-
-### Changed
+- Move every PostgreSQL pin (compose files, CI, scripts) to `postgres:18-alpine` and mount the data at `/var/lib/postgresql`, where the 18 image keeps its cluster in `18/docker`; new clusters have data checksums on. There is no in-place upgrade: installs and dev data directories created on PostgreSQL 16 must be recreated (#871)
 - Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
 - Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
 - Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
+- Document the Lean Core setup: new how-tos for low-spec hosts and for managing apps, one hardware tier table built from the measured reservations (the stale 4 GB / 8 GB figures are gone), memory and requirements in the apps catalog, and the v0.4.x update steps for Zitadel v4 and PostgreSQL 18 (#889)
+- Regenerate the ingress matrix from the Caddyfile with a prefix-handling column, state that backends accept `RS256` only, document the gateway's CORS stance, and fix stale paths in `README.md` and the Caddy Dockerfile (#890)
+- Bring the German docs up to the English ones for v0.5.0: the machine-key flow replacing the bootstrap PAT, the v0.4.x update steps (Zitadel v4, PostgreSQL 18), the `apps` and `zitadel-token` subcommands, social login and SMTP variables, and a new German "Configure e-mail (SMTP)" how-to with local Mailpit testing.
+
+### Fixed
+- Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
+- Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
+- Enforce mode `0700` on `infrastructure/zitadel/provisioner/` when the installer writes the machine key; a git checkout or an older install had created it `0755`, and `MkdirAll` keeps an existing directory's mode.
+- Refresh `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` to one week ahead on `update` and on a plain re-run when it is missing, unparseable or past, as `scripts/init-env.sh` does; Zitadel refuses an expired date when it creates its first instance again after the database was wiped while `.env` was kept.
+
+### Security
+- Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
+- Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
+- Refuse an Apple sign-in key file that its group or others can access (mode must be `0600` or stricter), before any container starts and before every provisioning run (#886).
+- Never pass the Google client secret as a command-line flag: `alfheim-setup` reads it from the environment or `.env` only, and prints neither it nor the Apple key (#885).
+- Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
+- Replace the never-expiring Zitadel bootstrap PAT: provisioning uses it once to store a machine key (`infrastructure/zitadel/provisioner/machine-key.json`, mode `0600`, rotated every run with a 90-day expiry), revokes every PAT of the machine user and clears `ZITADEL_BOOTSTRAP_PAT`, then authenticates with access tokens that expire within hours; existing installs migrate on their next `update`, the first-instance PAT now expires after a week (`ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`), `provision --pat-file` is optional and `alfheim-setup zitadel-token` prints a short-lived token for manual API calls (#789).
+<!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
+     Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
+     A release moves these entries under a new version heading and adds its compare link. -->
 
 ---
 

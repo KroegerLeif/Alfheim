@@ -7,13 +7,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/shared/httpjson"
-	"alfheim/household/internal/shared/middleware"
 )
 
 // CreateInvite handles POST /api/v1/households/invite.
 func (h *Handler) CreateInvite(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -40,7 +40,7 @@ func (h *Handler) CreateInvite(w http.ResponseWriter, r *http.Request) {
 
 // ListInvites handles GET /api/v1/households/{id}/invites (OWNER/ADMIN; active invites only).
 func (h *Handler) ListInvites(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -56,7 +56,7 @@ func (h *Handler) ListInvites(w http.ResponseWriter, r *http.Request) {
 
 // RevokeInvite handles DELETE /api/v1/households/{id}/invites/{token} (OWNER/ADMIN).
 func (h *Handler) RevokeInvite(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -71,7 +71,7 @@ func (h *Handler) RevokeInvite(w http.ResponseWriter, r *http.Request) {
 
 // JoinHousehold handles POST /api/v1/households/join.
 func (h *Handler) JoinHousehold(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -102,7 +102,7 @@ func (h *Handler) JoinHousehold(w http.ResponseWriter, r *http.Request) {
 
 // UpdateMemberRole handles PUT /api/v1/households/{id}/members/{userID}/role.
 func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -135,7 +135,7 @@ func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 
 // RemoveMember handles DELETE /api/v1/households/{id}/members/{userID}.
 func (h *Handler) RemoveMember(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return

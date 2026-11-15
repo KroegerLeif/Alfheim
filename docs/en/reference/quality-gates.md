@@ -35,7 +35,7 @@ All backends and `packages/backend-shared` form one `uv` workspace. `uv sync --a
 
 ## Go
 
-Modules: `apps/chat/backend`, `core/dashboard/backend`, `core/household/backend`, `tools/installer`.
+Modules: `apps/chat/backend`, `core/dashboard/backend`, `core/household/backend`, `packages/go-shared`, `tools/installer`.
 
 - `gofmt -l .` prints nothing, `go vet ./...` and `go test -race -cover ./...` pass.
 - `golangci-lint run --enable-only revive` passes (doc comments on exported identifiers).

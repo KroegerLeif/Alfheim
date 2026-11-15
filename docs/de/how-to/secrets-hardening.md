@@ -109,7 +109,7 @@ Alle Go- und Python-Backends deklarieren `USER appuser` in ihren Dockerfiles.
 2. Wert in der `.env` ersetzen.
 3. Neu starten: `docker compose -f compose.prod.yaml up -d`
 
-Zwei Ausnahmen:
+Ausnahmen:
 
 * **`ZITADEL_MASTERKEY` lässt sich nicht im laufenden Betrieb rotieren.** Er
   verschlüsselt vorhandene Zitadel-Daten; eine Änderung macht diese unlesbar.
@@ -117,6 +117,16 @@ Zwei Ausnahmen:
 * **`CHAT_ENCRYPTION_KEY` lässt sich nicht rotieren**, ohne zuvor die
   gespeicherten LLM-API-Schlüssel neu zu verschlüsseln. Lösche sie in den
   Chat-Einstellungen, rotiere, gib sie neu ein.
+* **Social-Login-Zugangsdaten liegen auch in Zitadel.** Nach einer Änderung von
+  `ALFHEIM_GOOGLE_CLIENT_SECRET` oder dem Ersetzen der Apple-Schlüsseldatei (und
+  `ALFHEIM_APPLE_KEY_ID`) `alfheim-setup` erneut ausführen, damit es den neuen
+  Wert hochlädt; ein Neustart der Container allein reicht nicht. Siehe
+  [Set up social login](../../en/how-to/social-login.md#rotate-a-secret-or-key) (englisch).
+* **Das SMTP-Passwort liegt auch in Zitadel.** Nach einer Änderung von
+  `ALFHEIM_SMTP_PASSWORD` `alfheim-setup` erneut ausführen, damit es den
+  E-Mail-Provider aktualisiert. Wie das Google-Secret hat es kein Flag; übergib
+  es über die Umgebung oder die `.env`. Siehe
+  [E-Mail einrichten (SMTP)](configure-smtp.md#einen-wert-oder-das-passwort-ändern).
 
 Datenbank-Passwörter müssen zusätzlich in PostgreSQL geändert werden:
 

@@ -3,7 +3,7 @@ package household_test
 // Integration tests against a real PostgreSQL. They run only when
 // HOUSEHOLD_TEST_DATABASE_URL points at a disposable database, e.g.:
 //
-//	docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=pg postgres:16-alpine
+//	docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=pg postgres:18-alpine
 //	HOUSEHOLD_TEST_DATABASE_URL='postgres://postgres:pg@localhost:55432/postgres?sslmode=disable' go test ./...
 //
 // The public schema of that database is dropped and recreated.
@@ -24,8 +24,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/features/household"
-	"alfheim/household/internal/shared/middleware"
 )
 
 const integrationDBEnv = "HOUSEHOLD_TEST_DATABASE_URL"
@@ -65,9 +65,9 @@ func setupIntegrationDB(t *testing.T) (*pgxpool.Pool, household.Service) {
 	return pool, svc
 }
 
-func claimsFor(sub string) *middleware.UserClaims {
+func claimsFor(sub string) *auth.UserClaims {
 	// Access tokens may carry no email; several users with an empty email must coexist.
-	return &middleware.UserClaims{Subject: sub}
+	return &auth.UserClaims{Subject: sub}
 }
 
 func TestIntegration_ConcurrentJoinOnSingleUseInvite(t *testing.T) {

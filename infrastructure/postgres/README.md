@@ -6,7 +6,7 @@ The `infrastructure/postgres` module provisions the consolidated PostgreSQL data
 
 ## 🎯 Purpose & Role
 
-Instead of running separate PostgreSQL container instances for each service, Alfheim uses a single `postgres-core` database server (PostgreSQL 16) hosting 11 isolated databases using the unified naming convention `alfheim_<app>`.
+Instead of running separate PostgreSQL container instances for each service, Alfheim uses a single `postgres-core` database server (PostgreSQL 18) hosting 11 isolated databases using the unified naming convention `alfheim_<app>`.
 
 To enforce least-privilege security, each microservice connects using its own dedicated database user (`<app>_user`) restricted to its own database.
 
@@ -44,4 +44,4 @@ To enforce least-privilege security, each microservice connects using its own de
 - **Internal Port**: `5432`
 - **Docker Networks**: Connected to `infra-net`, `core-net`, and all app networks (`app-*-net`).
 - **Healthcheck**: Executed via `pg_isready -U postgres` every 5 seconds.
-- **Volume Mount**: `./postgres/data` mounted to `/var/lib/postgresql/data`.
+- **Volume Mount**: `./postgres/data` mounted to `/var/lib/postgresql`; the cluster lives in its `18/docker` subdirectory (the image's `PGDATA`).

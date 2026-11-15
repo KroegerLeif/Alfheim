@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"alfheim/go-shared/auth"
 )
 
 // placeholderEmailDomain builds a unique, non-routable email for tokens that
@@ -42,7 +44,7 @@ func EnsureUserProfile(db ProfileDB, log *slog.Logger) func(http.Handler) http.H
 				return
 			}
 
-			claims, err := GetUserClaims(r.Context())
+			claims, err := auth.GetUserClaims(r.Context())
 			if err != nil || claims.Subject == "" || db == nil {
 				next.ServeHTTP(w, r)
 				return

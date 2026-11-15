@@ -5,20 +5,25 @@ FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /app
+# Build context: the repository root, so the image sees packages/go-shared
+# (wired in through the replace directive in go.mod). go.work is excluded by
+# .dockerignore: the build runs in module mode, exactly as outside the workspace.
+WORKDIR /src/core/household/backend
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates
 
 # Cache dependencies
-COPY go.mod go.sum ./
+COPY packages/go-shared/go.mod packages/go-shared/go.sum /src/packages/go-shared/
+COPY core/household/backend/go.mod core/household/backend/go.sum ./
 RUN go mod download
 
 # Copy source code
-COPY . .
+COPY packages/go-shared/ /src/packages/go-shared/
+COPY core/household/backend/ ./
 
 # Build binary
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o household-backend ./cmd/server
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/household-backend ./cmd/server
 
 # Production stage
 FROM alpine:3.24 AS runner
@@ -30,7 +35,7 @@ RUN apk add --no-cache ca-certificates tzdata \
     && adduser -S -u 10001 -G appgroup appuser
 
 COPY --from=builder --chown=appuser:appgroup /app/household-backend /app/household-backend
-COPY --from=builder --chown=appuser:appgroup /app/migrations /app/migrations
+COPY --from=builder --chown=appuser:appgroup /src/core/household/backend/migrations /app/migrations
 
 USER appuser
 

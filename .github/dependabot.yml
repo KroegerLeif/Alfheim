@@ -90,6 +90,26 @@ updates:
       - 'area:security'
 
   - package-ecosystem: gomod
+    directory: '/packages/go-shared'
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  - package-ecosystem: gomod
     directory: '/tools/installer'
     target-branch: dev
     schedule:

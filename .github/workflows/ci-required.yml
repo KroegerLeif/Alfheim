@@ -58,7 +58,9 @@ jobs:
               - 'apps/chat/backend/**'
               - 'core/dashboard/backend/**'
               - 'core/household/backend/**'
+              - 'packages/go-shared/**'
               - 'tools/installer/**'
+              - 'go.work'
               - '.github/workflows/go-ci.yml'
               - '.github/workflows/ci-required.yml'
             frontend:

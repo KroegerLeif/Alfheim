@@ -39,7 +39,7 @@ Source: [`apps/library/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `library-backend` | 8000 | `/library/api/v1` | FastAPI REST API |
 | `library-frontend` | 3000 | `alfheim.loegien.localhost/library` | Next.js Microfrontend |
 

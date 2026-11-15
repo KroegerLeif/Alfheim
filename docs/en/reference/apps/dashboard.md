@@ -50,7 +50,7 @@ The platform organizes applications, portals, and bookmarks into three distinct 
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/apps/health`, `/api/v1/user/*`, `/api/v1/telemetry*` | Go REST API Control Plane |
 | `dashboard-frontend` | 3000 | `alfheim.loegien.localhost/` | Next.js Landing Page Control Plane |
 

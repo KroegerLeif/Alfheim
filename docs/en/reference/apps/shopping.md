@@ -33,7 +33,7 @@ Source: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `shopping-backend` | 8000 | `/shopping/api/v1` | FastAPI REST API & Pantry Sync |
 | `shopping-frontend` | 3010 | `alfheim.loegien.localhost/shopping` | Next.js Microfrontend |
 

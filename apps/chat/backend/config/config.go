@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"alfheim/chat/internal/shared/crypto"
+
+	"alfheim/go-shared/db"
 )
 
 // Config encapsulates all chat-backend service configurations.
@@ -41,14 +43,9 @@ type HouseholdConfig struct {
 	InternalToken string
 }
 
-// DatabaseConfig holds PostgreSQL connection configuration settings.
-type DatabaseConfig struct {
-	URL             string
-	MaxConns        int32
-	MinConns        int32
-	MaxConnLifetime time.Duration
-	MigrationsDir   string
-}
+// DatabaseConfig holds PostgreSQL connection configuration settings. It is the
+// shared go-shared/db configuration, so it can be handed to db.NewClient as is.
+type DatabaseConfig = db.Config
 
 // OIDCConfig holds OpenID Connect verification settings used for bearer token validation.
 type OIDCConfig struct {

@@ -22,8 +22,10 @@ Allow about 30 minutes, most of which is spent waiting for container images.
 
 You need:
 
-* A Debian 12 (or comparable) host with Docker Engine 25 or newer, at least
-  2 GB RAM for Lean Core (4 GB for every app plus telemetry) and 10 GB free disk.
+* A Debian 12 (or comparable) host with Docker Engine 25 or newer and enough
+  RAM and disk for the apps you plan to run; the
+  [hardware tiers](../how-to/homelab-deployment.md#hardware-specifications)
+  list what each set needs.
 * Root or `sudo` access.
 * A domain you control, with DNS pointing at the host. This tutorial uses
   `example.com`; substitute your own throughout.
@@ -143,7 +145,7 @@ selection with `alfheim-setup apps list`. Open the dashboard URL and sign in wit
 
 ## What you built
 
-* A full Alfheim instance with unique, randomly generated credentials.
+* An Alfheim instance with the Lean Core and the apps you ticked, with unique, randomly generated credentials.
 * A TLS-terminating ingress gateway with certificates for your domain.
 * A Zitadel identity provider with an administrator account.
 
@@ -153,6 +155,7 @@ selection with `alfheim-setup apps list`. Open the dashboard URL and sign in wit
 * [deSEC DNS-01 TLS](../how-to/desec-dns-tls.md) — wildcard certificates on deSEC
 * [Custom certificates](../how-to/custom-certificates.md) — bring your own
 * [Trust the local root CA](../how-to/trust-local-root-ca.md) — for the local CA strategy
+* [Manage apps](../how-to/manage-apps.md) — switch optional apps on and off
 * [Installer CLI reference](../reference/installer-cli.md) — every flag
 * [Backup and restore](../how-to/backup-restore.md) — protect your data
 * [Update an installation](../how-to/update-installation.md) — every later release, one command

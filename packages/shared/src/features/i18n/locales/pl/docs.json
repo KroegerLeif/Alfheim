@@ -188,7 +188,7 @@
       "title": "Stos Technologiczny",
       "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
       "backend": "Backend: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
-      "database": "Bazy danych: PostgreSQL 16 (dedykowane instancje dla każdej aplikacji), ClickHouse",
+      "database": "Bazy danych: PostgreSQL 18 (dedykowane instancje dla każdej aplikacji), ClickHouse",
       "infra": "Infrastruktura: Docker Compose, Caddy 2, Zitadel 4, RustFS (zgodny z S3)",
       "categories": {
         "frontends": "Frontends & UI",
@@ -198,7 +198,7 @@
       },
       "items": {
         "controlPlane": "Go 1.23 (płaszczyzna sterowania i czat)",
-        "postgres": "PostgreSQL 16 (izolowane instancje)",
+        "postgres": "PostgreSQL 18 (izolowane instancje)",
         "rustfs": "RustFS (wydajny S3)",
         "victoria": "VictoriaStack (metryki i logi)",
         "redis": "Redis (cache)",

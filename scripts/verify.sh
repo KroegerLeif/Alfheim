@@ -205,7 +205,7 @@ if [[ "$RUN_GO" == true ]]; then
             if [[ -f "$service_dir/go.mod" ]]; then
                 GO_SERVICES+=("$service_dir")
             fi
-        done < <({ find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort; echo tools/installer; })
+        done < <({ find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort; echo packages/go-shared; echo tools/installer; })
 
         for service in "${GO_SERVICES[@]}"; do
             log_section "Go Backend Unit & Integration Tests ($service)"

@@ -13,7 +13,7 @@ import (
 
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/crypto"
-	"alfheim/chat/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 func seedBootstrapBlock(t *testing.T, repo *fakeRepository, baseURL string) *modelblocks.ModelBlock {
@@ -208,7 +208,7 @@ func TestHandler_DiscoverErrorsAreGeneric(t *testing.T) {
 	}))
 	defer failing.Close()
 
-	router := newTestRouter(newTestService(newFakeRepository()), &middleware.UserClaims{Subject: "u1"})
+	router := newTestRouter(newTestService(newFakeRepository()), &auth.UserClaims{Subject: "u1"})
 
 	post := func(body map[string]any) *httptest.ResponseRecorder {
 		raw, _ := json.Marshal(body)
@@ -237,7 +237,7 @@ func TestHandler_DiscoverErrorsAreGeneric(t *testing.T) {
 func TestHandler_BootstrapMutationReturnsForbidden(t *testing.T) {
 	repo := newFakeRepository()
 	m := seedBootstrapBlock(t, repo, "https://api.openai.com/v1")
-	router := newTestRouter(newTestService(repo), &middleware.UserClaims{Subject: "u1"})
+	router := newTestRouter(newTestService(repo), &auth.UserClaims{Subject: "u1"})
 
 	for _, method := range []string{http.MethodPatch, http.MethodDelete} {
 		req := httptest.NewRequest(method, "/api/v1/chat/model-blocks/"+m.ID, strings.NewReader(`{"base_url":"https://evil.example"}`))
