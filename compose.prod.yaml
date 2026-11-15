@@ -48,6 +48,12 @@ services:
       HETZNER_API_TOKEN: "${HETZNER_API_TOKEN:-}"
       CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
       DESEC_TOKEN: "${DESEC_TOKEN:-}"
+      # Gateway rate limits, requests per minute and client IP (see the
+      # rate_limit snippets in the Caddyfile).
+      ALFHEIM_RATE_LIMIT_LOGIN: "${ALFHEIM_RATE_LIMIT_LOGIN:-30}"
+      ALFHEIM_RATE_LIMIT_AUTH: "${ALFHEIM_RATE_LIMIT_AUTH:-600}"
+      ALFHEIM_RATE_LIMIT_API: "${ALFHEIM_RATE_LIMIT_API:-1200}"
+      ALFHEIM_RATE_LIMIT_LOOKUP: "${ALFHEIM_RATE_LIMIT_LOOKUP:-60}"
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Installer-generated root cert + key that sign the --tls internal
@@ -588,6 +594,9 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       - GF_USERS_ALLOW_SIGN_UP=false
+      # Grafana sends its own nonce-based Content-Security-Policy (it needs
+      # 'unsafe-eval' and remote images), which the gateway leaves in place.
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
       - GF_SERVER_ROOT_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true

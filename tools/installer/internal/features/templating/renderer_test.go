@@ -546,17 +546,18 @@ func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
 			}
 			caddy := string(out)
 
-			// Auth host, app host and the app_unavailable error routes.
-			if got := strings.Count(caddy, "\timport security_headers\n"); got != 3 {
-				t.Errorf("security_headers is imported %d times, want 3 (auth host, app host, error routes)", got)
+			// Auth host, app host and the app_unavailable and rate_limited
+			// error routes.
+			if got := strings.Count(caddy, "\timport security_headers\n"); got != 4 {
+				t.Errorf("security_headers is imported %d times, want 4 (auth host, app host, two error routes)", got)
 			}
 			for _, want := range []string{
 				"?X-Content-Type-Options \"nosniff\"",
 				"?Referrer-Policy \"strict-origin-when-cross-origin\"",
 				"?X-Frame-Options \"SAMEORIGIN\"",
 				"?Permissions-Policy ",
-				"?Content-Security-Policy \"frame-ancestors 'self'\"",
-				"?Content-Security-Policy-Report-Only ",
+				"?Content-Security-Policy \"default-src 'self'; ",
+				"; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'\"",
 				"-Server\n",
 			} {
 				if !strings.Contains(caddy, want) {
@@ -566,6 +567,9 @@ func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
 			if strings.Contains(caddy, "\n\t\tContent-Security-Policy ") {
 				t.Error("the enforced CSP must use the ? prefix so upstream policies win")
 			}
+			if strings.Contains(caddy, "Content-Security-Policy-Report-Only") {
+				t.Error("the CSP is enforced (#786); no report-only header may remain")
+			}
 
 			hasHSTS := strings.Contains(caddy, "Strict-Transport-Security \"max-age=31536000; includeSubDomains\"")
 			if hasHSTS != m.Onboarding.Secure {
@@ -573,6 +577,81 @@ func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestRenderedCaddyfileRateLimits pins the gateway rate limits (#785): the
+// rate_limit directive is ordered before every other handler, the auth host
+// limits login posts and all traffic, the app host limits the APIs and the
+// external lookups, every limit is keyed by client IP and tunable through an
+// ALFHEIM_RATE_LIMIT_* variable, and both hosts answer 429 via handle_errors.
+func TestRenderedCaddyfileRateLimits(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range tls.Strategies {
+		t.Run(string(s.ID), func(t *testing.T) {
+			m := model(t, onboarding.PresetCustom, tls.Config{Strategy: s.ID, APIToken: "tok"})
+			out, err := r.RenderCaddyfile(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			caddy := string(out)
+
+			for _, want := range []string{
+				"\torder rate_limit before basic_auth\n",
+				"\t\tzone auth_login {\n\t\t\tmatch {\n\t\t\t\tmethod POST\n\t\t\t\tpath /ui/login/* /ui/v2/login/*\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_LOGIN:30}\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_AUTH:600}\n",
+				"\t\t\t\tpath /api/v1/library/lookup* /library/api/v1/lookup* /api/v1/pantry/products/barcode/* /pantry/api/v1/products/barcode/*\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_LOOKUP:60}\n",
+				"\t\t\t\tpath /api/v1/* */api/v1/*\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_API:1200}\n",
+				"\thandle_errors 429 {\n",
+			} {
+				if !strings.Contains(caddy, want) {
+					t.Errorf("the %s Caddyfile lacks %q", s.ID, want)
+				}
+			}
+			if got, want := strings.Count(caddy, "\t\t\tkey {client_ip}\n"), 4; got != want {
+				t.Errorf("%d rate-limit zones are keyed by client IP, want %d", got, want)
+			}
+			if got := strings.Count(caddy, "\t\t\twindow 1m\n"); got != 4 {
+				t.Errorf("%d rate-limit zones use a one-minute window, want 4", got)
+			}
+
+			// Each site block imports its limits and the 429 handler.
+			auth := siteBlock(t, caddy, m.Onboarding.Scheme()+"://"+m.Onboarding.AuthHost+" {")
+			app := siteBlock(t, caddy, m.Onboarding.Scheme()+"://"+m.Onboarding.AppHost+" {")
+			for name, block := range map[string]string{"auth": auth, "app": app} {
+				if !strings.Contains(block, "\timport rate_limited\n") {
+					t.Errorf("the %s host does not import rate_limited", name)
+				}
+			}
+			if !strings.Contains(auth, "\timport auth_rate_limit\n") || strings.Contains(auth, "import api_rate_limit") {
+				t.Error("the auth host must import auth_rate_limit only")
+			}
+			if !strings.Contains(app, "\timport api_rate_limit\n") || strings.Contains(app, "import auth_rate_limit") {
+				t.Error("the app host must import api_rate_limit only")
+			}
+		})
+	}
+}
+
+// siteBlock returns the site block that opens with header, up to the closing
+// brace at column zero.
+func siteBlock(t *testing.T, caddy, header string) string {
+	t.Helper()
+	start := strings.Index(caddy, "\n"+header+"\n")
+	if start < 0 {
+		t.Fatalf("no site block %q", header)
+	}
+	rest := caddy[start+1:]
+	end := strings.Index(rest, "\n}\n")
+	if end < 0 {
+		t.Fatalf("site block %q is not closed", header)
+	}
+	return rest[:end]
 }
 
 // TestRenderedCaddyfileRouting pins the API routing contract shared with

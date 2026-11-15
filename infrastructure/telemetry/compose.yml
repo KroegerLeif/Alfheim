@@ -255,6 +255,9 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Grafana sends its own nonce-based Content-Security-Policy (it needs
+      # 'unsafe-eval' and remote images), which the gateway leaves in place.
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_PLUGINS_PREINSTALL=victoriametrics-logs-datasource
