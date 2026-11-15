@@ -404,6 +404,28 @@ services:
         reservations:
           memory: 32m
           cpus: 0.10
+  # VictoriaLogs >= 1.53 ships a distroless image without a shell or wget. This
+  # one-shot service copies a static busybox into a read-only volume so the
+  # VictoriaLogs healthcheck can still probe /health from inside the container.
+  victorialogs-probe:
+    image: busybox:1.38.0-musl
+    container_name: victorialogs-probe
+    profiles: ["telemetry"]
+    restart: "no"
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    read_only: true
+    command: ["cp", "/bin/busybox", "/probe/busybox"]
+    volumes:
+      - victorialogs_probe:/probe
+    deploy:
+      resources:
+        limits:
+          memory: 16m
+          cpus: 0.10
+
   victorialogs:
     image: victoriametrics/victoria-logs:v1.53.0
     container_name: victorialogs
@@ -418,8 +440,12 @@ services:
       - "-httpListenAddr=:9428"
     volumes:
       - ${ALFHEIM_LOGS_DATA_PATH:-victorialogs_data}:/victoria-logs-data
+      - victorialogs_probe:/probe:ro
+    depends_on:
+      victorialogs-probe:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
+      test: ["CMD", "/probe/busybox", "wget", "-q", "--spider", "http://127.0.0.1:9428/health"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -1594,6 +1620,7 @@ volumes:
   rustfs_data:
   victoriametrics_data:
   victorialogs_data:
+  victorialogs_probe:
   grafana_data:
 
 # ==============================================================================
