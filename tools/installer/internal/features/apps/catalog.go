@@ -113,3 +113,21 @@ func Lookup(name string) (App, bool) {
 	}
 	return App{}, false
 }
+
+// Chat is the optional app whose backend lists the MCP tools of the enabled
+// apps (CHAT_MCP_SERVERS).
+const Chat = "chat"
+
+// EnabledSetConsumers returns the running compose services that read the
+// enabled set from .env when their container is created, and so must be
+// recreated after changed was switched on or off: dashboard-backend always
+// (its tiles), chat-backend while chat stays enabled (its MCP tools). Chat's
+// own backend is left out when chat itself changed, because enabling starts
+// it with the new values and disabling removes it.
+func EnabledSetConsumers(changed App, set Set) []string {
+	services := []string{"dashboard-backend"}
+	if changed.Name != Chat && set.Has(Chat) {
+		services = append(services, "chat-backend")
+	}
+	return services
+}

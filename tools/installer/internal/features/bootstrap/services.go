@@ -31,6 +31,21 @@ func (o *Orchestrator) StartServices(ctx context.Context, services []string) err
 	return nil
 }
 
+// RecreateServices recreates the containers of services without touching
+// their dependencies, so a container picks up a changed .env (compose only
+// reads the environment when it creates a container).
+func (o *Orchestrator) RecreateServices(ctx context.Context, services []string) error {
+	if len(services) == 0 {
+		return errNoServices
+	}
+	o.logf("Recreating %v to apply the changed app set", services)
+	args := append([]string{"up", "-d", "--no-deps", "--force-recreate"}, services...)
+	if err := o.compose(ctx, args); err != nil {
+		return fmt.Errorf("bootstrap: recreate %v: %w", services, err)
+	}
+	return nil
+}
+
 // RemoveServices stops and removes the containers of services. It never
 // passes -v, so named volumes and the data in postgres-core survive and a
 // later StartServices brings the app back with its data.

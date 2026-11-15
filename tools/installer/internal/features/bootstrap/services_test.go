@@ -103,3 +103,27 @@ func TestWaitContainersReportsFailure(t *testing.T) {
 		t.Error("an unhealthy container was reported ready")
 	}
 }
+
+func TestRecreateServices(t *testing.T) {
+	ctx := context.Background()
+	rec := runner.NewRecording(nil)
+	o := New(rec, testLayout)
+	if err := o.RecreateServices(ctx, []string{"dashboard-backend", "chat-backend"}); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"docker compose -f " + composeFile + " up -d --no-deps --force-recreate dashboard-backend chat-backend",
+	}
+	if got := rec.CallStrings(); !reflect.DeepEqual(got, want) {
+		t.Errorf("calls = %v, want %v", got, want)
+	}
+
+	if err := o.RecreateServices(ctx, nil); !errors.Is(err, errNoServices) {
+		t.Errorf("RecreateServices(nil) = %v", err)
+	}
+	failing := runner.NewRecording(nil)
+	failing.ScriptResult(want[0], runner.Result{ExitCode: 1, Stderr: "boom"})
+	if err := New(failing, testLayout).RecreateServices(ctx, []string{"dashboard-backend", "chat-backend"}); err == nil {
+		t.Error("a failed recreate was not reported")
+	}
+}

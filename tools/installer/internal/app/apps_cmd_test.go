@@ -20,6 +20,7 @@ type fakeOrch struct {
 	calls            []string
 	started, removed []string
 	err              error
+	recreateErr      error
 	renderChanged    bool
 	renderErr        error
 }
@@ -44,6 +45,11 @@ func (f *fakeOrch) RemoveServices(_ context.Context, s []string) error {
 	f.calls = append(f.calls, "remove")
 	f.removed = append(f.removed, s...)
 	return f.err
+}
+
+func (f *fakeOrch) RecreateServices(_ context.Context, s []string) error {
+	f.calls = append(f.calls, "recreate "+strings.Join(s, ","))
+	return f.recreateErr
 }
 
 func (f *fakeOrch) RestartIngress(context.Context) error {
@@ -103,7 +109,9 @@ func TestAppsCommandEnableDisable(t *testing.T) {
 	}
 	wantCalls := []string{
 		"ensure-databases", "start", "wait pantry-backend,pantry-frontend", "render", "restart-ingress",
+		"recreate dashboard-backend", "wait dashboard-backend",
 		"remove", "render", "restart-ingress",
+		"recreate dashboard-backend", "wait dashboard-backend",
 	}
 	if !reflect.DeepEqual(starter.calls, wantCalls) {
 		t.Errorf("calls = %v\nwant    %v", starter.calls, wantCalls)
@@ -120,6 +128,59 @@ func TestAppsCommandEnableDisable(t *testing.T) {
 		t.Errorf("enable shopping without pantry: exit %d", code)
 	}
 	if !strings.Contains(stderr.String(), "requires pantry") {
+		t.Errorf("stderr = %q", stderr.String())
+	}
+}
+
+// TestAppsCommandRecreatesEnabledSetConsumers covers #922: the dashboard and,
+// while chat is enabled, the chat backend are recreated so their tiles and
+// tools follow the new set without `alfheim-setup update`.
+func TestAppsCommandRecreatesEnabledSetConsumers(t *testing.T) {
+	ctx := context.Background()
+
+	cmd, orch, _, stderr := newAppsCommand(t, "ALFHEIM_ENABLED_APPS=chat\n")
+	if code := cmd.Run(ctx, "enable", "pantry"); code != ExitOK {
+		t.Fatalf("enable exit %d: %s", code, stderr)
+	}
+	if code := cmd.Run(ctx, "disable", "pantry"); code != ExitOK {
+		t.Fatalf("disable exit %d: %s", code, stderr)
+	}
+	recreates := 0
+	for i, c := range orch.calls {
+		if c != "recreate dashboard-backend,chat-backend" {
+			continue
+		}
+		recreates++
+		if i+1 >= len(orch.calls) || orch.calls[i+1] != "wait dashboard-backend,chat-backend" {
+			t.Errorf("recreate must be followed by a health wait: %v", orch.calls)
+		}
+	}
+	if recreates != 2 {
+		t.Errorf("calls = %v, want dashboard and chat recreated after enable and disable", orch.calls)
+	}
+
+	// Switching chat itself recreates only the dashboard: enabling starts the
+	// chat backend fresh and disabling removes it.
+	cmd, orch, _, stderr = newAppsCommand(t, "ALFHEIM_ENABLED_APPS=\n")
+	if code := cmd.Run(ctx, "enable", "chat"); code != ExitOK {
+		t.Fatalf("enable chat exit %d: %s", code, stderr)
+	}
+	if code := cmd.Run(ctx, "disable", "chat"); code != ExitOK {
+		t.Fatalf("disable chat exit %d: %s", code, stderr)
+	}
+	for _, c := range orch.calls {
+		if strings.HasPrefix(c, "recreate") && c != "recreate dashboard-backend" {
+			t.Errorf("unexpected %q when chat itself changed", c)
+		}
+	}
+
+	// A failed recreate fails the command, so the operator sees it.
+	cmd, orch, _, stderr = newAppsCommand(t, "ALFHEIM_ENABLED_APPS=\n")
+	orch.recreateErr = errors.New("compose up failed")
+	if code := cmd.Run(ctx, "enable", "budget"); code != ExitFailure {
+		t.Errorf("enable with a failing recreate: exit %d", code)
+	}
+	if !strings.Contains(stderr.String(), "compose up failed") {
 		t.Errorf("stderr = %q", stderr.String())
 	}
 }

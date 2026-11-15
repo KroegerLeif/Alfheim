@@ -182,3 +182,24 @@ func TestParseSelection(t *testing.T) {
 		}
 	}
 }
+
+func TestEnabledSetConsumers(t *testing.T) {
+	pantry, _ := Lookup("pantry")
+	chat, _ := Lookup(Chat)
+	withChat := newSet("pantry", Chat)
+	for _, tc := range []struct {
+		name    string
+		changed App
+		set     Set
+		want    string
+	}{
+		{"chat off", pantry, newSet("pantry"), "dashboard-backend"},
+		{"chat on", pantry, withChat, "dashboard-backend,chat-backend"},
+		{"chat itself enabled", chat, withChat, "dashboard-backend"},
+		{"chat itself disabled", chat, newSet("pantry"), "dashboard-backend"},
+	} {
+		if got := strings.Join(EnabledSetConsumers(tc.changed, tc.set), ","); got != tc.want {
+			t.Errorf("%s: EnabledSetConsumers() = %s, want %s", tc.name, got, tc.want)
+		}
+	}
+}
