@@ -105,7 +105,7 @@
     "toolNoArguments": "Brak argumentów",
     "toolUnknown": "Nieznane narzędzie",
     "providerOllama": "Ollama (lokalnie / własny serwer)",
-    "providerOpenAICompatible": "Zgodny z OpenAI / vLLM",
+    "providerOpenAICompatible": "Zgodny z OpenAI / vLLM / OpenRouter",
     "saveModelError": "Nie udało się zapisać bloku modelu.",
     "deleteModelError": "Nie udało się usunąć bloku modelu.",
     "healthCheckError": "Sprawdzenie statusu nie powiodło się.",

@@ -105,7 +105,7 @@
     "toolNoArguments": "No arguments",
     "toolUnknown": "Unknown tool",
     "providerOllama": "Ollama (local / self-hosted)",
-    "providerOpenAICompatible": "OpenAI-compatible / vLLM",
+    "providerOpenAICompatible": "OpenAI-compatible / vLLM / OpenRouter",
     "saveModelError": "The model block could not be saved.",
     "deleteModelError": "The model block could not be deleted.",
     "healthCheckError": "The status check failed.",

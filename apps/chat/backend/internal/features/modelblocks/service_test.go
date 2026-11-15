@@ -25,6 +25,27 @@ type fakeRepository struct {
 	bootstrapKeys map[string]bool
 }
 
+// insertLegacyBlock stores a model block with a provider type the service no
+// longer accepts, the way rows created before #632 still exist in databases.
+func insertLegacyBlock(t *testing.T, repo *fakeRepository, id, owner string, householdID *string, visibility modelblocks.Visibility) *modelblocks.ModelBlock {
+	t.Helper()
+	m := &modelblocks.ModelBlock{
+		ID:              id,
+		OwnerUserID:     owner,
+		HouseholdID:     householdID,
+		Visibility:      visibility,
+		ProviderType:    llm.ProviderTypeAnthropic,
+		DisplayName:     "Legacy Anthropic",
+		ModelIdentifier: "claude-3",
+		ConfigJSON:      []byte("{}"),
+		HealthStatus:    modelblocks.HealthStatusUnknown,
+	}
+	if err := repo.Create(context.Background(), m); err != nil {
+		t.Fatalf("insert legacy block: %v", err)
+	}
+	return m
+}
+
 func newFakeRepository() *fakeRepository {
 	return &fakeRepository{
 		blocks:        make(map[string]*modelblocks.ModelBlock),
@@ -190,6 +211,34 @@ func TestService_CreateAndList(t *testing.T) {
 		_, err := svc.Create(ctx, "user-1", "", modelblocks.CreateRequest{DisplayName: "No Provider"})
 		if err != modelblocks.ErrInvalidProviderType {
 			t.Errorf("expected ErrInvalidProviderType, got %v", err)
+		}
+	})
+
+	for _, providerType := range []string{"anthropic", "gemini", "openrouter", "OLLAMA"} {
+		t.Run("rejects the unsupported provider type "+providerType, func(t *testing.T) {
+			_, err := svc.Create(ctx, "user-1", "", modelblocks.CreateRequest{
+				ProviderType:    providerType,
+				DisplayName:     "Unsupported",
+				ModelIdentifier: "some-model",
+			})
+			if err != modelblocks.ErrInvalidProviderType {
+				t.Errorf("expected ErrInvalidProviderType, got %v", err)
+			}
+		})
+	}
+
+	t.Run("accepts an openai_compatible block such as OpenRouter", func(t *testing.T) {
+		// The base URL is left out: the destination guard would resolve it.
+		created, err := svc.Create(ctx, "user-1", "", modelblocks.CreateRequest{
+			ProviderType:    llm.ProviderTypeOpenAICompatible,
+			DisplayName:     "OpenRouter",
+			ModelIdentifier: "meta-llama/llama-3.1-8b-instruct",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if created.ProviderType != llm.ProviderTypeOpenAICompatible {
+			t.Errorf("expected provider type %q, got %q", llm.ProviderTypeOpenAICompatible, created.ProviderType)
 		}
 	})
 
@@ -424,14 +473,9 @@ func TestService_TriggerHealthCheck(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("marks unknown health for an unimplemented provider", func(t *testing.T) {
-		created, err := svc.Create(ctx, "user-1", "", modelblocks.CreateRequest{
-			ProviderType:    "anthropic",
-			DisplayName:     "External",
-			ModelIdentifier: "claude-3",
-		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		// Create rejects unsupported provider types (#632), so the legacy row is
+		// inserted through the repository, as an older release may have stored it.
+		created := insertLegacyBlock(t, repo, "legacy-private", "user-1", nil, modelblocks.VisibilityPrivate)
 
 		result, err := svc.TriggerHealthCheck(ctx, "user-1", "", created.ID)
 		if err != nil {
@@ -462,15 +506,8 @@ func TestService_TriggerHealthCheck(t *testing.T) {
 	})
 
 	t.Run("authorized household member can trigger health check on shared block", func(t *testing.T) {
-		shared, err := svc.Create(ctx, "owner-1", "hh-1", modelblocks.CreateRequest{
-			ProviderType:    "anthropic",
-			DisplayName:     "Shared Anthropic",
-			ModelIdentifier: "claude-3",
-			Visibility:      modelblocks.VisibilityShared,
-		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		hh := "hh-1"
+		shared := insertLegacyBlock(t, repo, "legacy-shared", "owner-1", &hh, modelblocks.VisibilityShared)
 
 		res, err := svc.TriggerHealthCheck(ctx, "member-2", "hh-1", shared.ID)
 		if err != nil {

@@ -1,4 +1,5 @@
 import type { ModelBlock } from "@/features/conversations/types";
+import type { SupportedProviderType } from "@/features/model-blocks/types";
 import { request } from "./client";
 
 export function listModelBlocks(): Promise<ModelBlock[]> {
@@ -11,7 +12,7 @@ export function getModelBlock(id: string): Promise<ModelBlock> {
 
 export function createModelBlock(payload: {
   display_name: string;
-  provider_type: string;
+  provider_type: SupportedProviderType;
   model_identifier: string;
   base_url?: string;
   api_key?: string;

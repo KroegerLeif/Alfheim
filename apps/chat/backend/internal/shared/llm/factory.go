@@ -1,6 +1,9 @@
 package llm
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // Supported provider_type values for model blocks.
 const (
@@ -8,6 +11,16 @@ const (
 	ProviderTypeOpenAICompatible = "openai_compatible"
 	ProviderTypeAnthropic        = "anthropic"
 )
+
+// SupportedProviderTypes lists the provider_type values NewProvider can build.
+// Model blocks with any other provider type are rejected at creation (#632).
+// OpenRouter and other OpenAI-compatible gateways use ProviderTypeOpenAICompatible.
+var SupportedProviderTypes = []string{ProviderTypeOllama, ProviderTypeOpenAICompatible}
+
+// IsSupportedProviderType reports whether NewProvider can build a provider for providerType.
+func IsSupportedProviderType(providerType string) bool {
+	return slices.Contains(SupportedProviderTypes, providerType)
+}
 
 // NewProvider constructs a Provider for the given provider type.
 //

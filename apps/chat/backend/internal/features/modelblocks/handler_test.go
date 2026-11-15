@@ -227,15 +227,10 @@ func TestHandler_TriggerHealthCheck(t *testing.T) {
 	claims := &auth.UserClaims{Subject: "user-1"}
 	router := newTestRouter(svc, claims)
 
-	created, err := svc.Create(context.Background(), claims.Subject, testHouseholdID, modelblocks.CreateRequest{
-		ProviderType:    "anthropic", // still unimplemented as of Phase 5 -> deterministic "unknown" result
-		DisplayName:     "External",
-		ModelIdentifier: "claude-3",
-		Visibility:      modelblocks.VisibilityShared,
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	// An unimplemented provider gives a deterministic "unknown" result. Create
+	// rejects it (#632), so the row goes in through the repository.
+	hh := testHouseholdID
+	created := insertLegacyBlock(t, repo, "legacy-handler", claims.Subject, &hh, modelblocks.VisibilityShared)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/model-blocks/"+created.ID+"/health-check", nil)
 	rec := httptest.NewRecorder()
