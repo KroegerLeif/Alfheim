@@ -48,11 +48,14 @@ jobs:
           working-directory: ${{ matrix.service }}
           args: --enable-only revive
 
-      - name: Run Go Unit & Integration Tests with Race Detector & Coverage
-        run: go test -v -race -coverprofile=coverage.out ./...
+      # Tests with the race detector and the module's coverage gate (#813).
+      # The gates live in scripts/check-go-coverage.sh, shared with verify.sh.
+      - name: Run Go Tests with Race Detector & Enforce Coverage Gate
+        working-directory: .
+        run: ./scripts/check-go-coverage.sh "${{ matrix.service }}"
 
   installer-quality:
-    name: Installer Coverage Gate & Cross-Compile
+    name: Installer Cross-Compile & Dry Run
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -66,17 +69,6 @@ jobs:
         with:
           go-version: '1.27.4'
           cache-dependency-path: 'tools/installer/go.sum'
-
-      - name: Enforce Minimum Test Coverage (>= 80%)
-        run: |
-          go test -race -covermode=atomic \
-            -coverpkg=./internal/... -coverprofile=coverage.out ./...
-          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {print $3}' | tr -d '%')
-          echo "Total installer coverage: ${pct}%"
-          awk -v p="$pct" 'BEGIN { exit (p+0 >= 80.0) ? 0 : 1 }' || {
-            echo "::error::Installer coverage ${pct}% is below the required 80% gate."
-            exit 1
-          }
 
       - name: Cross-Compile Static Binaries (linux/amd64, linux/arm64)
         run: |
