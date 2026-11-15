@@ -6,6 +6,7 @@ import { useHouseholdCan } from "@alfheim/shared";
 import { Device } from "@/shared/types";
 import { Info, Wrench } from "lucide-react";
 import { useDeviceLabels } from "../hooks/useDeviceLabels";
+import { DeviceActions } from "./DeviceActions";
 
 interface OverviewTabProps {
   device: Device;
@@ -68,6 +69,8 @@ export function OverviewTab({ device, onStartMaintenance, onClose }: OverviewTab
           </p>
         </div>
       </div>
+
+      {canWrite && <DeviceActions device={device} onDeleted={onClose} />}
 
       {onStartMaintenance && canWrite && (
         <button

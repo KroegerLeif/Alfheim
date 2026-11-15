@@ -5,7 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
@@ -87,6 +87,12 @@ class QuickAddTransactionCreate(BaseModel):
     receipt_url: str | None = None
 
 
+# Columns of TransactionBase without a NULL value; a PATCH may omit them but not null them.
+NON_NULLABLE_UPDATE_FIELDS = frozenset(
+    {"description", "amount", "currency", "transaction_type", "transaction_date", "is_quick_add"}
+)
+
+
 class TransactionUpdate(BaseModel):
     """Pydantic model for updating transaction details."""
 
@@ -101,6 +107,24 @@ class TransactionUpdate(BaseModel):
     category_id: UUID | None = None
     receipt_url: str | None = None
     is_quick_add: bool | None = None
+
+    @model_validator(mode="after")
+    def reject_explicit_null_for_required_columns(self) -> "TransactionUpdate":
+        """Reject an explicit ``null`` for a column that cannot be empty (#790).
+
+        ``None`` is the default that marks a field as omitted, so a PATCH without the field
+        keeps the stored value. Sending ``null`` on purpose would otherwise write ``None``
+        into a non-nullable column; it is a validation error (422) instead.
+
+        Raises:
+            ValueError: When a non-nullable field was sent as ``null``.
+        """
+        explicit_nulls = sorted(
+            name for name in NON_NULLABLE_UPDATE_FIELDS if name in self.model_fields_set and getattr(self, name) is None
+        )
+        if explicit_nulls:
+            raise ValueError(f"these fields cannot be null: {', '.join(explicit_nulls)}")
+        return self
 
 
 class TransactionRead(TransactionBase):

@@ -77,7 +77,7 @@ async def test_get_overdue_tasks_and_update(db_session_isolated: AsyncSession):
     update_payload = TaskStateUpdate(supply_needed_date=new_date, comment="Deferred")
     updated_step = await TaskService.update_task_state(db_session, s1.id, update_payload, household_id=h1_id)
     assert updated_step.supply_needed_date == new_date
-    assert updated_step.description == "Deferred"
+    assert updated_step.comment == "Deferred"
 
     # Should no longer be overdue
     overdue_now = await TaskService.get_overdue_tasks(db_session, household_id=h1_id)

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from '@alfheim/shared';
+import { useAutoClear, useTranslation } from '@alfheim/shared';
 import {
   useDashboardApps,
   useAppHealth,
@@ -30,6 +30,9 @@ export default function DashboardPage() {
   const [editingApp, setEditingApp] = useState<AppItem | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Success toasts hide themselves; the load-error toast stays until dismissed.
+  const errorToast = t('dashboard.error_load_catalog');
+  useAutoClear(toastMessage === errorToast ? null : toastMessage, () => setToastMessage(null), 4000);
 
   // Trigger graceful error toast on API load failure (adjusted during render, not in an effect)
   const [wasError, setWasError] = useState(false);
@@ -49,7 +52,6 @@ export default function DashboardPage() {
 
   const handleSuccess = (appName: string) => {
     setToastMessage(t('dashboard.toast_bookmark_saved', { name: appName }));
-    setTimeout(() => setToastMessage(null), 4000);
   };
 
   return (

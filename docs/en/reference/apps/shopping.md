@@ -135,7 +135,7 @@ Invariants:
   caps every frontend (not just shopping) at `memory: 128m`, which may be tight for Next.js under
   Proxmox's virtualized overhead. Open follow-up for the shopping app sprint.
 - **No item icons**: the backend stores no icon per item, so the manual-item form has no icon picker (#511).
-- The target-household picker in the Einlagern dialog can only work for the list's own household (#627), repeated syncs count skipped items in the history again (#628) and a Pantry outage is answered with `400` (#629).
+- A Pantry outage during Einlagern is answered with `400` (#629).
 - No known open issues in the Pantry sync path beyond the general household-cache staleness
   documented in [Known Issues](../../explanation/known-issues.md).
 

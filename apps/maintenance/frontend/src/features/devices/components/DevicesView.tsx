@@ -18,7 +18,9 @@ interface DevicesViewProps {
 export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const t = useTranslations("maintenance");
   const canWrite = useHouseholdCan("write");
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  // The panel follows the id, so it shows the device as reloaded after an edit and closes once
+  // the device is gone (deleted here or elsewhere).
+  const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
   const [showWizard, setShowWizard] = useState(false);
 
   // Fetch households and devices using custom FDD hooks
@@ -26,6 +28,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
   const { data: devices, isLoading, isError: devicesError } = useDevices();
 
   const isError = householdsError || devicesError;
+  const selectedDevice = (devices ?? []).find((d) => d.id === selectedDeviceId) ?? null;
 
   if (isLoading) {
     return (
@@ -95,7 +98,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
             {/* Devices Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {group.devices.map((device) => (
-                <DeviceCard key={device.id} device={device} onSelect={setSelectedDevice} />
+                <DeviceCard key={device.id} device={device} onSelect={(d) => setSelectedDeviceId(d.id)} />
               ))}
             </div>
           </div>
@@ -106,7 +109,7 @@ export function DevicesView({ onStartMaintenance }: DevicesViewProps) {
       {selectedDevice && (
         <DeviceDetailPanel
           device={selectedDevice}
-          onClose={() => setSelectedDevice(null)}
+          onClose={() => setSelectedDeviceId(null)}
           onStartMaintenance={onStartMaintenance}
         />
       )}

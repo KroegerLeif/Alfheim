@@ -25,6 +25,20 @@ jobs:
     defaults:
       run:
         working-directory: ${{ matrix.service }}
+    # Migration round-trip tests (#916) create scratch databases here; they skip
+    # themselves when ALFHEIM_MIGRATION_TEST_DATABASE_URL is unset.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: pg
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,6 +66,8 @@ jobs:
       # The gates live in scripts/check-go-coverage.sh, shared with verify.sh.
       - name: Run Go Tests with Race Detector & Enforce Coverage Gate
         working-directory: .
+        env:
+          ALFHEIM_MIGRATION_TEST_DATABASE_URL: postgres://postgres:pg@localhost:5432/postgres?sslmode=disable
         run: ./scripts/check-go-coverage.sh "${{ matrix.service }}"
 
   installer-quality:

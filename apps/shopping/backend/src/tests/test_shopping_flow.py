@@ -241,6 +241,7 @@ async def test_sync_to_pantry_flow_and_history_logging(
     # Reset completion status of rice for a second run
     db_item1.is_completed = True
     db_item1.is_synced = False
+    db_item1.history_logged = False  # what unchecking the item does before it is bought again
     db_session.add(db_item1)
     await db_session.commit()
 

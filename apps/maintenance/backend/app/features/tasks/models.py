@@ -9,7 +9,8 @@ class MaintenanceStep(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     title: str
-    description: str | None = None
+    description: str | None = None  # the procedure, set when the step is created or edited
+    comment: str | None = None  # the latest inspection note, kept apart from the procedure (#620)
     recurrence: int  # in months
     supply_item: str | None = None
     supply_needed_date: str | None = None

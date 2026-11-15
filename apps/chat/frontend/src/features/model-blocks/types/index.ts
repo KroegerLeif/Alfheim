@@ -1,4 +1,10 @@
 export type ModelBlockVisibility = "private" | "shared";
+/**
+ * Provider types the chat backend accepts for new model blocks (`llm.SupportedProviderTypes`).
+ * OpenRouter and similar gateways use `openai_compatible`. Stored blocks may still carry an
+ * older, unsupported value, so {@link ModelBlock.provider_type} stays a plain string.
+ */
+export type SupportedProviderType = "ollama" | "openai_compatible";
 export type ModelBlockHealthStatus = "ok" | "unreachable" | "auth_invalid" | "unknown";
 
 export interface ModelBlock {
@@ -23,7 +29,7 @@ export interface ModelBlock {
 
 export interface CreateModelBlockRequest {
   display_name: string;
-  provider_type: string;
+  provider_type: SupportedProviderType;
   model_identifier: string;
   base_url?: string;
   api_key?: string;

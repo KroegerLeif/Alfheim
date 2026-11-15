@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useActiveHousehold } from "@alfheim/shared";
 import type { UnrecognizedShoppingItem } from "../types";
@@ -22,25 +21,19 @@ interface EinlagernModalProps {
 export function EinlagernModal({ listId, initialItems = [], onClose }: EinlagernModalProps) {
   const t = useTranslations("Modal");
 
+  // Stock always lands in the household that owns the list: the shopping backend resolves the list
+  // with the same household it forwards to Pantry, so another target cannot work (#627).
   const { householdId: activeHouseholdId } = useActiveHousehold();
-  const { data: householdsData } = useHouseholds();
-  const households = useMemo(() => householdsData ?? [], [householdsData]);
-  const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>("");
-
-  const resolvedHouseholdId = useMemo(() => {
-    if (selectedHouseholdId) return selectedHouseholdId;
-    if (households.length === 0) return "";
-    const matched = households.find((h) => h.id === activeHouseholdId);
-    return matched ? matched.id : households[0].id;
-  }, [selectedHouseholdId, households, activeHouseholdId]);
+  const householdId = activeHouseholdId ?? "";
+  const { data: households } = useHouseholds();
+  const householdName = (households ?? []).find((h) => h.id === householdId)?.name;
 
   const { items, pendingCount, isCreatingProduct, persistEdit, saveToCatalog, skip, remove } = useEinlagernItems(
     listId,
     initialItems,
-    resolvedHouseholdId
+    householdId
   );
   const allDone = pendingCount === 0;
-  const selectedHousehold = households.find((h) => h.id === resolvedHouseholdId) || households[0];
 
   return (
     <div
@@ -55,10 +48,7 @@ export function EinlagernModal({ listId, initialItems = [], onClose }: Einlagern
             allDone={allDone}
             pendingCount={pendingCount}
             onClose={onClose}
-            households={households}
-            resolvedHouseholdId={resolvedHouseholdId}
-            setSelectedHouseholdId={setSelectedHouseholdId}
-            selectedHousehold={selectedHousehold}
+            householdName={householdName}
           />
 
           {!allDone && (

@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add database-aware readiness probes to every backend: `GET /readyz` answers `200` only when the database answers (`SELECT 1` or a pool ping, 2 s timeout) and its schema is at the newest Alembic revision or golang-migrate version, `503` otherwise; `GET /healthz` stays a liveness probe. Compose healthchecks, Caddy's active health checks, the dashboard's app-health tiles and `verify-stack.sh` use `/readyz`, so a backend reports healthy only once its database is reachable (#788).
 - Give the OTel Collector a healthcheck (its `health_check` extension on `:13133`, probed with the static busybox from `victorialogs-probe`); `scripts/up.sh` now waits for it with `wait_healthy` (#812).
 - Add an optional sign-up allowlist, `ALFHEIM_SIGNUP_ALLOWLIST` (ADR 0009): when set, a user without a household may create one only when their verified e-mail address or its domain is listed; invited users always join, and the household app explains the refusal (#923).
+- Edit and delete maintenance devices and their steps: `PATCH`/`DELETE /api/v1/devices/{id}` and `POST`/`PATCH`/`DELETE /api/v1/devices/{id}/steps[/{step_id}]` (household-scoped, writers only), with edit and delete actions in the device panel and the Steps tab (#505).
+- Lend and return library items from their catalog card; the Lending page links to the catalog with a "Lend an item" action (#551).
+- Add `GET /api/v1/apps/enabled` (dashboard backend) and `useAppEnabled` in `@alfheim/shared`, so frontends can leave out entry points into an optional app that is not installed (#917).
+- Add `HouseholdMembershipClient.list_members`, `find_member` and the `get_member_directory` dependency to `backend_shared.household`, reading the household app's member listing with the user id apps store (#583).
+- Add `useAutoClear` to `@alfheim/shared` for flash and toast messages that hide themselves (#647).
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
@@ -71,6 +76,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
 - Enforce mode `0700` on `infrastructure/zitadel/provisioner/` when the installer writes the machine key; a git checkout or an older install had created it `0755`, and `MkdirAll` keeps an existing directory's mode.
 - Refresh `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` to one week ahead on `update` and on a plain re-run when it is missing, unparseable or past, as `scripts/init-env.sh` does; Zitadel refuses an expired date when it creates its first instance again after the database was wiped while `.env` was kept.
+- Roll the dashboard schema back past migration 4: the down migration of 000006 recreates `app_catalog`; a PostgreSQL round-trip test runs in the Go CI matrix (#916).
+- Hide pantry's ALFI chat button and widget when the optional chat app is not installed; an installed but stopped chat app still shows "not available" (#917).
+- Answer the dashboard shell's `status`, `apps`, `uptime` and `ping` from the app health probe, the telemetry metrics and a measured round trip instead of fixed text (#640).
+- Reject chat model blocks with a provider type the backend cannot run (`anthropic`, `gemini`, `openrouter`, ...) with `400`; OpenRouter works as `openai_compatible` (#632).
+- Cancel flash and toast timers when their component unmounts in maintenance, shopping, dashboard and household (#647).
+- Answer a budget transaction `PATCH` with an explicit `null` for a required field (`amount`, `description`, ...) with `422` instead of storing it (#790).
+- Report a failed barcode lookup in pantry's bulk add as `pantry.error.lookup_unavailable` and log it, instead of `product_not_found` (#630).
+- Count each Einlagern purchase in the shopping history once; items Pantry did not recognize are no longer counted again on every later sync (#628).
+- Remove the target-household picker from the Einlagern dialog; stock always goes to the list's own household, the only one the backend can serve (#627).
+- Keep a maintenance step's procedure when an inspection comment is saved: comments get their own `comment` field and an empty comment clears it (#620).
+- Give maintenance steps a first due date one interval after they are created, so new devices show up as due (#621).
+- Assign chores to members whose OIDC subject is not a UUID, reject read-only guests as assignees, and release open chores of someone who left the household or became a guest when the day's chores are listed (#581, #583).
 
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).

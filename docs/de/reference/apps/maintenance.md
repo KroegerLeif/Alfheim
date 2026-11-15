@@ -69,7 +69,9 @@ Alle Routen und MCP-Tools nutzen `require_household` aus `backend_shared`; Haush
 ## 🖥️ Frontend-Verhalten
 
 - **Fälligkeitsdaten sind Kalendertage.** Fälligkeitsdaten der Schritte sind reine Datumswerte. Das Frontend vergleicht sie mit dem heutigen Datum in der Zeitzone des Browsers (nie als UTC-Mitternacht); ein Schritt, der morgen fällig ist, ist deshalb zu jeder Uhrzeit „demnächst fällig". Ein Schritt ist *überfällig*, wenn sein Datum vor heute liegt, *demnächst fällig* von heute bis 14 Tage im Voraus (gleiche Schwellen wie `GET /api/v1/maintenance/summary`), sonst *in Ordnung*. Der Filter „Demnächst (30T)" zeigt überfällige Schritte und Schritte, die innerhalb von 30 Tagen fällig sind.
-- **Schritte ohne Fälligkeitsdatum sind „nicht geplant".** Ein Schritt hat erst nach der ersten Erledigung ein Fälligkeitsdatum. Er zählt in den Dashboard-Zahlen als *in Ordnung* (wie in der Backend-Summary), erscheint nicht unter „Demnächst (30T)" und löst keine Benachrichtigung aus.
+- **Erste Fälligkeitsdaten.** Ein Schritt, der mit einem Gerät angelegt oder später hinzugefügt wird, ist ein Intervall nach seiner Anlage fällig; eine Erledigung verschiebt das Fälligkeitsdatum um ein Intervall ab der Erledigung, und ein geändertes Intervall berechnet es ab der letzten Erledigung (oder ab heute) neu. Ältere Schritte ohne Fälligkeitsdatum erscheinen als „nicht geplant": Sie zählen in den Dashboard-Zahlen als *in Ordnung*, erscheinen nicht unter „Demnächst (30T)" und lösen keine Benachrichtigung aus.
+- **Geräte und Schritte bearbeiten.** Schreibberechtigte bearbeiten oder löschen ein Gerät im Detailbereich und fügen im Reiter „Schritte" Schritte hinzu, bearbeiten oder löschen sie (`PATCH`/`DELETE /api/v1/devices/{id}`, `POST /api/v1/devices/{id}/steps`, `PATCH`/`DELETE /api/v1/devices/{id}/steps/{step_id}`). Das Löschen eines Geräts entfernt auch seine Schritte und die Wartungshistorie; jedes Löschen fragt vorher nach. Ein explizites `null` für ein Pflichtfeld wird mit `422` beantwortet.
+- **Prüfkommentare.** Der Kommentar einer geplanten Aufgabe steht in einem eigenen Feld `comment` neben der Ablaufbeschreibung in `description`, die er nie verändert. `comment: null` oder ein leerer Kommentar löscht ihn; fehlt das Feld, bleibt er erhalten.
 - **Benachrichtigungsglocke.** Die Kopfzeile listet überfällige und demnächst fällige Schritte des aktiven Haushalts, die am längsten überfälligen zuerst. Ein Klick öffnet die geplanten Aufgaben.
 - **Teile-Warenkorb.** Der Wartungsassistent sammelt die Teile seiner Schritte in einem Warenkorb, der im `localStorage` liegt. Der Assistent sendet den Warenkorb mit dem Wartungsprotokoll (das Backend leitet ihn an Shopping weiter). Die Ansicht *Wartungseinkauf* kann den Warenkorb auch allein senden: Sie schickt jedes Teil an die öffentliche API der Einkaufs-App auf dem Frontend-Origin (`POST /shopping/api/v1/shopping/items`, mit dem Bearer-Token des Aufrufers und `X-Household-ID`) und behält Teile, die die Einkaufs-App abgelehnt hat, im Warenkorb. Der CSV-Export ist korrekt maskiert, entschärft Tabellenkalkulations-Formeln und nutzt übersetzte Spaltenköpfe.
 - **Sprachen.** Alle UI-Texte stammen aus `maintenance.json` (`en`, `de`, `pl`) in `@alfheim/shared`, auch Datumsangaben, Gerätestatus und Kategorien, Pluralformen und der Seitentitel. Die Tests rendern mit den echten Wörterbüchern, ein fehlender Schlüssel lässt also einen Test fehlschlagen.
@@ -109,7 +111,8 @@ Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`, `@m
 | --- | --- | --- |
 | `id` | Integer, PK | |
 | `title` | VARCHAR, NOT NULL | |
-| `description` | VARCHAR, nullable | |
+| `description` | VARCHAR, nullable | Die Ablaufbeschreibung |
+| `comment` | VARCHAR, nullable | Letzter Prüfkommentar (Migration 0003) |
 | `recurrence` | INTEGER, NOT NULL | Intervall in Monaten |
 | `supply_item`, `supply_needed_date`, `last_completed` | VARCHAR, nullable | |
 | `device_id` | Integer, FK → `device.id` | |
@@ -130,10 +133,7 @@ Bereitgestellt unter `POST /mcp` (`backend_shared.mcp_middleware.mount_mcp`, `@m
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 - **Alte Geräte fehlen nach dem Upgrade**: Eine Datenbank, die vor der Umstellung auf UUID-Haushalte angelegt wurde, wird beim Start umgestellt; die alten Zeilen bleiben im Schema `legacy_maintenance`, werden aber nicht mehr ausgeliefert – siehe [Fehlerbehebung](../../how-to/troubleshooting.md#symptom-5-alte-maintenance-daten-fehlen-nach-dem-update) und [Bekannte Probleme](../../explanation/known-issues.md).
-- **Geräte und Schritte lassen sich nicht bearbeiten oder löschen** (#505): Die API hat für Geräte nur `GET`/`POST` und keine Schritt-Endpunkte.
 - **Referenzfotos und Handbücher werden nicht unterstützt** (#503, #509): Die Oberfläche ist ausgeblendet, es gibt keinen Speicher.
-- **Ein gespeicherter Schritt-Kommentar ersetzt die Ablaufbeschreibung des Schritts und lässt sich nicht löschen** (#620).
-- **Schritte eines neuen Geräts haben kein erstes Fälligkeitsdatum**, bis sie einmal erledigt wurden (#621).
 - **Zwei Wege, eine Sitzung abzuschließen** (`POST /api/v1/submit` nutzt die UI, `/maintenance/wizard` und `/maintenance/summary` nutzt die UI nicht, #523), und `BudgetClient.reserve_maintenance_funds` wird nie aufgerufen (#519).
 - Keine weiteren bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
 

@@ -170,6 +170,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtM
 	healthHandler := apphealth.NewHandler(healthService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
 	capabilitiesHandler := capabilities.NewHandler()
+	enabledAppsHandler := apps.NewEnabledAppsHandler(coreApps)
 
 	// Router Setup
 	r := chi.NewRouter()
@@ -202,6 +203,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtM
 	healthHandler.RegisterRoutes(r, authMw)
 	telemetryHandler.RegisterRoutes(r, authMw)
 	capabilitiesHandler.RegisterRoutes(r, authMw)
+	enabledAppsHandler.RegisterRoutes(r, authMw)
 
 	return r
 }

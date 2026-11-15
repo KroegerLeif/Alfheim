@@ -1,33 +1,22 @@
 "use client";
 
 import React from "react";
-import { X, Building2, ChevronDown, AlertCircle } from "lucide-react";
+import { X, Building2, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-
-export interface HouseholdOption {
-  id: string;
-  name: string;
-  is_default?: boolean;
-}
 
 interface EinlagernModalHeaderProps {
   allDone: boolean;
   pendingCount: number;
   onClose: () => void;
-  households: HouseholdOption[];
-  resolvedHouseholdId: string;
-  setSelectedHouseholdId: (id: string) => void;
-  selectedHousehold?: HouseholdOption;
+  /** Name of the list's household, where the stock lands; omitted while it loads. */
+  householdName?: string;
 }
 
 export function EinlagernModalHeader({
   allDone,
   pendingCount,
   onClose,
-  households,
-  resolvedHouseholdId,
-  setSelectedHouseholdId,
-  selectedHousehold,
+  householdName,
 }: EinlagernModalHeaderProps) {
   const t = useTranslations("Modal");
 
@@ -61,27 +50,9 @@ export function EinlagernModalHeader({
           <span>{t("targetHousehold")}</span>
         </div>
 
-        {households.length > 1 ? (
-          <div className="relative min-w-0">
-            <select
-              aria-label={t("targetHousehold")}
-              value={resolvedHouseholdId}
-              onChange={(e) => setSelectedHouseholdId(e.target.value)}
-              className="appearance-none bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg px-3 py-1.5 pr-8 text-xs font-mono font-bold text-[var(--text-main)] outline-none cursor-pointer max-w-full truncate"
-            >
-              {households.map((hh) => (
-                <option key={hh.id} value={hh.id}>
-                  {hh.name} {hh.is_default ? t("defaultTag") : ""}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-2.5" />
-          </div>
-        ) : (
-          <span className="font-mono text-xs font-bold text-[var(--primary-main)] px-2 py-1 rounded-md bg-[var(--primary-main)]/10 border border-[var(--primary-main)]/20 truncate min-w-0">
-            {selectedHousehold?.name || t("defaultTag")}
-          </span>
-        )}
+        <span className="font-mono text-xs font-bold text-[var(--primary-main)] px-2 py-1 rounded-md bg-[var(--primary-main)]/10 border border-[var(--primary-main)]/20 truncate min-w-0">
+          {householdName || t("defaultTag")}
+        </span>
       </div>
     </>
   );

@@ -106,7 +106,6 @@ Jede Route hängt von `backend_shared.household.require_household` ab (jede Mitg
 
 - **Kein Lese-Fortschritt- oder Wunschlisten-Feature**: Frühere Dokumentation beschrieb beide; keins ist umgesetzt (siehe Hinweis unter Zweck & Kernwert oben). Kandidaten für den Library-App-Sprint, falls weiterhin gewünscht.
 - **MCP-Tools sind ein Platzhalter**: `get_library_status` ist das einzige Tool; Katalog-, Leih- und Lookup-Features haben noch keine MCP-Integration.
-- **Kein Verleihen aus der Oberfläche**: Das Backend (`POST /items/{id}/lend`) und ein `LendItemDialog` existieren, aber keine Seite öffnet den Dialog (#551). Nur das Zurückgeben funktioniert.
 - **Katalog-Facetten nicht erreichbar**: Spielerzahl-, Dauer- und FSK-Filter gibt es in `GET /search`, aber nicht in der Filterleiste (#567).
 - **Anbieter-Notizen werden nicht gespeichert**: Das Backend hat kein Notizfeld für Anbieter-Abos (#618).
 - Die Ausleih-Übersicht zeigt die letzten 100 Verlaufseinträge und weist darauf hin, wenn es mehr gibt; offene Ausleihen sind immer vollständig.

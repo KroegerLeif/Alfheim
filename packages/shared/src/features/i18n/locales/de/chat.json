@@ -105,7 +105,7 @@
     "toolNoArguments": "Keine Argumente",
     "toolUnknown": "Unbekanntes Werkzeug",
     "providerOllama": "Ollama (lokal / selbst gehostet)",
-    "providerOpenAICompatible": "OpenAI-kompatibel / vLLM",
+    "providerOpenAICompatible": "OpenAI-kompatibel / vLLM / OpenRouter",
     "saveModelError": "Der Modellblock konnte nicht gespeichert werden.",
     "deleteModelError": "Der Modellblock konnte nicht gelöscht werden.",
     "healthCheckError": "Die Statusprüfung ist fehlgeschlagen.",

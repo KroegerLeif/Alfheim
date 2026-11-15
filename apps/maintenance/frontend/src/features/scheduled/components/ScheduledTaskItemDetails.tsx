@@ -44,7 +44,7 @@ export function ScheduledTaskItemDetails({
       </div>
 
       {/* Step procedure description */}
-      {step.description && !comment && (
+      {step.description && (
         <p className="text-xs text-[var(--text-muted)] leading-relaxed break-words whitespace-pre-line">
           <strong>{t("scheduledTasks.procedureLabel")}</strong> {step.description}
         </p>

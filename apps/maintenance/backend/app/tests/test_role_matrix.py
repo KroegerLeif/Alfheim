@@ -14,6 +14,11 @@ WRITE_ROUTES = [
     ("POST", "/api/v1/submit"),
     ("POST", "/api/v1/maintenance/wizard"),
     ("POST", "/api/v1/tasks/1/state"),
+    ("PATCH", "/api/v1/devices/1"),
+    ("DELETE", "/api/v1/devices/1"),
+    ("POST", "/api/v1/devices/1/steps"),
+    ("PATCH", "/api/v1/devices/1/steps/1"),
+    ("DELETE", "/api/v1/devices/1/steps/1"),
 ]
 
 

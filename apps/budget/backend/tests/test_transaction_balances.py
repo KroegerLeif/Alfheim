@@ -360,3 +360,61 @@ async def test_pot_created_with_default_overflow_target_still_tracks_balance(cli
 
     amount = await _get_pot_amount(client, headers, pot_id)
     assert amount == Decimal("150.00")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field",
+    ["amount", "description", "currency", "transaction_type", "transaction_date", "is_quick_add"],
+)
+async def test_patch_with_explicit_null_is_rejected_and_changes_nothing(client: AsyncClient, field: str):
+    """An explicit null for a non-nullable field is a 422 and leaves transaction and balance as they were (#790)."""
+    headers = create_auth_headers()
+    account_id = await _create_account(client, headers, balance="1000.00")
+    resp = await client.post(
+        "/api/v1/transactions/",
+        headers=headers,
+        json={
+            "description": "Groceries",
+            "amount": "200.00",
+            "transaction_type": TransactionType.EXPENSE,
+            "account_id": account_id,
+        },
+    )
+    tx_id = resp.json()["id"]
+    before = (await client.get(f"/api/v1/transactions/{tx_id}", headers=headers)).json()
+
+    resp_patch = await client.patch(f"/api/v1/transactions/{tx_id}", headers=headers, json={field: None})
+
+    assert resp_patch.status_code == 422
+    assert field in resp_patch.text
+    after = (await client.get(f"/api/v1/transactions/{tx_id}", headers=headers)).json()
+    assert after == before
+    assert await _get_account_balance(client, headers, account_id) == Decimal("800.00")
+
+
+@pytest.mark.asyncio
+async def test_patch_without_amount_keeps_the_amount(client: AsyncClient):
+    """Omitting amount from a PATCH keeps the stored amount and balance (#790)."""
+    headers = create_auth_headers()
+    account_id = await _create_account(client, headers, balance="1000.00")
+    resp = await client.post(
+        "/api/v1/transactions/",
+        headers=headers,
+        json={
+            "description": "Groceries",
+            "amount": "200.00",
+            "transaction_type": TransactionType.EXPENSE,
+            "account_id": account_id,
+        },
+    )
+    tx_id = resp.json()["id"]
+
+    resp_patch = await client.patch(
+        f"/api/v1/transactions/{tx_id}", headers=headers, json={"description": "Market", "category_id": None}
+    )
+
+    assert resp_patch.status_code == 200
+    assert resp_patch.json()["description"] == "Market"
+    assert Decimal(resp_patch.json()["amount"]) == Decimal("200.00")
+    assert await _get_account_balance(client, headers, account_id) == Decimal("800.00")

@@ -126,6 +126,10 @@ class ShoppingItemService:
                 value = value.strip().lower()
             setattr(db_item, key, value)
 
+        # Unchecking an item puts it back on the list, so its next purchase counts again (#628).
+        if data.get("is_completed") is False:
+            db_item.history_logged = False
+
         session.add(db_item)
         await session.commit()
         await session.refresh(db_item)

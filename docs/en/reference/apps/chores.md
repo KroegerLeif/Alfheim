@@ -80,7 +80,8 @@ Chores always repeat daily; the only per-template switch is `is_non_cumulative`.
 - **Non-cumulative templates (default):** an unfinished instance of the previous day is marked `missed`, a fresh `pending` instance is generated, and the household streak is reset to 0.
 - **Cumulative templates:** an unfinished instance is not marked missed. It rolls forward (its `due_date` becomes today) and keeps stacking until someone completes it. On its own it does not reset the streak.
 - **Streak:** the streak grows by one when every instance of a day is completed, either when the last one is completed or at the next day's reset. A gap of more than one day without any instances resets it to 0. Skipped days are not backfilled.
-- **Assigning and claiming:** anyone can claim an unassigned chore for themselves or release their own claim. Assigning it to another member requires the `OWNER` or `ADMIN` household role and a member target. A completed or missed instance cannot be reassigned.
+- **Assigning and claiming:** anyone can claim an unassigned chore for themselves or release their own claim. Assigning it to another member requires the `OWNER` or `ADMIN` household role and a target whose user id belongs to a member of the household (matched against the household app's member list, so members with non-UUID subjects work too); a read-only `GUEST` cannot be assigned (`422`). A completed or missed instance cannot be reassigned.
+- **Reconciling assignments:** `GET /api/v1/chores/today` releases pending chores whose assignee left the household or became a `GUEST`. Completed and missed chores keep their assignee as history. When the member list cannot be read, the chores are returned as stored.
 - **Completing:** the recorded user is always the authenticated caller; only the display name may be supplied by the client.
 
 ---
@@ -163,7 +164,5 @@ Invariants:
 
 No known open issues beyond the general household-authorization items in
 [Known Issues](../../explanation/known-issues.md).
-
-- **Assignments are not reconciled after membership changes (#581).** A chore keeps its assignee after that person leaves the household. Role changes do not matter: claiming and completing are open to every member role. Reconciling needs to resolve the stored (derived) user id against the household's member list; `GET /internal/v1/households/{householdId}/members` exists, but `backend_shared` has no client for it yet (#583).
 
 ---

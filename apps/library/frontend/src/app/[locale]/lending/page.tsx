@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslation } from "@alfheim/shared";
+import { Button, useHouseholdCan, useTranslation } from "@alfheim/shared";
+import { Link } from "@/navigation";
 import {
   ActiveLoansList,
   LENDING_HISTORY_LIMIT,
@@ -12,6 +13,7 @@ import { LendingRecord } from "@/features/lending/types";
 
 export default function LendingPage() {
   const { t } = useTranslation();
+  const canWrite = useHouseholdCan("write");
   const { activeLoans, history, total, isLoading, error, returnItem } = useLending();
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const isLoadError = error === "load";
@@ -43,13 +45,21 @@ export default function LendingPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] p-1">
-          <button type="button" onClick={() => setActiveTab("active")} className={tabClass("active")}>
-            {t("library.lending.activeLoans")} ({activeLoans.length})
-          </button>
-          <button type="button" onClick={() => setActiveTab("history")} className={tabClass("history")}>
-            {t("library.lending.history")} ({history.length})
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canWrite && (
+            // Items are lent from their catalog card, where the lend dialog opens (#551).
+            <Button asChild size="sm">
+              <Link href="/catalog">+ {t("library.lending.lendFromCatalog")}</Link>
+            </Button>
+          )}
+          <div className="flex flex-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] p-1">
+            <button type="button" onClick={() => setActiveTab("active")} className={tabClass("active")}>
+              {t("library.lending.activeLoans")} ({activeLoans.length})
+            </button>
+            <button type="button" onClick={() => setActiveTab("history")} className={tabClass("history")}>
+              {t("library.lending.history")} ({history.length})
+            </button>
+          </div>
         </div>
       </div>
 

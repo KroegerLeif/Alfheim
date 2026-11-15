@@ -20,6 +20,8 @@ class MaintenanceSubmission(BaseModel):
 class TaskStateUpdate(BaseModel):
     """Input schema for updating an individual step's inspection state."""
 
-    comment: str | None = Field(default=None, max_length=2000)  # Free-text inspection note
+    # Free-text inspection note, stored apart from the step's procedure. Sending null (or an empty
+    # string) clears it; leaving the field out keeps the stored note.
+    comment: str | None = Field(default=None, max_length=2000)
     supply_needed_date: str | None = Field(default=None, max_length=32)  # Override the next-due date
     supply_item: str | None = Field(default=None, max_length=200)  # Override the supply item

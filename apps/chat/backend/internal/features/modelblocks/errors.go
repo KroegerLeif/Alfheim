@@ -1,6 +1,11 @@
 package modelblocks
 
-import "errors"
+import (
+	"errors"
+	"strings"
+
+	"alfheim/chat/internal/shared/llm"
+)
 
 var (
 	// ErrNotFound indicates the requested model block does not exist.
@@ -27,7 +32,7 @@ var (
 	// ErrInvalidVisibility indicates an unsupported visibility value was supplied.
 	ErrInvalidVisibility = errors.New("visibility must be \"private\" or \"shared\"")
 	// ErrInvalidProviderType indicates provider_type is empty or unsupported.
-	ErrInvalidProviderType = errors.New("provider_type is required")
+	ErrInvalidProviderType = errors.New("provider_type must be one of: " + strings.Join(llm.SupportedProviderTypes, ", "))
 	// ErrEncryptionKeyMissing indicates an API key was supplied but CHAT_ENCRYPTION_KEY
 	// is not configured, so it cannot be safely encrypted at rest.
 	ErrEncryptionKeyMissing = errors.New("cannot store an api key: CHAT_ENCRYPTION_KEY is not configured")

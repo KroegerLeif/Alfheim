@@ -93,10 +93,11 @@ async def test_update_task_state_rejects_step_of_other_household(session: AsyncS
         await TaskService.update_task_state(session, step_b.id, TaskStateUpdate(comment="hijacked"), home_a)
 
     await session.refresh(step_b)
-    assert step_b.description == "d"
+    assert step_b.comment is None
 
     updated = await TaskService.update_task_state(session, step_b.id, TaskStateUpdate(comment="mine"), home_b)
-    assert updated.description == "mine"
+    assert updated.comment == "mine"
+    assert updated.description == "d"
 
 
 def test_supply_items_are_capped():

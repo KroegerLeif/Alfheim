@@ -439,3 +439,19 @@ func TestOllamaProvider_EdgeCases(t *testing.T) {
 		}
 	})
 }
+
+func TestIsSupportedProviderType(t *testing.T) {
+	for _, providerType := range SupportedProviderTypes {
+		if !IsSupportedProviderType(providerType) {
+			t.Errorf("expected %q to be supported", providerType)
+		}
+		if _, err := NewProvider(providerType, "http://localhost:11434", "m", ""); err != nil {
+			t.Errorf("NewProvider(%q) must build every supported type, got %v", providerType, err)
+		}
+	}
+	for _, providerType := range []string{"", ProviderTypeAnthropic, "gemini", "openrouter"} {
+		if IsSupportedProviderType(providerType) {
+			t.Errorf("expected %q to be unsupported", providerType)
+		}
+	}
+}

@@ -20,7 +20,7 @@ interface InventoryTableRowProps {
 export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowProps) {
   const { t, language } = useTranslation();
   const canWrite = useHouseholdCan("write");
-  const { openChat } = usePantryChat();
+  const { chatEnabled, openChat } = usePantryChat();
   const now = useNow();
 
   const product = state.product;
@@ -72,29 +72,31 @@ export function InventoryTableRow({ state, onQuickAction }: InventoryTableRowPro
       {/* Quick actions & ALFI trigger */}
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-2">
-          <Button
-            onClick={() =>
-              openChat({
-                sourceApp: "pantry",
-                entityType: "product",
-                entityId: product.id,
-                entityData: {
-                  name: product.name,
-                  barcode: product.barcode,
-                  quantity: state.quantity,
-                  location: location.name,
-                  base_unit: product.base_unit,
-                },
-              })
-            }
-            variant="outline"
-            size="sm"
-            aria-label={`${t("pantry.askAlfi")}: ${product.name}`}
-            title={t("pantry.askAlfiAboutProduct")}
-            className="h-8 px-2 border-[var(--border-subtle)] hover:border-[var(--primary-main)] bg-[var(--surface-card)] hover:bg-[var(--surface-canvas)] cursor-pointer"
-          >
-            <AlfiAvatar status="idle" size="sm" />
-          </Button>
+          {chatEnabled && (
+            <Button
+              onClick={() =>
+                openChat({
+                  sourceApp: "pantry",
+                  entityType: "product",
+                  entityId: product.id,
+                  entityData: {
+                    name: product.name,
+                    barcode: product.barcode,
+                    quantity: state.quantity,
+                    location: location.name,
+                    base_unit: product.base_unit,
+                  },
+                })
+              }
+              variant="outline"
+              size="sm"
+              aria-label={`${t("pantry.askAlfi")}: ${product.name}`}
+              title={t("pantry.askAlfiAboutProduct")}
+              className="h-8 px-2 border-[var(--border-subtle)] hover:border-[var(--primary-main)] bg-[var(--surface-card)] hover:bg-[var(--surface-canvas)] cursor-pointer"
+            >
+              <AlfiAvatar status="idle" size="sm" />
+            </Button>
+          )}
           {canWrite && (
             <>
               <Button onClick={() => onQuickAction("in")} variant="outline" size="sm"

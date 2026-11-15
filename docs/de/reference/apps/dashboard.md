@@ -40,6 +40,7 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 
 ### FDD Domain-Features (`internal/features/`)
 - `apps`: Einheitliche 3-Tier-Anwendungsregister-Handler und YAML-Loader.
+- `apps` liefert außerdem `GET /api/v1/apps/enabled`: `{"apps": ["household", ...]}`, die Tier-1-App-IDs aus `ALFHEIM_ENABLED_APPS` (authentifiziert, unabhängig von ausgeblendeten Kacheln und Health). `useAppEnabled` in `@alfheim/shared` liest sie einmal pro Seitenaufruf, damit andere Frontends Einstiege in nicht installierte Apps weglassen (Pantry blendet ohne Chat-App den ALFI-Button und das Widget aus).
 - `telemetry`: System-Metriken und Log-Abfragen. Ist VictoriaLogs nicht erreichbar oder leer, liefert `GET /api/v1/telemetry/logs` feste Beispiel-Einträge (sie verweisen nur auf Routen, die das Dashboard bedient); das Frontend zeigt einen Hinweis, wenn die Log-Anfrage selbst fehlschlägt.
 
 ---
@@ -50,7 +51,7 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 | Service | Interner Port | Host-Mapping / Gateway-Route | Beschreibung |
 | :--- | :--- | :--- | :--- |
 | `postgres-core` | 5432 | Gemeinsame Multi-Zone-Netzwerke | PostgreSQL 16 Kern-Datenbankserver |
-| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/user/*`, `/api/v1/telemetry*` | Go REST API Kontrollzentrum |
+| `dashboard-backend` | 8080 | `/api/v1/apps`, `/api/v1/apps/health`, `/api/v1/apps/enabled`, `/api/v1/user/*`, `/api/v1/telemetry*` | Go REST API Kontrollzentrum |
 | `dashboard-frontend` | 3000 | `alfheim.loegien.localhost/` | Next.js Landing-Page-Kontrollzentrum |
 
 ### Essenzielle Umgebungsvariablen

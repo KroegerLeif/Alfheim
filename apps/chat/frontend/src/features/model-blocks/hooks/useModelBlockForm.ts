@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import type { CreateModelBlockRequest, ModelBlock, UpdateModelBlockRequest } from "../types";
+import type { CreateModelBlockRequest, ModelBlock, SupportedProviderType, UpdateModelBlockRequest } from "../types";
 
 /** Payload the model block form submits: a create request or an update for an existing block. */
 export type ModelBlockFormPayload = CreateModelBlockRequest | { id: string; payload: UpdateModelBlockRequest };
@@ -16,7 +16,11 @@ export function useModelBlockForm(model: ModelBlock | null | undefined, onSubmit
   const isEditing = !!model;
 
   const [displayName, setDisplayName] = useState(model?.display_name ?? "");
-  const [providerType, setProviderType] = useState(model?.provider_type ?? "ollama");
+  // Only new blocks pick a provider. A stored block that is not Ollama (including a legacy,
+  // now unsupported type) is edited with the manual endpoint fields, never Ollama discovery.
+  const [providerType, setProviderType] = useState<SupportedProviderType>(
+    model && model.provider_type !== "ollama" ? "openai_compatible" : "ollama",
+  );
   const [modelIdentifier, setModelIdentifier] = useState(model?.model_identifier ?? "");
   const [baseUrl, setBaseUrl] = useState(model?.base_url ?? "");
   const [apiKey, setApiKey] = useState("");
