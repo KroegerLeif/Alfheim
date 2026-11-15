@@ -63,7 +63,7 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `ZITADEL_DB_USER` | `zitadel_user` | Zitadel database user |
 | `ZITADEL_DB_PASSWORD` | `postgres` | Zitadel database password |
 | `ZITADEL_BOOTSTRAP_USERNAME` | `alfheim-bootstrap` | Machine user Zitadel creates with its first instance; `alfheim-setup` provisions as this user |
-| `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` | _(render time + 7 days, UTC)_ | Expiry of the PAT Zitadel creates for that user on first init. Required by `compose.prod.yaml`; `alfheim-setup update` adds it to an older `.env`. Ignored once the instance exists. |
+| `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` | _(render time + 7 days, UTC)_ | Expiry of the PAT Zitadel creates for that user on first init. Required by `compose.prod.yaml`. `alfheim-setup update` and a re-run of `alfheim-setup` add it when missing and move it one week ahead when it is past (a database wiped while `.env` is kept), as `scripts/init-env.sh` does. Ignored once the instance exists. |
 | `ZITADEL_BOOTSTRAP_PAT` | _(empty)_ | Stays empty. Set it only to recover after the machine key expired; the next provisioning run uses it once, revokes it in Zitadel and clears it. See [Zitadel credential](installer-cli.md#zitadel-credential). |
 
 The Zitadel service in `compose.prod.yaml` and `infrastructure/compose.yml` also sets two values that are not read from `.env`, because the rest of the stack depends on them. Both apply only when Zitadel creates its instance:
@@ -98,7 +98,7 @@ Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`),
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
-| `ALFHEIM_SMTP_HOST` | _(empty)_ | SMTP server host name, without port or scheme; flag `--smtp-host`. |
+| `ALFHEIM_SMTP_HOST` | _(empty)_ | SMTP server host name, without port or scheme; flag `--smtp-host`. `mailpit` in the local stack. |
 | `ALFHEIM_SMTP_PORT` | `587` once a host is set | SMTP port; flag `--smtp-port`. |
 | `ALFHEIM_SMTP_USER` | _(empty)_ | SMTP user; empty for a relay without authentication. Set together with the password; flag `--smtp-user`. |
 | `ALFHEIM_SMTP_PASSWORD` | _(empty)_ | SMTP password. Environment or `.env` only (no flag), never printed. |

@@ -77,6 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | Prüfung | Erwartet |
 | --- | --- |
 | Exit-Code des Installers und `scripts/verify-stack.sh` | 0, jeder Dienst gesund |
+| Zitadel-Anmeldung | Die Anmeldung aus dem Dashboard leitet auf `/ui/login/login` (Login V1) weiter, nicht auf `/ui/v2/login`; `GET /oauth/v2/keys` listet `RS256`-Schlüssel |
 | Zitadel `GET /admin/v1/policies/login` | `allowRegister` fehlt oder ist `false`; `/ui/login/register` antwortet „Registration is not allowed“ |
 | Projektrolle `alfheim_operator` | existiert, dem Admin zugewiesen, `projectRoleAssertion: true` |
 | Access-Token des Admins | enthält `alfheim_operator` unter `urn:zitadel:iam:org:project:roles` |
@@ -85,6 +86,8 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | `GET /api/v1/chat/mcp-servers/diagnostics`, `PATCH /api/v1/chat/mcp-servers/{id}` | 200 für den Admin, 403 für andere (die Liste selbst sehen sie gekürzt) |
 | Budget-Beleg: Handyfoto an eine Buchung anhängen | Der Browser sendet die Datei an `/api/v1/budget/transactions/receipt` (nie an `/storage/`); das gespeicherte Objekt ist ein kleines WebP |
 | Chat-Anhang hochladen | 201, das Objekt liegt in RustFS |
+| Zitadel-Zugangsdaten | `ZITADEL_BOOTSTRAP_PAT` in der `.env` ist leer, `infrastructure/zitadel/machinekey/pat.txt` ist gelöscht, `infrastructure/zitadel/provisioner/` hat Modus `0700` und `machine-key.json` Modus `0600`; `alfheim-setup zitadel-token --env-file .env` gibt ein Token aus |
+| Passwort-Zurücksetzung per E-Mail (mit SMTP) | **Forgot password** wird auf der Login-Seite angezeigt, und die E-Mail kommt an. Gegen Mailpit prüft `scripts/verify-stack.sh` das mit `ALFHEIM_SMTP_HOST=mailpit` selbst ([E-Mail einrichten](./configure-smtp.md#lokal-mit-mailpit-testen)); ohne SMTP ist der Link ausgeblendet |
 
 Prüfe die Zeilen für „andere“ mit einem zweiten Benutzer, dem ein eigener
 Haushalt gehört: Haushaltsrollen dürfen keine installationsweiten Ressourcen
@@ -153,5 +156,23 @@ aus. Erwartet:
   `DOCKER_SOCKET_GID`);
 - die Registrierung wird abgeschaltet und `alfheim_operator` wird auf der
   bestehenden Installation angelegt und zugewiesen;
+- das langlebige `ZITADEL_BOOTSTRAP_PAT` wird einmal verwendet, in Zitadel
+  widerrufen und aus der `.env` entfernt; stattdessen wird ein
+  Maschinenschlüssel gespeichert (Verzeichnis `0700`, Datei `0600`), und
+  `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` wird in der `.env` ergänzt;
 - alle mit dem vorherigen Release angelegten Daten sind noch da und
   beschreibbar.
+
+Ein Upgrade von v0.4.x oder älter hebt Zitadel außerdem von v2.66 auf v4.
+Zusätzlich erwartet:
+
+- Zitadel startet auf derselben Datenbank und mit demselben Masterkey und
+  führt seine Setup-Migrationen selbst aus (`start-from-init` überspringt die
+  Init-Schritte, die es bereits vorfindet);
+- vor dem Update ausgestellte Tokens werden abgelehnt (401), weil v4 nur mit
+  neuen Web Keys signiert; Benutzer melden sich neu an und behalten ihre
+  Zitadel-Benutzer-ID, ihre Haushalte bleiben also unverändert;
+- in den ersten Minuten nach dem Update kann `GET /oauth/v2/keys`
+  `{"keys":null}` liefern und die Anmeldung mit `Errors.WebKey.NoActive`
+  scheitern, während Zitadel seine Projektionen nachzieht; das erholt sich
+  ohne Eingriff.

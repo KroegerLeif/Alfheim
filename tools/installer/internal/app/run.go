@@ -697,6 +697,9 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 	if err := a.backfillSecrets(layout, existing); err != nil {
 		return err
 	}
+	if err := refreshBootstrapPATExpiry(a.Stdout, layout, existing, a.now()); err != nil {
+		return err
+	}
 	if _, err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}

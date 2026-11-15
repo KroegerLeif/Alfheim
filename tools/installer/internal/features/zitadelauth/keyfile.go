@@ -108,6 +108,11 @@ func WriteKey(path string, data []byte) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("zitadelauth: create %s: %w", dir, err)
 	}
+	// MkdirAll leaves an existing directory's mode alone, and a git checkout
+	// or an older install creates this one 0755, so tighten it explicitly.
+	if err := os.Chmod(dir, 0o700); err != nil {
+		return fmt.Errorf("zitadelauth: restrict %s to its owner: %w", dir, err)
+	}
 	tmp, err := os.CreateTemp(dir, ".key-*.json")
 	if err != nil {
 		return fmt.Errorf("zitadelauth: create temporary key file in %s: %w", dir, err)

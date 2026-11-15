@@ -92,15 +92,36 @@ func planEnvRepairs(env map[string]string, detect func() (string, error)) ([]env
 // lack it, and the updated compose file refuses to start without it.
 const bootstrapPATExpiryKey = "ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE"
 
-// bootstrapPATExpiryRepair adds the bootstrap PAT expiry when it is missing.
-// An existing Zitadel instance ignores it (first-instance settings only apply
-// when the instance is created), so a present value is never touched.
+// bootstrapPATExpiryRepair sets the bootstrap PAT expiry when it is missing,
+// unparseable or not in the future, with the same one-week window as a fresh
+// render (and scripts/init-env.sh). Zitadel refuses to create an already
+// expired PAT on first init, which happens when the database is wiped but the
+// old .env is kept. An existing instance ignores the value (first-instance
+// settings only apply when the instance is created), so refreshing it is
+// harmless there; a valid future value is never touched.
 func bootstrapPATExpiryRepair(env map[string]string, now time.Time) (envRepair, bool) {
-	if strings.TrimSpace(env[bootstrapPATExpiryKey]) != "" {
+	current := strings.TrimSpace(env[bootstrapPATExpiryKey])
+	if expiry, err := time.Parse(time.RFC3339, current); err == nil && expiry.After(now) {
 		return envRepair{}, false
 	}
 	expiry := now.Add(templating.BootstrapPATLifetime).UTC().Format(time.RFC3339)
 	return envRepair{bootstrapPATExpiryKey, env[bootstrapPATExpiryKey], expiry}, true
+}
+
+// refreshBootstrapPATExpiry applies only bootstrapPATExpiryRepair to .env. A
+// plain re-run of the installer uses it before Zitadel is (re)started, since
+// that path does not run the full repairEnvFile of `update`.
+func refreshBootstrapPATExpiry(stdout io.Writer, layout paths.Layout, env map[string]string, now time.Time) error {
+	r, ok := bootstrapPATExpiryRepair(env, now)
+	if !ok {
+		return nil
+	}
+	if err := envfile.Update(layout.EnvFile(), map[string]string{r.key: r.to}); err != nil {
+		return fmt.Errorf("alfheim-setup: refresh %s in .env: %w", r.key, err)
+	}
+	env[r.key] = r.to
+	fmt.Fprintf(stdout, "Refreshed .env: %s %q -> %q\n", r.key, r.from, r.to)
+	return nil
 }
 
 // repairEnvFile fixes known-broken values in an existing .env, logging every

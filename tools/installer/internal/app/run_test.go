@@ -252,6 +252,12 @@ func TestUpdateBackfillsNewSecretsAndEnsuresDatabases(t *testing.T) {
 	if !strings.Contains(stdout.String(), "ALFHEIM_INTERNAL_TOKEN") {
 		t.Errorf("stdout = %q, want the generated keys listed", stdout.String())
 	}
+	// The .env predates the bootstrap PAT expiry; a wiped database would make
+	// Zitadel run first-instance init again, so the re-run adds one a week
+	// after the test clock's now.
+	if vars[bootstrapPATExpiryKey] != "2026-03-08T00:00:00Z" {
+		t.Errorf("%s = %q, want one week after now", bootstrapPATExpiryKey, vars[bootstrapPATExpiryKey])
+	}
 
 	calls := rec.CallStrings()
 	compose := "docker compose -f " + filepath.Join(root, "compose.prod.yaml")
